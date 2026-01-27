@@ -1,0 +1,14 @@
+# LuxQuant Terminal - Python Dependencies
+# TODO: Phase 2.1 - Add dependencies
+
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+redis
+python-dotenv
+pydantic
+alembic
+httpx
+websockets
+
