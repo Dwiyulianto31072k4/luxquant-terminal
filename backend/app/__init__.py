@@ -1,1 +1,1 @@
-# LuxQuant Terminal - Backend App
+# LuxQuant Backend

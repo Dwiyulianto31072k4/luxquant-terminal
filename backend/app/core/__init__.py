@@ -1,1 +1,0 @@
-# LuxQuant Terminal - Core Module

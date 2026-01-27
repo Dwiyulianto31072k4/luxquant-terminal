@@ -1,1 +1,0 @@
-# LuxQuant Terminal - Models Module

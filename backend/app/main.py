@@ -1,3 +1,47 @@
-# LuxQuant Terminal - FastAPI Entry Point
-# TODO: Phase 2.1 - Setup FastAPI app, CORS, routes
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
+from app.config import settings
+from app.api.routes import signals, market
+from app.core.database import engine, Base
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 LuxQuant API Starting...")
+    yield
+    # Shutdown
+    print("👋 LuxQuant API Shutting down...")
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.VERSION,
+    description="LuxQuant Trading Signals API",
+    lifespan=lifespan
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Routes
+app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
+app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
+
+@app.get("/")
+async def root():
+    return {
+        "name": settings.APP_NAME,
+        "version": settings.VERSION,
+        "status": "running"
+    }
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}

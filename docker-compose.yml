@@ -1,3 +1,45 @@
-# LuxQuant Terminal - Docker Compose
-# TODO: Phase 1 - Configure services
+# LuxQuant Terminal - Docker Compose (Local Development)
+# Jalankan: docker-compose up -d
 
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: luxquant-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: luxquant
+      POSTGRES_PASSWORD: luxquant123
+      POSTGRES_DB: luxquant
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U luxquant -d luxquant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (untuk realtime price caching)
+  redis:
+    image: redis:7-alpine
+    container_name: luxquant-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
