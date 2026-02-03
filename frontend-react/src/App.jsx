@@ -3,25 +3,38 @@ import OverviewPage from './components/OverviewPage';
 import SignalsPage from './components/SignalsPage';
 import BitcoinPage from './components/BitcoinPage';
 import MarketsPage from './components/MarketsPage';
+import AnalyzePage from './components/AnalyzePage';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('terminal');
+
+  // Listen for navigation events from child components
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      setActiveTab(e.detail);
+    };
+    window.addEventListener('navigate', handleNavigate);
+    return () => window.removeEventListener('navigate', handleNavigate);
+  }, []);
 
   // Navigation items
   const navItems = [
-    { key: 'overview', label: 'Overview', icon: '📊' },
-    { key: 'signals', label: 'Signals', icon: '📡' },
-    { key: 'bitcoin', label: 'Bitcoin', icon: '₿' },
-    { key: 'markets', label: 'Markets', icon: '🪙' },
+    { key: 'terminal', label: 'Terminal' },
+    { key: 'signals', label: 'Potential Trades' },
+    { key: 'analytics', label: 'Performance Analytics' },
+    { key: 'bitcoin', label: 'Bitcoin' },
+    { key: 'markets', label: 'Markets' },
   ];
 
   // Render active page
   const renderPage = () => {
     switch (activeTab) {
-      case 'overview':
+      case 'terminal':
         return <OverviewPage />;
       case 'signals':
         return <SignalsPage />;
+      case 'analytics':
+        return <AnalyzePage />;
       case 'bitcoin':
         return <BitcoinPage />;
       case 'markets':
@@ -64,14 +77,13 @@ function App() {
                   <button
                     key={item.key}
                     onClick={() => setActiveTab(item.key)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       activeTab === item.key
                         ? 'text-gold-primary bg-gold-primary/10'
                         : 'text-text-secondary hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <span className="text-base">{item.icon}</span>
-                    <span className="hidden md:inline">{item.label}</span>
+                    {item.label}
                   </button>
                 ))}
               </nav>
@@ -131,7 +143,7 @@ function App() {
               <span className="text-text-muted text-sm">LuxQuant Terminal</span>
             </div>
             <p className="text-text-muted text-xs">
-              Data provided by CoinGecko & Alternative.me • Auto-refresh every 30s
+              Real-time data • Auto-refresh every 30s
             </p>
           </div>
         </div>
