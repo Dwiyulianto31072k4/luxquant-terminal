@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.api.routes import signals, market
+from app.api.routes import signals, market, auth
 from app.core.database import engine, Base
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ app.add_middleware(
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
+app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 
 @app.get("/")
 async def root():
