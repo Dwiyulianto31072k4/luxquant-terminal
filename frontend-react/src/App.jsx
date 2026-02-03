@@ -1,81 +1,35 @@
 import { useState, useEffect } from 'react';
-import Header from './components/Header';
-import StatsCards from './components/StatsCards';
-import SignalsTable from './components/SignalsTable';
-import MarketDashboard from './components/MarketDashboard';
-import { signalsApi, marketApi } from './services/api';
+import OverviewPage from './components/OverviewPage';
+import SignalsPage from './components/SignalsPage';
+import BitcoinPage from './components/BitcoinPage';
+import MarketsPage from './components/MarketsPage';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('signals'); // 'signals' or 'market'
-  const [signals, setSignals] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [market, setMarket] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState('all');
-  const [searchPair, setSearchPair] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch signals
-  const fetchSignals = async () => {
-    try {
-      const statusFilter = filter === 'all' ? null : filter;
-      const data = await signalsApi.getSignals(page, 20, statusFilter, searchPair || null);
-      setSignals(data.items);
-      setTotalPages(data.total_pages);
-    } catch (error) {
-      console.error('Error fetching signals:', error);
+  // Navigation items
+  const navItems = [
+    { key: 'overview', label: 'Overview', icon: '📊' },
+    { key: 'signals', label: 'Signals', icon: '📡' },
+    { key: 'bitcoin', label: 'Bitcoin', icon: '₿' },
+    { key: 'markets', label: 'Markets', icon: '🪙' },
+  ];
+
+  // Render active page
+  const renderPage = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <OverviewPage />;
+      case 'signals':
+        return <SignalsPage />;
+      case 'bitcoin':
+        return <BitcoinPage />;
+      case 'markets':
+        return <MarketsPage />;
+      default:
+        return <OverviewPage />;
     }
   };
-
-  // Fetch stats
-  const fetchStats = async () => {
-    try {
-      const data = await signalsApi.getStats();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  // Fetch market data
-  const fetchMarket = async () => {
-    try {
-      const data = await marketApi.getOverview();
-      setMarket(data);
-    } catch (error) {
-      console.error('Error fetching market:', error);
-    }
-  };
-
-  // Initial fetch
-  useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      await Promise.all([fetchSignals(), fetchStats(), fetchMarket()]);
-      setLoading(false);
-    };
-    fetchAll();
-  }, []);
-
-  // Refetch when filter or page changes
-  useEffect(() => {
-    if (activeTab === 'signals') {
-      fetchSignals();
-    }
-  }, [page, filter, searchPair, activeTab]);
-
-  // Auto refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (activeTab === 'signals') {
-        fetchSignals();
-        fetchStats();
-      }
-      fetchMarket();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [page, filter, searchPair, activeTab]);
 
   return (
     <div className="min-h-screen">
@@ -88,142 +42,100 @@ function App() {
       <div className="corner-ornament bottom-left" />
       <div className="corner-ornament bottom-right" />
 
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-bg-primary/95 backdrop-blur-md border-b border-gold-primary/10">
+        <div className="max-w-[1600px] mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo + Navigation */}
+            <div className="flex items-center gap-8">
+              {/* Logo */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark rounded-xl flex items-center justify-center shadow-gold-glow">
+                  <span className="font-display font-bold text-sm text-bg-primary">LQ</span>
+                </div>
+                <h1 className="font-display text-lg font-semibold text-white tracking-wide hidden sm:block">
+                  LuxQuant
+                </h1>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex items-center gap-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveTab(item.key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === item.key
+                        ? 'text-gold-primary bg-gold-primary/10'
+                        : 'text-text-secondary hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <span className="hidden md:inline">{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Right Side */}
+            <div className="flex items-center gap-3">
+              {/* Live Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-positive/10 border border-positive/30 rounded-lg">
+                <span className="w-2 h-2 bg-positive rounded-full live-dot" />
+                <span className="text-xs font-semibold text-positive uppercase">Live</span>
+              </div>
+
+              {/* Clock */}
+              <LiveClock />
+
+              {/* Search */}
+              <button className="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+
+              {/* Notifications */}
+              <button className="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded-lg transition-colors relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-gold-primary rounded-full" />
+              </button>
+
+              {/* Settings */}
+              <button className="p-2 text-text-muted hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Main Content */}
-      <div className="relative z-10 max-w-[1600px] mx-auto px-6 py-6">
-        {/* Header with Navigation */}
-        <header className="flex items-center justify-between py-4 mb-6 flex-wrap gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark rounded-2xl flex items-center justify-center shadow-gold-glow">
-              <span className="font-display font-bold text-xl text-bg-primary">LQ</span>
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-semibold text-white tracking-wide">LuxQuant</h1>
-              <p className="text-xs text-text-muted uppercase tracking-[3px]">Trading Terminal</p>
-            </div>
-          </div>
+      <main className="relative z-10 max-w-[1600px] mx-auto px-6 py-6">
+        {renderPage()}
+      </main>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 bg-bg-card/50 p-1.5 rounded-xl border border-gold-primary/20">
-            <button
-              onClick={() => setActiveTab('signals')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'signals'
-                  ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('market')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'market'
-                  ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                  : 'text-text-secondary hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Market
-            </button>
-          </div>
-
-          {/* Right Side */}
-          <div className="flex items-center gap-4">
-            {/* BTC Price Mini */}
-            {market && (
-              <div className="hidden lg:flex items-center gap-3 px-4 py-2 glass-card rounded-xl">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                  <span className="font-bold text-white text-sm">₿</span>
-                </div>
-                <div>
-                  <p className="font-mono text-lg font-bold text-white">
-                    ${market.btc_price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-                <span className={`font-mono text-sm font-semibold px-2 py-0.5 rounded ${
-                  market.btc_change_24h >= 0 
-                    ? 'bg-positive/10 text-positive' 
-                    : 'bg-negative/10 text-negative'
-                }`}>
-                  {market.btc_change_24h >= 0 ? '+' : ''}{market.btc_change_24h?.toFixed(2)}%
-                </span>
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-gold-primary/10 mt-12">
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark rounded-lg flex items-center justify-center">
+                <span className="font-display font-bold text-xs text-bg-primary">LQ</span>
               </div>
-            )}
-
-            <div className="flex items-center gap-2 px-4 py-2 bg-positive/10 border border-positive/30 rounded-full">
-              <span className="w-2 h-2 bg-positive rounded-full live-dot" />
-              <span className="text-xs font-semibold text-positive uppercase tracking-wider">Live</span>
+              <span className="text-text-muted text-sm">LuxQuant Terminal</span>
             </div>
-            <LiveClock />
+            <p className="text-text-muted text-xs">
+              Data provided by CoinGecko & Alternative.me • Auto-refresh every 30s
+            </p>
           </div>
-        </header>
-
-        {/* Content based on active tab */}
-        {activeTab === 'signals' ? (
-          <>
-            <StatsCards stats={stats} loading={loading} />
-
-            {/* Filter Section */}
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-                <h2 className="font-display text-2xl font-semibold text-white">Trading Signals</h2>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {/* Search */}
-                <input
-                  type="text"
-                  placeholder="Search pair..."
-                  value={searchPair}
-                  onChange={(e) => {
-                    setSearchPair(e.target.value);
-                    setPage(1);
-                  }}
-                  className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-xl text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/50 font-mono text-sm"
-                />
-                
-                {/* Filter Pills */}
-                <div className="flex gap-2">
-                  {['all', 'open', 'tp1', 'tp2', 'tp3', 'closed_win', 'closed_loss'].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => {
-                        setFilter(f);
-                        setPage(1);
-                      }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filter === f
-                          ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                          : 'bg-transparent border border-gold-primary/20 text-text-secondary hover:border-gold-primary/40 hover:text-white'
-                      }`}
-                    >
-                      {f === 'all' ? 'All' : f.toUpperCase().replace('_', ' ')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Signals Table */}
-            <SignalsTable 
-              signals={signals} 
-              loading={loading} 
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          </>
-        ) : (
-          <MarketDashboard />
-        )}
-      </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -237,18 +149,9 @@ const LiveClock = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
-
   return (
-    <div className="font-mono text-sm text-text-secondary px-4 py-2 bg-bg-card border border-gold-primary/15 rounded-xl">
-      {formatTime(time)}
+    <div className="hidden sm:block font-mono text-sm text-text-secondary px-3 py-1.5 bg-bg-card/50 border border-gold-primary/10 rounded-lg">
+      {time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </div>
   );
 };
