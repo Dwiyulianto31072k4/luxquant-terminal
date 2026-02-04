@@ -1,5 +1,7 @@
 """
-Market Data Router - Proxy for Binance Futures API (bypass CORS)
+Market Data Router - Multi-source with fallbacks
+Binance (primary) -> Bybit (fallback) for derivatives data
+Indonesia is restricted from Binance Futures, so we use Bybit as fallback
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Dict
@@ -8,17 +10,16 @@ from pydantic import BaseModel
 from datetime import datetime
 import logging
 
-# Setup logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/market", tags=["market"])
 
-# Binance API endpoints
+# API endpoints
 BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
+BYBIT_API = "https://api.bybit.com"
 
-# Timeout for external API calls
-TIMEOUT = 15.0
+TIMEOUT = 10.0
 
 
 # ============ Response Models ============
@@ -58,12 +59,6 @@ class OIHistoryItem(BaseModel):
     sumOpenInterestValue: float
 
 
-class PriceItem(BaseModel):
-    symbol: str
-    price: float
-    source: str
-
-
 class BatchPricesResponse(BaseModel):
     prices: Dict[str, float]
     failed: List[str]
@@ -71,117 +66,137 @@ class BatchPricesResponse(BaseModel):
     timestamp: datetime
 
 
-# ============ BTC Price (Spot - no CORS issue, but proxy anyway) ============
+# ============ Helper: Get BTC Price (multiple sources) ============
+
+async def get_btc_price_multi(client: httpx.AsyncClient) -> float:
+    """Get BTC price from multiple sources with fallback"""
+    
+    # Try Binance Spot first (usually works everywhere)
+    try:
+        response = await client.get(
+            f"{BINANCE_SPOT_API}/api/v3/ticker/price",
+            params={"symbol": "BTCUSDT"},
+            timeout=5.0
+        )
+        if response.status_code == 200:
+            return float(response.json()["price"])
+    except Exception as e:
+        logger.warning(f"Binance Spot price failed: {e}")
+    
+    # Fallback to Bybit
+    try:
+        response = await client.get(
+            f"{BYBIT_API}/v5/market/tickers",
+            params={"category": "linear", "symbol": "BTCUSDT"},
+            timeout=5.0
+        )
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("result", {}).get("list"):
+                return float(data["result"]["list"][0]["lastPrice"])
+    except Exception as e:
+        logger.warning(f"Bybit price failed: {e}")
+    
+    return 0.0
+
+
+# ============ BTC Ticker ============
 
 @router.get("/btc-ticker", response_model=BtcTickerResponse)
 async def get_btc_ticker():
-    """Get BTC/USDT 24hr ticker from Binance Spot"""
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+    """Get BTC/USDT 24hr ticker"""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        # Try Binance Spot
+        try:
             response = await client.get(
                 f"{BINANCE_SPOT_API}/api/v3/ticker/24hr",
                 params={"symbol": "BTCUSDT"}
             )
-            response.raise_for_status()
-            data = response.json()
-            
-            return BtcTickerResponse(
-                price=float(data["lastPrice"]),
-                high_24h=float(data["highPrice"]),
-                low_24h=float(data["lowPrice"]),
-                volume_24h=float(data["quoteVolume"]),
-                price_change_24h=float(data["priceChange"]),
-                price_change_pct=float(data["priceChangePercent"])
+            if response.status_code == 200:
+                data = response.json()
+                return BtcTickerResponse(
+                    price=float(data["lastPrice"]),
+                    high_24h=float(data["highPrice"]),
+                    low_24h=float(data["lowPrice"]),
+                    volume_24h=float(data["quoteVolume"]),
+                    price_change_24h=float(data["priceChange"]),
+                    price_change_pct=float(data["priceChangePercent"])
+                )
+        except Exception as e:
+            logger.warning(f"Binance ticker failed: {e}")
+        
+        # Fallback to Bybit
+        try:
+            response = await client.get(
+                f"{BYBIT_API}/v5/market/tickers",
+                params={"category": "spot", "symbol": "BTCUSDT"}
             )
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("result", {}).get("list"):
+                    item = data["result"]["list"][0]
+                    return BtcTickerResponse(
+                        price=float(item["lastPrice"]),
+                        high_24h=float(item["highPrice24h"]),
+                        low_24h=float(item["lowPrice24h"]),
+                        volume_24h=float(item["turnover24h"]),
+                        price_change_24h=float(item["lastPrice"]) - float(item["prevPrice24h"]),
+                        price_change_pct=float(item["price24hPcnt"]) * 100
+                    )
+        except Exception as e:
+            logger.warning(f"Bybit ticker failed: {e}")
+    
+    raise HTTPException(status_code=502, detail="All price sources failed")
 
 
-# ============ BATCH PRICES - For Watchlist ============
+# ============ BATCH PRICES ============
 
 @router.get("/prices", response_model=BatchPricesResponse)
 async def get_batch_prices(
-    symbols: str = Query(..., description="Comma-separated symbols, e.g., BTCUSDT,ETHUSDT,AGTUSDT")
+    symbols: str = Query(..., description="Comma-separated symbols")
 ):
-    """
-    Get current prices for multiple symbols.
-    Tries Binance Futures first (has more altcoins), then falls back to Spot.
-    """
-    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
-    
-    if not symbol_list:
-        raise HTTPException(status_code=400, detail="No symbols provided")
-    
-    if len(symbol_list) > 50:
-        raise HTTPException(status_code=400, detail="Maximum 50 symbols allowed")
-    
+    """Get prices for multiple symbols"""
+    symbol_list = [s.strip().upper() for s in symbols.split(",")]
     prices = {}
     failed = []
-    source = "none"
-    
-    logger.info(f"Fetching prices for symbols: {symbol_list}")
+    source = "binance"
     
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # Strategy 1: Try to fetch all from Binance Futures (most altcoins are here)
+        # Try Binance Spot (usually works in Indonesia)
         try:
-            logger.info("Attempting to fetch from Binance Futures...")
-            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price")
-            response.raise_for_status()
-            futures_data = response.json()
-            
-            logger.info(f"Binance Futures returned {len(futures_data)} symbols")
-            
-            # Create lookup dict
-            futures_prices = {item["symbol"]: float(item["price"]) for item in futures_data}
-            
-            for symbol in symbol_list:
-                if symbol in futures_prices:
-                    prices[symbol] = futures_prices[symbol]
-                    logger.info(f"Found {symbol} in Futures: {futures_prices[symbol]}")
-            
-            source = "binance_futures"
-                    
-        except httpx.HTTPError as e:
-            logger.error(f"Binance Futures bulk fetch failed: {e}")
-        except Exception as e:
-            logger.error(f"Binance Futures unexpected error: {e}")
-        
-        # Strategy 2: For symbols not found in futures, try Spot
-        remaining = [s for s in symbol_list if s not in prices]
-        
-        if remaining:
-            logger.info(f"Trying Binance Spot for remaining symbols: {remaining}")
-            try:
-                response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/price")
-                response.raise_for_status()
-                spot_data = response.json()
-                
-                logger.info(f"Binance Spot returned {len(spot_data)} symbols")
-                
-                # Create lookup dict
-                spot_prices = {item["symbol"]: float(item["price"]) for item in spot_data}
-                
-                for symbol in remaining:
+            response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/price")
+            if response.status_code == 200:
+                spot_prices = {item["symbol"]: float(item["price"]) for item in response.json()}
+                for symbol in symbol_list:
                     if symbol in spot_prices:
                         prices[symbol] = spot_prices[symbol]
-                        logger.info(f"Found {symbol} in Spot: {spot_prices[symbol]}")
                     else:
                         failed.append(symbol)
-                        logger.warning(f"Symbol {symbol} not found in Futures or Spot")
-                
-                if source == "binance_futures":
-                    source = "binance_futures+spot"
-                else:
-                    source = "binance_spot"
-                        
-            except httpx.HTTPError as e:
-                logger.error(f"Binance Spot bulk fetch failed: {e}")
-                failed.extend(remaining)
-            except Exception as e:
-                logger.error(f"Binance Spot unexpected error: {e}")
-                failed.extend(remaining)
-    
-    logger.info(f"Final result - prices: {len(prices)}, failed: {len(failed)}")
+        except Exception as e:
+            logger.warning(f"Binance prices failed: {e}")
+            failed = symbol_list
+            source = "bybit"
+            
+            # Fallback to Bybit
+            try:
+                response = await client.get(
+                    f"{BYBIT_API}/v5/market/tickers",
+                    params={"category": "spot"}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    bybit_prices = {
+                        item["symbol"]: float(item["lastPrice"]) 
+                        for item in data.get("result", {}).get("list", [])
+                    }
+                    failed = []
+                    for symbol in symbol_list:
+                        if symbol in bybit_prices:
+                            prices[symbol] = bybit_prices[symbol]
+                        else:
+                            failed.append(symbol)
+            except Exception as e2:
+                logger.warning(f"Bybit prices also failed: {e2}")
     
     return BatchPricesResponse(
         prices=prices,
@@ -193,236 +208,262 @@ async def get_batch_prices(
 
 @router.get("/price/{symbol}")
 async def get_single_price(symbol: str):
-    """
-    Get price for a single symbol.
-    Tries Futures first, then Spot.
-    """
+    """Get price for a single symbol"""
     symbol = symbol.upper()
     
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # Try Futures first
-        try:
-            response = await client.get(
-                f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price",
-                params={"symbol": symbol}
-            )
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    "symbol": symbol,
-                    "price": float(data["price"]),
-                    "source": "binance_futures"
-                }
-        except:
-            pass
-        
-        # Try Spot
+        # Try Binance Spot
         try:
             response = await client.get(
                 f"{BINANCE_SPOT_API}/api/v3/ticker/price",
                 params={"symbol": symbol}
             )
             if response.status_code == 200:
-                data = response.json()
                 return {
                     "symbol": symbol,
-                    "price": float(data["price"]),
+                    "price": float(response.json()["price"]),
                     "source": "binance_spot"
                 }
+        except:
+            pass
+        
+        # Fallback Bybit
+        try:
+            response = await client.get(
+                f"{BYBIT_API}/v5/market/tickers",
+                params={"category": "spot", "symbol": symbol}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("result", {}).get("list"):
+                    return {
+                        "symbol": symbol,
+                        "price": float(data["result"]["list"][0]["lastPrice"]),
+                        "source": "bybit"
+                    }
         except:
             pass
     
     raise HTTPException(status_code=404, detail=f"Price not found for {symbol}")
 
 
-# ============ Funding Rates (Futures) ============
+# ============ Funding Rates ============
 
 @router.get("/funding-rates", response_model=List[FundingRateItem])
 async def get_funding_rates(symbols: str = "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT"):
-    """
-    Get current funding rates for multiple symbols.
-    Pass comma-separated symbols.
-    """
+    """Get funding rates - tries Binance then Bybit"""
     symbol_list = [s.strip().upper() for s in symbols.split(",")]
+    result = []
     
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            # Fetch all funding rates
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        # Try Binance Futures
+        try:
             response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
-            response.raise_for_status()
-            data = response.json()
-            
-            # Filter for requested symbols
-            result = []
-            for item in data:
-                if item["symbol"] in symbol_list:
-                    result.append(FundingRateItem(
-                        symbol=item["symbol"],
-                        rate=float(item["lastFundingRate"]) * 100,  # Convert to percentage
-                        time=int(item["nextFundingTime"])
-                    ))
-            
-            return result
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                data = response.json()
+                for item in data:
+                    if item["symbol"] in symbol_list:
+                        result.append(FundingRateItem(
+                            symbol=item["symbol"],
+                            rate=float(item["lastFundingRate"]) * 100,
+                            time=int(item["nextFundingTime"])
+                        ))
+                if result:
+                    return result
+        except Exception as e:
+            logger.warning(f"Binance funding failed: {e}")
+        
+        # Fallback to Bybit
+        try:
+            response = await client.get(
+                f"{BYBIT_API}/v5/market/tickers",
+                params={"category": "linear"}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                for item in data.get("result", {}).get("list", []):
+                    if item["symbol"] in symbol_list:
+                        result.append(FundingRateItem(
+                            symbol=item["symbol"],
+                            rate=float(item.get("fundingRate", 0)) * 100,
+                            time=int(datetime.utcnow().timestamp() * 1000)
+                        ))
+        except Exception as e:
+            logger.warning(f"Bybit funding failed: {e}")
+    
+    return result
 
 
-# ============ Long/Short Ratio (Futures Data) ============
+# ============ Long/Short Ratio ============
 
 @router.get("/long-short-ratio", response_model=LongShortRatioResponse)
-async def get_long_short_ratio(
-    symbol: str = "BTCUSDT",
-    period: str = "5m"
-):
-    """
-    Get long/short account ratio.
-    Periods: 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1d
-    """
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+async def get_long_short_ratio(symbol: str = "BTCUSDT", period: str = "5m"):
+    """Get long/short ratio - Binance then Bybit"""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        # Try Binance
+        try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
-                params={
-                    "symbol": symbol.upper(),
-                    "period": period,
-                    "limit": 1
-                }
+                params={"symbol": symbol.upper(), "period": period, "limit": 1}
             )
-            response.raise_for_status()
-            data = response.json()
-            
-            if data:
-                latest = data[0]
-                return LongShortRatioResponse(
-                    symbol=symbol,
-                    longAccount=float(latest["longAccount"]) * 100,
-                    shortAccount=float(latest["shortAccount"]) * 100,
-                    longShortRatio=float(latest["longShortRatio"]),
-                    timestamp=int(latest["timestamp"])
-                )
-            
-            raise HTTPException(status_code=404, detail="No data available")
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    latest = data[0]
+                    return LongShortRatioResponse(
+                        symbol=latest["symbol"],
+                        longAccount=float(latest["longAccount"]) * 100,
+                        shortAccount=float(latest["shortAccount"]) * 100,
+                        longShortRatio=float(latest["longShortRatio"]),
+                        timestamp=int(latest["timestamp"])
+                    )
+        except Exception as e:
+            logger.warning(f"Binance L/S ratio failed: {e}")
+        
+        # Fallback Bybit (account ratio)
+        try:
+            response = await client.get(
+                f"{BYBIT_API}/v5/market/account-ratio",
+                params={"category": "linear", "symbol": symbol.upper(), "period": "1d", "limit": 1}
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("result", {}).get("list"):
+                    item = data["result"]["list"][0]
+                    buy_ratio = float(item.get("buyRatio", 0.5))
+                    sell_ratio = float(item.get("sellRatio", 0.5))
+                    return LongShortRatioResponse(
+                        symbol=symbol.upper(),
+                        longAccount=buy_ratio * 100,
+                        shortAccount=sell_ratio * 100,
+                        longShortRatio=buy_ratio / sell_ratio if sell_ratio > 0 else 1,
+                        timestamp=int(item.get("timestamp", datetime.utcnow().timestamp() * 1000))
+                    )
+        except Exception as e:
+            logger.warning(f"Bybit L/S ratio failed: {e}")
+    
+    raise HTTPException(status_code=502, detail="Long/short ratio unavailable")
 
 
-# ============ Open Interest (Futures) ============
+# ============ Open Interest ============
 
 @router.get("/open-interest", response_model=OpenInterestResponse)
 async def get_open_interest(symbol: str = "BTCUSDT"):
-    """Get current open interest for a symbol"""
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            # Get OI
-            oi_response = await client.get(
+    """Get open interest - Binance then Bybit"""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        btc_price = await get_btc_price_multi(client)
+        
+        # Try Binance Futures
+        try:
+            response = await client.get(
                 f"{BINANCE_FUTURES_API}/fapi/v1/openInterest",
                 params={"symbol": symbol.upper()}
             )
-            oi_response.raise_for_status()
-            oi_data = oi_response.json()
-            
-            # Get current price for USD value
-            price_response = await client.get(
-                f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price",
-                params={"symbol": symbol.upper()}
+            if response.status_code == 200:
+                data = response.json()
+                oi = float(data["openInterest"])
+                return OpenInterestResponse(
+                    symbol=symbol.upper(),
+                    openInterest=oi,
+                    openInterestUsd=oi * btc_price
+                )
+        except Exception as e:
+            logger.warning(f"Binance OI failed: {e}")
+        
+        # Fallback Bybit
+        try:
+            response = await client.get(
+                f"{BYBIT_API}/v5/market/open-interest",
+                params={"category": "linear", "symbol": symbol.upper()}
             )
-            price_response.raise_for_status()
-            price_data = price_response.json()
-            
-            oi = float(oi_data["openInterest"])
-            price = float(price_data["price"])
-            
-            return OpenInterestResponse(
-                symbol=symbol,
-                openInterest=oi,
-                openInterestUsd=oi * price
-            )
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("result", {}).get("list"):
+                    item = data["result"]["list"][0]
+                    oi = float(item.get("openInterest", 0))
+                    return OpenInterestResponse(
+                        symbol=symbol.upper(),
+                        openInterest=oi,
+                        openInterestUsd=oi * btc_price
+                    )
+        except Exception as e:
+            logger.warning(f"Bybit OI failed: {e}")
+    
+    raise HTTPException(status_code=502, detail="Open interest unavailable")
 
+
+# ============ OI History ============
 
 @router.get("/open-interest-history", response_model=List[OIHistoryItem])
-async def get_open_interest_history(
-    symbol: str = "BTCUSDT",
-    period: str = "1h",
-    limit: int = 24
-):
-    """
-    Get open interest history.
-    Periods: 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1d
-    """
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+async def get_oi_history(symbol: str = "BTCUSDT", period: str = "5m", limit: int = 30):
+    """Get OI history"""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        # Try Binance
+        try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/futures/data/openInterestHist",
-                params={
-                    "symbol": symbol.upper(),
-                    "period": period,
-                    "limit": min(limit, 500)  # Max 500
-                }
+                params={"symbol": symbol.upper(), "period": period, "limit": min(limit, 500)}
             )
-            response.raise_for_status()
-            data = response.json()
-            
-            return [
-                OIHistoryItem(
-                    timestamp=int(item["timestamp"]),
-                    sumOpenInterest=float(item["sumOpenInterest"]),
-                    sumOpenInterestValue=float(item["sumOpenInterestValue"])
-                )
-                for item in data
-            ]
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                data = response.json()
+                return [
+                    OIHistoryItem(
+                        timestamp=int(item["timestamp"]),
+                        sumOpenInterest=float(item["sumOpenInterest"]),
+                        sumOpenInterestValue=float(item["sumOpenInterestValue"])
+                    )
+                    for item in data
+                ]
+        except Exception as e:
+            logger.warning(f"Binance OI history failed: {e}")
+        
+        # Bybit doesn't have easy OI history, return empty
+        return []
 
 
-# ============ Taker Buy/Sell Volume (Futures) ============
+# ============ Taker Volume ============
 
 @router.get("/taker-volume")
-async def get_taker_volume(
-    symbol: str = "BTCUSDT",
-    period: str = "5m",
-    limit: int = 30
-):
-    """Get taker buy/sell volume ratio"""
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+async def get_taker_volume(symbol: str = "BTCUSDT", period: str = "5m", limit: int = 30):
+    """Get taker buy/sell volume"""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/futures/data/takerlongshortRatio",
-                params={
-                    "symbol": symbol.upper(),
-                    "period": period,
-                    "limit": min(limit, 500)
-                }
+                params={"symbol": symbol.upper(), "period": period, "limit": min(limit, 500)}
             )
-            response.raise_for_status()
-            data = response.json()
-            
-            return [
-                {
-                    "timestamp": int(item["timestamp"]),
-                    "buyVol": float(item["buyVol"]),
-                    "sellVol": float(item["sellVol"]),
-                    "buySellRatio": float(item["buySellRatio"])
-                }
-                for item in data
-            ]
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
+            if response.status_code == 200:
+                return [
+                    {
+                        "timestamp": int(item["timestamp"]),
+                        "buyVol": float(item["buyVol"]),
+                        "sellVol": float(item["sellVol"]),
+                        "buySellRatio": float(item["buySellRatio"])
+                    }
+                    for item in response.json()
+                ]
+        except Exception as e:
+            logger.warning(f"Taker volume failed: {e}")
+    
+    return []
 
 
-# ============ Aggregated Market Data ============
+# ============ MARKET OVERVIEW (Main endpoint) ============
 
 @router.get("/overview")
 async def get_market_overview():
     """
-    Get complete market overview in one call.
-    Combines BTC price, funding rate, open interest, and long/short ratio.
+    Get complete market overview - uses Bybit as fallback for derivatives data
+    Indonesia is restricted from Binance Futures, so Bybit is used automatically
     """
     result = {}
+    btc_price = 0.0
     
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # BTC Ticker
+        # STEP 1: Get BTC Price first
+        btc_price = await get_btc_price_multi(client)
+        
+        # BTC Ticker (24h data) - Binance Spot usually works
         try:
             response = await client.get(
                 f"{BINANCE_SPOT_API}/api/v3/ticker/24hr",
@@ -437,10 +478,15 @@ async def get_market_overview():
                     "volume_24h": float(data["quoteVolume"]),
                     "price_change_pct": float(data["priceChangePercent"])
                 }
-        except:
-            pass
+                if btc_price == 0:
+                    btc_price = float(data["lastPrice"])
+        except Exception as e:
+            logger.warning(f"BTC ticker failed: {e}")
+        
+        # STEP 2: Derivatives data - Try Binance, fallback Bybit
         
         # Funding Rate
+        funding_success = False
         try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex",
@@ -452,10 +498,32 @@ async def get_market_overview():
                     "rate": float(data["lastFundingRate"]) * 100,
                     "next_time": int(data["nextFundingTime"])
                 }
-        except:
-            pass
+                funding_success = True
+                logger.info("Using Binance for funding rate")
+        except Exception as e:
+            logger.warning(f"Binance funding failed: {e}")
+        
+        if not funding_success:
+            # Bybit fallback
+            try:
+                response = await client.get(
+                    f"{BYBIT_API}/v5/market/tickers",
+                    params={"category": "linear", "symbol": "BTCUSDT"}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("result", {}).get("list"):
+                        item = data["result"]["list"][0]
+                        result["funding"] = {
+                            "rate": float(item.get("fundingRate", 0)) * 100,
+                            "next_time": int(datetime.utcnow().timestamp() * 1000)
+                        }
+                        logger.info("Using Bybit for funding rate")
+            except Exception as e:
+                logger.warning(f"Bybit funding also failed: {e}")
         
         # Open Interest
+        oi_success = False
         try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/fapi/v1/openInterest",
@@ -463,16 +531,38 @@ async def get_market_overview():
             )
             if response.status_code == 200:
                 data = response.json()
-                oi = float(data["openInterest"])
-                btc_price = result.get("btc", {}).get("price", 0)
+                oi_btc = float(data["openInterest"])
                 result["open_interest"] = {
-                    "btc": oi,
-                    "usd": oi * btc_price
+                    "btc": oi_btc,
+                    "usd": oi_btc * btc_price
                 }
-        except:
-            pass
+                oi_success = True
+                logger.info("Using Binance for OI")
+        except Exception as e:
+            logger.warning(f"Binance OI failed: {e}")
+        
+        if not oi_success:
+            # Bybit fallback
+            try:
+                response = await client.get(
+                    f"{BYBIT_API}/v5/market/open-interest",
+                    params={"category": "linear", "symbol": "BTCUSDT"}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("result", {}).get("list"):
+                        item = data["result"]["list"][0]
+                        oi_btc = float(item.get("openInterest", 0))
+                        result["open_interest"] = {
+                            "btc": oi_btc,
+                            "usd": oi_btc * btc_price
+                        }
+                        logger.info("Using Bybit for OI")
+            except Exception as e:
+                logger.warning(f"Bybit OI also failed: {e}")
         
         # Long/Short Ratio
+        ls_success = False
         try:
             response = await client.get(
                 f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
@@ -487,8 +577,32 @@ async def get_market_overview():
                         "short_pct": float(latest["shortAccount"]) * 100,
                         "ratio": float(latest["longShortRatio"])
                     }
-        except:
-            pass
+                    ls_success = True
+                    logger.info("Using Binance for L/S ratio")
+        except Exception as e:
+            logger.warning(f"Binance L/S failed: {e}")
+        
+        if not ls_success:
+            # Bybit fallback
+            try:
+                response = await client.get(
+                    f"{BYBIT_API}/v5/market/account-ratio",
+                    params={"category": "linear", "symbol": "BTCUSDT", "period": "1d", "limit": 1}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("result", {}).get("list"):
+                        item = data["result"]["list"][0]
+                        buy_ratio = float(item.get("buyRatio", 0.5))
+                        sell_ratio = float(item.get("sellRatio", 0.5))
+                        result["long_short"] = {
+                            "long_pct": buy_ratio * 100,
+                            "short_pct": sell_ratio * 100,
+                            "ratio": buy_ratio / sell_ratio if sell_ratio > 0 else 1
+                        }
+                        logger.info("Using Bybit for L/S ratio")
+            except Exception as e:
+                logger.warning(f"Bybit L/S also failed: {e}")
     
     result["timestamp"] = datetime.utcnow().isoformat()
     return result

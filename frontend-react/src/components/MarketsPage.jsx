@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 
 /**
  * MarketsPage - Comprehensive market listings
+ * Uses backend API with caching to avoid rate limits
  */
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const MarketsPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,35 +22,53 @@ const MarketsPage = () => {
   const fetchData = async () => {
     try {
       setError(null);
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=1h,24h,7d'
-      );
+      
+      // Use BACKEND instead of direct CoinGecko (has caching)
+      const response = await fetch(`${API_BASE}/api/v1/coingecko/coins?per_page=100`);
+      
+      if (response.status === 429) {
+        // Rate limited - keep existing data if available, show warning
+        if (data) {
+          setError('Rate limited - showing cached data');
+          return; // Keep existing data
+        }
+        throw new Error('Rate limited. Please wait a moment and retry.');
+      }
       
       if (!response.ok) {
-        throw new Error('Failed to fetch market data');
+        // Other error - keep existing data if available
+        if (data) {
+          console.warn(`API error ${response.status}, keeping cached data`);
+          return;
+        }
+        throw new Error(`API error: ${response.status}`);
       }
       
       const coins = await response.json();
 
-      if (Array.isArray(coins)) {
+      if (Array.isArray(coins) && coins.length > 0) {
         setData({
           all: coins,
           gainers: [...coins]
-            .filter(c => c.price_change_percentage_24h != null)
-            .sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0))
+            .filter(c => c.price_change_24h != null)
+            .sort((a, b) => (b.price_change_24h || 0) - (a.price_change_24h || 0))
             .slice(0, 20),
           losers: [...coins]
-            .filter(c => c.price_change_percentage_24h != null)
-            .sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0))
+            .filter(c => c.price_change_24h != null)
+            .sort((a, b) => (a.price_change_24h || 0) - (b.price_change_24h || 0))
             .slice(0, 20),
           volume: [...coins]
-            .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
+            .sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0))
             .slice(0, 20),
         });
+        setError(null); // Clear any previous error on success
       }
     } catch (err) {
       console.error('Failed to fetch markets:', err);
-      setError(err.message);
+      // Only set error if we have no data to show
+      if (!data) {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -137,11 +159,9 @@ const MarketsPage = () => {
         {/* Table Header */}
         <div className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-gold-primary/10 bg-gold-primary/5">
           <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase">#</div>
-          <div className="col-span-3 text-gold-primary text-xs font-semibold uppercase">Name</div>
+          <div className="col-span-4 text-gold-primary text-xs font-semibold uppercase">Name</div>
           <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">Price</div>
-          <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase text-right">1h</div>
-          <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase text-right">24h</div>
-          <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase text-right">7d</div>
+          <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">24h Change</div>
           <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">Volume</div>
           <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase text-right">MCap</div>
         </div>
@@ -154,38 +174,32 @@ const MarketsPage = () => {
               className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-gold-primary/5 cursor-pointer transition-colors items-center"
             >
               <div className="col-span-1 text-text-muted text-sm">
-                {coin.market_cap_rank || idx + 1}
+                {idx + 1}
               </div>
 
-              <div className="col-span-3 flex items-center gap-3">
-                <img src={coin.image} alt={coin.symbol} className="w-8 h-8 rounded-full" />
+              <div className="col-span-4 flex items-center gap-3">
+                {coin.image && (
+                  <img src={coin.image} alt={coin.symbol} className="w-8 h-8 rounded-full" />
+                )}
                 <div>
                   <p className="text-white font-semibold">{coin.name}</p>
-                  <p className="text-text-muted text-xs">{coin.symbol.toUpperCase()}</p>
+                  <p className="text-text-muted text-xs">{coin.symbol}</p>
                 </div>
               </div>
 
               <div className="col-span-2 text-right">
                 <p className="text-white font-mono">
-                  ${coin.current_price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                  ${coin.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
                 </p>
               </div>
 
-              <div className="col-span-1 text-right">
-                <ChangePercent value={coin.price_change_percentage_1h_in_currency} />
-              </div>
-
-              <div className="col-span-1 text-right">
-                <ChangePercent value={coin.price_change_percentage_24h} />
-              </div>
-
-              <div className="col-span-1 text-right">
-                <ChangePercent value={coin.price_change_percentage_7d_in_currency} />
+              <div className="col-span-2 text-right">
+                <ChangePercent value={coin.price_change_24h} />
               </div>
 
               <div className="col-span-2 text-right">
                 <p className="text-text-secondary font-mono text-sm">
-                  {formatLargeNumber(coin.total_volume)}
+                  {formatLargeNumber(coin.volume_24h)}
                 </p>
               </div>
 
@@ -230,11 +244,11 @@ const QuickStat = ({ label, coin, type }) => {
   const getHighlight = () => {
     switch (type) {
       case 'gainer':
-        return <span className="text-positive">+{(coin.price_change_percentage_24h || 0).toFixed(2)}%</span>;
+        return <span className="text-positive">+{(coin.price_change_24h || 0).toFixed(2)}%</span>;
       case 'loser':
-        return <span className="text-negative">{(coin.price_change_percentage_24h || 0).toFixed(2)}%</span>;
+        return <span className="text-negative">{(coin.price_change_24h || 0).toFixed(2)}%</span>;
       case 'volume':
-        return <span className="text-gold-primary">{formatLargeNumber(coin.total_volume)}</span>;
+        return <span className="text-gold-primary">{formatLargeNumber(coin.volume_24h)}</span>;
       case 'cap':
         return <span className="text-white">{formatLargeNumber(coin.market_cap)}</span>;
       default:
@@ -246,8 +260,8 @@ const QuickStat = ({ label, coin, type }) => {
     <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
       <p className="text-text-muted text-xs uppercase tracking-wider mb-2">{label}</p>
       <div className="flex items-center gap-2">
-        <img src={coin.image} alt={coin.symbol} className="w-6 h-6 rounded-full" />
-        <span className="text-white font-semibold">{coin.symbol.toUpperCase()}</span>
+        {coin.image && <img src={coin.image} alt={coin.symbol} className="w-6 h-6 rounded-full" />}
+        <span className="text-white font-semibold">{coin.symbol}</span>
       </div>
       <p className="text-lg font-mono font-bold mt-1">{getHighlight()}</p>
     </div>

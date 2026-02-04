@@ -1,13 +1,10 @@
-// Market API Service - Free APIs untuk market data
-// Dengan fallback dan error handling yang lebih baik
+// Market API Service - Uses BACKEND APIs with caching
+// Backend handles: Bybit fallback for derivatives, CoinGecko caching
 
-const BINANCE_API = 'https://api.binance.com/api/v3';
-const BINANCE_FUTURES = 'https://fapi.binance.com/fapi/v1';
-const COINGECKO_API = 'https://api.coingecko.com/api/v3';
-const FEAR_GREED_API = 'https://api.alternative.me/fng';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Helper: fetch dengan timeout
-const fetchWithTimeout = async (url, timeout = 8000) => {
+const fetchWithTimeout = async (url, timeout = 10000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   
@@ -23,52 +20,40 @@ const fetchWithTimeout = async (url, timeout = 8000) => {
 };
 
 // ============================================
-// BITCOIN DATA
+// BITCOIN DATA (via Backend)
 // ============================================
 
-// Get BTC price + 24h data dari Binance (paling reliable)
 export const getBTCData = async () => {
   try {
-    const data = await fetchWithTimeout(`${BINANCE_API}/ticker/24hr?symbol=BTCUSDT`);
-    return {
-      price: parseFloat(data.lastPrice),
-      change24h: parseFloat(data.priceChangePercent),
-      high24h: parseFloat(data.highPrice),
-      low24h: parseFloat(data.lowPrice),
-      volume24h: parseFloat(data.quoteVolume), // in USDT
-      source: 'binance'
-    };
-  } catch (error) {
-    console.error('Binance BTC error:', error);
-    // Fallback ke CoinGecko
-    try {
-      const data = await fetchWithTimeout(
-        `${COINGECKO_API}/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true&include_market_cap=true`
-      );
+    // Use backend market overview (has Bybit fallback)
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
+    
+    if (data?.btc) {
       return {
-        price: data.bitcoin.usd,
-        change24h: data.bitcoin.usd_24h_change,
-        high24h: null,
-        low24h: null,
-        volume24h: data.bitcoin.usd_24h_vol,
-        source: 'coingecko'
+        price: data.btc.price,
+        change24h: data.btc.price_change_pct,
+        high24h: data.btc.high_24h,
+        low24h: data.btc.low_24h,
+        volume24h: data.btc.volume_24h,
+        source: 'backend'
       };
-    } catch (e) {
-      console.error('CoinGecko fallback error:', e);
-      return null;
     }
+    return null;
+  } catch (error) {
+    console.error('BTC data error:', error);
+    return null;
   }
 };
 
-// Get BTC Dominance dari CoinGecko
+// Get BTC Dominance (via Backend CoinGecko proxy with cache)
 export const getBTCDominance = async () => {
   try {
-    const data = await fetchWithTimeout(`${COINGECKO_API}/global`);
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/coingecko/global`);
     return {
-      dominance: data.data.market_cap_percentage.btc,
-      totalMarketCap: data.data.total_market_cap.usd,
-      total24hVolume: data.data.total_volume.usd,
-      source: 'coingecko'
+      dominance: data.btc_dominance,
+      totalMarketCap: data.total_market_cap,
+      total24hVolume: data.total_volume,
+      source: 'backend_coingecko'
     };
   } catch (error) {
     console.error('BTC Dominance error:', error);
@@ -77,18 +62,18 @@ export const getBTCDominance = async () => {
 };
 
 // ============================================
-// FEAR & GREED INDEX
+// FEAR & GREED INDEX (via Backend)
 // ============================================
 
 export const getFearGreedIndex = async () => {
   try {
-    const data = await fetchWithTimeout(`${FEAR_GREED_API}/?limit=1`);
-    const fng = data.data[0];
+    // Backend /coingecko/bitcoin includes fear & greed
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/coingecko/bitcoin`);
     return {
-      value: parseInt(fng.value),
-      classification: fng.value_classification,
-      timestamp: new Date(fng.timestamp * 1000),
-      source: 'alternative.me'
+      value: data.fear_greed_value,
+      classification: data.fear_greed_label,
+      timestamp: new Date(),
+      source: 'backend'
     };
   } catch (error) {
     console.error('Fear & Greed error:', error);
@@ -97,18 +82,18 @@ export const getFearGreedIndex = async () => {
 };
 
 // ============================================
-// FUTURES DATA (Binance Futures)
+// FUTURES DATA (via Backend - has Bybit fallback)
 // ============================================
 
 // Get BTC Funding Rate
 export const getFundingRate = async (symbol = 'BTCUSDT') => {
   try {
-    const data = await fetchWithTimeout(`${BINANCE_FUTURES}/fundingRate?symbol=${symbol}&limit=1`);
-    if (data && data.length > 0) {
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
+    if (data?.funding) {
       return {
-        rate: parseFloat(data[0].fundingRate) * 100, // Convert to percentage
-        time: new Date(data[0].fundingTime),
-        source: 'binance_futures'
+        rate: data.funding.rate,
+        time: new Date(data.funding.next_time),
+        source: 'backend'
       };
     }
     return null;
@@ -121,114 +106,60 @@ export const getFundingRate = async (symbol = 'BTCUSDT') => {
 // Get Open Interest
 export const getOpenInterest = async (symbol = 'BTCUSDT') => {
   try {
-    const data = await fetchWithTimeout(`${BINANCE_FUTURES}/openInterest?symbol=${symbol}`);
-    const price = await getBTCData();
-    
-    return {
-      openInterest: parseFloat(data.openInterest),
-      openInterestUSD: parseFloat(data.openInterest) * (price?.price || 0),
-      symbol: data.symbol,
-      source: 'binance_futures'
-    };
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
+    if (data?.open_interest) {
+      return {
+        openInterest: data.open_interest.btc,
+        openInterestUSD: data.open_interest.usd,
+        symbol: symbol,
+        source: 'backend'
+      };
+    }
+    return null;
   } catch (error) {
     console.error('Open Interest error:', error);
     return null;
   }
 };
 
-// Get Long/Short Ratio - using Binance Futures Data API
-// Docs: https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Long-Short-Ratio
+// Get Long/Short Ratio
 export const getLongShortRatio = async (symbol = 'BTCUSDT', period = '5m') => {
-  // Binance Futures Data endpoints (different base URL!)
-  const BINANCE_FUTURES_DATA = 'https://fapi.binance.com/futures/data';
-  
-  // Try multiple endpoints in order of preference
-  const endpoints = [
-    // Global account ratio - all traders
-    {
-      url: `${BINANCE_FUTURES_DATA}/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=1`,
-      type: 'global'
-    },
-    // Top trader account ratio
-    {
-      url: `${BINANCE_FUTURES_DATA}/topLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=1`,
-      type: 'top_account'
-    },
-    // Top trader position ratio
-    {
-      url: `${BINANCE_FUTURES_DATA}/topLongShortPositionRatio?symbol=${symbol}&period=${period}&limit=1`,
-      type: 'top_position'
-    },
-    // Taker buy/sell ratio
-    {
-      url: `${BINANCE_FUTURES_DATA}/takerlongshortRatio?symbol=${symbol}&period=${period}&limit=1`,
-      type: 'taker'
+  try {
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/overview`);
+    if (data?.long_short) {
+      return {
+        longAccount: data.long_short.long_pct,
+        shortAccount: data.long_short.short_pct,
+        longShortRatio: data.long_short.ratio,
+        timestamp: new Date(),
+        source: 'backend'
+      };
     }
-  ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const data = await fetchWithTimeout(endpoint.url, 5000);
-      
-      if (data && data.length > 0) {
-        const ratio = data[0];
-        
-        // Handle different response formats
-        if (endpoint.type === 'taker') {
-          // Taker endpoint has different fields: buySellRatio, buyVol, sellVol
-          const buySellRatio = parseFloat(ratio.buySellRatio);
-          const buyVol = parseFloat(ratio.buyVol);
-          const sellVol = parseFloat(ratio.sellVol);
-          const total = buyVol + sellVol;
-          
-          return {
-            longAccount: (buyVol / total * 100),
-            shortAccount: (sellVol / total * 100),
-            longShortRatio: buySellRatio,
-            timestamp: new Date(ratio.timestamp),
-            source: `binance_${endpoint.type}`
-          };
-        } else {
-          // Other endpoints have longAccount, shortAccount, longShortRatio
-          return {
-            longAccount: parseFloat(ratio.longAccount) * 100,
-            shortAccount: parseFloat(ratio.shortAccount) * 100,
-            longShortRatio: parseFloat(ratio.longShortRatio),
-            timestamp: new Date(ratio.timestamp),
-            source: `binance_${endpoint.type}`
-          };
-        }
-      }
-    } catch (error) {
-      console.warn(`Long/Short endpoint failed (${endpoint.type}):`, error.message);
-      continue;
-    }
+    return null;
+  } catch (error) {
+    console.error('Long/Short ratio error:', error);
+    return null;
   }
-  
-  // All endpoints failed
-  console.error('All Long/Short ratio endpoints failed');
-  return null;
 };
 
 // Get Top Funding Rates (multiple coins)
 export const getTopFundingRates = async (limit = 10) => {
   try {
-    // Get all funding rates
-    const data = await fetchWithTimeout(`${BINANCE_FUTURES}/premiumIndex`);
+    // Try backend first
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/funding-rates?symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,AVAXUSDT,DOTUSDT,MATICUSDT,LINKUSDT,LTCUSDT,ATOMUSDT,UNIUSDT,ETCUSDT`);
     
-    // Sort by absolute funding rate
-    const sorted = data
-      .filter(item => item.symbol.endsWith('USDT'))
-      .map(item => ({
-        symbol: item.symbol,
-        fundingRate: parseFloat(item.lastFundingRate) * 100,
-        markPrice: parseFloat(item.markPrice),
-        indexPrice: parseFloat(item.indexPrice),
-      }))
-      .sort((a, b) => Math.abs(b.fundingRate) - Math.abs(a.fundingRate))
-      .slice(0, limit);
-    
-    return sorted;
+    if (data && data.length > 0) {
+      return data
+        .map(item => ({
+          symbol: item.symbol,
+          fundingRate: item.rate,
+          markPrice: 0, // Not available from this endpoint
+          indexPrice: 0,
+        }))
+        .sort((a, b) => Math.abs(b.fundingRate) - Math.abs(a.fundingRate))
+        .slice(0, limit);
+    }
+    return [];
   } catch (error) {
     console.error('Top funding rates error:', error);
     return [];
@@ -236,29 +167,59 @@ export const getTopFundingRates = async (limit = 10) => {
 };
 
 // ============================================
-// AGGREGATED MARKET DATA (untuk dashboard)
+// AGGREGATED MARKET DATA (Single API call)
 // ============================================
 
 export const getMarketOverview = async () => {
-  // Fetch semua data secara parallel
-  const [btcData, dominance, fearGreed, fundingRate, openInterest, longShort] = await Promise.all([
-    getBTCData(),
-    getBTCDominance(),
-    getFearGreedIndex(),
-    getFundingRate(),
-    getOpenInterest(),
-    getLongShortRatio()
-  ]);
+  try {
+    // Single call to backend - it handles all the fetching and fallbacks
+    const [overview, cgBitcoin] = await Promise.all([
+      fetchWithTimeout(`${API_BASE}/api/v1/market/overview`),
+      fetchWithTimeout(`${API_BASE}/api/v1/coingecko/bitcoin`).catch(() => null)
+    ]);
 
-  return {
-    btc: btcData,
-    dominance: dominance,
-    fearGreed: fearGreed,
-    funding: fundingRate,
-    openInterest: openInterest,
-    longShort: longShort,
-    timestamp: new Date()
-  };
+    return {
+      btc: overview?.btc ? {
+        price: overview.btc.price,
+        change24h: overview.btc.price_change_pct,
+        high24h: overview.btc.high_24h,
+        low24h: overview.btc.low_24h,
+        volume24h: overview.btc.volume_24h,
+      } : null,
+      dominance: cgBitcoin ? {
+        dominance: cgBitcoin.dominance,
+      } : null,
+      fearGreed: cgBitcoin ? {
+        value: cgBitcoin.fear_greed_value,
+        classification: cgBitcoin.fear_greed_label,
+      } : null,
+      funding: overview?.funding ? {
+        rate: overview.funding.rate,
+        time: new Date(overview.funding.next_time),
+      } : null,
+      openInterest: overview?.open_interest ? {
+        openInterest: overview.open_interest.btc,
+        openInterestUSD: overview.open_interest.usd,
+      } : null,
+      longShort: overview?.long_short ? {
+        longAccount: overview.long_short.long_pct,
+        shortAccount: overview.long_short.short_pct,
+        longShortRatio: overview.long_short.ratio,
+      } : null,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Market overview error:', error);
+    return {
+      btc: null,
+      dominance: null,
+      fearGreed: null,
+      funding: null,
+      openInterest: null,
+      longShort: null,
+      timestamp: new Date()
+    };
+  }
 };
 
 // ============================================
@@ -267,15 +228,10 @@ export const getMarketOverview = async () => {
 
 export const getCoinData = async (symbol) => {
   try {
-    // Binance spot ticker
-    const data = await fetchWithTimeout(`${BINANCE_API}/ticker/24hr?symbol=${symbol}USDT`);
+    const data = await fetchWithTimeout(`${API_BASE}/api/v1/market/price/${symbol}USDT`);
     return {
-      price: parseFloat(data.lastPrice),
-      change24h: parseFloat(data.priceChangePercent),
-      high24h: parseFloat(data.highPrice),
-      low24h: parseFloat(data.lowPrice),
-      volume24h: parseFloat(data.quoteVolume),
-      source: 'binance'
+      price: data.price,
+      source: data.source
     };
   } catch (error) {
     console.error(`Coin data error for ${symbol}:`, error);
@@ -283,15 +239,19 @@ export const getCoinData = async (symbol) => {
   }
 };
 
-// Get OHLC data for chart
+// Get OHLC data for chart (Binance Spot - usually works)
 export const getOHLCData = async (symbol, interval = '1h', limit = 100) => {
   try {
-    const data = await fetchWithTimeout(
-      `${BINANCE_FUTURES}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+    // Binance Spot klines usually work in Indonesia
+    const response = await fetch(
+      `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
     );
     
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    
     return data.map(candle => ({
-      time: Math.floor(candle[0] / 1000), // Unix timestamp in seconds
+      time: Math.floor(candle[0] / 1000),
       open: parseFloat(candle[1]),
       high: parseFloat(candle[2]),
       low: parseFloat(candle[3]),

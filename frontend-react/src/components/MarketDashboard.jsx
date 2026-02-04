@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMarketOverview, getTopFundingRates } from '../services/marketApi';
+
+/**
+ * MarketDashboard - Market Overview Dashboard
+ * Uses backend API with caching (same pattern as BitcoinPage)
+ */
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const MarketDashboard = () => {
   const [marketData, setMarketData] = useState(null);
+  const [bitcoinData, setBitcoinData] = useState(null);
   const [fundingRates, setFundingRates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,15 +17,52 @@ const MarketDashboard = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [overview, topFunding] = await Promise.all([
-        getMarketOverview(),
-        getTopFundingRates(15)
-      ]);
-      
-      setMarketData(overview);
-      setFundingRates(topFunding);
-      setLastUpdate(new Date());
       setError(null);
+      
+      // Use Promise.allSettled like BitcoinPage - doesn't crash if one fails
+      const [overviewRes, bitcoinRes, fundingRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/api/v1/market/overview`),
+        fetch(`${API_BASE}/api/v1/coingecko/bitcoin`),
+        fetch(`${API_BASE}/api/v1/market/funding-rates?symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,AVAXUSDT,DOTUSDT,MATICUSDT,LINKUSDT,LTCUSDT,ATOMUSDT,UNIUSDT,ETCUSDT`)
+      ]);
+
+      // Process market overview
+      if (overviewRes.status === 'fulfilled' && overviewRes.value.ok) {
+        const data = await overviewRes.value.json();
+        setMarketData(data);
+      }
+
+      // Process Bitcoin data (for dominance, fear/greed)
+      if (bitcoinRes.status === 'fulfilled' && bitcoinRes.value.ok) {
+        const data = await bitcoinRes.value.json();
+        setBitcoinData(data);
+      }
+
+      // Process funding rates
+      if (fundingRes.status === 'fulfilled' && fundingRes.value.ok) {
+        const data = await fundingRes.value.json();
+        if (Array.isArray(data)) {
+          // Sort by absolute rate
+          const sorted = data
+            .map(item => ({
+              symbol: item.symbol,
+              fundingRate: item.rate,
+              markPrice: 0,
+              indexPrice: 0,
+            }))
+            .sort((a, b) => Math.abs(b.fundingRate) - Math.abs(a.fundingRate))
+            .slice(0, 15);
+          setFundingRates(sorted);
+        }
+      }
+
+      setLastUpdate(new Date());
+      
+      // Only set error if ALL requests failed
+      if (overviewRes.status === 'rejected' && bitcoinRes.status === 'rejected') {
+        setError('Failed to load market data');
+      }
+      
     } catch (err) {
       console.error('Market data fetch error:', err);
       setError('Failed to load market data');
@@ -79,6 +123,16 @@ const MarketDashboard = () => {
     );
   }
 
+  // Get combined data
+  const btcPrice = marketData?.btc?.price || bitcoinData?.price || 0;
+  const btcChange = marketData?.btc?.price_change_pct || bitcoinData?.price_change_24h || 0;
+  const btcHigh = marketData?.btc?.high_24h || bitcoinData?.high_24h || 0;
+  const btcLow = marketData?.btc?.low_24h || bitcoinData?.low_24h || 0;
+  const btcVolume = marketData?.btc?.volume_24h || bitcoinData?.volume_24h || 0;
+  const dominance = bitcoinData?.dominance || 0;
+  const fearGreedValue = bitcoinData?.fear_greed_value || 50;
+  const fearGreedLabel = bitcoinData?.fear_greed_label || 'Neutral';
+
   return (
     <div className="space-y-6">
       {/* Bitcoin Hero Card */}
@@ -95,10 +149,10 @@ const MarketDashboard = () => {
           </div>
           <div className="text-right">
             <p className="text-4xl font-mono font-bold text-white">
-              {formatPrice(marketData?.btc?.price)}
+              {formatPrice(btcPrice)}
             </p>
-            <p className={`text-xl font-mono ${marketData?.btc?.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {marketData?.btc?.change24h >= 0 ? '+' : ''}{marketData?.btc?.change24h?.toFixed(2) || '--'}%
+            <p className={`text-xl font-mono ${btcChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {btcChange >= 0 ? '+' : ''}{btcChange?.toFixed(2) || '--'}%
             </p>
           </div>
         </div>
@@ -108,25 +162,25 @@ const MarketDashboard = () => {
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H High</p>
             <p className="text-white font-mono text-lg mt-1">
-              {formatPrice(marketData?.btc?.high24h)}
+              {formatPrice(btcHigh)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H Low</p>
             <p className="text-white font-mono text-lg mt-1">
-              {formatPrice(marketData?.btc?.low24h)}
+              {formatPrice(btcLow)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">24H Volume</p>
             <p className="text-white font-mono text-lg mt-1">
-              ${formatNumber(marketData?.btc?.volume24h)}
+              ${formatNumber(btcVolume)}
             </p>
           </div>
           <div className="bg-bg-primary/50 rounded-xl p-4">
             <p className="text-text-muted text-xs uppercase tracking-wider">Dominance</p>
             <p className="text-white font-mono text-lg mt-1">
-              {marketData?.dominance?.dominance?.toFixed(1) || '--'}%
+              {dominance > 0 ? `${dominance.toFixed(1)}%` : '--'}
             </p>
           </div>
         </div>
@@ -141,52 +195,46 @@ const MarketDashboard = () => {
             <span className="text-xs text-text-muted">alternative.me</span>
           </div>
           
-          {marketData?.fearGreed ? (
-            <div className="text-center">
-              <div className={`text-5xl font-display font-bold ${getFearGreedColor(marketData.fearGreed.value)}`}>
-                {marketData.fearGreed.value}
-              </div>
-              <p className={`text-lg font-medium mt-2 ${getFearGreedColor(marketData.fearGreed.value)}`}>
-                {marketData.fearGreed.classification}
-              </p>
-              {/* Progress bar */}
-              <div className="mt-4 h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full relative">
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg"
-                  style={{ left: `${marketData.fearGreed.value}%`, transform: 'translate(-50%, -50%)' }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-text-muted mt-1">
-                <span>Extreme Fear</span>
-                <span>Extreme Greed</span>
-              </div>
+          <div className="text-center">
+            <div className={`text-5xl font-display font-bold ${getFearGreedColor(fearGreedValue)}`}>
+              {fearGreedValue}
             </div>
-          ) : (
-            <p className="text-center text-text-muted py-8">Loading...</p>
-          )}
+            <p className={`text-lg font-medium mt-2 ${getFearGreedColor(fearGreedValue)}`}>
+              {fearGreedLabel}
+            </p>
+            {/* Progress bar */}
+            <div className="mt-4 h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full relative">
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-gray-800 shadow-lg"
+                style={{ left: `${fearGreedValue}%`, transform: 'translate(-50%, -50%)' }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-text-muted mt-1">
+              <span>Extreme Fear</span>
+              <span>Extreme Greed</span>
+            </div>
+          </div>
         </div>
 
         {/* Long/Short Ratio */}
         <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gold-primary font-semibold">Long/Short Ratio</h3>
-            <span className="text-xs text-text-muted">
-              {marketData?.longShort?.source?.replace('binance_', '') || 'Binance'}
-            </span>
+            <span className="text-xs text-text-muted">Binance/Bybit</span>
           </div>
           
-          {marketData?.longShort ? (
+          {marketData?.long_short ? (
             <div>
               <div className="flex justify-between items-end mb-4">
                 <div>
                   <p className="text-3xl font-bold text-green-400">
-                    {marketData.longShort.longAccount.toFixed(1)}%
+                    {marketData.long_short.long_pct?.toFixed(1) || '--'}%
                   </p>
                   <p className="text-text-muted text-sm">Long</p>
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold text-red-400">
-                    {marketData.longShort.shortAccount.toFixed(1)}%
+                    {marketData.long_short.short_pct?.toFixed(1) || '--'}%
                   </p>
                   <p className="text-text-muted text-sm">Short</p>
                 </div>
@@ -195,15 +243,15 @@ const MarketDashboard = () => {
               <div className="h-4 rounded-full overflow-hidden flex">
                 <div 
                   className="bg-gradient-to-r from-green-600 to-green-400 transition-all duration-500"
-                  style={{ width: `${marketData.longShort.longAccount}%` }}
+                  style={{ width: `${marketData.long_short.long_pct || 50}%` }}
                 />
                 <div 
                   className="bg-gradient-to-r from-red-400 to-red-600 transition-all duration-500"
-                  style={{ width: `${marketData.longShort.shortAccount}%` }}
+                  style={{ width: `${marketData.long_short.short_pct || 50}%` }}
                 />
               </div>
               <p className="text-center text-text-muted text-xs mt-2">
-                Ratio: {marketData.longShort.longShortRatio.toFixed(2)}
+                Ratio: {marketData.long_short.ratio?.toFixed(2) || '--'}
               </p>
             </div>
           ) : (
@@ -221,19 +269,21 @@ const MarketDashboard = () => {
             <span className="text-xs text-text-muted">BTC Futures</span>
           </div>
           
-          {marketData?.openInterest ? (
+          {marketData?.open_interest ? (
             <div className="text-center">
               <p className="text-4xl font-mono font-bold text-white">
-                ${formatNumber(marketData.openInterest.openInterestUSD)}
+                ${formatNumber(marketData.open_interest.usd)}
               </p>
               <p className="text-text-muted text-sm mt-2">
-                {formatNumber(marketData.openInterest.openInterest)} BTC
+                {formatNumber(marketData.open_interest.btc)} BTC
               </p>
               <div className="mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-text-muted text-sm">Funding Rate:</span>
                   <span className={`font-mono font-semibold ${getFundingColor(marketData.funding?.rate)}`}>
-                    {marketData.funding?.rate?.toFixed(4) || '--'}%
+                    {marketData.funding?.rate !== undefined 
+                      ? `${marketData.funding.rate >= 0 ? '+' : ''}${marketData.funding.rate.toFixed(4)}%`
+                      : '--'}
                   </span>
                 </div>
               </div>
@@ -257,45 +307,28 @@ const MarketDashboard = () => {
               <tr className="border-b border-white/5">
                 <th className="px-4 py-3 text-left text-xs text-gold-primary/70 uppercase tracking-wider">Symbol</th>
                 <th className="px-4 py-3 text-right text-xs text-gold-primary/70 uppercase tracking-wider">Funding Rate</th>
-                <th className="px-4 py-3 text-right text-xs text-gold-primary/70 uppercase tracking-wider">Mark Price</th>
-                <th className="px-4 py-3 text-right text-xs text-gold-primary/70 uppercase tracking-wider">Index Price</th>
-                <th className="px-4 py-3 text-right text-xs text-gold-primary/70 uppercase tracking-wider">Premium</th>
               </tr>
             </thead>
             <tbody>
               {fundingRates.length > 0 ? (
-                fundingRates.map((item, idx) => {
-                  const premium = ((item.markPrice - item.indexPrice) / item.indexPrice * 100);
-                  return (
-                    <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-semibold text-white">
-                          {item.symbol.replace('USDT', '')}
-                        </span>
-                        <span className="text-text-muted">/USDT</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-mono font-semibold ${getFundingColor(item.fundingRate)}`}>
-                          {item.fundingRate >= 0 ? '+' : ''}{item.fundingRate.toFixed(4)}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-text-secondary">
-                        ${item.markPrice < 1 ? item.markPrice.toFixed(6) : item.markPrice.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-text-secondary">
-                        ${item.indexPrice < 1 ? item.indexPrice.toFixed(6) : item.indexPrice.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-mono text-sm ${premium >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {premium >= 0 ? '+' : ''}{premium.toFixed(3)}%
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
+                fundingRates.map((item, idx) => (
+                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      <span className="font-semibold text-white">
+                        {item.symbol.replace('USDT', '')}
+                      </span>
+                      <span className="text-text-muted">/USDT</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`font-mono font-semibold ${getFundingColor(item.fundingRate)}`}>
+                        {item.fundingRate >= 0 ? '+' : ''}{item.fundingRate?.toFixed(4) || '--'}%
+                      </span>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-text-muted">
+                  <td colSpan={2} className="px-4 py-8 text-center text-text-muted">
                     Loading funding rates...
                   </td>
                 </tr>

@@ -8,20 +8,21 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = False
     
-    # Database - sesuaikan dengan production DB kamu
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://user:password@localhost:5432/luxquant"
-    )
+    # Database
+    DATABASE_URL: str = "postgresql://luxq:ukCjpVAkqpeExAiLcFNETgmP@141.11.25.194:5433/luxquant"
+    
+    # External APIs
+    COINALYZE_API_KEY: str = ""
+    COINGECKO_API_KEY: str = ""  # Demo API key (free, 30 calls/min)
     
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
-        "http://localhost:5173",  # Vite default
+        "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
     
-    # API Keys (optional, untuk future use)
+    # API Keys (optional)
     API_KEY: str = os.getenv("API_KEY", "")
     
     # Pagination
