@@ -5,14 +5,13 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const chartContainerRef = useRef(null);
   const widgetRef = useRef(null);
   const [signalDetail, setSignalDetail] = useState(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [activeTab, setActiveTab] = useState('chart');
 
-  // Fetch signal detail with updates timeline
+  // Fetch signal detail
   useEffect(() => {
     if (!isOpen || !signal) return;
     
     const fetchDetail = async () => {
-      setLoadingDetail(true);
       try {
         const response = await fetch(`/api/v1/signals/detail/${signal.signal_id}`);
         if (response.ok) {
@@ -21,15 +20,13 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
         }
       } catch (error) {
         console.error('Failed to fetch signal detail:', error);
-      } finally {
-        setLoadingDetail(false);
       }
     };
     
     fetchDetail();
   }, [isOpen, signal]);
 
-  // Close on escape key
+  // Close on escape
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
@@ -44,35 +41,36 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     };
   }, [isOpen, onClose]);
 
-  // Get user's timezone for TradingView
+  // Get user timezone
   const getUserTimezone = () => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return tz || 'Etc/UTC';
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return 'Etc/UTC';
+    }
   };
 
-  // Initialize TradingView widget
+  // TradingView Widget
   useEffect(() => {
-    if (!isOpen || !signal || !chartContainerRef.current) return;
+    if (!isOpen || !signal || !chartContainerRef.current || activeTab !== 'chart') return;
 
-    if (chartContainerRef.current) {
-      chartContainerRef.current.innerHTML = '';
-    }
-
+    chartContainerRef.current.innerHTML = '';
     const symbol = `BINANCE:${signal.pair}.P`;
+    const timezone = getUserTimezone();
 
     const loadTradingView = () => {
       if (window.TradingView) {
-        createWidget(symbol);
+        createWidget(symbol, timezone);
       } else {
         const script = document.createElement('script');
         script.src = 'https://s3.tradingview.com/tv.js';
         script.async = true;
-        script.onload = () => createWidget(symbol);
+        script.onload = () => createWidget(symbol, timezone);
         document.head.appendChild(script);
       }
     };
 
-    const createWidget = (sym) => {
+    const createWidget = (sym, tz) => {
       if (!chartContainerRef.current) return;
       
       try {
@@ -80,27 +78,46 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           autosize: true,
           symbol: sym,
           interval: "60",
-          timezone: getUserTimezone(),
+          timezone: tz,
           theme: "dark",
           style: "1",
           locale: "en",
-          toolbar_bg: "#0a0506",
+          toolbar_bg: "#1a1a1a",
           enable_publishing: false,
+          allow_symbol_change: true,
+          container_id: "tv_chart_modal",
+          backgroundColor: "rgba(13, 13, 13, 1)",
+          gridColor: "rgba(212, 168, 83, 0.05)",
           hide_top_toolbar: false,
           hide_legend: false,
-          save_image: false,
-          container_id: "tradingview_modal_chart",
-          backgroundColor: "rgba(10, 5, 6, 1)",
-          gridColor: "rgba(212, 168, 83, 0.06)",
           hide_side_toolbar: false,
-          allow_symbol_change: true,
-          details: false,
-          hotlist: false,
-          calendar: false,
-          studies: ["MASimple@tv-basicstudies"],
+          save_image: true,
+          details: true,
+          studies: ["MASimple@tv-basicstudies", "Volume@tv-basicstudies"],
           show_popup_button: true,
-          popup_width: "1000",
-          popup_height: "650",
+          popup_width: "1200",
+          popup_height: "800",
+          withdateranges: true,
+          drawings_access: { type: "all" },
+          enabled_features: [
+            "study_templates",
+            "use_localstorage_for_settings",
+            "save_chart_properties_to_local_storage",
+            "side_toolbar_in_fullscreen_mode",
+            "drawing_templates"
+          ],
+          overrides: {
+            "paneProperties.background": "#0d0d0d",
+            "paneProperties.vertGridProperties.color": "rgba(212, 168, 83, 0.05)",
+            "paneProperties.horzGridProperties.color": "rgba(212, 168, 83, 0.05)",
+            "scalesProperties.textColor": "#9ca3af",
+            "mainSeriesProperties.candleStyle.upColor": "#22c55e",
+            "mainSeriesProperties.candleStyle.downColor": "#ef4444",
+            "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
+            "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
+            "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
+            "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444"
+          }
         });
       } catch (e) {
         console.error('TradingView widget error:', e);
@@ -108,24 +125,19 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     };
 
     const timer = setTimeout(loadTradingView, 100);
-
     return () => {
       clearTimeout(timer);
-      if (widgetRef.current) {
-        widgetRef.current = null;
-      }
+      widgetRef.current = null;
     };
-  }, [isOpen, signal]);
+  }, [isOpen, signal, activeTab]);
 
   if (!isOpen || !signal) return null;
 
-  const getCoinSymbol = (pair) => {
-    if (!pair) return '';
-    return pair.replace(/USDT$/i, '').toUpperCase();
-  };
-
+  // Helpers
+  const getCoinSymbol = (pair) => pair?.replace(/USDT$/i, '').toUpperCase() || '';
   const coinSymbol = getCoinSymbol(signal.pair);
-
+  const coinSymbolLower = coinSymbol.toLowerCase();
+  
   const calcPct = (target, entry) => {
     if (!target || !entry) return null;
     return ((target - entry) / entry * 100).toFixed(2);
@@ -133,26 +145,17 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
     });
   };
 
   const formatShortDate = (dateStr) => {
     if (!dateStr) return null;
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: false
     });
   };
 
@@ -161,28 +164,17 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     if (price < 0.0001) return price.toFixed(8);
     if (price < 0.01) return price.toFixed(6);
     if (price < 1) return price.toFixed(4);
-    if (price < 100) return price.toFixed(4);
-    return price.toFixed(2);
+    return price < 100 ? price.toFixed(4) : price.toFixed(2);
   };
 
-  // Get update info for each TP/SL from signalDetail
-  const getUpdateInfo = (type) => {
-    if (!signalDetail?.updates) return null;
-    return signalDetail.updates.find(u => u.update_type === type);
-  };
+  const getUpdateInfo = (type) => signalDetail?.updates?.find(u => u.update_type === type) || null;
 
-  // Determine which targets are hit based on status AND updates
   const getHitTargets = () => {
     const s = signal.status?.toLowerCase() || '';
     const updates = signalDetail?.updates || [];
     
-    // Check from updates
-    const hasTP1 = updates.some(u => u.update_type === 'tp1');
-    const hasTP2 = updates.some(u => u.update_type === 'tp2');
-    const hasTP3 = updates.some(u => u.update_type === 'tp3');
-    const hasTP4 = updates.some(u => u.update_type === 'tp4');
+    const has = (tp) => updates.some(u => u.update_type === tp);
     
-    // Fallback to status if no updates
     if (updates.length === 0) {
       if (s === 'closed_win' || s === 'tp4') return [true, true, true, true];
       if (s === 'tp3') return [true, true, true, false];
@@ -191,14 +183,17 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
       return [false, false, false, false];
     }
     
-    return [hasTP1 || hasTP2 || hasTP3 || hasTP4, hasTP2 || hasTP3 || hasTP4, hasTP3 || hasTP4, hasTP4];
+    return [
+      has('tp1') || has('tp2') || has('tp3') || has('tp4'),
+      has('tp2') || has('tp3') || has('tp4'),
+      has('tp3') || has('tp4'),
+      has('tp4')
+    ];
   };
 
   const hitTargets = getHitTargets();
-  const isStopped = signal.status?.toLowerCase() === 'closed_loss' || signal.status?.toLowerCase() === 'sl';
-  const slUpdate = getUpdateInfo('sl');
+  const isStopped = ['closed_loss', 'sl'].includes(signal.status?.toLowerCase());
 
-  // Targets data with reached time
   const targets = [
     { label: 'TP1', value: signal.target1, pct: calcPct(signal.target1, signal.entry), hit: hitTargets[0], reachedAt: getUpdateInfo('tp1')?.update_at },
     { label: 'TP2', value: signal.target2, pct: calcPct(signal.target2, signal.entry), hit: hitTargets[1], reachedAt: getUpdateInfo('tp2')?.update_at },
@@ -207,307 +202,367 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   ].filter(t => t.value);
 
   const stops = [
-    { label: 'SL1', value: signal.stop1, pct: calcPct(signal.stop1, signal.entry), hit: isStopped, reachedAt: slUpdate?.update_at },
+    { label: 'SL1', value: signal.stop1, pct: calcPct(signal.stop1, signal.entry), hit: isStopped, reachedAt: getUpdateInfo('sl')?.update_at },
     { label: 'SL2', value: signal.stop2, pct: calcPct(signal.stop2, signal.entry), hit: false },
   ].filter(s => s.value);
 
-  const getStatusStyle = (status) => {
-    const styles = {
-      'open': 'bg-cyan-500',
-      'tp1': 'bg-green-500',
-      'tp2': 'bg-lime-500',
-      'tp3': 'bg-yellow-500',
-      'tp4': 'bg-orange-500',
-      'closed_win': 'bg-green-600',
-      'closed_loss': 'bg-red-500',
-      'sl': 'bg-red-500'
-    };
-    return styles[status?.toLowerCase()] || 'bg-gray-500';
+  const statusStyles = {
+    'open': 'bg-cyan-500', 'tp1': 'bg-green-500', 'tp2': 'bg-lime-500',
+    'tp3': 'bg-yellow-500', 'tp4': 'bg-orange-500', 'closed_win': 'bg-green-600',
+    'closed_loss': 'bg-red-500', 'sl': 'bg-red-500'
   };
 
-  const getRiskStyle = (risk) => {
-    const styles = {
-      'low': 'text-green-400 bg-green-400/10 border-green-400/30',
-      'med': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
-      'medium': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
-      'high': 'text-red-400 bg-red-400/10 border-red-400/30'
-    };
-    return styles[risk?.toLowerCase()] || 'text-gray-400 bg-gray-400/10 border-gray-400/30';
+  const riskStyles = {
+    'low': 'text-green-400 bg-green-400/10 border-green-400/30',
+    'med': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
+    'medium': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
+    'high': 'text-red-400 bg-red-400/10 border-red-400/30'
   };
 
-  const links = {
-    tradingview: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal.pair}.P`,
-    twitter: `https://x.com/search?q=%24${coinSymbol}&src=typed_query`,
-    coinglass: `https://www.coinglass.com/currencies/${coinSymbol}`,
-    binance: `https://www.binance.com/en/futures/${signal.pair}`,
-    velo: `https://velo.xyz/chart?symbol=${coinSymbol}`,
-  };
+  // Research links dengan URL yang benar
+  const researchLinks = [
+    { 
+      name: 'TradingView', 
+      url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal.pair}.P`,
+      logo: 'https://www.tradingview.com/static/images/logo-preview.png',
+      color: 'hover:bg-blue-500/20 hover:border-blue-500/50'
+    },
+    { 
+      name: 'Binance Futures', 
+      url: `https://www.binance.com/en/futures/${signal.pair}`,
+      logo: 'https://public.bnbstatic.com/image/cms/blog/20230202/16659b3c-57c6-4e5f-b0d7-d08ddb0cf0af.png',
+      color: 'hover:bg-yellow-500/20 hover:border-yellow-500/50'
+    },
+    { 
+      name: 'Bybit', 
+      url: `https://www.bybit.com/trade/usdt/${coinSymbol}USDT`,
+      logo: 'https://www.bybit.com/bycsi-root/fop/9267d450-f61c-4049-8cd4-a3a78dc3fbe2.svg',
+      color: 'hover:bg-orange-500/20 hover:border-orange-500/50'
+    },
+    { 
+      name: 'OKX', 
+      url: `https://www.okx.com/trade-swap/${coinSymbolLower}-usdt-swap`,
+      logo: 'https://static.okx.com/cdn/assets/imgs/226/DF679CE5D9C03767.png',
+      color: 'hover:bg-white/20 hover:border-white/50'
+    },
+    { 
+      name: 'CoinGlass', 
+      url: `https://www.coinglass.com/currencies/${coinSymbol}`,
+      logo: 'https://www.coinglass.com/favicon.svg',
+      color: 'hover:bg-cyan-500/20 hover:border-cyan-500/50'
+    },
+    { 
+      name: 'CoinGecko', 
+      url: `https://www.coingecko.com/en/coins/${coinSymbolLower}`,
+      logo: 'https://static.coingecko.com/s/coingecko-branding-guide-8447de673439420efa0ab1e0e03a1f8b0137c3f142f84f12e9f2f5a2d8e2e29f.png',
+      color: 'hover:bg-green-500/20 hover:border-green-500/50'
+    },
+    { 
+      name: 'CoinMarketCap', 
+      url: `https://coinmarketcap.com/currencies/${coinSymbolLower}/`,
+      logo: 'https://s2.coinmarketcap.com/static/cloud/img/coinmarketcap_1.svg',
+      color: 'hover:bg-blue-400/20 hover:border-blue-400/50'
+    },
+    { 
+      name: 'DexScreener', 
+      url: `https://dexscreener.com/search?q=${coinSymbol}`,
+      logo: 'https://dexscreener.com/favicon.png',
+      color: 'hover:bg-lime-500/20 hover:border-lime-500/50'
+    },
+    { 
+      name: 'Twitter/X', 
+      url: `https://x.com/search?q=%24${coinSymbol}&src=typed_query&f=live`,
+      logo: 'https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png',
+      color: 'hover:bg-gray-500/20 hover:border-gray-500/50'
+    },
+  ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-5 lg:p-6">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/85 backdrop-blur-md"
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className="relative bg-bg-primary border border-gold-primary/30 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-y-auto shadow-2xl">
-        {/* Header - Compact */}
-        <div className="sticky top-0 bg-bg-primary/95 backdrop-blur border-b border-gold-primary/20 px-4 py-3 flex items-center justify-between z-10">
-          <div className="flex items-center gap-3">
+      {/* Modal Container */}
+      <div className="relative w-full max-w-[1400px] h-[92vh] max-h-[950px] bg-bg-primary rounded-2xl border border-gold-primary/40 shadow-2xl shadow-gold-primary/10 flex flex-col overflow-hidden">
+        
+        {/* Corner Accents */}
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-gold-primary/50 rounded-tl-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-gold-primary/50 rounded-tr-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-gold-primary/50 rounded-bl-2xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-gold-primary/50 rounded-br-2xl pointer-events-none" />
+
+        {/* Header */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-bg-secondary via-bg-secondary to-bg-primary border-b border-gold-primary/30 px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <CoinLogo pair={signal.pair} size={40} />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <h2 className="text-xl font-display font-bold text-white">{signal.pair}</h2>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase text-white ${getStatusStyle(signal.status)}`}>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>
                   {signal.status}
                 </span>
+                {signal.risk_level && (
+                  <span className={`px-2.5 py-1 rounded text-xs font-bold uppercase border ${riskStyles[signal.risk_level?.toLowerCase()] || 'text-gray-400'}`}>
+                    {signal.risk_level}
+                  </span>
+                )}
               </div>
-              <p className="text-text-muted text-xs">Called at {formatDate(signal.created_at)}</p>
+              <p className="text-text-muted text-sm mt-0.5">{formatDate(signal.created_at)}</p>
             </div>
           </div>
           
-          <button 
-            onClick={onClose}
-            className="text-text-muted hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Tabs */}
+            <div className="flex bg-bg-primary rounded-xl p-1 border border-gold-primary/20">
+              <button
+                onClick={() => setActiveTab('chart')}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  activeTab === 'chart' 
+                    ? 'bg-gold-primary text-black' 
+                    : 'text-text-secondary hover:text-white hover:bg-white/5'
+                }`}
+              >
+                📈 Chart
+              </button>
+              <button
+                onClick={() => setActiveTab('research')}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  activeTab === 'research' 
+                    ? 'bg-gold-primary text-black' 
+                    : 'text-text-secondary hover:text-white hover:bg-white/5'
+                }`}
+              >
+                🔍 Research
+              </button>
+            </div>
+            
+            {/* Close Button */}
+            <button 
+              onClick={onClose}
+              className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-white bg-bg-primary hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-xl transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Content - Side by Side */}
-        <div className="p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            
-            {/* Left: Chart - Full Height */}
-            <div className="lg:col-span-8 bg-bg-card rounded-xl border border-gold-primary/10 overflow-hidden flex flex-col">
-              <div className="px-3 py-2 border-b border-gold-primary/10 flex items-center justify-between flex-shrink-0">
-                <span className="text-white text-sm font-semibold flex items-center gap-2">
-                  <span>📈</span> Live Chart
-                  <span className="text-text-muted text-xs font-normal">({getUserTimezone()})</span>
-                </span>
-                <a 
-                  href={links.tradingview}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-gold-primary hover:text-gold-light flex items-center gap-1"
-                >
-                  Open in TradingView
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
-              {/* Chart container - dynamic height to match right panel */}
-              <div 
-                id="tradingview_modal_chart" 
-                ref={chartContainerRef}
-                className="flex-1 min-h-[500px]"
-              />
-            </div>
-
-            {/* Right Panel */}
-            <div className="lg:col-span-4 flex flex-col gap-3">
-              
-              {/* Entry Price + Called Time */}
-              <div className="bg-gradient-to-br from-gold-primary/20 to-gold-primary/5 rounded-xl p-4 border border-gold-primary/30">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-gold-primary/70 text-xs uppercase tracking-wider">Entry Price</p>
-                  {signal.risk_level && (
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase border ${getRiskStyle(signal.risk_level)}`}>
-                      {signal.risk_level}
-                    </span>
-                  )}
+        {/* Content */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          
+          {activeTab === 'chart' && (
+            <>
+              {/* Main Area - Chart + Sidebar */}
+              <div className="flex-1 min-h-0 flex">
+                {/* Chart */}
+                <div className="flex-1 min-w-0">
+                  <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
                 </div>
-                <p className="text-3xl font-mono font-bold text-gold-primary">
-                  {formatPrice(signal.entry)}
-                </p>
-                <p className="text-text-muted text-xs mt-2 flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {formatDate(signal.created_at)}
-                </p>
-              </div>
 
-              {/* Target Progress - Chain Style */}
-              <div className="bg-bg-card rounded-xl p-4 border border-gold-primary/10 flex-1">
-                <p className="text-text-muted text-xs uppercase tracking-wider mb-3 flex items-center gap-1">
-                  <span>🎯</span> Target Progress
-                </p>
-                
-                {/* Chain Timeline */}
-                <div className="relative">
-                  {/* Vertical line */}
-                  <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gray-700 z-0"></div>
-                  
-                  <div className="space-y-2 relative z-10">
-                    {targets.map((t, i) => (
-                      <div key={i} className={`flex items-start gap-3 p-2.5 rounded-lg transition-all ${
-                        t.hit ? 'bg-green-500/10' : 'bg-bg-primary/30'
-                      }`}>
-                        {/* Circle Node */}
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                          t.hit 
-                            ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/30' 
-                            : 'bg-gray-800 border-2 border-gray-600 text-gray-500'
-                        }`}>
-                          {t.hit ? '✓' : i + 1}
-                        </div>
-                        
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-sm font-semibold ${t.hit ? 'text-green-400' : 'text-text-secondary'}`}>
-                              {t.label}
-                            </span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${
-                              t.hit ? 'bg-green-500/20 text-green-400' : 'bg-green-500/10 text-green-400/60'
-                            }`}>
-                              +{t.pct}%
-                            </span>
-                          </div>
-                          <p className={`font-mono text-sm ${t.hit ? 'text-white' : 'text-text-muted'}`}>
-                            {formatPrice(t.value)}
-                          </p>
-                          {/* Reached time */}
-                          {t.hit && t.reachedAt && (
-                            <p className="text-green-400/70 text-xs mt-0.5 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              Reached {formatShortDate(t.reachedAt)}
-                            </p>
-                          )}
-                          {t.hit && !t.reachedAt && (
-                            <p className="text-green-400/50 text-xs mt-0.5">✓ Reached</p>
-                          )}
-                        </div>
+                {/* Right Sidebar - Entry, TP, SL */}
+                <div className="w-64 flex-shrink-0 bg-bg-secondary/50 border-l border-gold-primary/20 overflow-y-auto">
+                  <div className="p-4 space-y-4">
+                    
+                    {/* Entry Price */}
+                    <div className="bg-gradient-to-br from-gold-primary/25 to-gold-primary/5 rounded-xl p-4 border border-gold-primary/40">
+                      <p className="text-gold-primary/70 text-xs uppercase tracking-wider font-medium">Entry Price</p>
+                      <p className="text-2xl font-mono font-bold text-gold-primary mt-1">
+                        {formatPrice(signal.entry)}
+                      </p>
+                    </div>
+
+                    {/* Volume Rank */}
+                    {signal.volume_rank_num && (
+                      <div className="bg-bg-primary/80 rounded-xl p-4 border border-gold-primary/20">
+                        <p className="text-text-muted text-xs uppercase tracking-wider font-medium">📊 Volume Rank</p>
+                        <p className="text-xl font-bold text-white mt-1">
+                          #{signal.volume_rank_num}
+                          <span className="text-text-muted text-sm font-normal ml-1">/ {signal.volume_rank_den}</span>
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                    )}
 
-              {/* Stop Loss - Chain Style */}
-              <div className={`bg-bg-card rounded-xl p-4 border ${isStopped ? 'border-red-500/50 bg-red-500/5' : 'border-red-500/20'}`}>
-                <p className="text-text-muted text-xs uppercase tracking-wider mb-3 flex items-center gap-1">
-                  <span>🛑</span> Stop Loss
-                </p>
-                
-                <div className="relative">
-                  {/* Vertical line */}
-                  {stops.length > 1 && (
-                    <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-red-900/50 z-0"></div>
-                  )}
-                  
-                  <div className="space-y-2 relative z-10">
-                    {stops.map((s, i) => (
-                      <div key={i} className={`flex items-start gap-3 p-2.5 rounded-lg ${
-                        s.hit ? 'bg-red-500/20' : 'bg-red-500/5'
-                      }`}>
-                        {/* Circle Node */}
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                          s.hit 
-                            ? 'bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg shadow-red-500/30' 
-                            : 'bg-gray-800 border-2 border-red-900/50 text-red-400/50'
-                        }`}>
-                          {s.hit ? '✗' : i + 1}
-                        </div>
-                        
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-sm font-semibold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>
-                              {s.label}
-                            </span>
-                            <span className="text-xs text-red-400">{s.pct}%</span>
+                    {/* Targets */}
+                    <div className="bg-bg-primary/80 rounded-xl p-4 border border-green-500/20">
+                      <p className="text-green-400 text-xs uppercase tracking-wider font-medium mb-3">🎯 Targets</p>
+                      <div className="space-y-2">
+                        {targets.map((t, i) => (
+                          <div key={i} className={`flex items-center justify-between p-2.5 rounded-lg transition-all ${
+                            t.hit ? 'bg-green-500/15 border border-green-500/30' : 'bg-bg-card/50'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                t.hit 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-gray-700 text-gray-400 border border-gray-600'
+                              }`}>
+                                {t.hit ? '✓' : i + 1}
+                              </div>
+                              <div>
+                                <p className={`text-sm font-semibold ${t.hit ? 'text-green-400' : 'text-text-secondary'}`}>
+                                  {t.label}
+                                </p>
+                                {t.hit && t.reachedAt && (
+                                  <p className="text-[10px] text-green-400/70">{formatShortDate(t.reachedAt)}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`font-mono text-sm ${t.hit ? 'text-white' : 'text-text-muted'}`}>
+                                {formatPrice(t.value)}
+                              </p>
+                              <p className={`text-xs font-medium ${t.hit ? 'text-green-400' : 'text-green-400/50'}`}>
+                                +{t.pct}%
+                              </p>
+                            </div>
                           </div>
-                          <p className={`font-mono text-sm ${s.hit ? 'text-white' : 'text-text-muted'}`}>
-                            {formatPrice(s.value)}
-                          </p>
-                          {/* Hit time */}
-                          {s.hit && s.reachedAt && (
-                            <p className="text-red-400/70 text-xs mt-0.5 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              Hit {formatShortDate(s.reachedAt)}
-                            </p>
-                          )}
-                          {s.hit && !s.reachedAt && (
-                            <p className="text-red-400/50 text-xs mt-0.5">✗ Stop Loss Hit</p>
-                          )}
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Stop Loss */}
+                    <div className={`rounded-xl p-4 border ${isStopped ? 'bg-red-500/10 border-red-500/40' : 'bg-bg-primary/80 border-red-500/20'}`}>
+                      <p className="text-red-400 text-xs uppercase tracking-wider font-medium mb-3">🛑 Stop Loss</p>
+                      <div className="space-y-2">
+                        {stops.map((s, i) => (
+                          <div key={i} className={`flex items-center justify-between p-2.5 rounded-lg transition-all ${
+                            s.hit ? 'bg-red-500/15 border border-red-500/30' : 'bg-bg-card/50'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                                s.hit 
+                                  ? 'bg-red-500 text-white' 
+                                  : 'bg-gray-700 text-red-400/50 border border-red-900/50'
+                              }`}>
+                                {s.hit ? '✗' : i + 1}
+                              </div>
+                              <div>
+                                <p className={`text-sm font-semibold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>
+                                  {s.label}
+                                </p>
+                                {s.hit && s.reachedAt && (
+                                  <p className="text-[10px] text-red-400/70">{formatShortDate(s.reachedAt)}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`font-mono text-sm ${s.hit ? 'text-white' : 'text-text-muted'}`}>
+                                {formatPrice(s.value)}
+                              </p>
+                              <p className="text-xs font-medium text-red-400">{s.pct}%</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
-              {/* Volume Rank */}
-              {signal.volume_rank_num && signal.volume_rank_den && (
-                <div className="bg-bg-card rounded-xl p-4 border border-gold-primary/10">
-                  <p className="text-text-muted text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <span>📊</span> Volume Rank
-                  </p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-white">#{signal.volume_rank_num}</span>
-                    <span className="text-text-muted text-sm">/ {signal.volume_rank_den}</span>
+              {/* Bottom Bar - Research Links */}
+              <div className="flex-shrink-0 bg-gradient-to-r from-bg-secondary via-bg-primary to-bg-secondary border-t border-gold-primary/30 px-5 py-3">
+                <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                  <span className="text-text-muted text-sm font-medium flex-shrink-0">🔗 Research:</span>
+                  {researchLinks.map((link, i) => (
+                    <a
+                      key={i}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center gap-2 px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-xl transition-all duration-200 flex-shrink-0 group ${link.color}`}
+                    >
+                      <img 
+                        src={link.logo} 
+                        alt={link.name}
+                        className="w-5 h-5 object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://www.google.com/s2/favicons?domain=${new URL(link.url).hostname}&sz=64`;
+                        }}
+                      />
+                      <span className="text-sm font-medium text-text-secondary group-hover:text-white transition-colors">
+                        {link.name}
+                      </span>
+                      <svg className="w-4 h-4 text-text-muted group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'research' && (
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="max-w-5xl mx-auto">
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-display text-white mb-2">Research & Analytics for {signal.pair}</h3>
+                  <p className="text-text-muted">Access all major platforms to analyze {coinSymbol}</p>
+                </div>
+
+                {/* Links Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                  {researchLinks.map((link, i) => (
+                    <a
+                      key={i}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex flex-col items-center gap-3 p-5 bg-bg-card border border-gold-primary/20 rounded-xl transition-all duration-200 group ${link.color}`}
+                    >
+                      <div className="w-14 h-14 rounded-xl bg-bg-primary flex items-center justify-center">
+                        <img 
+                          src={link.logo} 
+                          alt={link.name}
+                          className="w-10 h-10 object-contain"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://www.google.com/s2/favicons?domain=${new URL(link.url).hostname}&sz=64`;
+                          }}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white text-sm font-semibold group-hover:text-gold-primary transition-colors">{link.name}</p>
+                        <p className="text-text-muted text-xs mt-0.5">Open Platform →</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+
+                {/* Summary Card */}
+                <div className="bg-gradient-to-br from-gold-primary/15 to-transparent rounded-2xl p-6 border border-gold-primary/30">
+                  <h4 className="text-gold-primary font-display text-lg mb-4">Signal Summary</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div>
+                      <p className="text-text-muted text-sm">Entry Price</p>
+                      <p className="text-white font-mono text-xl mt-1">{formatPrice(signal.entry)}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-muted text-sm">Current Status</p>
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold text-white mt-1 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>
+                        {signal.status}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-text-muted text-sm">Targets Reached</p>
+                      <p className="text-white text-xl mt-1">{hitTargets.filter(Boolean).length} / {targets.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-muted text-sm">Maximum Profit</p>
+                      <p className="text-green-400 text-xl mt-1">+{targets[targets.length - 1]?.pct || 0}%</p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-
-          {/* Research Links */}
-          <div className="mt-4 bg-bg-card rounded-xl p-3 border border-gold-primary/10">
-            <p className="text-text-muted text-xs uppercase tracking-wider mb-2">🔍 Research & Analysis</p>
-            <div className="flex flex-wrap gap-2">
-              <a href={links.tradingview} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-bg-primary hover:bg-white/5 rounded-lg border border-gold-primary/10 transition-all group">
-                <div className="w-6 h-6 rounded bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">TV</span>
-                </div>
-                <span className="text-white text-sm group-hover:text-gold-primary transition-colors">TradingView</span>
-              </a>
-
-              <a href={links.twitter} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-bg-primary hover:bg-white/5 rounded-lg border border-gold-primary/10 transition-all group">
-                <div className="w-6 h-6 rounded bg-black flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">𝕏</span>
-                </div>
-                <span className="text-white text-sm group-hover:text-gold-primary transition-colors">X / Twitter</span>
-              </a>
-
-              <a href={links.coinglass} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-bg-primary hover:bg-white/5 rounded-lg border border-gold-primary/10 transition-all group">
-                <div className="w-6 h-6 rounded bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">CG</span>
-                </div>
-                <span className="text-white text-sm group-hover:text-gold-primary transition-colors">CoinGlass</span>
-              </a>
-
-              <a href={links.binance} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-bg-primary hover:bg-white/5 rounded-lg border border-gold-primary/10 transition-all group">
-                <div className="w-6 h-6 rounded bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
-                  <span className="text-black text-xs font-bold">BN</span>
-                </div>
-                <span className="text-white text-sm group-hover:text-gold-primary transition-colors">Binance</span>
-              </a>
-
-              <a href={links.velo} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-bg-primary hover:bg-white/5 rounded-lg border border-gold-primary/10 transition-all group">
-                <div className="w-6 h-6 rounded bg-gradient-to-br from-cyan-400 to-teal-600 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">V</span>
-                </div>
-                <span className="text-white text-sm group-hover:text-gold-primary transition-colors">Velo</span>
-              </a>
-            </div>
-          </div>
+          )}
+          
         </div>
       </div>
     </div>
