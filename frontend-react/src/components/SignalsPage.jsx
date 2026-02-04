@@ -1,18 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import SignalsTable from './SignalsTable';
-import SignalModal from './SignalModal';
 
 const API_BASE = '/api/v1';
 
 /**
- * SignalsPage - Simplified version
+ * SignalsPage - Potential Trades
  * Default: Last 7 days signals only
  */
 const SignalsPage = () => {
   const [signals, setSignals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSignal, setSelectedSignal] = useState(null);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -23,7 +21,6 @@ const SignalsPage = () => {
   // Filters
   const [searchPair, setSearchPair] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [riskFilter, setRiskFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
@@ -62,10 +59,6 @@ const SignalsPage = () => {
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      
-      if (riskFilter !== 'all') {
-        params.append('risk_level', riskFilter);
-      }
 
       const url = `${API_BASE}/signals/?${params}`;
       console.log('Fetching:', url);
@@ -83,7 +76,7 @@ const SignalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchPair, statusFilter, riskFilter, sortBy, sortOrder, dateFrom]);
+  }, [page, searchPair, statusFilter, sortBy, sortOrder, dateFrom]);
 
   useEffect(() => {
     fetchSignals();
@@ -92,7 +85,7 @@ const SignalsPage = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, riskFilter, sortBy, sortOrder]);
+  }, [searchPair, statusFilter, sortBy, sortOrder]);
 
   // Handle sort
   const handleSort = (field) => {
@@ -179,7 +172,7 @@ const SignalsPage = () => {
               <option value="created_at">Time</option>
               <option value="pair">Pair</option>
               <option value="entry">Entry Price</option>
-              <option value="risk_level">Risk Level</option>
+              <option value="max_target">Max Target %</option>
             </select>
           </div>
 
@@ -196,36 +189,19 @@ const SignalsPage = () => {
               <span>{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
             </button>
           </div>
-
-          {/* Risk Filter */}
-          <div className="w-32">
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-1.5 block">
-              Risk
-            </label>
-            <select
-              value={riskFilter}
-              onChange={(e) => setRiskFilter(e.target.value)}
-              className="w-full px-3 py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white focus:outline-none focus:border-gold-primary/50"
-            >
-              <option value="all">All Risk</option>
-              <option value="low">Low</option>
-              <option value="med">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
         </div>
 
-        {/* Status Filter Pills */}
+        {/* Status Filters */}
         <div className="mt-4 pt-4 border-t border-gold-primary/10">
           <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
             Status
           </label>
           <div className="flex flex-wrap gap-2">
-            {statusOptions.map((opt) => (
+            {statusOptions.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setStatusFilter(opt.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
                   statusFilter === opt.value
                     ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
                     : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
@@ -257,21 +233,12 @@ const SignalsPage = () => {
         <SignalsTable
           signals={signals}
           loading={loading}
-          onRowClick={setSelectedSignal}
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSort={handleSort}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
-        />
-      )}
-
-      {/* Signal Detail Modal */}
-      {selectedSignal && (
-        <SignalModal 
-          signal={selectedSignal} 
-          onClose={() => setSelectedSignal(null)} 
         />
       )}
     </div>

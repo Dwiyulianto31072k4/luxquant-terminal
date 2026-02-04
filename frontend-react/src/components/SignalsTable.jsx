@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
-import StarButton from './StarButton';
-import { useAuth } from '../context/AuthContext';
-import { watchlistApi } from '../services/watchlistApi';
 
 const SignalsTable = ({ 
   signals, 
@@ -16,42 +13,78 @@ const SignalsTable = ({
   onSort 
 }) => {
   const [selectedSignal, setSelectedSignal] = useState(null);
-  const { isAuthenticated } = useAuth();
-  const [watchlistIds, setWatchlistIds] = useState(new Set());
-  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [currentPrices, setCurrentPrices] = useState({});
+  const [pricesLoading, setPricesLoading] = useState(false);
 
-  // Fetch watchlist IDs when authenticated
+  // Fetch current prices from Binance for all unique pairs
   useEffect(() => {
-    const fetchWatchlistIds = async () => {
-      if (isAuthenticated) {
-        setLoadingWatchlist(true);
+    if (!signals || signals.length === 0) return;
+
+    const fetchCurrentPrices = async () => {
+      setPricesLoading(true);
+      try {
+        // Get unique pairs
+        const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
+        
+        // Fetch all prices from Binance
+        const response = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
+        if (!response.ok) throw new Error('Failed to fetch prices');
+        
+        const allPrices = await response.json();
+        
+        // Create a map of pair -> price
+        const priceMap = {};
+        allPrices.forEach(item => {
+          priceMap[item.symbol] = parseFloat(item.price);
+        });
+        
+        // Filter only the pairs we need
+        const relevantPrices = {};
+        uniquePairs.forEach(pair => {
+          if (priceMap[pair]) {
+            relevantPrices[pair] = priceMap[pair];
+          }
+        });
+        
+        setCurrentPrices(relevantPrices);
+      } catch (error) {
+        console.error('Error fetching current prices:', error);
+        // Try fallback to backend proxy
         try {
-          const data = await watchlistApi.getWatchlistIds();
-          setWatchlistIds(new Set(data.signal_ids || []));
-        } catch (error) {
-          console.error('Failed to fetch watchlist IDs:', error);
-        } finally {
-          setLoadingWatchlist(false);
+          const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
+          const pricePromises = uniquePairs.map(async (pair) => {
+            try {
+              const res = await fetch(`/api/v1/market/price/${pair}`);
+              if (res.ok) {
+                const data = await res.json();
+                return { pair, price: data.price };
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          });
+          
+          const results = await Promise.all(pricePromises);
+          const priceMap = {};
+          results.forEach(r => {
+            if (r) priceMap[r.pair] = r.price;
+          });
+          setCurrentPrices(priceMap);
+        } catch (fallbackError) {
+          console.error('Fallback price fetch also failed:', fallbackError);
         }
-      } else {
-        setWatchlistIds(new Set());
+      } finally {
+        setPricesLoading(false);
       }
     };
-    fetchWatchlistIds();
-  }, [isAuthenticated]);
 
-  // Handle watchlist toggle
-  const handleWatchlistToggle = (signalId, isNowStarred) => {
-    setWatchlistIds(prev => {
-      const newSet = new Set(prev);
-      if (isNowStarred) {
-        newSet.add(signalId);
-      } else {
-        newSet.delete(signalId);
-      }
-      return newSet;
-    });
-  };
+    fetchCurrentPrices();
+    
+    // Refresh prices every 10 seconds
+    const interval = setInterval(fetchCurrentPrices, 10000);
+    return () => clearInterval(interval);
+  }, [signals]);
 
   // Format date: "28 Jan at 09:55"
   const formatDateTime = (dateStr) => {
@@ -74,21 +107,33 @@ const SignalsTable = ({
     return { value: maxTarget, pct };
   };
 
+  // Calculate price change percentage from entry
+  const getPriceChange = (entry, currentPrice) => {
+    if (!entry || !currentPrice) return null;
+    const change = ((currentPrice - entry) / entry * 100);
+    return change;
+  };
+
+  // Calculate stop loss percentage from entry (always negative)
+  const getStopLossPercent = (entry, stopLoss) => {
+    if (!entry || !stopLoss) return null;
+    const change = ((stopLoss - entry) / entry * 100);
+    return change;
+  };
+
+  // Format price based on value
+  const formatPrice = (price) => {
+    if (!price) return '-';
+    if (price < 0.0001) return price.toFixed(8);
+    if (price < 0.01) return price.toFixed(6);
+    if (price < 1) return price.toFixed(4);
+    return price < 100 ? price.toFixed(4) : price.toFixed(2);
+  };
+
   // Get coin name without USDT
   const getCoinName = (pair) => {
     if (!pair) return '';
     return pair.replace(/USDT$/i, '');
-  };
-
-  // Risk badge style
-  const getRiskBadge = (risk) => {
-    const styles = {
-      'low': 'bg-green-500/20 text-green-400 border-green-500/30',
-      'med': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      'medium': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      'high': 'bg-red-500/20 text-red-400 border-red-500/30'
-    };
-    return styles[risk?.toLowerCase()] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   // Status badge
@@ -157,18 +202,11 @@ const SignalsTable = ({
           <table className="w-full">
             <thead>
               <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
-                {/* Star column header - only show if authenticated */}
-                {isAuthenticated && (
-                  <th className="py-4 px-2 w-12 text-gold-primary/70 text-xs font-semibold uppercase tracking-wider text-center">
-                    <svg className="w-4 h-4 mx-auto text-gold-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </th>
-                )}
+                <Header label="" align="center" /> {/* Star/Favorite */}
                 <SortableHeader field="pair" label="Pair" />
-                <SortableHeader field="risk_level" label="Risk" />
+                <Header label="Current Price" align="right" />
                 <SortableHeader field="entry" label="Entry" align="right" />
-                <Header label="Max Target" align="right" />
+                <SortableHeader field="max_target" label="Max Target" align="right" /> {/* Now sortable */}
                 <Header label="Stop Loss" align="right" />
                 <Header label="Vol Rank" align="center" />
                 <SortableHeader field="status" label="Status" align="center" />
@@ -179,12 +217,7 @@ const SignalsTable = ({
               {loading ? (
                 [...Array(10)].map((_, i) => (
                   <tr key={i} className="border-b border-gold-primary/5">
-                    {isAuthenticated && (
-                      <td className="py-4 px-2">
-                        <div className="h-5 w-5 bg-bg-card rounded animate-pulse mx-auto"></div>
-                      </td>
-                    )}
-                    {[...Array(8)].map((_, j) => (
+                    {[...Array(9)].map((_, j) => (
                       <td key={j} className="py-4 px-4">
                         <div className="h-5 bg-bg-card rounded animate-pulse"></div>
                       </td>
@@ -193,7 +226,7 @@ const SignalsTable = ({
                 ))
               ) : signals?.length === 0 ? (
                 <tr>
-                  <td colSpan={isAuthenticated ? 9 : 8} className="text-center py-16">
+                  <td colSpan={9} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-bg-card flex items-center justify-center">
                         <span className="text-3xl">🔍</span>
@@ -206,26 +239,30 @@ const SignalsTable = ({
               ) : (
                 signals?.map((signal, idx) => {
                   const maxTarget = getMaxTarget(signal);
-                  const isStarred = watchlistIds.has(signal.signal_id);
+                  const currentPrice = currentPrices[signal.pair];
+                  const priceChange = getPriceChange(signal.entry, currentPrice);
                   
                   return (
                     <tr 
                       key={signal.signal_id || idx}
+                      onClick={() => setSelectedSignal(signal)}
                       className="border-b border-gold-primary/5 hover:bg-gold-primary/5 cursor-pointer transition-colors group"
                     >
-                      {/* Star Button - only show if authenticated */}
-                      {isAuthenticated && (
-                        <td className="py-4 px-2 text-center">
-                          <StarButton 
-                            signalId={signal.signal_id}
-                            isStarred={isStarred}
-                            onToggle={handleWatchlistToggle}
-                          />
-                        </td>
-                      )}
-                      
+                      {/* Star/Favorite placeholder */}
+                      <td className="py-4 px-4 text-center">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add to watchlist functionality
+                          }}
+                          className="text-text-muted hover:text-gold-primary transition-colors"
+                        >
+                          ☆
+                        </button>
+                      </td>
+
                       {/* Pair with Coin Logo */}
-                      <td className="py-4 px-4" onClick={() => setSelectedSignal(signal)}>
+                      <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <CoinLogo pair={signal.pair} size={40} />
                           <div>
@@ -237,23 +274,34 @@ const SignalsTable = ({
                         </div>
                       </td>
                       
-                      {/* Risk */}
-                      <td className="py-4 px-4" onClick={() => setSelectedSignal(signal)}>
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase border ${getRiskBadge(signal.risk_level)}`}>
-                          {signal.risk_level || '-'}
-                        </span>
+                      {/* Current Price with % change from entry */}
+                      <td className="py-4 px-4 text-right">
+                        {pricesLoading && !currentPrice ? (
+                          <div className="h-5 w-20 bg-bg-card rounded animate-pulse ml-auto"></div>
+                        ) : currentPrice ? (
+                          <div>
+                            <span className="font-mono text-white">{formatPrice(currentPrice)}</span>
+                            {priceChange !== null && (
+                              <p className={`text-xs font-semibold ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                ({priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%)
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-text-muted">-</span>
+                        )}
                       </td>
                       
                       {/* Entry */}
-                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
-                        <span className="font-mono text-white">{signal.entry?.toFixed(6)}</span>
+                      <td className="py-4 px-4 text-right">
+                        <span className="font-mono text-white">{formatPrice(signal.entry)}</span>
                       </td>
                       
                       {/* Max Target */}
-                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
+                      <td className="py-4 px-4 text-right">
                         {maxTarget.value ? (
                           <div>
-                            <span className="font-mono text-white">{maxTarget.value.toFixed(6)}</span>
+                            <span className="font-mono text-white">{formatPrice(maxTarget.value)}</span>
                             <p className="text-positive text-xs font-semibold">+{maxTarget.pct}%</p>
                           </div>
                         ) : (
@@ -261,16 +309,27 @@ const SignalsTable = ({
                         )}
                       </td>
                       
-                      {/* Stop Loss */}
-                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
-                        <span className="font-mono text-negative">{signal.stop1?.toFixed(6) || '-'}</span>
+                      {/* Stop Loss with percentage */}
+                      <td className="py-4 px-4 text-right">
+                        {signal.stop1 ? (
+                          <div>
+                            <span className="font-mono text-negative">{formatPrice(signal.stop1)}</span>
+                            {signal.entry && (
+                              <p className="text-red-400 text-xs font-semibold">
+                                ({getStopLossPercent(signal.entry, signal.stop1)?.toFixed(2)}%)
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-text-muted">-</span>
+                        )}
                       </td>
                       
                       {/* Vol Rank */}
-                      <td className="py-4 px-4 text-center" onClick={() => setSelectedSignal(signal)}>
+                      <td className="py-4 px-4 text-center">
                         {signal.volume_rank_num && signal.volume_rank_den ? (
-                          <span className="text-text-secondary font-mono">
-                            <span className="text-white">{signal.volume_rank_num}</span>
+                          <span className="text-white">
+                            <span className="font-semibold">{signal.volume_rank_num}</span>
                             <span className="text-text-muted">/{signal.volume_rank_den}</span>
                           </span>
                         ) : (
@@ -279,13 +338,13 @@ const SignalsTable = ({
                       </td>
                       
                       {/* Status */}
-                      <td className="py-4 px-4 text-center" onClick={() => setSelectedSignal(signal)}>
+                      <td className="py-4 px-4 text-center">
                         {getStatusBadge(signal.status)}
                       </td>
                       
                       {/* Time */}
-                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
-                        <span className="text-text-secondary font-mono text-sm">
+                      <td className="py-4 px-4 text-right">
+                        <span className="text-text-muted font-mono text-sm">
                           {formatDateTime(signal.created_at)}
                         </span>
                       </td>
@@ -298,71 +357,25 @@ const SignalsTable = ({
         </div>
 
         {/* Pagination */}
-        {!loading && signals?.length > 0 && (
-          <div className="p-4 border-t border-gold-primary/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gold-primary/10">
             <p className="text-text-muted text-sm">
-              Page <span className="text-white font-semibold">{page}</span> of{' '}
-              <span className="text-white font-semibold">{totalPages}</span>
+              Page {page} of {totalPages}
             </p>
-            
             <div className="flex items-center gap-2">
-              {/* First Page */}
-              <button
-                onClick={() => onPageChange(1)}
-                disabled={page <= 1}
-                className="px-3 py-2 rounded-lg bg-bg-card text-text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gold-primary/20 hover:border-gold-primary/40"
-                title="First page"
-              >
-                «
-              </button>
-              
-              {/* Previous */}
               <button
                 onClick={() => onPageChange(page - 1)}
                 disabled={page <= 1}
-                className="px-4 py-2 rounded-lg bg-bg-card text-text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gold-primary/20 hover:border-gold-primary/40"
+                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
+                ← Prev
               </button>
-              
-              {/* Page Numbers */}
-              <div className="hidden sm:flex items-center gap-1">
-                {generatePageNumbers(page, totalPages).map((p, i) => (
-                  p === '...' ? (
-                    <span key={`ellipsis-${i}`} className="px-2 text-text-muted">...</span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => onPageChange(p)}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
-                        p === page
-                          ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                          : 'bg-bg-card text-text-secondary hover:text-white border border-gold-primary/20 hover:border-gold-primary/40'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  )
-                ))}
-              </div>
-              
-              {/* Next */}
               <button
                 onClick={() => onPageChange(page + 1)}
                 disabled={page >= totalPages}
-                className="px-4 py-2 rounded-lg bg-bg-card text-text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gold-primary/20 hover:border-gold-primary/40"
+                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next
-              </button>
-              
-              {/* Last Page */}
-              <button
-                onClick={() => onPageChange(totalPages)}
-                disabled={page >= totalPages}
-                className="px-3 py-2 rounded-lg bg-bg-card text-text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors border border-gold-primary/20 hover:border-gold-primary/40"
-                title="Last page"
-              >
-                »
+                Next →
               </button>
             </div>
           </div>
@@ -371,49 +384,12 @@ const SignalsTable = ({
 
       {/* Signal Detail Modal */}
       <SignalModal 
-        signal={selectedSignal}
+        signal={selectedSignal} 
         isOpen={!!selectedSignal}
-        onClose={() => setSelectedSignal(null)}
+        onClose={() => setSelectedSignal(null)} 
       />
     </>
   );
-};
-
-// Helper function to generate page numbers with ellipsis
-const generatePageNumbers = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  
-  const pages = [];
-  
-  // Always show first page
-  pages.push(1);
-  
-  if (current > 3) {
-    pages.push('...');
-  }
-  
-  // Pages around current
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  
-  for (let i = start; i <= end; i++) {
-    if (!pages.includes(i)) {
-      pages.push(i);
-    }
-  }
-  
-  if (current < total - 2) {
-    pages.push('...');
-  }
-  
-  // Always show last page
-  if (!pages.includes(total)) {
-    pages.push(total);
-  }
-  
-  return pages;
 };
 
 export default SignalsTable;

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.api.routes import signals, market, auth, watchlist
+from app.api.routes import signals, market, auth, watchlist, analytics
 from app.core.database import engine, Base
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ app.add_middleware(
 
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
+app.include_router(analytics.router, prefix="/api/v1/signals/analytics", tags=["analytics"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
