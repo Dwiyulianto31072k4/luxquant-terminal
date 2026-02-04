@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -24,10 +24,20 @@ class WatchlistItem(BaseModel):
     signal_id: str
     created_at: datetime
     # Signal details (joined)
-    pair: str | None = None
-    entry: float | None = None
-    status: str | None = None
-    risk_level: str | None = None
+    pair: Optional[str] = None
+    entry: Optional[float] = None
+    status: Optional[str] = None
+    risk_level: Optional[str] = None
+    # Target & Stop Loss - ADDED
+    target1: Optional[float] = None
+    target2: Optional[float] = None
+    target3: Optional[float] = None
+    target4: Optional[float] = None
+    stop1: Optional[float] = None
+    stop2: Optional[float] = None
+    # Volume Rank - ADDED
+    volume_rank_num: Optional[int] = None
+    volume_rank_den: Optional[int] = None
 
 
 class WatchlistResponse(BaseModel):
@@ -42,7 +52,7 @@ async def get_watchlist(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's watchlist with signal details"""
+    """Get user's watchlist with full signal details"""
     
     result = db.execute(
         text("""
@@ -53,7 +63,15 @@ async def get_watchlist(
                 s.pair,
                 s.entry,
                 s.status,
-                s.risk_level
+                s.risk_level,
+                s.target1,
+                s.target2,
+                s.target3,
+                s.target4,
+                s.stop1,
+                s.stop2,
+                s.volume_rank_num,
+                s.volume_rank_den
             FROM watchlist w
             LEFT JOIN signals s ON w.signal_id = s.signal_id
             WHERE w.user_id = :user_id
@@ -71,7 +89,15 @@ async def get_watchlist(
             pair=row[3],
             entry=row[4],
             status=row[5],
-            risk_level=row[6]
+            risk_level=row[6],
+            target1=row[7],
+            target2=row[8],
+            target3=row[9],
+            target4=row[10],
+            stop1=row[11],
+            stop2=row[12],
+            volume_rank_num=row[13],
+            volume_rank_den=row[14]
         ))
     
     return WatchlistResponse(items=items, total=len(items))

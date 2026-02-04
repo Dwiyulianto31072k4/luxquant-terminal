@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
+import StarButton from './StarButton';
+import { useAuth } from '../context/AuthContext';
+import { watchlistApi } from '../services/watchlistApi';
 
 const SignalsTable = ({ 
   signals, 
@@ -13,6 +16,42 @@ const SignalsTable = ({
   onSort 
 }) => {
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const { isAuthenticated } = useAuth();
+  const [watchlistIds, setWatchlistIds] = useState(new Set());
+  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+
+  // Fetch watchlist IDs when authenticated
+  useEffect(() => {
+    const fetchWatchlistIds = async () => {
+      if (isAuthenticated) {
+        setLoadingWatchlist(true);
+        try {
+          const data = await watchlistApi.getWatchlistIds();
+          setWatchlistIds(new Set(data.signal_ids || []));
+        } catch (error) {
+          console.error('Failed to fetch watchlist IDs:', error);
+        } finally {
+          setLoadingWatchlist(false);
+        }
+      } else {
+        setWatchlistIds(new Set());
+      }
+    };
+    fetchWatchlistIds();
+  }, [isAuthenticated]);
+
+  // Handle watchlist toggle
+  const handleWatchlistToggle = (signalId, isNowStarred) => {
+    setWatchlistIds(prev => {
+      const newSet = new Set(prev);
+      if (isNowStarred) {
+        newSet.add(signalId);
+      } else {
+        newSet.delete(signalId);
+      }
+      return newSet;
+    });
+  };
 
   // Format date: "28 Jan at 09:55"
   const formatDateTime = (dateStr) => {
@@ -118,6 +157,14 @@ const SignalsTable = ({
           <table className="w-full">
             <thead>
               <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
+                {/* Star column header - only show if authenticated */}
+                {isAuthenticated && (
+                  <th className="py-4 px-2 w-12 text-gold-primary/70 text-xs font-semibold uppercase tracking-wider text-center">
+                    <svg className="w-4 h-4 mx-auto text-gold-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </th>
+                )}
                 <SortableHeader field="pair" label="Pair" />
                 <SortableHeader field="risk_level" label="Risk" />
                 <SortableHeader field="entry" label="Entry" align="right" />
@@ -132,6 +179,11 @@ const SignalsTable = ({
               {loading ? (
                 [...Array(10)].map((_, i) => (
                   <tr key={i} className="border-b border-gold-primary/5">
+                    {isAuthenticated && (
+                      <td className="py-4 px-2">
+                        <div className="h-5 w-5 bg-bg-card rounded animate-pulse mx-auto"></div>
+                      </td>
+                    )}
                     {[...Array(8)].map((_, j) => (
                       <td key={j} className="py-4 px-4">
                         <div className="h-5 bg-bg-card rounded animate-pulse"></div>
@@ -141,7 +193,7 @@ const SignalsTable = ({
                 ))
               ) : signals?.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-16">
+                  <td colSpan={isAuthenticated ? 9 : 8} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-bg-card flex items-center justify-center">
                         <span className="text-3xl">🔍</span>
@@ -154,14 +206,26 @@ const SignalsTable = ({
               ) : (
                 signals?.map((signal, idx) => {
                   const maxTarget = getMaxTarget(signal);
+                  const isStarred = watchlistIds.has(signal.signal_id);
+                  
                   return (
                     <tr 
                       key={signal.signal_id || idx}
-                      onClick={() => setSelectedSignal(signal)}
                       className="border-b border-gold-primary/5 hover:bg-gold-primary/5 cursor-pointer transition-colors group"
                     >
+                      {/* Star Button - only show if authenticated */}
+                      {isAuthenticated && (
+                        <td className="py-4 px-2 text-center">
+                          <StarButton 
+                            signalId={signal.signal_id}
+                            isStarred={isStarred}
+                            onToggle={handleWatchlistToggle}
+                          />
+                        </td>
+                      )}
+                      
                       {/* Pair with Coin Logo */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4" onClick={() => setSelectedSignal(signal)}>
                         <div className="flex items-center gap-3">
                           <CoinLogo pair={signal.pair} size={40} />
                           <div>
@@ -174,19 +238,19 @@ const SignalsTable = ({
                       </td>
                       
                       {/* Risk */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4" onClick={() => setSelectedSignal(signal)}>
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase border ${getRiskBadge(signal.risk_level)}`}>
                           {signal.risk_level || '-'}
                         </span>
                       </td>
                       
                       {/* Entry */}
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
                         <span className="font-mono text-white">{signal.entry?.toFixed(6)}</span>
                       </td>
                       
                       {/* Max Target */}
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
                         {maxTarget.value ? (
                           <div>
                             <span className="font-mono text-white">{maxTarget.value.toFixed(6)}</span>
@@ -198,12 +262,12 @@ const SignalsTable = ({
                       </td>
                       
                       {/* Stop Loss */}
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
                         <span className="font-mono text-negative">{signal.stop1?.toFixed(6) || '-'}</span>
                       </td>
                       
                       {/* Vol Rank */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-4 px-4 text-center" onClick={() => setSelectedSignal(signal)}>
                         {signal.volume_rank_num && signal.volume_rank_den ? (
                           <span className="text-text-secondary font-mono">
                             <span className="text-white">{signal.volume_rank_num}</span>
@@ -215,12 +279,12 @@ const SignalsTable = ({
                       </td>
                       
                       {/* Status */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-4 px-4 text-center" onClick={() => setSelectedSignal(signal)}>
                         {getStatusBadge(signal.status)}
                       </td>
                       
                       {/* Time */}
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-4 px-4 text-right" onClick={() => setSelectedSignal(signal)}>
                         <span className="text-text-secondary font-mono text-sm">
                           {formatDateTime(signal.created_at)}
                         </span>

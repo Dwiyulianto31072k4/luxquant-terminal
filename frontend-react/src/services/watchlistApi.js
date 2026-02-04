@@ -28,7 +28,20 @@ export const watchlistApi = {
 
   // Get all watchlist signal IDs (for quick lookup)
   getWatchlistIds: async () => {
-    const response = await api.get('/api/v1/watchlist/ids');
-    return response.data;
+    try {
+      const response = await api.get('/api/v1/watchlist/ids');
+      return response.data;
+    } catch (error) {
+      // If endpoint doesn't exist, fallback to getting full watchlist
+      console.warn('getWatchlistIds endpoint not found, falling back to full watchlist');
+      try {
+        const fullResponse = await api.get('/api/v1/watchlist/');
+        const signalIds = (fullResponse.data.items || []).map(item => item.signal_id);
+        return { signal_ids: signalIds };
+      } catch (fallbackError) {
+        console.error('Failed to get watchlist:', fallbackError);
+        return { signal_ids: [] };
+      }
+    }
   }
 };

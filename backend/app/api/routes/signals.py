@@ -435,6 +435,109 @@ async def get_signals_by_pair(
     return signals
 
 
+# Tambahkan endpoint ini ke backend/app/api/routes/signals.py
+# Letakkan sebelum endpoint @router.get("/{signal_id}")
+
+# ============ Signal Detail with Updates Timeline ============
+
+class SignalUpdateItem(BaseModel):
+    update_type: str
+    price: Optional[float] = None
+    update_at: Optional[str] = None
+
+
+class SignalDetailResponse(BaseModel):
+    signal_id: str
+    channel_id: Optional[int] = None
+    call_message_id: Optional[int] = None
+    message_link: Optional[str] = None
+    pair: Optional[str] = None
+    entry: Optional[float] = None
+    target1: Optional[float] = None
+    target2: Optional[float] = None
+    target3: Optional[float] = None
+    target4: Optional[float] = None
+    stop1: Optional[float] = None
+    stop2: Optional[float] = None
+    risk_level: Optional[str] = None
+    volume_rank_num: Optional[int] = None
+    volume_rank_den: Optional[int] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    # Updates timeline
+    updates: List[SignalUpdateItem] = []
+
+
+@router.get("/detail/{signal_id}", response_model=SignalDetailResponse)
+async def get_signal_detail(signal_id: str, db: Session = Depends(get_db)):
+    """
+    Get signal detail with updates timeline (TP/SL reached times)
+    """
+    # Get signal
+    signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    
+    # Get updates for this signal
+    updates_result = db.execute(
+        text("""
+            SELECT 
+                update_type,
+                price,
+                update_at
+            FROM signal_updates
+            WHERE signal_id = :signal_id
+            ORDER BY update_at ASC
+        """),
+        {"signal_id": signal_id}
+    )
+    
+    updates = []
+    for row in updates_result.fetchall():
+        # Normalize update_type to tp1, tp2, tp3, tp4, sl
+        update_type = row[0].lower() if row[0] else ''
+        normalized_type = None
+        
+        if 'tp4' in update_type or 'target 4' in update_type:
+            normalized_type = 'tp4'
+        elif 'tp3' in update_type or 'target 3' in update_type:
+            normalized_type = 'tp3'
+        elif 'tp2' in update_type or 'target 2' in update_type:
+            normalized_type = 'tp2'
+        elif 'tp1' in update_type or 'target 1' in update_type:
+            normalized_type = 'tp1'
+        elif 'sl' in update_type or 'stop' in update_type:
+            normalized_type = 'sl'
+        
+        if normalized_type:
+            updates.append(SignalUpdateItem(
+                update_type=normalized_type,
+                price=row[1],
+                update_at=row[2]
+            ))
+    
+    return SignalDetailResponse(
+        signal_id=signal.signal_id,
+        channel_id=signal.channel_id,
+        call_message_id=signal.call_message_id,
+        message_link=signal.message_link,
+        pair=signal.pair,
+        entry=signal.entry,
+        target1=signal.target1,
+        target2=signal.target2,
+        target3=signal.target3,
+        target4=signal.target4,
+        stop1=signal.stop1,
+        stop2=signal.stop2,
+        risk_level=signal.risk_level,
+        volume_rank_num=signal.volume_rank_num,
+        volume_rank_den=signal.volume_rank_den,
+        status=signal.status,
+        created_at=signal.created_at,
+        updates=updates
+    )
+
+
 @router.get("/{signal_id}", response_model=SignalResponse)
 async def get_signal(signal_id: str, db: Session = Depends(get_db)):
     """Get single signal by ID"""
