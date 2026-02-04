@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import OverviewPage from './components/OverviewPage';
 import SignalsPage from './components/SignalsPage';
 import BitcoinPage from './components/BitcoinPage';
 import MarketsPage from './components/MarketsPage';
 import AnalyzePage from './components/AnalyzePage';
+import WatchlistPage from './components/WatchlistPage';
+import { LoginPage, RegisterPage, UserMenu } from './components/auth';
 
-function App() {
+// Main App Content (inside router)
+function AppContent() {
   const [activeTab, setActiveTab] = useState('terminal');
+  const { loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Sync activeTab with URL
+  useEffect(() => {
+    if (location.pathname === '/watchlist') {
+      setActiveTab('watchlist');
+    }
+  }, [location.pathname]);
 
   // Listen for navigation events from child components
   useEffect(() => {
@@ -16,6 +31,16 @@ function App() {
     window.addEventListener('navigate', handleNavigate);
     return () => window.removeEventListener('navigate', handleNavigate);
   }, []);
+
+  // Handle tab click
+  const handleTabClick = (key) => {
+    setActiveTab(key);
+    if (key === 'watchlist') {
+      navigate('/watchlist');
+    } else {
+      navigate('/');
+    }
+  };
 
   // Navigation items
   const navItems = [
@@ -39,10 +64,30 @@ function App() {
         return <BitcoinPage />;
       case 'markets':
         return <MarketsPage />;
+      case 'watchlist':
+        return <WatchlistPage />;
       default:
         return <OverviewPage />;
     }
   };
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-gold-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if on auth pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  if (isAuthPage) {
+    return null; // Let Routes handle it
+  }
 
   return (
     <div className="min-h-screen">
@@ -62,7 +107,7 @@ function App() {
             {/* Logo + Navigation */}
             <div className="flex items-center gap-8">
               {/* Logo */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleTabClick('terminal')}>
                 <div className="w-10 h-10 bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark rounded-xl flex items-center justify-center shadow-gold-glow">
                   <span className="font-display font-bold text-sm text-bg-primary">LQ</span>
                 </div>
@@ -76,7 +121,7 @@ function App() {
                 {navItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveTab(item.key)}
+                    onClick={() => handleTabClick(item.key)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       activeTab === item.key
                         ? 'text-gold-primary bg-gold-primary/10'
@@ -122,6 +167,9 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
+
+              {/* User Menu */}
+              <UserMenu />
             </div>
           </div>
         </div>
@@ -167,5 +215,21 @@ const LiveClock = () => {
     </div>
   );
 };
+
+// Main App with Router
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/watchlist" element={<AppContent />} />
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
 
 export default App;
