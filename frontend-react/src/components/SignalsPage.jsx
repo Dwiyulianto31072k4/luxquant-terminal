@@ -245,4 +245,4 @@ const SignalsPage = () => {
   );
 };
 
-export default SignalsPage;
+export default SignalsPage; 

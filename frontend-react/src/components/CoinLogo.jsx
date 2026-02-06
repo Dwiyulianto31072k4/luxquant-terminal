@@ -406,4 +406,6 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
 };
 
 
+
+
 export default CoinLogo;
