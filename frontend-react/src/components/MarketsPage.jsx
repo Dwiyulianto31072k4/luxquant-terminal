@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 
+const API_BASE = '/api/v1';
+
 /**
  * MarketsPage - Comprehensive market listings
- * Uses backend API with caching to avoid rate limits
  */
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
 const MarketsPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,52 +21,34 @@ const MarketsPage = () => {
     try {
       setError(null);
       
-      // Use BACKEND instead of direct CoinGecko (has caching)
-      const response = await fetch(`${API_BASE}/api/v1/coingecko/coins?per_page=100`);
-      
-      if (response.status === 429) {
-        // Rate limited - keep existing data if available, show warning
-        if (data) {
-          setError('Rate limited - showing cached data');
-          return; // Keep existing data
-        }
-        throw new Error('Rate limited. Please wait a moment and retry.');
-      }
+      // Fetch dari backend endpoint (lebih reliable karena pakai API key)
+      const response = await fetch(`${API_BASE}/coingecko/markets?per_page=100&page=1`);
       
       if (!response.ok) {
-        // Other error - keep existing data if available
-        if (data) {
-          console.warn(`API error ${response.status}, keeping cached data`);
-          return;
-        }
-        throw new Error(`API error: ${response.status}`);
+        throw new Error('Failed to fetch market data');
       }
       
       const coins = await response.json();
 
-      if (Array.isArray(coins) && coins.length > 0) {
+      if (Array.isArray(coins)) {
         setData({
           all: coins,
           gainers: [...coins]
-            .filter(c => c.price_change_24h != null)
-            .sort((a, b) => (b.price_change_24h || 0) - (a.price_change_24h || 0))
+            .filter(c => c.price_change_percentage_24h != null)
+            .sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0))
             .slice(0, 20),
           losers: [...coins]
-            .filter(c => c.price_change_24h != null)
-            .sort((a, b) => (a.price_change_24h || 0) - (b.price_change_24h || 0))
+            .filter(c => c.price_change_percentage_24h != null)
+            .sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0))
             .slice(0, 20),
           volume: [...coins]
-            .sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0))
+            .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0))
             .slice(0, 20),
         });
-        setError(null); // Clear any previous error on success
       }
     } catch (err) {
       console.error('Failed to fetch markets:', err);
-      // Only set error if we have no data to show
-      if (!data) {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -80,6 +60,20 @@ const MarketsPage = () => {
     { key: 'losers', label: 'Top Losers', icon: '📉' },
     { key: 'volume', label: 'Top Volume', icon: '💎' },
   ];
+
+  const formatPrice = (price) => {
+    if (price >= 1000) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (price >= 1) return `$${price.toFixed(2)}`;
+    if (price >= 0.01) return `$${price.toFixed(4)}`;
+    return `$${price.toFixed(8)}`;
+  };
+
+  const formatMarketCap = (value) => {
+    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  };
 
   if (loading) {
     return (
@@ -136,146 +130,97 @@ const MarketsPage = () => {
         <h2 className="font-display text-2xl font-semibold text-white">Markets</h2>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2">
+      {/* Tabs */}
+      <div className="flex gap-2">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
               activeTab === tab.key
-                ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:border-gold-primary/40 hover:text-white'
+                ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30'
+                : 'bg-bg-card text-text-secondary hover:bg-gold-primary/10 border border-gold-primary/5'
             }`}
           >
-            <span>{tab.icon}</span>
+            <span className="mr-2">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Market Table */}
-      <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-gold-primary/10 bg-gold-primary/5">
-          <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase">#</div>
-          <div className="col-span-4 text-gold-primary text-xs font-semibold uppercase">Name</div>
-          <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">Price</div>
-          <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">24h Change</div>
-          <div className="col-span-2 text-gold-primary text-xs font-semibold uppercase text-right">Volume</div>
-          <div className="col-span-1 text-gold-primary text-xs font-semibold uppercase text-right">MCap</div>
+      {/* Markets Table */}
+      <div className="glass-card rounded-xl overflow-hidden border border-gold-primary/10">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gold-primary/10">
+                <th className="text-left p-4 text-text-secondary font-medium">#</th>
+                <th className="text-left p-4 text-text-secondary font-medium">Coin</th>
+                <th className="text-right p-4 text-text-secondary font-medium">Price</th>
+                <th className="text-right p-4 text-text-secondary font-medium">1h %</th>
+                <th className="text-right p-4 text-text-secondary font-medium">24h %</th>
+                <th className="text-right p-4 text-text-secondary font-medium">7d %</th>
+                <th className="text-right p-4 text-text-secondary font-medium">Market Cap</th>
+                <th className="text-right p-4 text-text-secondary font-medium">Volume (24h)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentData.map((coin, index) => (
+                <tr 
+                  key={coin.id} 
+                  className="border-b border-gold-primary/5 hover:bg-gold-primary/5 transition-colors"
+                >
+                  <td className="p-4 text-text-secondary">{coin.market_cap_rank || index + 1}</td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <img src={coin.image} alt={coin.name} className="w-8 h-8 rounded-full" />
+                      <div>
+                        <p className="text-white font-medium">{coin.name}</p>
+                        <p className="text-text-secondary text-sm">{coin.symbol.toUpperCase()}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4 text-right text-white font-medium">
+                    {formatPrice(coin.current_price)}
+                  </td>
+                  <td className={`p-4 text-right font-medium ${
+                    coin.price_change_percentage_1h_in_currency >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {coin.price_change_percentage_1h_in_currency != null 
+                      ? `${coin.price_change_percentage_1h_in_currency >= 0 ? '+' : ''}${coin.price_change_percentage_1h_in_currency.toFixed(2)}%`
+                      : 'N/A'
+                    }
+                  </td>
+                  <td className={`p-4 text-right font-medium ${
+                    coin.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {coin.price_change_percentage_24h != null 
+                      ? `${coin.price_change_percentage_24h >= 0 ? '+' : ''}${coin.price_change_percentage_24h.toFixed(2)}%`
+                      : 'N/A'
+                    }
+                  </td>
+                  <td className={`p-4 text-right font-medium ${
+                    coin.price_change_percentage_7d_in_currency >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {coin.price_change_percentage_7d_in_currency != null 
+                      ? `${coin.price_change_percentage_7d_in_currency >= 0 ? '+' : ''}${coin.price_change_percentage_7d_in_currency.toFixed(2)}%`
+                      : 'N/A'
+                    }
+                  </td>
+                  <td className="p-4 text-right text-white">
+                    {formatMarketCap(coin.market_cap)}
+                  </td>
+                  <td className="p-4 text-right text-text-secondary">
+                    {formatMarketCap(coin.total_volume)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* Table Body */}
-        <div className="divide-y divide-gold-primary/5">
-          {currentData.map((coin, idx) => (
-            <div 
-              key={coin.id}
-              className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-gold-primary/5 cursor-pointer transition-colors items-center"
-            >
-              <div className="col-span-1 text-text-muted text-sm">
-                {idx + 1}
-              </div>
-
-              <div className="col-span-4 flex items-center gap-3">
-                {coin.image && (
-                  <img src={coin.image} alt={coin.symbol} className="w-8 h-8 rounded-full" />
-                )}
-                <div>
-                  <p className="text-white font-semibold">{coin.name}</p>
-                  <p className="text-text-muted text-xs">{coin.symbol}</p>
-                </div>
-              </div>
-
-              <div className="col-span-2 text-right">
-                <p className="text-white font-mono">
-                  ${coin.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
-                </p>
-              </div>
-
-              <div className="col-span-2 text-right">
-                <ChangePercent value={coin.price_change_24h} />
-              </div>
-
-              <div className="col-span-2 text-right">
-                <p className="text-text-secondary font-mono text-sm">
-                  {formatLargeNumber(coin.volume_24h)}
-                </p>
-              </div>
-
-              <div className="col-span-1 text-right">
-                <p className="text-text-secondary font-mono text-sm">
-                  {formatLargeNumber(coin.market_cap)}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickStat label="Biggest Gainer" coin={data.gainers[0]} type="gainer" />
-        <QuickStat label="Biggest Loser" coin={data.losers[0]} type="loser" />
-        <QuickStat label="Highest Volume" coin={data.volume[0]} type="volume" />
-        <QuickStat label="Top Market Cap" coin={data.all[0]} type="cap" />
       </div>
     </div>
   );
-};
-
-// Helper Components
-const ChangePercent = ({ value }) => {
-  if (value == null) {
-    return <span className="text-text-muted text-sm">-</span>;
-  }
-  
-  const isPositive = value >= 0;
-  return (
-    <span className={`text-sm font-semibold ${isPositive ? 'text-positive' : 'text-negative'}`}>
-      {isPositive ? '+' : ''}{value.toFixed(2)}%
-    </span>
-  );
-};
-
-const QuickStat = ({ label, coin, type }) => {
-  if (!coin) return null;
-
-  const getHighlight = () => {
-    switch (type) {
-      case 'gainer':
-        return <span className="text-positive">+{(coin.price_change_24h || 0).toFixed(2)}%</span>;
-      case 'loser':
-        return <span className="text-negative">{(coin.price_change_24h || 0).toFixed(2)}%</span>;
-      case 'volume':
-        return <span className="text-gold-primary">{formatLargeNumber(coin.volume_24h)}</span>;
-      case 'cap':
-        return <span className="text-white">{formatLargeNumber(coin.market_cap)}</span>;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-      <p className="text-text-muted text-xs uppercase tracking-wider mb-2">{label}</p>
-      <div className="flex items-center gap-2">
-        {coin.image && <img src={coin.image} alt={coin.symbol} className="w-6 h-6 rounded-full" />}
-        <span className="text-white font-semibold">{coin.symbol}</span>
-      </div>
-      <p className="text-lg font-mono font-bold mt-1">{getHighlight()}</p>
-    </div>
-  );
-};
-
-// Utility
-const formatLargeNumber = (num) => {
-  if (!num) return '$0';
-  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-  if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
-  return `$${num.toFixed(2)}`;
 };
 
 export default MarketsPage;
