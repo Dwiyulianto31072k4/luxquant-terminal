@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 
+const API_BASE = '/api/v1';
+
 /**
  * OverviewPage - Main dashboard with comprehensive market data
+ * Now fetches via backend proxy to bypass CORS & use caching
  */
 const OverviewPage = () => {
   const [data, setData] = useState(null);
@@ -10,7 +13,7 @@ const OverviewPage = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 120000); // 2 min (match backend cache)
     return () => clearInterval(interval);
   }, []);
 
@@ -18,41 +21,19 @@ const OverviewPage = () => {
     try {
       setError(null);
       
-      // Fetch all data in parallel
-      const [globalRes, coinsRes, fgRes] = await Promise.allSettled([
-        fetch('https://api.coingecko.com/api/v3/global'),
-        fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h,7d'),
-        fetch('https://api.alternative.me/fng/?limit=7')
-      ]);
-
-      // Process global data
-      let globalData = null;
-      if (globalRes.status === 'fulfilled' && globalRes.value.ok) {
-        const json = await globalRes.value.json();
-        globalData = json.data;
+      // Fetch via backend proxy (cached, no CORS issues)
+      const response = await fetch(`${API_BASE}/market/global`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch market data');
       }
+      
+      const result = await response.json();
+      
+      const globalData = result.global;
+      const coinsData = result.coins || [];
+      const fearGreed = result.fearGreed || { value: 50, label: 'Neutral', yesterday: 50, lastWeek: 50 };
 
-      // Process coins data
-      let coinsData = [];
-      if (coinsRes.status === 'fulfilled' && coinsRes.value.ok) {
-        coinsData = await coinsRes.value.json();
-      }
-
-      // Process Fear & Greed
-      let fearGreed = { value: 50, label: 'Neutral', yesterday: 50, lastWeek: 50 };
-      if (fgRes.status === 'fulfilled' && fgRes.value.ok) {
-        const fgJson = await fgRes.value.json();
-        if (fgJson.data && fgJson.data[0]) {
-          fearGreed = {
-            value: parseInt(fgJson.data[0].value),
-            label: fgJson.data[0].value_classification,
-            yesterday: parseInt(fgJson.data[1]?.value || 50),
-            lastWeek: parseInt(fgJson.data[6]?.value || 50),
-          };
-        }
-      }
-
-      // Build data object
       if (globalData || coinsData.length > 0) {
         const btc = coinsData.find(c => c.symbol === 'btc');
         const eth = coinsData.find(c => c.symbol === 'eth');
@@ -143,82 +124,86 @@ const OverviewPage = () => {
         <h2 className="font-display text-2xl font-semibold text-white">Market Overview</h2>
       </div>
 
-      {/* Key Metrics Row */}
+      {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard 
-          label="Total Market Cap"
-          value={formatLargeNumber(data.totalMarketCap)}
+          label="Total Market Cap" 
+          value={formatLargeNumber(data.totalMarketCap)} 
           change={data.marketCapChange24h}
           icon="💰"
         />
         <MetricCard 
-          label="24h Volume"
-          value={formatLargeNumber(data.totalVolume24h)}
+          label="24h Volume" 
+          value={formatLargeNumber(data.totalVolume24h)} 
           icon="📊"
         />
         <MetricCard 
-          label="BTC Dominance"
-          value={`${data.btcDominance.toFixed(1)}%`}
+          label="BTC Dominance" 
+          value={`${data.btcDominance.toFixed(1)}%`} 
+          icon="👑"
           color="text-orange-400"
-          icon="₿"
         />
         <MetricCard 
-          label="Active Cryptos"
-          value={data.activeCryptos.toLocaleString()}
+          label="Active Cryptos" 
+          value={data.activeCryptos.toLocaleString()} 
           icon="🪙"
         />
       </div>
 
-      {/* Main Grid */}
+      {/* Secondary Metrics + Fear & Greed + Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Fear & Greed Index */}
-        <FearGreedCard data={data.fearGreed} />
-
-        {/* Market Indicators */}
+        {/* Altcoin & Stablecoin Metrics */}
         <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
-          <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">
-            Key Indicators
-          </h3>
+          <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">Market Indicators</h3>
           <div className="space-y-4">
-            <IndicatorRow 
-              label="BTC Dominance" 
-              value={`${data.btcDominance.toFixed(1)}%`}
-              hint={data.btcDominance > 55 ? 'BTC Season' : 'Altcoin Friendly'}
-              hintColor={data.btcDominance > 55 ? 'text-orange-400' : 'text-green-400'}
-            />
-            <IndicatorRow 
-              label="ETH/BTC Ratio" 
-              value={data.ethBtcRatio.toFixed(4)}
-              hint={data.ethBtcRatio > 0.05 ? 'ETH Strong' : 'ETH Weak'}
-              hintColor={data.ethBtcRatio > 0.05 ? 'text-blue-400' : 'text-red-400'}
-            />
-            <IndicatorRow 
-              label="Altcoin Market Cap" 
-              value={formatLargeNumber(data.altcoinMarketCap)}
-            />
-            <IndicatorRow 
-              label="Stablecoin Dom" 
-              value={`${data.stablecoinDom.toFixed(1)}%`}
-              hint={data.stablecoinDom > 8 ? 'Cash Heavy' : 'Deployed'}
-              hintColor={data.stablecoinDom > 8 ? 'text-yellow-400' : 'text-green-400'}
-            />
-            <IndicatorRow 
-              label="ETH Dominance" 
-              value={`${data.ethDominance.toFixed(1)}%`}
-            />
+            <div className="flex justify-between items-center">
+              <span className="text-text-muted text-sm">ETH Dominance</span>
+              <span className="text-white font-mono">{data.ethDominance?.toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-text-muted text-sm">Altcoin MCap</span>
+              <span className="text-white font-mono">{formatLargeNumber(data.altcoinMarketCap)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-text-muted text-sm">Stablecoin Dom</span>
+              <span className="text-white font-mono">{data.stablecoinDom?.toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-text-muted text-sm">ETH/BTC Ratio</span>
+              <span className="text-white font-mono">{data.ethBtcRatio?.toFixed(5)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Quick Insights */}
+        {/* Fear & Greed */}
         <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
-          <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">
-            Market Insights
-          </h3>
-          <div className="space-y-3">
+          <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">Fear & Greed Index</h3>
+          <div className="flex items-center justify-center gap-6">
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg ${
+              data.fearGreed.value >= 75 ? 'bg-green-500' :
+              data.fearGreed.value >= 50 ? 'bg-lime-500' :
+              data.fearGreed.value >= 25 ? 'bg-orange-500' :
+              'bg-red-500'
+            }`}>
+              {data.fearGreed.value}
+            </div>
+            <div>
+              <p className="text-white font-semibold text-lg">{data.fearGreed.label}</p>
+              <p className="text-text-muted text-xs mt-1">Yesterday: {data.fearGreed.yesterday}</p>
+              <p className="text-text-muted text-xs">Last week: {data.fearGreed.lastWeek}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Trading Insights */}
+        <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
+          <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">Trading Insights</h3>
+          <div className="space-y-2">
             <InsightItem 
-              condition={data.fearGreed.value <= 25}
+              condition={data.fearGreed.value < 25}
               positive="Extreme Fear - Potential buying opportunity"
-              negative={data.fearGreed.value >= 75 ? "Extreme Greed - Consider taking profits" : null}
+              negative={data.fearGreed.value > 75 ? 
+                "Extreme Greed - Consider taking profits" : null}
             />
             <InsightItem 
               condition={data.btcDominance < 50}
@@ -281,74 +266,9 @@ const MetricCard = ({ label, value, change, icon, color = 'text-white' }) => (
     <p className={`text-2xl font-display font-bold ${color}`}>{value}</p>
     {change !== undefined && (
       <p className={`text-sm font-semibold mt-1 ${change >= 0 ? 'text-positive' : 'text-negative'}`}>
-        {change >= 0 ? '+' : ''}{change.toFixed(2)}% (24h)
+        {change >= 0 ? '+' : ''}{change?.toFixed(2)}%
       </p>
     )}
-  </div>
-);
-
-const FearGreedCard = ({ data }) => {
-  const getColor = (val) => {
-    if (val <= 25) return '#EF4444';
-    if (val <= 45) return '#F97316';
-    if (val <= 55) return '#EAB308';
-    if (val <= 75) return '#84CC16';
-    return '#22C55E';
-  };
-
-  const angle = (data.value / 100) * 180 - 90;
-
-  return (
-    <div className="glass-card rounded-xl p-5 border border-gold-primary/10">
-      <h3 className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-4">
-        Fear & Greed Index
-      </h3>
-      
-      {/* Gauge */}
-      <div className="flex flex-col items-center">
-        <svg viewBox="0 0 200 110" className="w-48 h-24">
-          <defs>
-            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#EF4444" />
-              <stop offset="25%" stopColor="#F97316" />
-              <stop offset="50%" stopColor="#EAB308" />
-              <stop offset="75%" stopColor="#84CC16" />
-              <stop offset="100%" stopColor="#22C55E" />
-            </linearGradient>
-          </defs>
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)" strokeWidth="12" strokeLinecap="round" />
-          <g transform={`rotate(${angle}, 100, 100)`}>
-            <line x1="100" y1="100" x2="100" y2="35" stroke={getColor(data.value)} strokeWidth="3" strokeLinecap="round" />
-            <circle cx="100" cy="100" r="6" fill={getColor(data.value)} />
-          </g>
-        </svg>
-        
-        <p className="text-4xl font-display font-bold text-white mt-2">{data.value}</p>
-        <p className="text-sm font-semibold" style={{ color: getColor(data.value) }}>{data.label}</p>
-      </div>
-
-      {/* History */}
-      <div className="mt-4 pt-4 border-t border-gold-primary/10 grid grid-cols-2 gap-4 text-sm">
-        <div className="text-center">
-          <p className="text-text-muted text-xs">Yesterday</p>
-          <p className="text-white font-semibold">{data.yesterday}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-text-muted text-xs">Last Week</p>
-          <p className="text-white font-semibold">{data.lastWeek}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const IndicatorRow = ({ label, value, hint, hintColor }) => (
-  <div className="flex items-center justify-between">
-    <span className="text-text-muted text-sm">{label}</span>
-    <div className="text-right">
-      <span className="text-white font-mono font-semibold">{value}</span>
-      {hint && <p className={`text-xs ${hintColor}`}>{hint}</p>}
-    </div>
   </div>
 );
 
@@ -368,7 +288,12 @@ const InsightItem = ({ condition, positive, negative }) => {
 const CoinRow = ({ coin, isLoser }) => (
   <div className="flex items-center justify-between px-5 py-3 hover:bg-gold-primary/5 transition-colors">
     <div className="flex items-center gap-3">
-      <img src={coin.image} alt={coin.symbol} className="w-8 h-8 rounded-full" />
+      <img 
+        src={coin.image} 
+        alt={coin.symbol} 
+        className="w-8 h-8 rounded-full"
+        onError={(e) => { e.target.style.display = 'none'; }}
+      />
       <div>
         <p className="text-white font-semibold">{coin.symbol.toUpperCase()}</p>
         <p className="text-text-muted text-xs">{coin.name}</p>
