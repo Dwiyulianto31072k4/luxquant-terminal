@@ -2,16 +2,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
 from app.config import settings
 from app.api.routes import signals, market, auth, watchlist, coingecko
 from app.core.database import engine, Base
+from app.core.redis import is_redis_available, get_cache_info
+from app.services.cache_worker import start_cache_workers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     print("🚀 LuxQuant API Starting...")
     print(f"📡 CoinGecko API Key: {'✓ Configured' if settings.COINGECKO_API_KEY else '✗ Not set'}")
+    
+    # Start Redis cache workers
+    if is_redis_available():
+        print(f"🟢 Redis connected ({settings.REDIS_HOST}:{settings.REDIS_PORT})")
+        start_cache_workers()
+    else:
+        print("🟡 Redis not available — running without cache (DB direct queries)")
+    
     yield
     # Shutdown
     print("👋 LuxQuant API Shutting down...")
@@ -45,9 +54,13 @@ async def root():
         "name": settings.APP_NAME,
         "version": settings.VERSION,
         "status": "running",
+        "redis": "connected" if is_redis_available() else "not available",
         "coingecko_api": "configured" if settings.COINGECKO_API_KEY else "not configured"
     }
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "redis": get_cache_info(),
+    }

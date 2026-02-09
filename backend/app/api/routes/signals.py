@@ -2,6 +2,7 @@
 LuxQuant Terminal - Signals API Routes
 OPTIMIZED VERSION - Uses pure SQL aggregation for performance
 Includes: Win Rate Trend, Risk:Reward Ratio
+UPDATED: Fixed signal detail endpoint with dedup + market_cap/risk_reasons
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,6 +21,10 @@ from app.schemas.signal import (
     SignalStatus
 )
 from app.config import settings
+from app.core.redis import (
+    cache_get, cache_set, build_signals_page_key,
+    is_redis_available
+)
 
 router = APIRouter()
 
@@ -80,6 +85,41 @@ class AnalyzeResponse(BaseModel):
 
 
 # ============================================
+# Pydantic Models for Signal Detail (FIXED)
+# ============================================
+
+class SignalUpdateItem(BaseModel):
+    update_type: str
+    price: Optional[float] = None
+    update_at: Optional[str] = None
+
+
+class SignalDetailResponse(BaseModel):
+    signal_id: str
+    channel_id: Optional[int] = None
+    call_message_id: Optional[int] = None
+    message_link: Optional[str] = None
+    pair: Optional[str] = None
+    entry: Optional[float] = None
+    target1: Optional[float] = None
+    target2: Optional[float] = None
+    target3: Optional[float] = None
+    target4: Optional[float] = None
+    stop1: Optional[float] = None
+    stop2: Optional[float] = None
+    risk_level: Optional[str] = None
+    volume_rank_num: Optional[int] = None
+    volume_rank_den: Optional[int] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    # NEW fields from migration
+    market_cap: Optional[str] = None
+    risk_reasons: Optional[str] = None  # pipe-separated: "reason1|reason2"
+    # Updates timeline
+    updates: List[SignalUpdateItem] = []
+
+
+# ============================================
 # OPTIMIZED Analyze Endpoint - Pure SQL
 # ============================================
 
@@ -94,6 +134,13 @@ async def get_analyze_data(
     Includes: win_rate_trend (daily/weekly), risk_reward ratio per TP level
     """
     
+    # === TRY CACHE FIRST ===
+    cache_key = f"lq:signals:analyze:{time_range}:{trend_mode}"
+    cached = cache_get(cache_key)
+    if cached:
+        return AnalyzeResponse(**cached)
+    
+    # === FALLBACK TO DB ===
     # Build date filter
     date_filter = ""
     if time_range != 'all':
@@ -506,6 +553,19 @@ async def get_signals(
 ):
     """Get paginated signals with DERIVED status from signal_updates"""
     
+    # === TRY CACHE FIRST ===
+    if not date_from and not date_to:
+        cache_key = build_signals_page_key(
+            page=page, page_size=page_size,
+            status=status or "", pair=pair or "",
+            risk=risk_level or "", sort_by=sort_by, sort_order=sort_order
+        )
+        cached = cache_get(cache_key)
+        if cached:
+            cached.pop("_cached_at", None)
+            return cached
+    
+    # === FALLBACK TO DB ===
     # Build WHERE conditions
     conditions = []
     params = {}
@@ -582,7 +642,8 @@ async def get_signals(
                 WHEN so.outcome = 'sl' THEN 'closed_loss'
                 WHEN so.outcome IS NOT NULL THEN so.outcome
                 ELSE 'open'
-            END as derived_status
+            END as derived_status,
+            s.market_cap
         FROM signals s
         LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
         WHERE {where_clause}
@@ -614,6 +675,7 @@ async def get_signals(
             "volume_rank_den": r[14],
             "created_at": r[15],
             "status": r[16],  # derived from signal_updates!
+            "market_cap": r[17],
         })
     
     return {
@@ -636,6 +698,12 @@ async def get_active_signals(
 ):
     """Get truly active/open signals — those with NO entries in signal_updates"""
     
+    # === TRY CACHE FIRST ===
+    cached = cache_get(f"lq:signals:active:{limit}")
+    if cached and "items" in cached:
+        return cached["items"]
+    
+    # === FALLBACK TO DB ===
     query = text(f"""
         WITH {SIGNAL_OUTCOMES_CTE}
         SELECT 
@@ -673,6 +741,13 @@ async def get_active_signals(
 async def get_signal_stats(db: Session = Depends(get_db)):
     """Get signal statistics derived from signal_updates"""
     
+    # === TRY CACHE FIRST ===
+    cached = cache_get("lq:signals:stats")
+    if cached:
+        cached.pop("_cached_at", None)
+        return SignalStats(**cached)
+    
+    # === FALLBACK TO DB ===
     stats_query = text(f"""
         WITH {SIGNAL_OUTCOMES_CTE}
         SELECT 
@@ -760,12 +835,107 @@ async def sync_signal_status(db: Session = Depends(get_db)):
 
 
 # ============================================
-# GET /signals/{signal_id} — With derived status + update history
+# GET /signals/detail/{signal_id} — FIXED: dedup + market_cap/risk_reasons
+# ============================================
+
+@router.get("/detail/{signal_id}", response_model=SignalDetailResponse)
+async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
+    """
+    Get signal detail with updates timeline (TP/SL reached times).
+    FIX: Uses MIN(update_at) per update_type to get earliest timestamp,
+    avoiding duplicates from multi-TP update messages.
+    """
+    # Get signal
+    signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    
+    # FIX: Get EARLIEST update per type using GROUP BY
+    updates_result = db.execute(
+        text("""
+            SELECT 
+                update_type,
+                price,
+                MIN(update_at) as update_at
+            FROM signal_updates
+            WHERE signal_id = :signal_id
+            GROUP BY update_type, price
+            ORDER BY MIN(update_at) ASC
+        """),
+        {"signal_id": signal_id}
+    )
+    
+    updates = []
+    seen_types = set()
+    for row in updates_result.fetchall():
+        update_type = row[0].lower() if row[0] else ''
+        normalized_type = None
+        
+        if 'tp4' in update_type or 'target 4' in update_type:
+            normalized_type = 'tp4'
+        elif 'tp3' in update_type or 'target 3' in update_type:
+            normalized_type = 'tp3'
+        elif 'tp2' in update_type or 'target 2' in update_type:
+            normalized_type = 'tp2'
+        elif 'tp1' in update_type or 'target 1' in update_type:
+            normalized_type = 'tp1'
+        elif 'sl' in update_type or 'stop' in update_type:
+            normalized_type = 'sl'
+        
+        # Only keep first (earliest) occurrence per type
+        if normalized_type and normalized_type not in seen_types:
+            seen_types.add(normalized_type)
+            updates.append(SignalUpdateItem(
+                update_type=normalized_type,
+                price=row[1],
+                update_at=row[2]
+            ))
+    
+    # Get market_cap and risk_reasons (handle missing columns gracefully)
+    market_cap = None
+    risk_reasons = None
+    try:
+        extra = db.execute(
+            text("SELECT market_cap, risk_reasons FROM signals WHERE signal_id = :sid"),
+            {"sid": signal_id}
+        ).fetchone()
+        if extra:
+            market_cap = extra[0]
+            risk_reasons = extra[1]
+    except Exception:
+        pass  # columns might not exist yet
+    
+    return SignalDetailResponse(
+        signal_id=signal.signal_id,
+        channel_id=signal.channel_id,
+        call_message_id=signal.call_message_id,
+        message_link=signal.message_link,
+        pair=signal.pair,
+        entry=signal.entry,
+        target1=signal.target1,
+        target2=signal.target2,
+        target3=signal.target3,
+        target4=signal.target4,
+        stop1=signal.stop1,
+        stop2=signal.stop2,
+        risk_level=signal.risk_level,
+        volume_rank_num=signal.volume_rank_num,
+        volume_rank_den=signal.volume_rank_den,
+        status=signal.status,
+        created_at=signal.created_at,
+        market_cap=market_cap,
+        risk_reasons=risk_reasons,
+        updates=updates
+    )
+
+
+# ============================================
+# GET /signals/{signal_id} — Legacy endpoint with derived status + update history
 # ============================================
 
 @router.get("/{signal_id}")
 async def get_signal_detail(signal_id: str, db: Session = Depends(get_db)):
-    """Get single signal with derived status and update history"""
+    """Get single signal with derived status and update history (legacy)"""
     signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
