@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
+import StarButton from './StarButton';
+import { useAuth } from '../context/AuthContext';
+import { watchlistApi } from '../services/watchlistApi';
 
 const SignalsTable = ({ 
   signals, 
@@ -15,6 +18,24 @@ const SignalsTable = ({
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
+
+  // ─── Watchlist integration ───
+  const { isAuthenticated } = useAuth();
+  const [watchlistIds, setWatchlistIds] = useState([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    watchlistApi.getWatchlistIds()
+      .then(data => setWatchlistIds(data.signal_ids || []))
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  const handleStarToggle = (signalId, newState) => {
+    setWatchlistIds(prev => 
+      newState ? [...prev, signalId] : prev.filter(id => id !== signalId)
+    );
+  };
+  // ─── End watchlist ───
 
   // Fetch current prices from Binance for all unique pairs
   useEffect(() => {
@@ -258,12 +279,11 @@ const SignalsTable = ({
                     >
                       {/* Star */}
                       <td className="py-4 px-4 text-center">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); }}
-                          className="text-text-muted hover:text-gold-primary transition-colors"
-                        >
-                          ☆
-                        </button>
+                        <StarButton
+                          signalId={signal.signal_id}
+                          isStarred={watchlistIds.includes(signal.signal_id)}
+                          onToggle={handleStarToggle}
+                        />
                       </td>
 
                       {/* Pair */}

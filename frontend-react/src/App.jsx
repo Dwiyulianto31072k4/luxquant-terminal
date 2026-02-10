@@ -179,23 +179,6 @@ function AppContent() {
       <main className="relative z-10 max-w-[1600px] mx-auto px-6 py-6">
         {renderPage()}
       </main>
-
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-gold-primary/10 mt-12">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark rounded-lg flex items-center justify-center">
-                <span className="font-display font-bold text-xs text-bg-primary">LQ</span>
-              </div>
-              <span className="text-text-muted text-sm">LuxQuant Terminal</span>
-            </div>
-            <p className="text-text-muted text-xs">
-              Real-time data • Auto-refresh every 30s
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
