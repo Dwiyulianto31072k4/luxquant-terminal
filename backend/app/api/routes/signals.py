@@ -77,12 +77,34 @@ class RiskRewardItem(BaseModel):
     count: int
 
 
+class RiskDistributionItem(BaseModel):
+    risk_level: str
+    total_signals: int
+    closed_trades: int
+    winners: int
+    losers: int
+    win_rate: float
+    avg_rr: float
+
+
+class RiskTrendItem(BaseModel):
+    period: str
+    low_wr: Optional[float] = None
+    normal_wr: Optional[float] = None
+    high_wr: Optional[float] = None
+    low_count: int = 0
+    normal_count: int = 0
+    high_count: int = 0
+
+
 class AnalyzeResponse(BaseModel):
     stats: AnalyzeStats
     pair_metrics: List[PairMetrics]
     win_rate_trend: List[WinRateTrendItem]
     risk_reward: List[RiskRewardItem]
     avg_risk_reward: float
+    risk_distribution: List[RiskDistributionItem] = []
+    risk_trend: List[RiskTrendItem] = []
     time_range: str
 
 
@@ -290,7 +312,93 @@ async def get_analyze_data(
         return AnalyzeResponse(
             stats=AnalyzeStats(total_signals=0,closed_trades=0,open_signals=0,win_rate=0,total_winners=0,
                 tp1_count=0,tp2_count=0,tp3_count=0,tp4_count=0,sl_count=0,active_pairs=0),
-            pair_metrics=[], win_rate_trend=[], risk_reward=[], avg_risk_reward=0, time_range=time_range)
+            pair_metrics=[], win_rate_trend=[], risk_reward=[], avg_risk_reward=0,
+            risk_distribution=[], risk_trend=[], time_range=time_range)
+
+    # === RISK DISTRIBUTION ===
+    risk_dist_query = text(f"""
+        WITH {SIGNAL_OUTCOMES_CTE}
+        SELECT 
+            CASE 
+                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'Low'
+                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'Normal'
+                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'High'
+                ELSE 'Unknown'
+            END as risk_group,
+            COUNT(*) as total_signals,
+            COUNT(so.outcome) as closed_trades,
+            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners,
+            SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as losers,
+            CASE WHEN COUNT(so.outcome) > 0 
+                THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric / COUNT(so.outcome) * 100, 2)
+                ELSE 0 END as win_rate,
+            AVG(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') AND s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 THEN
+                CASE so.outcome
+                    WHEN 'tp1' THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp2' THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp3' THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp4' THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
+                END ELSE NULL END) as avg_rr
+        FROM signals s
+        LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        WHERE s.risk_level IS NOT NULL {date_filter}
+        GROUP BY risk_group
+        ORDER BY 1
+    """)
+    
+    risk_distribution = []
+    for r in db.execute(risk_dist_query).fetchall():
+        if r[0] == 'Unknown': continue
+        risk_distribution.append(RiskDistributionItem(
+            risk_level=r[0], total_signals=int(r[1]), closed_trades=int(r[2]),
+            winners=int(r[3]), losers=int(r[4]), win_rate=float(r[5]) if r[5] else 0,
+            avg_rr=round(float(r[6]), 2) if r[6] else 0
+        ))
+    risk_order = {'Low': 0, 'Normal': 1, 'High': 2}
+    risk_distribution.sort(key=lambda x: risk_order.get(x.risk_level, 9))
+
+    # === RISK TREND (win rate per risk level over time) ===
+    risk_trend_dt = "DATE(DATE_TRUNC('week', s.created_at::timestamp))" if trend_mode == 'weekly' else "DATE(s.created_at)"
+    risk_trend_query = text(f"""
+        WITH {SIGNAL_OUTCOMES_CTE}
+        SELECT 
+            {risk_trend_dt} as period,
+            CASE 
+                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'low'
+                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'normal'
+                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'high'
+            END as risk_group,
+            COUNT(so.outcome) as closed,
+            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners
+        FROM signals s
+        INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        WHERE s.risk_level IS NOT NULL AND LOWER(s.risk_level) NOT LIKE 'unk%' {date_filter}
+        GROUP BY period, risk_group
+        HAVING COUNT(so.outcome) >= 2
+        ORDER BY period ASC
+    """)
+
+    # Pivot risk trend data
+    risk_trend_raw = {}
+    for r in db.execute(risk_trend_query).fetchall():
+        p = str(r[0])
+        if p not in risk_trend_raw:
+            risk_trend_raw[p] = {"period": p, "low_wr": None, "normal_wr": None, "high_wr": None, "low_count": 0, "normal_count": 0, "high_count": 0}
+        rg = r[1]
+        closed = int(r[2])
+        winners = int(r[3])
+        wr = round(winners / closed * 100, 2) if closed > 0 else None
+        if rg == 'low':
+            risk_trend_raw[p]["low_wr"] = wr
+            risk_trend_raw[p]["low_count"] = closed
+        elif rg == 'normal':
+            risk_trend_raw[p]["normal_wr"] = wr
+            risk_trend_raw[p]["normal_count"] = closed
+        elif rg == 'high':
+            risk_trend_raw[p]["high_wr"] = wr
+            risk_trend_raw[p]["high_count"] = closed
+
+    risk_trend = [RiskTrendItem(**v) for v in sorted(risk_trend_raw.values(), key=lambda x: x["period"])]
     
     return AnalyzeResponse(
         stats=AnalyzeStats(
@@ -299,7 +407,9 @@ async def get_analyze_data(
             tp1_count=total_tp1, tp2_count=total_tp2, tp3_count=total_tp3,
             tp4_count=total_tp4, sl_count=total_sl, active_pairs=len(pair_metrics)),
         pair_metrics=pair_metrics, win_rate_trend=win_rate_trend,
-        risk_reward=risk_reward, avg_risk_reward=avg_risk_reward, time_range=time_range)
+        risk_reward=risk_reward, avg_risk_reward=avg_risk_reward,
+        risk_distribution=risk_distribution, risk_trend=risk_trend,
+        time_range=time_range)
 
 
 # ============================================
@@ -553,28 +663,27 @@ async def get_top_performers(
     params = {"date_from": actual_from, "limit": limit}
     if actual_to:
         date_conditions += " AND s.created_at <= :date_to"
-        params["date_to"] = f"{actual_to} 23:59:59"
+        params["date_to"] = f"{actual_to}T23:59:59"
 
     # Logic: find highest TP level reached per signal, calc gain from entry to that TP price
-    # Supports tp1, tp2, tp3, tp4 - picks the highest one reached
     gainers_sql = text(f"""
         WITH highest_tp AS (
             SELECT DISTINCT ON (s.signal_id)
                 s.signal_id, s.pair, s.entry,
                 su.update_type as tp_level,
                 CASE su.update_type
-                    WHEN 'tp1' THEN s.tp1
-                    WHEN 'tp2' THEN s.tp2
-                    WHEN 'tp3' THEN s.tp3
-                    WHEN 'tp4' THEN s.tp4
+                    WHEN 'tp1' THEN s.target1
+                    WHEN 'tp2' THEN s.target2
+                    WHEN 'tp3' THEN s.target3
+                    WHEN 'tp4' THEN s.target4
                 END as tp_price,
                 s.created_at as signal_time,
-                su.created_at as hit_time,
-                EXTRACT(EPOCH FROM (su.created_at - s.created_at)) as duration_seconds
+                su.update_at as hit_time,
+                EXTRACT(EPOCH FROM (su.update_at::timestamptz - s.created_at::timestamptz)) as duration_seconds
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE s.status IN ('closed_win', 'closed_loss', 'open')
+            WHERE 1=1
                 {date_conditions}
                 AND s.entry > 0
             ORDER BY s.signal_id,
@@ -583,11 +692,11 @@ async def get_top_performers(
                     WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1
                 END DESC
         )
-        SELECT pair, entry, tp_price, tp_level,
-            ROUND(ABS(tp_price - entry) / entry * 100, 2) as gain_pct,
+        SELECT signal_id, pair, entry, tp_price, tp_level,
+            ROUND((ABS(tp_price - entry) / NULLIF(entry, 0) * 100)::numeric, 2) as gain_pct,
             duration_seconds, signal_time, hit_time
         FROM highest_tp
-        WHERE tp_price > 0
+        WHERE tp_price IS NOT NULL AND tp_price > 0
         ORDER BY gain_pct DESC
         LIMIT :limit
     """)
@@ -598,18 +707,18 @@ async def get_top_performers(
                 s.signal_id, s.pair, s.entry,
                 su.update_type as tp_level,
                 CASE su.update_type
-                    WHEN 'tp1' THEN s.tp1
-                    WHEN 'tp2' THEN s.tp2
-                    WHEN 'tp3' THEN s.tp3
-                    WHEN 'tp4' THEN s.tp4
+                    WHEN 'tp1' THEN s.target1
+                    WHEN 'tp2' THEN s.target2
+                    WHEN 'tp3' THEN s.target3
+                    WHEN 'tp4' THEN s.target4
                 END as tp_price,
                 s.created_at as signal_time,
-                su.created_at as hit_time,
-                EXTRACT(EPOCH FROM (su.created_at - s.created_at)) as duration_seconds
+                su.update_at as hit_time,
+                EXTRACT(EPOCH FROM (su.update_at::timestamptz - s.created_at::timestamptz)) as duration_seconds
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE s.status IN ('closed_win', 'closed_loss', 'open')
+            WHERE 1=1
                 {date_conditions}
                 AND s.entry > 0
             ORDER BY s.signal_id,
@@ -618,11 +727,11 @@ async def get_top_performers(
                     WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1
                 END DESC
         )
-        SELECT pair, entry, tp_price, tp_level,
-            ROUND(ABS(tp_price - entry) / entry * 100, 2) as gain_pct,
+        SELECT signal_id, pair, entry, tp_price, tp_level,
+            ROUND((ABS(tp_price - entry) / NULLIF(entry, 0) * 100)::numeric, 2) as gain_pct,
             duration_seconds, signal_time, hit_time
         FROM highest_tp
-        WHERE tp_price > 0 AND duration_seconds > 0
+        WHERE tp_price IS NOT NULL AND tp_price > 0 AND duration_seconds > 0
         ORDER BY duration_seconds ASC
         LIMIT :limit
     """)
@@ -638,12 +747,13 @@ async def get_top_performers(
 
         def row_to_dict(r):
             return {
-                "pair": r[0], "entry": float(r[1] or 0), "tp_price": float(r[2] or 0),
-                "tp_level": (r[3] or "").upper().replace("TP", "TP "),  # "tp3" -> "TP 3"
-                "gain_pct": float(r[4] or 0), "duration_seconds": float(r[5] or 0),
-                "duration_display": fmt_dur(r[5]),
-                "signal_time": r[6].isoformat() if r[6] else None,
-                "hit_time": r[7].isoformat() if r[7] else None,
+                "signal_id": r[0],
+                "pair": r[1], "entry": float(r[2] or 0), "tp_price": float(r[3] or 0),
+                "tp_level": (r[4] or "").upper().replace("TP", "TP "),
+                "gain_pct": float(r[5] or 0), "duration_seconds": float(r[6] or 0),
+                "duration_display": fmt_dur(r[6]),
+                "signal_time": str(r[7]) if r[7] else None,
+                "hit_time": str(r[8]) if r[8] else None,
             }
 
         period_end = actual_to or datetime.utcnow().strftime('%B %d, %Y')

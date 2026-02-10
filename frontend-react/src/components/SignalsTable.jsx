@@ -23,33 +23,24 @@ const SignalsTable = ({
     const fetchCurrentPrices = async () => {
       setPricesLoading(true);
       try {
-        // Get unique pairs
         const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
-        
-        // Fetch all prices from Binance
         const response = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
         if (!response.ok) throw new Error('Failed to fetch prices');
         
         const allPrices = await response.json();
-        
-        // Create a map of pair -> price
         const priceMap = {};
         allPrices.forEach(item => {
           priceMap[item.symbol] = parseFloat(item.price);
         });
         
-        // Filter only the pairs we need
         const relevantPrices = {};
         uniquePairs.forEach(pair => {
-          if (priceMap[pair]) {
-            relevantPrices[pair] = priceMap[pair];
-          }
+          if (priceMap[pair]) relevantPrices[pair] = priceMap[pair];
         });
         
         setCurrentPrices(relevantPrices);
       } catch (error) {
         console.error('Error fetching current prices:', error);
-        // Try fallback to backend proxy
         try {
           const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
           const pricePromises = uniquePairs.map(async (pair) => {
@@ -60,16 +51,12 @@ const SignalsTable = ({
                 return { pair, price: data.price };
               }
               return null;
-            } catch {
-              return null;
-            }
+            } catch { return null; }
           });
           
           const results = await Promise.all(pricePromises);
           const priceMap = {};
-          results.forEach(r => {
-            if (r) priceMap[r.pair] = r.price;
-          });
+          results.forEach(r => { if (r) priceMap[r.pair] = r.price; });
           setCurrentPrices(priceMap);
         } catch (fallbackError) {
           console.error('Fallback price fetch also failed:', fallbackError);
@@ -80,13 +67,11 @@ const SignalsTable = ({
     };
 
     fetchCurrentPrices();
-    
-    // Refresh prices every 10 seconds
     const interval = setInterval(fetchCurrentPrices, 10000);
     return () => clearInterval(interval);
   }, [signals]);
 
-  // Format date: "28 Jan at 09:55"
+  // Format date
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -96,32 +81,28 @@ const SignalsTable = ({
     return `${day} ${month} at ${time}`;
   };
 
-  // Get max target (highest TP) and calculate % from entry
+  // Get max target
   const getMaxTarget = (signal) => {
     const targets = [signal.target4, signal.target3, signal.target2, signal.target1].filter(t => t);
     if (targets.length === 0) return { value: null, pct: null };
-    
     const maxTarget = targets[0];
     const pct = ((maxTarget - signal.entry) / signal.entry * 100).toFixed(2);
-    
     return { value: maxTarget, pct };
   };
 
-  // Calculate price change percentage from entry
+  // Price change % from entry
   const getPriceChange = (entry, currentPrice) => {
     if (!entry || !currentPrice) return null;
-    const change = ((currentPrice - entry) / entry * 100);
-    return change;
+    return ((currentPrice - entry) / entry * 100);
   };
 
-  // Calculate stop loss percentage from entry (always negative)
+  // Stop loss %
   const getStopLossPercent = (entry, stopLoss) => {
     if (!entry || !stopLoss) return null;
-    const change = ((stopLoss - entry) / entry * 100);
-    return change;
+    return ((stopLoss - entry) / entry * 100);
   };
 
-  // Format price based on value
+  // Format price
   const formatPrice = (price) => {
     if (!price) return '-';
     if (price < 0.0001) return price.toFixed(8);
@@ -130,27 +111,21 @@ const SignalsTable = ({
     return price < 100 ? price.toFixed(4) : price.toFixed(2);
   };
 
-  // Get coin name without USDT
-  const getCoinName = (pair) => {
-    if (!pair) return '';
-    return pair.replace(/USDT$/i, '');
-  };
+  const getCoinName = (pair) => pair ? pair.replace(/USDT$/i, '') : '';
 
-  // Risk badge style
+  // Risk badge
   const getRiskBadge = (risk) => {
     const r = risk?.toLowerCase() || '';
     if (r.startsWith('low')) return 'bg-green-500/20 text-green-400 border-green-500/30';
-    if (r.startsWith('med')) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (r.startsWith('med') || r.startsWith('nor')) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     if (r.startsWith('high')) return 'bg-red-500/20 text-red-400 border-red-500/30';
     return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
-  // Format market cap for display
+  // Format market cap
   const formatMarketCap = (mcap) => {
     if (!mcap) return '-';
-    // If it's already a formatted string like "1.2B" or "500M", return as-is
     if (typeof mcap === 'string' && /[BMKTbmkt]/.test(mcap)) return mcap;
-    // If numeric string, try to format
     const num = parseFloat(mcap);
     if (isNaN(num)) return mcap;
     if (num >= 1e12) return `$${(num / 1e12).toFixed(1)}T`;
@@ -160,13 +135,10 @@ const SignalsTable = ({
     return `$${num.toFixed(0)}`;
   };
 
-  // Market cap badge color based on size
   const getMarketCapStyle = (mcap) => {
     if (!mcap) return 'text-text-muted';
     const str = mcap.toString().toUpperCase();
-    // Large cap (B = billion)
     if (str.includes('B') || str.includes('T')) return 'text-green-400';
-    // Mid cap (>100M)
     if (str.includes('M')) {
       const num = parseFloat(str);
       if (num >= 100) return 'text-yellow-400';
@@ -180,24 +152,23 @@ const SignalsTable = ({
   const getStatusBadge = (status) => {
     const config = {
       'open': { bg: 'bg-cyan-500', text: 'OPEN', icon: '●' },
-      'tp1': { bg: 'bg-green-500', text: 'TP1', icon: '✓' },
-      'tp2': { bg: 'bg-lime-500', text: 'TP2', icon: '✓' },
-      'tp3': { bg: 'bg-yellow-500', text: 'TP3', icon: '✓' },
-      'tp4': { bg: 'bg-orange-500', text: 'TP4', icon: '✓' },
-      'closed_win': { bg: 'bg-green-600', text: 'WIN', icon: '🏆' },
-      'closed_loss': { bg: 'bg-red-500', text: 'LOSS', icon: '✗' },
-      'sl': { bg: 'bg-red-500', text: 'SL', icon: '✗' }
+      'tp1': { bg: 'bg-green-500', text: '✓ TP1', icon: '' },
+      'tp2': { bg: 'bg-lime-500', text: '✓ TP2', icon: '' },
+      'tp3': { bg: 'bg-yellow-500', text: '✓ TP3', icon: '' },
+      'tp4': { bg: 'bg-orange-500', text: '✓ TP4', icon: '' },
+      'closed_win': { bg: 'bg-green-600', text: '🏆 TP4', icon: '' },
+      'closed_loss': { bg: 'bg-red-500', text: '✗ LOSS', icon: '' },
+      'sl': { bg: 'bg-red-500', text: '✗ SL', icon: '' }
     };
-    const c = config[status?.toLowerCase()] || { bg: 'bg-gray-500', text: status, icon: '' };
+    const c = config[status?.toLowerCase()] || { bg: 'bg-gray-500', text: status || '-', icon: '' };
     return (
       <span className={`${c.bg} text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1`}>
-        <span>{c.icon}</span>
         {c.text}
       </span>
     );
   };
 
-  // Sortable header component
+  // Sortable header
   const SortableHeader = ({ field, label, align = 'left' }) => {
     const isActive = sortBy === field;
     const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
@@ -214,17 +185,11 @@ const SignalsTable = ({
               {sortOrder === 'desc' ? '↓' : '↑'}
             </span>
           )}
-          {!isActive && (
-            <span className="text-text-muted/50 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-              ↕
-            </span>
-          )}
         </div>
       </th>
     );
   };
 
-  // Non-sortable header component
   const Header = ({ label, align = 'left' }) => {
     const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
     return (
@@ -234,17 +199,16 @@ const SignalsTable = ({
     );
   };
 
-  const TOTAL_COLUMNS = 11; // Updated column count
+  const TOTAL_COLUMNS = 11;
 
   return (
     <>
       <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
-                <Header label="" align="center" /> {/* Star/Favorite */}
+                <Header label="" align="center" />
                 <SortableHeader field="pair" label="Pair" />
                 <Header label="Current Price" align="right" />
                 <SortableHeader field="entry" label="Entry" align="right" />
@@ -292,20 +256,17 @@ const SignalsTable = ({
                       onClick={() => setSelectedSignal(signal)}
                       className="border-b border-gold-primary/5 hover:bg-gold-primary/5 cursor-pointer transition-colors group"
                     >
-                      {/* Star/Favorite placeholder */}
+                      {/* Star */}
                       <td className="py-4 px-4 text-center">
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // TODO: Add to watchlist functionality
-                          }}
+                          onClick={(e) => { e.stopPropagation(); }}
                           className="text-text-muted hover:text-gold-primary transition-colors"
                         >
                           ☆
                         </button>
                       </td>
 
-                      {/* Pair with Coin Logo */}
+                      {/* Pair */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <CoinLogo pair={signal.pair} size={40} />
@@ -318,7 +279,7 @@ const SignalsTable = ({
                         </div>
                       </td>
                       
-                      {/* Current Price with % change from entry */}
+                      {/* Current Price */}
                       <td className="py-4 px-4 text-right">
                         {pricesLoading && !currentPrice ? (
                           <div className="h-5 w-20 bg-bg-card rounded animate-pulse ml-auto"></div>
@@ -340,7 +301,7 @@ const SignalsTable = ({
                       <td className="py-4 px-4 text-right">
                         <span className="font-mono text-white">{formatPrice(signal.entry)}</span>
                       </td>
-                      
+
                       {/* Max Target */}
                       <td className="py-4 px-4 text-right">
                         {maxTarget.value ? (
@@ -353,7 +314,7 @@ const SignalsTable = ({
                         )}
                       </td>
                       
-                      {/* Stop Loss with percentage */}
+                      {/* Stop Loss */}
                       <td className="py-4 px-4 text-right">
                         {signal.stop1 ? (
                           <div>
@@ -369,7 +330,7 @@ const SignalsTable = ({
                         )}
                       </td>
 
-                      {/* Risk Level */}
+                      {/* Risk */}
                       <td className="py-4 px-4 text-center">
                         {signal.risk_level ? (
                           <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase border ${getRiskBadge(signal.risk_level)}`}>

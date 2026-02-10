@@ -56,14 +56,37 @@ def cache_get(key: str) -> Optional[Any]:
 
 
 def cache_set(key: str, value: Any, ttl: int = 30) -> bool:
-    """Set value in cache with TTL (seconds)"""
+    """Set value in cache with TTL (seconds).
+    Also stores a stale copy with 10x TTL as fallback."""
     try:
         client = get_redis()
-        client.setex(key, ttl, json.dumps(value, default=str))
+        data = json.dumps(value, default=str)
+        client.setex(key, ttl, data)
+        # Stale fallback — 10x TTL (min 600s = 10min, max 3600s = 1hr)
+        stale_ttl = max(min(ttl * 10, 3600), 600)
+        client.setex(f"{key}:stale", stale_ttl, data)
         return True
     except Exception as e:
         print(f"⚠️ Redis SET error: {e}")
         return False
+
+
+def cache_get_with_stale(key: str) -> tuple[Optional[Any], bool]:
+    """Get value from cache. Returns (data, is_stale).
+    First tries fresh cache, then stale fallback."""
+    try:
+        client = get_redis()
+        data = client.get(key)
+        if data:
+            return json.loads(data), False
+        # Try stale fallback
+        stale = client.get(f"{key}:stale")
+        if stale:
+            return json.loads(stale), True
+        return None, False
+    except Exception as e:
+        print(f"⚠️ Redis GET error: {e}")
+        return None, False
 
 
 def cache_delete_pattern(pattern: str) -> int:

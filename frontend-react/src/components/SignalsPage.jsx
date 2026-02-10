@@ -21,19 +21,21 @@ const SignalsPage = () => {
   // Filters
   const [searchPair, setSearchPair] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [riskFilter, setRiskFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Quick Stats
+  const [quickStats, setQuickStats] = useState(null);
 
   // Get date 7 days ago
   const dateFrom = useMemo(() => {
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
     const year = weekAgo.getFullYear();
     const month = String(weekAgo.getMonth() + 1).padStart(2, '0');
     const day = String(weekAgo.getDate()).padStart(2, '0');
-    
     return `${year}-${month}-${day}`;
   }, []);
 
@@ -51,18 +53,11 @@ const SignalsPage = () => {
         date_from: dateFrom,
       });
 
-      if (searchPair) {
-        params.append('pair', searchPair.toUpperCase());
-      }
-      
-      // Status filter - map to database values
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter);
-      }
+      if (searchPair) params.append('pair', searchPair.toUpperCase());
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (riskFilter !== 'all') params.append('risk_level', riskFilter);
 
       const url = `${API_BASE}/signals/?${params}`;
-      console.log('Fetching:', url);
-      
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch signals');
       
@@ -76,16 +71,91 @@ const SignalsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchPair, statusFilter, sortBy, sortOrder, dateFrom]);
+  }, [page, searchPair, statusFilter, riskFilter, sortBy, sortOrder, dateFrom]);
+
+  // Fetch quick stats
+  const fetchQuickStats = useCallback(async () => {
+    try {
+      // Use UTC-adjusted date to capture all "today" signals in any timezone
+      // For WIB (UTC+7), signals created at 00:00-06:59 WIB are still "yesterday" in UTC
+      // So we fetch from yesterday UTC to be safe, then filter by local date
+      const now = new Date();
+      const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      
+      // Go back 1 day to account for timezone offset
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+      
+      const [statsRes, todayRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/signals/stats`),
+        fetch(`${API_BASE}/signals/?page=1&page_size=100&date_from=${yesterdayStr}&sort_by=created_at&sort_order=desc`),
+      ]);
+
+      const stats = statsRes.status === 'fulfilled' && statsRes.value.ok
+        ? await statsRes.value.json() : null;
+
+      const todayData = todayRes.status === 'fulfilled' && todayRes.value.ok
+        ? await todayRes.value.json() : null;
+
+      let todayWins = 0;
+      let todayLosses = 0;
+      let openCount = 0;
+      let todaySignalsCount = 0;
+
+      if (todayData?.items) {
+        const todayDateNum = now.getDate();
+        const todayMonth = now.getMonth();
+        const todayYear = now.getFullYear();
+        
+        todayData.items.forEach(s => {
+          if (!s.created_at) return;
+          // Parse and compare using local date
+          const d = new Date(s.created_at);
+          if (d.getDate() !== todayDateNum || d.getMonth() !== todayMonth || d.getFullYear() !== todayYear) return;
+          
+          todaySignalsCount++;
+          const st = s.status?.toLowerCase();
+          if (st === 'open') {
+            openCount++;
+          } else if (['tp1', 'tp2', 'tp3', 'tp4', 'closed_win'].includes(st)) {
+            todayWins++;
+          } else if (['closed_loss', 'sl'].includes(st)) {
+            todayLosses++;
+          }
+        });
+      }
+
+      const todayClosed = todayWins + todayLosses;
+      const todayWinRate = todayClosed > 0 ? (todayWins / todayClosed * 100) : 0;
+
+      setQuickStats({
+        totalSignals: stats?.total_signals || 0,
+        winRate: stats?.win_rate || 0,
+        todayWinRate: Math.round(todayWinRate),
+        todaySignals: todaySignalsCount,
+        todayOpen: openCount,
+        todayWins,
+        todayLosses,
+        todayClosed,
+      });
+    } catch (err) {
+      console.error('Quick stats error:', err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchSignals();
   }, [fetchSignals]);
 
+  useEffect(() => {
+    fetchQuickStats();
+  }, [fetchQuickStats]);
+
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, sortBy, sortOrder]);
+  }, [searchPair, statusFilter, riskFilter, sortBy, sortOrder]);
 
   // Handle sort
   const handleSort = (field) => {
@@ -97,7 +167,7 @@ const SignalsPage = () => {
     }
   };
 
-  // Status options - TP4 maps to closed_win, Loss maps to closed_loss
+  // Status options
   const statusOptions = [
     { value: 'all', label: 'All', icon: '📋' },
     { value: 'open', label: 'Open', icon: '🔵' },
@@ -106,6 +176,14 @@ const SignalsPage = () => {
     { value: 'tp3', label: 'TP3', icon: '✅' },
     { value: 'closed_win', label: 'TP4', icon: '🏆' },
     { value: 'closed_loss', label: 'Loss', icon: '❌' },
+  ];
+
+  // Risk options
+  const riskOptions = [
+    { value: 'all', label: 'All Risk' },
+    { value: 'low', label: 'Low', color: 'text-green-400 border-green-500/30 bg-green-500/10' },
+    { value: 'normal', label: 'Normal', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
+    { value: 'high', label: 'High', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
   ];
 
   return (
@@ -132,12 +210,57 @@ const SignalsPage = () => {
               window.dispatchEvent(new CustomEvent('navigate', { detail: 'analytics' }));
             }}
             className="flex items-center gap-2 px-3 py-1.5 bg-gold-primary/10 border border-gold-primary/30 rounded-lg text-gold-primary text-sm hover:bg-gold-primary/20 transition-colors"
+            title="View all signals from the beginning"
           >
             <span>📊</span>
-            <span>Full Analysis</span>
+            <span>Full History</span>
           </a>
         </div>
       </div>
+
+      {/* Quick Stats Bar */}
+      {quickStats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Today's Signals */}
+          <div className="glass-card rounded-xl p-4 border border-gold-primary/20">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-text-muted text-xs uppercase tracking-wider">Today</span>
+              <span className="text-gold-primary text-sm">📡</span>
+            </div>
+            <p className="text-2xl font-bold text-white">{quickStats.todaySignals}</p>
+            <p className="text-text-muted text-xs mt-1">{quickStats.todayOpen} still open</p>
+          </div>
+
+          {/* Today Win Rate */}
+          <div className="glass-card rounded-xl p-4 border border-green-500/20">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-text-muted text-xs uppercase tracking-wider">Today Win Rate</span>
+              <span className="text-green-400 text-sm">📈</span>
+            </div>
+            <p className={`text-2xl font-bold ${quickStats.todayWinRate >= 50 ? 'text-green-400' : quickStats.todayClosed === 0 ? 'text-text-muted' : 'text-red-400'}`}>
+              {quickStats.todayClosed > 0 ? `${quickStats.todayWinRate}%` : '—'}
+            </p>
+            <p className="text-text-muted text-xs mt-1">
+              {quickStats.todayClosed > 0 
+                ? `${quickStats.todayWins}W / ${quickStats.todayLosses}L`
+                : 'No closed signals yet'
+              }
+            </p>
+          </div>
+
+          {/* Overall Win Rate */}
+          <div className="glass-card rounded-xl p-4 border border-emerald-500/20">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-text-muted text-xs uppercase tracking-wider">Overall Win Rate</span>
+              <span className="text-emerald-400 text-sm">🏆</span>
+            </div>
+            <p className={`text-2xl font-bold ${quickStats.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {quickStats.winRate}%
+            </p>
+            <p className="text-text-muted text-xs mt-1">{quickStats.totalSignals.toLocaleString()} total signals</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
@@ -172,7 +295,7 @@ const SignalsPage = () => {
               <option value="created_at">Time</option>
               <option value="pair">Pair</option>
               <option value="entry">Entry Price</option>
-              <option value="max_target">Max Target %</option>
+              <option value="risk_level">Risk Level</option>
             </select>
           </div>
 
@@ -191,26 +314,60 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        {/* Status Filters */}
-        <div className="mt-4 pt-4 border-t border-gold-primary/10">
-          <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
-            Status
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {statusOptions.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
-                  statusFilter === opt.value
-                    ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                    : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
-                }`}
-              >
-                <span>{opt.icon}</span>
-                <span>{opt.label}</span>
-              </button>
-            ))}
+        {/* Status + Risk Filters */}
+        <div className="mt-4 pt-4 border-t border-gold-primary/10 flex flex-wrap gap-6">
+          {/* Status */}
+          <div className="flex-1 min-w-[300px]">
+            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
+              Status
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                    statusFilter === opt.value
+                      ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
+                      : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
+                  }`}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk Level */}
+          <div>
+            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
+              Risk Level
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {riskOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setRiskFilter(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                    riskFilter === opt.value
+                      ? opt.value === 'all'
+                        ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary border-transparent shadow-gold-glow'
+                        : `${opt.color} border-current font-bold ring-1 ring-current`
+                      : opt.value === 'all'
+                        ? 'bg-bg-card border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
+                        : `bg-bg-card border-gold-primary/20 text-text-secondary hover:border-gold-primary/40 hover:text-white`
+                  }`}
+                >
+                  {opt.value !== 'all' && (
+                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
+                      opt.value === 'low' ? 'bg-green-400' : opt.value === 'normal' ? 'bg-yellow-400' : 'bg-red-400'
+                    }`} />
+                  )}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -245,4 +402,4 @@ const SignalsPage = () => {
   );
 };
 
-export default SignalsPage; 
+export default SignalsPage;

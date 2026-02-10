@@ -12,8 +12,11 @@ OPTIMIZED:
 """
 import asyncio
 import time
+import re
 import httpx
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
@@ -27,6 +30,15 @@ BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 COINGECKO_API = "https://api.coingecko.com/api/v3"
 FEAR_GREED_API = "https://api.alternative.me/fng"
+MEMPOOL_API = "https://mempool.space/api"
+BLOCKCHAIN_API = "https://api.blockchain.info"
+
+# RSS Feeds for BTC news
+BTC_NEWS_FEEDS = [
+    "https://cointelegraph.com/rss/tag/bitcoin",
+    "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    "https://decrypt.co/feed",
+]
 
 TIMEOUT = 15.0
 
@@ -288,6 +300,85 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
         if lv != 'sl': trw += arr*cnt; trc += cnt
     avg_rr = round(trw/trc, 2) if trc > 0 else 0
 
+    # Query 4: Risk Distribution
+    risk_dist_rows = db.execute(text(f"""
+        SELECT 
+            CASE 
+                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'Low'
+                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'Normal'
+                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'High'
+                ELSE 'Unknown'
+            END as risk_group,
+            COUNT(*) as total_signals,
+            COUNT(so.outcome) as closed_trades,
+            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners,
+            SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as losers,
+            CASE WHEN COUNT(so.outcome) > 0 
+                THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric / COUNT(so.outcome) * 100, 2)
+                ELSE 0 END as win_rate,
+            AVG(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') AND s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 THEN
+                CASE so.outcome
+                    WHEN 'tp1' THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp2' THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp3' THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
+                    WHEN 'tp4' THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
+                END ELSE NULL END) as avg_rr_val
+        FROM signals s
+        LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+        WHERE s.risk_level IS NOT NULL {date_filter}
+        GROUP BY risk_group
+        ORDER BY 1
+    """)).fetchall()
+
+    risk_order = {'Low': 0, 'Normal': 1, 'High': 2}
+    risk_distribution = sorted([
+        {"risk_level": r[0], "total_signals": int(r[1]), "closed_trades": int(r[2]),
+         "winners": int(r[3]), "losers": int(r[4]), "win_rate": float(r[5]) if r[5] else 0,
+         "avg_rr": round(float(r[6]), 2) if r[6] else 0}
+        for r in risk_dist_rows if r[0] != 'Unknown'
+    ], key=lambda x: risk_order.get(x["risk_level"], 9))
+
+    # Query 5: Risk Trend (win rate per risk level over time)
+    risk_trend_dt = "DATE(s.created_at)" if trend_mode == 'daily' else "DATE(DATE_TRUNC('week', s.created_at::timestamp))"
+    risk_trend_rows = db.execute(text(f"""
+        SELECT 
+            {risk_trend_dt} as period,
+            CASE 
+                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'low'
+                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'normal'
+                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'high'
+            END as risk_group,
+            COUNT(so.outcome) as closed,
+            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners
+        FROM signals s
+        INNER JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+        WHERE s.risk_level IS NOT NULL AND LOWER(s.risk_level) NOT LIKE 'unk%' {date_filter}
+        GROUP BY period, risk_group
+        HAVING COUNT(so.outcome) >= 2
+        ORDER BY period ASC
+    """)).fetchall()
+
+    risk_trend_raw = {}
+    for r in risk_trend_rows:
+        p = str(r[0])
+        if p not in risk_trend_raw:
+            risk_trend_raw[p] = {"period": p, "low_wr": None, "normal_wr": None, "high_wr": None, "low_count": 0, "normal_count": 0, "high_count": 0}
+        rg = r[1]
+        closed_cnt = int(r[2])
+        winners_cnt = int(r[3])
+        wr_val = round(winners_cnt / closed_cnt * 100, 2) if closed_cnt > 0 else None
+        if rg == 'low':
+            risk_trend_raw[p]["low_wr"] = wr_val
+            risk_trend_raw[p]["low_count"] = closed_cnt
+        elif rg == 'normal':
+            risk_trend_raw[p]["normal_wr"] = wr_val
+            risk_trend_raw[p]["normal_count"] = closed_cnt
+        elif rg == 'high':
+            risk_trend_raw[p]["high_wr"] = wr_val
+            risk_trend_raw[p]["high_count"] = closed_cnt
+
+    risk_trend = sorted(risk_trend_raw.values(), key=lambda x: x["period"])
+
     return {
         "stats": {"total_signals":ts,"closed_trades":tc,"open_signals":to_,"win_rate":round(wr,2),
             "total_winners":tw,"tp1_count":t1,"tp2_count":t2,"tp3_count":t3,"tp4_count":t4,"sl_count":tsl,"active_pairs":len(pair_metrics)},
@@ -295,6 +386,8 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
         "win_rate_trend": win_rate_trend,
         "risk_reward": risk_reward,
         "avg_risk_reward": avg_rr,
+        "risk_distribution": risk_distribution,
+        "risk_trend": risk_trend,
         "time_range": time_range,
     }
 
@@ -550,9 +643,10 @@ async def signal_cache_loop():
 
                 # Step 5: Analyze (common combos)
                 for tr in ["all", "7d", "30d"]:
-                    result = query_analyze(db, time_range=tr, trend_mode="weekly")
-                    cache_set(f"lq:signals:analyze:{tr}:weekly", result, ttl=ttl)
-                    cached += 1
+                    for tm in ["weekly", "daily"]:
+                        result = query_analyze(db, time_range=tr, trend_mode=tm)
+                        cache_set(f"lq:signals:analyze:{tr}:{ tm}", result, ttl=ttl)
+                        cached += 1
 
                 elapsed = round((time.time() - start) * 1000)
                 print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms)")
@@ -641,9 +735,609 @@ async def coingecko_cache_loop():
         await asyncio.sleep(120)
 
 
+# ============================================
+# BITCOIN TECHNICAL INDICATORS (from Binance Klines)
+# ============================================
+
+def calc_ema(closes, period):
+    """Calculate Exponential Moving Average"""
+    if len(closes) < period:
+        return None
+    multiplier = 2 / (period + 1)
+    ema = sum(closes[:period]) / period
+    for price in closes[period:]:
+        ema = (price - ema) * multiplier + ema
+    return ema
+
+
+def calc_rsi(closes, period=14):
+    """Calculate RSI from close prices"""
+    if len(closes) < period + 1:
+        return None
+    gains, losses = [], []
+    for i in range(1, len(closes)):
+        diff = closes[i] - closes[i - 1]
+        gains.append(diff if diff > 0 else 0)
+        losses.append(abs(diff) if diff < 0 else 0)
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    for i in range(period, len(gains)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100 - (100 / (1 + rs)), 2)
+
+
+def calc_macd(closes, fast=12, slow=26, signal=9):
+    """Calculate MACD, signal line, histogram"""
+    if len(closes) < slow + signal:
+        return None
+    ema_fast = calc_ema(closes, fast)
+    ema_slow = calc_ema(closes, slow)
+    if ema_fast is None or ema_slow is None:
+        return None
+
+    # Build MACD line series
+    macd_line = []
+    fast_mult = 2 / (fast + 1)
+    slow_mult = 2 / (slow + 1)
+    ef = sum(closes[:fast]) / fast
+    es = sum(closes[:slow]) / slow
+    for i in range(slow, len(closes)):
+        ef_curr = closes[i] * fast_mult + ef * (1 - fast_mult) if i >= fast else ef
+        es_curr = closes[i] * slow_mult + es * (1 - slow_mult)
+        ef = ef_curr
+        es = es_curr
+        macd_line.append(ef - es)
+
+    if len(macd_line) < signal:
+        return None
+
+    # Signal line (EMA of MACD line)
+    sig_mult = 2 / (signal + 1)
+    sig = sum(macd_line[:signal]) / signal
+    for v in macd_line[signal:]:
+        sig = v * sig_mult + sig * (1 - sig_mult)
+
+    macd_val = macd_line[-1]
+    histogram = macd_val - sig
+
+    # Determine crossover
+    prev_macd = macd_line[-2] if len(macd_line) > 1 else macd_val
+    prev_sig_approx = sig - (macd_line[-1] - macd_line[-2]) * sig_mult if len(macd_line) > 1 else sig
+    crossover = "bullish" if prev_macd <= prev_sig_approx and macd_val > sig else \
+                "bearish" if prev_macd >= prev_sig_approx and macd_val < sig else "neutral"
+
+    return {
+        "macd": round(macd_val, 2),
+        "signal": round(sig, 2),
+        "histogram": round(histogram, 2),
+        "crossover": crossover,
+    }
+
+
+def calc_bollinger(closes, period=20, std_dev=2):
+    """Calculate Bollinger Bands"""
+    if len(closes) < period:
+        return None
+    recent = closes[-period:]
+    sma = sum(recent) / period
+    variance = sum((x - sma) ** 2 for x in recent) / period
+    std = variance ** 0.5
+    return {
+        "upper": round(sma + std_dev * std, 2),
+        "middle": round(sma, 2),
+        "lower": round(sma - std_dev * std, 2),
+        "bandwidth": round((std_dev * std * 2) / sma * 100, 2) if sma > 0 else 0,
+    }
+
+
+async def fetch_btc_technical():
+    """
+    Fetch BTC klines from Binance and calculate technical indicators
+    for multiple timeframes (1h, 4h, 1d)
+    """
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            timeframes = {"1h": "1h", "4h": "4h", "1d": "1d"}
+            result = {}
+
+            for tf_key, tf_interval in timeframes.items():
+                try:
+                    res = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params={
+                        "symbol": "BTCUSDT", "interval": tf_interval, "limit": 200
+                    })
+                    if res.status_code != 200:
+                        continue
+                    klines = res.json()
+                    closes = [float(k[4]) for k in klines]
+
+                    rsi = calc_rsi(closes, 14)
+                    macd = calc_macd(closes, 12, 26, 9)
+                    bb = calc_bollinger(closes, 20, 2)
+                    ema50 = calc_ema(closes, 50)
+                    ema200 = calc_ema(closes, 200)
+
+                    current_price = closes[-1]
+
+                    # RSI signal
+                    rsi_signal = "oversold" if rsi and rsi < 30 else \
+                                 "overbought" if rsi and rsi > 70 else "neutral"
+
+                    # BB position
+                    bb_position = None
+                    if bb:
+                        bb_range = bb["upper"] - bb["lower"]
+                        if bb_range > 0:
+                            bb_pct = (current_price - bb["lower"]) / bb_range
+                            bb_position = "near_upper" if bb_pct > 0.8 else \
+                                          "near_lower" if bb_pct < 0.2 else "middle"
+
+                    # EMA cross
+                    ema_cross = None
+                    if ema50 and ema200:
+                        ema_cross = "golden_cross" if ema50 > ema200 else "death_cross"
+
+                    result[tf_key] = {
+                        "rsi": rsi,
+                        "rsi_signal": rsi_signal,
+                        "macd": macd,
+                        "bollinger": bb,
+                        "bb_position": bb_position,
+                        "ema50": round(ema50, 2) if ema50 else None,
+                        "ema200": round(ema200, 2) if ema200 else None,
+                        "ema_cross": ema_cross,
+                        "price": current_price,
+                    }
+                except Exception as tf_err:
+                    print(f"⚠️ Technical {tf_key} error: {tf_err}")
+                    continue
+
+            if not result:
+                return None
+
+            # Overall signal summary (based on 4h as primary)
+            primary = result.get("4h") or result.get("1h") or {}
+            buy_signals = 0
+            sell_signals = 0
+            total_signals = 0
+
+            for tf_data in result.values():
+                if tf_data.get("rsi_signal") == "oversold":
+                    buy_signals += 1
+                elif tf_data.get("rsi_signal") == "overbought":
+                    sell_signals += 1
+                total_signals += 1
+
+                macd_data = tf_data.get("macd")
+                if macd_data:
+                    if macd_data.get("histogram", 0) > 0:
+                        buy_signals += 1
+                    else:
+                        sell_signals += 1
+                    total_signals += 1
+
+                if tf_data.get("bb_position") == "near_lower":
+                    buy_signals += 1
+                elif tf_data.get("bb_position") == "near_upper":
+                    sell_signals += 1
+                total_signals += 1
+
+                if tf_data.get("ema_cross") == "golden_cross":
+                    buy_signals += 1
+                elif tf_data.get("ema_cross") == "death_cross":
+                    sell_signals += 1
+                total_signals += 1
+
+            if total_signals > 0:
+                buy_pct = buy_signals / total_signals
+                sell_pct = sell_signals / total_signals
+                if buy_pct >= 0.6:
+                    summary = "Strong Buy" if buy_pct >= 0.75 else "Buy"
+                elif sell_pct >= 0.6:
+                    summary = "Strong Sell" if sell_pct >= 0.75 else "Sell"
+                else:
+                    summary = "Neutral"
+            else:
+                summary = "Neutral"
+
+            return {
+                "timeframes": result,
+                "summary": summary,
+                "buy_signals": buy_signals,
+                "sell_signals": sell_signals,
+                "total_signals": total_signals,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+    except Exception as e:
+        print(f"❌ BTC Technical fetch error: {e}")
+        return None
+
+
+# ============================================
+# NETWORK HEALTH (mempool.space + blockchain.info)
+# ============================================
+
+async def fetch_network_health():
+    """Fetch Bitcoin network health metrics"""
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            # Parallel requests
+            fees_req = client.get(f"{MEMPOOL_API}/v1/fees/recommended")
+            mempool_req = client.get(f"{MEMPOOL_API}/mempool")
+            hashrate_req = client.get(f"{MEMPOOL_API}/v1/mining/hashrate/1m")
+            diff_adj_req = client.get(f"{MEMPOOL_API}/v1/difficulty-adjustment")
+            tip_req = client.get(f"{MEMPOOL_API}/blocks/tip/height")
+
+            results = await asyncio.gather(
+                fees_req, mempool_req, hashrate_req, diff_adj_req, tip_req,
+                return_exceptions=True
+            )
+
+            data = {}
+
+            # Recommended fees
+            if not isinstance(results[0], Exception) and results[0].status_code == 200:
+                fees = results[0].json()
+                data["fees"] = {
+                    "fastest": fees.get("fastestFee", 0),
+                    "half_hour": fees.get("halfHourFee", 0),
+                    "hour": fees.get("hourFee", 0),
+                    "economy": fees.get("economyFee", 0),
+                    "minimum": fees.get("minimumFee", 0),
+                }
+
+            # Mempool stats
+            if not isinstance(results[1], Exception) and results[1].status_code == 200:
+                mp = results[1].json()
+                data["mempool"] = {
+                    "count": mp.get("count", 0),
+                    "vsize": mp.get("vsize", 0),
+                    "total_fee": mp.get("total_fee", 0),
+                }
+
+            # Hashrate & Difficulty
+            if not isinstance(results[2], Exception) and results[2].status_code == 200:
+                hr = results[2].json()
+                data["hashrate"] = hr.get("currentHashrate", 0)
+                data["difficulty"] = hr.get("currentDifficulty", 0)
+
+            # Difficulty adjustment
+            if not isinstance(results[3], Exception) and results[3].status_code == 200:
+                da = results[3].json()
+                data["difficulty_adjustment"] = {
+                    "progress": round(da.get("progressPercent", 0), 2),
+                    "change": round(da.get("difficultyChange", 0), 2),
+                    "estimated_date": da.get("estimatedRetargetDate", 0),
+                    "remaining_blocks": da.get("remainingBlocks", 0),
+                    "remaining_time": da.get("remainingTime", 0),
+                }
+
+            # Block tip height
+            if not isinstance(results[4], Exception) and results[4].status_code == 200:
+                try:
+                    data["block_height"] = int(results[4].text)
+                except:
+                    data["block_height"] = 0
+
+            data["timestamp"] = datetime.utcnow().isoformat()
+            return data if data else None
+
+    except Exception as e:
+        print(f"❌ Network health fetch error: {e}")
+        return None
+
+
+# ============================================
+# ON-CHAIN METRICS (blockchain.info)
+# ============================================
+
+async def fetch_onchain_metrics():
+    """Fetch on-chain metrics from blockchain.info"""
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            # blockchain.info chart API — get latest value
+            charts = {
+                "n-unique-addresses": "active_addresses",
+                "n-transactions": "daily_transactions",
+                "mvrv": "mvrv",
+                "nvt": "nvt",
+            }
+
+            data = {}
+            for chart_name, key in charts.items():
+                try:
+                    res = await client.get(
+                        f"{BLOCKCHAIN_API}/charts/{chart_name}",
+                        params={"timespan": "7days", "format": "json", "sampled": "true"}
+                    )
+                    if res.status_code == 200:
+                        chart_data = res.json()
+                        values = chart_data.get("values", [])
+                        if values:
+                            latest = values[-1]
+                            data[key] = {
+                                "value": latest.get("y", 0),
+                                "timestamp": latest.get("x", 0),
+                            }
+                            # Also get 7d trend (first vs last)
+                            if len(values) > 1:
+                                first_val = values[0].get("y", 0)
+                                last_val = values[-1].get("y", 0)
+                                if first_val > 0:
+                                    data[key]["change_7d"] = round((last_val - first_val) / first_val * 100, 2)
+                except Exception as chart_err:
+                    print(f"⚠️ On-chain {chart_name} error: {chart_err}")
+                    continue
+
+                await asyncio.sleep(0.5)  # Be nice to blockchain.info
+
+            # Also get unconfirmed TX count (simple endpoint)
+            try:
+                uc_res = await client.get(f"{BLOCKCHAIN_API}/q/unconfirmedcount")
+                if uc_res.status_code == 200:
+                    data["unconfirmed_tx"] = int(uc_res.text.strip())
+            except:
+                pass
+
+            data["timestamp"] = datetime.utcnow().isoformat()
+            return data if len(data) > 1 else None
+
+    except Exception as e:
+        print(f"❌ On-chain metrics fetch error: {e}")
+        return None
+
+
+# ============================================
+# BTC NEWS (RSS feeds)
+# ============================================
+
+def parse_rss_date(date_str):
+    """Parse various RSS date formats"""
+    if not date_str:
+        return None
+    try:
+        return parsedate_to_datetime(date_str)
+    except:
+        pass
+    # Try ISO format
+    for fmt in ["%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d %H:%M:%S"]:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except:
+            continue
+    return None
+
+
+def extract_image_from_html(html_str):
+    """Extract first image URL from HTML content"""
+    if not html_str:
+        return None
+    match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html_str)
+    return match.group(1) if match else None
+
+
+async def fetch_btc_news():
+    """Fetch Bitcoin news from RSS feeds"""
+    articles = []
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            for feed_url in BTC_NEWS_FEEDS:
+                try:
+                    res = await client.get(feed_url, headers={
+                        "User-Agent": "LuxQuant/1.0 (News Aggregator)"
+                    })
+                    if res.status_code != 200:
+                        continue
+
+                    root = ET.fromstring(res.text)
+
+                    # Determine source name from URL
+                    source = "Unknown"
+                    if "cointelegraph" in feed_url:
+                        source = "CoinTelegraph"
+                    elif "coindesk" in feed_url:
+                        source = "CoinDesk"
+                    elif "decrypt" in feed_url:
+                        source = "Decrypt"
+
+                    # Parse items (RSS 2.0 format)
+                    ns = {
+                        "media": "http://search.yahoo.com/mrss/",
+                        "dc": "http://purl.org/dc/elements/1.1/",
+                        "content": "http://purl.org/rss/1.0/modules/content/",
+                    }
+
+                    items = root.findall(".//item")
+                    for item in items[:10]:  # Max 10 per source
+                        title_el = item.find("title")
+                        link_el = item.find("link")
+                        desc_el = item.find("description")
+                        pub_el = item.find("pubDate")
+                        creator_el = item.find("dc:creator", ns)
+
+                        title = title_el.text.strip() if title_el is not None and title_el.text else None
+                        link = link_el.text.strip() if link_el is not None and link_el.text else None
+                        description = desc_el.text.strip() if desc_el is not None and desc_el.text else ""
+                        pub_date = pub_el.text.strip() if pub_el is not None and pub_el.text else None
+                        author = creator_el.text.strip() if creator_el is not None and creator_el.text else None
+
+                        if not title or not link:
+                            continue
+
+                        # Filter only BTC-related
+                        text_check = (title + " " + description).lower()
+                        btc_keywords = ["bitcoin", "btc", "satoshi", "halving", "mining"]
+                        if not any(kw in text_check for kw in btc_keywords):
+                            continue
+
+                        # Extract image
+                        image = None
+
+                        # Try media:content
+                        media_content = item.find("media:content", ns)
+                        if media_content is not None:
+                            image = media_content.get("url")
+
+                        # Try media:thumbnail
+                        if not image:
+                            media_thumb = item.find("media:thumbnail", ns)
+                            if media_thumb is not None:
+                                image = media_thumb.get("url")
+
+                        # Try enclosure
+                        if not image:
+                            enclosure = item.find("enclosure")
+                            if enclosure is not None and "image" in (enclosure.get("type") or ""):
+                                image = enclosure.get("url")
+
+                        # Try extracting from description HTML
+                        if not image:
+                            image = extract_image_from_html(description)
+
+                        # Clean description (strip HTML)
+                        clean_desc = re.sub(r'<[^>]+>', '', description)
+                        clean_desc = clean_desc.strip()[:300]
+
+                        parsed_date = parse_rss_date(pub_date)
+                        iso_date = parsed_date.isoformat() if parsed_date else pub_date
+
+                        # Time ago
+                        time_ago = ""
+                        if parsed_date:
+                            try:
+                                now = datetime.now(parsed_date.tzinfo) if parsed_date.tzinfo else datetime.utcnow()
+                                diff = now - parsed_date
+                                mins = int(diff.total_seconds() / 60)
+                                if mins < 60:
+                                    time_ago = f"{mins}m ago"
+                                elif mins < 1440:
+                                    time_ago = f"{mins // 60}h ago"
+                                else:
+                                    time_ago = f"{mins // 1440}d ago"
+                            except:
+                                time_ago = ""
+
+                        articles.append({
+                            "title": title,
+                            "link": link,
+                            "description": clean_desc,
+                            "image": image,
+                            "source": source,
+                            "author": author,
+                            "published": iso_date,
+                            "time_ago": time_ago,
+                        })
+
+                except Exception as feed_err:
+                    print(f"⚠️ RSS feed error ({feed_url}): {feed_err}")
+                    continue
+
+        # Sort by published date (newest first), deduplicate by title
+        seen_titles = set()
+        unique_articles = []
+        for a in articles:
+            title_key = a["title"].lower()[:50]
+            if title_key not in seen_titles:
+                seen_titles.add(title_key)
+                unique_articles.append(a)
+
+        # Sort newest first
+        unique_articles.sort(key=lambda x: x.get("published", ""), reverse=True)
+
+        return {
+            "articles": unique_articles[:20],  # Max 20 articles
+            "total": len(unique_articles),
+            "fetched_at": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        print(f"❌ BTC news fetch error: {e}")
+        return None
+
+
+# ============================================
+# BITCOIN DATA CACHE LOOP (60s interval)
+# ============================================
+
+async def bitcoin_data_cache_loop():
+    """Pre-compute all Bitcoin page data every 60 seconds"""
+    print(f"🔄 Bitcoin data cache worker started (interval: 60s)")
+    await asyncio.sleep(4)
+
+    while True:
+        try:
+            if not is_redis_available():
+                await asyncio.sleep(60)
+                continue
+
+            start = time.time()
+            cached = 0
+
+            # 1. Technical Indicators
+            technical = await fetch_btc_technical()
+            if technical:
+                cache_set("lq:bitcoin:technical", technical, ttl=70)
+                cached += 1
+
+            # 2. Network Health
+            network = await fetch_network_health()
+            if network:
+                cache_set("lq:bitcoin:network", network, ttl=70)
+                cached += 1
+
+            # 3. On-Chain Metrics (every other cycle — these change slowly)
+            # Check if we have recent data
+            existing_onchain = cache_get("lq:bitcoin:onchain")
+            should_fetch_onchain = existing_onchain is None
+            if not should_fetch_onchain:
+                try:
+                    ts = existing_onchain.get("timestamp", "")
+                    if ts:
+                        last_fetch = datetime.fromisoformat(ts.replace("Z", "+00:00").replace("+00:00", ""))
+                        should_fetch_onchain = (datetime.utcnow() - last_fetch).seconds > 300  # 5 min
+                except:
+                    should_fetch_onchain = True
+
+            if should_fetch_onchain:
+                onchain = await fetch_onchain_metrics()
+                if onchain:
+                    cache_set("lq:bitcoin:onchain", onchain, ttl=360)
+                    cached += 1
+
+            # 4. News (every 5 minutes)
+            existing_news = cache_get("lq:bitcoin:news")
+            should_fetch_news = existing_news is None
+            if not should_fetch_news:
+                try:
+                    ts = existing_news.get("fetched_at", "")
+                    if ts:
+                        last_fetch = datetime.fromisoformat(ts)
+                        should_fetch_news = (datetime.utcnow() - last_fetch).seconds > 300
+                except:
+                    should_fetch_news = True
+
+            if should_fetch_news:
+                news = await fetch_btc_news()
+                if news:
+                    cache_set("lq:bitcoin:news", news, ttl=360)
+                    cached += 1
+
+            elapsed = round((time.time() - start) * 1000)
+            print(f"✅ Bitcoin data cache: {cached} keys in {elapsed}ms")
+
+        except Exception as e:
+            print(f"❌ Bitcoin data cache error: {e}")
+
+        await asyncio.sleep(60)
+
+
 def start_cache_workers():
     """Start all background cache workers"""
     loop = asyncio.get_event_loop()
     loop.create_task(signal_cache_loop())
     loop.create_task(market_cache_loop())
     loop.create_task(coingecko_cache_loop())
+    loop.create_task(bitcoin_data_cache_loop())

@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     
     # CoinGecko API
     COINGECKO_API_KEY: str = os.getenv("COINGECKO_API_KEY", "")
+    SOSOVALUE_API_KEY: str = os.getenv("SOSOVALUE_API_KEY", "")
     
     class Config:
         env_file = ".env"
