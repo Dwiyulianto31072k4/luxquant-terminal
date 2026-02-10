@@ -136,6 +136,46 @@ const SignalsTable = ({
     return pair.replace(/USDT$/i, '');
   };
 
+  // Risk badge style
+  const getRiskBadge = (risk) => {
+    const r = risk?.toLowerCase() || '';
+    if (r.startsWith('low')) return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (r.startsWith('med')) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (r.startsWith('high')) return 'bg-red-500/20 text-red-400 border-red-500/30';
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  };
+
+  // Format market cap for display
+  const formatMarketCap = (mcap) => {
+    if (!mcap) return '-';
+    // If it's already a formatted string like "1.2B" or "500M", return as-is
+    if (typeof mcap === 'string' && /[BMKTbmkt]/.test(mcap)) return mcap;
+    // If numeric string, try to format
+    const num = parseFloat(mcap);
+    if (isNaN(num)) return mcap;
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(1)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(0)}M`;
+    if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
+    return `$${num.toFixed(0)}`;
+  };
+
+  // Market cap badge color based on size
+  const getMarketCapStyle = (mcap) => {
+    if (!mcap) return 'text-text-muted';
+    const str = mcap.toString().toUpperCase();
+    // Large cap (B = billion)
+    if (str.includes('B') || str.includes('T')) return 'text-green-400';
+    // Mid cap (>100M)
+    if (str.includes('M')) {
+      const num = parseFloat(str);
+      if (num >= 100) return 'text-yellow-400';
+      if (num >= 10) return 'text-orange-400';
+      return 'text-red-400';
+    }
+    return 'text-text-muted';
+  };
+
   // Status badge
   const getStatusBadge = (status) => {
     const config = {
@@ -194,6 +234,8 @@ const SignalsTable = ({
     );
   };
 
+  const TOTAL_COLUMNS = 11; // Updated column count
+
   return (
     <>
       <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
@@ -206,8 +248,10 @@ const SignalsTable = ({
                 <SortableHeader field="pair" label="Pair" />
                 <Header label="Current Price" align="right" />
                 <SortableHeader field="entry" label="Entry" align="right" />
-                <SortableHeader field="max_target" label="Max Target" align="right" /> {/* Now sortable */}
+                <SortableHeader field="max_target" label="Max Target" align="right" />
                 <Header label="Stop Loss" align="right" />
+                <SortableHeader field="risk_level" label="Risk" align="center" />
+                <Header label="Market Cap" align="center" />
                 <Header label="Vol Rank" align="center" />
                 <SortableHeader field="status" label="Status" align="center" />
                 <SortableHeader field="created_at" label="Time" align="right" />
@@ -217,7 +261,7 @@ const SignalsTable = ({
               {loading ? (
                 [...Array(10)].map((_, i) => (
                   <tr key={i} className="border-b border-gold-primary/5">
-                    {[...Array(9)].map((_, j) => (
+                    {[...Array(TOTAL_COLUMNS)].map((_, j) => (
                       <td key={j} className="py-4 px-4">
                         <div className="h-5 bg-bg-card rounded animate-pulse"></div>
                       </td>
@@ -226,7 +270,7 @@ const SignalsTable = ({
                 ))
               ) : signals?.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-16">
+                  <td colSpan={TOTAL_COLUMNS} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-bg-card flex items-center justify-center">
                         <span className="text-3xl">🔍</span>
@@ -322,6 +366,28 @@ const SignalsTable = ({
                           </div>
                         ) : (
                           <span className="text-text-muted">-</span>
+                        )}
+                      </td>
+
+                      {/* Risk Level */}
+                      <td className="py-4 px-4 text-center">
+                        {signal.risk_level ? (
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase border ${getRiskBadge(signal.risk_level)}`}>
+                            {signal.risk_level}
+                          </span>
+                        ) : (
+                          <span className="text-text-muted">-</span>
+                        )}
+                      </td>
+
+                      {/* Market Cap */}
+                      <td className="py-4 px-4 text-center">
+                        {signal.market_cap ? (
+                          <span className={`text-xs font-semibold ${getMarketCapStyle(signal.market_cap)}`}>
+                            {formatMarketCap(signal.market_cap)}
+                          </span>
+                        ) : (
+                          <span className="text-text-muted text-xs">-</span>
                         )}
                       </td>
                       

@@ -5,6 +5,7 @@ Provides fast cached access to pre-computed signal data and market data.
 """
 import json
 import redis
+from datetime import datetime, timedelta
 from typing import Optional, Any
 from app.config import settings
 
@@ -98,10 +99,32 @@ def build_signals_page_key(
     pair: str = "",
     risk: str = "",
     sort_by: str = "created_at",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
+    date_from: str = "",
+    date_to: str = "",
 ) -> str:
-    """Build cache key for signals page query"""
-    return f"lq:signals:page:{page}:{page_size}:{status or 'all'}:{pair or 'all'}:{risk or 'all'}:{sort_by}:{sort_order}"
+    """
+    Build cache key for signals page query.
+    
+    For "Last 7 Days" requests, normalize to "7d:<date>" format
+    so it matches the pre-computed cache from the worker.
+    """
+    # Detect "Last 7 Days" pattern: date_from is ~7 days ago, no date_to
+    date_suffix = ""
+    if date_from and not date_to:
+        try:
+            df = datetime.strptime(date_from, '%Y-%m-%d')
+            days_ago = (datetime.utcnow() - df).days
+            if 6 <= days_ago <= 8:  # fuzzy match for "7 days ago"
+                date_suffix = f":7d:{date_from}"
+            else:
+                date_suffix = f":df:{date_from}"
+        except ValueError:
+            date_suffix = f":df:{date_from}"
+    elif date_from and date_to:
+        date_suffix = f":df:{date_from}:dt:{date_to}"
+
+    return f"lq:signals:page:{page}:{page_size}:{status or 'all'}:{pair or 'all'}:{risk or 'all'}:{sort_by}:{sort_order}{date_suffix}"
 
 
 # ============================================

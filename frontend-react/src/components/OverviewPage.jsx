@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import TopPerformers from './TopPerformers';
 
 const API_BASE = '/api/v1';
 
@@ -13,23 +14,17 @@ const OverviewPage = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 120000); // 2 min (match backend cache)
+    const interval = setInterval(fetchData, 120000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
     try {
       setError(null);
-      
-      // Fetch via backend proxy (cached, no CORS issues)
       const response = await fetch(`${API_BASE}/market/global`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch market data');
-      }
+      if (!response.ok) throw new Error('Failed to fetch market data');
       
       const result = await response.json();
-      
       const globalData = result.global;
       const coinsData = result.coins || [];
       const fearGreed = result.fearGreed || { value: 50, label: 'Neutral', yesterday: 50, lastWeek: 50 };
@@ -118,6 +113,9 @@ const OverviewPage = () => {
 
   return (
     <div className="space-y-6">
+      {/* Top Performers Section */}
+      <TopPerformers />
+
       {/* Page Title */}
       <div className="flex items-center gap-3">
         <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
@@ -226,7 +224,6 @@ const OverviewPage = () => {
 
       {/* Gainers & Losers */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Top Gainers */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
           <div className="px-5 py-4 border-b border-gold-primary/10 flex items-center gap-2">
             <span>📈</span>
@@ -239,7 +236,6 @@ const OverviewPage = () => {
           </div>
         </div>
 
-        {/* Top Losers */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
           <div className="px-5 py-4 border-b border-gold-primary/10 flex items-center gap-2">
             <span>📉</span>
@@ -275,7 +271,6 @@ const MetricCard = ({ label, value, change, icon, color = 'text-white' }) => (
 const InsightItem = ({ condition, positive, negative }) => {
   const text = condition ? positive : negative;
   if (!text) return null;
-  
   return (
     <div className={`p-3 rounded-lg ${condition ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
       <p className={`text-sm ${condition ? 'text-green-400' : 'text-red-400'}`}>
@@ -308,7 +303,6 @@ const CoinRow = ({ coin, isLoser }) => (
   </div>
 );
 
-// Utility
 const formatLargeNumber = (num) => {
   if (!num) return '$0';
   if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;

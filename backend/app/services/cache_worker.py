@@ -3,13 +3,12 @@
 LuxQuant Terminal - Background Cache Worker
 Pre-computes expensive queries and stores results in Redis.
 
-Signal data: refreshed every 30 seconds
-Market data: refreshed every 15 seconds
-
-This means:
-- 1000 users all read from Redis (~5ms) instead of hitting DB/external APIs
-- Only 1 DB query per 30s and 1 API call per 15s
-- DB + external API load stays minimal regardless of user count
+OPTIMIZED:
+- Pre-computes "Last 7 Days" filter (most common frontend request)
+- Page 1 cached with higher priority
+- Signal CTE computed once per cycle, reused across queries
+- Market data from Binance every 15s
+- CoinGecko data every 120s (rate limit friendly)
 """
 import asyncio
 import time
@@ -17,7 +16,7 @@ import httpx
 from datetime import datetime, timedelta
 from sqlalchemy import text
 from app.core.database import SessionLocal
-from app.core.redis import cache_set, is_redis_available
+from app.core.redis import cache_set, cache_get, is_redis_available
 
 # Worker intervals
 SIGNAL_INTERVAL = 30   # seconds
@@ -31,25 +30,19 @@ FEAR_GREED_API = "https://api.alternative.me/fng"
 
 TIMEOUT = 15.0
 
-# Pre-cache these signal page combinations
-PRECACHE_PAGES = [
-    (1, 20, None, "created_at", "desc"),
-    (2, 20, None, "created_at", "desc"),
-    (3, 20, None, "created_at", "desc"),
-    (1, 20, "open", "created_at", "desc"),
-    (1, 20, "tp1", "created_at", "desc"),
-    (1, 20, "tp2", "created_at", "desc"),
-    (1, 20, "tp3", "created_at", "desc"),
-    (1, 20, "tp4", "created_at", "desc"),
-    (1, 20, "closed_loss", "created_at", "desc"),
-]
-
 
 # ============================================
-# CTE (same as signals.py)
+# OPTIMIZED CTE — computed ONCE as materialized view in temp table
 # ============================================
-SIGNAL_OUTCOMES_CTE = """
-    signal_outcomes AS (
+
+def precompute_outcomes(db):
+    """
+    Pre-compute signal outcomes ONCE per cycle into a temp table.
+    This avoids running the expensive CTE for every single query.
+    """
+    db.execute(text("DROP TABLE IF EXISTS _cache_outcomes"))
+    db.execute(text("""
+        CREATE TEMP TABLE _cache_outcomes AS
         SELECT signal_id, outcome
         FROM (
             SELECT 
@@ -76,9 +69,15 @@ SIGNAL_OUTCOMES_CTE = """
             WHERE update_type IS NOT NULL
         ) ranked
         WHERE rn = 1 AND outcome IS NOT NULL
-    )
-"""
+    """))
+    db.execute(text("CREATE INDEX ON _cache_outcomes(signal_id)"))
+    db.execute(text("CREATE INDEX ON _cache_outcomes(outcome)"))
+    db.commit()
 
+
+# ============================================
+# SIGNAL QUERIES (using pre-computed temp table)
+# ============================================
 
 def status_to_filter(status_input):
     mapping = {
@@ -88,13 +87,10 @@ def status_to_filter(status_input):
     return mapping.get(status_input.lower(), status_input.lower()) if status_input else None
 
 
-# ============================================
-# SIGNAL QUERIES
-# ============================================
-
 def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
                        risk_level=None, sort_by="created_at", sort_order="desc",
                        date_from=None, date_to=None):
+    """Query signals using pre-computed _cache_outcomes temp table"""
     conditions = []
     params = {}
 
@@ -131,14 +127,19 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
     sort_col = valid_sorts.get(sort_by, 's.call_message_id')
     sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
 
-    total = db.execute(text(f"WITH {SIGNAL_OUTCOMES_CTE} SELECT COUNT(*) FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id WHERE {where_clause}"), params).scalar() or 0
+    # Count
+    total = db.execute(text(f"""
+        SELECT COUNT(*) FROM signals s
+        LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+        WHERE {where_clause}
+    """), params).scalar() or 0
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     offset = (page - 1) * page_size
 
+    # Data
     params["limit"] = page_size
     params["offset"] = offset
     rows = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
         SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
             s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
             s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
@@ -146,7 +147,7 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
             CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
                  WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
             s.market_cap
-        FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE {where_clause} ORDER BY {sort_col} {sort_dir} LIMIT :limit OFFSET :offset
     """), params).fetchall()
 
@@ -166,15 +167,14 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
 
 
 def query_signals_stats(db):
-    row = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
+    row = db.execute(text("""
         SELECT COUNT(*), COUNT(CASE WHEN so.outcome IS NULL THEN 1 END),
             SUM(CASE WHEN so.outcome='tp1' THEN 1 ELSE 0 END),
             SUM(CASE WHEN so.outcome='tp2' THEN 1 ELSE 0 END),
             SUM(CASE WHEN so.outcome='tp3' THEN 1 ELSE 0 END),
             SUM(CASE WHEN so.outcome='tp4' THEN 1 ELSE 0 END),
             SUM(CASE WHEN so.outcome='sl' THEN 1 ELSE 0 END)
-        FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
     """)).fetchone()
     if not row:
         return {"total_signals":0,"open_signals":0,"tp1_signals":0,"tp2_signals":0,"tp3_signals":0,"closed_win":0,"closed_loss":0,"win_rate":0}
@@ -187,15 +187,14 @@ def query_signals_stats(db):
 
 def query_active_signals(db, limit=20):
     rows = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
         SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
             s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
             s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
             s.created_at, s.market_cap
-        FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE so.outcome IS NULL ORDER BY s.call_message_id DESC LIMIT :limit
     """), {"limit": limit}).fetchall()
-    return [
+    return {"items": [
         {"signal_id":r[0],"channel_id":r[1],"call_message_id":r[2],"message_link":r[3],
          "pair":r[4],"entry":float(r[5]) if r[5] else None,
          "target1":float(r[6]) if r[6] else None,"target2":float(r[7]) if r[7] else None,
@@ -204,11 +203,11 @@ def query_active_signals(db, limit=20):
          "risk_level":r[12],"volume_rank_num":r[13],"volume_rank_den":r[14],
          "created_at":str(r[15]) if r[15] else None,"status":"open","market_cap":r[16]}
         for r in rows
-    ]
+    ]}
 
 
 def query_analyze(db, time_range="all", trend_mode="weekly"):
-    """Pre-compute the full analyze response (3 heavy queries combined)"""
+    """Pre-compute the full analyze response using pre-computed outcomes"""
     date_filter = ""
     if time_range != 'all':
         now = datetime.utcnow()
@@ -224,8 +223,7 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 
     # Query 1: Pair metrics
     rows = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE},
-        pair_stats AS (
+        WITH pair_stats AS (
             SELECT s.pair, COUNT(*) as total_signals, COUNT(so.outcome) as closed_trades,
                 COUNT(*) - COUNT(so.outcome) as open_signals,
                 SUM(CASE WHEN so.outcome='tp1' THEN 1 ELSE 0 END) as tp1_count,
@@ -233,7 +231,7 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
                 SUM(CASE WHEN so.outcome='tp3' THEN 1 ELSE 0 END) as tp3_count,
                 SUM(CASE WHEN so.outcome='tp4' THEN 1 ELSE 0 END) as tp4_count,
                 SUM(CASE WHEN so.outcome='sl' THEN 1 ELSE 0 END) as sl_count
-            FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
             WHERE s.pair IS NOT NULL {date_filter} GROUP BY s.pair
         )
         SELECT pair, total_signals, closed_trades, open_signals, tp1_count, tp2_count, tp3_count, tp4_count, sl_count,
@@ -258,12 +256,11 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
     # Query 2: Win rate trend
     dt = "DATE(s.created_at)" if trend_mode == 'daily' else "DATE(DATE_TRUNC('week', s.created_at::timestamp))"
     trend_rows = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
         SELECT {dt} as period, COUNT(so.outcome) as total_closed,
             SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners,
             SUM(CASE WHEN so.outcome='sl' THEN 1 ELSE 0 END) as losers,
             CASE WHEN COUNT(so.outcome)>0 THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric/COUNT(so.outcome)*100,2) ELSE 0 END as win_rate
-        FROM signals s INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        FROM signals s INNER JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE s.created_at IS NOT NULL {date_filter}
         GROUP BY {dt} HAVING COUNT(so.outcome) >= 3 ORDER BY period ASC
     """)).fetchall()
@@ -271,7 +268,6 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 
     # Query 3: Risk:Reward
     rr_rows = db.execute(text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
         SELECT so.outcome as level, COUNT(*) as cnt,
             AVG(CASE WHEN s.entry>0 AND s.stop1>0 AND ABS(s.entry-s.stop1)>0 THEN
                 CASE so.outcome WHEN 'tp1' THEN ABS(s.target1-s.entry)/ABS(s.entry-s.stop1)
@@ -279,7 +275,7 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
                     WHEN 'tp3' THEN ABS(s.target3-s.entry)/ABS(s.entry-s.stop1)
                     WHEN 'tp4' THEN ABS(s.target4-s.entry)/ABS(s.entry-s.stop1)
                     WHEN 'sl' THEN -1.0 ELSE 0 END ELSE NULL END) as avg_rr
-        FROM signals s INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        FROM signals s INNER JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE s.entry>0 AND s.stop1>0 AND s.target1>0 {date_filter}
         GROUP BY so.outcome ORDER BY CASE so.outcome WHEN 'tp1' THEN 1 WHEN 'tp2' THEN 2 WHEN 'tp3' THEN 3 WHEN 'tp4' THEN 4 WHEN 'sl' THEN 5 END
     """)).fetchall()
@@ -308,42 +304,82 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 # ============================================
 
 async def fetch_market_overview():
-    """Fetch complete market overview from Binance"""
+    """
+    Fetch market overview. Tries Binance Futures first, falls back to Spot.
+    """
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             btc_res = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr", params={"symbol": "BTCUSDT"})
             btc_data = btc_res.json()
             btc_price = float(btc_data["lastPrice"])
 
-            # Funding rates
-            funding_rates = []
-            for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]:
-                try:
-                    fr = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": sym, "limit": 1})
-                    d = fr.json()
-                    if d: funding_rates.append({"symbol": sym.replace("USDT",""), "rate": float(d[0]["fundingRate"]), "time": int(d[0]["fundingTime"])})
-                except: continue
-
-            # Long/short
-            ls = await client.get(f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio", params={"symbol":"BTCUSDT","period":"5m","limit":1})
-            ls_data = ls.json()
-            long_short = {"symbol":"BTCUSDT","longAccount":float(ls_data[0]["longAccount"]),"shortAccount":float(ls_data[0]["shortAccount"]),"longShortRatio":float(ls_data[0]["longShortRatio"]),"timestamp":int(ls_data[0]["timestamp"])} if ls_data else None
-
-            # OI
-            oi = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol":"BTCUSDT"})
-            oi_val = float(oi.json()["openInterest"])
-
-            # OI history
-            oih = await client.get(f"{BINANCE_FUTURES_API}/futures/data/openInterestHist", params={"symbol":"BTCUSDT","period":"1h","limit":24})
-            oi_hist = [{"timestamp":int(i["timestamp"]),"sumOpenInterestValue":float(i["sumOpenInterestValue"])} for i in oih.json()]
-
-            return {
-                "btc": {"price":btc_price,"high_24h":float(btc_data["highPrice"]),"low_24h":float(btc_data["lowPrice"]),
-                    "volume_24h":float(btc_data["quoteVolume"]),"price_change_24h":float(btc_data["priceChange"]),"price_change_pct":float(btc_data["priceChangePercent"])},
-                "fundingRates": funding_rates, "longShortRatio": long_short,
-                "openInterest": {"symbol":"BTCUSDT","openInterest":oi_val,"openInterestUsd":oi_val*btc_price},
-                "oiHistory": oi_hist, "timestamp": datetime.utcnow().isoformat(),
+            btc_info = {
+                "price": btc_price,
+                "high_24h": float(btc_data["highPrice"]),
+                "low_24h": float(btc_data["lowPrice"]),
+                "volume_24h": float(btc_data["quoteVolume"]),
+                "price_change_24h": float(btc_data["priceChange"]),
+                "price_change_pct": float(btc_data["priceChangePercent"]),
             }
+
+            # Try Futures data (may fail on some networks)
+            funding_rates = []
+            long_short = None
+            open_interest = None
+            oi_hist = []
+            top_coins = []
+            source = "full"
+
+            try:
+                # Funding rates
+                for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]:
+                    try:
+                        fr = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": sym, "limit": 1})
+                        d = fr.json()
+                        if d and isinstance(d, list):
+                            funding_rates.append({"symbol": sym.replace("USDT",""), "rate": float(d[0]["fundingRate"]), "time": int(d[0]["fundingTime"])})
+                    except: continue
+
+                # Long/short ratio
+                ls = await client.get(f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio", params={"symbol":"BTCUSDT","period":"5m","limit":1})
+                ls_data = ls.json()
+                if ls_data and isinstance(ls_data, list):
+                    long_short = {"symbol":"BTCUSDT","longAccount":float(ls_data[0]["longAccount"]),"shortAccount":float(ls_data[0]["shortAccount"]),"longShortRatio":float(ls_data[0]["longShortRatio"]),"timestamp":int(ls_data[0]["timestamp"])}
+
+                # Open Interest
+                oi = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol":"BTCUSDT"})
+                oi_val = float(oi.json()["openInterest"])
+                open_interest = {"symbol":"BTCUSDT","openInterest":oi_val,"openInterestUsd":oi_val*btc_price}
+
+                # OI History
+                oih = await client.get(f"{BINANCE_FUTURES_API}/futures/data/openInterestHist", params={"symbol":"BTCUSDT","period":"1h","limit":24})
+                oi_hist = [{"timestamp":int(i["timestamp"]),"sumOpenInterestValue":float(i["sumOpenInterestValue"])} for i in oih.json()]
+
+            except Exception as futures_err:
+                print(f"⚠️ Futures unavailable in worker ({futures_err}), using Spot fallback")
+                source = "spot_fallback"
+
+                # Fallback: fetch top coins from Spot
+                for sym in ["ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT"]:
+                    try:
+                        res = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr", params={"symbol": sym})
+                        if res.status_code == 200:
+                            d = res.json()
+                            top_coins.append({"symbol":sym.replace("USDT",""),"price":float(d["lastPrice"]),"change_pct":float(d["priceChangePercent"]),"volume_24h":float(d["quoteVolume"])})
+                    except: continue
+
+            result = {
+                "btc": btc_info,
+                "fundingRates": funding_rates,
+                "longShortRatio": long_short,
+                "openInterest": open_interest,
+                "oiHistory": oi_hist,
+                "topCoins": top_coins,
+                "timestamp": datetime.utcnow().isoformat(),
+                "source": source,
+            }
+            return result
+
     except Exception as e:
         print(f"❌ Market overview fetch error: {e}")
         return None
@@ -442,8 +478,21 @@ async def fetch_coins_market(per_page=100, page=1, order="market_cap_desc"):
 # BACKGROUND WORKERS
 # ============================================
 
+def get_7d_date():
+    """Get date string for 7 days ago (matches frontend 'Last 7 Days' filter)"""
+    return (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
+
+
 async def signal_cache_loop():
-    """Pre-compute signal data every SIGNAL_INTERVAL seconds"""
+    """
+    Pre-compute signal data every SIGNAL_INTERVAL seconds.
+    
+    Strategy:
+    1. Compute outcomes ONCE into temp table
+    2. Cache "Last 7 Days" pages (most common frontend request)
+    3. Cache "All" pages
+    4. Cache stats, active, analyze
+    """
     print(f"🔄 Signal cache worker started (interval: {SIGNAL_INTERVAL}s)")
     await asyncio.sleep(2)
 
@@ -459,33 +508,60 @@ async def signal_cache_loop():
                 cached = 0
                 ttl = SIGNAL_INTERVAL + 10
 
-                # Signal pages
-                for (pg, ps, st, sb, so) in PRECACHE_PAGES:
-                    result = query_signals_page(db, page=pg, page_size=ps, status=st, sort_by=sb, sort_order=so)
-                    key = f"lq:signals:page:{pg}:{ps}:{st or 'all'}:all:all:{sb}:{so}"
-                    cache_set(key, result, ttl=ttl)
-                    cached += 1
+                # Step 1: Pre-compute outcomes ONCE
+                t0 = time.time()
+                precompute_outcomes(db)
+                cte_ms = round((time.time() - t0) * 1000)
 
-                # Stats
+                date_7d = get_7d_date()
+
+                # Step 2: Cache "Last 7 Days" pages (HIGHEST PRIORITY — what frontend actually requests)
+                statuses = [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]
+                for st in statuses:
+                    for pg in range(1, 4):  # pages 1-3
+                        result = query_signals_page(db, page=pg, page_size=20, status=st,
+                                                     sort_by="created_at", sort_order="desc",
+                                                     date_from=date_7d)
+                        key = f"lq:signals:page:{pg}:20:{st or 'all'}:all:all:created_at:desc:7d:{date_7d}"
+                        cache_set(key, result, ttl=ttl)
+                        cached += 1
+                        # Stop if no more pages
+                        if pg >= result.get("total_pages", 1):
+                            break
+
+                # Step 3: Cache "All time" pages (secondary)
+                for st in [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]:
+                    for pg in range(1, 4):
+                        result = query_signals_page(db, page=pg, page_size=20, status=st,
+                                                     sort_by="created_at", sort_order="desc")
+                        key = f"lq:signals:page:{pg}:20:{st or 'all'}:all:all:created_at:desc"
+                        cache_set(key, result, ttl=ttl)
+                        cached += 1
+                        if pg >= result.get("total_pages", 1):
+                            break
+
+                # Step 4: Stats & Active
                 cache_set("lq:signals:stats", query_signals_stats(db), ttl=ttl)
                 cached += 1
 
-                # Active
-                cache_set("lq:signals:active:20", query_active_signals(db, 20), ttl=ttl)
+                active_result = query_active_signals(db, 20)
+                cache_set("lq:signals:active:20", active_result, ttl=ttl)
                 cached += 1
 
-                # Analyze (most common combos)
+                # Step 5: Analyze (common combos)
                 for tr in ["all", "7d", "30d"]:
                     result = query_analyze(db, time_range=tr, trend_mode="weekly")
                     cache_set(f"lq:signals:analyze:{tr}:weekly", result, ttl=ttl)
                     cached += 1
 
                 elapsed = round((time.time() - start) * 1000)
-                print(f"✅ Signal cache: {cached} keys in {elapsed}ms")
+                print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms)")
             finally:
                 db.close()
         except Exception as e:
+            import traceback
             print(f"❌ Signal cache error: {e}")
+            traceback.print_exc()
 
         await asyncio.sleep(SIGNAL_INTERVAL)
 
@@ -504,11 +580,9 @@ async def market_cache_loop():
             start = time.time()
             cached = 0
 
-            # Market overview (Binance)
             overview = await fetch_market_overview()
             if overview:
                 cache_set("lq:market:overview", overview, ttl=MARKET_INTERVAL + 5)
-                # Also cache individual parts for direct endpoint access
                 cache_set("lq:market:btc-ticker", overview["btc"], ttl=MARKET_INTERVAL + 5)
                 cache_set("lq:market:funding-rates", overview["fundingRates"], ttl=MARKET_INTERVAL + 5)
                 if overview.get("longShortRatio"):
@@ -538,17 +612,15 @@ async def coingecko_cache_loop():
 
             start = time.time()
             cached = 0
-            ttl = 130  # slightly longer than interval
+            ttl = 130
 
-            # Bitcoin data
             btc = await fetch_bitcoin_coingecko()
             if btc:
                 cache_set("lq:market:bitcoin", btc, ttl=ttl)
                 cached += 1
 
-            await asyncio.sleep(2)  # small delay to avoid rate limit
+            await asyncio.sleep(2)
 
-            # Global data
             glob = await fetch_global_coingecko()
             if glob:
                 cache_set("lq:market:global", glob, ttl=ttl)
@@ -556,7 +628,6 @@ async def coingecko_cache_loop():
 
             await asyncio.sleep(2)
 
-            # Coins market page 1
             coins = await fetch_coins_market(per_page=100, page=1)
             if coins:
                 cache_set("lq:market:coins:100:1:market_cap_desc", coins, ttl=ttl)
