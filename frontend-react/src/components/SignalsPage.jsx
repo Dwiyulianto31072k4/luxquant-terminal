@@ -6,6 +6,7 @@ const API_BASE = '/api/v1';
 /**
  * SignalsPage - Potential Trades
  * Default: Last 7 days signals only
+ * RESPONSIVE: collapsible filters on mobile
  */
 const SignalsPage = () => {
   const [signals, setSignals] = useState([]);
@@ -24,6 +25,9 @@ const SignalsPage = () => {
   const [riskFilter, setRiskFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Mobile filter toggle
+  const [showFilters, setShowFilters] = useState(false);
 
   // Quick Stats
   const [quickStats, setQuickStats] = useState(null);
@@ -76,13 +80,9 @@ const SignalsPage = () => {
   // Fetch quick stats
   const fetchQuickStats = useCallback(async () => {
     try {
-      // Use UTC-adjusted date to capture all "today" signals in any timezone
-      // For WIB (UTC+7), signals created at 00:00-06:59 WIB are still "yesterday" in UTC
-      // So we fetch from yesterday UTC to be safe, then filter by local date
       const now = new Date();
       const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       
-      // Go back 1 day to account for timezone offset
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
@@ -110,7 +110,6 @@ const SignalsPage = () => {
         
         todayData.items.forEach(s => {
           if (!s.created_at) return;
-          // Parse and compare using local date
           const d = new Date(s.created_at);
           if (d.getDate() !== todayDateNum || d.getMonth() !== todayMonth || d.getFullYear() !== todayYear) return;
           
@@ -144,18 +143,9 @@ const SignalsPage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchSignals();
-  }, [fetchSignals]);
-
-  useEffect(() => {
-    fetchQuickStats();
-  }, [fetchQuickStats]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [searchPair, statusFilter, riskFilter, sortBy, sortOrder]);
+  useEffect(() => { fetchSignals(); }, [fetchSignals]);
+  useEffect(() => { fetchQuickStats(); }, [fetchQuickStats]);
+  useEffect(() => { setPage(1); }, [searchPair, statusFilter, riskFilter, sortBy, sortOrder]);
 
   // Handle sort
   const handleSort = (field) => {
@@ -166,6 +156,13 @@ const SignalsPage = () => {
       setSortOrder('desc');
     }
   };
+
+  // Count active filters
+  const activeFilterCount = [
+    searchPair !== '',
+    statusFilter !== 'all',
+    riskFilter !== 'all',
+  ].filter(Boolean).length;
 
   // Status options
   const statusOptions = [
@@ -187,205 +184,241 @@ const SignalsPage = () => {
   ];
 
   return (
-    <div className="space-y-5">
-      {/* Page Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4 lg:space-y-5">
+      {/* ═══════════════════════════════════ */}
+      {/* PAGE HEADER                         */}
+      {/* ═══════════════════════════════════ */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-2xl font-semibold text-white">Recent Signals</h2>
-          <span className="px-2 py-1 bg-gold-primary/10 text-gold-primary text-xs font-medium rounded">
-            Last 7 Days
-          </span>
+          <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Potential Trades</h2>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <span className="text-text-muted text-sm">
-            Showing <span className="text-gold-primary font-semibold">{signals.length}</span> of <span className="text-white font-semibold">{totalSignals.toLocaleString()}</span> signals
-          </span>
-          
-          <a 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.dispatchEvent(new CustomEvent('navigate', { detail: 'analytics' }));
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gold-primary/10 border border-gold-primary/30 rounded-lg text-gold-primary text-sm hover:bg-gold-primary/20 transition-colors"
-            title="View all signals from the beginning"
-          >
-            <span>📊</span>
-            <span>Full History</span>
-          </a>
+        <div className="text-text-muted text-xs lg:text-sm">
+          Last 7 Days · {totalSignals} signals
         </div>
       </div>
 
-      {/* Quick Stats Bar */}
+      {/* ═══════════════════════════════════ */}
+      {/* QUICK STATS - Responsive grid       */}
+      {/* ═══════════════════════════════════ */}
       {quickStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {/* Today's Signals */}
-          <div className="glass-card rounded-xl p-4 border border-gold-primary/20">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-text-muted text-xs uppercase tracking-wider">Today</span>
-              <span className="text-gold-primary text-sm">📡</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{quickStats.todaySignals}</p>
-            <p className="text-text-muted text-xs mt-1">{quickStats.todayOpen} still open</p>
+          <div className="glass-card rounded-xl p-3 lg:p-4 border border-gold-primary/10">
+            <p className="text-text-muted text-[10px] lg:text-xs uppercase tracking-wider">Today</p>
+            <p className="text-white text-lg lg:text-xl font-bold font-mono mt-0.5">{quickStats.todaySignals}</p>
+            <p className="text-text-muted text-[10px] mt-0.5">
+              <span className="text-cyan-400">{quickStats.todayOpen} open</span>
+              {quickStats.todayClosed > 0 && (
+                <> · <span className="text-positive">{quickStats.todayWins}W</span> / <span className="text-negative">{quickStats.todayLosses}L</span></>
+              )}
+            </p>
           </div>
-
           {/* Today Win Rate */}
-          <div className="glass-card rounded-xl p-4 border border-green-500/20">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-text-muted text-xs uppercase tracking-wider">Today Win Rate</span>
-              <span className="text-green-400 text-sm">📈</span>
-            </div>
-            <p className={`text-2xl font-bold ${quickStats.todayWinRate >= 50 ? 'text-green-400' : quickStats.todayClosed === 0 ? 'text-text-muted' : 'text-red-400'}`}>
-              {quickStats.todayClosed > 0 ? `${quickStats.todayWinRate}%` : '—'}
+          <div className="glass-card rounded-xl p-3 lg:p-4 border border-gold-primary/10">
+            <p className="text-text-muted text-[10px] lg:text-xs uppercase tracking-wider">Today WR</p>
+            <p className={`text-lg lg:text-xl font-bold font-mono mt-0.5 ${quickStats.todayWinRate >= 50 ? 'text-positive' : 'text-negative'}`}>
+              {quickStats.todayWinRate}%
             </p>
-            <p className="text-text-muted text-xs mt-1">
-              {quickStats.todayClosed > 0 
-                ? `${quickStats.todayWins}W / ${quickStats.todayLosses}L`
-                : 'No closed signals yet'
-              }
-            </p>
+            <p className="text-text-muted text-[10px] mt-0.5">{quickStats.todayClosed} closed</p>
           </div>
-
           {/* Overall Win Rate */}
-          <div className="glass-card rounded-xl p-4 border border-emerald-500/20">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-text-muted text-xs uppercase tracking-wider">Overall Win Rate</span>
-              <span className="text-emerald-400 text-sm">🏆</span>
-            </div>
-            <p className={`text-2xl font-bold ${quickStats.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className="glass-card rounded-xl p-3 lg:p-4 border border-gold-primary/10">
+            <p className="text-text-muted text-[10px] lg:text-xs uppercase tracking-wider">Overall WR</p>
+            <p className={`text-lg lg:text-xl font-bold font-mono mt-0.5 ${quickStats.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
               {quickStats.winRate}%
             </p>
-            <p className="text-text-muted text-xs mt-1">{quickStats.totalSignals.toLocaleString()} total signals</p>
+            <p className="text-text-muted text-[10px] mt-0.5">{quickStats.totalSignals.toLocaleString()} total</p>
+          </div>
+          {/* This Week */}
+          <div className="glass-card rounded-xl p-3 lg:p-4 border border-gold-primary/10">
+            <p className="text-text-muted text-[10px] lg:text-xs uppercase tracking-wider">This Week</p>
+            <p className="text-white text-lg lg:text-xl font-bold font-mono mt-0.5">{totalSignals}</p>
+            <p className="text-text-muted text-[10px] mt-0.5">signals in view</p>
           </div>
         </div>
       )}
 
-      {/* Filters Bar */}
-      <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Search Pair */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-1.5 block">
-              Search Pair
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">🔍</span>
-              <input
-                type="text"
-                placeholder="BTC, ETH, SOL..."
-                value={searchPair}
-                onChange={(e) => setSearchPair(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-gold-primary/50 transition-colors"
-              />
+      {/* ═══════════════════════════════════ */}
+      {/* FILTERS BAR                         */}
+      {/* ═══════════════════════════════════ */}
+      <div className="glass-card rounded-xl border border-gold-primary/10">
+        
+        {/* Mobile: Filter toggle header */}
+        <div className="lg:hidden">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="w-full flex items-center justify-between p-3.5"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span className="text-white text-sm font-medium">Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-gold-primary text-bg-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  {activeFilterCount}
+                </span>
+              )}
             </div>
-          </div>
-
-          {/* Sort By */}
-          <div className="w-40">
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-1.5 block">
-              Sort By
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white focus:outline-none focus:border-gold-primary/50"
-            >
-              <option value="created_at">Time</option>
-              <option value="pair">Pair</option>
-              <option value="entry">Entry Price</option>
-              <option value="risk_level">Risk Level</option>
-            </select>
-          </div>
-
-          {/* Order */}
-          <div className="w-32">
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-1.5 block">
-              Order
-            </label>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-              className="w-full px-3 py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white flex items-center justify-center gap-2 hover:border-gold-primary/40 transition-colors"
-            >
-              <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
-              <span>{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
-            </button>
-          </div>
+            <svg className={`w-4 h-4 text-text-muted transition-transform ${showFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
 
-        {/* Status + Risk Filters */}
-        <div className="mt-4 pt-4 border-t border-gold-primary/10 flex flex-wrap gap-6">
-          {/* Status */}
-          <div className="flex-1 min-w-[300px]">
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
-              Status
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {statusOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setStatusFilter(opt.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
-                    statusFilter === opt.value
-                      ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                      : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
-                  }`}
+        {/* Filter content - always visible on desktop, collapsible on mobile */}
+        <div className={`${showFilters ? 'block' : 'hidden'} lg:block p-3.5 lg:p-4 ${showFilters ? 'border-t border-gold-primary/10' : ''} lg:border-t-0`}>
+          
+          {/* Row 1: Search + Sort + Order */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search Pair */}
+            <div className="flex-1">
+              <label className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-1 lg:mb-1.5 block">
+                Search Pair
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">🔍</span>
+                <input
+                  type="text"
+                  placeholder="BTC, ETH, SOL..."
+                  value={searchPair}
+                  onChange={(e) => setSearchPair(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 lg:py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-gold-primary/50 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Sort + Order row */}
+            <div className="flex gap-2 sm:gap-3">
+              {/* Sort By */}
+              <div className="flex-1 sm:w-36 lg:w-40">
+                <label className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-1 lg:mb-1.5 block">
+                  Sort By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 lg:py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50"
                 >
-                  <span>{opt.icon}</span>
-                  <span>{opt.label}</span>
+                  <option value="created_at">Time</option>
+                  <option value="pair">Pair</option>
+                  <option value="entry">Entry Price</option>
+                  <option value="risk_level">Risk Level</option>
+                </select>
+              </div>
+
+              {/* Order */}
+              <div className="w-28 lg:w-32">
+                <label className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-1 lg:mb-1.5 block">
+                  Order
+                </label>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                  className="w-full px-3 py-2 lg:py-2.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white flex items-center justify-center gap-1.5 hover:border-gold-primary/40 transition-colors text-sm"
+                >
+                  <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                  <span>{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
                 </button>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Risk Level */}
-          <div>
-            <label className="text-gold-primary text-xs font-semibold uppercase tracking-wider mb-2 block">
-              Risk Level
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {riskOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setRiskFilter(opt.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                    riskFilter === opt.value
-                      ? opt.value === 'all'
-                        ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary border-transparent shadow-gold-glow'
-                        : `${opt.color} border-current font-bold ring-1 ring-current`
-                      : opt.value === 'all'
-                        ? 'bg-bg-card border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
-                        : `bg-bg-card border-gold-primary/20 text-text-secondary hover:border-gold-primary/40 hover:text-white`
-                  }`}
-                >
-                  {opt.value !== 'all' && (
-                    <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
-                      opt.value === 'low' ? 'bg-green-400' : opt.value === 'normal' ? 'bg-yellow-400' : 'bg-red-400'
-                    }`} />
-                  )}
-                  {opt.label}
-                </button>
-              ))}
+          {/* Row 2: Status + Risk */}
+          <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-gold-primary/10 space-y-3 lg:space-y-0 lg:flex lg:gap-6">
+            {/* Status */}
+            <div className="flex-1">
+              <label className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-1.5 lg:mb-2 block">
+                Status
+              </label>
+              <div className="flex flex-wrap gap-1.5 lg:gap-2">
+                {statusOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setStatusFilter(opt.value)}
+                    className={`px-2.5 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-1 lg:gap-1.5 transition-all ${
+                      statusFilter === opt.value
+                        ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
+                        : 'bg-bg-card border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{opt.icon}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Level */}
+            <div className="lg:flex-shrink-0">
+              <label className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-1.5 lg:mb-2 block">
+                Risk Level
+              </label>
+              <div className="flex flex-wrap gap-1.5 lg:gap-2">
+                {riskOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRiskFilter(opt.value)}
+                    className={`px-2.5 lg:px-3 py-1 lg:py-1.5 rounded-lg text-xs lg:text-sm font-medium transition-all border ${
+                      riskFilter === opt.value
+                        ? opt.value === 'all'
+                          ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary border-transparent shadow-gold-glow'
+                          : `${opt.color} border-current font-bold ring-1 ring-current`
+                        : opt.value === 'all'
+                          ? 'bg-bg-card border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
+                          : 'bg-bg-card border-gold-primary/20 text-text-secondary hover:border-gold-primary/40 hover:text-white'
+                    }`}
+                  >
+                    {opt.value !== 'all' && (
+                      <span className={`inline-block w-2 h-2 rounded-full mr-1 lg:mr-1.5 ${
+                        opt.value === 'low' ? 'bg-green-400' : opt.value === 'normal' ? 'bg-yellow-400' : 'bg-red-400'
+                      }`} />
+                    )}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Mobile: Clear filters button */}
+          {activeFilterCount > 0 && (
+            <div className="mt-3 pt-3 border-t border-gold-primary/10 lg:hidden">
+              <button
+                onClick={() => {
+                  setSearchPair('');
+                  setStatusFilter('all');
+                  setRiskFilter('all');
+                  setSortBy('created_at');
+                  setSortOrder('desc');
+                }}
+                className="w-full py-2 text-xs text-gold-primary border border-gold-primary/20 rounded-lg hover:bg-gold-primary/10 transition-colors"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Error State */}
+      {/* ═══════════════════════════════════ */}
+      {/* ERROR STATE                         */}
+      {/* ═══════════════════════════════════ */}
       {error && (
-        <div className="glass-card rounded-xl p-6 border border-red-500/30 text-center">
-          <p className="text-red-400 mb-3">⚠️ {error}</p>
+        <div className="glass-card rounded-xl p-4 lg:p-6 border border-red-500/30 text-center">
+          <p className="text-red-400 mb-3 text-sm">⚠️ {error}</p>
           <button 
             onClick={fetchSignals}
-            className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors"
+            className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Signals Table */}
+      {/* ═══════════════════════════════════ */}
+      {/* SIGNALS TABLE                       */}
+      {/* ═══════════════════════════════════ */}
       {!error && (
         <SignalsTable
           signals={signals}
