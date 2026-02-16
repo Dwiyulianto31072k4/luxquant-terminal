@@ -1,454 +1,378 @@
 import { useState, useEffect, useCallback } from 'react';
 import CoinLogo from './CoinLogo';
 
-const API_BASE = '/api/v1';
-
 /**
- * TopGainerSection - Top Gainers by LuxQuant Algorithm
- * 
- * KEY FIX: Now filters by TP HIT date (signal_updates.update_at)
- * instead of signal CALL date (signals.created_at)
- * 
- * Features:
- * - Quick presets: 1 Day, 1 Week, 1 Month, Custom
- * - Custom date range picker
- * - Top Gainers sorted by gain %
- * - Fastest Hits sorted by duration
- * - Coin logos with CoinLogo component
- * - Summary stats: Total TP Hits, Avg Gain, Avg Duration
+ * TopGainersSection - Top Gainer by LuxQuant Algorithm
+ * Shows top gaining signals and fastest TP hits with stat cards
  */
-const TopGainerSection = () => {
+const TopGainersSection = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Date filter state
-  const [preset, setPreset] = useState('1d');
+  const [timeRange, setTimeRange] = useState('30d');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const [activeFrom, setActiveFrom] = useState('');
-  const [activeTo, setActiveTo] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
 
-  // Calculate dates from preset
-  const getDateRange = useCallback((p) => {
-    const now = new Date();
-    const to = now.toISOString().split('T')[0];
-    let from;
-    
-    switch (p) {
-      case '1d':
-        from = to; // Same day
-        break;
-      case '1w': {
-        const weekAgo = new Date(now);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        from = weekAgo.toISOString().split('T')[0];
-        break;
-      }
-      case '1m': {
-        const monthAgo = new Date(now);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        from = monthAgo.toISOString().split('T')[0];
-        break;
-      }
-      default:
-        from = to;
-    }
-    return { from, to };
-  }, []);
+  const timeFilters = [
+    { key: '1d', label: '1 Day' },
+    { key: '7d', label: '1 Week' },
+    { key: '30d', label: '1 Month' },
+    { key: 'all', label: 'All Time' },
+  ];
 
-  // Fetch data
-  const fetchTopGainers = useCallback(async (from, to) => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const params = new URLSearchParams({
-        date_from: from,
-        date_to: to,
-        limit: '5'
-      });
-      
-      const response = await fetch(`${API_BASE}/signals/top-gainers?${params}`);
+
+      let url = `/api/v1/signals/analytics/top-gainers?time_range=${timeRange}&limit=5`;
+      if (timeRange === 'custom' && customFrom) {
+        url += `&date_from=${customFrom}`;
+        if (customTo) url += `&date_to=${customTo}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch top gainers');
       
       const result = await response.json();
       setData(result);
-      setActiveFrom(from);
-      setActiveTo(to);
     } catch (err) {
-      console.error('Error fetching top gainers:', err);
+      console.error('Top gainers fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeRange, customFrom, customTo]);
 
-  // Initial load
   useEffect(() => {
-    const { from, to } = getDateRange('1d');
-    setCustomFrom(from);
-    setCustomTo(to);
-    fetchTopGainers(from, to);
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
-  // Handle preset click
-  const handlePreset = (p) => {
-    setPreset(p);
-    if (p !== 'custom') {
-      const { from, to } = getDateRange(p);
-      setCustomFrom(from);
-      setCustomTo(to);
-      fetchTopGainers(from, to);
+  // Date range display
+  const getDateRangeLabel = () => {
+    if (!data) return '';
+    if (data.date_from && data.date_to) {
+      const fmt = (d) => {
+        try {
+          return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        } catch { return d; }
+      };
+      return `${fmt(data.date_from)} – ${fmt(data.date_to)}`;
+    }
+    if (data.date_from) {
+      return `Since ${new Date(data.date_from).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    }
+    return 'All Time';
+  };
+
+  const handleTimeChange = (key) => {
+    if (key === 'custom') {
+      setShowCustom(true);
+    } else {
+      setShowCustom(false);
+      setTimeRange(key);
     }
   };
 
-  // Handle custom date apply
-  const handleApply = () => {
-    if (customFrom && customTo) {
-      fetchTopGainers(customFrom, customTo);
+  const applyCustomRange = () => {
+    if (customFrom) {
+      setTimeRange('custom');
     }
   };
 
-  // Format duration
-  const formatDuration = (minutes) => {
-    if (!minutes || minutes <= 0) return '< 1m';
-    if (minutes < 60) return `${minutes}m`;
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h >= 24) {
-      const d = Math.floor(h / 24);
-      const rh = h % 24;
-      return rh > 0 ? `${d}d ${rh}h` : `${d}d`;
-    }
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  // TP Level badge color config
+  const getTPColor = (level) => {
+    const l = (level || '').toLowerCase();
+    if (l === 'tp4') return { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' };
+    if (l === 'tp3') return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/30' };
+    if (l === 'tp2') return { bg: 'bg-lime-500/20', text: 'text-lime-400', border: 'border-lime-500/30' };
+    if (l === 'tp1') return { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30' };
+    return { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' };
   };
 
-  // Format date display
-  const formatDateDisplay = (from, to) => {
-    if (!from || !to) return '';
-    const f = new Date(from + 'T00:00:00');
-    const t = new Date(to + 'T00:00:00');
-    const opts = { month: 'long', day: 'numeric', year: 'numeric' };
-    if (from === to) return f.toLocaleDateString('en-US', opts);
-    return `${f.toLocaleDateString('en-US', opts)} – ${t.toLocaleDateString('en-US', opts)}`;
-  };
-
-  // TP Level badge colors
-  const getTPBadge = (level) => {
-    const config = {
-      'tp1': { bg: 'from-green-500/20 to-green-600/10', border: 'border-green-500/40', text: 'text-green-400', label: 'TP 1' },
-      'tp2': { bg: 'from-lime-500/20 to-lime-600/10', border: 'border-lime-500/40', text: 'text-lime-400', label: 'TP 2' },
-      'tp3': { bg: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/40', text: 'text-yellow-400', label: 'TP 3' },
-      'tp4': { bg: 'from-orange-500/20 to-orange-600/10', border: 'border-orange-500/40', text: 'text-orange-400', label: 'TP 4' },
-    };
-    return config[level?.toLowerCase()] || config['tp1'];
-  };
-
-  // Rank medal
-  const getRankDisplay = (idx) => {
-    if (idx === 0) return <span className="text-lg">🥇</span>;
-    if (idx === 1) return <span className="text-lg">🥈</span>;
-    if (idx === 2) return <span className="text-lg">🥉</span>;
-    return <span className="text-text-muted font-mono text-sm font-bold">#{idx + 1}</span>;
-  };
-
-  return (
-    <div className="space-y-5">
-      {/* Section Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+  // Loading skeleton
+  if (loading && !data) {
+    return (
+      <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-2xl font-semibold text-white">
-            Top Gainer by LuxQuant Algorithm
-          </h2>
+          <h2 className="font-display text-xl font-semibold text-white">Top Gainer by LuxQuant Algorithm</h2>
         </div>
-
-        {/* Preset Buttons */}
-        <div className="flex items-center gap-1.5">
-          {[
-            { key: '1d', label: '1 Day' },
-            { key: '1w', label: '1 Week' },
-            { key: '1m', label: '1 Month' },
-            { key: 'custom', label: 'Custom' },
-          ].map((p) => (
-            <button
-              key={p.key}
-              onClick={() => handlePreset(p.key)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                preset === p.key
-                  ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
-                  : 'bg-bg-card/80 text-text-muted hover:text-white border border-gold-primary/10 hover:border-gold-primary/30'
-              }`}
-            >
-              {p.label}
-            </button>
+        {/* Stat cards skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass-card rounded-xl p-4 animate-pulse border border-gold-primary/10">
+              <div className="h-3 bg-gold-primary/20 rounded w-20 mb-2" />
+              <div className="h-6 bg-gold-primary/20 rounded w-24" />
+            </div>
+          ))}
+        </div>
+        {/* Tables skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[0, 1].map(i => (
+            <div key={i} className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gold-primary/10">
+                <div className="h-4 bg-gold-primary/20 rounded w-48 animate-pulse" />
+              </div>
+              {[...Array(5)].map((_, j) => (
+                <div key={j} className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 bg-gold-primary/20 rounded animate-pulse" />
+                    <div className="w-8 h-8 bg-gold-primary/20 rounded-full animate-pulse" />
+                    <div className="h-4 bg-gold-primary/20 rounded w-24 animate-pulse" />
+                  </div>
+                  <div className="h-4 bg-gold-primary/20 rounded w-16 animate-pulse" />
+                </div>
+              ))}
+            </div>
           ))}
         </div>
       </div>
+    );
+  }
 
-      {/* Date Picker Row */}
-      <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-text-muted text-sm">From:</span>
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <h2 className="font-display text-xl font-semibold text-white">Top Gainer by LuxQuant Algorithm</h2>
+        </div>
+        <div className="glass-card rounded-xl p-6 border border-red-500/30 text-center">
+          <p className="text-red-400 text-sm mb-3">⚠️ {error}</p>
+          <button onClick={fetchData} className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const stats = data.stats;
+
+  return (
+    <div className="space-y-4">
+      {/* Header with time filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <h2 className="font-display text-xl font-semibold text-white">Top Gainer by LuxQuant Algorithm</h2>
+        </div>
+
+        {/* Time Filters */}
+        <div className="flex items-center gap-1.5">
+          {timeFilters.map(f => (
+            <button
+              key={f.key}
+              onClick={() => handleTimeChange(f.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                timeRange === f.key && !showCustom
+                  ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/40 shadow-sm shadow-gold-primary/10'
+                  : 'text-text-muted hover:text-white border border-transparent hover:border-gold-primary/20'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+          <button
+            onClick={() => handleTimeChange('custom')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              showCustom
+                ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/40'
+                : 'text-text-muted hover:text-white border border-transparent hover:border-gold-primary/20'
+            }`}
+          >
+            Custom
+          </button>
+        </div>
+      </div>
+
+      {/* Custom date range picker */}
+      {showCustom && (
+        <div className="flex items-center gap-3 flex-wrap">
           <input
             type="date"
             value={customFrom}
-            onChange={(e) => { setCustomFrom(e.target.value); setPreset('custom'); }}
-            className="px-3 py-2 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm font-mono focus:border-gold-primary/60 focus:outline-none transition-colors"
+            onChange={(e) => setCustomFrom(e.target.value)}
+            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:border-gold-primary/50 outline-none"
           />
-          <span className="text-text-muted text-sm">To:</span>
+          <span className="text-text-muted text-sm">to</span>
           <input
             type="date"
             value={customTo}
-            onChange={(e) => { setCustomTo(e.target.value); setPreset('custom'); }}
-            className="px-3 py-2 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm font-mono focus:border-gold-primary/60 focus:outline-none transition-colors"
+            onChange={(e) => setCustomTo(e.target.value)}
+            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:border-gold-primary/50 outline-none"
           />
           <button
-            onClick={handleApply}
-            className="px-5 py-2 bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary font-semibold text-sm rounded-lg hover:shadow-gold-glow transition-all duration-200 active:scale-95"
+            onClick={applyCustomRange}
+            className="px-4 py-1.5 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm font-medium"
           >
             Apply
           </button>
-
-          {/* Active date badge */}
-          {activeFrom && (
-            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-gold-primary/10 border border-gold-primary/20 rounded-lg">
-              <span className="text-gold-primary text-xs">📅</span>
-              <span className="text-gold-light text-xs font-medium">
-                {formatDateDisplay(activeFrom, activeTo)}
-              </span>
-            </div>
-          )}
         </div>
+      )}
+
+      {/* Date range label */}
+      {(data.date_from || data.date_to) && (
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/10 border border-gold-primary/20">
+          <span className="text-sm">📅</span>
+          <span className="text-gold-primary text-xs font-medium">{getDateRangeLabel()}</span>
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          icon="📊"
+          label="Avg Gain Top 5"
+          value={`+${stats.avg_gain_top5.toFixed(2)}%`}
+          valueColor="text-positive"
+        />
+        <StatCard
+          icon="🎯"
+          label="Total TP Hits"
+          value={stats.total_tp_hits.toLocaleString()}
+          valueColor="text-gold-primary"
+        />
+        <StatCard
+          icon="⚡"
+          label="Avg Time to Hit"
+          value={stats.avg_time_label || '-'}
+          valueColor="text-cyan-400"
+        />
+        <StatCard
+          icon="🏆"
+          label="Best Gain"
+          value={`+${stats.best_gain.toFixed(2)}%`}
+          sub={stats.best_gain_pair}
+          valueColor="text-positive"
+        />
       </div>
 
-      {/* Summary Stats */}
-      {data && !loading && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="glass-card rounded-xl p-5 border border-gold-primary/10 group hover:border-gold-primary/30 transition-all">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🎯</span>
-              <p className="text-text-muted text-xs uppercase tracking-wider font-medium">Total TP Hits</p>
-            </div>
-            <p className="text-3xl font-display font-bold text-white">{data.total_tp_hits}</p>
-          </div>
-          
-          <div className="glass-card rounded-xl p-5 border border-gold-primary/10 group hover:border-green-500/30 transition-all">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🚀</span>
-              <p className="text-text-muted text-xs uppercase tracking-wider font-medium">Avg Gain (Top 5)</p>
-            </div>
-            <p className="text-3xl font-mono font-bold text-green-400">{data.avg_gain_top5.toFixed(2)}%</p>
-          </div>
-          
-          <div className="glass-card rounded-xl p-5 border border-gold-primary/10 group hover:border-blue-500/30 transition-all">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">⏱️</span>
-              <p className="text-text-muted text-xs uppercase tracking-wider font-medium">Avg Duration</p>
-            </div>
-            <p className="text-3xl font-display font-bold text-white">
-              {formatDuration(Math.round(data.avg_duration_minutes))}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="grid grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="glass-card rounded-xl p-5 border border-gold-primary/10 animate-pulse">
-              <div className="h-4 bg-gold-primary/10 rounded w-24 mb-3" />
-              <div className="h-8 bg-gold-primary/10 rounded w-16" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Top Gainers & Fastest Hits */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Tables: Top Gainers + Fastest Hits */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Gainers */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          {/* Header */}
-          <div className="px-5 py-4 border-b border-gold-primary/10 bg-gradient-to-r from-gold-primary/5 to-transparent">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">🏆</span>
-              <h3 className="text-white font-semibold tracking-wide">Top Gainers by LuxQuant Algorithm Call</h3>
-            </div>
+          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center gap-2">
+            <span className="text-base">🏆</span>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
+              Top Gainers by LuxQuant Algorithm Call
+            </h3>
           </div>
-
-          {/* Content */}
           <div className="divide-y divide-gold-primary/5">
-            {loading ? (
-              [...Array(5)].map((_, i) => (
-                <div key={i} className="px-5 py-4 animate-pulse">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gold-primary/10 rounded-full" />
-                    <div className="w-10 h-10 bg-gold-primary/10 rounded-full" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gold-primary/10 rounded w-24 mb-2" />
-                      <div className="h-3 bg-gold-primary/10 rounded w-16" />
-                    </div>
-                    <div className="h-6 bg-gold-primary/10 rounded w-16" />
-                  </div>
-                </div>
-              ))
-            ) : data?.top_gainers?.length > 0 ? (
-              data.top_gainers.map((item, idx) => {
-                const tp = getTPBadge(item.tp_level);
-                return (
-                  <div 
-                    key={item.signal_id} 
-                    className="px-5 py-4 hover:bg-gold-primary/5 transition-all duration-200 group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Rank */}
-                      <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                        {getRankDisplay(idx)}
-                      </div>
-                      
-                      {/* Coin Logo */}
-                      <CoinLogo pair={item.pair} size={40} />
-                      
-                      {/* Coin Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-semibold text-sm group-hover:text-gold-light transition-colors">
-                            {item.pair.replace(/USDT$/i, '')}
-                          </span>
-                          <span className="text-text-muted text-xs">USDT</span>
-                          {/* TP Badge */}
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border bg-gradient-to-r ${tp.bg} ${tp.border} ${tp.text}`}>
-                            {tp.label}
-                          </span>
-                        </div>
-                        <p className="text-text-muted text-xs mt-0.5">
-                          {formatDuration(item.duration_minutes)}
-                        </p>
-                      </div>
-                      
-                      {/* Gain % */}
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-green-400 font-mono font-bold text-sm">
-                          +{item.gain_pct.toFixed(2)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="px-5 py-12 text-center">
-                <p className="text-text-muted text-sm">No TP hits found in this period</p>
-                <p className="text-text-muted/60 text-xs mt-1">Try selecting a wider date range</p>
+            {data.top_gainers.length === 0 ? (
+              <div className="px-4 py-8 text-center text-text-muted text-sm">
+                No data available for this period
               </div>
+            ) : (
+              data.top_gainers.map((item) => (
+                <GainerRow key={item.signal_id} item={item} type="gainer" getTPColor={getTPColor} />
+              ))
             )}
           </div>
         </div>
 
         {/* Fastest Hits */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          {/* Header */}
-          <div className="px-5 py-4 border-b border-gold-primary/10 bg-gradient-to-r from-blue-500/5 to-transparent">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">⚡</span>
-              <h3 className="text-white font-semibold tracking-wide">Fastest Hits by LuxQuant Algorithm Call</h3>
-            </div>
+          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center gap-2">
+            <span className="text-base">⚡</span>
+            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
+              Fastest Hits by LuxQuant Algorithm Call
+            </h3>
           </div>
-
-          {/* Content */}
           <div className="divide-y divide-gold-primary/5">
-            {loading ? (
-              [...Array(5)].map((_, i) => (
-                <div key={i} className="px-5 py-4 animate-pulse">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gold-primary/10 rounded-full" />
-                    <div className="w-10 h-10 bg-gold-primary/10 rounded-full" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gold-primary/10 rounded w-24 mb-2" />
-                      <div className="h-3 bg-gold-primary/10 rounded w-16" />
-                    </div>
-                    <div className="h-6 bg-gold-primary/10 rounded w-12" />
-                  </div>
-                </div>
-              ))
-            ) : data?.fastest_hits?.length > 0 ? (
-              data.fastest_hits.map((item, idx) => {
-                const tp = getTPBadge(item.tp_level);
-                return (
-                  <div 
-                    key={`fast-${item.signal_id}`} 
-                    className="px-5 py-4 hover:bg-blue-500/5 transition-all duration-200 group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Rank */}
-                      <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                        {getRankDisplay(idx)}
-                      </div>
-                      
-                      {/* Coin Logo */}
-                      <CoinLogo pair={item.pair} size={40} />
-                      
-                      {/* Coin Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors">
-                            {item.pair.replace(/USDT$/i, '')}
-                          </span>
-                          <span className="text-text-muted text-xs">USDT</span>
-                          {/* TP Badge */}
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border bg-gradient-to-r ${tp.bg} ${tp.border} ${tp.text}`}>
-                            {tp.label}
-                          </span>
-                        </div>
-                        <p className="text-text-muted text-xs mt-0.5">
-                          +{item.gain_pct.toFixed(2)}%
-                        </p>
-                      </div>
-                      
-                      {/* Duration */}
-                      <div className="text-right flex-shrink-0">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                          <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          <span className="text-blue-400 font-mono font-bold text-xs">
-                            {formatDuration(item.duration_minutes)}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="px-5 py-12 text-center">
-                <p className="text-text-muted text-sm">No TP hits found in this period</p>
-                <p className="text-text-muted/60 text-xs mt-1">Try selecting a wider date range</p>
+            {data.fastest_hits.length === 0 ? (
+              <div className="px-4 py-8 text-center text-text-muted text-sm">
+                No data available for this period
               </div>
+            ) : (
+              data.fastest_hits.map((item) => (
+                <GainerRow key={item.signal_id} item={item} type="fastest" getTPColor={getTPColor} />
+              ))
             )}
           </div>
         </div>
       </div>
 
-      {/* Error state */}
-      {error && (
-        <div className="glass-card rounded-xl p-5 border border-red-500/20 bg-red-500/5">
-          <div className="flex items-center gap-3">
-            <span className="text-red-400">⚠️</span>
-            <p className="text-red-400 text-sm">{error}</p>
-            <button
-              onClick={() => fetchTopGainers(activeFrom || customFrom, activeTo || customTo)}
-              className="ml-auto px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs hover:bg-red-500/20 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+      {/* Loading overlay for refetch */}
+      {loading && data && (
+        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center pointer-events-none">
+          <div className="w-8 h-8 border-2 border-gold-primary border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>
   );
 };
 
-export default TopGainerSection;
+
+// ============ Stat Card ============
+const StatCard = ({ icon, label, value, sub, valueColor = 'text-white' }) => (
+  <div className="glass-card rounded-xl p-4 border border-gold-primary/10 hover:border-gold-primary/20 transition-colors">
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-base">{icon}</span>
+      <p className="text-text-muted text-[11px] uppercase tracking-wider">{label}</p>
+    </div>
+    <p className={`text-xl font-display font-bold ${valueColor}`}>{value}</p>
+    {sub && <p className="text-text-muted text-xs mt-0.5 font-mono">{sub}</p>}
+  </div>
+);
+
+
+// ============ Gainer/Fastest Row ============
+const GainerRow = ({ item, type, getTPColor }) => {
+  const tpColors = getTPColor(item.tp_level);
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 hover:bg-gold-primary/5 cursor-pointer transition-colors group">
+      {/* Left: Rank + Coin Logo + Pair + TP Badge */}
+      <div className="flex items-center gap-3">
+        {/* Rank */}
+        <span className="text-text-muted text-sm font-mono w-6 text-center">
+          #{item.rank}
+        </span>
+
+        {/* Coin Logo */}
+        <CoinLogo pair={item.pair} size={32} />
+
+        {/* Pair + TP Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-white font-semibold text-sm tracking-wide">
+            {item.pair}
+          </span>
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${tpColors.bg} ${tpColors.text}`}>
+            {item.tp_level}
+          </span>
+        </div>
+      </div>
+
+      {/* Right: Gain% + Duration */}
+      <div className="text-right">
+        {type === 'gainer' ? (
+          <>
+            <p className="text-positive font-mono font-bold text-sm">
+              +{item.gain_pct.toFixed(2)}%
+            </p>
+            <p className="text-text-muted text-[11px] font-mono">
+              {item.duration_label}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-cyan-400 font-mono font-bold text-sm">
+              {item.duration_label}
+            </p>
+            <p className="text-positive text-[11px] font-mono">
+              +{item.gain_pct.toFixed(2)}%
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+export default TopGainersSection;

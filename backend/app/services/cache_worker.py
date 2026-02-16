@@ -9,6 +9,7 @@ OPTIMIZED:
 - Signal CTE computed once per cycle, reused across queries
 - Market data from Binance every 15s
 - CoinGecko data every 120s (rate limit friendly)
+- Top Gainers cached for 1d, 7d, 30d, all time ranges
 """
 import asyncio
 import time
@@ -393,6 +394,188 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 
 
 # ============================================
+# TOP GAINERS QUERY (standalone, no temp table needed)
+# ============================================
+
+def _fmt_duration(seconds):
+    """Convert seconds to human-readable duration"""
+    if seconds is None or seconds < 0:
+        return "-"
+    s = int(seconds)
+    if s < 60:
+        return f"{s}s"
+    if s < 3600:
+        return f"{s // 60}m"
+    if s < 86400:
+        h, m = s // 3600, (s % 3600) // 60
+        return f"{h}h {m}m" if m > 0 else f"{h}h"
+    d, h = s // 86400, (s % 86400) // 3600
+    return f"{d}d {h}h" if h > 0 else f"{d}d"
+
+
+def query_top_gainers(db, time_range="30d", limit=5):
+    """
+    Query top gainers and fastest hits.
+    Uses inline CTE (not _cache_outcomes) so it works in any DB session.
+    """
+    date_filter = ""
+    start_date_str = None
+    end_date_str = datetime.utcnow().strftime('%Y-%m-%d')
+
+    if time_range != 'all':
+        now = datetime.utcnow()
+        start_map = {
+            '1d': now - timedelta(days=1),
+            '7d': now - timedelta(days=7),
+            '30d': now - timedelta(days=30),
+        }
+        sd = start_map.get(time_range)
+        if sd:
+            start_date_str = sd.strftime('%Y-%m-%d')
+            date_filter = f"AND s.created_at >= '{start_date_str}'"
+
+    rows = db.execute(text(f"""
+        WITH signal_best_tp AS (
+            SELECT su.signal_id,
+                CASE 
+                    WHEN LOWER(su.update_type) LIKE '%tp4%' OR LOWER(su.update_type) LIKE '%target 4%' THEN 'TP4'
+                    WHEN LOWER(su.update_type) LIKE '%tp3%' OR LOWER(su.update_type) LIKE '%target 3%' THEN 'TP3'
+                    WHEN LOWER(su.update_type) LIKE '%tp2%' OR LOWER(su.update_type) LIKE '%target 2%' THEN 'TP2'
+                    WHEN LOWER(su.update_type) LIKE '%tp1%' OR LOWER(su.update_type) LIKE '%target 1%' THEN 'TP1'
+                    ELSE NULL
+                END as tp_level,
+                CASE 
+                    WHEN LOWER(su.update_type) LIKE '%tp4%' OR LOWER(su.update_type) LIKE '%target 4%' THEN 4
+                    WHEN LOWER(su.update_type) LIKE '%tp3%' OR LOWER(su.update_type) LIKE '%target 3%' THEN 3
+                    WHEN LOWER(su.update_type) LIKE '%tp2%' OR LOWER(su.update_type) LIKE '%target 2%' THEN 2
+                    WHEN LOWER(su.update_type) LIKE '%tp1%' OR LOWER(su.update_type) LIKE '%target 1%' THEN 1
+                    ELSE 0
+                END as tp_rank,
+                su.update_at as hit_at,
+                ROW_NUMBER() OVER (
+                    PARTITION BY su.signal_id 
+                    ORDER BY CASE 
+                        WHEN LOWER(su.update_type) LIKE '%tp4%' OR LOWER(su.update_type) LIKE '%target 4%' THEN 4
+                        WHEN LOWER(su.update_type) LIKE '%tp3%' OR LOWER(su.update_type) LIKE '%target 3%' THEN 3
+                        WHEN LOWER(su.update_type) LIKE '%tp2%' OR LOWER(su.update_type) LIKE '%target 2%' THEN 2
+                        WHEN LOWER(su.update_type) LIKE '%tp1%' OR LOWER(su.update_type) LIKE '%target 1%' THEN 1
+                        ELSE 0
+                    END DESC
+                ) as rn
+            FROM signal_updates su
+            WHERE su.update_type IS NOT NULL
+              AND (LOWER(su.update_type) LIKE '%tp%' OR LOWER(su.update_type) LIKE '%target%')
+        ),
+        signal_first_tp AS (
+            SELECT su.signal_id,
+                CASE 
+                    WHEN LOWER(su.update_type) LIKE '%tp4%' OR LOWER(su.update_type) LIKE '%target 4%' THEN 'TP4'
+                    WHEN LOWER(su.update_type) LIKE '%tp3%' OR LOWER(su.update_type) LIKE '%target 3%' THEN 'TP3'
+                    WHEN LOWER(su.update_type) LIKE '%tp2%' OR LOWER(su.update_type) LIKE '%target 2%' THEN 'TP2'
+                    WHEN LOWER(su.update_type) LIKE '%tp1%' OR LOWER(su.update_type) LIKE '%target 1%' THEN 'TP1'
+                    ELSE NULL
+                END as tp_level,
+                su.update_at as first_hit_at,
+                ROW_NUMBER() OVER (PARTITION BY su.signal_id ORDER BY su.update_at ASC) as rn
+            FROM signal_updates su
+            WHERE su.update_type IS NOT NULL
+              AND (LOWER(su.update_type) LIKE '%tp%' OR LOWER(su.update_type) LIKE '%target%')
+        ),
+        enriched AS (
+            SELECT s.signal_id, s.pair, s.entry,
+                s.target1, s.target2, s.target3, s.target4,
+                s.created_at,
+                bt.tp_level as best_tp, bt.tp_rank,
+                bt.hit_at as best_hit_at,
+                ft.tp_level as first_tp, ft.first_hit_at,
+                CASE bt.tp_rank
+                    WHEN 4 THEN ROUND((((s.target4 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN 3 THEN ROUND((((s.target3 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN 2 THEN ROUND((((s.target2 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN 1 THEN ROUND((((s.target1 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    ELSE 0
+                END as gain_pct,
+                CASE 
+                    WHEN LOWER(ft.tp_level) = 'tp1' THEN ROUND((((s.target1 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN LOWER(ft.tp_level) = 'tp2' THEN ROUND((((s.target2 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN LOWER(ft.tp_level) = 'tp3' THEN ROUND((((s.target3 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    WHEN LOWER(ft.tp_level) = 'tp4' THEN ROUND((((s.target4 - s.entry) / NULLIF(s.entry, 0)) * 100)::numeric, 2)
+                    ELSE 0
+                END as first_gain_pct,
+                CASE bt.tp_rank
+                    WHEN 4 THEN s.target4 WHEN 3 THEN s.target3
+                    WHEN 2 THEN s.target2 WHEN 1 THEN s.target1 ELSE NULL
+                END as target_price,
+                EXTRACT(EPOCH FROM (bt.hit_at::timestamp - s.created_at::timestamp)) as duration_best,
+                EXTRACT(EPOCH FROM (ft.first_hit_at::timestamp - s.created_at::timestamp)) as duration_first
+            FROM signals s
+            INNER JOIN signal_best_tp bt ON s.signal_id = bt.signal_id AND bt.rn = 1
+            LEFT JOIN signal_first_tp ft ON s.signal_id = ft.signal_id AND ft.rn = 1
+            WHERE bt.tp_level IS NOT NULL
+              AND s.entry IS NOT NULL AND s.entry > 0
+              {date_filter}
+        )
+        SELECT signal_id, pair, entry, target_price, best_tp, gain_pct,
+               first_tp, first_gain_pct, duration_best, duration_first,
+               created_at, best_hit_at, first_hit_at
+        FROM enriched
+        WHERE gain_pct IS NOT NULL AND gain_pct > 0
+        ORDER BY gain_pct DESC
+    """)).fetchall()
+
+    # Build top gainers
+    top_gainers = []
+    for i, r in enumerate(rows[:limit]):
+        dur = int(r[8]) if r[8] is not None else None
+        top_gainers.append({
+            "rank": i + 1, "pair": r[1] or "", "signal_id": r[0] or "",
+            "tp_level": r[4] or "", "gain_pct": float(r[5]) if r[5] else 0,
+            "entry": float(r[2]) if r[2] else None,
+            "target_price": float(r[3]) if r[3] else None,
+            "duration_seconds": dur, "duration_label": _fmt_duration(dur),
+            "created_at": str(r[10]) if r[10] else None,
+            "hit_at": str(r[11]) if r[11] else None,
+        })
+
+    # Build fastest hits
+    fastest_rows = sorted([r for r in rows if r[9] is not None and r[9] > 0], key=lambda r: r[9])
+    fastest_hits = []
+    for i, r in enumerate(fastest_rows[:limit]):
+        dur = int(r[9]) if r[9] is not None else None
+        fastest_hits.append({
+            "rank": i + 1, "pair": r[1] or "", "signal_id": r[0] or "",
+            "tp_level": r[6] or "", "gain_pct": float(r[7]) if r[7] else 0,
+            "entry": float(r[2]) if r[2] else None, "target_price": None,
+            "duration_seconds": dur, "duration_label": _fmt_duration(dur),
+            "created_at": str(r[10]) if r[10] else None,
+            "hit_at": str(r[12]) if r[12] else None,
+        })
+
+    # Stats
+    all_gains = [float(r[5]) for r in rows if r[5] is not None and r[5] > 0]
+    all_durations = [int(r[9]) for r in rows if r[9] is not None and r[9] > 0]
+    top5 = all_gains[:5] if len(all_gains) >= 5 else all_gains
+    avg_gain_top5 = sum(top5) / len(top5) if top5 else 0
+    avg_time = int(sum(all_durations) / len(all_durations)) if all_durations else None
+
+    return {
+        "top_gainers": top_gainers,
+        "fastest_hits": fastest_hits,
+        "stats": {
+            "avg_gain_top5": round(avg_gain_top5, 2),
+            "total_tp_hits": len(rows),
+            "avg_time_seconds": avg_time,
+            "avg_time_label": _fmt_duration(avg_time) if avg_time else "-",
+            "best_gain": round(all_gains[0], 2) if all_gains else 0,
+            "best_gain_pair": rows[0][1] if rows else "",
+        },
+        "time_range": time_range,
+        "date_from": start_date_str,
+        "date_to": end_date_str,
+    }
+
+
+# ============================================
 # MARKET DATA FETCHERS
 # ============================================
 
@@ -585,6 +768,7 @@ async def signal_cache_loop():
     2. Cache "Last 7 Days" pages (most common frontend request)
     3. Cache "All" pages
     4. Cache stats, active, analyze
+    5. Cache top gainers for all time ranges
     """
     print(f"🔄 Signal cache worker started (interval: {SIGNAL_INTERVAL}s)")
     await asyncio.sleep(2)
@@ -645,8 +829,18 @@ async def signal_cache_loop():
                 for tr in ["all", "7d", "30d"]:
                     for tm in ["weekly", "daily"]:
                         result = query_analyze(db, time_range=tr, trend_mode=tm)
-                        cache_set(f"lq:signals:analyze:{tr}:{ tm}", result, ttl=ttl)
+                        cache_set(f"lq:signals:analyze:{tr}:{tm}", result, ttl=ttl)
                         cached += 1
+
+                # Step 6: Top Gainers (all time ranges, limit 5)
+                for tr in ["1d", "7d", "30d", "all"]:
+                    try:
+                        tg_result = query_top_gainers(db, time_range=tr, limit=5)
+                        cache_set(f"lq:top-gainers:{tr}", tg_result, ttl=ttl)
+                        cached += 1
+                    except Exception as tg_err:
+                        db.rollback()
+                        print(f"⚠️ Top gainers cache error ({tr}): {tg_err}")
 
                 elapsed = round((time.time() - start) * 1000)
                 print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms)")
