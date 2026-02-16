@@ -347,14 +347,9 @@ const SignalDetailModal = ({ signal, detail, loading, onClose, cleanPair }) => {
   const signalCreatedAt = detail?.created_at || signal.signal_time;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center" style={{ paddingTop: '90px' }}>
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-end md:items-start md:justify-center p-3 pb-20 md:pb-4 md:pt-[90px] md:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal — below navbar, scrollable */}
-      <div className="relative w-full max-w-4xl mx-4 bg-bg-primary border border-gold-primary/20 rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
-           style={{ maxHeight: 'calc(100vh - 110px)' }}>
-
+      <div className="relative w-full md:max-w-4xl bg-bg-primary border border-gold-primary/20 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 h-[82vh] md:h-auto md:max-h-[calc(100vh-110px)]">
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-gold-primary/15 bg-bg-primary/95 backdrop-blur-md">
           <div className="flex items-center gap-3 min-w-0">

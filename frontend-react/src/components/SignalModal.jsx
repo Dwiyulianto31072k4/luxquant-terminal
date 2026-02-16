@@ -4,46 +4,41 @@ import CoinLogo from './CoinLogo';
 const SignalModal = ({ signal, isOpen, onClose }) => {
   const chartContainerRef = useRef(null);
   const widgetRef = useRef(null);
+  const coinInfoFetchedRef = useRef(false);
   const [signalDetail, setSignalDetail] = useState(null);
   const [activeTab, setActiveTab] = useState('chart');
-  const [showMobileTargets, setShowMobileTargets] = useState(false);
   const [coinInfo, setCoinInfo] = useState(null);
   const [coinInfoLoading, setCoinInfoLoading] = useState(false);
 
-  // Fetch signal detail
   useEffect(() => {
     if (!isOpen || !signal) return;
     setSignalDetail(null);
-    setShowMobileTargets(false);
     setCoinInfo(null);
     setCoinInfoLoading(false);
+    coinInfoFetchedRef.current = false;
     const fetchDetail = async () => {
       try {
         const response = await fetch(`/api/v1/signals/detail/${signal.signal_id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setSignalDetail(data);
-          console.log('[SignalModal] Updates count:', data.updates?.length || 0);
-        }
+        if (response.ok) setSignalDetail(await response.json());
       } catch (error) { console.error('Failed to fetch signal detail:', error); }
     };
     fetchDetail();
   }, [isOpen, signal]);
 
-  // Fetch coin info (for Research tab)
   useEffect(() => {
-    if (!isOpen || !signal || activeTab !== 'research' || coinInfo || coinInfoLoading) return;
+    if (!isOpen || !signal || activeTab !== 'research') return;
+    if (coinInfo || coinInfoFetchedRef.current) return;
     const sym = (signal.pair || '').replace(/USDT$/i, '').toUpperCase();
     if (!sym) return;
+    coinInfoFetchedRef.current = true;
     setCoinInfoLoading(true);
     fetch(`/api/v1/coingecko/coin-info/${sym}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && !data.error) setCoinInfo(data); })
-      .catch(err => console.error('[SignalModal] coin-info fetch error:', err))
+      .catch(err => console.error('[SignalModal] coin-info error:', err))
       .finally(() => setCoinInfoLoading(false));
-  }, [isOpen, signal, activeTab, coinInfo, coinInfoLoading]);
+  }, [isOpen, signal, activeTab]);
 
-  // Escape + body lock
   useEffect(() => {
     const handleEscape = (e) => { if (e.key === 'Escape') onClose(); };
     if (isOpen) { document.addEventListener('keydown', handleEscape); document.body.style.overflow = 'hidden'; }
@@ -52,7 +47,6 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
   const getUserTimezone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'Etc/UTC'; } };
 
-  // TradingView Chart
   useEffect(() => {
     if (!isOpen || !signal || !chartContainerRef.current || activeTab !== 'chart') return;
     chartContainerRef.current.innerHTML = '';
@@ -146,34 +140,141 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     { name: 'Bitget', url: `https://www.bitget.com/futures/usdt/${coinSymbol}USDT`, logo: 'https://img.bitgetimg.com/image/third/1702472462805.png', fallbackLogo: 'https://www.google.com/s2/favicons?domain=bitget.com&sz=64', color: 'from-cyan-500/20 to-cyan-700/10 border-cyan-500/30 hover:border-cyan-400' },
   ];
 
-  // === TIMELINE (for Trade tab now) ===
+  // === TIMELINE ===
   const grayC = { bg: 'bg-gray-700', text: 'text-text-muted', line: 'bg-gray-700/30' };
   const buildTimeline = () => {
     const ev = [];
-    ev.push({ type: 'called', label: 'Signal Called', sublabel: `Entry @ ${formatPrice(signal.entry)}`, time: signal.created_at, icon: '\uD83D\uDCE1', hit: true, colorClasses: { bg: 'bg-gold-primary', text: 'text-gold-primary', line: 'bg-gold-primary/40' } });
+    ev.push({ type: 'called', label: 'Signal Called', sublabel: `Entry @ ${formatPrice(signal.entry)}`, time: signal.created_at, icon: '📡', hit: true, colorClasses: { bg: 'bg-gold-primary', text: 'text-gold-primary', line: 'bg-gold-primary/40' } });
     const tps = [
       { k: 'tp1', l: 'TP1', v: signal.target1, c: { bg: 'bg-green-500', text: 'text-green-400', line: 'bg-green-500/40' } },
       { k: 'tp2', l: 'TP2', v: signal.target2, c: { bg: 'bg-lime-500', text: 'text-lime-400', line: 'bg-lime-500/40' } },
       { k: 'tp3', l: 'TP3', v: signal.target3, c: { bg: 'bg-yellow-500', text: 'text-yellow-400', line: 'bg-yellow-500/40' } },
       { k: 'tp4', l: 'TP4', v: signal.target4, c: { bg: 'bg-orange-500', text: 'text-orange-400', line: 'bg-orange-500/40' } },
     ];
-    tps.forEach((tp, i) => { if (!tp.v) return; const u = getUpdateInfo(tp.k); const h = hitTargets[i]; ev.push({ type: tp.k, label: `${tp.l} Hit`, sublabel: `${formatPrice(tp.v)} (+${calcPct(tp.v, signal.entry)}%)`, time: u?.update_at || null, icon: h ? '\u2713' : (i+1).toString(), hit: h, colorClasses: h ? tp.c : grayC }); });
-    if (signal.stop1) { const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); const sc = { bg: 'bg-red-500', text: 'text-red-400', line: 'bg-red-500/40' }; ev.push({ type: 'sl', label: 'Stop Loss Hit', sublabel: `${formatPrice(signal.stop1)} (${calcPct(signal.stop1, signal.entry)}%)`, time: su?.update_at || null, icon: isStopped ? '\u2717' : '\u2298', hit: isStopped, colorClasses: isStopped ? sc : grayC }); }
+    tps.forEach((tp, i) => { if (!tp.v) return; const u = getUpdateInfo(tp.k); const h = hitTargets[i]; ev.push({ type: tp.k, label: `${tp.l} Hit`, sublabel: `${formatPrice(tp.v)} (+${calcPct(tp.v, signal.entry)}%)`, time: u?.update_at || null, icon: h ? '✓' : (i+1).toString(), hit: h, colorClasses: h ? tp.c : grayC }); });
+    if (signal.stop1) { const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); const sc = { bg: 'bg-red-500', text: 'text-red-400', line: 'bg-red-500/40' }; ev.push({ type: 'sl', label: 'Stop Loss Hit', sublabel: `${formatPrice(signal.stop1)} (${calcPct(signal.stop1, signal.entry)}%)`, time: su?.update_at || null, icon: isStopped ? '✗' : '⊘', hit: isStopped, colorClasses: isStopped ? sc : grayC }); }
     return ev;
   };
   const timeline = buildTimeline();
   const LinkIcon = () => (<svg className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>);
 
-  // === RENDER ===
+  // === Sidebar/Bottom panel content (reused for desktop sidebar + mobile bottom panel) ===
+  const TargetsPanel = ({ layout }) => {
+    const isCompact = layout === 'bottom';
+    return (
+      <div className={isCompact ? 'p-2.5 space-y-1.5' : 'p-2.5 space-y-2'}>
+        {/* Entry */}
+        <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gold-primary/70 text-[8px] uppercase tracking-wider font-medium">Entry</p>
+              <p className={`font-mono font-bold text-gold-primary ${isCompact ? 'text-sm' : 'text-lg'}`}>{formatPrice(signal.entry)}</p>
+            </div>
+            <p className="text-[9px] text-gold-primary/70">{formatShortDateTime(signal.created_at)}</p>
+          </div>
+        </div>
+
+        {/* Targets */}
+        {isCompact ? (
+          /* Mobile: horizontal grid */
+          <div className="grid grid-cols-2 gap-1.5">
+            {targets.map((t, i) => (
+              <div key={i} className={`px-2 py-1.5 rounded-lg flex items-center justify-between ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-4 h-4 rounded text-[7px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
+                  <div>
+                    <span className={`text-[10px] font-semibold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span>
+                    <p className={`text-[9px] font-mono ${t.hit ? 'text-white/70' : 'text-text-muted/60'}`}>{formatPrice(t.value)}</p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Desktop: vertical list */
+          <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
+            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🎯 Targets</p>
+            <div className="space-y-1">{targets.map((t, i) => (
+              <div key={i} className={`p-1.5 rounded ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
+                    <span className={`text-[10px] font-medium ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span>
+                  </div>
+                  <span className={`text-[10px] font-mono ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span>
+                </div>
+                <p className={`text-[10px] font-mono mt-0.5 ${t.hit ? 'text-white' : 'text-text-muted'}`}>{formatPrice(t.value)}</p>
+                {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/60 mt-0.5">✓ {formatShortDateTime(t.reachedAt)}</p>}
+              </div>
+            ))}</div>
+          </div>
+        )}
+
+        {/* Stop Loss */}
+        {stops.length > 0 && (
+          isCompact ? (
+            <div className="flex gap-1.5">
+              {stops.map((s, i) => (
+                <div key={i} className={`flex-1 px-2 py-1.5 rounded-lg flex items-center justify-between ${s.hit ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+                  <span className={`text-[10px] font-semibold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono text-[9px]">{formatPrice(s.value)}</span></span>
+                  <span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.pct}%</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-[#111]/80 rounded-lg p-2 border border-red-500/15">
+              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🛑 Stop Loss</p>
+              <div className="space-y-1">{stops.map((s, i) => (
+                <div key={i} className={`p-1.5 rounded ${s.hit ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+                  <div className="flex items-center justify-between"><span className={`text-[10px] font-medium ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label}</span><span className={`text-[10px] font-mono ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.pct}%</span></div>
+                  <p className={`text-[10px] font-mono mt-0.5 ${s.hit ? 'text-white' : 'text-text-muted'}`}>{formatPrice(s.value)}</p>
+                </div>
+              ))}</div>
+            </div>
+          )
+        )}
+
+        {/* Extra info — desktop only */}
+        {!isCompact && (
+          <>
+            {signal.volume_rank_num && (
+              <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/15">
+                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5">📊 Volume Rank</p>
+                <p className="text-base font-bold text-white">#{signal.volume_rank_num}<span className="text-text-muted text-xs font-normal ml-1">/ {signal.volume_rank_den}</span></p>
+              </div>
+            )}
+            {(signal.risk_level || signal.market_cap) && (
+              <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/10 space-y-1">
+                {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Risk Level</span><span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${signal.risk_level?.toLowerCase().startsWith('low') ? 'bg-green-500/15 text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>{signal.risk_level}</span></div>}
+                {signal.market_cap && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Market Cap</span><span className="text-white text-[9px] font-medium">{signal.market_cap}</span></div>}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // ============================
+  // RENDER
+  // ============================
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-5 pb-16 sm:pb-3 md:pb-5">
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-[1400px] bg-bg-primary rounded-2xl border border-gold-primary/40 shadow-2xl shadow-gold-primary/10 flex flex-col overflow-hidden" style={{ height: 'min(88vh, 880px)', maxHeight: 'calc(100vh - 32px)' }}>
+
+      {/* Modal — always centered with margin on all sides */}
+      <div
+        className="relative w-full max-w-[1400px] bg-bg-primary rounded-2xl border border-gold-primary/40 shadow-2xl shadow-gold-primary/10 flex flex-col overflow-hidden"
+        style={{ height: '100%', maxHeight: '880px' }}
+      >
+        {/* Corner ornaments — desktop only */}
         <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-gold-primary/50 rounded-tl-2xl pointer-events-none hidden sm:block" />
         <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-gold-primary/50 rounded-tr-2xl pointer-events-none hidden sm:block" />
 
-        {/* HEADER */}
-        <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 py-2">
+        {/* ═══ HEADER ═══ */}
+        <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <CoinLogo pair={signal.pair} size={28} />
@@ -189,8 +290,8 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
               <div className="flex items-center gap-0.5 sm:gap-1 bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
                 {['chart', 'trade', 'research'].map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all ${activeTab === tab ? 'bg-gold-primary text-black' : 'text-text-secondary hover:text-white hover:bg-white/5'}`}>
-                    <span className="sm:hidden">{tab === 'chart' ? '\uD83D\uDCC8' : tab === 'trade' ? '\uD83D\uDCB9' : '\uD83D\uDD0D'}</span>
-                    <span className="hidden sm:inline">{tab === 'chart' ? '\uD83D\uDCC8 Chart' : tab === 'trade' ? '\uD83D\uDCB9 Trade' : '\uD83D\uDD0D Research'}</span>
+                    <span className="sm:hidden">{tab === 'chart' ? '📈' : tab === 'trade' ? '💹' : '🔍'}</span>
+                    <span className="hidden sm:inline">{tab === 'chart' ? '📈 Chart' : tab === 'trade' ? '💹 Trade' : '🔍 Research'}</span>
                   </button>
                 ))}
               </div>
@@ -201,129 +302,43 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* BODY */}
+        {/* ═══ BODY ═══ */}
         <div className="flex-1 min-h-0 flex flex-col">
 
           {/* ═══════════ CHART TAB ═══════════ */}
-          {activeTab === 'chart' && (<>
-            <div className="flex-1 min-h-0 flex flex-col lg:flex-row relative">
-              <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]"><div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" /></div>
+          {activeTab === 'chart' && (
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+              {/* Chart area */}
+              <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
+                <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
+              </div>
               {/* Desktop sidebar */}
               <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
-                <div className="p-2.5 space-y-2">
-                  <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2.5 border border-gold-primary/30">
-                    <div className="flex items-center justify-between mb-1"><p className="text-gold-primary/70 text-[9px] uppercase tracking-wider font-medium">Entry Price</p><p className="text-[9px] text-text-muted">Called</p></div>
-                    <div className="flex items-end justify-between"><p className="text-lg font-mono font-bold text-gold-primary">{formatPrice(signal.entry)}</p><p className="text-[10px] text-gold-primary/80">{formatShortDateTime(signal.created_at)}</p></div>
-                  </div>
-                  {signal.volume_rank_num && (
-                    <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/15">
-                      <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5">{'\uD83D\uDCCA'} Volume Rank</p>
-                      <p className="text-base font-bold text-white">#{signal.volume_rank_num}<span className="text-text-muted text-xs font-normal ml-1">/ {signal.volume_rank_den}</span></p>
-                    </div>
-                  )}
-                  <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
-                    <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">{'\uD83C\uDFAF'} Targets</p>
-                    <div className="space-y-1">{targets.map((t, i) => (
-                      <div key={i} className={`p-1.5 rounded ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
-                        <div className="flex items-center justify-between"><div className="flex items-center gap-1.5"><div className={`w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '\u2713' : i+1}</div><span className={`text-[10px] font-medium ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span></div><span className={`text-[10px] font-mono ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span></div>
-                        <p className={`text-[10px] font-mono mt-0.5 ${t.hit ? 'text-white' : 'text-text-muted'}`}>{formatPrice(t.value)}</p>
-                        {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/60 mt-0.5">{'\u2713'} {formatShortDateTime(t.reachedAt)}</p>}
-                      </div>
-                    ))}</div>
-                  </div>
-                  {stops.length > 0 && (
-                    <div className="bg-[#111]/80 rounded-lg p-2 border border-red-500/15">
-                      <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">{'\uD83D\uDED1'} Stop Loss</p>
-                      <div className="space-y-1">{stops.map((s, i) => (
-                        <div key={i} className={`p-1.5 rounded ${s.hit ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
-                          <div className="flex items-center justify-between"><span className={`text-[10px] font-medium ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label}</span><span className={`text-[10px] font-mono ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.pct}%</span></div>
-                          <p className={`text-[10px] font-mono mt-0.5 ${s.hit ? 'text-white' : 'text-text-muted'}`}>{formatPrice(s.value)}</p>
-                        </div>
-                      ))}</div>
-                    </div>
-                  )}
-                  {(signal.risk_level || signal.market_cap) && (
-                    <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/10 space-y-1">
-                      {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Risk Level</span><span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${signal.risk_level?.toLowerCase().startsWith('low') ? 'bg-green-500/15 text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>{signal.risk_level}</span></div>}
-                      {signal.market_cap && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Market Cap</span><span className="text-white text-[9px] font-medium">{signal.market_cap}</span></div>}
-                    </div>
-                  )}
-                </div>
+                <TargetsPanel layout="sidebar" />
               </div>
-              {/* Mobile floating btn */}
-              <button onClick={() => setShowMobileTargets(!showMobileTargets)} className="lg:hidden absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-3 py-2 bg-[#0a0a0a]/95 backdrop-blur border border-gold-primary/30 rounded-xl shadow-lg active:scale-95 transition-transform">
-                <span className="text-[10px] text-gold-primary font-bold">{'\uD83C\uDFAF'} {hitTargets.filter(Boolean).length}/{targets.length}</span>
-                <svg className={`w-3 h-3 text-gold-primary transition-transform ${showMobileTargets ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-              </button>
-              {/* Mobile bottom sheet */}
-              {showMobileTargets && (
-                <div className="lg:hidden absolute inset-x-0 bottom-0 z-20 bg-[#0a0a0a]/98 backdrop-blur-lg border-t border-gold-primary/30 rounded-t-2xl max-h-[60vh] overflow-y-auto custom-scrollbar">
-                  <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 rounded-full bg-gold-primary/30" /></div>
-                  <div className="p-3 space-y-2">
-                    <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2.5 border border-gold-primary/30">
-                      <div className="flex items-end justify-between"><p className="text-base font-mono font-bold text-gold-primary">{formatPrice(signal.entry)}</p><p className="text-[9px] text-gold-primary/80">Entry {'\u00B7'} {formatShortDateTime(signal.created_at)}</p></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">{targets.map((t, i) => (
-                      <div key={i} className={`p-2 rounded-lg ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
-                        <div className="flex items-center justify-between mb-0.5"><div className="flex items-center gap-1"><div className={`w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '\u2713' : i+1}</div><span className={`text-[10px] font-semibold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span></div><span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span></div>
-                        <p className={`text-[10px] font-mono ${t.hit ? 'text-white' : 'text-text-muted'}`}>{formatPrice(t.value)}</p>
-                      </div>
-                    ))}</div>
-                    {stops.map((s, i) => (<div key={i} className={`p-2 rounded-lg ${s.hit ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.02] border border-white/5'}`}><div className="flex items-center justify-between"><span className={`text-[10px] font-semibold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} {'\u00B7'} {formatPrice(s.value)}</span><span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.pct}%</span></div></div>))}
-                  </div>
-                </div>
-              )}
+              {/* Mobile: fixed bottom panel (always visible, not a popup) */}
+              <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar" style={{ maxHeight: '40%' }}>
+                <TargetsPanel layout="bottom" />
+              </div>
             </div>
-            {/* Mobile quick info bar */}
-            {!showMobileTargets && (
-              <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/15 px-3 py-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div><p className="text-[8px] text-text-muted uppercase">Entry</p><p className="text-gold-primary text-[11px] font-mono font-bold">{formatPrice(signal.entry)}</p></div>
-                    {targets.length > 0 && <div><p className="text-[8px] text-text-muted uppercase">{targets[targets.length-1].label}</p><p className="text-green-400 text-[11px] font-mono font-bold">+{targets[targets.length-1].pct}%</p></div>}
-                    {stops[0] && <div><p className="text-[8px] text-text-muted uppercase">SL</p><p className="text-red-400 text-[11px] font-mono font-bold">{stops[0].pct}%</p></div>}
-                  </div>
-                  <div className="flex gap-0.5">{targets.map((t, i) => <span key={i} className={`w-5 h-5 rounded text-[8px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-white/5 text-text-muted border border-white/5'}`}>{t.hit ? '\u2713' : i+1}</span>)}</div>
-                </div>
-              </div>
-            )}
-          </>)}
+          )}
 
-          {/* ═══════════ TRADE TAB — Signal progress + copy + exchange ═══════════ */}
+          {/* ═══════════ TRADE TAB ═══════════ */}
           {activeTab === 'trade' && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
               <div className="max-w-4xl mx-auto">
-                {/* Title */}
                 <div className="text-center mb-4 sm:mb-5">
                   <div className="flex items-center justify-center gap-2 mb-1"><CoinLogo pair={signal.pair} size={24} /><h3 className="text-base sm:text-lg font-display text-white">Trade {signal.pair}</h3></div>
-                  <p className="text-text-muted text-xs sm:text-sm">Signal progress & quick copy values</p>
+                  <p className="text-text-muted text-xs sm:text-sm">Signal progress & exchange links</p>
                 </div>
 
-                {/* Copy values */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-2">
-                  {[
-                    { label: 'Entry', value: signal.entry, color: 'gold-primary', gradient: 'from-gold-primary/15' },
-                    { label: 'Stop Loss', value: signal.stop1, color: 'red-400', gradient: 'from-red-500/15' },
-                    { label: 'TP1', value: signal.target1, color: 'green-400', gradient: 'from-green-500/15' },
-                    { label: 'Max TP', value: signal.target4 || signal.target3 || signal.target2 || signal.target1, color: 'orange-400', gradient: 'from-orange-500/15' },
-                  ].map((item, i) => (
-                    <div key={i} className={`bg-gradient-to-br ${item.gradient} to-transparent rounded-xl p-3 sm:p-4 border border-${item.color === 'gold-primary' ? 'gold-primary' : item.color.replace('400','500')}/30 cursor-pointer hover:border-${item.color === 'gold-primary' ? 'gold-primary' : item.color.replace('400','500')}/60 active:scale-95 transition-all`} onClick={() => navigator.clipboard?.writeText(item.value?.toString() || '')}>
-                      <p className="text-text-muted text-[9px] sm:text-[10px] uppercase">{item.label}</p>
-                      <p className={`text-${item.color} font-mono text-xs sm:text-sm font-bold`}>{formatPrice(item.value)}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-text-muted text-[9px] text-center mb-5">Click any value to copy to clipboard</p>
-
-                {/* Two-column: Targets + Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  {/* Targets detail */}
                   <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-green-500/15">
-                    <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mb-2">{'\uD83C\uDFAF'} Targets</p>
+                    <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mb-2">🎯 Targets</p>
                     <div className="space-y-1.5">{targets.map((t, i) => (
                       <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '\u2713' : i+1}</div>
+                          <div className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
                           <span className={`text-[11px] ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label} <span className="font-mono">{formatPrice(t.value)}</span></span>
                         </div>
                         <div className="text-right">
@@ -332,20 +347,10 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                         </div>
                       </div>
                     ))}</div>
-                    {stops.length > 0 && (<>
-                      <div className="border-t border-white/5 my-2" />
-                      <p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mb-1.5">{'\uD83D\uDED1'} Stop Loss</p>
-                      {stops.map((s, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <span className={`text-[11px] ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono">{formatPrice(s.value)}</span></span>
-                          <span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-red-400/50'}`}>{s.pct}%</span>
-                        </div>
-                      ))}
-                    </>)}
+                    {stops.length > 0 && (<><div className="border-t border-white/5 my-2" /><p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mb-1.5">🛑 Stop Loss</p>{stops.map((s, i) => (<div key={i} className="flex items-center justify-between"><span className={`text-[11px] ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono">{formatPrice(s.value)}</span></span><span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-red-400/50'}`}>{s.pct}%</span></div>))}</>)}
                   </div>
-                  {/* Signal Stats */}
                   <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                    <p className="text-gold-primary/70 text-[10px] uppercase tracking-wider font-semibold mb-2">{'\uD83D\uDCCA'} Signal Stats</p>
+                    <p className="text-gold-primary/70 text-[10px] uppercase tracking-wider font-semibold mb-2">📊 Signal Stats</p>
                     <div className="space-y-2">
                       {rrRatio && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk : Reward</span><span className="text-gold-primary text-sm font-bold font-mono">1 : {rrRatio}</span></div>}
                       {riskPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk %</span><span className="text-red-400 text-[11px] font-mono">-{riskPct.toFixed(2)}%</span></div>}
@@ -354,16 +359,15 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                       <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Status</span><span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span></div>
                       {signal.volume_rank_num && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Volume Rank</span><span className="text-white text-[11px] font-mono">#{signal.volume_rank_num} / {signal.volume_rank_den}</span></div>}
                       {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk Level</span><span className={`text-[11px] font-bold ${signal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-yellow-400'}`}>{signal.risk_level}</span></div>}
-                      {signal.market_cap && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Market Cap</span><span className="text-white text-[11px]">{signal.market_cap}</span></div>}
                     </div>
                   </div>
                 </div>
 
-                {/* SIGNAL JOURNEY TIMELINE — now in Trade tab */}
+                {/* Timeline */}
                 <div className="mb-5">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-gold-primary text-xs font-semibold">{'\u23F1\uFE0F'} Signal Journey</span>
-                    {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[10px] text-text-muted bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">Total: {d}</span> : <span className="text-[10px] text-cyan-400/70">{'\u25CF'} Active</span>; })()}
+                    <span className="text-gold-primary text-xs font-semibold">⏱️ Signal Journey</span>
+                    {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[10px] text-text-muted bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">Total: {d}</span> : <span className="text-[10px] text-cyan-400/70">● Active</span>; })()}
                   </div>
                   <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-3 sm:p-4">
                     {timeline.map((ev, idx) => {
@@ -386,7 +390,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
                 {/* Exchange links */}
                 <div className="mb-5">
-                  <p className="text-gold-primary text-xs font-semibold mb-3">{'\uD83C\uDFE6'} Open Trade on Exchange</p>
+                  <p className="text-gold-primary text-xs font-semibold mb-3">🏦 Open Trade on Exchange</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                     {tradeLinks.map((link, i) => (
                       <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
@@ -397,27 +401,26 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* Signal Summary */}
+                {/* Summary */}
                 <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-3 sm:p-4 border border-gold-primary/25">
                   <h4 className="text-gold-primary font-display text-sm mb-3">Signal Summary</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                    <div><p className="text-text-muted text-[10px] uppercase">Entry</p><p className="text-white font-mono text-sm sm:text-base mt-0.5">{formatPrice(signal.entry)}</p><p className="text-text-muted text-[9px]">{formatShortDateTime(signal.created_at)}</p></div>
+                    <div><p className="text-text-muted text-[10px] uppercase">Entry</p><p className="text-white font-mono text-sm mt-0.5">{formatPrice(signal.entry)}</p></div>
                     <div><p className="text-text-muted text-[10px] uppercase">Status</p><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white mt-1 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
-                    <div><p className="text-text-muted text-[10px] uppercase">Targets Hit</p><p className="text-white text-sm sm:text-base mt-0.5">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
-                    <div><p className="text-text-muted text-[10px] uppercase">Max Profit</p><p className="text-green-400 text-sm sm:text-base mt-0.5">+{targets[targets.length-1]?.pct || 0}%</p></div>
+                    <div><p className="text-text-muted text-[10px] uppercase">Targets Hit</p><p className="text-white text-sm mt-0.5">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
+                    <div><p className="text-text-muted text-[10px] uppercase">Max Profit</p><p className="text-green-400 text-sm mt-0.5">+{targets[targets.length-1]?.pct || 0}%</p></div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ═══════════ RESEARCH TAB — Coin info + links only ═══════════ */}
+          {/* ═══════════ RESEARCH TAB ═══════════ */}
           {activeTab === 'research' && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-4 sm:mb-5"><h3 className="text-base sm:text-lg font-display text-white mb-1">Research & Analytics</h3><p className="text-text-muted text-xs sm:text-sm">Deep dive into <span className="text-gold-primary font-semibold">{coinSymbol}</span></p></div>
 
-                {/* Coin Description from CoinGecko */}
                 {coinInfoLoading && (
                   <div className="bg-[#111] rounded-xl p-4 border border-gold-primary/15 mb-5 animate-pulse">
                     <div className="flex items-center gap-3 mb-3"><div className="w-8 h-8 rounded-full bg-gold-primary/10" /><div><div className="h-4 bg-gold-primary/10 rounded w-32 mb-1" /><div className="h-3 bg-white/5 rounded w-48" /></div></div>
@@ -425,16 +428,15 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                   </div>
                 )}
                 {coinInfo && (
-                  <div className="bg-[#111] rounded-xl p-4 border border-gold-primary/15 mb-5">
+                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-5">
                     <div className="flex items-center gap-3 mb-3">
                       {coinInfo.image_thumb && <img src={coinInfo.image_thumb} alt={coinInfo.name} className="w-8 h-8 rounded-full" />}
                       <div>
                         <h4 className="text-white font-semibold text-sm">{coinInfo.name} <span className="text-text-muted font-normal">({coinInfo.symbol})</span></h4>
-                        {coinInfo.categories?.length > 0 && <p className="text-text-muted text-[10px]">{coinInfo.categories.join(' \u00B7 ')}</p>}
+                        {coinInfo.categories?.length > 0 && <p className="text-text-muted text-[10px]">{coinInfo.categories.join(' · ')}</p>}
                       </div>
                     </div>
                     {coinInfo.description && <p className="text-text-muted text-xs leading-relaxed mb-3">{coinInfo.description}</p>}
-                    {/* Market data grid */}
                     {coinInfo.market_data && (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
                         {coinInfo.market_data.current_price != null && <div><p className="text-text-muted text-[9px] uppercase">Price</p><p className="text-white text-xs font-mono">${coinInfo.market_data.current_price.toLocaleString()}</p></div>}
@@ -447,27 +449,25 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                         {coinInfo.market_data.circulating_supply != null && <div><p className="text-text-muted text-[9px] uppercase">Supply</p><p className="text-white text-xs">{(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M</p></div>}
                       </div>
                     )}
-                    {/* Social links */}
                     {coinInfo.links && (
                       <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
-                        {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">{'\uD83C\uDF10'} Website</a>}
-                        {coinInfo.links.twitter && <a href={`https://twitter.com/${coinInfo.links.twitter}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors">{'\uD83D\uDC26'} @{coinInfo.links.twitter}</a>}
-                        {coinInfo.links.telegram && <a href={`https://t.me/${coinInfo.links.telegram}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors">{'\uD83D\uDCE8'} Telegram</a>}
-                        {coinInfo.links.subreddit && <a href={coinInfo.links.subreddit} target="_blank" rel="noopener noreferrer" className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors">{'\uD83E\uDD16'} Reddit</a>}
-                        {coinInfo.links.github && <a href={coinInfo.links.github} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors">{'\uD83D\uDCBB'} GitHub</a>}
+                        {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">🌐 Website</a>}
+                        {coinInfo.links.twitter && <a href={`https://twitter.com/${coinInfo.links.twitter}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors">🐦 @{coinInfo.links.twitter}</a>}
+                        {coinInfo.links.telegram && <a href={`https://t.me/${coinInfo.links.telegram}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors">📨 Telegram</a>}
+                        {coinInfo.links.subreddit && <a href={coinInfo.links.subreddit} target="_blank" rel="noopener noreferrer" className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors">🤖 Reddit</a>}
+                        {coinInfo.links.github && <a href={coinInfo.links.github} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors">💻 GitHub</a>}
                       </div>
                     )}
                   </div>
                 )}
                 {!coinInfo && !coinInfoLoading && (
                   <div className="bg-[#111] rounded-xl p-4 border border-white/5 mb-5 text-center">
-                    <p className="text-text-muted text-xs">Coin info not available. Make sure the <span className="text-gold-primary font-mono">/api/v1/coingecko/coin-info</span> endpoint is deployed.</p>
+                    <p className="text-text-muted text-xs">Coin info not available for <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
                   </div>
                 )}
 
-                {/* Research Links */}
                 <div className="mb-4 sm:mb-5">
-                  <p className="text-gold-primary text-xs font-semibold mb-3">{'\uD83D\uDD17'} Research Links</p>
+                  <p className="text-gold-primary text-xs font-semibold mb-3">🔗 Research Links</p>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {researchLinks.map((link, i) => (
                       <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-lg transition-all group border active:scale-95`}>
@@ -478,9 +478,8 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* Sentiment */}
                 <div>
-                  <p className="text-gold-primary text-xs font-semibold mb-3">{'\uD83D\uDCAC'} Sentiment</p>
+                  <p className="text-gold-primary text-xs font-semibold mb-3">💬 Sentiment</p>
                   <a href={sentimentLinks[0].url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-br from-gray-700/20 to-gray-900/10 rounded-xl border border-gray-600/30 hover:border-gray-500/50 group transition-all active:scale-[0.98]">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0"><img src={sentimentLinks[0].logo} alt="X" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = sentimentLinks[0].fallbackLogo; }} /></div>
                     <div className="flex-1 min-w-0"><p className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">Twitter / X Live Feed</p><p className="text-text-muted text-xs sm:text-sm truncate">See what traders say about ${coinSymbol}</p></div>

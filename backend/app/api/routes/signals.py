@@ -650,20 +650,17 @@ async def get_top_performers(
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
         cache_key = f"lq:signals:top-performers:from:{date_from}:{limit}"
     else:
-        # Preset days
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
-        actual_to = None
+        actual_to = datetime.utcnow().strftime('%Y-%m-%d')
         cache_key = f"lq:signals:top-performers:{days}:{limit}"
-
+        
     cached = cache_get(cache_key)
     if cached:
         return cached
-
-    date_conditions = "AND s.created_at >= :date_from"
-    params = {"date_from": actual_from, "limit": limit}
-    if actual_to:
-        date_conditions += " AND s.created_at <= :date_to"
-        params["date_to"] = f"{actual_to}T23:59:59"
+    
+    date_conditions = "AND su.update_at::date >= :date_from AND su.update_at::date <= :date_to"
+    params = {"date_from": actual_from, "date_to": actual_to, "limit": limit}
+    
 
     # Logic: find highest TP level reached per signal, calc gain from entry to that TP price
     gainers_sql = text(f"""
