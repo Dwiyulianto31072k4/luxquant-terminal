@@ -5,6 +5,7 @@ Includes: Win Rate Trend, Risk:Reward Ratio
 UPDATED: 
 - Fixed signal detail endpoint with dedup + market_cap/risk_reasons
 - Date-aware cache keys so "Last 7 Days" requests hit pre-computed cache
+- R:R now calculates per target level (potential R:R) instead of per outcome
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -206,7 +207,7 @@ async def get_analyze_data(
     if cached:
         return AnalyzeResponse(**cached)
     
-    # === FALLBACK TO DB (same as before) ===
+    # === FALLBACK TO DB ===
     date_filter = ""
     if time_range != 'all':
         now = datetime.utcnow()
@@ -285,28 +286,64 @@ async def get_analyze_data(
     
     win_rate_trend = [WinRateTrendItem(period=str(r[0]), total_closed=int(r[1]), winners=int(r[2]), losers=int(r[3]), win_rate=float(r[4]) if r[4] else 0) for r in db.execute(trend_query).fetchall()]
 
-    # Risk:Reward
+    # ============================================
+    # Risk:Reward — R:R TO MAX TARGET per level
+    # Shows potential R:R for each TP level across ALL signals (not per outcome)
+    # ============================================
     rr_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT so.outcome, COUNT(*),
-            AVG(CASE WHEN s.entry>0 AND s.stop1>0 AND ABS(s.entry-s.stop1)>0 THEN
-                CASE so.outcome WHEN 'tp1' THEN ABS(s.target1-s.entry)/ABS(s.entry-s.stop1)
-                    WHEN 'tp2' THEN ABS(s.target2-s.entry)/ABS(s.entry-s.stop1)
-                    WHEN 'tp3' THEN ABS(s.target3-s.entry)/ABS(s.entry-s.stop1)
-                    WHEN 'tp4' THEN ABS(s.target4-s.entry)/ABS(s.entry-s.stop1)
-                    WHEN 'sl' THEN -1.0 ELSE 0 END ELSE NULL END)
-        FROM signals s INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE s.entry>0 AND s.stop1>0 AND s.target1>0 {date_filter}
-        GROUP BY so.outcome ORDER BY CASE so.outcome WHEN 'tp1' THEN 1 WHEN 'tp2' THEN 2 WHEN 'tp3' THEN 3 WHEN 'tp4' THEN 4 WHEN 'sl' THEN 5 END
+        SELECT level, COUNT(*) as cnt, AVG(avg_rr) as avg_rr
+        FROM (
+            SELECT 
+                'TP1' as level,
+                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target1 > 0
+                    THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
+                    ELSE NULL END as avg_rr
+            FROM signals s
+            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target1 > 0 {date_filter}
+            UNION ALL
+            SELECT 
+                'TP2' as level,
+                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target2 > 0
+                    THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
+                    ELSE NULL END as avg_rr
+            FROM signals s
+            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target2 > 0 {date_filter}
+            UNION ALL
+            SELECT 
+                'TP3' as level,
+                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target3 > 0
+                    THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
+                    ELSE NULL END as avg_rr
+            FROM signals s
+            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target3 > 0 {date_filter}
+            UNION ALL
+            SELECT 
+                'TP4' as level,
+                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target4 > 0
+                    THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
+                    ELSE NULL END as avg_rr
+            FROM signals s
+            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target4 > 0 {date_filter}
+            UNION ALL
+            SELECT 
+                'SL' as level,
+                -1.0 as avg_rr
+            FROM signals s
+            INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE so.outcome = 'sl' AND s.entry > 0 AND s.stop1 > 0 {date_filter}
+        ) sub
+        WHERE avg_rr IS NOT NULL
+        GROUP BY level
+        ORDER BY CASE level WHEN 'TP1' THEN 1 WHEN 'TP2' THEN 2 WHEN 'TP3' THEN 3 WHEN 'TP4' THEN 4 WHEN 'SL' THEN 5 END
     """)
     
     risk_reward = []
     trw = trc = 0
     for r in db.execute(rr_query).fetchall():
-        lv=str(r[0]); cnt=int(r[1]); arr=float(r[2]) if r[2] else 0
-        risk_reward.append(RiskRewardItem(level=lv.upper(), avg_rr=round(arr,2), count=cnt))
-        if lv != 'sl': trw += arr*cnt; trc += cnt
-    avg_risk_reward = round(trw/trc, 2) if trc > 0 else 0
+        lv = str(r[0]); cnt = int(r[1]); arr = float(r[2]) if r[2] else 0
+        risk_reward.append(RiskRewardItem(level=lv, avg_rr=round(arr, 2), count=cnt))
+        if lv != 'SL': trw += arr * cnt; trc += cnt
+    avg_risk_reward = round(trw / trc, 2) if trc > 0 else 0
 
     if not rows:
         return AnalyzeResponse(
@@ -333,12 +370,8 @@ async def get_analyze_data(
                 THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric / COUNT(so.outcome) * 100, 2)
                 ELSE 0 END as win_rate,
             AVG(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') AND s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 THEN
-                CASE so.outcome
-                    WHEN 'tp1' THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
-                    WHEN 'tp2' THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
-                    WHEN 'tp3' THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
-                    WHEN 'tp4' THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
-                END ELSE NULL END) as avg_rr
+                ABS(COALESCE(s.target4, s.target3, s.target2, s.target1) - s.entry) / ABS(s.entry - s.stop1)
+                ELSE NULL END) as avg_rr
         FROM signals s
         LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
         WHERE s.risk_level IS NOT NULL {date_filter}
@@ -528,7 +561,6 @@ async def get_signals(
     
     result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
     
-    # Cache this result for next time (short TTL since worker will refresh)
     cache_set(cache_key, result, ttl=40)
     
     return result
@@ -626,18 +658,6 @@ async def sync_signal_status(db: Session = Depends(get_db)):
 # GET /signals/top-performers
 # ============================================
 
-# ============================================
-# GET /signals/top-performers  (v4)
-# ============================================
-# REPLACE the existing get_top_performers function in backend/app/api/routes/signals.py
-#
-# Logic:
-#   Top Gainers: per pair — entry from FIRST signal, TP price from HIGHEST TP across ALL signals
-#                gain = (best_tp_price - first_entry) / first_entry * 100
-#                duration = first signal call → last TP hit
-#   Fastest Hits: per pair — signal with fastest first-TP-hit (single signal)
-#   Returns all_signal_ids for modal navigation
-
 @router.get("/top-performers")
 async def get_top_performers(
     days: Optional[int] = Query(7, ge=1, le=90),
@@ -675,7 +695,6 @@ async def get_top_performers(
         date_conditions_hit += " AND su.update_at <= :date_to"
         params["date_to"] = f"{actual_to}T23:59:59"
 
-    # ── TOP GAINERS: first entry → best TP across ALL signals per pair ──
     gainers_sql = text(f"""
         WITH all_tp_hits AS (
             SELECT
@@ -703,21 +722,13 @@ async def get_top_performers(
         pair_agg AS (
             SELECT
                 pair,
-                -- First signal's signal_id (for modal default)
                 (ARRAY_AGG(signal_id ORDER BY signal_time ASC))[1] as first_signal_id,
-                -- Entry from the earliest signal
                 (ARRAY_AGG(entry ORDER BY signal_time ASC))[1] as first_entry,
-                -- Highest TP price across ALL signals
                 MAX(tp_price) as best_tp_price,
-                -- TP level of the best hit
                 (ARRAY_AGG(tp_level ORDER BY tp_rank DESC, tp_price DESC))[1] as best_tp_level,
-                -- Earliest signal call time
                 MIN(signal_time) as first_signal_time,
-                -- Latest TP hit time (across all signals)
                 MAX(hit_time) as last_hit_time,
-                -- Duration: first call → last hit
                 EXTRACT(EPOCH FROM (MAX(hit_time::timestamptz) - MIN(signal_time::timestamptz))) as duration_seconds,
-                -- All signal_ids for navigation (ordered by time)
                 ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids,
                 COUNT(DISTINCT signal_id) as signal_count
             FROM all_tp_hits
@@ -742,7 +753,6 @@ async def get_top_performers(
         LIMIT :limit
     """)
 
-    # ── FASTEST HITS: per pair, fastest first-TP single signal ──
     fastest_sql = text(f"""
         WITH first_tp_per_signal AS (
             SELECT DISTINCT ON (s.signal_id)

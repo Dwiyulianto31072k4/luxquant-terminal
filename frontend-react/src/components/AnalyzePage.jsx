@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, ReferenceLine, Cell, LineChart, Line, Legend } from 'recharts';
+import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, ReferenceLine, Cell, LineChart, Line, Legend, ComposedChart } from 'recharts';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
 
@@ -24,7 +24,6 @@ const AnalyzePage = () => {
   const [sigSort, setSigSort] = useState('created_at');
   const [sigOrder, setSigOrder] = useState('desc');
   const [selectedSignal, setSelectedSignal] = useState(null);
-
   const [showSigFilters, setShowSigFilters] = useState(false);
 
   useEffect(() => { fetchAnalyzeData(); }, [timeRange, trendMode]);
@@ -84,15 +83,34 @@ const AnalyzePage = () => {
 
   const sigActiveFilters = [sigSearch !== '', sigStatus !== 'all', sigRisk !== 'all'].filter(Boolean).length;
 
+  // Compute R:R to max target from risk_reward data
+  const rrToMax = (() => {
+    const tpLevels = (data.risk_reward || []).filter(d => d.level !== 'SL');
+    if (tpLevels.length === 0) return 0;
+    // Weighted average of all TP R:Rs (each weighted by count)
+    const totalCount = tpLevels.reduce((s, d) => s + d.count, 0);
+    if (totalCount === 0) return 0;
+    const weightedSum = tpLevels.reduce((s, d) => s + (d.avg_rr * d.count), 0);
+    return weightedSum / totalCount;
+  })();
+
+  // Find max TP R:R (the highest TP level available)
+  const maxTpRR = (() => {
+    const tpLevels = (data.risk_reward || []).filter(d => d.level !== 'SL');
+    if (tpLevels.length === 0) return { level: '-', rr: 0 };
+    const maxTP = tpLevels[tpLevels.length - 1]; // Last TP is highest
+    return { level: maxTP.level, rr: maxTP.avg_rr };
+  })();
+
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-4 lg:space-y-5">
       
       {/* ═══════════════════════════════════════════ */}
       {/* HEADER + TIME RANGE                        */}
       {/* ═══════════════════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
           <div>
             <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Performance Analytics</h2>
             <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
@@ -116,119 +134,45 @@ const AnalyzePage = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* PREMIUM HERO DASHBOARD                     */}
+      {/* KPI STRIP — 6 metrics in one row            */}
       {/* ═══════════════════════════════════════════ */}
-      <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-
-        <div className="relative p-4 lg:p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-5 lg:gap-8 items-center">
-            
-            {/* LEFT: Key metrics */}
-            <div className="space-y-3 lg:space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Total Signals</p>
-                  <p className="text-2xl lg:text-3xl font-display font-bold text-white leading-none">{data.stats.total_signals.toLocaleString()}</p>
-                  <p className="text-text-muted text-[10px] mt-1">{data.stats.active_pairs} active pairs</p>
-                </div>
-                <div>
-                  <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Closed Trades</p>
-                  <p className="text-2xl lg:text-3xl font-display font-bold text-purple-400 leading-none">{data.stats.closed_trades.toLocaleString()}</p>
-                  <p className="text-text-muted text-[10px] mt-1">{data.stats.open_signals.toLocaleString()} still open</p>
-                </div>
-              </div>
-
-              <div className="bg-bg-primary/50 rounded-xl p-3 border border-white/5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-green-400 text-xs font-semibold">{data.stats.total_winners.toLocaleString()} Winners</span>
-                  <span className="text-red-400 text-xs font-semibold">{data.stats.sl_count.toLocaleString()} Losses</span>
-                </div>
-                <div className="h-2.5 rounded-full overflow-hidden flex bg-bg-card/80">
-                  {(() => {
-                    const total = data.stats.total_winners + data.stats.sl_count;
-                    const winPct = total > 0 ? (data.stats.total_winners / total * 100) : 0;
-                    return (
-                      <>
-                        <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-l-full transition-all duration-1000" style={{ width: `${winPct}%` }} />
-                        <div className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-r-full transition-all duration-1000" style={{ width: `${100 - winPct}%` }} />
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 bg-bg-primary/30 rounded-lg px-3 py-2.5 border border-gold-primary/10">
-                <div className="w-8 h-8 rounded-lg bg-gold-primary/10 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
-                </div>
-                <div>
-                  <p className="text-text-muted text-[9px] uppercase tracking-wider">Avg Risk:Reward</p>
-                  <p className="text-gold-primary font-mono font-bold text-lg leading-none">{data.avg_risk_reward?.toFixed(2) || '0'}R</p>
-                </div>
-              </div>
-            </div>
-
-            {/* CENTER: Win Rate Ring */}
-            <div className="flex flex-col items-center justify-center order-first lg:order-none">
-              <div className="relative w-44 h-44 lg:w-52 lg:h-52">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
-                  <circle
-                    cx="60" cy="60" r="50" fill="none"
-                    stroke={data.stats.win_rate >= 75 ? '#22C55E' : data.stats.win_rate >= 55 ? '#EAB308' : '#EF4444'}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(data.stats.win_rate / 100) * 314.16} 314.16`}
-                    className="transition-all duration-1000"
-                    style={{ filter: `drop-shadow(0 0 6px ${data.stats.win_rate >= 75 ? 'rgba(34,197,94,0.4)' : data.stats.win_rate >= 55 ? 'rgba(234,179,8,0.4)' : 'rgba(239,68,68,0.4)'})` }}
-                  />
-                  <circle cx="60" cy="60" r="42" fill="none" stroke="rgba(212,168,83,0.06)" strokeWidth="1" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-text-muted text-[9px] uppercase tracking-[0.15em] font-medium">Win Rate</p>
-                  <p className={`text-4xl lg:text-5xl font-display font-bold leading-none mt-1 ${data.stats.win_rate >= 75 ? 'text-green-400' : data.stats.win_rate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {data.stats.win_rate.toFixed(1)}
-                    <span className="text-lg lg:text-xl">%</span>
-                  </p>
-                  <p className="text-text-muted text-[10px] mt-1">{data.stats.closed_trades.toLocaleString()} closed</p>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT: TP Breakdown */}
-            <div className="space-y-2.5">
-              <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Outcome Distribution</p>
-              {[
-                { label: 'TP1', count: data.stats.tp1_count, color: 'bg-green-500', textColor: 'text-green-400' },
-                { label: 'TP2', count: data.stats.tp2_count, color: 'bg-lime-500', textColor: 'text-lime-400' },
-                { label: 'TP3', count: data.stats.tp3_count, color: 'bg-yellow-500', textColor: 'text-yellow-400' },
-                { label: 'TP4', count: data.stats.tp4_count, color: 'bg-orange-500', textColor: 'text-orange-400' },
-                { label: 'SL', count: data.stats.sl_count, color: 'bg-red-500', textColor: 'text-red-400' },
-              ].map(tp => {
-                const total = data.stats.closed_trades || 1;
-                const pct = (tp.count / total * 100);
-                return (
-                  <div key={tp.label} className="flex items-center gap-2.5">
-                    <span className={`text-[10px] font-bold w-6 ${tp.textColor}`}>{tp.label}</span>
-                    <div className="flex-1 h-2 rounded-full bg-bg-card/80 overflow-hidden">
-                      <div className={`h-full rounded-full ${tp.color} transition-all duration-700`} style={{ width: `${Math.max(pct, 1)}%` }} />
-                    </div>
-                    <div className="flex items-center gap-1.5 min-w-[80px] justify-end">
-                      <span className="text-white text-[11px] font-mono font-semibold">{tp.count.toLocaleString()}</span>
-                      <span className="text-text-muted text-[9px] font-mono">{pct.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
+        <KPICard 
+          label="Win Rate" 
+          value={`${data.stats.win_rate.toFixed(1)}%`}
+          color={data.stats.win_rate >= 75 ? 'green' : data.stats.win_rate >= 55 ? 'yellow' : 'red'}
+          accent
+        />
+        <KPICard 
+          label="Closed Trades" 
+          value={data.stats.closed_trades.toLocaleString()}
+          sub={`of ${data.stats.total_signals.toLocaleString()}`}
+        />
+        <KPICard 
+          label="Winners" 
+          value={data.stats.total_winners.toLocaleString()}
+          color="green"
+        />
+        <KPICard 
+          label="Losses" 
+          value={data.stats.sl_count.toLocaleString()}
+          color="red"
+        />
+        <KPICard 
+          label={`Avg R:R (${maxTpRR.level})`}
+          value={`${maxTpRR.rr.toFixed(2)}R`}
+          color="gold"
+        />
+        <KPICard 
+          label="Not Hit" 
+          value={data.stats.open_signals.toLocaleString()}
+          sub={`${data.stats.active_pairs} pairs`}
+          color="muted"
+        />
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* WIN RATE TREND CHART                       */}
+      {/* WIN RATE TREND — Full width, taller          */}
       {/* ═══════════════════════════════════════════ */}
       <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
@@ -254,27 +198,29 @@ const AnalyzePage = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* R:R + OUTCOME BREAKDOWN                    */}
+      {/* OUTCOME DISTRIBUTION + R:R TO MAX TARGET    */}
       {/* ═══════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+        {/* Outcome Distribution — unified, no redundancy */}
+        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
+          <div className="mb-4">
+            <h3 className="text-white font-semibold text-base lg:text-lg">Outcome Distribution</h3>
+            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">{data.stats.closed_trades.toLocaleString()} closed trades</p>
+          </div>
+          <OutcomeDistribution data={data.stats} />
+        </div>
+
+        {/* R:R to Max Target */}
         <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
-          <div className="mb-3 lg:mb-4">
+          <div className="mb-4">
             <h3 className="text-white font-semibold text-base lg:text-lg">Risk : Reward</h3>
             <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              Average R:R per target · Overall <span className="text-gold-primary font-mono font-semibold">{data.avg_risk_reward?.toFixed(2) || '0'}R</span>
+              R:R to max target per level · Best <span className="text-gold-primary font-mono font-semibold">{maxTpRR.rr.toFixed(2)}R</span>
             </p>
           </div>
           <RiskRewardChart data={data.risk_reward} />
-        </div>
-
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
-          <div className="mb-3 lg:mb-4">
-            <h3 className="text-white font-semibold text-base lg:text-lg">Outcome Breakdown</h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">{data.stats.closed_trades.toLocaleString()} closed trades</p>
-          </div>
-          <TPBreakdown data={data.stats} />
         </div>
       </div>
 
@@ -289,15 +235,16 @@ const AnalyzePage = () => {
         </div>
 
         {(!data.risk_distribution || data.risk_distribution.length === 0) ? (
-          <div className="text-center py-8 text-text-muted text-sm">Loading risk data...</div>
+          <div className="text-center py-8 text-text-muted text-sm">No risk data available</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 mb-5">
+            {/* Risk cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
               {data.risk_distribution.map((rd) => {
                 const colorMap = {
-                  'Low': { border: 'border-green-500/20', bg: 'from-green-500/[0.08] to-green-500/[0.02]', text: 'text-green-400', dot: 'bg-green-500', ring: 'ring-green-500/20', glow: 'shadow-green-500/10' },
-                  'Normal': { border: 'border-yellow-500/20', bg: 'from-yellow-500/[0.08] to-yellow-500/[0.02]', text: 'text-yellow-400', dot: 'bg-yellow-500', ring: 'ring-yellow-500/20', glow: 'shadow-yellow-500/10' },
-                  'High': { border: 'border-red-500/20', bg: 'from-red-500/[0.08] to-red-500/[0.02]', text: 'text-red-400', dot: 'bg-red-500', ring: 'ring-red-500/20', glow: 'shadow-red-500/10' },
+                  'Low': { border: 'border-green-500/20', bg: 'from-green-500/[0.06] to-transparent', text: 'text-green-400', dot: 'bg-green-500', ring: 'ring-green-500/20' },
+                  'Normal': { border: 'border-yellow-500/20', bg: 'from-yellow-500/[0.06] to-transparent', text: 'text-yellow-400', dot: 'bg-yellow-500', ring: 'ring-yellow-500/20' },
+                  'High': { border: 'border-red-500/20', bg: 'from-red-500/[0.06] to-transparent', text: 'text-red-400', dot: 'bg-red-500', ring: 'ring-red-500/20' },
                 };
                 const c = colorMap[rd.risk_level] || colorMap['Normal'];
                 const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades * 100) : 0;
@@ -305,27 +252,31 @@ const AnalyzePage = () => {
                 const pct = totalSig > 0 ? (rd.total_signals / totalSig * 100).toFixed(1) : '0';
 
                 return (
-                  <div key={rd.risk_level} className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} border ${c.border} shadow-lg ${c.glow}`}>
+                  <div key={rd.risk_level} className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} border ${c.border}`}>
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${c.dot} ring-4 ${c.ring}`} />
+                        <div className={`w-2 h-2 rounded-full ${c.dot} ring-4 ${c.ring}`} />
                         <span className={`font-bold text-sm ${c.text}`}>{rd.risk_level}</span>
                       </div>
-                      <span className="text-text-muted text-[10px] font-mono bg-bg-card/50 px-2 py-0.5 rounded-full">{pct}%</span>
+                      <span className="text-text-muted text-[10px] font-mono">{pct}%</span>
                     </div>
 
+                    {/* Win Rate - hero metric */}
                     <p className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none`}>{rd.win_rate.toFixed(1)}%</p>
                     <p className="text-text-muted text-[10px] mt-1 mb-3">Win Rate</p>
 
-                    <div className="h-2 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
-                      <div className="h-full bg-green-500/80 rounded-l-full transition-all duration-700" style={{ width: `${winPct}%` }} />
-                      <div className="h-full bg-red-500/80 rounded-r-full transition-all duration-700" style={{ width: `${100 - winPct}%` }} />
+                    {/* W/L bar */}
+                    <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
+                      <div className="h-full bg-green-500/70 rounded-l-full transition-all duration-700" style={{ width: `${winPct}%` }} />
+                      <div className="h-full bg-red-500/70 rounded-r-full transition-all duration-700" style={{ width: `${100 - winPct}%` }} />
                     </div>
                     <div className="flex justify-between text-[10px] mb-3">
-                      <span className="text-green-400 font-mono">{rd.winners.toLocaleString()} W</span>
-                      <span className="text-red-400 font-mono">{rd.losers.toLocaleString()} L</span>
+                      <span className="text-green-400/80 font-mono">{rd.winners.toLocaleString()} W</span>
+                      <span className="text-red-400/80 font-mono">{rd.losers.toLocaleString()} L</span>
                     </div>
 
+                    {/* Bottom stats */}
                     <div className="pt-3 border-t border-white/5 grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-text-muted text-[9px] uppercase tracking-wider">Signals</p>
@@ -341,13 +292,14 @@ const AnalyzePage = () => {
               })}
             </div>
 
+            {/* Distribution bar */}
             {(() => {
               const totalSig = data.risk_distribution.reduce((s, r) => s + r.total_signals, 0);
               const colors = { 'Low': '#22C55E', 'Normal': '#EAB308', 'High': '#EF4444' };
               if (totalSig === 0) return null;
               return (
-                <div className="flex flex-col sm:flex-row items-center gap-4 p-3 lg:p-4 rounded-xl bg-bg-card/30 border border-gold-primary/5">
-                  <div className="w-full sm:w-64 h-3 rounded-full overflow-hidden flex bg-bg-card/80 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-xl bg-bg-card/20 border border-white/[0.03]">
+                  <div className="w-full sm:w-64 h-2.5 rounded-full overflow-hidden flex bg-bg-card/80 flex-shrink-0">
                     {data.risk_distribution.map((rd, i) => (
                       <div key={i} className="h-full transition-all duration-700" style={{ width: `${(rd.total_signals / totalSig * 100)}%`, backgroundColor: colors[rd.risk_level] }} />
                     ))}
@@ -364,16 +316,37 @@ const AnalyzePage = () => {
                 </div>
               );
             })()}
-
-            {data.risk_trend && data.risk_trend.length > 0 && (
-              <div className="mt-5">
-                <p className="text-text-muted text-[10px] uppercase tracking-wider mb-3">Win Rate Trend by Risk Level</p>
-                <RiskTrendChart data={data.risk_trend} mode={trendMode} />
-              </div>
-            )}
           </>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* WIN RATE TREND BY RISK LEVEL               */}
+      {/* ═══════════════════════════════════════════ */}
+      {data.risk_trend && data.risk_trend.length > 0 && (
+        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
+          <div className="mb-4">
+            <h3 className="text-white font-semibold text-base lg:text-lg">Win Rate by Risk Level</h3>
+            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">Trend comparison across risk categories</p>
+          </div>
+          <RiskTrendChart data={data.risk_trend} mode={trendMode} />
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* TOP PERFORMING PAIRS                       */}
+      {/* ═══════════════════════════════════════════ */}
+      {data.pair_metrics && data.pair_metrics.length > 0 && (
+        <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
+          <div className="p-4 lg:p-6 pb-0">
+            <h3 className="text-white font-semibold text-base lg:text-lg">Top Performing Pairs</h3>
+            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">Ranked by win rate (min 5 closed trades)</p>
+          </div>
+          <TopPairsTable pairs={data.pair_metrics} />
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════ */}
       {/* FULL SIGNAL HISTORY                        */}
@@ -384,12 +357,13 @@ const AnalyzePage = () => {
         <div className="p-4 lg:p-6 pb-0 lg:pb-0">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
-              <h3 className="text-white font-semibold text-base lg:text-lg">Full Signal History</h3>
-              <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">{sigTotal.toLocaleString()} total signals — all time</p>
+              <h3 className="text-white font-semibold text-base lg:text-lg">Signal History</h3>
+              <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">{sigTotal.toLocaleString()} total signals</p>
             </div>
           </div>
         </div>
 
+        {/* Filters */}
         <div className="px-4 lg:px-6">
           <button
             onClick={() => setShowSigFilters(!showSigFilters)}
@@ -422,7 +396,7 @@ const AnalyzePage = () => {
                 <select value={sigStatus} onChange={(e) => setSigStatus(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50">
                   <option value="all">All Status</option>
-                  <option value="open">Open</option>
+                  <option value="open">Not Hit</option>
                   <option value="tp1">TP1</option>
                   <option value="tp2">TP2</option>
                   <option value="tp3">TP3</option>
@@ -485,42 +459,80 @@ const AnalyzePage = () => {
 
 
 // ============================================
-// TP BREAKDOWN
+// KPI CARD — Clean metric card
 // ============================================
-const TPBreakdown = ({ data }) => {
+const KPICard = ({ label, value, sub, color = 'default', accent = false }) => {
+  const colorStyles = {
+    green: 'text-green-400',
+    red: 'text-red-400',
+    yellow: 'text-yellow-400',
+    gold: 'text-gold-primary',
+    muted: 'text-text-secondary',
+    default: 'text-white',
+  };
+
+  return (
+    <div className={`rounded-xl p-3 lg:p-4 border transition-all ${
+      accent 
+        ? 'bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20' 
+        : 'bg-bg-card/30 border-white/[0.04] hover:border-gold-primary/10'
+    }`}>
+      <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1 truncate">{label}</p>
+      <p className={`text-xl lg:text-2xl font-bold font-mono leading-none ${colorStyles[color]}`}>{value}</p>
+      {sub && <p className="text-text-muted text-[9px] lg:text-[10px] mt-1">{sub}</p>}
+    </div>
+  );
+};
+
+
+// ============================================
+// OUTCOME DISTRIBUTION — Unified section
+// ============================================
+const OutcomeDistribution = ({ data }) => {
   const total = data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
   if (total === 0) return <div className="h-40 flex items-center justify-center text-text-muted text-sm">No closed trades</div>;
 
   const items = [
-    { label: 'TP1', count: data.tp1_count, color: '#22C55E', bg: 'from-green-500/10 to-green-500/[0.02]', text: 'text-green-400', border: 'border-green-500/15' },
-    { label: 'TP2', count: data.tp2_count, color: '#84CC16', bg: 'from-lime-500/10 to-lime-500/[0.02]', text: 'text-lime-400', border: 'border-lime-500/15' },
-    { label: 'TP3', count: data.tp3_count, color: '#EAB308', bg: 'from-yellow-500/10 to-yellow-500/[0.02]', text: 'text-yellow-400', border: 'border-yellow-500/15' },
-    { label: 'TP4', count: data.tp4_count, color: '#F97316', bg: 'from-orange-500/10 to-orange-500/[0.02]', text: 'text-orange-400', border: 'border-orange-500/15' },
-    { label: 'SL',  count: data.sl_count,  color: '#EF4444', bg: 'from-red-500/10 to-red-500/[0.02]', text: 'text-red-400', border: 'border-red-500/15' },
+    { label: 'TP1', count: data.tp1_count, color: '#22C55E', text: 'text-green-400' },
+    { label: 'TP2', count: data.tp2_count, color: '#84CC16', text: 'text-lime-400' },
+    { label: 'TP3', count: data.tp3_count, color: '#EAB308', text: 'text-yellow-400' },
+    { label: 'TP4', count: data.tp4_count, color: '#F97316', text: 'text-orange-400' },
+    { label: 'SL',  count: data.sl_count,  color: '#EF4444', text: 'text-red-400' },
   ];
 
   return (
-    <div>
-      <div className="h-3 lg:h-4 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5 mb-4">
+    <div className="space-y-4">
+      {/* Stacked bar */}
+      <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
         {items.filter(i => i.count > 0).map((item, idx) => (
           <div key={idx} style={{ width: `${(item.count / total * 100)}%`, backgroundColor: item.color }}
-            className="h-full transition-all duration-700 relative group first:rounded-l-full last:rounded-r-full">
+            className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative group">
             {(item.count / total * 100) > 10 && (
-              <span className="absolute inset-0 flex items-center justify-center text-[8px] lg:text-[9px] font-bold text-white/90 drop-shadow">
+              <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/90 drop-shadow">
                 {(item.count / total * 100).toFixed(0)}%
               </span>
             )}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-5 gap-1.5 lg:gap-2">
-        {items.map((item, i) => (
-          <div key={i} className={`rounded-lg p-2 lg:p-3 bg-gradient-to-b ${item.bg} border ${item.border} text-center`}>
-            <p className={`text-[10px] lg:text-xs font-bold ${item.text}`}>{item.label}</p>
-            <p className="text-white text-base lg:text-lg font-bold font-mono leading-tight mt-0.5">{item.count.toLocaleString()}</p>
-            <p className="text-text-muted text-[9px] lg:text-[10px]">{(item.count / total * 100).toFixed(1)}%</p>
-          </div>
-        ))}
+
+      {/* Horizontal bars with inline labels */}
+      <div className="space-y-2">
+        {items.map((item) => {
+          const pct = (item.count / total * 100);
+          return (
+            <div key={item.label} className="flex items-center gap-2.5">
+              <span className={`text-[10px] font-bold w-6 ${item.text}`}>{item.label}</span>
+              <div className="flex-1 h-2 rounded-full bg-bg-card/60 overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: item.color }} />
+              </div>
+              <div className="flex items-center gap-1.5 min-w-[75px] justify-end">
+                <span className="text-white text-[11px] font-mono font-semibold">{item.count.toLocaleString()}</span>
+                <span className="text-text-muted text-[9px] font-mono w-[32px] text-right">{pct.toFixed(1)}%</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -528,93 +540,379 @@ const TPBreakdown = ({ data }) => {
 
 
 // ============================================
-// WIN RATE TREND CHART
+// WIN RATE TREND CHART — Improved: Dual-layer
+// Raw data (faded) + 7-period Moving Average (bold)
+// + Volume bars at bottom + Annotations
 // ============================================
 const WinRateTrendChart = ({ data, mode }) => {
-  if (!data || data.length === 0) return <div className="h-56 lg:h-72 flex items-center justify-center text-text-muted text-sm">No trend data available</div>;
+  const [showRaw, setShowRaw] = useState(true);
+  const [maWindow, setMaWindow] = useState(7);
 
-  const chartData = data.map(item => ({
-    period: (() => { try { const d = new Date(item.period); return isNaN(d) ? item.period : d.toLocaleDateString('en', { month: 'short', day: 'numeric' }); } catch { return item.period; } })(),
-    fullDate: item.period, winRate: item.win_rate, winners: item.winners, losers: item.losers, total: item.total_closed,
-  }));
-  const avgWR = chartData.reduce((s, d) => s + d.winRate, 0) / chartData.length;
+  if (!data || data.length === 0) return <div className="h-72 lg:h-96 flex items-center justify-center text-text-muted text-sm">No trend data available</div>;
+
+  // Compute Moving Average
+  const computeMA = (arr, window) => {
+    return arr.map((item, idx) => {
+      if (idx < window - 1) return null;
+      const slice = arr.slice(idx - window + 1, idx + 1);
+      const avg = slice.reduce((s, d) => s + d.win_rate, 0) / slice.length;
+      return Math.round(avg * 100) / 100;
+    });
+  };
+
+  const maValues = computeMA(data, maWindow);
+
+  // Build enriched chart data
+  const chartData = data.map((item, idx) => {
+    const d = (() => { try { const dt = new Date(item.period); return isNaN(dt) ? item.period : dt.toLocaleDateString('en', { month: 'short', day: 'numeric' }); } catch { return item.period; } })();
+    return {
+      period: d,
+      fullDate: item.period,
+      winRate: item.win_rate,
+      ma: maValues[idx],
+      winners: item.winners,
+      losers: item.losers,
+      total: item.total_closed,
+    };
+  });
+
+  // Stats
+  const validRates = chartData.map(d => d.winRate).filter(v => v > 0);
+  const validMA = chartData.map(d => d.ma).filter(v => v != null);
+  const allValues = [...validRates, ...validMA];
+  const avgWR = validRates.reduce((s, v) => s + v, 0) / (validRates.length || 1);
+  const currentMA = validMA.length > 0 ? validMA[validMA.length - 1] : null;
+  const prevMA = validMA.length > 1 ? validMA[validMA.length - 2] : null;
+  const maTrend = currentMA && prevMA ? (currentMA > prevMA ? 'up' : currentMA < prevMA ? 'down' : 'flat') : 'flat';
+
+  // Auto-range Y-axis based on MA range (smoother range)
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
+  const range = maxVal - minVal;
+  const pad = Math.max(range * 0.12, 5);
+  const yMin = Math.max(0, Math.floor((minVal - pad) / 5) * 5);
+  const yMax = Math.min(100, Math.ceil((maxVal + pad) / 5) * 5);
+
+  // Max volume for bar scaling
+  const maxVol = Math.max(...chartData.map(d => d.total), 1);
+
+  // Find best and worst periods
+  const bestPeriod = chartData.reduce((best, d) => d.winRate > (best?.winRate || 0) ? d : best, chartData[0]);
+  const worstPeriod = chartData.filter(d => d.winRate > 0).reduce((worst, d) => d.winRate < (worst?.winRate || 100) ? d : worst, chartData[0]);
 
   return (
-    <div className="h-56 lg:h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <defs>
-            <linearGradient id="wrGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22C55E" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="#22C55E" stopOpacity={0.01} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.06)" />
-          <XAxis dataKey="period" stroke="#6b5c52" fontSize={9} tickLine={false} interval={Math.max(0, Math.floor(chartData.length / 8))} />
-          <YAxis stroke="#6b5c52" fontSize={10} domain={[0, 100]} tickFormatter={v => `${v}%`} tickLine={false} width={35} />
-          <Tooltip content={({ active, payload, label }) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div className="bg-bg-primary/95 backdrop-blur border border-gold-primary/30 rounded-xl p-3 shadow-2xl">
-                <p className="text-gold-primary text-[10px] font-semibold mb-1.5">{d.fullDate || label}</p>
-                <p className="text-white text-sm">Win Rate: <span className={`font-bold ${d.winRate >= 80 ? 'text-green-400' : d.winRate >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{d.winRate.toFixed(1)}%</span></p>
-                <p className="text-text-muted text-xs">W: <span className="text-green-400">{d.winners}</span> L: <span className="text-red-400">{d.losers}</span> Total: {d.total}</p>
+    <div className="space-y-3">
+      {/* Top bar: MA info + controls */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {/* Left: Current MA + trend */}
+        <div className="flex items-center gap-3">
+          {currentMA != null && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-6 h-[2px] bg-green-400 rounded-full" />
+                <span className="text-text-muted text-[10px]">{maWindow}{mode === 'weekly' ? 'W' : 'D'} MA</span>
               </div>
-            );
-          }} />
-          <ReferenceLine y={avgWR} stroke="rgba(255,255,255,0.12)" strokeDasharray="5 5" label={{ value: `Avg ${avgWR.toFixed(1)}%`, position: 'right', fill: '#6b5c52', fontSize: 9 }} />
-          <Area type="monotone" dataKey="winRate" stroke="#22C55E" strokeWidth={2} fill="url(#wrGrad)"
-            dot={{ r: 2, fill: '#22C55E', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#22C55E', stroke: '#fff', strokeWidth: 2 }} />
-        </AreaChart>
-      </ResponsiveContainer>
+              <span className={`text-sm font-mono font-bold ${currentMA >= 70 ? 'text-green-400' : currentMA >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {currentMA.toFixed(1)}%
+              </span>
+              <span className={`text-[10px] ${maTrend === 'up' ? 'text-green-400' : maTrend === 'down' ? 'text-red-400' : 'text-text-muted'}`}>
+                {maTrend === 'up' ? '↑' : maTrend === 'down' ? '↓' : '→'}
+              </span>
+            </div>
+          )}
+          <span className="text-text-muted text-[9px]">·</span>
+          <span className="text-text-muted text-[10px]">Avg <span className="text-white font-mono">{avgWR.toFixed(1)}%</span></span>
+        </div>
+
+        {/* Right: Controls */}
+        <div className="flex items-center gap-2">
+          {/* Toggle raw data */}
+          <button
+            onClick={() => setShowRaw(!showRaw)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all border ${
+              showRaw 
+                ? 'text-green-400/70 border-green-500/20 bg-green-500/[0.06]' 
+                : 'text-text-muted border-transparent hover:border-white/10'
+            }`}
+          >
+            <div className={`w-3 h-[1.5px] rounded-full transition-colors ${showRaw ? 'bg-green-400/40' : 'bg-text-muted/30'}`} style={{ backgroundImage: showRaw ? 'none' : 'none' }} />
+            Raw
+          </button>
+
+          {/* MA window selector */}
+          <div className="flex bg-bg-card/40 rounded-md p-0.5 border border-white/[0.04]">
+            {[3, 7, 14].map(w => (
+              <button key={w} onClick={() => setMaWindow(w)}
+                className={`px-2 py-1 rounded text-[10px] font-semibold transition-all ${
+                  maWindow === w
+                    ? 'bg-green-500/15 text-green-400'
+                    : 'text-text-muted hover:text-white'
+                }`}>
+                {w}{mode === 'weekly' ? 'W' : 'D'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-64 lg:h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+            <defs>
+              {/* MA line gradient glow */}
+              <linearGradient id="maLineGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22C55E" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#22C55E" stopOpacity={0.02} />
+              </linearGradient>
+              {/* Volume bar gradient */}
+              <linearGradient id="volBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d4a853" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#d4a853" stopOpacity={0.05} />
+              </linearGradient>
+              {/* SVG filter for MA glow effect */}
+              <filter id="maGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.04)" vertical={false} />
+
+            <XAxis 
+              dataKey="period" 
+              stroke="#6b5c52" 
+              fontSize={9} 
+              tickLine={false} 
+              axisLine={false} 
+              interval={Math.max(0, Math.floor(chartData.length / (window.innerWidth < 640 ? 5 : 10)))}
+              dy={4}
+            />
+
+            {/* Left Y-axis: Win Rate */}
+            <YAxis 
+              yAxisId="rate"
+              stroke="#6b5c52" 
+              fontSize={10} 
+              domain={[yMin, yMax]} 
+              tickFormatter={v => `${v}%`} 
+              tickLine={false} 
+              axisLine={false} 
+              width={36}
+            />
+
+            {/* Right Y-axis: Volume (hidden, for bar scaling) */}
+            <YAxis 
+              yAxisId="vol"
+              orientation="right"
+              domain={[0, maxVol * 5]}
+              hide
+            />
+
+            {/* Average reference line */}
+            <ReferenceLine 
+              yAxisId="rate"
+              y={avgWR} 
+              stroke="rgba(212,168,83,0.15)" 
+              strokeDasharray="6 4" 
+            />
+
+            {/* Volume bars at bottom - subtle context */}
+            <Bar 
+              yAxisId="vol"
+              dataKey="total" 
+              fill="url(#volBarGrad)" 
+              radius={[1, 1, 0, 0]}
+              maxBarSize={8}
+              isAnimationActive={false}
+            />
+
+            {/* Raw data - faded thin line */}
+            {showRaw && (
+              <Line 
+                yAxisId="rate"
+                type="monotone" 
+                dataKey="winRate" 
+                stroke="#22C55E" 
+                strokeWidth={0.8} 
+                strokeOpacity={0.2}
+                dot={false} 
+                activeDot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            )}
+
+            {/* MA area fill - subtle gradient under MA line */}
+            <Area 
+              yAxisId="rate"
+              type="monotone" 
+              dataKey="ma" 
+              stroke="none"
+              fill="url(#maLineGrad)" 
+              fillOpacity={1}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+              connectNulls
+            />
+
+            {/* MA line - bold, the hero */}
+            <Line 
+              yAxisId="rate"
+              type="monotone" 
+              dataKey="ma" 
+              stroke="#22C55E" 
+              strokeWidth={2.5}
+              dot={false} 
+              activeDot={{ 
+                r: 5, 
+                fill: '#22C55E', 
+                stroke: '#0a0506', 
+                strokeWidth: 2.5,
+              }}
+              filter="url(#maGlow)"
+              connectNulls
+            />
+
+            {/* Tooltip */}
+            <Tooltip 
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload.find(p => p.dataKey === 'ma')?.payload || payload[0]?.payload;
+                if (!d) return null;
+                return (
+                  <div className="bg-bg-primary/95 backdrop-blur-xl border border-gold-primary/25 rounded-xl p-3 shadow-2xl min-w-[160px]">
+                    <p className="text-gold-primary text-[10px] font-semibold mb-2 pb-1.5 border-b border-gold-primary/10">{d.fullDate || label}</p>
+                    
+                    {/* MA value - hero */}
+                    {d.ma != null && (
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className="text-text-muted text-[10px]">{maWindow}{mode === 'weekly' ? 'W' : 'D'} MA</span>
+                        </div>
+                        <span className={`text-sm font-mono font-bold ${d.ma >= 70 ? 'text-green-400' : d.ma >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+                          {d.ma.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Raw value */}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500/30 border border-green-500/50" />
+                        <span className="text-text-muted text-[10px]">Actual</span>
+                      </div>
+                      <span className={`text-xs font-mono font-semibold ${d.winRate >= 70 ? 'text-green-400' : d.winRate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {d.winRate.toFixed(1)}%
+                      </span>
+                    </div>
+
+                    {/* W/L breakdown */}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
+                      <span className="text-text-muted text-[10px]">{d.total} trades</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-green-400 text-[10px] font-mono">{d.winners}W</span>
+                        <span className="text-text-muted text-[8px]">·</span>
+                        <span className="text-red-400 text-[10px] font-mono">{d.losers}L</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
+              cursor={{ stroke: 'rgba(212,168,83,0.15)', strokeWidth: 1 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Bottom stats strip */}
+      <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+        <div className="flex items-center gap-3 lg:gap-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-text-muted uppercase tracking-wider">Best</span>
+            <span className="text-green-400 text-[10px] font-mono font-bold">{bestPeriod.winRate.toFixed(0)}%</span>
+            <span className="text-text-muted text-[9px]">({bestPeriod.period})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-text-muted uppercase tracking-wider">Worst</span>
+            <span className="text-red-400 text-[10px] font-mono font-bold">{worstPeriod.winRate.toFixed(0)}%</span>
+            <span className="text-text-muted text-[9px]">({worstPeriod.period})</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-text-muted text-[9px]">{chartData.length} periods</span>
+          <span className="text-text-muted text-[8px]">·</span>
+          <span className="text-text-muted text-[9px]">{chartData.reduce((s, d) => s + d.total, 0).toLocaleString()} trades</span>
+        </div>
+      </div>
     </div>
   );
 };
 
 
 // ============================================
-// RISK:REWARD CHART
+// RISK:REWARD CHART — Horizontal bars, cleaner
 // ============================================
 const RiskRewardChart = ({ data }) => {
   if (!data || data.length === 0) return <div className="h-44 flex items-center justify-center text-text-muted text-sm">No data</div>;
+  
   const colors = { 'TP1': '#22C55E', 'TP2': '#84CC16', 'TP3': '#EAB308', 'TP4': '#F97316', 'SL': '#EF4444' };
-  const chartData = data.filter(d => d.level !== 'SL').map(d => ({ level: d.level, rr: d.avg_rr, count: d.count, color: colors[d.level] || '#d4a853' }));
+  const allItems = data.filter(d => d.level !== 'SL');
+  const maxRR = Math.max(...allItems.map(d => d.avg_rr), 1);
 
   return (
-    <div>
-      <div className="h-40 lg:h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.06)" />
-            <XAxis dataKey="level" stroke="#6b5c52" fontSize={11} tickLine={false} />
-            <YAxis stroke="#6b5c52" fontSize={10} tickLine={false} tickFormatter={v => `${v.toFixed(1)}R`} width={35} />
-            <Tooltip contentStyle={{ backgroundColor: '#1a0a0a', border: '1px solid rgba(212,168,83,0.3)', borderRadius: '10px', fontSize: '12px' }}
-              formatter={(value) => [`1:${value.toFixed(2)}`, 'R:R']} />
-            <Bar dataKey="rr" radius={[8, 8, 0, 0]}>{chartData.map((e, i) => <Cell key={i} fill={e.color} />)}</Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex flex-wrap gap-1.5 lg:gap-2 mt-3">
-        {data.map(d => (
-          <div key={d.level} className="flex items-center gap-1.5 bg-bg-card/40 rounded-lg px-2.5 py-1.5 border border-white/5">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[d.level] || '#888' }} />
-            <span className="text-text-muted text-[10px]">{d.level}</span>
-            <span className="text-white text-[10px] font-mono font-bold">{d.level === 'SL' ? '-1R' : `${d.avg_rr.toFixed(2)}R`}</span>
-            <span className="text-text-muted text-[9px]">({d.count})</span>
+    <div className="space-y-3">
+      {allItems.map((item) => {
+        const pct = (item.avg_rr / maxRR) * 100;
+        const color = colors[item.level] || '#d4a853';
+        return (
+          <div key={item.level}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-white text-xs font-semibold">{item.level}</span>
+                <span className="text-text-muted text-[10px]">({item.count.toLocaleString()} trades)</span>
+              </div>
+              <span className="text-white text-sm font-mono font-bold">{item.avg_rr.toFixed(2)}R</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-bg-card/60 overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-700" 
+                style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: color, opacity: 0.8 }} 
+              />
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
+      
+      {/* SL reference */}
+      {data.find(d => d.level === 'SL') && (
+        <div className="pt-2 border-t border-white/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              <span className="text-red-400 text-xs font-semibold">SL</span>
+              <span className="text-text-muted text-[10px]">({data.find(d => d.level === 'SL').count.toLocaleString()} trades)</span>
+            </div>
+            <span className="text-red-400 text-sm font-mono font-bold">-1.00R</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 
 // ============================================
-// RISK TREND CHART
+// RISK TREND CHART — Separate section, taller
 // ============================================
 const RiskTrendChart = ({ data, mode }) => {
-  if (!data || data.length === 0) return <div className="h-44 lg:h-56 flex items-center justify-center text-text-muted text-sm">Not enough data</div>;
+  if (!data || data.length === 0) return <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted text-sm">Not enough data</div>;
 
   const chartData = data.map(item => ({
     period: (() => { try { const d = new Date(item.period); return isNaN(d) ? item.period : d.toLocaleDateString('en', { month: 'short', day: 'numeric' }); } catch { return item.period; } })(),
@@ -623,18 +921,26 @@ const RiskTrendChart = ({ data, mode }) => {
     lowCount: item.low_count, normalCount: item.normal_count, highCount: item.high_count,
   }));
 
+  // Auto-range
+  const allRates = chartData.flatMap(d => [d.low, d.normal, d.high]).filter(v => v != null && v > 0);
+  const minR = allRates.length > 0 ? Math.min(...allRates) : 0;
+  const maxR = allRates.length > 0 ? Math.max(...allRates) : 100;
+  const pad = Math.max((maxR - minR) * 0.15, 5);
+  const yMin = Math.max(0, Math.floor((minR - pad) / 5) * 5);
+  const yMax = Math.min(100, Math.ceil((maxR + pad) / 5) * 5);
+
   return (
-    <div className="h-44 lg:h-56">
+    <div className="h-48 lg:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.06)" />
-          <XAxis dataKey="period" stroke="#6b5c52" fontSize={9} tickLine={false} interval={Math.max(0, Math.floor(chartData.length / 8))} />
-          <YAxis stroke="#6b5c52" fontSize={10} domain={[0, 100]} tickFormatter={v => `${v}%`} tickLine={false} width={35} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.05)" vertical={false} />
+          <XAxis dataKey="period" stroke="#6b5c52" fontSize={9} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(chartData.length / 10))} />
+          <YAxis stroke="#6b5c52" fontSize={10} domain={[yMin, yMax]} tickFormatter={v => `${v}%`} tickLine={false} axisLine={false} width={38} />
           <Tooltip content={({ active, payload, label }) => {
             if (!active || !payload?.length) return null;
             const d = payload[0]?.payload;
             return (
-              <div className="bg-bg-primary/95 backdrop-blur border border-gold-primary/30 rounded-xl p-3 shadow-2xl">
+              <div className="bg-bg-primary/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-2xl">
                 <p className="text-gold-primary text-[10px] font-semibold mb-1.5">{d?.fullDate || label}</p>
                 {d?.low != null && <p className="text-green-400 text-xs">Low: {d.low.toFixed(1)}% <span className="text-text-muted">({d.lowCount})</span></p>}
                 {d?.normal != null && <p className="text-yellow-400 text-xs">Normal: {d.normal.toFixed(1)}% <span className="text-text-muted">({d.normalCount})</span></p>}
@@ -642,12 +948,103 @@ const RiskTrendChart = ({ data, mode }) => {
               </div>
             );
           }} />
-          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-          <Line type="monotone" dataKey="low" name="Low" stroke="#22C55E" strokeWidth={2} dot={{ r: 1.5 }} connectNulls />
-          <Line type="monotone" dataKey="normal" name="Normal" stroke="#EAB308" strokeWidth={2} dot={{ r: 1.5 }} connectNulls />
-          <Line type="monotone" dataKey="high" name="High" stroke="#EF4444" strokeWidth={2} dot={{ r: 1.5 }} connectNulls />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
+          <Line type="monotone" dataKey="low" name="Low" stroke="#22C55E" strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} connectNulls />
+          <Line type="monotone" dataKey="normal" name="Normal" stroke="#EAB308" strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} connectNulls />
+          <Line type="monotone" dataKey="high" name="High" stroke="#EF4444" strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} connectNulls />
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  );
+};
+
+
+// ============================================
+// TOP PAIRS TABLE — Replaces redundant TPBreakdown
+// ============================================
+const TopPairsTable = ({ pairs }) => {
+  // Filter pairs with enough data and sort by win rate
+  const filtered = pairs
+    .filter(p => p.closed_trades >= 5)
+    .sort((a, b) => b.win_rate - a.win_rate || b.performance_score - a.performance_score)
+    .slice(0, 10);
+
+  if (filtered.length === 0) return <div className="p-6 text-center text-text-muted text-sm">Not enough data (min 5 closed trades per pair)</div>;
+
+  return (
+    <div className="px-4 lg:px-6 py-4">
+      {/* Desktop */}
+      <div className="hidden lg:block overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gold-primary/10">
+              {['#', 'Pair', 'Win Rate', 'Closed', 'W / L', 'Best TP', 'Score'].map(h => (
+                <th key={h} className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((p, i) => {
+              const pair = (p.pair || '').replace('USDT', '');
+              const winPct = p.closed_trades > 0 ? (p.win_rate) : 0;
+              const bestTp = p.tp4_count > 0 ? 'TP4' : p.tp3_count > 0 ? 'TP3' : p.tp2_count > 0 ? 'TP2' : p.tp1_count > 0 ? 'TP1' : '-';
+              const bestTpColor = { 'TP4': 'text-orange-400', 'TP3': 'text-yellow-400', 'TP2': 'text-lime-400', 'TP1': 'text-green-400' };
+              const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
+              return (
+                <tr key={i} className="border-b border-white/[0.03] hover:bg-gold-primary/[0.02] transition-colors">
+                  <td className="py-2.5 px-3 text-text-muted text-xs font-mono">{i + 1}</td>
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2">
+                      <CoinLogo pair={p.pair} size={18} />
+                      <span className="text-white text-xs font-semibold">{pair}</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-bg-card/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-green-500/70 transition-all duration-500" style={{ width: `${winPct}%` }} />
+                      </div>
+                      <span className={`text-xs font-mono font-bold ${winPct >= 80 ? 'text-green-400' : winPct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{winPct.toFixed(1)}%</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-3 text-white text-xs font-mono">{p.closed_trades}</td>
+                  <td className="py-2.5 px-3 text-xs font-mono">
+                    <span className="text-green-400">{winners}</span>
+                    <span className="text-text-muted mx-1">/</span>
+                    <span className="text-red-400">{p.sl_count}</span>
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <span className={`text-xs font-bold ${bestTpColor[bestTp] || 'text-text-muted'}`}>{bestTp}</span>
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <span className="text-gold-primary text-xs font-mono font-bold">{p.performance_score.toFixed(0)}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile */}
+      <div className="lg:hidden space-y-2">
+        {filtered.map((p, i) => {
+          const pair = (p.pair || '').replace('USDT', '');
+          const winPct = p.closed_trades > 0 ? p.win_rate : 0;
+          const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
+          return (
+            <div key={i} className="flex items-center gap-3 py-2 border-b border-white/[0.03]">
+              <span className="text-text-muted text-[10px] font-mono w-4">{i + 1}</span>
+              <CoinLogo pair={p.pair} size={20} />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-xs font-semibold">{pair}</p>
+                <p className="text-text-muted text-[9px] font-mono">{p.closed_trades} trades · <span className="text-green-400">{winners}W</span> <span className="text-red-400">{p.sl_count}L</span></p>
+              </div>
+              <span className={`text-sm font-mono font-bold ${winPct >= 80 ? 'text-green-400' : winPct >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{winPct.toFixed(1)}%</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -674,16 +1071,16 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
   };
   const statusBadge = (st) => {
     const styles = {
-      'open': 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+      'open': 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
       'tp1': 'bg-green-500/15 text-green-400 border-green-500/30',
       'tp2': 'bg-lime-500/15 text-lime-400 border-lime-500/30',
       'tp3': 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
       'closed_win': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
       'closed_loss': 'bg-red-500/15 text-red-400 border-red-500/30',
     };
-    const labels = { 'open': 'OPEN', 'tp1': 'TP1', 'tp2': 'TP2', 'tp3': 'TP3', 'closed_win': 'TP4', 'closed_loss': 'LOSS' };
+    const labels = { 'open': 'NOT HIT', 'tp1': 'TP1', 'tp2': 'TP2', 'tp3': 'TP3', 'closed_win': 'TP4', 'closed_loss': 'LOSS' };
     const key = st?.toLowerCase();
-    return <span className={`${styles[key] || 'bg-gray-500/15 text-gray-400 border-gray-500/30'} text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border`}>{labels[key] || st}</span>;
+    return <span className={`${styles[key] || 'bg-gray-500/15 text-gray-400 border-gray-500/30'} text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap`}>{labels[key] || st}</span>;
   };
   const riskBadge = (r) => {
     const rl = r?.toLowerCase() || '';
@@ -709,6 +1106,7 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
 
   return (
     <>
+      {/* Desktop */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -759,6 +1157,7 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
         </table>
       </div>
 
+      {/* Mobile */}
       <div className="lg:hidden space-y-2">
         {signals.map((s, i) => {
           const mt = getMaxTarget(s);
@@ -810,27 +1209,20 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
 // LOADING SKELETON
 // ============================================
 const LoadingSkeleton = () => (
-  <div className="space-y-5">
+  <div className="space-y-4">
     <div className="flex items-center gap-3">
-      <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+      <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
       <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Performance Analytics</h2>
     </div>
-    <div className="glass-card rounded-2xl p-6 border border-gold-primary/10 animate-pulse">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-        <div className="space-y-3">
-          <div className="h-8 bg-gold-primary/10 rounded w-32" />
-          <div className="h-8 bg-gold-primary/10 rounded w-28" />
-          <div className="h-10 bg-gold-primary/10 rounded" />
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] animate-pulse">
+          <div className="h-3 bg-gold-primary/10 rounded w-14 mb-2" />
+          <div className="h-6 bg-gold-primary/10 rounded w-16" />
         </div>
-        <div className="flex justify-center">
-          <div className="w-44 h-44 rounded-full border-8 border-gold-primary/10" />
-        </div>
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gold-primary/10 rounded" />)}
-        </div>
-      </div>
+      ))}
     </div>
-    <div className="glass-card rounded-2xl p-4 lg:p-6 h-64 lg:h-80 animate-pulse border border-gold-primary/10">
+    <div className="glass-card rounded-2xl p-4 lg:p-6 h-72 lg:h-96 animate-pulse border border-gold-primary/10">
       <div className="h-4 bg-gold-primary/10 rounded w-32 mb-2" />
       <div className="h-3 bg-gold-primary/10 rounded w-48" />
     </div>
