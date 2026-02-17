@@ -626,6 +626,18 @@ async def sync_signal_status(db: Session = Depends(get_db)):
 # GET /signals/top-performers
 # ============================================
 
+# ============================================
+# GET /signals/top-performers  (v4)
+# ============================================
+# REPLACE the existing get_top_performers function in backend/app/api/routes/signals.py
+#
+# Logic:
+#   Top Gainers: per pair — entry from FIRST signal, TP price from HIGHEST TP across ALL signals
+#                gain = (best_tp_price - first_entry) / first_entry * 100
+#                duration = first signal call → last TP hit
+#   Fastest Hits: per pair — signal with fastest first-TP-hit (single signal)
+#   Returns all_signal_ids for modal navigation
+
 @router.get("/top-performers")
 async def get_top_performers(
     days: Optional[int] = Query(7, ge=1, le=90),
@@ -635,38 +647,41 @@ async def get_top_performers(
     db: Session = Depends(get_db),
 ):
     """
-    Top Gainers (highest gain %) and Fastest Hits (shortest time to TP max)
-    from signals that hit TP4 (closed_win).
-    Supports: days=N (preset) OR date_from/date_to (custom range).
+    Top Gainers & Fastest Hits — deduplicated per pair.
+    Top Gainers: first entry → highest TP price across all signals for that pair.
+    Fastest Hits: single signal with fastest first-TP-hit per pair.
+    Returns all_signal_ids per pair for modal navigation.
     """
-    # Determine date range
     if date_from and date_to:
-        # Custom range
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v4:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v4:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
-        actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:{days}:{limit}"
-        
+        actual_to = None
+        cache_key = f"lq:signals:top-performers:v4:{days}:{limit}"
+
     cached = cache_get(cache_key)
     if cached:
         return cached
-    
-    date_conditions = "AND su.update_at::date >= :date_from AND su.update_at::date <= :date_to"
-    params = {"date_from": actual_from, "date_to": actual_to, "limit": limit}
-    
 
-    # Logic: find highest TP level reached per signal, calc gain from entry to that TP price
+    date_conditions = "AND s.created_at >= :date_from"
+    params = {"date_from": actual_from, "limit": limit}
+    if actual_to:
+        date_conditions += " AND s.created_at <= :date_to"
+        params["date_to"] = f"{actual_to}T23:59:59"
+
+    # ── TOP GAINERS: first entry → best TP across ALL signals per pair ──
     gainers_sql = text(f"""
-        WITH highest_tp AS (
-            SELECT DISTINCT ON (s.signal_id)
-                s.signal_id, s.pair, s.entry,
+        WITH all_tp_hits AS (
+            SELECT
+                s.signal_id,
+                UPPER(s.pair) as pair,
+                s.entry,
                 su.update_type as tp_level,
                 CASE su.update_type
                     WHEN 'tp1' THEN s.target1
@@ -674,34 +689,66 @@ async def get_top_performers(
                     WHEN 'tp3' THEN s.target3
                     WHEN 'tp4' THEN s.target4
                 END as tp_price,
-                s.created_at as signal_time,
-                su.update_at as hit_time,
-                EXTRACT(EPOCH FROM (su.update_at::timestamptz - s.created_at::timestamptz)) as duration_seconds
-            FROM signals s
-            INNER JOIN signal_updates su ON s.signal_id = su.signal_id
-                AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1
-                {date_conditions}
-                AND s.entry > 0
-            ORDER BY s.signal_id,
                 CASE su.update_type
                     WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
                     WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1
-                END DESC
+                END as tp_rank,
+                s.created_at as signal_time,
+                su.update_at as hit_time
+            FROM signals s
+            INNER JOIN signal_updates su ON s.signal_id = su.signal_id
+                AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
+            WHERE 1=1 {date_conditions} AND s.entry > 0
+        ),
+        pair_agg AS (
+            SELECT
+                pair,
+                -- First signal's signal_id (for modal default)
+                (ARRAY_AGG(signal_id ORDER BY signal_time ASC))[1] as first_signal_id,
+                -- Entry from the earliest signal
+                (ARRAY_AGG(entry ORDER BY signal_time ASC))[1] as first_entry,
+                -- Highest TP price across ALL signals
+                MAX(tp_price) as best_tp_price,
+                -- TP level of the best hit
+                (ARRAY_AGG(tp_level ORDER BY tp_rank DESC, tp_price DESC))[1] as best_tp_level,
+                -- Earliest signal call time
+                MIN(signal_time) as first_signal_time,
+                -- Latest TP hit time (across all signals)
+                MAX(hit_time) as last_hit_time,
+                -- Duration: first call → last hit
+                EXTRACT(EPOCH FROM (MAX(hit_time::timestamptz) - MIN(signal_time::timestamptz))) as duration_seconds,
+                -- All signal_ids for navigation (ordered by time)
+                ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids,
+                COUNT(DISTINCT signal_id) as signal_count
+            FROM all_tp_hits
+            WHERE tp_price IS NOT NULL AND tp_price > 0
+            GROUP BY pair
         )
-        SELECT signal_id, pair, entry, tp_price, tp_level,
-            ROUND((ABS(tp_price - entry) / NULLIF(entry, 0) * 100)::numeric, 2) as gain_pct,
-            duration_seconds, signal_time, hit_time
-        FROM highest_tp
-        WHERE tp_price IS NOT NULL AND tp_price > 0
+        SELECT
+            first_signal_id as signal_id,
+            pair,
+            first_entry as entry,
+            best_tp_price as tp_price,
+            best_tp_level as tp_level,
+            ROUND((ABS(best_tp_price - first_entry) / NULLIF(first_entry, 0) * 100)::numeric, 2) as gain_pct,
+            duration_seconds,
+            first_signal_time as signal_time,
+            last_hit_time as hit_time,
+            signal_count,
+            all_signal_ids
+        FROM pair_agg
+        WHERE best_tp_price > 0 AND first_entry > 0
         ORDER BY gain_pct DESC
         LIMIT :limit
     """)
 
+    # ── FASTEST HITS: per pair, fastest first-TP single signal ──
     fastest_sql = text(f"""
-        WITH highest_tp AS (
+        WITH first_tp_per_signal AS (
             SELECT DISTINCT ON (s.signal_id)
-                s.signal_id, s.pair, s.entry,
+                s.signal_id,
+                UPPER(s.pair) as pair,
+                s.entry,
                 su.update_type as tp_level,
                 CASE su.update_type
                     WHEN 'tp1' THEN s.target1
@@ -715,21 +762,35 @@ async def get_top_performers(
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1
-                {date_conditions}
-                AND s.entry > 0
-            ORDER BY s.signal_id,
-                CASE su.update_type
-                    WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
-                    WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1
-                END DESC
+            WHERE 1=1 {date_conditions} AND s.entry > 0
+            ORDER BY s.signal_id, su.update_at ASC
+        ),
+        pair_fastest AS (
+            SELECT DISTINCT ON (pair) *
+            FROM first_tp_per_signal
+            WHERE tp_price IS NOT NULL AND tp_price > 0 AND duration_seconds > 0
+            ORDER BY pair, duration_seconds ASC
+        ),
+        pair_ids AS (
+            SELECT
+                UPPER(s.pair) as pair,
+                ARRAY_AGG(DISTINCT s.signal_id ORDER BY s.signal_id) as all_signal_ids,
+                COUNT(DISTINCT s.signal_id) as signal_count
+            FROM signals s
+            INNER JOIN signal_updates su ON s.signal_id = su.signal_id
+                AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
+            WHERE 1=1 {date_conditions} AND s.entry > 0
+            GROUP BY UPPER(s.pair)
         )
-        SELECT signal_id, pair, entry, tp_price, tp_level,
-            ROUND((ABS(tp_price - entry) / NULLIF(entry, 0) * 100)::numeric, 2) as gain_pct,
-            duration_seconds, signal_time, hit_time
-        FROM highest_tp
-        WHERE tp_price IS NOT NULL AND tp_price > 0 AND duration_seconds > 0
-        ORDER BY duration_seconds ASC
+        SELECT
+            f.signal_id, f.pair, f.entry, f.tp_price, f.tp_level,
+            ROUND((ABS(f.tp_price - f.entry) / NULLIF(f.entry, 0) * 100)::numeric, 2) as gain_pct,
+            f.duration_seconds, f.signal_time, f.hit_time,
+            p.signal_count,
+            p.all_signal_ids
+        FROM pair_fastest f
+        JOIN pair_ids p ON f.pair = p.pair
+        ORDER BY f.duration_seconds ASC
         LIMIT :limit
     """)
 
@@ -739,32 +800,49 @@ async def get_top_performers(
 
         def fmt_dur(sec):
             if not sec or sec <= 0: return "N/A"
-            h, m = int(sec // 3600), int((sec % 3600) // 60)
-            return f"{h}h {m}m" if h > 0 else f"{m}m"
+            sec = float(sec)
+            d = int(sec // 86400)
+            h = int((sec % 86400) // 3600)
+            m = int((sec % 3600) // 60)
+            s = int(sec % 60)
+            if d > 0: return f"{d}d {h}h {m}m"
+            if h > 0: return f"{h}h {m}m"
+            if m > 0: return f"{m}m {s}s"
+            return f"{s}s"
 
         def row_to_dict(r):
+            all_ids = r[10]
+            if isinstance(all_ids, str):
+                all_ids = [x.strip() for x in all_ids.strip('{}').split(',') if x.strip()]
+            elif all_ids is None:
+                all_ids = [r[0]]
+
             return {
                 "signal_id": r[0],
-                "pair": r[1], "entry": float(r[2] or 0), "tp_price": float(r[3] or 0),
+                "pair": r[1],
+                "entry": float(r[2] or 0),
+                "tp_price": float(r[3] or 0),
                 "tp_level": (r[4] or "").upper().replace("TP", "TP "),
-                "gain_pct": float(r[5] or 0), "duration_seconds": float(r[6] or 0),
+                "gain_pct": float(r[5] or 0),
+                "duration_seconds": float(r[6] or 0),
                 "duration_display": fmt_dur(r[6]),
                 "signal_time": str(r[7]) if r[7] else None,
                 "hit_time": str(r[8]) if r[8] else None,
+                "signal_count": int(r[9]) if r[9] else 1,
+                "all_signal_ids": all_ids,
             }
 
         period_end = actual_to or datetime.utcnow().strftime('%B %d, %Y')
         period_start = actual_from
-        # Try to format nicely
         try:
             from datetime import datetime as dt2
             ps = dt2.strptime(period_start, '%Y-%m-%d').strftime('%B %d, %Y')
             pe = dt2.strptime(period_end, '%Y-%m-%d').strftime('%B %d, %Y') if len(period_end) == 10 else period_end
             period_start = ps
             period_end = pe
-        except: pass
+        except:
+            pass
 
-        # Count total signals with any TP hit in this period
         count_sql = text(f"""
             SELECT COUNT(DISTINCT s.signal_id) FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
@@ -773,10 +851,20 @@ async def get_top_performers(
         """)
         total_count = db.execute(count_sql, params).scalar() or 0
 
+        unique_pairs_sql = text(f"""
+            SELECT COUNT(DISTINCT UPPER(s.pair)) FROM signals s
+            INNER JOIN signal_updates su ON s.signal_id = su.signal_id
+                AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
+            WHERE 1=1 {date_conditions} AND s.entry > 0
+        """)
+        unique_pairs = db.execute(unique_pairs_sql, params).scalar() or 0
+
         result = {
             "period": f"{period_start} - {period_end}",
             "days": days,
             "total_tp4": total_count,
+            "total_tp_hits": total_count,
+            "unique_pairs": unique_pairs,
             "top_gainers": [row_to_dict(r) for r in gainers_rows],
             "fastest_hits": [row_to_dict(r) for r in fastest_rows],
         }
