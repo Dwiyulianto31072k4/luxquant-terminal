@@ -9,18 +9,32 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('chart');
   const [coinInfo, setCoinInfo] = useState(null);
   const [coinInfoLoading, setCoinInfoLoading] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => { setIsClosing(false); onClose(); }, 200);
+  };
+
+  // CRITICAL: Add/remove body class to hide header & bottom nav
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('signal-modal-open');
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.classList.remove('signal-modal-open');
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !signal) return;
-    setSignalDetail(null);
-    setCoinInfo(null);
-    setCoinInfoLoading(false);
-    coinInfoFetchedRef.current = false;
+    setSignalDetail(null); setCoinInfo(null); setCoinInfoLoading(false);
+    coinInfoFetchedRef.current = false; setIsClosing(false);
     const fetchDetail = async () => {
-      try {
-        const response = await fetch(`/api/v1/signals/detail/${signal.signal_id}`);
-        if (response.ok) setSignalDetail(await response.json());
-      } catch (error) { console.error('Failed to fetch signal detail:', error); }
+      try { const r = await fetch(`/api/v1/signals/detail/${signal.signal_id}`); if (r.ok) setSignalDetail(await r.json()); }
+      catch (e) { console.error('Failed to fetch signal detail:', e); }
     };
     fetchDetail();
   }, [isOpen, signal]);
@@ -30,8 +44,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     if (coinInfo || coinInfoFetchedRef.current) return;
     const sym = (signal.pair || '').replace(/USDT$/i, '').toUpperCase();
     if (!sym) return;
-    coinInfoFetchedRef.current = true;
-    setCoinInfoLoading(true);
+    coinInfoFetchedRef.current = true; setCoinInfoLoading(true);
     fetch(`/api/v1/coingecko/coin-info/${sym}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && !data.error) setCoinInfo(data); })
@@ -40,9 +53,9 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   }, [isOpen, signal, activeTab]);
 
   useEffect(() => {
-    const handleEscape = (e) => { if (e.key === 'Escape') onClose(); };
-    if (isOpen) { document.addEventListener('keydown', handleEscape); document.body.style.overflow = 'hidden'; }
-    return () => { document.removeEventListener('keydown', handleEscape); document.body.style.overflow = 'unset'; };
+    const handleEscape = (e) => { if (e.key === 'Escape') handleClose(); };
+    if (isOpen) document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
   const getUserTimezone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'Etc/UTC'; } };
@@ -158,12 +171,11 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const timeline = buildTimeline();
   const LinkIcon = () => (<svg className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>);
 
-  // === Sidebar/Bottom panel content (reused for desktop sidebar + mobile bottom panel) ===
+  // === TargetsPanel ===
   const TargetsPanel = ({ layout }) => {
     const isCompact = layout === 'bottom';
     return (
       <div className={isCompact ? 'p-2.5 space-y-1.5' : 'p-2.5 space-y-2'}>
-        {/* Entry */}
         <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">
           <div className="flex items-center justify-between">
             <div>
@@ -173,10 +185,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             <p className="text-[9px] text-gold-primary/70">{formatShortDateTime(signal.created_at)}</p>
           </div>
         </div>
-
-        {/* Targets */}
         {isCompact ? (
-          /* Mobile: horizontal grid */
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((t, i) => (
               <div key={i} className={`px-2 py-1.5 rounded-lg flex items-center justify-between ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
@@ -192,7 +201,6 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             ))}
           </div>
         ) : (
-          /* Desktop: vertical list */
           <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
             <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🎯 Targets</p>
             <div className="space-y-1">{targets.map((t, i) => (
@@ -210,8 +218,6 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             ))}</div>
           </div>
         )}
-
-        {/* Stop Loss */}
         {stops.length > 0 && (
           isCompact ? (
             <div className="flex gap-1.5">
@@ -234,8 +240,6 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             </div>
           )
         )}
-
-        {/* Extra info — desktop only */}
         {!isCompact && (
           <>
             {signal.volume_rank_num && (
@@ -256,246 +260,338 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     );
   };
 
-  // ============================
-  // RENDER
-  // ============================
+  // ========== RENDER ==========
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-5 pb-16 sm:pb-3 md:pb-5">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+    <>
+      <div className={`signal-modal-overlay ${isClosing ? 'signal-modal-closing' : ''}`}>
+        <div className="signal-modal-backdrop" onClick={handleClose} />
+        <div className="signal-modal-container">
+          <div className="signal-modal-content">
+            {/* Drag handle mobile */}
+            <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            {/* Corner ornaments desktop */}
+            <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-gold-primary/50 rounded-tl-2xl pointer-events-none hidden sm:block" />
+            <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-gold-primary/50 rounded-tr-2xl pointer-events-none hidden sm:block" />
 
-      {/* Modal — always centered with margin on all sides */}
-      <div
-        className="relative w-full max-w-[1400px] bg-bg-primary rounded-2xl border border-gold-primary/40 shadow-2xl shadow-gold-primary/10 flex flex-col overflow-hidden"
-        style={{ height: '100%', maxHeight: '880px' }}
-      >
-        {/* Corner ornaments — desktop only */}
-        <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-gold-primary/50 rounded-tl-2xl pointer-events-none hidden sm:block" />
-        <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-gold-primary/50 rounded-tr-2xl pointer-events-none hidden sm:block" />
-
-        {/* ═══ HEADER ═══ */}
-        <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <CoinLogo pair={signal.pair} size={28} />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-white font-display text-sm font-semibold truncate">{signal.pair}</h2>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex-shrink-0 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span>
+            {/* HEADER */}
+            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <CoinLogo pair={signal.pair} size={28} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <h2 className="text-white font-display text-sm font-semibold truncate">{signal.pair}</h2>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold text-white flex-shrink-0 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span>
+                    </div>
+                    <p className="text-text-muted text-[10px] truncate">{formatShortDateTime(signal.created_at)}</p>
+                  </div>
                 </div>
-                <p className="text-text-muted text-[10px] truncate">{formatShortDateTime(signal.created_at)}</p>
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                  <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
+                    {['chart', 'trade', 'research'].map(tab => (
+                      <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-gold-primary text-black' : 'text-text-secondary hover:text-white hover:bg-white/5'}`}>
+                        <span className="sm:hidden">{tab === 'chart' ? '📈' : tab === 'trade' ? '💹' : '🔍'}</span>
+                        <span className="hidden sm:inline">{tab === 'chart' ? '📈 Chart' : tab === 'trade' ? '💹 Trade' : '🔍 Research'}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={handleClose} className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="flex items-center gap-0.5 sm:gap-1 bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
-                {['chart', 'trade', 'research'].map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all ${activeTab === tab ? 'bg-gold-primary text-black' : 'text-text-secondary hover:text-white hover:bg-white/5'}`}>
-                    <span className="sm:hidden">{tab === 'chart' ? '📈' : tab === 'trade' ? '💹' : '🔍'}</span>
-                    <span className="hidden sm:inline">{tab === 'chart' ? '📈 Chart' : tab === 'trade' ? '💹 Trade' : '🔍 Research'}</span>
-                  </button>
-                ))}
-              </div>
-              <button onClick={onClose} className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+
+            {/* BODY */}
+            <div className="flex-1 min-h-0 flex flex-col">
+
+              {/* CHART TAB */}
+              {activeTab === 'chart' && (
+                <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+                  <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
+                    <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
+                  </div>
+                  <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
+                    <TargetsPanel layout="sidebar" />
+                  </div>
+                  <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar" style={{ maxHeight: '35vh' }}>
+                    <TargetsPanel layout="bottom" />
+                  </div>
+                </div>
+              )}
+
+              {/* TRADE TAB */}
+              {activeTab === 'trade' && (
+                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-3 sm:mb-5">
+                      <div className="flex items-center justify-center gap-2 mb-1"><CoinLogo pair={signal.pair} size={24} /><h3 className="text-base sm:text-lg font-display text-white">Trade {signal.pair}</h3></div>
+                      <p className="text-text-muted text-xs sm:text-sm">Signal progress & exchange links</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-4 sm:mb-5">
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-green-500/15">
+                        <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mb-2">🎯 Targets</p>
+                        <div className="space-y-1.5">{targets.map((t, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
+                              <span className={`text-[11px] ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label} <span className="font-mono">{formatPrice(t.value)}</span></span>
+                            </div>
+                            <div className="text-right">
+                              <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-green-400/50'}`}>+{t.pct}%</span>
+                              {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/50">{formatShortDateTime(t.reachedAt)}</p>}
+                            </div>
+                          </div>
+                        ))}</div>
+                        {stops.length > 0 && (<><div className="border-t border-white/5 my-2" /><p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mb-1.5">🛑 Stop Loss</p>{stops.map((s, i) => (<div key={i} className="flex items-center justify-between"><span className={`text-[11px] ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono">{formatPrice(s.value)}</span></span><span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-red-400/50'}`}>{s.pct}%</span></div>))}</>)}
+                      </div>
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
+                        <p className="text-gold-primary/70 text-[10px] uppercase tracking-wider font-semibold mb-2">📊 Signal Stats</p>
+                        <div className="space-y-2">
+                          {rrRatio && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk : Reward</span><span className="text-gold-primary text-sm font-bold font-mono">1 : {rrRatio}</span></div>}
+                          {riskPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk %</span><span className="text-red-400 text-[11px] font-mono">-{riskPct.toFixed(2)}%</span></div>}
+                          {maxRewardPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Max Reward %</span><span className="text-green-400 text-[11px] font-mono">+{maxRewardPct.toFixed(2)}%</span></div>}
+                          <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Targets Hit</span><span className="text-white text-[11px] font-bold">{hitTargets.filter(Boolean).length} / {targets.length}</span></div>
+                          <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Status</span><span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span></div>
+                          {signal.volume_rank_num && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Volume Rank</span><span className="text-white text-[11px] font-mono">#{signal.volume_rank_num} / {signal.volume_rank_den}</span></div>}
+                          {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk Level</span><span className={`text-[11px] font-bold ${signal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-yellow-400'}`}>{signal.risk_level}</span></div>}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Timeline */}
+                    <div className="mb-4 sm:mb-5">
+                      <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                        <span className="text-gold-primary text-xs font-semibold">⏱️ Signal Journey</span>
+                        {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[10px] text-text-muted bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">Total: {d}</span> : <span className="text-[10px] text-cyan-400/70">● Active</span>; })()}
+                      </div>
+                      <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-3 sm:p-4">
+                        {timeline.map((ev, idx) => {
+                          const isLast = idx === timeline.length - 1, isAct = ev.type === 'called' || ev.hit;
+                          const prev = idx > 0 ? timeline[idx-1] : null, dur = (prev?.time && ev.time) ? calcTimeDiff(prev.time, ev.time) : null;
+                          return (
+                            <div key={idx} className="relative flex gap-2.5 sm:gap-3">
+                              {!isLast && <div className={`absolute left-[11px] sm:left-[13px] top-[24px] sm:top-[28px] bottom-0 w-[2px] ${isAct ? ev.colorClasses.line : 'bg-gray-700/30'}`} />}
+                              <div className="flex-shrink-0 z-10 mt-0.5"><div className={`w-6 h-6 sm:w-[28px] sm:h-[28px] rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border-2 ${isAct ? `${ev.colorClasses.bg} text-white border-transparent` : 'bg-[#1a1a1a] text-gray-500 border-gray-700'}`}>{ev.icon}</div></div>
+                              <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3 sm:pb-5'}`}>
+                                <div className="flex items-center gap-2 flex-wrap"><span className={`text-xs sm:text-sm font-semibold ${isAct ? ev.colorClasses.text : 'text-gray-500'}`}>{ev.label}</span>{dur && <span className="text-[9px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded font-mono">+{dur}</span>}</div>
+                                <p className={`text-[10px] sm:text-xs font-mono ${isAct ? 'text-white/70' : 'text-gray-600'}`}>{ev.sublabel}</p>
+                                {ev.time && <p className="text-[9px] text-text-muted mt-0.5">{formatShortDateTime(ev.time)}</p>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* Exchange links */}
+                    <div className="mb-4 sm:mb-5">
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🏦 Open Trade on Exchange</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                        {tradeLinks.map((link, i) => (
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 sm:gap-2 p-2.5 sm:p-4 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/30 flex items-center justify-center"><img src={link.logo} alt={link.name} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} /></div>
+                            <p className="text-white text-[10px] sm:text-[11px] font-medium group-hover:text-gold-primary text-center">{link.name}</p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Summary */}
+                    <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-3 sm:p-4 border border-gold-primary/25 mb-2">
+                      <h4 className="text-gold-primary font-display text-sm mb-2.5 sm:mb-3">Signal Summary</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+                        <div><p className="text-text-muted text-[10px] uppercase">Entry</p><p className="text-white font-mono text-sm mt-0.5">{formatPrice(signal.entry)}</p></div>
+                        <div><p className="text-text-muted text-[10px] uppercase">Status</p><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white mt-1 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
+                        <div><p className="text-text-muted text-[10px] uppercase">Targets Hit</p><p className="text-white text-sm mt-0.5">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
+                        <div><p className="text-text-muted text-[10px] uppercase">Max Profit</p><p className="text-green-400 text-sm mt-0.5">+{targets[targets.length-1]?.pct || 0}%</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* RESEARCH TAB */}
+              {activeTab === 'research' && (
+                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-3 sm:mb-5"><h3 className="text-base sm:text-lg font-display text-white mb-1">Research & Analytics</h3><p className="text-text-muted text-xs sm:text-sm">Deep dive into <span className="text-gold-primary font-semibold">{coinSymbol}</span></p></div>
+                    {coinInfoLoading && (
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-4 sm:mb-5 animate-pulse">
+                        <div className="flex items-center gap-3 mb-3"><div className="w-8 h-8 rounded-full bg-gold-primary/10" /><div><div className="h-4 bg-gold-primary/10 rounded w-32 mb-1" /><div className="h-3 bg-white/5 rounded w-48" /></div></div>
+                        <div className="space-y-2"><div className="h-3 bg-white/5 rounded w-full" /><div className="h-3 bg-white/5 rounded w-5/6" /><div className="h-3 bg-white/5 rounded w-4/6" /></div>
+                      </div>
+                    )}
+                    {coinInfo && (
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-4 sm:mb-5">
+                        <div className="flex items-center gap-3 mb-3">
+                          {coinInfo.image_thumb && <img src={coinInfo.image_thumb} alt={coinInfo.name} className="w-8 h-8 rounded-full" />}
+                          <div>
+                            <h4 className="text-white font-semibold text-sm">{coinInfo.name} <span className="text-text-muted font-normal">({coinInfo.symbol})</span></h4>
+                            {coinInfo.categories?.length > 0 && <p className="text-text-muted text-[10px]">{coinInfo.categories.join(' · ')}</p>}
+                          </div>
+                        </div>
+                        {coinInfo.description && <p className="text-text-muted text-xs leading-relaxed mb-3 line-clamp-4 sm:line-clamp-none">{coinInfo.description}</p>}
+                        {coinInfo.market_data && (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
+                            {coinInfo.market_data.current_price != null && <div><p className="text-text-muted text-[9px] uppercase">Price</p><p className="text-white text-xs font-mono">${coinInfo.market_data.current_price.toLocaleString()}</p></div>}
+                            {coinInfo.market_data.market_cap != null && <div><p className="text-text-muted text-[9px] uppercase">Market Cap</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.market_cap)}</p></div>}
+                            {coinInfo.market_data.market_cap_rank != null && <div><p className="text-text-muted text-[9px] uppercase">Rank</p><p className="text-white text-xs font-mono">#{coinInfo.market_data.market_cap_rank}</p></div>}
+                            {coinInfo.market_data.total_volume != null && <div><p className="text-text-muted text-[9px] uppercase">24h Volume</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.total_volume)}</p></div>}
+                            {coinInfo.market_data.price_change_24h_pct != null && <div><p className="text-text-muted text-[9px] uppercase">24h</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_24h_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_24h_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_24h_pct.toFixed(2)}%</p></div>}
+                            {coinInfo.market_data.price_change_7d_pct != null && <div><p className="text-text-muted text-[9px] uppercase">7d</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_7d_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_7d_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_7d_pct.toFixed(2)}%</p></div>}
+                            {coinInfo.market_data.ath != null && <div><p className="text-text-muted text-[9px] uppercase">ATH</p><p className="text-white text-xs font-mono">${coinInfo.market_data.ath.toLocaleString()}</p>{coinInfo.market_data.ath_change_pct != null && <p className="text-red-400/70 text-[8px] font-mono">{coinInfo.market_data.ath_change_pct.toFixed(1)}%</p>}</div>}
+                            {coinInfo.market_data.circulating_supply != null && <div><p className="text-text-muted text-[9px] uppercase">Supply</p><p className="text-white text-xs">{(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M</p></div>}
+                          </div>
+                        )}
+                        {coinInfo.links && (
+                          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
+                            {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">🌐 Website</a>}
+                            {coinInfo.links.twitter && <a href={`https://twitter.com/${coinInfo.links.twitter}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors">🐦 @{coinInfo.links.twitter}</a>}
+                            {coinInfo.links.telegram && <a href={`https://t.me/${coinInfo.links.telegram}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors">📨 Telegram</a>}
+                            {coinInfo.links.subreddit && <a href={coinInfo.links.subreddit} target="_blank" rel="noopener noreferrer" className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors">🤖 Reddit</a>}
+                            {coinInfo.links.github && <a href={coinInfo.links.github} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors">💻 GitHub</a>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!coinInfo && !coinInfoLoading && (
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-white/5 mb-4 sm:mb-5 text-center">
+                        <p className="text-text-muted text-xs">Coin info not available for <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
+                      </div>
+                    )}
+                    <div className="mb-3 sm:mb-5">
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🔗 Research Links</p>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                        {researchLinks.map((link, i) => (
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-lg transition-all group border active:scale-95`}>
+                            <img src={link.logo} alt={link.name} className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} />
+                            <span className="text-[10px] sm:text-[11px] font-medium text-white/80 group-hover:text-white whitespace-nowrap">{link.name}</span><LinkIcon />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">💬 Sentiment</p>
+                      <a href={sentimentLinks[0].url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-br from-gray-700/20 to-gray-900/10 rounded-xl border border-gray-600/30 hover:border-gray-500/50 group transition-all active:scale-[0.98]">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0"><img src={sentimentLinks[0].logo} alt="X" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = sentimentLinks[0].fallbackLogo; }} /></div>
+                        <div className="flex-1 min-w-0"><p className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">Twitter / X Live Feed</p><p className="text-text-muted text-xs sm:text-sm truncate">See what traders say about ${coinSymbol}</p></div>
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-hover:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* ═══ BODY ═══ */}
-        <div className="flex-1 min-h-0 flex flex-col">
-
-          {/* ═══════════ CHART TAB ═══════════ */}
-          {activeTab === 'chart' && (
-            <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-              {/* Chart area */}
-              <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
-                <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
-              </div>
-              {/* Desktop sidebar */}
-              <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
-                <TargetsPanel layout="sidebar" />
-              </div>
-              {/* Mobile: fixed bottom panel (always visible, not a popup) */}
-              <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar" style={{ maxHeight: '40%' }}>
-                <TargetsPanel layout="bottom" />
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════ TRADE TAB ═══════════ */}
-          {activeTab === 'trade' && (
-            <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-4 sm:mb-5">
-                  <div className="flex items-center justify-center gap-2 mb-1"><CoinLogo pair={signal.pair} size={24} /><h3 className="text-base sm:text-lg font-display text-white">Trade {signal.pair}</h3></div>
-                  <p className="text-text-muted text-xs sm:text-sm">Signal progress & exchange links</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-green-500/15">
-                    <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mb-2">🎯 Targets</p>
-                    <div className="space-y-1.5">{targets.map((t, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
-                          <span className={`text-[11px] ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label} <span className="font-mono">{formatPrice(t.value)}</span></span>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-green-400/50'}`}>+{t.pct}%</span>
-                          {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/50">{formatShortDateTime(t.reachedAt)}</p>}
-                        </div>
-                      </div>
-                    ))}</div>
-                    {stops.length > 0 && (<><div className="border-t border-white/5 my-2" /><p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mb-1.5">🛑 Stop Loss</p>{stops.map((s, i) => (<div key={i} className="flex items-center justify-between"><span className={`text-[11px] ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono">{formatPrice(s.value)}</span></span><span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-red-400/50'}`}>{s.pct}%</span></div>))}</>)}
-                  </div>
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                    <p className="text-gold-primary/70 text-[10px] uppercase tracking-wider font-semibold mb-2">📊 Signal Stats</p>
-                    <div className="space-y-2">
-                      {rrRatio && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk : Reward</span><span className="text-gold-primary text-sm font-bold font-mono">1 : {rrRatio}</span></div>}
-                      {riskPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk %</span><span className="text-red-400 text-[11px] font-mono">-{riskPct.toFixed(2)}%</span></div>}
-                      {maxRewardPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Max Reward %</span><span className="text-green-400 text-[11px] font-mono">+{maxRewardPct.toFixed(2)}%</span></div>}
-                      <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Targets Hit</span><span className="text-white text-[11px] font-bold">{hitTargets.filter(Boolean).length} / {targets.length}</span></div>
-                      <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Status</span><span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span></div>
-                      {signal.volume_rank_num && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Volume Rank</span><span className="text-white text-[11px] font-mono">#{signal.volume_rank_num} / {signal.volume_rank_den}</span></div>}
-                      {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk Level</span><span className={`text-[11px] font-bold ${signal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-yellow-400'}`}>{signal.risk_level}</span></div>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="mb-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-gold-primary text-xs font-semibold">⏱️ Signal Journey</span>
-                    {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[10px] text-text-muted bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">Total: {d}</span> : <span className="text-[10px] text-cyan-400/70">● Active</span>; })()}
-                  </div>
-                  <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-3 sm:p-4">
-                    {timeline.map((ev, idx) => {
-                      const isLast = idx === timeline.length - 1, isAct = ev.type === 'called' || ev.hit;
-                      const prev = idx > 0 ? timeline[idx-1] : null, dur = (prev?.time && ev.time) ? calcTimeDiff(prev.time, ev.time) : null;
-                      return (
-                        <div key={idx} className="relative flex gap-2.5 sm:gap-3">
-                          {!isLast && <div className={`absolute left-[11px] sm:left-[13px] top-[24px] sm:top-[28px] bottom-0 w-[2px] ${isAct ? ev.colorClasses.line : 'bg-gray-700/30'}`} />}
-                          <div className="flex-shrink-0 z-10 mt-0.5"><div className={`w-6 h-6 sm:w-[28px] sm:h-[28px] rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border-2 ${isAct ? `${ev.colorClasses.bg} text-white border-transparent` : 'bg-[#1a1a1a] text-gray-500 border-gray-700'}`}>{ev.icon}</div></div>
-                          <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3 sm:pb-5'}`}>
-                            <div className="flex items-center gap-2 flex-wrap"><span className={`text-xs sm:text-sm font-semibold ${isAct ? ev.colorClasses.text : 'text-gray-500'}`}>{ev.label}</span>{dur && <span className="text-[9px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded font-mono">+{dur}</span>}</div>
-                            <p className={`text-[10px] sm:text-xs font-mono ${isAct ? 'text-white/70' : 'text-gray-600'}`}>{ev.sublabel}</p>
-                            {ev.time && <p className="text-[9px] text-text-muted mt-0.5">{formatShortDateTime(ev.time)}</p>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Exchange links */}
-                <div className="mb-5">
-                  <p className="text-gold-primary text-xs font-semibold mb-3">🏦 Open Trade on Exchange</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-                    {tradeLinks.map((link, i) => (
-                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/30 flex items-center justify-center"><img src={link.logo} alt={link.name} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} /></div>
-                        <p className="text-white text-[10px] sm:text-[11px] font-medium group-hover:text-gold-primary text-center">{link.name}</p>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Summary */}
-                <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-3 sm:p-4 border border-gold-primary/25">
-                  <h4 className="text-gold-primary font-display text-sm mb-3">Signal Summary</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                    <div><p className="text-text-muted text-[10px] uppercase">Entry</p><p className="text-white font-mono text-sm mt-0.5">{formatPrice(signal.entry)}</p></div>
-                    <div><p className="text-text-muted text-[10px] uppercase">Status</p><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white mt-1 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
-                    <div><p className="text-text-muted text-[10px] uppercase">Targets Hit</p><p className="text-white text-sm mt-0.5">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
-                    <div><p className="text-text-muted text-[10px] uppercase">Max Profit</p><p className="text-green-400 text-sm mt-0.5">+{targets[targets.length-1]?.pct || 0}%</p></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════ RESEARCH TAB ═══════════ */}
-          {activeTab === 'research' && (
-            <div className="flex-1 overflow-y-auto p-3 sm:p-6 custom-scrollbar bg-[#0a0a0a]">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-4 sm:mb-5"><h3 className="text-base sm:text-lg font-display text-white mb-1">Research & Analytics</h3><p className="text-text-muted text-xs sm:text-sm">Deep dive into <span className="text-gold-primary font-semibold">{coinSymbol}</span></p></div>
-
-                {coinInfoLoading && (
-                  <div className="bg-[#111] rounded-xl p-4 border border-gold-primary/15 mb-5 animate-pulse">
-                    <div className="flex items-center gap-3 mb-3"><div className="w-8 h-8 rounded-full bg-gold-primary/10" /><div><div className="h-4 bg-gold-primary/10 rounded w-32 mb-1" /><div className="h-3 bg-white/5 rounded w-48" /></div></div>
-                    <div className="space-y-2"><div className="h-3 bg-white/5 rounded w-full" /><div className="h-3 bg-white/5 rounded w-5/6" /><div className="h-3 bg-white/5 rounded w-4/6" /></div>
-                  </div>
-                )}
-                {coinInfo && (
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      {coinInfo.image_thumb && <img src={coinInfo.image_thumb} alt={coinInfo.name} className="w-8 h-8 rounded-full" />}
-                      <div>
-                        <h4 className="text-white font-semibold text-sm">{coinInfo.name} <span className="text-text-muted font-normal">({coinInfo.symbol})</span></h4>
-                        {coinInfo.categories?.length > 0 && <p className="text-text-muted text-[10px]">{coinInfo.categories.join(' · ')}</p>}
-                      </div>
-                    </div>
-                    {coinInfo.description && <p className="text-text-muted text-xs leading-relaxed mb-3">{coinInfo.description}</p>}
-                    {coinInfo.market_data && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
-                        {coinInfo.market_data.current_price != null && <div><p className="text-text-muted text-[9px] uppercase">Price</p><p className="text-white text-xs font-mono">${coinInfo.market_data.current_price.toLocaleString()}</p></div>}
-                        {coinInfo.market_data.market_cap != null && <div><p className="text-text-muted text-[9px] uppercase">Market Cap</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.market_cap)}</p></div>}
-                        {coinInfo.market_data.market_cap_rank != null && <div><p className="text-text-muted text-[9px] uppercase">Rank</p><p className="text-white text-xs font-mono">#{coinInfo.market_data.market_cap_rank}</p></div>}
-                        {coinInfo.market_data.total_volume != null && <div><p className="text-text-muted text-[9px] uppercase">24h Volume</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.total_volume)}</p></div>}
-                        {coinInfo.market_data.price_change_24h_pct != null && <div><p className="text-text-muted text-[9px] uppercase">24h</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_24h_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_24h_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_24h_pct.toFixed(2)}%</p></div>}
-                        {coinInfo.market_data.price_change_7d_pct != null && <div><p className="text-text-muted text-[9px] uppercase">7d</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_7d_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_7d_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_7d_pct.toFixed(2)}%</p></div>}
-                        {coinInfo.market_data.ath != null && <div><p className="text-text-muted text-[9px] uppercase">ATH</p><p className="text-white text-xs font-mono">${coinInfo.market_data.ath.toLocaleString()}</p>{coinInfo.market_data.ath_change_pct != null && <p className="text-red-400/70 text-[8px] font-mono">{coinInfo.market_data.ath_change_pct.toFixed(1)}%</p>}</div>}
-                        {coinInfo.market_data.circulating_supply != null && <div><p className="text-text-muted text-[9px] uppercase">Supply</p><p className="text-white text-xs">{(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M</p></div>}
-                      </div>
-                    )}
-                    {coinInfo.links && (
-                      <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
-                        {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">🌐 Website</a>}
-                        {coinInfo.links.twitter && <a href={`https://twitter.com/${coinInfo.links.twitter}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors">🐦 @{coinInfo.links.twitter}</a>}
-                        {coinInfo.links.telegram && <a href={`https://t.me/${coinInfo.links.telegram}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors">📨 Telegram</a>}
-                        {coinInfo.links.subreddit && <a href={coinInfo.links.subreddit} target="_blank" rel="noopener noreferrer" className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors">🤖 Reddit</a>}
-                        {coinInfo.links.github && <a href={coinInfo.links.github} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors">💻 GitHub</a>}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!coinInfo && !coinInfoLoading && (
-                  <div className="bg-[#111] rounded-xl p-4 border border-white/5 mb-5 text-center">
-                    <p className="text-text-muted text-xs">Coin info not available for <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
-                  </div>
-                )}
-
-                <div className="mb-4 sm:mb-5">
-                  <p className="text-gold-primary text-xs font-semibold mb-3">🔗 Research Links</p>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {researchLinks.map((link, i) => (
-                      <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-lg transition-all group border active:scale-95`}>
-                        <img src={link.logo} alt={link.name} className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} />
-                        <span className="text-[10px] sm:text-[11px] font-medium text-white/80 group-hover:text-white whitespace-nowrap">{link.name}</span><LinkIcon />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-gold-primary text-xs font-semibold mb-3">💬 Sentiment</p>
-                  <a href={sentimentLinks[0].url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-br from-gray-700/20 to-gray-900/10 rounded-xl border border-gray-600/30 hover:border-gray-500/50 group transition-all active:scale-[0.98]">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0"><img src={sentimentLinks[0].logo} alt="X" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = sentimentLinks[0].fallbackLogo; }} /></div>
-                    <div className="flex-1 min-w-0"><p className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">Twitter / X Live Feed</p><p className="text-text-muted text-xs sm:text-sm truncate">See what traders say about ${coinSymbol}</p></div>
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-hover:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* === GLOBAL STYLES === */}
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(212,168,83,0.3);border-radius:2px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,0.5)}
-        #tv_chart_modal{background:#0d0d0d!important}#tv_chart_modal .tradingview-widget-container{background:#0d0d0d!important}#tv_chart_modal .tradingview-widget-container__widget{background:#0d0d0d!important}#tv_chart_modal .tradingview-widget-copyright{display:none!important}#tv_chart_modal iframe{background:#0d0d0d!important;border:none!important}
+        /* NUCLEAR OPTION: When modal is open, HIDE everything that could overlap */
+        body.signal-modal-open > *:not(.signal-modal-overlay):not(script):not(style):not(link) {
+          visibility: hidden !important;
+        }
+        body.signal-modal-open .signal-modal-overlay {
+          visibility: visible !important;
+        }
+        body.signal-modal-open .signal-modal-overlay * {
+          visibility: visible !important;
+        }
+
+        /* Also force-hide any fixed/sticky elements */
+        body.signal-modal-open header,
+        body.signal-modal-open nav,
+        body.signal-modal-open [class*="bottom-nav"],
+        body.signal-modal-open [class*="mobile-nav"],
+        body.signal-modal-open [class*="tab-bar"],
+        body.signal-modal-open footer {
+          display: none !important;
+        }
+
+        .signal-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .signal-modal-backdrop {
+          position: absolute;
+          inset: 0;
+          background: #0a0506;
+          opacity: 0.98;
+        }
+        .signal-modal-container {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+        }
+        .signal-modal-content {
+          position: relative;
+          width: 100%;
+          max-width: 1400px;
+          height: 100%;
+          max-height: 880px;
+          background: #0a0506;
+          border: 1px solid rgba(212,168,83,0.4);
+          border-radius: 16px;
+          box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        @media(max-width:639px) {
+          .signal-modal-container { padding: 4px; align-items: stretch; }
+          .signal-modal-content { max-height: 100%; height: 100%; border-radius: 12px; }
+        }
+        @media(min-width:640px) and (max-width:1023px) {
+          .signal-modal-container { padding: 12px; }
+          .signal-modal-content { max-height: calc(100vh - 24px); }
+        }
+        @media(min-width:1024px) {
+          .signal-modal-container { padding: 20px; }
+        }
+        @supports(height:100dvh) {
+          .signal-modal-overlay { height: 100dvh; }
+        }
+
+        /* Animations */
+        .signal-modal-backdrop { animation: smBI .25s ease-out; }
+        .signal-modal-content { animation: smCI .3s cubic-bezier(.16,1,.3,1); }
+        .signal-modal-closing .signal-modal-backdrop { animation: smBO .2s ease-in forwards; }
+        .signal-modal-closing .signal-modal-content { animation: smCO .2s ease-in forwards; }
+        @keyframes smBI { from{opacity:0} to{opacity:1} }
+        @keyframes smBO { from{opacity:1} to{opacity:0} }
+        @keyframes smCI { from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes smCO { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(16px) scale(.97)} }
+        @media(max-width:639px) {
+          .signal-modal-content { animation: smUp .3s cubic-bezier(.16,1,.3,1); }
+          .signal-modal-closing .signal-modal-content { animation: smDn .2s ease-in forwards; }
+          @keyframes smUp { from{opacity:0;transform:translateY(60px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes smDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(60px)} }
+        }
+
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
+
+        /* TradingView */
+        #tv_chart_modal { background: #0d0d0d !important; }
+        #tv_chart_modal .tradingview-widget-container { background: #0d0d0d !important; }
+        #tv_chart_modal .tradingview-widget-container__widget { background: #0d0d0d !important; }
+        #tv_chart_modal .tradingview-widget-copyright { display: none !important; }
+        #tv_chart_modal iframe { background: #0d0d0d !important; border: none !important; }
       `}</style>
-    </div>
+    </>
   );
 };
 
