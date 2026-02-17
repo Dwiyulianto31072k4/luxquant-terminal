@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import CoinLogo from './CoinLogo';
 
 const SignalModal = ({ signal, isOpen, onClose }) => {
@@ -16,15 +17,13 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     setTimeout(() => { setIsClosing(false); onClose(); }, 200);
   };
 
-  // CRITICAL: Add/remove body class to hide header & bottom nav
+  // Lock body scroll when modal is open (no more hiding header/nav)
   useEffect(() => {
     if (isOpen) {
-      document.body.classList.add('signal-modal-open');
       document.body.style.overflow = 'hidden';
     }
     return () => {
-      document.body.classList.remove('signal-modal-open');
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -188,15 +187,18 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
         {isCompact ? (
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((t, i) => (
-              <div key={i} className={`px-2 py-1.5 rounded-lg flex items-center justify-between ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-4 h-4 rounded text-[7px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
-                  <div>
-                    <span className={`text-[10px] font-semibold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span>
-                    <p className={`text-[9px] font-mono ${t.hit ? 'text-white/70' : 'text-text-muted/60'}`}>{formatPrice(t.value)}</p>
+              <div key={i} className={`px-2 py-1.5 rounded-lg ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-4 h-4 rounded text-[7px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
+                    <div>
+                      <span className={`text-[10px] font-semibold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label}</span>
+                      <p className={`text-[9px] font-mono ${t.hit ? 'text-white/70' : 'text-text-muted/60'}`}>{formatPrice(t.value)}</p>
+                    </div>
                   </div>
+                  <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>+{t.pct}%</span>
+                {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/60 mt-0.5 pl-[22px]">✓ {formatShortDateTime(t.reachedAt)}</p>}
               </div>
             ))}
           </div>
@@ -256,12 +258,35 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             )}
           </>
         )}
+        {/* Compact: inline row for Volume Rank + Risk + Market Cap */}
+        {isCompact && (signal.volume_rank_num || signal.risk_level || signal.market_cap) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {signal.volume_rank_num && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
+                <span className="text-text-muted text-[9px]">📊</span>
+                <span className="text-white text-[10px] font-bold">#{signal.volume_rank_num}</span>
+                <span className="text-text-muted text-[9px]">/ {signal.volume_rank_den}</span>
+              </div>
+            )}
+            {signal.risk_level && (
+              <div className={`px-2 py-1 rounded-lg text-[9px] font-bold ${signal.risk_level?.toLowerCase().startsWith('low') ? 'bg-green-500/15 text-green-400 border border-green-500/20' : signal.risk_level?.toLowerCase().startsWith('high') ? 'bg-red-500/15 text-red-400 border border-red-500/20' : 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'}`}>
+                {signal.risk_level}
+              </div>
+            )}
+            {signal.market_cap && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
+                <span className="text-text-muted text-[9px]">Cap</span>
+                <span className="text-white text-[9px] font-medium">{signal.market_cap}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
 
   // ========== RENDER ==========
-  return (
+  const modalContent = (
     <>
       <div className={`signal-modal-overlay ${isClosing ? 'signal-modal-closing' : ''}`}>
         <div className="signal-modal-backdrop" onClick={handleClose} />
@@ -310,13 +335,16 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
               {/* CHART TAB */}
               {activeTab === 'chart' && (
                 <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+                  {/* Chart area - on mobile take remaining space minus panel */}
                   <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
                     <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
                   </div>
+                  {/* Desktop sidebar */}
                   <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
                     <TargetsPanel layout="sidebar" />
                   </div>
-                  <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar" style={{ maxHeight: '35vh' }}>
+                  {/* Mobile bottom panel - scrollable */}
+                  <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
                     <TargetsPanel layout="bottom" />
                   </div>
                 </div>
@@ -486,42 +514,21 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* === GLOBAL STYLES === */}
+      {/* === STYLES === */}
       <style>{`
-        /* NUCLEAR OPTION: When modal is open, HIDE everything that could overlap */
-        body.signal-modal-open > *:not(.signal-modal-overlay):not(script):not(style):not(link) {
-          visibility: hidden !important;
-        }
-        body.signal-modal-open .signal-modal-overlay {
-          visibility: visible !important;
-        }
-        body.signal-modal-open .signal-modal-overlay * {
-          visibility: visible !important;
-        }
-
-        /* Also force-hide any fixed/sticky elements */
-        body.signal-modal-open header,
-        body.signal-modal-open nav,
-        body.signal-modal-open [class*="bottom-nav"],
-        body.signal-modal-open [class*="mobile-nav"],
-        body.signal-modal-open [class*="tab-bar"],
-        body.signal-modal-open footer {
-          display: none !important;
-        }
-
         .signal-modal-overlay {
           position: fixed;
           inset: 0;
-          z-index: 99999;
+          z-index: 100000;
           display: flex;
           align-items: center;
           justify-content: center;
+          isolation: isolate;
         }
         .signal-modal-backdrop {
           position: absolute;
           inset: 0;
-          background: #0a0506;
-          opacity: 0.98;
+          background: rgba(0, 0, 0, 0.85);
         }
         .signal-modal-container {
           position: relative;
@@ -531,35 +538,53 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 8px;
+          padding: 0;
         }
         .signal-modal-content {
           position: relative;
           width: 100%;
           max-width: 1400px;
           height: 100%;
-          max-height: 880px;
           background: #0a0506;
           border: 1px solid rgba(212,168,83,0.4);
-          border-radius: 16px;
-          box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1);
           display: flex;
           flex-direction: column;
           overflow: hidden;
         }
-        @media(max-width:639px) {
-          .signal-modal-container { padding: 4px; align-items: stretch; }
-          .signal-modal-content { max-height: 100%; height: 100%; border-radius: 12px; }
-        }
-        @media(min-width:640px) and (max-width:1023px) {
+
+        /* Desktop: centered card with padding and rounded corners */
+        @media(min-width:640px) {
           .signal-modal-container { padding: 12px; }
-          .signal-modal-content { max-height: calc(100vh - 24px); }
+          .signal-modal-content {
+            max-height: calc(100vh - 24px);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1);
+          }
         }
         @media(min-width:1024px) {
           .signal-modal-container { padding: 20px; }
+          .signal-modal-content { max-height: 880px; }
         }
+
+        /* Mobile: true fullscreen, no gaps, no border */
+        @media(max-width:639px) {
+          .signal-modal-content {
+            max-height: 100%;
+            height: 100%;
+            border-radius: 0;
+            border: none;
+          }
+        }
+
         @supports(height:100dvh) {
           .signal-modal-overlay { height: 100dvh; }
+        }
+
+        /* Mobile targets panel */
+        .mobile-targets-panel {
+          max-height: 40vh;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         /* Animations */
@@ -569,13 +594,13 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
         .signal-modal-closing .signal-modal-content { animation: smCO .2s ease-in forwards; }
         @keyframes smBI { from{opacity:0} to{opacity:1} }
         @keyframes smBO { from{opacity:1} to{opacity:0} }
-        @keyframes smCI { from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
-        @keyframes smCO { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(16px) scale(.97)} }
+        @keyframes smCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+        @keyframes smCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
         @media(max-width:639px) {
           .signal-modal-content { animation: smUp .3s cubic-bezier(.16,1,.3,1); }
           .signal-modal-closing .signal-modal-content { animation: smDn .2s ease-in forwards; }
-          @keyframes smUp { from{opacity:0;transform:translateY(60px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes smDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(60px)} }
+          @keyframes smUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes smDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
         }
 
         /* Scrollbar */
@@ -593,6 +618,8 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
       `}</style>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default SignalModal;

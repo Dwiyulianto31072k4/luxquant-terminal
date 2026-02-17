@@ -3,7 +3,7 @@ import CoinLogo from './CoinLogo';
 
 /**
  * TopGainersSection - Top Gainer by LuxQuant Algorithm
- * Shows top gaining signals and fastest TP hits with stat cards
+ * Enhanced UI with medal ranks, animated stats, entry price display
  */
 const TopGainersSection = () => {
   const [data, setData] = useState(null);
@@ -223,14 +223,8 @@ const TopGainersSection = () => {
         </div>
       )}
 
-      {/* Stat Cards */}
+      {/* Stat Cards — Enhanced */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard
-          icon="📊"
-          label="Avg Gain Top 5"
-          value={`+${stats.avg_gain_top5.toFixed(2)}%`}
-          valueColor="text-positive"
-        />
         <StatCard
           icon="🎯"
           label="Total TP Hits"
@@ -238,8 +232,14 @@ const TopGainersSection = () => {
           valueColor="text-gold-primary"
         />
         <StatCard
-          icon="⚡"
-          label="Avg Time to Hit"
+          icon="🚀"
+          label="Avg Gain (Top 5)"
+          value={`+${stats.avg_gain_top5.toFixed(2)}%`}
+          valueColor="text-positive"
+        />
+        <StatCard
+          icon="⏱️"
+          label="Avg Duration"
           value={stats.avg_time_label || '-'}
           valueColor="text-cyan-400"
         />
@@ -256,11 +256,14 @@ const TopGainersSection = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Gainers */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center gap-2">
-            <span className="text-base">🏆</span>
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
-              Top Gainers by LuxQuant Algorithm Call
-            </h3>
+          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏆</span>
+              <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
+                Top Gainers
+              </h3>
+            </div>
+            <span className="text-text-muted text-[10px] uppercase tracking-wider">by % gain</span>
           </div>
           <div className="divide-y divide-gold-primary/5">
             {data.top_gainers.length === 0 ? (
@@ -277,11 +280,14 @@ const TopGainersSection = () => {
 
         {/* Fastest Hits */}
         <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center gap-2">
-            <span className="text-base">⚡</span>
-            <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
-              Fastest Hits by LuxQuant Algorithm Call
-            </h3>
+          <div className="px-4 py-3 border-b border-gold-primary/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <h3 className="text-white font-semibold text-sm uppercase tracking-wider">
+                Fastest Hits
+              </h3>
+            </div>
+            <span className="text-text-muted text-[10px] uppercase tracking-wider">by speed</span>
           </div>
           <div className="divide-y divide-gold-primary/5">
             {data.fastest_hits.length === 0 ? (
@@ -308,54 +314,83 @@ const TopGainersSection = () => {
 };
 
 
-// ============ Stat Card ============
+// ============ Stat Card — Enhanced ============
 const StatCard = ({ icon, label, value, sub, valueColor = 'text-white' }) => (
-  <div className="glass-card rounded-xl p-4 border border-gold-primary/10 hover:border-gold-primary/20 transition-colors">
+  <div className="glass-card rounded-xl p-4 border border-gold-primary/10 hover:border-gold-primary/25 transition-all group">
     <div className="flex items-center gap-2 mb-2">
       <span className="text-base">{icon}</span>
       <p className="text-text-muted text-[11px] uppercase tracking-wider">{label}</p>
     </div>
-    <p className={`text-xl font-display font-bold ${valueColor}`}>{value}</p>
+    <p className={`text-xl font-display font-bold ${valueColor} group-hover:scale-[1.02] transition-transform origin-left`}>{value}</p>
     {sub && <p className="text-text-muted text-xs mt-0.5 font-mono">{sub}</p>}
   </div>
 );
 
 
-// ============ Gainer/Fastest Row ============
+// ============ Gainer/Fastest Row — Enhanced ============
 const GainerRow = ({ item, type, getTPColor }) => {
   const tpColors = getTPColor(item.tp_level);
 
+  // Medal for top 3
+  const getMedalEmoji = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return null;
+  };
+
+  const medal = getMedalEmoji(item.rank);
+  const formatPrice = (p) => {
+    if (!p) return '';
+    if (p < 0.0001) return p.toFixed(8);
+    if (p < 0.01) return p.toFixed(6);
+    if (p < 1) return p.toFixed(4);
+    return p < 100 ? p.toFixed(4) : p.toFixed(2);
+  };
+
   return (
-    <div className="flex items-center justify-between px-4 py-3 hover:bg-gold-primary/5 cursor-pointer transition-colors group">
+    <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gold-primary/5 cursor-pointer transition-all group">
       {/* Left: Rank + Coin Logo + Pair + TP Badge */}
-      <div className="flex items-center gap-3">
-        {/* Rank */}
-        <span className="text-text-muted text-sm font-mono w-6 text-center">
-          #{item.rank}
-        </span>
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        {/* Rank with medal */}
+        <div className="w-7 flex-shrink-0 text-center">
+          {medal ? (
+            <span className="text-base leading-none">{medal}</span>
+          ) : (
+            <span className="text-text-muted text-sm font-mono">#{item.rank}</span>
+          )}
+        </div>
 
         {/* Coin Logo */}
         <CoinLogo pair={item.pair} size={32} />
 
-        {/* Pair + TP Badge */}
-        <div className="flex items-center gap-2">
-          <span className="text-white font-semibold text-sm tracking-wide">
-            {item.pair}
-          </span>
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${tpColors.bg} ${tpColors.text}`}>
-            {item.tp_level}
-          </span>
+        {/* Pair + TP Badge + Entry Price */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-semibold text-sm tracking-wide truncate group-hover:text-gold-primary transition-colors">
+              {item.pair}
+            </span>
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 ${tpColors.bg} ${tpColors.text}`}>
+              {item.tp_level}
+            </span>
+          </div>
+          {/* Entry price subtitle */}
+          {item.entry && (
+            <p className="text-text-muted text-[10px] font-mono mt-0.5">
+              Entry: {formatPrice(item.entry)}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Right: Gain% + Duration */}
-      <div className="text-right">
+      {/* Right: Gain% + Duration — show both for both types */}
+      <div className="text-right flex-shrink-0 ml-2">
         {type === 'gainer' ? (
           <>
             <p className="text-positive font-mono font-bold text-sm">
               +{item.gain_pct.toFixed(2)}%
             </p>
-            <p className="text-text-muted text-[11px] font-mono">
+            <p className="text-text-muted text-[10px] font-mono">
               {item.duration_label}
             </p>
           </>
@@ -364,7 +399,7 @@ const GainerRow = ({ item, type, getTPColor }) => {
             <p className="text-cyan-400 font-mono font-bold text-sm">
               {item.duration_label}
             </p>
-            <p className="text-positive text-[11px] font-mono">
+            <p className="text-positive text-[10px] font-mono">
               +{item.gain_pct.toFixed(2)}%
             </p>
           </>
