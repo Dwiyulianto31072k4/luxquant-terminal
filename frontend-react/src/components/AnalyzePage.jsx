@@ -25,7 +25,6 @@ const AnalyzePage = () => {
   const [sigOrder, setSigOrder] = useState('desc');
   const [selectedSignal, setSelectedSignal] = useState(null);
 
-  // Mobile filter toggle for signal history
   const [showSigFilters, setShowSigFilters] = useState(false);
 
   useEffect(() => { fetchAnalyzeData(); }, [timeRange, trendMode]);
@@ -117,47 +116,115 @@ const AnalyzePage = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* HERO STATS ROW                             */}
+      {/* PREMIUM HERO DASHBOARD                     */}
       {/* ═══════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
-        <HeroStat
-          label="Total Signals"
-          value={data.stats.total_signals.toLocaleString()}
-          accent="blue"
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>}
-        />
-        <HeroStat
-          label="Closed"
-          value={data.stats.closed_trades.toLocaleString()}
-          sub={`${data.stats.open_signals} open`}
-          accent="purple"
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-        />
-        <HeroStat
-          label="Win Rate"
-          value={`${data.stats.win_rate.toFixed(1)}%`}
-          accent={data.stats.win_rate >= 75 ? 'green' : data.stats.win_rate >= 55 ? 'yellow' : 'red'}
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>}
-          highlight
-        />
-        <HeroStat
-          label="Winners"
-          value={data.stats.total_winners.toLocaleString()}
-          accent="green"
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172" /></svg>}
-        />
-        <HeroStat
-          label="Stop Loss"
-          value={data.stats.sl_count.toLocaleString()}
-          accent="red"
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" /></svg>}
-        />
-        <HeroStat
-          label="Active Pairs"
-          value={data.stats.active_pairs}
-          accent="cyan"
-          icon={<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" /></svg>}
-        />
+      <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+
+        <div className="relative p-4 lg:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-5 lg:gap-8 items-center">
+            
+            {/* LEFT: Key metrics */}
+            <div className="space-y-3 lg:space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Total Signals</p>
+                  <p className="text-2xl lg:text-3xl font-display font-bold text-white leading-none">{data.stats.total_signals.toLocaleString()}</p>
+                  <p className="text-text-muted text-[10px] mt-1">{data.stats.active_pairs} active pairs</p>
+                </div>
+                <div>
+                  <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Closed Trades</p>
+                  <p className="text-2xl lg:text-3xl font-display font-bold text-purple-400 leading-none">{data.stats.closed_trades.toLocaleString()}</p>
+                  <p className="text-text-muted text-[10px] mt-1">{data.stats.open_signals.toLocaleString()} still open</p>
+                </div>
+              </div>
+
+              <div className="bg-bg-primary/50 rounded-xl p-3 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-green-400 text-xs font-semibold">{data.stats.total_winners.toLocaleString()} Winners</span>
+                  <span className="text-red-400 text-xs font-semibold">{data.stats.sl_count.toLocaleString()} Losses</span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden flex bg-bg-card/80">
+                  {(() => {
+                    const total = data.stats.total_winners + data.stats.sl_count;
+                    const winPct = total > 0 ? (data.stats.total_winners / total * 100) : 0;
+                    return (
+                      <>
+                        <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-l-full transition-all duration-1000" style={{ width: `${winPct}%` }} />
+                        <div className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-r-full transition-all duration-1000" style={{ width: `${100 - winPct}%` }} />
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-bg-primary/30 rounded-lg px-3 py-2.5 border border-gold-primary/10">
+                <div className="w-8 h-8 rounded-lg bg-gold-primary/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+                </div>
+                <div>
+                  <p className="text-text-muted text-[9px] uppercase tracking-wider">Avg Risk:Reward</p>
+                  <p className="text-gold-primary font-mono font-bold text-lg leading-none">{data.avg_risk_reward?.toFixed(2) || '0'}R</p>
+                </div>
+              </div>
+            </div>
+
+            {/* CENTER: Win Rate Ring */}
+            <div className="flex flex-col items-center justify-center order-first lg:order-none">
+              <div className="relative w-44 h-44 lg:w-52 lg:h-52">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
+                  <circle
+                    cx="60" cy="60" r="50" fill="none"
+                    stroke={data.stats.win_rate >= 75 ? '#22C55E' : data.stats.win_rate >= 55 ? '#EAB308' : '#EF4444'}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(data.stats.win_rate / 100) * 314.16} 314.16`}
+                    className="transition-all duration-1000"
+                    style={{ filter: `drop-shadow(0 0 6px ${data.stats.win_rate >= 75 ? 'rgba(34,197,94,0.4)' : data.stats.win_rate >= 55 ? 'rgba(234,179,8,0.4)' : 'rgba(239,68,68,0.4)'})` }}
+                  />
+                  <circle cx="60" cy="60" r="42" fill="none" stroke="rgba(212,168,83,0.06)" strokeWidth="1" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-text-muted text-[9px] uppercase tracking-[0.15em] font-medium">Win Rate</p>
+                  <p className={`text-4xl lg:text-5xl font-display font-bold leading-none mt-1 ${data.stats.win_rate >= 75 ? 'text-green-400' : data.stats.win_rate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {data.stats.win_rate.toFixed(1)}
+                    <span className="text-lg lg:text-xl">%</span>
+                  </p>
+                  <p className="text-text-muted text-[10px] mt-1">{data.stats.closed_trades.toLocaleString()} closed</p>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: TP Breakdown */}
+            <div className="space-y-2.5">
+              <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-1">Outcome Distribution</p>
+              {[
+                { label: 'TP1', count: data.stats.tp1_count, color: 'bg-green-500', textColor: 'text-green-400' },
+                { label: 'TP2', count: data.stats.tp2_count, color: 'bg-lime-500', textColor: 'text-lime-400' },
+                { label: 'TP3', count: data.stats.tp3_count, color: 'bg-yellow-500', textColor: 'text-yellow-400' },
+                { label: 'TP4', count: data.stats.tp4_count, color: 'bg-orange-500', textColor: 'text-orange-400' },
+                { label: 'SL', count: data.stats.sl_count, color: 'bg-red-500', textColor: 'text-red-400' },
+              ].map(tp => {
+                const total = data.stats.closed_trades || 1;
+                const pct = (tp.count / total * 100);
+                return (
+                  <div key={tp.label} className="flex items-center gap-2.5">
+                    <span className={`text-[10px] font-bold w-6 ${tp.textColor}`}>{tp.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-bg-card/80 overflow-hidden">
+                      <div className={`h-full rounded-full ${tp.color} transition-all duration-700`} style={{ width: `${Math.max(pct, 1)}%` }} />
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-[80px] justify-end">
+                      <span className="text-white text-[11px] font-mono font-semibold">{tp.count.toLocaleString()}</span>
+                      <span className="text-text-muted text-[9px] font-mono">{pct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════ */}
@@ -187,10 +254,9 @@ const AnalyzePage = () => {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* R:R + OUTCOME BREAKDOWN (side by side)     */}
+      {/* R:R + OUTCOME BREAKDOWN                    */}
       {/* ═══════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
-        {/* Risk:Reward */}
         <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
           <div className="mb-3 lg:mb-4">
@@ -202,7 +268,6 @@ const AnalyzePage = () => {
           <RiskRewardChart data={data.risk_reward} />
         </div>
 
-        {/* Outcome Breakdown */}
         <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
           <div className="mb-3 lg:mb-4">
@@ -227,7 +292,6 @@ const AnalyzePage = () => {
           <div className="text-center py-8 text-text-muted text-sm">Loading risk data...</div>
         ) : (
           <>
-            {/* Risk Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 mb-5">
               {data.risk_distribution.map((rd) => {
                 const colorMap = {
@@ -242,7 +306,6 @@ const AnalyzePage = () => {
 
                 return (
                   <div key={rd.risk_level} className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} border ${c.border} shadow-lg ${c.glow}`}>
-                    {/* Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-2.5 h-2.5 rounded-full ${c.dot} ring-4 ${c.ring}`} />
@@ -251,11 +314,9 @@ const AnalyzePage = () => {
                       <span className="text-text-muted text-[10px] font-mono bg-bg-card/50 px-2 py-0.5 rounded-full">{pct}%</span>
                     </div>
 
-                    {/* Win Rate - big number */}
                     <p className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none`}>{rd.win_rate.toFixed(1)}%</p>
                     <p className="text-text-muted text-[10px] mt-1 mb-3">Win Rate</p>
 
-                    {/* W/L visual bar */}
                     <div className="h-2 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
                       <div className="h-full bg-green-500/80 rounded-l-full transition-all duration-700" style={{ width: `${winPct}%` }} />
                       <div className="h-full bg-red-500/80 rounded-r-full transition-all duration-700" style={{ width: `${100 - winPct}%` }} />
@@ -265,7 +326,6 @@ const AnalyzePage = () => {
                       <span className="text-red-400 font-mono">{rd.losers.toLocaleString()} L</span>
                     </div>
 
-                    {/* Footer stats */}
                     <div className="pt-3 border-t border-white/5 grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-text-muted text-[9px] uppercase tracking-wider">Signals</p>
@@ -281,14 +341,12 @@ const AnalyzePage = () => {
               })}
             </div>
 
-            {/* Signal Distribution donut */}
             {(() => {
               const totalSig = data.risk_distribution.reduce((s, r) => s + r.total_signals, 0);
               const colors = { 'Low': '#22C55E', 'Normal': '#EAB308', 'High': '#EF4444' };
               if (totalSig === 0) return null;
               return (
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-3 lg:p-4 rounded-xl bg-bg-card/30 border border-gold-primary/5">
-                  {/* Visual bar */}
                   <div className="w-full sm:w-64 h-3 rounded-full overflow-hidden flex bg-bg-card/80 flex-shrink-0">
                     {data.risk_distribution.map((rd, i) => (
                       <div key={i} className="h-full transition-all duration-700" style={{ width: `${(rd.total_signals / totalSig * 100)}%`, backgroundColor: colors[rd.risk_level] }} />
@@ -307,7 +365,6 @@ const AnalyzePage = () => {
               );
             })()}
 
-            {/* Risk Trend Chart */}
             {data.risk_trend && data.risk_trend.length > 0 && (
               <div className="mt-5">
                 <p className="text-text-muted text-[10px] uppercase tracking-wider mb-3">Win Rate Trend by Risk Level</p>
@@ -324,7 +381,6 @@ const AnalyzePage = () => {
       <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
         
-        {/* Header */}
         <div className="p-4 lg:p-6 pb-0 lg:pb-0">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
@@ -334,9 +390,7 @@ const AnalyzePage = () => {
           </div>
         </div>
 
-        {/* Filters - collapsible on mobile */}
         <div className="px-4 lg:px-6">
-          {/* Mobile toggle */}
           <button
             onClick={() => setShowSigFilters(!showSigFilters)}
             className="lg:hidden w-full flex items-center justify-between py-2.5 mb-2"
@@ -405,12 +459,10 @@ const AnalyzePage = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="px-4 lg:px-6 py-4">
           <FullSignalTable signals={signals} loading={sigLoading} onSelect={setSelectedSignal} />
         </div>
 
-        {/* Pagination */}
         {sigTotalPages > 1 && (
           <div className="flex items-center justify-between px-4 lg:px-6 py-3 lg:py-4 border-t border-gold-primary/10">
             <p className="text-text-muted text-xs lg:text-sm">
@@ -426,7 +478,6 @@ const AnalyzePage = () => {
         )}
       </div>
 
-      {/* Modal */}
       <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />
     </div>
   );
@@ -434,35 +485,7 @@ const AnalyzePage = () => {
 
 
 // ============================================
-// HERO STAT CARD (enhanced)
-// ============================================
-const accentMap = {
-  blue:   { bg: 'from-blue-500/[0.08] to-blue-500/[0.02]', border: 'border-blue-500/15', text: 'text-blue-400', icon: 'bg-blue-500/15 text-blue-400' },
-  purple: { bg: 'from-purple-500/[0.08] to-purple-500/[0.02]', border: 'border-purple-500/15', text: 'text-purple-400', icon: 'bg-purple-500/15 text-purple-400' },
-  green:  { bg: 'from-green-500/[0.08] to-green-500/[0.02]', border: 'border-green-500/15', text: 'text-green-400', icon: 'bg-green-500/15 text-green-400' },
-  yellow: { bg: 'from-yellow-500/[0.08] to-yellow-500/[0.02]', border: 'border-yellow-500/15', text: 'text-yellow-400', icon: 'bg-yellow-500/15 text-yellow-400' },
-  red:    { bg: 'from-red-500/[0.08] to-red-500/[0.02]', border: 'border-red-500/15', text: 'text-red-400', icon: 'bg-red-500/15 text-red-400' },
-  cyan:   { bg: 'from-cyan-500/[0.08] to-cyan-500/[0.02]', border: 'border-cyan-500/15', text: 'text-cyan-400', icon: 'bg-cyan-500/15 text-cyan-400' },
-  gold:   { bg: 'from-gold-primary/[0.08] to-gold-primary/[0.02]', border: 'border-gold-primary/15', text: 'text-gold-primary', icon: 'bg-gold-primary/15 text-gold-primary' },
-};
-
-const HeroStat = ({ label, value, sub, accent = 'gold', icon, highlight }) => {
-  const a = accentMap[accent] || accentMap.gold;
-  return (
-    <div className={`rounded-xl p-3 lg:p-4 bg-gradient-to-b ${a.bg} border ${a.border} ${highlight ? 'ring-1 ring-gold-primary/20' : ''}`}>
-      <div className="flex items-center justify-between mb-1.5 lg:mb-2">
-        <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-semibold">{label}</p>
-        <div className={`w-6 h-6 lg:w-7 lg:h-7 rounded-lg ${a.icon} flex items-center justify-center`}>{icon}</div>
-      </div>
-      <p className={`text-xl lg:text-2xl font-display font-bold ${a.text}`}>{value}</p>
-      {sub && <p className="text-text-muted text-[10px] mt-0.5">{sub}</p>}
-    </div>
-  );
-};
-
-
-// ============================================
-// TP BREAKDOWN — enhanced stacked bar + grid
+// TP BREAKDOWN
 // ============================================
 const TPBreakdown = ({ data }) => {
   const total = data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
@@ -478,7 +501,6 @@ const TPBreakdown = ({ data }) => {
 
   return (
     <div>
-      {/* Stacked bar */}
       <div className="h-3 lg:h-4 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5 mb-4">
         {items.filter(i => i.count > 0).map((item, idx) => (
           <div key={idx} style={{ width: `${(item.count / total * 100)}%`, backgroundColor: item.color }}
@@ -491,8 +513,6 @@ const TPBreakdown = ({ data }) => {
           </div>
         ))}
       </div>
-
-      {/* Cards - 5 cols on desktop, scroll or wrap on mobile */}
       <div className="grid grid-cols-5 gap-1.5 lg:gap-2">
         {items.map((item, i) => (
           <div key={i} className={`rounded-lg p-2 lg:p-3 bg-gradient-to-b ${item.bg} border ${item.border} text-center`}>
@@ -591,7 +611,7 @@ const RiskRewardChart = ({ data }) => {
 
 
 // ============================================
-// RISK TREND CHART (multi-line)
+// RISK TREND CHART
 // ============================================
 const RiskTrendChart = ({ data, mode }) => {
   if (!data || data.length === 0) return <div className="h-44 lg:h-56 flex items-center justify-center text-text-muted text-sm">Not enough data</div>;
@@ -634,7 +654,7 @@ const RiskTrendChart = ({ data, mode }) => {
 
 
 // ============================================
-// FULL SIGNAL TABLE (enhanced)
+// FULL SIGNAL TABLE
 // ============================================
 const FullSignalTable = ({ signals, loading, onSelect }) => {
   const formatPrice = (p) => {
@@ -689,7 +709,6 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
 
   return (
     <>
-      {/* Desktop table */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -740,7 +759,6 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
         </table>
       </div>
 
-      {/* Mobile cards */}
       <div className="lg:hidden space-y-2">
         {signals.map((s, i) => {
           const mt = getMaxTarget(s);
@@ -748,7 +766,6 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
           return (
             <div key={i} onClick={() => onSelect(s)}
               className="glass-card rounded-xl p-3 border border-gold-primary/10 active:border-gold-primary/30 transition-all cursor-pointer">
-              {/* Top row */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <CoinLogo pair={s.pair} size={28} />
@@ -762,7 +779,6 @@ const FullSignalTable = ({ signals, loading, onSelect }) => {
                   {statusBadge(s.status)}
                 </div>
               </div>
-              {/* Price row */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-text-muted text-[8px] uppercase">Entry</p>
@@ -799,13 +815,20 @@ const LoadingSkeleton = () => (
       <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
       <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Performance Analytics</h2>
     </div>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-gold-primary/10 animate-pulse">
-          <div className="h-3 bg-gold-primary/10 rounded w-14 mb-2" />
-          <div className="h-6 bg-gold-primary/10 rounded w-12" />
+    <div className="glass-card rounded-2xl p-6 border border-gold-primary/10 animate-pulse">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+        <div className="space-y-3">
+          <div className="h-8 bg-gold-primary/10 rounded w-32" />
+          <div className="h-8 bg-gold-primary/10 rounded w-28" />
+          <div className="h-10 bg-gold-primary/10 rounded" />
         </div>
-      ))}
+        <div className="flex justify-center">
+          <div className="w-44 h-44 rounded-full border-8 border-gold-primary/10" />
+        </div>
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gold-primary/10 rounded" />)}
+        </div>
+      </div>
     </div>
     <div className="glass-card rounded-2xl p-4 lg:p-6 h-64 lg:h-80 animate-pulse border border-gold-primary/10">
       <div className="h-4 bg-gold-primary/10 rounded w-32 mb-2" />

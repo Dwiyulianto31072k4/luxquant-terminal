@@ -85,7 +85,7 @@ function AppContent() {
       label: "Performance",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />
         </svg>
       ),
     },
@@ -95,7 +95,7 @@ function AppContent() {
       isCenter: true,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
         </svg>
       ),
     },
@@ -165,7 +165,7 @@ function AppContent() {
           <div className="flex items-center justify-between h-14 lg:h-16">
 
             {/* LEFT: Hamburger + Logo + Nav */}
-            <div className="flex items-center gap-3 lg:gap-8">
+            <div className="flex items-center gap-2 lg:gap-8">
               {/* Hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -179,16 +179,14 @@ function AppContent() {
                 </div>
               </button>
 
-              {/* Logo */}
-              <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => handleTabClick("terminal")}>
-                <div className="w-10 h-10 relative">
+              {/* Logo — always show text on all screen sizes */}
+              <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleTabClick("terminal")}>
+                <div className="w-9 h-9 lg:w-10 lg:h-10 relative">
                   <img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105" />
                 </div>
-                <div className="hidden sm:block">
-                  <h1 className="font-display text-base lg:text-lg font-semibold text-white tracking-wide leading-tight group-hover:text-gold-primary transition-colors">
-                    LuxQuant
-                  </h1>
-                </div>
+                <h1 className="font-display text-sm lg:text-lg font-semibold text-white tracking-wide leading-tight group-hover:text-gold-primary transition-colors">
+                  LuxQuant
+                </h1>
               </div>
 
               {/* Desktop Nav */}
@@ -204,7 +202,6 @@ function AppContent() {
                     }`}
                   >
                     {item.label}
-                    {/* Active indicator line */}
                     {activeTab === item.key && (
                       <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gold-primary rounded-full" />
                     )}
@@ -213,7 +210,7 @@ function AppContent() {
               </nav>
             </div>
 
-            {/* RIGHT: Clock + User */}
+            {/* RIGHT: Clock (always visible) + User */}
             <div className="flex items-center gap-2 lg:gap-3">
               <LiveClock />
               <UserMenu />
@@ -301,10 +298,14 @@ function AppContent() {
                     onClick={() => handleTabClick(item.key)}
                     className="relative -mt-5 flex flex-col items-center"
                   >
-                    {/* Floating circle */}
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${
+                    {/* Glow ring behind button when active */}
+                    {isActive && (
+                      <div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />
+                    )}
+                    {/* Floating button */}
+                    <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${
                       isActive
-                        ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/30 scale-105'
+                        ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105'
                         : 'bg-bg-card border-2 border-gold-primary/30 hover:border-gold-primary/50 hover:shadow-gold-primary/10'
                     }`}>
                       <span className={isActive ? 'text-bg-primary' : 'text-gold-primary'}>{item.icon}</span>
@@ -320,12 +321,12 @@ function AppContent() {
                 <button
                   key={item.key}
                   onClick={() => handleTabClick(item.key)}
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative"
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group"
                 >
-                  <span className={`transition-all duration-200 ${isActive ? 'text-gold-primary scale-110' : 'text-text-muted'}`}>
+                  <span className={`transition-all duration-200 ${isActive ? 'text-gold-primary scale-110' : 'text-text-muted group-hover:text-text-secondary'}`}>
                     {item.icon}
                   </span>
-                  <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-gold-primary' : 'text-text-muted'}`}>
+                  <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-secondary'}`}>
                     {item.label}
                   </span>
                   {isActive && (
@@ -344,7 +345,7 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Live Clock
+// Live Clock — visible on ALL screen sizes
 // ════════════════════════════════════════
 const LiveClock = () => {
   const [time, setTime] = useState(new Date());
@@ -359,12 +360,12 @@ const LiveClock = () => {
   const seconds = time.toLocaleTimeString("en-US", { second: "2-digit" });
 
   return (
-    <div className="hidden sm:flex items-center gap-0.5 font-mono text-sm text-text-secondary">
+    <div className="flex items-center gap-0.5 font-mono text-xs sm:text-sm text-text-secondary">
       <span className="text-white">{hours}</span>
       <span className="text-gold-primary/60 animate-pulse">:</span>
       <span className="text-white">{minutes}</span>
-      <span className="text-gold-primary/60 animate-pulse">:</span>
-      <span className="text-text-muted">{seconds}</span>
+      <span className="text-gold-primary/60 animate-pulse hidden sm:inline">:</span>
+      <span className="text-text-muted hidden sm:inline">{seconds}</span>
     </div>
   );
 };

@@ -655,24 +655,24 @@ async def get_top_performers(
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v4:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v5:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v4:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v5:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v4:{days}:{limit}"
+        cache_key = f"lq:signals:top-performers:v5:{days}:{limit}"
 
     cached = cache_get(cache_key)
     if cached:
         return cached
 
-    date_conditions = "AND s.created_at >= :date_from"
+    date_conditions_hit = "AND su.update_at >= :date_from"
     params = {"date_from": actual_from, "limit": limit}
     if actual_to:
-        date_conditions += " AND s.created_at <= :date_to"
+        date_conditions_hit += " AND su.update_at <= :date_to"
         params["date_to"] = f"{actual_to}T23:59:59"
 
     # ── TOP GAINERS: first entry → best TP across ALL signals per pair ──
@@ -698,7 +698,7 @@ async def get_top_performers(
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions} AND s.entry > 0
+            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
         ),
         pair_agg AS (
             SELECT
@@ -762,7 +762,7 @@ async def get_top_performers(
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions} AND s.entry > 0
+            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
             ORDER BY s.signal_id, su.update_at ASC
         ),
         pair_fastest AS (
@@ -779,7 +779,7 @@ async def get_top_performers(
             FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions} AND s.entry > 0
+            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
             GROUP BY UPPER(s.pair)
         )
         SELECT
@@ -847,7 +847,7 @@ async def get_top_performers(
             SELECT COUNT(DISTINCT s.signal_id) FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions} AND s.entry > 0
+            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
         """)
         total_count = db.execute(count_sql, params).scalar() or 0
 
@@ -855,7 +855,7 @@ async def get_top_performers(
             SELECT COUNT(DISTINCT UPPER(s.pair)) FROM signals s
             INNER JOIN signal_updates su ON s.signal_id = su.signal_id
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions} AND s.entry > 0
+            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
         """)
         unique_pairs = db.execute(unique_pairs_sql, params).scalar() or 0
 
