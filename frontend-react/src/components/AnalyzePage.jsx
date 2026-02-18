@@ -87,7 +87,6 @@ const AnalyzePage = () => {
   const rrToMax = (() => {
     const tpLevels = (data.risk_reward || []).filter(d => d.level !== 'SL');
     if (tpLevels.length === 0) return 0;
-    // Weighted average of all TP R:Rs (each weighted by count)
     const totalCount = tpLevels.reduce((s, d) => s + d.count, 0);
     if (totalCount === 0) return 0;
     const weightedSum = tpLevels.reduce((s, d) => s + (d.avg_rr * d.count), 0);
@@ -98,7 +97,7 @@ const AnalyzePage = () => {
   const maxTpRR = (() => {
     const tpLevels = (data.risk_reward || []).filter(d => d.level !== 'SL');
     if (tpLevels.length === 0) return { level: '-', rr: 0 };
-    const maxTP = tpLevels[tpLevels.length - 1]; // Last TP is highest
+    const maxTP = tpLevels[tpLevels.length - 1];
     return { level: maxTP.level, rr: maxTP.avg_rr };
   })();
 
@@ -201,7 +200,7 @@ const AnalyzePage = () => {
       {/* OUTCOME DISTRIBUTION + R:R TO MAX TARGET    */}
       {/* ═══════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
-        {/* Outcome Distribution — unified, no redundancy */}
+        {/* Outcome Distribution */}
         <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
           <div className="mb-4">
@@ -253,7 +252,6 @@ const AnalyzePage = () => {
 
                 return (
                   <div key={rd.risk_level} className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} border ${c.border}`}>
-                    {/* Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${c.dot} ring-4 ${c.ring}`} />
@@ -262,11 +260,9 @@ const AnalyzePage = () => {
                       <span className="text-text-muted text-[10px] font-mono">{pct}%</span>
                     </div>
 
-                    {/* Win Rate - hero metric */}
                     <p className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none`}>{rd.win_rate.toFixed(1)}%</p>
                     <p className="text-text-muted text-[10px] mt-1 mb-3">Win Rate</p>
 
-                    {/* W/L bar */}
                     <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
                       <div className="h-full bg-green-500/70 rounded-l-full transition-all duration-700" style={{ width: `${winPct}%` }} />
                       <div className="h-full bg-red-500/70 rounded-r-full transition-all duration-700" style={{ width: `${100 - winPct}%` }} />
@@ -276,7 +272,6 @@ const AnalyzePage = () => {
                       <span className="text-red-400/80 font-mono">{rd.losers.toLocaleString()} L</span>
                     </div>
 
-                    {/* Bottom stats */}
                     <div className="pt-3 border-t border-white/5 grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-text-muted text-[9px] uppercase tracking-wider">Signals</p>
@@ -459,7 +454,7 @@ const AnalyzePage = () => {
 
 
 // ============================================
-// KPI CARD — Clean metric card
+// KPI CARD
 // ============================================
 const KPICard = ({ label, value, sub, color = 'default', accent = false }) => {
   const colorStyles = {
@@ -486,7 +481,7 @@ const KPICard = ({ label, value, sub, color = 'default', accent = false }) => {
 
 
 // ============================================
-// OUTCOME DISTRIBUTION — Unified section
+// OUTCOME DISTRIBUTION
 // ============================================
 const OutcomeDistribution = ({ data }) => {
   const total = data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
@@ -502,7 +497,6 @@ const OutcomeDistribution = ({ data }) => {
 
   return (
     <div className="space-y-4">
-      {/* Stacked bar */}
       <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
         {items.filter(i => i.count > 0).map((item, idx) => (
           <div key={idx} style={{ width: `${(item.count / total * 100)}%`, backgroundColor: item.color }}
@@ -516,7 +510,6 @@ const OutcomeDistribution = ({ data }) => {
         ))}
       </div>
 
-      {/* Horizontal bars with inline labels */}
       <div className="space-y-2">
         {items.map((item) => {
           const pct = (item.count / total * 100);
@@ -540,36 +533,22 @@ const OutcomeDistribution = ({ data }) => {
 
 
 // ============================================
-// WIN RATE TREND CHART — Improved: Dual-layer
-// Raw data (faded) + 7-period Moving Average (bold)
-// + Volume bars at bottom + Annotations
+// WIN RATE TREND CHART — REVISED
+// - Fixed 0–100% Y-axis scale
+// - Single glowing actual win rate line (no MA)
+// - Volume bars at bottom retained
+// - Y-axis labels not clipped
 // ============================================
 const WinRateTrendChart = ({ data, mode }) => {
-  const [showRaw, setShowRaw] = useState(true);
-  const [maWindow, setMaWindow] = useState(7);
-
   if (!data || data.length === 0) return <div className="h-72 lg:h-96 flex items-center justify-center text-text-muted text-sm">No trend data available</div>;
 
-  // Compute Moving Average
-  const computeMA = (arr, window) => {
-    return arr.map((item, idx) => {
-      if (idx < window - 1) return null;
-      const slice = arr.slice(idx - window + 1, idx + 1);
-      const avg = slice.reduce((s, d) => s + d.win_rate, 0) / slice.length;
-      return Math.round(avg * 100) / 100;
-    });
-  };
-
-  const maValues = computeMA(data, maWindow);
-
-  // Build enriched chart data
-  const chartData = data.map((item, idx) => {
+  // Build chart data
+  const chartData = data.map((item) => {
     const d = (() => { try { const dt = new Date(item.period); return isNaN(dt) ? item.period : dt.toLocaleDateString('en', { month: 'short', day: 'numeric' }); } catch { return item.period; } })();
     return {
       period: d,
       fullDate: item.period,
       winRate: item.win_rate,
-      ma: maValues[idx],
       winners: item.winners,
       losers: item.losers,
       total: item.total_closed,
@@ -578,20 +557,7 @@ const WinRateTrendChart = ({ data, mode }) => {
 
   // Stats
   const validRates = chartData.map(d => d.winRate).filter(v => v > 0);
-  const validMA = chartData.map(d => d.ma).filter(v => v != null);
-  const allValues = [...validRates, ...validMA];
-  const avgWR = validRates.reduce((s, v) => s + v, 0) / (validRates.length || 1);
-  const currentMA = validMA.length > 0 ? validMA[validMA.length - 1] : null;
-  const prevMA = validMA.length > 1 ? validMA[validMA.length - 2] : null;
-  const maTrend = currentMA && prevMA ? (currentMA > prevMA ? 'up' : currentMA < prevMA ? 'down' : 'flat') : 'flat';
-
-  // Auto-range Y-axis based on MA range (smoother range)
-  const minVal = Math.min(...allValues);
-  const maxVal = Math.max(...allValues);
-  const range = maxVal - minVal;
-  const pad = Math.max(range * 0.12, 5);
-  const yMin = Math.max(0, Math.floor((minVal - pad) / 5) * 5);
-  const yMax = Math.min(100, Math.ceil((maxVal + pad) / 5) * 5);
+  const avgWR = validRates.length > 0 ? validRates.reduce((s, v) => s + v, 0) / validRates.length : 0;
 
   // Max volume for bar scaling
   const maxVol = Math.max(...chartData.map(d => d.total), 1);
@@ -600,78 +566,51 @@ const WinRateTrendChart = ({ data, mode }) => {
   const bestPeriod = chartData.reduce((best, d) => d.winRate > (best?.winRate || 0) ? d : best, chartData[0]);
   const worstPeriod = chartData.filter(d => d.winRate > 0).reduce((worst, d) => d.winRate < (worst?.winRate || 100) ? d : worst, chartData[0]);
 
+  // Current win rate (latest period)
+  const currentWR = chartData.length > 0 ? chartData[chartData.length - 1].winRate : 0;
+  const prevWR = chartData.length > 1 ? chartData[chartData.length - 2].winRate : currentWR;
+  const wrTrend = currentWR > prevWR ? 'up' : currentWR < prevWR ? 'down' : 'flat';
+
   return (
     <div className="space-y-3">
-      {/* Top bar: MA info + controls */}
+      {/* Top bar: Current WR info */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        {/* Left: Current MA + trend */}
         <div className="flex items-center gap-3">
-          {currentMA != null && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <div className="w-6 h-[2px] bg-green-400 rounded-full" />
-                <span className="text-text-muted text-[10px]">{maWindow}{mode === 'weekly' ? 'W' : 'D'} MA</span>
-              </div>
-              <span className={`text-sm font-mono font-bold ${currentMA >= 70 ? 'text-green-400' : currentMA >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {currentMA.toFixed(1)}%
-              </span>
-              <span className={`text-[10px] ${maTrend === 'up' ? 'text-green-400' : maTrend === 'down' ? 'text-red-400' : 'text-text-muted'}`}>
-                {maTrend === 'up' ? '↑' : maTrend === 'down' ? '↓' : '→'}
-              </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-6 h-[2px] bg-green-400 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+              <span className="text-text-muted text-[10px]">Win Rate</span>
             </div>
-          )}
+            <span className={`text-sm font-mono font-bold ${currentWR >= 70 ? 'text-green-400' : currentWR >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+              {currentWR.toFixed(1)}%
+            </span>
+            <span className={`text-[10px] ${wrTrend === 'up' ? 'text-green-400' : wrTrend === 'down' ? 'text-red-400' : 'text-text-muted'}`}>
+              {wrTrend === 'up' ? '↑' : wrTrend === 'down' ? '↓' : '→'}
+            </span>
+          </div>
           <span className="text-text-muted text-[9px]">·</span>
           <span className="text-text-muted text-[10px]">Avg <span className="text-white font-mono">{avgWR.toFixed(1)}%</span></span>
-        </div>
-
-        {/* Right: Controls */}
-        <div className="flex items-center gap-2">
-          {/* Toggle raw data */}
-          <button
-            onClick={() => setShowRaw(!showRaw)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all border ${
-              showRaw 
-                ? 'text-green-400/70 border-green-500/20 bg-green-500/[0.06]' 
-                : 'text-text-muted border-transparent hover:border-white/10'
-            }`}
-          >
-            <div className={`w-3 h-[1.5px] rounded-full transition-colors ${showRaw ? 'bg-green-400/40' : 'bg-text-muted/30'}`} style={{ backgroundImage: showRaw ? 'none' : 'none' }} />
-            Raw
-          </button>
-
-          {/* MA window selector */}
-          <div className="flex bg-bg-card/40 rounded-md p-0.5 border border-white/[0.04]">
-            {[3, 7, 14].map(w => (
-              <button key={w} onClick={() => setMaWindow(w)}
-                className={`px-2 py-1 rounded text-[10px] font-semibold transition-all ${
-                  maWindow === w
-                    ? 'bg-green-500/15 text-green-400'
-                    : 'text-text-muted hover:text-white'
-                }`}>
-                {w}{mode === 'weekly' ? 'W' : 'D'}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
       {/* Chart */}
       <div className="h-64 lg:h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
             <defs>
-              {/* MA line gradient glow */}
-              <linearGradient id="maLineGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22C55E" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#22C55E" stopOpacity={0.02} />
+              {/* Glow gradient fill under the line */}
+              <linearGradient id="winRateGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22C55E" stopOpacity={0.2} />
+                <stop offset="50%" stopColor="#22C55E" stopOpacity={0.06} />
+                <stop offset="100%" stopColor="#22C55E" stopOpacity={0.01} />
               </linearGradient>
               {/* Volume bar gradient */}
               <linearGradient id="volBarGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#d4a853" stopOpacity={0.25} />
                 <stop offset="100%" stopColor="#d4a853" stopOpacity={0.05} />
               </linearGradient>
-              {/* SVG filter for MA glow effect */}
-              <filter id="maGlow" x="-20%" y="-20%" width="140%" height="140%">
+              {/* Line glow filter */}
+              <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
@@ -692,16 +631,17 @@ const WinRateTrendChart = ({ data, mode }) => {
               dy={4}
             />
 
-            {/* Left Y-axis: Win Rate */}
+            {/* Left Y-axis: Win Rate — fixed 0 to 100 */}
             <YAxis 
               yAxisId="rate"
               stroke="#6b5c52" 
               fontSize={10} 
-              domain={[yMin, yMax]} 
+              domain={[0, 100]} 
+              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
               tickFormatter={v => `${v}%`} 
               tickLine={false} 
               axisLine={false} 
-              width={36}
+              width={42}
             />
 
             {/* Right Y-axis: Volume (hidden, for bar scaling) */}
@@ -720,7 +660,7 @@ const WinRateTrendChart = ({ data, mode }) => {
               strokeDasharray="6 4" 
             />
 
-            {/* Volume bars at bottom - subtle context */}
+            {/* Volume bars at bottom */}
             <Bar 
               yAxisId="vol"
               dataKey="total" 
@@ -730,29 +670,13 @@ const WinRateTrendChart = ({ data, mode }) => {
               isAnimationActive={false}
             />
 
-            {/* Raw data - faded thin line */}
-            {showRaw && (
-              <Line 
-                yAxisId="rate"
-                type="monotone" 
-                dataKey="winRate" 
-                stroke="#22C55E" 
-                strokeWidth={0.8} 
-                strokeOpacity={0.2}
-                dot={false} 
-                activeDot={false}
-                isAnimationActive={false}
-                connectNulls
-              />
-            )}
-
-            {/* MA area fill - subtle gradient under MA line */}
+            {/* Area fill under win rate line — subtle glow */}
             <Area 
               yAxisId="rate"
               type="monotone" 
-              dataKey="ma" 
+              dataKey="winRate" 
               stroke="none"
-              fill="url(#maLineGrad)" 
+              fill="url(#winRateGlow)" 
               fillOpacity={1}
               dot={false}
               activeDot={false}
@@ -760,13 +684,13 @@ const WinRateTrendChart = ({ data, mode }) => {
               connectNulls
             />
 
-            {/* MA line - bold, the hero */}
+            {/* Win Rate line — the hero, bright green glow */}
             <Line 
               yAxisId="rate"
               type="monotone" 
-              dataKey="ma" 
+              dataKey="winRate" 
               stroke="#22C55E" 
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={false} 
               activeDot={{ 
                 r: 5, 
@@ -774,7 +698,7 @@ const WinRateTrendChart = ({ data, mode }) => {
                 stroke: '#0a0506', 
                 strokeWidth: 2.5,
               }}
-              filter="url(#maGlow)"
+              filter="url(#lineGlow)"
               connectNulls
             />
 
@@ -782,32 +706,19 @@ const WinRateTrendChart = ({ data, mode }) => {
             <Tooltip 
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
-                const d = payload.find(p => p.dataKey === 'ma')?.payload || payload[0]?.payload;
+                const d = payload.find(p => p.dataKey === 'winRate')?.payload || payload[0]?.payload;
                 if (!d) return null;
                 return (
                   <div className="bg-bg-primary/95 backdrop-blur-xl border border-gold-primary/25 rounded-xl p-3 shadow-2xl min-w-[160px]">
                     <p className="text-gold-primary text-[10px] font-semibold mb-2 pb-1.5 border-b border-gold-primary/10">{d.fullDate || label}</p>
                     
-                    {/* MA value - hero */}
-                    {d.ma != null && (
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          <span className="text-text-muted text-[10px]">{maWindow}{mode === 'weekly' ? 'W' : 'D'} MA</span>
-                        </div>
-                        <span className={`text-sm font-mono font-bold ${d.ma >= 70 ? 'text-green-400' : d.ma >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
-                          {d.ma.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Raw value */}
+                    {/* Win Rate - hero */}
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-500/30 border border-green-500/50" />
-                        <span className="text-text-muted text-[10px]">Actual</span>
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
+                        <span className="text-text-muted text-[10px]">Win Rate</span>
                       </div>
-                      <span className={`text-xs font-mono font-semibold ${d.winRate >= 70 ? 'text-green-400' : d.winRate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      <span className={`text-sm font-mono font-bold ${d.winRate >= 70 ? 'text-green-400' : d.winRate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
                         {d.winRate.toFixed(1)}%
                       </span>
                     </div>
@@ -856,7 +767,7 @@ const WinRateTrendChart = ({ data, mode }) => {
 
 
 // ============================================
-// RISK:REWARD CHART — Horizontal bars, cleaner
+// RISK:REWARD CHART
 // ============================================
 const RiskRewardChart = ({ data }) => {
   if (!data || data.length === 0) return <div className="h-44 flex items-center justify-center text-text-muted text-sm">No data</div>;
@@ -890,7 +801,6 @@ const RiskRewardChart = ({ data }) => {
         );
       })}
       
-      {/* SL reference */}
       {data.find(d => d.level === 'SL') && (
         <div className="pt-2 border-t border-white/5">
           <div className="flex items-center justify-between">
@@ -909,7 +819,7 @@ const RiskRewardChart = ({ data }) => {
 
 
 // ============================================
-// RISK TREND CHART — Separate section, taller
+// RISK TREND CHART
 // ============================================
 const RiskTrendChart = ({ data, mode }) => {
   if (!data || data.length === 0) return <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted text-sm">Not enough data</div>;
@@ -960,10 +870,9 @@ const RiskTrendChart = ({ data, mode }) => {
 
 
 // ============================================
-// TOP PAIRS TABLE — Replaces redundant TPBreakdown
+// TOP PAIRS TABLE
 // ============================================
 const TopPairsTable = ({ pairs }) => {
-  // Filter pairs with enough data and sort by win rate
   const filtered = pairs
     .filter(p => p.closed_trades >= 5)
     .sort((a, b) => b.win_rate - a.win_rate || b.performance_score - a.performance_score)

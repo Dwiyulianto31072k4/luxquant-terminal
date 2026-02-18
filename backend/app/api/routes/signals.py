@@ -6,6 +6,7 @@ UPDATED:
 - Fixed signal detail endpoint with dedup + market_cap/risk_reasons
 - Date-aware cache keys so "Last 7 Days" requests hit pre-computed cache
 - R:R now calculates per target level (potential R:R) instead of per outcome
+- FIXED: R:R SL query now uses signal_updates table directly (no missing CTE)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -289,6 +290,8 @@ async def get_analyze_data(
     # ============================================
     # Risk:Reward — R:R TO MAX TARGET per level
     # Shows potential R:R for each TP level across ALL signals (not per outcome)
+    # FIXED: SL section now queries signal_updates directly instead of 
+    # referencing signal_outcomes CTE (which wasn't included in this query)
     # ============================================
     rr_query = text(f"""
         SELECT level, COUNT(*) as cnt, AVG(avg_rr) as avg_rr
@@ -329,8 +332,12 @@ async def get_analyze_data(
                 'SL' as level,
                 -1.0 as avg_rr
             FROM signals s
-            INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
-            WHERE so.outcome = 'sl' AND s.entry > 0 AND s.stop1 > 0 {date_filter}
+            WHERE s.entry > 0 AND s.stop1 > 0 {date_filter}
+                AND EXISTS (
+                    SELECT 1 FROM signal_updates su
+                    WHERE su.signal_id = s.signal_id
+                    AND (LOWER(su.update_type) LIKE '%sl%' OR LOWER(su.update_type) LIKE '%stop%')
+                )
         ) sub
         WHERE avg_rr IS NOT NULL
         GROUP BY level
