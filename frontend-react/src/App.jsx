@@ -13,6 +13,7 @@ import BitcoinPage from "./components/BitcoinPage";
 import MarketsPage from "./components/MarketsPage";
 import AnalyzePage from "./components/AnalyzePage";
 import WatchlistPage from "./components/WatchlistPage";
+import TipsPage from "./components/TipsPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 
 // ════════════════════════════════════════
@@ -60,7 +61,7 @@ function AppContent() {
     navigate(key === "watchlist" ? "/watchlist" : "/");
   };
 
-  // Desktop nav items
+  // Desktop nav items (TIPS SUDAH DIHAPUS DARI SINI)
   const navItems = [
     { key: "terminal", label: "Terminal", icon: "📊" },
     { key: "signals", label: "Potential Trades", icon: "📡" },
@@ -69,7 +70,7 @@ function AppContent() {
     { key: "markets", label: "Markets", icon: "🌐" },
   ];
 
-  // Mobile bottom nav — Trades (signals) in center, Terminal = Home
+  // Mobile bottom nav — Diganti Tips dengan Markets agar lebih prioritas
   const bottomNavItems = [
     {
       key: "terminal",
@@ -101,7 +102,7 @@ function AppContent() {
     },
     {
       key: "bitcoin",
-      label: "Bitcoin",
+      label: "BTC",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -109,11 +110,11 @@ function AppContent() {
       ),
     },
     {
-      key: "markets",
+      key: "markets", // Diganti dari Tips ke Markets
       label: "Markets",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
         </svg>
       ),
     },
@@ -127,6 +128,7 @@ function AppContent() {
       case "bitcoin": return <BitcoinPage />;
       case "markets": return <MarketsPage />;
       case "watchlist": return <WatchlistPage />;
+      case "tips": return <TipsPage />;
       default: return <OverviewPage />;
     }
   };
@@ -179,7 +181,7 @@ function AppContent() {
                 </div>
               </button>
 
-              {/* Logo — always show text on all screen sizes */}
+              {/* Logo */}
               <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleTabClick("terminal")}>
                 <div className="w-9 h-9 lg:w-10 lg:h-10 relative">
                   <img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105" />
@@ -207,10 +209,23 @@ function AppContent() {
                     )}
                   </button>
                 ))}
+
+                {/* GLOBAL MARKET INDICATOR (Pengganti Tips di Header) */}
+                <div className="ml-2 pl-4 border-l border-gold-primary/10 flex items-center">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gold-primary/5 border border-gold-primary/20 hover:bg-gold-primary/10 transition-colors cursor-default">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-gold-primary tracking-widest">
+                      Global Live
+                    </span>
+                  </div>
+                </div>
               </nav>
             </div>
 
-            {/* RIGHT: Clock (always visible) + User */}
+            {/* RIGHT: Clock + User */}
             <div className="flex items-center gap-2 lg:gap-3">
               <LiveClock />
               <UserMenu />
@@ -247,6 +262,22 @@ function AppContent() {
                 )}
               </button>
             ))}
+
+            {/* TIPS: Ditambahkan MANUAL di Hamburger Menu */}
+            <button
+                onClick={() => handleTabClick("tips")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === "tips"
+                    ? "text-gold-primary bg-gold-primary/10 border border-gold-primary/20"
+                    : "text-text-secondary hover:text-white hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <span className="text-base w-6 text-center">📚</span>
+                <span>Tips</span>
+                {activeTab === "tips" && (
+                  <span className="ml-auto w-1.5 h-1.5 bg-gold-primary rounded-full" />
+                )}
+            </button>
 
             <div className="my-4 mx-3 h-px bg-gold-primary/10" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Personal</p>
@@ -298,11 +329,9 @@ function AppContent() {
                     onClick={() => handleTabClick(item.key)}
                     className="relative -mt-5 flex flex-col items-center"
                   >
-                    {/* Glow ring behind button when active */}
                     {isActive && (
                       <div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />
                     )}
-                    {/* Floating button */}
                     <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${
                       isActive
                         ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105'
@@ -337,7 +366,6 @@ function AppContent() {
             })}
           </div>
         </div>
-        {/* Safe area for phones with home indicator */}
         <div className="bg-bg-primary/95 h-safe-area-bottom" />
       </nav>
     </div>
@@ -345,7 +373,7 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Live Clock — visible on ALL screen sizes
+// Live Clock
 // ════════════════════════════════════════
 const LiveClock = () => {
   const [time, setTime] = useState(new Date());

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import NewsPreviewModal from "./NewsPreviewModal"; // 1. IMPORT MODAL
 
 const API_BASE = '/api/v1';
 
@@ -26,8 +27,9 @@ const MarketsPage = () => {
   const [coinPage, setCoinPage] = useState(1);
   const COINS_PER_PAGE = 25;
 
-  // News pagination
+  // News pagination & Modal State
   const [newsPage, setNewsPage] = useState(0);
+  const [selectedArticle, setSelectedArticle] = useState(null); // 2. STATE UNTUK MODAL
   const NEWS_PER_PAGE = 8;
 
   useEffect(() => {
@@ -210,11 +212,14 @@ const MarketsPage = () => {
 
           return (
             <div className="mt-3">
-              {/* Featured */}
+              {/* Featured - 3. UBAH KE DIV + ONCLICK */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 {featured.map((a, i) => (
-                  <a key={i} href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="group news-featured block rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden hover:border-gold-primary/20 transition-all">
+                  <div
+                    key={i}
+                    onClick={() => setSelectedArticle(a)}
+                    className="group news-featured block rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden hover:border-gold-primary/20 transition-all cursor-pointer"
+                  >
                     {a.image && (
                       <div className="h-36 overflow-hidden">
                         <img src={a.image} alt="" className="w-full h-full object-cover news-img" onError={(e) => e.target.parentElement.style.display = 'none'} />
@@ -227,15 +232,18 @@ const MarketsPage = () => {
                         <span className="text-text-muted text-[9px]">{a.time_ago}</span>
                       </div>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
 
-              {/* Compact list with thumbnails */}
+              {/* Compact list with thumbnails - 3. UBAH KE DIV + ONCLICK */}
               <div className="space-y-1">
                 {pageArticles.map((a, i) => (
-                  <a key={i} href={a.link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/[0.02] transition-colors group">
+                  <div
+                    key={i}
+                    onClick={() => setSelectedArticle(a)}
+                    className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                  >
                     {a.image ? (
                       <div className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/5">
                         <img src={a.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
@@ -251,7 +259,7 @@ const MarketsPage = () => {
                     </div>
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-text-muted whitespace-nowrap">{a.source}</span>
                     <span className="text-text-muted text-[9px] whitespace-nowrap">{a.time_ago}</span>
-                  </a>
+                  </div>
                 ))}
               </div>
 
@@ -620,6 +628,14 @@ const MarketsPage = () => {
           </div>
         )}
       </div>
+
+      {/* 4. RENDER MODAL DISINI */}
+      {selectedArticle && (
+        <NewsPreviewModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+        />
+      )}
     </div>
   );
 };

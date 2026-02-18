@@ -46,6 +46,8 @@ class UserResponse(BaseModel):
     username: str
     is_active: bool
     is_verified: bool
+    is_admin: bool = False
+    role: str = "free"
     created_at: datetime
     
     class Config:

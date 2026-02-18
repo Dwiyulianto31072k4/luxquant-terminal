@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import NewsPreviewModal from "./NewsPreviewModal";
 
 const API_BASE = "/api/v1";
 
@@ -13,6 +14,7 @@ const BitcoinPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newsPage, setNewsPage] = useState(0);
+  const [selectedArticle, setSelectedArticle] = useState(null);
   const NEWS_PER_PAGE = 12;
 
   useEffect(() => {
@@ -94,7 +96,7 @@ const BitcoinPage = () => {
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div
-              className="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center bg-black/50"
+              className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center"
               style={{
                 boxShadow: `
       0 0 14px rgba(247,147,26,0.8),
@@ -106,10 +108,9 @@ const BitcoinPage = () => {
               <img
                 src="https://cryptologos.cc/logos/bitcoin-btc-logo.svg"
                 alt="Bitcoin"
-                className="w-10 h-10 object-contain"
+                className="w-12 h-12 object-contain"
               />
             </div>
-
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-display font-bold text-white tracking-tight">
@@ -878,12 +879,10 @@ const BitcoinPage = () => {
                 {newsPage === 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {news.articles.slice(0, 2).map((a, i) => (
-                      <a
+                      <div
                         key={i}
-                        href={a.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block news-featured"
+                        onClick={() => setSelectedArticle(a)}
+                        className="group block news-featured cursor-pointer"
                       >
                         <div className="bg-white/[0.02] rounded-xl overflow-hidden border border-white/5 hover:border-gold-primary/25 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,.3)] h-full">
                           {a.image ? (
@@ -924,7 +923,7 @@ const BitcoinPage = () => {
                             </div>
                           </div>
                         </div>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -932,12 +931,10 @@ const BitcoinPage = () => {
                 {/* Paged compact list */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {pagedArticles.map((a, i) => (
-                    <a
+                    <div
                       key={i}
-                      href={a.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group block"
+                      onClick={() => setSelectedArticle(a)}
+                      className="group block cursor-pointer"
                     >
                       <div className="flex gap-3 bg-white/[0.015] rounded-lg overflow-hidden border border-white/5 hover:border-gold-primary/20 transition-all duration-300 h-full">
                         {a.image ? (
@@ -971,7 +968,7 @@ const BitcoinPage = () => {
                           </div>
                         </div>
                       </div>
-                    </a>
+                    </div>
                   ))}
                 </div>
 
@@ -1038,6 +1035,12 @@ const BitcoinPage = () => {
           })()
         )}
       </div>
+      {selectedArticle && (
+        <NewsPreviewModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+        />
+      )}
     </div>
   );
 };
@@ -1049,16 +1052,16 @@ const BtcTradingViewChart = () => {
   useEffect(() => {
     if (!chartRef.current) return;
 
-    const containerId = 'btc-tv-advanced-chart';
-    chartRef.current.innerHTML = '';
-    const el = document.createElement('div');
+    const containerId = "btc-tv-advanced-chart";
+    chartRef.current.innerHTML = "";
+    const el = document.createElement("div");
     el.id = containerId;
-    el.style.width = '100%';
-    el.style.height = '100%';
+    el.style.width = "100%";
+    el.style.height = "100%";
     chartRef.current.appendChild(el);
 
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/tv.js';
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/tv.js";
     script.async = true;
     script.onload = () => {
       if (!window.TradingView || !document.getElementById(containerId)) return;
@@ -1066,49 +1069,48 @@ const BtcTradingViewChart = () => {
       widgetRef.current = new window.TradingView.widget({
         container_id: containerId,
         autosize: true,
-        symbol: 'BINANCE:BTCUSDT.P',
-        interval: '240',
-        timezone: 'Asia/Jakarta',
-        theme: 'dark',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: '#0a0a0f',
+        symbol: "BINANCE:BTCUSDT.P",
+        interval: "240",
+        timezone: "Asia/Jakarta",
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        toolbar_bg: "#0a0a0f",
         enable_publishing: false,
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: true,
-        backgroundColor: '#0a0a0f',
-        gridColor: 'rgba(212, 175, 55, 0.04)',
+        backgroundColor: "#0a0a0f",
+        gridColor: "rgba(212, 175, 55, 0.04)",
         hide_top_toolbar: false,
         hide_legend: false,
         withdateranges: true,
         details: false,
         hotlist: false,
         calendar: false,
-        studies: [
-          'MACD@tv-basicstudies',
-          'StochasticRSI@tv-basicstudies',
-        ],
+        studies: ["MACD@tv-basicstudies", "StochasticRSI@tv-basicstudies"],
         overrides: {
-          'paneProperties.background': '#0a0a0f',
-          'paneProperties.backgroundType': 'solid',
-          'paneProperties.vertGridProperties.color': 'rgba(212, 175, 55, 0.04)',
-          'paneProperties.horzGridProperties.color': 'rgba(212, 175, 55, 0.04)',
-          'scalesProperties.textColor': '#8a8a8a',
-          'scalesProperties.lineColor': 'rgba(212, 175, 55, 0.1)',
-          'mainSeriesProperties.candleStyle.upColor': '#22c55e',
-          'mainSeriesProperties.candleStyle.downColor': '#ef4444',
-          'mainSeriesProperties.candleStyle.borderUpColor': '#22c55e',
-          'mainSeriesProperties.candleStyle.borderDownColor': '#ef4444',
-          'mainSeriesProperties.candleStyle.wickUpColor': '#22c55e',
-          'mainSeriesProperties.candleStyle.wickDownColor': '#ef4444',
+          "paneProperties.background": "#0a0a0f",
+          "paneProperties.backgroundType": "solid",
+          "paneProperties.vertGridProperties.color": "rgba(212, 175, 55, 0.04)",
+          "paneProperties.horzGridProperties.color": "rgba(212, 175, 55, 0.04)",
+          "scalesProperties.textColor": "#8a8a8a",
+          "scalesProperties.lineColor": "rgba(212, 175, 55, 0.1)",
+          "mainSeriesProperties.candleStyle.upColor": "#22c55e",
+          "mainSeriesProperties.candleStyle.downColor": "#ef4444",
+          "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
+          "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
         },
       });
     };
 
     document.head.appendChild(script);
     return () => {
-      try { document.head.removeChild(script); } catch {}
+      try {
+        document.head.removeChild(script);
+      } catch {}
       widgetRef.current = null;
     };
   }, []);
@@ -1118,16 +1120,26 @@ const BtcTradingViewChart = () => {
       <div className="flex items-center justify-between px-5 py-3 bg-bg-primary/80 border-b border-gold-primary/10">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-lg overflow-hidden flex-shrink-0">
-            <img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="BTC" className="w-full h-full object-cover" />
+            <img
+              src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+              alt="BTC"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
-            <h3 className="text-white font-semibold text-sm">BTC/USDT Perpetual</h3>
-            <p className="text-text-muted text-[10px]">Binance · Default 4H · MACD + Stoch RSI</p>
+            <h3 className="text-white font-semibold text-sm">
+              BTC/USDT Perpetual
+            </h3>
+            <p className="text-text-muted text-[10px]">
+              Binance · Default 4H · MACD + Stoch RSI
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-positive rounded-full animate-pulse" />
-          <span className="text-positive text-[10px] font-semibold uppercase">Live Chart</span>
+          <span className="text-positive text-[10px] font-semibold uppercase">
+            Live Chart
+          </span>
         </div>
       </div>
       <div ref={chartRef} className="w-full h-[560px] bg-[#0a0a0f]" />

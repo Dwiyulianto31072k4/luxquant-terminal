@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
-from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko
+from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.core.database import engine, Base
 from app.core.redis import is_redis_available, get_cache_info
 from app.services.cache_worker import start_cache_workers
@@ -46,6 +46,7 @@ app.include_router(market_overview.router, prefix="/api/v1/market", tags=["marke
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
+app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 
 @app.get("/")
 async def root():
