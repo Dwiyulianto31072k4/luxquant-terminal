@@ -41,33 +41,23 @@ const MarketsPage = () => {
   const fetchAll = async () => {
     try {
       setError(null);
-      const [globalR, heatR, trendR, catR, derivR, liqR, defiR, stableR, etfR, newsR, coinsR] = await Promise.allSettled([
-        fetch(`${API_BASE}/market/global`),
-        fetch(`${API_BASE}/market/heatmap`),
-        fetch(`${API_BASE}/market/trending-categories`),
-        fetch(`${API_BASE}/market/categories?limit=10`),
-        fetch(`${API_BASE}/market/derivatives-pulse`),
-        fetch(`${API_BASE}/market/liquidations`),
-        fetch(`${API_BASE}/market/defi`),
-        fetch(`${API_BASE}/market/stablecoins`),
-        fetch(`${API_BASE}/market/etf-flows`),
-        fetch(`${API_BASE}/market/crypto-news`),
-        fetch(`${API_BASE}/market/coins?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=1h,24h,7d`),
-      ]);
-      const j = async (r) => r.status === 'fulfilled' && r.value.ok ? r.value.json() : null;
-      setGlobal(await j(globalR));
-      setHeatmap(await j(heatR));
-      setTrending(await j(trendR));
-      setCategories(await j(catR));
-      setDerivatives(await j(derivR));
-      setLiquidations(await j(liqR));
-      setDefi(await j(defiR));
-      setStablecoins(await j(stableR));
-      setEtfFlows(await j(etfR));
-      setNews(await j(newsR));
-      const c = await j(coinsR);
-      if (c) setCoins(Array.isArray(c) ? c : []);
+      const res = await fetch(`${API_BASE}/market/markets-page`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+
+      setGlobal(d.global || null);
+      setHeatmap(d.heatmap || null);
+      setTrending(d.trending || null);
+      setCategories(d.categories ? (Array.isArray(d.categories) ? d.categories.slice(0, 10) : d.categories) : null);
+      setDerivatives(d.derivativesPulse || null);
+      setLiquidations(d.liquidations || null);
+      setDefi(d.defi || null);
+      setStablecoins(d.stablecoins || null);
+      setEtfFlows(d.etfFlows || null);
+      setNews(d.cryptoNews || null);
+      if (d.coins) setCoins(Array.isArray(d.coins) ? d.coins : []);
     } catch (err) {
+      console.error('Markets fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

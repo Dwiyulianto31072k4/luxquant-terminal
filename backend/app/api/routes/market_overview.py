@@ -588,9 +588,32 @@ async def get_markets_page_data():
                 sections[key] = None
 
     # Also include data from existing market.py endpoints (via cache)
+    # Also include data from existing market.py endpoints (via cache)
     sections["global"] = cache_get("lq:market:global")
     sections["trending"] = cache_get("lq:market:trending")
     sections["categories"] = cache_get("lq:market:categories")
     sections["derivativesPulse"] = cache_get("lq:market:deriv-pulse")
+    sections["coins"] = cache_get("lq:market:coins:100:1:market_cap_desc")
+
+    if not sections["coins"]:
+        try:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+                res = await client.get(
+                    f"{COINGECKO_API}/coins/markets",
+                    params={
+                        "vs_currency": "usd",
+                        "order": "market_cap_desc",
+                        "per_page": 100,
+                        "page": 1,
+                        "sparkline": "false",
+                        "price_change_percentage": "1h,24h,7d"
+                    },
+                    headers=CG_HEADERS
+                )
+                if res.status_code == 200:
+                    sections["coins"] = res.json()
+                    cache_set("lq:market:coins:100:1:market_cap_desc", sections["coins"], ttl=120)
+        except Exception as e:
+            print(f"Fallback fetch for coins failed: {e}")
 
     return sections

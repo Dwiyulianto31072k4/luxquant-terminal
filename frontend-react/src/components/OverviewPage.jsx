@@ -62,10 +62,10 @@ const OverviewPage = () => {
               .sort((a, b) => (a.price_change_percentage_24h || 0) - (b.price_change_percentage_24h || 0))
               .slice(0, 5),
           });
-        } else {
+        } else if (!data) {
           setMarketError('Failed to fetch market data');
         }
-      } else {
+      } else if (!data) {
         setMarketError('Failed to fetch market data');
       }
 
@@ -74,7 +74,7 @@ const OverviewPage = () => {
       if (derivRes.status === 'fulfilled' && derivRes.value.ok) setDerivPulse(await derivRes.value.json());
     } catch (err) {
       console.error('Failed to fetch overview data:', err);
-      setMarketError(err.message);
+      if (!data) setMarketError(err.message);
     } finally {
       setMarketLoading(false);
     }
@@ -82,10 +82,8 @@ const OverviewPage = () => {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* ============ TOP PERFORMERS — ALWAYS RENDERS (from DB) ============ */}
       <TopPerformers />
 
-      {/* ============ MARKET OVERVIEW ============ */}
       <div className="flex items-center gap-3">
         <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
         <h2 className="font-display text-xl lg:text-3xl font-bold text-white">Market Overview</h2>
@@ -107,147 +105,154 @@ const OverviewPage = () => {
             ))}
           </div>
         </>
-      ) : marketError ? (
-        <div className="glass-card rounded-xl p-6 lg:p-8 border border-red-500/30 text-center">
-          <p className="text-red-400 mb-3 lg:mb-4 text-sm">⚠️ {marketError}</p>
-          <button
-            onClick={() => { setMarketLoading(true); fetchAll(); }}
-            className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      ) : data ? (
+      ) : (
         <>
-          {/* Key Metrics - 2 cols mobile, 4 cols desktop */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-            <MetricCard label="Total Market Cap" value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon="💰" />
-            <MetricCard label="24h Volume" value={formatLargeNumber(data.totalVolume24h)} icon="📊" />
-            <MetricCard label="BTC Dominance" value={`${data.btcDominance.toFixed(1)}%`} icon="👑" color="text-orange-400" />
-            <MetricCard label="Active Cryptos" value={data.activeCryptos.toLocaleString()} icon="🪙" />
-          </div>
+          {/* BANNER ERROR KECIL */}
+          {marketError && (
+            <div className="glass-card rounded-xl p-3 lg:p-4 border border-red-500/30 flex items-center justify-between bg-red-500/5">
+              <p className="text-red-400 text-xs lg:text-sm font-medium flex items-center gap-2">
+                <span>⚠️</span> Global market data temporarily unavailable (API Limit).
+              </p>
+              <button
+                onClick={() => { setMarketLoading(true); fetchAll(); }}
+                className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-xs font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
-          {/* Sector Performance */}
+          {/* KEY METRICS - Hanya render jika data ada */}
+          {data && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+              <MetricCard label="Total Market Cap" value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon="💰" />
+              <MetricCard label="24h Volume" value={formatLargeNumber(data.totalVolume24h)} icon="📊" />
+              <MetricCard label="BTC Dominance" value={`${data.btcDominance.toFixed(1)}%`} icon="👑" color="text-orange-400" />
+              <MetricCard label="Active Cryptos" value={data.activeCryptos.toLocaleString()} icon="🪙" />
+            </div>
+          )}
+
+          {/* SECTOR PERFORMANCE - Render independen */}
           {categories && categories.length > 0 && (
             <SectorPerformance categories={categories} trending={trending} />
           )}
 
-          {/* Fear & Greed + Derivatives Pulse + Market Indicators */}
-          {/* Stack on mobile, 3 cols on desktop */}
+          {/* GRID 3 KOLOM */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-            {/* Market Indicators */}
-            <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-              <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-5">Market Indicators</h3>
-              <div className="space-y-3 lg:space-y-4">
-                <IndicatorRow label="ETH Dominance" value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} color="bg-blue-500" />
-                <IndicatorRow label="BTC Dominance" value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} color="bg-orange-500" />
-                <IndicatorRow label="Stablecoin Dom" value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} color="bg-emerald-500" />
-                <div className="pt-2 border-t border-gold-primary/10">
-                  <div className="flex justify-between items-center">
-                    <span className="text-text-muted text-xs lg:text-sm">Altcoin MCap</span>
-                    <span className="text-white font-mono text-xs lg:text-sm">{formatLargeNumber(data.altcoinMarketCap)}</span>
+            {data && (
+              <>
+                <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-5">Market Indicators</h3>
+                  <div className="space-y-3 lg:space-y-4">
+                    <IndicatorRow label="ETH Dominance" value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} color="bg-blue-500" />
+                    <IndicatorRow label="BTC Dominance" value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} color="bg-orange-500" />
+                    <IndicatorRow label="Stablecoin Dom" value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} color="bg-emerald-500" />
+                    <div className="pt-2 border-t border-gold-primary/10">
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-muted text-xs lg:text-sm">Altcoin MCap</span>
+                        <span className="text-white font-mono text-xs lg:text-sm">{formatLargeNumber(data.altcoinMarketCap)}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-muted text-xs lg:text-sm">ETH/BTC</span>
+                      <span className="text-white font-mono text-xs lg:text-sm">{data.ethBtcRatio?.toFixed(5)}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted text-xs lg:text-sm">ETH/BTC</span>
-                  <span className="text-white font-mono text-xs lg:text-sm">{data.ethBtcRatio?.toFixed(5)}</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Fear & Greed */}
-            <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-              <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">Fear & Greed Index</h3>
-              <div className="flex flex-col items-center">
-                {/* Circular gauge - smaller on mobile */}
-                <div className="relative w-24 h-24 lg:w-32 lg:h-32 mb-2 lg:mb-3">
-                  <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-                    <circle
-                      cx="60" cy="60" r="50" fill="none"
-                      stroke={
-                        data.fearGreed.value >= 75 ? '#22c55e' :
-                        data.fearGreed.value >= 50 ? '#84cc16' :
-                        data.fearGreed.value >= 25 ? '#f97316' : '#ef4444'
-                      }
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${data.fearGreed.value * 3.14} 314`}
-                      className="transition-all duration-1000"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl lg:text-3xl font-bold text-white">{data.fearGreed.value}</span>
-                    <span className={`text-[10px] lg:text-xs font-semibold ${
-                      data.fearGreed.value >= 75 ? 'text-green-400' :
-                      data.fearGreed.value >= 50 ? 'text-lime-400' :
-                      data.fearGreed.value >= 25 ? 'text-orange-400' : 'text-red-400'
-                    }`}>{data.fearGreed.label}</span>
+                <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">Fear & Greed Index</h3>
+                  <div className="flex flex-col items-center">
+                    <div className="relative w-24 h-24 lg:w-32 lg:h-32 mb-2 lg:mb-3">
+                      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+                        <circle
+                          cx="60" cy="60" r="50" fill="none"
+                          stroke={
+                            data.fearGreed.value >= 75 ? '#22c55e' :
+                            data.fearGreed.value >= 50 ? '#84cc16' :
+                            data.fearGreed.value >= 25 ? '#f97316' : '#ef4444'
+                          }
+                          strokeWidth="10"
+                          strokeLinecap="round"
+                          strokeDasharray={`${data.fearGreed.value * 3.14} 314`}
+                          className="transition-all duration-1000"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-2xl lg:text-3xl font-bold text-white">{data.fearGreed.value}</span>
+                        <span className={`text-[10px] lg:text-xs font-semibold ${
+                          data.fearGreed.value >= 75 ? 'text-green-400' :
+                          data.fearGreed.value >= 50 ? 'text-lime-400' :
+                          data.fearGreed.value >= 25 ? 'text-orange-400' : 'text-red-400'
+                        }`}>{data.fearGreed.label}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 lg:gap-6 mt-1">
+                      <div className="text-center">
+                        <p className="text-text-muted text-[10px] lg:text-xs">Yesterday</p>
+                        <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.yesterday)}`}>{data.fearGreed.yesterday}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-text-muted text-[10px] lg:text-xs">Last Week</p>
+                        <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.lastWeek)}`}>{data.fearGreed.lastWeek}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-text-muted text-[10px] lg:text-xs">Trend</p>
+                        <p className={`text-xs lg:text-sm font-semibold ${data.fearGreed.value > data.fearGreed.lastWeek ?
+                          'text-green-400' : data.fearGreed.value < data.fearGreed.lastWeek ? 'text-red-400' : 'text-text-muted'}`}>
+                          {data.fearGreed.value > data.fearGreed.lastWeek ? '↑ Up' : data.fearGreed.value < data.fearGreed.lastWeek ? '↓ Down' : '→ Flat'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-4 lg:gap-6 mt-1">
-                  <div className="text-center">
-                    <p className="text-text-muted text-[10px] lg:text-xs">Yesterday</p>
-                    <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.yesterday)}`}>{data.fearGreed.yesterday}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-text-muted text-[10px] lg:text-xs">Last Week</p>
-                    <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.lastWeek)}`}>{data.fearGreed.lastWeek}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-text-muted text-[10px] lg:text-xs">Trend</p>
-                    <p className={`text-xs lg:text-sm font-semibold ${data.fearGreed.value > data.fearGreed.lastWeek ?
-                      'text-green-400' : data.fearGreed.value < data.fearGreed.lastWeek ? 'text-red-400' : 'text-text-muted'}`}>
-                      {data.fearGreed.value > data.fearGreed.lastWeek ? '↑ Up' : data.fearGreed.value < data.fearGreed.lastWeek ? '↓ Down' : '→ Flat'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </>
+            )}
 
-            {/* Derivatives Pulse */}
+            {/* DERIVATIVES PULSE - Render independen */}
             {derivPulse ? (
               <DerivativesPulseCard data={derivPulse} />
             ) : (
-              <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-                <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-4">Derivatives Pulse</h3>
-                <div className="flex items-center justify-center h-24 lg:h-32 text-text-muted text-sm">Loading derivatives data...</div>
+              <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10 flex items-center justify-center">
+                <span className="text-text-muted text-sm">Derivatives data pending...</span>
               </div>
             )}
           </div>
 
-          {/* Gainers & Losers - stack on mobile */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-            <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-              <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
-                <span>📈</span>
-                <h3 className="text-white font-semibold text-sm lg:text-base">Top Gainers (24h)</h3>
+          {/* GAINERS & LOSERS - Hanya render jika data ada */}
+          {data && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+              <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
+                <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
+                  <span>📈</span>
+                  <h3 className="text-white font-semibold text-sm lg:text-base">Top Gainers (24h)</h3>
+                </div>
+                <div className="divide-y divide-gold-primary/5">
+                  {data.topGainers.map((coin, idx) => (
+                    <CoinRow key={idx} coin={coin} />
+                  ))}
+                </div>
               </div>
-              <div className="divide-y divide-gold-primary/5">
-                {data.topGainers.map((coin, idx) => (
-                  <CoinRow key={idx} coin={coin} />
-                ))}
-              </div>
-            </div>
 
-            <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-              <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
-                <span>📉</span>
-                <h3 className="text-white font-semibold text-sm lg:text-base">Top Losers (24h)</h3>
-              </div>
-              <div className="divide-y divide-gold-primary/5">
-                {data.topLosers.map((coin, idx) => (
-                  <CoinRow key={idx} coin={coin} isLoser />
-                ))}
+              <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
+                <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
+                  <span>📉</span>
+                  <h3 className="text-white font-semibold text-sm lg:text-base">Top Losers (24h)</h3>
+                </div>
+                <div className="divide-y divide-gold-primary/5">
+                  {data.topLosers.map((coin, idx) => (
+                    <CoinRow key={idx} coin={coin} isLoser />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </>
-      ) : null}
+      )}
     </div>
   );
 };
-
 
 // ================================================================
 // SECTOR PERFORMANCE SECTION
@@ -316,7 +321,6 @@ const SectorPerformance = ({ categories, trending }) => {
     </div>
   );
 };
-
 
 // ================================================================
 // DERIVATIVES PULSE CARD
@@ -398,7 +402,6 @@ const DerivativesPulseCard = ({ data }) => {
   );
 };
 
-
 // ================================================================
 // HELPER COMPONENTS
 // ================================================================
@@ -439,18 +442,6 @@ const MetricCard = ({ label, value, change, icon, color = 'text-white' }) => (
     )}
   </div>
 );
-
-const InsightItem = ({ condition, positive, negative }) => {
-  const text = condition ? positive : negative;
-  if (!text) return null;
-  return (
-    <div className={`p-2.5 lg:p-3 rounded-lg ${condition ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-      <p className={`text-xs lg:text-sm ${condition ? 'text-green-400' : 'text-red-400'}`}>
-        {condition ? '✓' : '⚠'} {text}
-      </p>
-    </div>
-  );
-};
 
 const CoinRow = ({ coin, isLoser }) => (
   <div className="flex items-center justify-between px-3.5 lg:px-5 py-2.5 lg:py-3 hover:bg-gold-primary/5 transition-colors">

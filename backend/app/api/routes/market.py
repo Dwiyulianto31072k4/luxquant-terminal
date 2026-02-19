@@ -161,7 +161,7 @@ async def get_coins_market(
 
 @router.get("/global")
 async def get_global_data():
-    """Global market data (cached 120s by worker)"""
+    """Global market data (cached 120s by worker, stale fallback on failure)"""
     cached = cache_get("lq:market:global")
     if cached:
         return cached
@@ -174,8 +174,24 @@ async def get_global_data():
                 client.get(f"{FEAR_GREED_API}/?limit=7"),
                 return_exceptions=True,
             )
+
+            # Check for rate limiting on critical endpoints
+            for res in [global_res, coins_res]:
+                if not isinstance(res, Exception) and res.status_code == 429:
+                    stale, _ = cache_get_with_stale("lq:market:global")
+                    if stale:
+                        return stale
+                    raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
+
             global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
             coins_data = coins_res.json() if not isinstance(coins_res, Exception) and coins_res.status_code == 200 else []
+
+            # If both critical sources failed, try stale
+            if global_data is None and len(coins_data) == 0:
+                stale, _ = cache_get_with_stale("lq:market:global")
+                if stale:
+                    return stale
+
             fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
             if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
                 fg = fg_res.json()
@@ -183,14 +199,18 @@ async def get_global_data():
                     fear_greed = {"value":int(fg["data"][0]["value"]),"label":fg["data"][0]["value_classification"],
                         "yesterday":int(fg["data"][1]["value"]) if len(fg["data"])>1 else 50,
                         "lastWeek":int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50}
+
             result = {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
             cache_set("lq:market:global", result, ttl=120)
             return result
+
+    except HTTPException:
+        raise
     except Exception as e:
         stale, _ = cache_get_with_stale("lq:market:global")
         if stale:
             return stale
-        raise HTTPException(status_code=502, detail=f"API error: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Global market API error: {str(e)}")
 
 
 # ============================================================
@@ -766,10 +786,58 @@ async def get_btc_news():
 
 @router.get("/bitcoin/full")
 async def get_btc_full():
-    """All Bitcoin page data in one request"""
+    """All Bitcoin page data in one request with REAL API Fallbacks"""
+    technical = cache_get("lq:bitcoin:technical")
+    network = cache_get("lq:bitcoin:network")
+    onchain = cache_get("lq:bitcoin:onchain")
+    # Pinjam cache berita secara global jika spesifik BTC kosong
+    news = cache_get("lq:bitcoin:news") or cache_get("lq:mkt:crypto-news") 
+
+    # 1. ALTERNATIF REAL: Network Data (Real-time dari Mempool.space - Gratis & Tanpa Key)
+    if not network:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                # Ambil data REAL langsung dari blockchain explorer mempool.space
+                f_res, d_res, h_res, m_res = await asyncio.gather(
+                    client.get("https://mempool.space/api/v1/fees/recommended"),
+                    client.get("https://mempool.space/api/v1/difficulty-adjustment"),
+                    client.get("https://mempool.space/api/v1/mining/hashrate/3d"),
+                    client.get("https://mempool.space/api/mempool"),
+                    return_exceptions=True
+                )
+                
+                if not isinstance(f_res, Exception) and f_res.status_code == 200:
+                    fees = f_res.json()
+                    diff = d_res.json() if not isinstance(d_res, Exception) and d_res.status_code == 200 else {}
+                    hash_data = h_res.json() if not isinstance(h_res, Exception) and h_res.status_code == 200 else {}
+                    memp = m_res.json() if not isinstance(m_res, Exception) and m_res.status_code == 200 else {}
+                    
+                    network = {
+                        "hashrate": hash_data.get("currentHashrate", 0),
+                        "difficulty": diff.get("difficulty", 0),
+                        "block_height": diff.get("previousRetargetHeight", 0),
+                        "mempool": {"count": memp.get("count", 0)},
+                        "fees": {
+                            "fastest": fees.get("fastestFee", 0),
+                            "half_hour": fees.get("halfHourFee", 0),
+                            "hour": fees.get("hourFee", 0),
+                            "economy": fees.get("economyFee", 0)
+                        },
+                        "difficulty_adjustment": {
+                            "progress": round(diff.get("progressPercent", 0), 2),
+                            "change": round(diff.get("difficultyChange", 0), 2),
+                            "remaining_blocks": diff.get("remainingBlocks", 0)
+                        }
+                    }
+        except Exception as e:
+            print(f"Mempool API fallback error: {e}")
+
+    # 2. TECHNICAL & ON-CHAIN (TETAP REAL)
+    # Jika worker belum siap, KITA BIARKAN NULL. Kita tidak mengirimkan estimasi palsu.
+    
     return {
-        "technical": cache_get("lq:bitcoin:technical"),
-        "network": cache_get("lq:bitcoin:network"),
-        "onchain": cache_get("lq:bitcoin:onchain"),
-        "news": cache_get("lq:bitcoin:news"),
+        "technical": technical,
+        "network": network,
+        "onchain": onchain,
+        "news": news,
     }

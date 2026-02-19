@@ -2,88 +2,19 @@
 """
 LuxQuant Terminal - CoinGecko Routes
 API endpoints untuk data dari CoinGecko
-UPDATED: Added /coin-info/{symbol} for SignalModal Research tab
+UPDATED: Trimmed file, removed duplicates. Only /coin-info/{symbol} kept for SignalModal Research tab.
 """
-from fastapi import APIRouter, HTTPException
-from typing import Optional
+from fastapi import APIRouter
 import httpx
 import re
 
 from app.config import settings
 from app.core.redis import cache_get, cache_set
 
-router = APIRouter()
+router = APIRouter(tags=["coingecko"])
 
 # CoinGecko configuration
 COINGECKO_API_KEY = settings.COINGECKO_API_KEY
-BASE_URL = "https://pro-api.coingecko.com/api/v3" if COINGECKO_API_KEY else "https://api.coingecko.com/api/v3"
-
-def get_headers():
-    headers = {}
-    if COINGECKO_API_KEY:
-        headers["x-cg-pro-api-key"] = COINGECKO_API_KEY
-    return headers
-
-
-@router.get("/bitcoin")
-async def get_bitcoin_data():
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(
-                f"{BASE_URL}/coins/bitcoin",
-                headers=get_headers(),
-                params={"localization": "false", "tickers": "false", "community_data": "false", "developer_data": "false"}
-            )
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch Bitcoin data: {str(e)}")
-
-
-@router.get("/global")
-async def get_global_data():
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(f"{BASE_URL}/global", headers=get_headers())
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch global data: {str(e)}")
-
-
-@router.get("/markets")
-async def get_markets_data(vs_currency: str = "usd", per_page: int = 100, page: int = 1):
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(
-                f"{BASE_URL}/coins/markets",
-                headers=get_headers(),
-                params={"vs_currency": vs_currency, "order": "market_cap_desc", "per_page": per_page, "page": page, "sparkline": "false", "price_change_percentage": "1h,24h,7d"}
-            )
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch markets data: {str(e)}")
-
-
-@router.get("/fear-greed")
-async def get_fear_greed_index():
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get("https://api.alternative.me/fng/?limit=1")
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch fear & greed index: {str(e)}")
-
 
 # ============================================
 # GET /coin-info/{symbol} — For SignalModal Research Tab
