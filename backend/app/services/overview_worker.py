@@ -1,24 +1,22 @@
-# backend/app/services/overview_worker.py
 """
 LuxQuant Terminal - Overview Page Background Cache Worker
-Pre-computes data specifically for the Overview dashboard page.
+Pre-computes data for the Overview dashboard page.
 
-Endpoints cached:
-  - /market/categories       → CoinGecko categories (sector performance)
-  - /market/trending-categories → CoinGecko trending
-  - /market/derivatives-pulse → Binance Futures aggregated data
-  - Fear & Greed historical  → Alternative.me (already in coingecko_cache_loop, but refreshed here too)
-
-Intervals:
-  - Categories + Trending: every 300s (5min) — CoinGecko rate limit friendly
-  - Derivatives Pulse: every 60s — Binance has no rate limit
+OPTIMIZED v2:
+- Exponential backoff for Binance Futures (Indonesia block)
+- Stale cache fallback via cache_set dual-write
+- Log suppression after first consecutive error
 """
 import asyncio
 import time
+import traceback
 import os
 import httpx
 from datetime import datetime
 from app.core.redis import cache_set, is_redis_available
+
+# Import shared failure tracker from cache_worker
+from app.services.cache_worker import _tracker
 
 # APIs
 COINGECKO_API = "https://api.coingecko.com/api/v3"
@@ -39,6 +37,8 @@ TIMEOUT = 15.0
 
 async def fetch_categories():
     """Fetch top crypto categories/sectors from CoinGecko"""
+    if _tracker.should_skip("coingecko_categories"):
+        return None
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             res = await client.get(
@@ -47,7 +47,7 @@ async def fetch_categories():
                 headers=CG_HEADERS,
             )
             if res.status_code != 200:
-                print(f"⚠️ Categories API returned {res.status_code}")
+                _tracker.record_failure("coingecko_categories", Exception(f"HTTP {res.status_code}"), base_interval=300)
                 return None
 
             raw = res.json()
@@ -67,22 +67,26 @@ async def fetch_categories():
                 })
 
             categories.sort(key=lambda x: abs(x["market_cap_change_24h"]), reverse=True)
+            _tracker.record_success("coingecko_categories")
             return categories[:30]
     except Exception as e:
-        print(f"❌ Categories fetch error: {e}")
+        _tracker.record_failure("coingecko_categories", e, base_interval=300)
         return None
 
 
 async def fetch_trending():
     """Fetch trending coins & categories from CoinGecko"""
+    if _tracker.should_skip("coingecko_trending"):
+        return None
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             res = await client.get(f"{COINGECKO_API}/search/trending", headers=CG_HEADERS)
             if res.status_code != 200:
-                print(f"⚠️ Trending API returned {res.status_code}")
+                _tracker.record_failure("coingecko_trending", Exception(f"HTTP {res.status_code}"), base_interval=300)
                 return None
 
             data = res.json()
+            _tracker.record_success("coingecko_trending")
             return {
                 "coins": [
                     {
@@ -107,12 +111,18 @@ async def fetch_trending():
                 ],
             }
     except Exception as e:
-        print(f"❌ Trending fetch error: {e}")
+        _tracker.record_failure("coingecko_trending", e, base_interval=300)
         return None
 
 
 async def fetch_derivatives_pulse():
-    """Fetch aggregated derivatives data from Binance Futures"""
+    """
+    Fetch aggregated derivatives data from Binance Futures.
+    With exponential backoff when Binance is blocked.
+    """
+    if _tracker.should_skip("binance_derivatives"):
+        return None
+
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             # 1. Premium index (all funding rates)
@@ -153,7 +163,7 @@ async def fetch_derivatives_pulse():
                             "short": round(float(ls_data[0]["shortAccount"]) * 100, 1),
                             "ratio": float(ls_data[0]["longShortRatio"]),
                         }
-                except:
+                except Exception:
                     continue
 
             # 3. Aggregated OI for top coins
@@ -175,11 +185,12 @@ async def fetch_derivatives_pulse():
                             "symbol": sym.replace("USDT", ""),
                             "oi_usd": round(oi * price, 0),
                         })
-                except:
+                except Exception:
                     continue
 
             total_oi = sum(x["oi_usd"] for x in oi_results)
 
+            _tracker.record_success("binance_derivatives")
             return {
                 "funding": {
                     "most_long": top_positive,
@@ -200,7 +211,7 @@ async def fetch_derivatives_pulse():
                 "timestamp": datetime.utcnow().isoformat(),
             }
     except Exception as e:
-        print(f"❌ Derivatives pulse fetch error: {e}")
+        _tracker.record_failure("binance_derivatives", e, base_interval=60)
         return None
 
 
@@ -209,16 +220,9 @@ async def fetch_derivatives_pulse():
 # ============================================
 
 async def overview_coingecko_loop():
-    """
-    Pre-compute CoinGecko-based Overview data every 300s.
-    - Categories (sector performance)
-    - Trending categories & coins
-    
-    Staggered requests with 3s gap to respect rate limits.
-    Uses 2 API calls per cycle = ~576/day (well under 10,000/month limit).
-    """
+    """Pre-compute CoinGecko-based Overview data every 300s."""
     print("🔄 Overview CoinGecko worker started (interval: 300s)")
-    await asyncio.sleep(8)  # Stagger after other workers
+    await asyncio.sleep(8)
 
     while True:
         try:
@@ -229,15 +233,13 @@ async def overview_coingecko_loop():
             start = time.time()
             cached = 0
 
-            # Categories
             categories = await fetch_categories()
             if categories:
                 cache_set("lq:market:categories", categories, ttl=310)
                 cached += 1
-            
-            await asyncio.sleep(3)  # Rate limit gap
 
-            # Trending
+            await asyncio.sleep(3)
+
             trending = await fetch_trending()
             if trending:
                 cache_set("lq:market:trending", trending, ttl=310)
@@ -246,22 +248,16 @@ async def overview_coingecko_loop():
             elapsed = round((time.time() - start) * 1000)
             print(f"✅ Overview CoinGecko: {cached} keys in {elapsed}ms")
         except Exception as e:
-            print(f"❌ Overview CoinGecko worker error: {e}")
+            print(f"❌ Overview CoinGecko worker error: {type(e).__name__}: {e}")
+            traceback.print_exc()
 
         await asyncio.sleep(300)
 
 
 async def overview_derivatives_loop():
-    """
-    Pre-compute Binance derivatives data every 60s.
-    - Funding rates (all symbols)
-    - Long/Short ratio (BTC, ETH)
-    - Open Interest (top 5)
-    
-    Binance has no rate limit for these endpoints.
-    """
+    """Pre-compute Binance derivatives data every 60s with backoff."""
     print("🔄 Overview Derivatives worker started (interval: 60s)")
-    await asyncio.sleep(6)  # Stagger
+    await asyncio.sleep(6)
 
     while True:
         try:
@@ -278,16 +274,16 @@ async def overview_derivatives_loop():
                 cached += 1
 
             elapsed = round((time.time() - start) * 1000)
-            print(f"✅ Overview Derivatives: {cached} keys in {elapsed}ms")
+            if cached > 0:
+                print(f"✅ Overview Derivatives: {cached} keys in {elapsed}ms")
+            # Don't log "0 keys" when backoff is active — reduce noise
+
         except Exception as e:
-            print(f"❌ Overview Derivatives worker error: {e}")
+            print(f"❌ Overview Derivatives worker error: {type(e).__name__}: {e}")
+            traceback.print_exc()
 
         await asyncio.sleep(60)
 
-
-# ============================================
-# ENTRY POINT — call from main.py startup
-# ============================================
 
 def start_overview_workers():
     """Start Overview page background workers"""

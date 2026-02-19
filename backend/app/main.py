@@ -4,25 +4,39 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
-from app.services.cache_worker import start_cache_workers
+from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 LuxQuant API Starting...")
     print(f"📡 CoinGecko API Key: {'✓ Configured' if settings.COINGECKO_API_KEY else '✗ Not set'}")
-    
+
+    # === Pre-create _cache_outcomes table BEFORE workers start ===
+    # This ensures the table exists for any direct endpoint queries
+    # that might happen before the first cache cycle completes.
+    try:
+        db = SessionLocal()
+        precompute_outcomes(db)
+        db.close()
+        print("📋 Signal outcomes table initialized")
+    except Exception as e:
+        print(f"⚠️ Could not pre-create outcomes table: {e}")
+        # Non-fatal — the cache worker will create it on first cycle
+
     if is_redis_available():
         print(f"🟢 Redis connected ({settings.REDIS_HOST}:{settings.REDIS_PORT})")
         start_cache_workers()
         start_overview_workers()
     else:
         print("🟡 Redis not available — running without cache (DB direct queries)")
-    
+
     yield
     print("👋 LuxQuant API Shutting down...")
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -48,6 +62,7 @@ app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 
+
 @app.get("/")
 async def root():
     return {
@@ -57,6 +72,7 @@ async def root():
         "redis": "connected" if is_redis_available() else "not available",
         "coingecko_api": "configured" if settings.COINGECKO_API_KEY else "not configured"
     }
+
 
 @app.get("/health")
 async def health():
