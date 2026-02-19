@@ -5,6 +5,8 @@ import StarButton from './StarButton';
 import { useAuth } from '../context/AuthContext';
 import { watchlistApi } from '../services/watchlistApi';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const SignalsTable = ({ 
   signals, 
   loading, 
@@ -36,7 +38,7 @@ const SignalsTable = ({
     );
   };
 
-  // Fetch current prices from Binance
+  // CHANGED: Fetch prices via backend proxy instead of direct Binance
   useEffect(() => {
     if (!signals || signals.length === 0) return;
 
@@ -44,35 +46,19 @@ const SignalsTable = ({
       setPricesLoading(true);
       try {
         const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
-        const response = await fetch('https://fapi.binance.com/fapi/v1/ticker/price');
+        if (uniquePairs.length === 0) {
+          setPricesLoading(false);
+          return;
+        }
+
+        // Use backend proxy — handles Futures→Spot fallback internally
+        const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
         if (!response.ok) throw new Error('Failed to fetch prices');
         
-        const allPrices = await response.json();
-        const priceMap = {};
-        allPrices.forEach(item => {
-          priceMap[item.symbol] = parseFloat(item.price);
-        });
-        
-        const relevantPrices = {};
-        uniquePairs.forEach(pair => {
-          if (priceMap[pair]) relevantPrices[pair] = priceMap[pair];
-        });
-        
-        setCurrentPrices(relevantPrices);
+        const priceMap = await response.json();
+        setCurrentPrices(priceMap);
       } catch (error) {
         console.error('Error fetching current prices:', error);
-        try {
-          const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
-          const response = await fetch('https://api.binance.com/api/v3/ticker/price');
-          if (response.ok) {
-            const allPrices = await response.json();
-            const priceMap = {};
-            allPrices.forEach(item => { priceMap[item.symbol] = parseFloat(item.price); });
-            const relevantPrices = {};
-            uniquePairs.forEach(pair => { if (priceMap[pair]) relevantPrices[pair] = priceMap[pair]; });
-            setCurrentPrices(relevantPrices);
-          }
-        } catch (e) { console.error('Spot API also failed:', e); }
       } finally {
         setPricesLoading(false);
       }
@@ -454,7 +440,7 @@ const SignalsTable = ({
                 <SortableHeader field="max_target" label="Max Target" align="right" />
                 <Header label="Stop Loss" align="right" />
                 <SortableHeader field="risk_level" label="Risk" align="center" />
-                <Header label="Market Cap" align="center" />
+                <SortableHeader field="market_cap" label="Market Cap" align="center" />
                 <Header label="Vol Rank" align="center" />
                 <SortableHeader field="status" label="Status" align="center" />
                 <SortableHeader field="created_at" label="Time" align="right" />
@@ -569,7 +555,7 @@ const SignalsTable = ({
                         </span>
                       </td>
 
-                      {/* Market Cap */}
+                      {/* Market Cap — CHANGED: now sortable */}
                       <td className="py-4 px-4 text-center">
                         {signal.market_cap ? (
                           <span className={`text-xs font-semibold ${getMarketCapStyle(signal.market_cap)}`}>

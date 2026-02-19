@@ -6,9 +6,7 @@ import { watchlistApi } from '../services/watchlistApi';
 import StarButton from './StarButton';
 import CoinLogo from './CoinLogo';
 
-// Binance API URLs - Same as TradingView uses for BINANCE:xxxUSDT.P
-const BINANCE_FUTURES_API = 'https://fapi.binance.com/fapi/v1';
-const BINANCE_SPOT_API = 'https://api.binance.com/api/v3';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const WatchlistPage = () => {
   const { isAuthenticated } = useAuth();
@@ -17,7 +15,6 @@ const WatchlistPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
-  const [priceSource, setPriceSource] = useState('');
 
   // Fetch watchlist
   useEffect(() => {
@@ -40,14 +37,13 @@ const WatchlistPage = () => {
     fetchWatchlist();
   }, [isAuthenticated, navigate]);
 
-  // Fetch current prices directly from Binance (frontend)
+  // CHANGED: Fetch prices via backend proxy instead of direct Binance
   const fetchCurrentPrices = useCallback(async () => {
     if (watchlist.length === 0) return;
     
     setPricesLoading(true);
     
     try {
-      // Get unique pairs from watchlist
       const pairs = [...new Set(watchlist.map(item => item.pair).filter(Boolean))];
       
       if (pairs.length === 0) {
@@ -55,72 +51,14 @@ const WatchlistPage = () => {
         return;
       }
       
-      const prices = {};
-      let source = '';
-      
-      // Strategy 1: Try Binance Futures first (has perpetual contracts like AGTUSDT.P)
-      try {
-        const futuresResponse = await fetch(`${BINANCE_FUTURES_API}/ticker/price`);
-        if (futuresResponse.ok) {
-          const futuresData = await futuresResponse.json();
-          const futuresPrices = {};
-          
-          futuresData.forEach(item => {
-            futuresPrices[item.symbol] = parseFloat(item.price);
-          });
-          
-          // Match our pairs with futures prices
-          pairs.forEach(pair => {
-            if (futuresPrices[pair]) {
-              prices[pair] = futuresPrices[pair];
-            }
-          });
-          
-          if (Object.keys(prices).length > 0) {
-            source = 'Binance Futures';
-          }
-        }
-      } catch (e) {
-        console.warn('Binance Futures fetch failed:', e);
+      // Single call to backend — handles Futures→Spot fallback internally
+      const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${pairs.join(',')}`);
+      if (response.ok) {
+        const priceMap = await response.json();
+        setCurrentPrices(priceMap);
       }
-      
-      // Strategy 2: For remaining pairs, try Binance Spot
-      const remainingPairs = pairs.filter(p => !prices[p]);
-      
-      if (remainingPairs.length > 0) {
-        try {
-          const spotResponse = await fetch(`${BINANCE_SPOT_API}/ticker/price`);
-          if (spotResponse.ok) {
-            const spotData = await spotResponse.json();
-            const spotPrices = {};
-            
-            spotData.forEach(item => {
-              spotPrices[item.symbol] = parseFloat(item.price);
-            });
-            
-            remainingPairs.forEach(pair => {
-              if (spotPrices[pair]) {
-                prices[pair] = spotPrices[pair];
-              }
-            });
-            
-            if (source) {
-              source += ' + Spot';
-            } else {
-              source = 'Binance Spot';
-            }
-          }
-        } catch (e) {
-          console.warn('Binance Spot fetch failed:', e);
-        }
-      }
-      
-      setCurrentPrices(prices);
-      setPriceSource(source || 'Unavailable');
-      
     } catch (error) {
       console.error('Failed to fetch prices:', error);
-      setPriceSource('Error');
     } finally {
       setPricesLoading(false);
     }
@@ -247,7 +185,7 @@ const WatchlistPage = () => {
             }`} />
             <span>
               {pricesLoading ? 'Updating...' : 
-               priceSource ? `${priceSource} • 10s refresh` : 'Connecting...'}
+               Object.keys(currentPrices).length > 0 ? 'Live • 10s refresh' : 'Connecting...'}
             </span>
           </div>
         )}
@@ -406,7 +344,6 @@ const WatchlistPage = () => {
           <div className="p-4 border-t border-gold-primary/10 bg-gold-primary/5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-6">
-                {/* Count by status */}
                 <div className="flex items-center gap-2">
                   <span className="text-text-muted text-sm">Open:</span>
                   <span className="text-cyan-400 font-semibold">{openCount}</span>

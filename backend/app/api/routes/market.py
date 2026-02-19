@@ -2,16 +2,20 @@
 Market Data Router - Proxy for Binance & CoinGecko APIs (bypass CORS)
 With Redis caching (pre-computed by background worker)
 Falls back to direct API call if cache miss
-UPDATED: /overview has fallback to Binance Spot if Futures unavailable
+
+OPTIMIZED v3:
+- SHARED HTTP CLIENTS (no more per-request AsyncClient creation)
+- STALE FALLBACK on ALL endpoints (never return 502 if we have old data)
+- Config-driven timeouts
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Any
-import httpx
 import asyncio
 import time
 from pydantic import BaseModel
 from datetime import datetime
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
+from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
 
 router = APIRouter(tags=["market"])
 
@@ -23,10 +27,10 @@ FEAR_GREED_API = "https://api.alternative.me/fng"
 
 # CoinGecko Demo API Key
 import os
-CG_API_KEY = os.getenv("COINGECKO_API_KEY", "CG-Cj4mhiz6QhsQZnfD4Ukd7QRH")
-CG_HEADERS = {"accept": "application/json", "x-cg-demo-api-key": CG_API_KEY}
-
-TIMEOUT = 15.0
+CG_API_KEY = os.getenv("COINGECKO_API_KEY", "")
+CG_HEADERS = {"accept": "application/json"}
+if CG_API_KEY:
+    CG_HEADERS["x-cg-demo-api-key"] = CG_API_KEY
 
 
 # ============ Response Models ============
@@ -68,52 +72,57 @@ class OIHistoryItem(BaseModel):
 
 @router.get("/bitcoin")
 async def get_bitcoin_data():
-    """Bitcoin data from CoinGecko (cached 120s by worker)"""
+    """Bitcoin data from CoinGecko (cached by worker)"""
+    # Try fresh cache first
     cached = cache_get("lq:market:bitcoin")
     if cached:
         return cached
 
+    # Cache miss — try direct fetch
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            btc_task = client.get(f"{COINGECKO_API}/coins/bitcoin", params={"localization":"false","tickers":"false","community_data":"false","developer_data":"false"}, headers=CG_HEADERS)
-            global_task = client.get(f"{COINGECKO_API}/global", headers=CG_HEADERS)
-            fg_task = client.get(f"{FEAR_GREED_API}/?limit=1")
-            btc_res, global_res, fg_res = await asyncio.gather(btc_task, global_task, fg_task, return_exceptions=True)
+        client = get_coingecko_client()
+        btc_res, global_res, fg_res = await asyncio.gather(
+            client.get(f"{COINGECKO_API}/coins/bitcoin", params={"localization":"false","tickers":"false","community_data":"false","developer_data":"false"}, headers=CG_HEADERS),
+            client.get(f"{COINGECKO_API}/global", headers=CG_HEADERS),
+            client.get(f"{FEAR_GREED_API}/?limit=1"),
+            return_exceptions=True,
+        )
 
-            btc_data = btc_res.json() if not isinstance(btc_res, Exception) and btc_res.status_code == 200 else None
-            global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
-            fear_greed = {"value": 50, "label": "Neutral"}
-            if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
-                fg = fg_res.json()
-                if fg.get("data") and len(fg["data"]) > 0:
-                    fear_greed = {"value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"]}
+        btc_data = btc_res.json() if not isinstance(btc_res, Exception) and btc_res.status_code == 200 else None
+        global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
+        fear_greed = {"value": 50, "label": "Neutral"}
+        if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
+            fg = fg_res.json()
+            if fg.get("data") and len(fg["data"]) > 0:
+                fear_greed = {"value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"]}
 
-            if not btc_data:
-                stale, _ = cache_get_with_stale("lq:market:bitcoin")
-                if stale:
-                    return stale
-                raise HTTPException(status_code=502, detail="Failed to fetch Bitcoin data")
+        if not btc_data:
+            # Direct fetch failed — try stale
+            stale, _ = cache_get_with_stale("lq:market:bitcoin")
+            if stale:
+                return stale
+            raise HTTPException(status_code=502, detail="Failed to fetch Bitcoin data")
 
-            md = btc_data.get("market_data", {})
-            result = {
-                "price": md.get("current_price",{}).get("usd",0),
-                "priceChange24h": md.get("price_change_percentage_24h",0),
-                "priceChange7d": md.get("price_change_percentage_7d",0),
-                "priceChange30d": md.get("price_change_percentage_30d",0),
-                "high24h": md.get("high_24h",{}).get("usd",0),
-                "low24h": md.get("low_24h",{}).get("usd",0),
-                "ath": md.get("ath",{}).get("usd",0),
-                "athChange": md.get("ath_change_percentage",{}).get("usd",0),
-                "marketCap": md.get("market_cap",{}).get("usd",0),
-                "marketCapRank": btc_data.get("market_cap_rank",1),
-                "volume24h": md.get("total_volume",{}).get("usd",0),
-                "circulatingSupply": md.get("circulating_supply",0),
-                "maxSupply": md.get("max_supply") or 21000000,
-                "dominance": global_data.get("market_cap_percentage",{}).get("btc",0) if global_data else 0,
-                "fearGreed": fear_greed,
-            }
-            cache_set("lq:market:bitcoin", result, ttl=120)
-            return result
+        md = btc_data.get("market_data", {})
+        result = {
+            "price": md.get("current_price",{}).get("usd",0),
+            "priceChange24h": md.get("price_change_percentage_24h",0),
+            "priceChange7d": md.get("price_change_percentage_7d",0),
+            "priceChange30d": md.get("price_change_percentage_30d",0),
+            "high24h": md.get("high_24h",{}).get("usd",0),
+            "low24h": md.get("low_24h",{}).get("usd",0),
+            "ath": md.get("ath",{}).get("usd",0),
+            "athChange": md.get("ath_change_percentage",{}).get("usd",0),
+            "marketCap": md.get("market_cap",{}).get("usd",0),
+            "marketCapRank": btc_data.get("market_cap_rank",1),
+            "volume24h": md.get("total_volume",{}).get("usd",0),
+            "circulatingSupply": md.get("circulating_supply",0),
+            "maxSupply": md.get("max_supply") or 21000000,
+            "dominance": global_data.get("market_cap_percentage",{}).get("btc",0) if global_data else 0,
+            "fearGreed": fear_greed,
+        }
+        cache_set("lq:market:bitcoin", result, ttl=120)
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -129,27 +138,27 @@ async def get_coins_market(
     page: int = Query(1, ge=1),
     order: str = Query("market_cap_desc")
 ):
-    """Coins market data (cached 120s by worker)"""
+    """Coins market data (cached by worker)"""
     cache_key = f"lq:market:coins:{per_page}:{page}:{order}"
     cached = cache_get(cache_key)
     if cached:
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{COINGECKO_API}/coins/markets", params={
-                "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
-                "sparkline":"false","price_change_percentage":"1h,24h,7d"
-            }, headers=CG_HEADERS)
-            if response.status_code == 429:
-                stale, _ = cache_get_with_stale(cache_key)
-                if stale:
-                    return stale
-                raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
-            response.raise_for_status()
-            result = response.json()
-            cache_set(cache_key, result, ttl=120)
-            return result
+        client = get_coingecko_client()
+        response = await client.get(f"{COINGECKO_API}/coins/markets", params={
+            "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
+            "sparkline":"false","price_change_percentage":"1h,24h,7d"
+        }, headers=CG_HEADERS)
+        if response.status_code == 429:
+            stale, _ = cache_get_with_stale(cache_key)
+            if stale:
+                return stale
+            raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
+        response.raise_for_status()
+        result = response.json()
+        cache_set(cache_key, result, ttl=120)
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -161,48 +170,47 @@ async def get_coins_market(
 
 @router.get("/global")
 async def get_global_data():
-    """Global market data (cached 120s by worker, stale fallback on failure)"""
+    """Global market data (cached by worker, stale fallback on failure)"""
     cached = cache_get("lq:market:global")
     if cached:
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            global_res, coins_res, fg_res = await asyncio.gather(
-                client.get(f"{COINGECKO_API}/global", headers=CG_HEADERS),
-                client.get(f"{COINGECKO_API}/coins/markets", params={"vs_currency":"usd","order":"market_cap_desc","per_page":20,"page":1,"sparkline":"false","price_change_percentage":"24h,7d"}, headers=CG_HEADERS),
-                client.get(f"{FEAR_GREED_API}/?limit=7"),
-                return_exceptions=True,
-            )
+        client = get_coingecko_client()
+        global_res, coins_res, fg_res = await asyncio.gather(
+            client.get(f"{COINGECKO_API}/global", headers=CG_HEADERS),
+            client.get(f"{COINGECKO_API}/coins/markets", params={"vs_currency":"usd","order":"market_cap_desc","per_page":20,"page":1,"sparkline":"false","price_change_percentage":"24h,7d"}, headers=CG_HEADERS),
+            client.get(f"{FEAR_GREED_API}/?limit=7"),
+            return_exceptions=True,
+        )
 
-            # Check for rate limiting on critical endpoints
-            for res in [global_res, coins_res]:
-                if not isinstance(res, Exception) and res.status_code == 429:
-                    stale, _ = cache_get_with_stale("lq:market:global")
-                    if stale:
-                        return stale
-                    raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
-
-            global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
-            coins_data = coins_res.json() if not isinstance(coins_res, Exception) and coins_res.status_code == 200 else []
-
-            # If both critical sources failed, try stale
-            if global_data is None and len(coins_data) == 0:
+        # Check for rate limiting
+        for res in [global_res, coins_res]:
+            if not isinstance(res, Exception) and res.status_code == 429:
                 stale, _ = cache_get_with_stale("lq:market:global")
                 if stale:
                     return stale
+                raise HTTPException(status_code=429, detail="CoinGecko rate limit exceeded")
 
-            fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
-            if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
-                fg = fg_res.json()
-                if fg.get("data") and len(fg["data"])>0:
-                    fear_greed = {"value":int(fg["data"][0]["value"]),"label":fg["data"][0]["value_classification"],
-                        "yesterday":int(fg["data"][1]["value"]) if len(fg["data"])>1 else 50,
-                        "lastWeek":int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50}
+        global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
+        coins_data = coins_res.json() if not isinstance(coins_res, Exception) and coins_res.status_code == 200 else []
 
-            result = {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
-            cache_set("lq:market:global", result, ttl=120)
-            return result
+        if global_data is None and len(coins_data) == 0:
+            stale, _ = cache_get_with_stale("lq:market:global")
+            if stale:
+                return stale
+
+        fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
+        if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
+            fg = fg_res.json()
+            if fg.get("data") and len(fg["data"])>0:
+                fear_greed = {"value":int(fg["data"][0]["value"]),"label":fg["data"][0]["value_classification"],
+                    "yesterday":int(fg["data"][1]["value"]) if len(fg["data"])>1 else 50,
+                    "lastWeek":int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50}
+
+        result = {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
+        cache_set("lq:market:global", result, ttl=120)
+        return result
 
     except HTTPException:
         raise
@@ -225,15 +233,19 @@ async def get_btc_ticker():
         return BtcTickerResponse(**cached)
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr", params={"symbol": "BTCUSDT"})
-            response.raise_for_status()
-            data = response.json()
-            result = {"price":float(data["lastPrice"]),"high_24h":float(data["highPrice"]),"low_24h":float(data["lowPrice"]),
-                "volume_24h":float(data["quoteVolume"]),"price_change_24h":float(data["priceChange"]),"price_change_pct":float(data["priceChangePercent"])}
-            cache_set("lq:market:btc-ticker", result, ttl=15)
-            return BtcTickerResponse(**result)
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr", params={"symbol": "BTCUSDT"})
+        response.raise_for_status()
+        data = response.json()
+        result = {"price":float(data["lastPrice"]),"high_24h":float(data["highPrice"]),"low_24h":float(data["lowPrice"]),
+            "volume_24h":float(data["quoteVolume"]),"price_change_24h":float(data["priceChange"]),"price_change_pct":float(data["priceChangePercent"])}
+        cache_set("lq:market:btc-ticker", result, ttl=15)
+        return BtcTickerResponse(**result)
+    except Exception as e:
+        # CHANGED: stale fallback instead of immediate 502
+        stale, _ = cache_get_with_stale("lq:market:btc-ticker")
+        if stale:
+            return BtcTickerResponse(**stale)
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -247,15 +259,22 @@ async def get_funding_rates(symbols: str = "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT"):
 
     symbol_list = [s.strip().upper() for s in symbols.split(",")]
     results = []
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        for symbol in symbol_list:
-            try:
-                response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": symbol, "limit": 1})
-                response.raise_for_status()
-                data = response.json()
-                if data:
-                    results.append(FundingRateItem(symbol=symbol.replace("USDT",""), rate=float(data[0]["fundingRate"]), time=int(data[0]["fundingTime"])))
-            except: continue
+    client = get_binance_client()
+    for symbol in symbol_list:
+        try:
+            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": symbol, "limit": 1})
+            response.raise_for_status()
+            data = response.json()
+            if data:
+                results.append(FundingRateItem(symbol=symbol.replace("USDT",""), rate=float(data[0]["fundingRate"]), time=int(data[0]["fundingTime"])))
+        except: continue
+
+    # CHANGED: if direct fetch failed completely, try stale
+    if not results and symbols == "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT":
+        stale, _ = cache_get_with_stale("lq:market:funding-rates")
+        if stale:
+            return [FundingRateItem(**item) for item in stale]
+
     return results
 
 
@@ -263,14 +282,14 @@ async def get_funding_rates(symbols: str = "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT"):
 async def get_single_funding_rate(symbol: str = "BTCUSDT"):
     """Get funding rate for a single symbol"""
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": symbol.upper(), "limit": 1})
-            response.raise_for_status()
-            data = response.json()
-            if data:
-                return {"symbol": symbol.replace("USDT",""), "rate": float(data[0]["fundingRate"]), "time": int(data[0]["fundingTime"])}
-            return None
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol": symbol.upper(), "limit": 1})
+        response.raise_for_status()
+        data = response.json()
+        if data:
+            return {"symbol": symbol.replace("USDT",""), "rate": float(data[0]["fundingRate"]), "time": int(data[0]["fundingTime"])}
+        return None
+    except Exception as e:
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -283,15 +302,22 @@ async def get_long_short_ratio(symbol: str = "BTCUSDT", period: str = "5m"):
             return LongShortRatioResponse(**cached)
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio", params={"symbol":symbol.upper(),"period":period,"limit":1})
-            response.raise_for_status()
-            data = response.json()
-            if data:
-                return LongShortRatioResponse(symbol=symbol, longAccount=float(data[0]["longAccount"]), shortAccount=float(data[0]["shortAccount"]),
-                    longShortRatio=float(data[0]["longShortRatio"]), timestamp=int(data[0]["timestamp"]))
-            raise HTTPException(status_code=404, detail="No data available")
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio", params={"symbol":symbol.upper(),"period":period,"limit":1})
+        response.raise_for_status()
+        data = response.json()
+        if data:
+            return LongShortRatioResponse(symbol=symbol, longAccount=float(data[0]["longAccount"]), shortAccount=float(data[0]["shortAccount"]),
+                longShortRatio=float(data[0]["longShortRatio"]), timestamp=int(data[0]["timestamp"]))
+        raise HTTPException(status_code=404, detail="No data available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        # CHANGED: stale fallback
+        if symbol.upper() == "BTCUSDT" and period == "5m":
+            stale, _ = cache_get_with_stale("lq:market:long-short-ratio")
+            if stale:
+                return LongShortRatioResponse(**stale)
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -304,17 +330,22 @@ async def get_top_trader_ratio(symbol: str = "BTCUSDT", period: str = "5m"):
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/topLongShortPositionRatio", params={"symbol":symbol.upper(),"period":period,"limit":1})
-            response.raise_for_status()
-            data = response.json()
-            if data:
-                result = {"symbol":symbol,"longAccount":float(data[0]["longAccount"]),"shortAccount":float(data[0]["shortAccount"]),
-                    "longShortRatio":float(data[0]["longShortRatio"]),"timestamp":int(data[0]["timestamp"])}
-                cache_set(cache_key, result, ttl=30)
-                return result
-            raise HTTPException(status_code=404, detail="No data available")
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/topLongShortPositionRatio", params={"symbol":symbol.upper(),"period":period,"limit":1})
+        response.raise_for_status()
+        data = response.json()
+        if data:
+            result = {"symbol":symbol,"longAccount":float(data[0]["longAccount"]),"shortAccount":float(data[0]["shortAccount"]),
+                "longShortRatio":float(data[0]["longShortRatio"]),"timestamp":int(data[0]["timestamp"])}
+            cache_set(cache_key, result, ttl=30)
+            return result
+        raise HTTPException(status_code=404, detail="No data available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            return stale
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -327,15 +358,20 @@ async def get_open_interest(symbol: str = "BTCUSDT"):
             return OpenInterestResponse(**cached)
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            oi_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol":symbol.upper()})
-            oi_res.raise_for_status()
-            price_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price", params={"symbol":symbol.upper()})
-            price_res.raise_for_status()
-            oi = float(oi_res.json()["openInterest"])
-            price = float(price_res.json()["price"])
-            return OpenInterestResponse(symbol=symbol, openInterest=oi, openInterestUsd=oi*price)
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        oi_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol":symbol.upper()})
+        oi_res.raise_for_status()
+        price_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price", params={"symbol":symbol.upper()})
+        price_res.raise_for_status()
+        oi = float(oi_res.json()["openInterest"])
+        price = float(price_res.json()["price"])
+        return OpenInterestResponse(symbol=symbol, openInterest=oi, openInterestUsd=oi*price)
+    except Exception as e:
+        # CHANGED: stale fallback
+        if symbol.upper() == "BTCUSDT":
+            stale, _ = cache_get_with_stale("lq:market:open-interest")
+            if stale:
+                return OpenInterestResponse(**stale)
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -348,11 +384,16 @@ async def get_open_interest_history(symbol: str = "BTCUSDT", period: str = "1h",
             return [OIHistoryItem(timestamp=i["timestamp"], sumOpenInterest=i.get("sumOpenInterest",0), sumOpenInterestValue=i["sumOpenInterestValue"]) for i in cached]
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/openInterestHist", params={"symbol":symbol.upper(),"period":period,"limit":min(limit,500)})
-            response.raise_for_status()
-            return [OIHistoryItem(timestamp=int(i["timestamp"]), sumOpenInterest=float(i["sumOpenInterest"]), sumOpenInterestValue=float(i["sumOpenInterestValue"])) for i in response.json()]
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/openInterestHist", params={"symbol":symbol.upper(),"period":period,"limit":min(limit,500)})
+        response.raise_for_status()
+        return [OIHistoryItem(timestamp=int(i["timestamp"]), sumOpenInterest=float(i["sumOpenInterest"]), sumOpenInterestValue=float(i["sumOpenInterestValue"])) for i in response.json()]
+    except Exception as e:
+        # CHANGED: stale fallback
+        if symbol.upper() == "BTCUSDT" and period == "1h" and limit == 24:
+            stale, _ = cache_get_with_stale("lq:market:oi-history")
+            if stale:
+                return [OIHistoryItem(timestamp=i["timestamp"], sumOpenInterest=i.get("sumOpenInterest",0), sumOpenInterestValue=i["sumOpenInterestValue"]) for i in stale]
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
@@ -365,46 +406,104 @@ async def get_taker_volume(symbol: str = "BTCUSDT", period: str = "5m", limit: i
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/takerlongshortRatio", params={"symbol":symbol.upper(),"period":period,"limit":min(limit,500)})
-            response.raise_for_status()
-            result = [{"timestamp":int(i["timestamp"]),"buyVol":float(i["buyVol"]),"sellVol":float(i["sellVol"]),"buySellRatio":float(i["buySellRatio"])} for i in response.json()]
-            cache_set(cache_key, result, ttl=30)
-            return result
-    except httpx.HTTPError as e:
+        client = get_binance_client()
+        response = await client.get(f"{BINANCE_FUTURES_API}/futures/data/takerlongshortRatio", params={"symbol":symbol.upper(),"period":period,"limit":min(limit,500)})
+        response.raise_for_status()
+        result = [{"timestamp":int(i["timestamp"]),"buyVol":float(i["buyVol"]),"sellVol":float(i["sellVol"]),"buySellRatio":float(i["buySellRatio"])} for i in response.json()]
+        cache_set(cache_key, result, ttl=30)
+        return result
+    except Exception as e:
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            return stale
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
 @router.get("/prices")
 async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
-    """Batch prices from Binance (not cached - real-time). Tries Futures first, falls back to Spot."""
-    symbol_list = [s.strip().upper() for s in symbols.split(",")]
+    """
+    Batch prices with 5-second Redis cache.
+    Uses single bulk API call instead of per-symbol sequential calls.
+    All users share the same cached price data — near-instant response.
+    """
+    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if not symbol_list:
+        return {}
+
+    # Step 1: Check cache for ALL futures prices (single key, refreshed every 5s)
+    cache_key = "lq:market:all-futures-prices"
+    all_prices = cache_get(cache_key)
+
+    if not all_prices:
+        # Cache miss — fetch ALL futures prices in single call
+        client = get_binance_client()
+        all_prices = {}
+        try:
+            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price")
+            if response.status_code == 200:
+                for item in response.json():
+                    all_prices[item["symbol"]] = float(item["price"])
+                cache_set(cache_key, all_prices, ttl=5)
+        except Exception:
+            # Fallback: try stale cache
+            stale = cache_get_with_stale(cache_key)
+            if stale:
+                all_prices = stale
+
+    # Step 2: Extract requested symbols
     results = {}
-    failed = []
-    
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # Try Futures first
-        for symbol in symbol_list:
+    missing = []
+    for symbol in symbol_list:
+        if symbol in all_prices:
+            results[symbol] = all_prices[symbol]
+        else:
+            missing.append(symbol)
+
+    # Step 3: For symbols not on Futures, try Spot bulk (also cached)
+    if missing:
+        spot_cache_key = "lq:market:all-spot-prices"
+        spot_prices = cache_get(spot_cache_key)
+
+        if not spot_prices:
+            client = get_binance_client()
+            spot_prices = {}
             try:
-                response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price", params={"symbol": symbol})
+                response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/price")
                 if response.status_code == 200:
-                    results[symbol] = float(response.json()["price"])
-                else:
-                    failed.append(symbol)
-            except:
-                failed.append(symbol)
-        
-        # Fallback to Spot for failed symbols
-        if failed:
-            for symbol in failed:
-                try:
-                    response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/price", params={"symbol": symbol})
-                    if response.status_code == 200:
-                        results[symbol] = float(response.json()["price"])
-                except:
-                    continue
-    
+                    for item in response.json():
+                        spot_prices[item["symbol"]] = float(item["price"])
+                    cache_set(spot_cache_key, spot_prices, ttl=5)
+            except Exception:
+                stale = cache_get_with_stale(spot_cache_key)
+                if stale:
+                    spot_prices = stale
+
+        for symbol in missing:
+            if symbol in spot_prices:
+                results[symbol] = spot_prices[symbol]
+
     return results
+
+
+# ============================================================
+# KLINES PROXY - For frontend chart data
+# ============================================================
+
+@router.get("/klines")
+async def get_klines(symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 100):
+    """Proxy Binance klines (OHLC data) through backend to avoid CORS."""
+    try:
+        client = get_binance_client()
+        # Try Spot first (usually works even in Indonesia)
+        response = await client.get(
+            f"{BINANCE_SPOT_API}/api/v3/klines",
+            params={"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 500)}
+        )
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f"HTTP {response.status_code}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Klines fetch failed: {str(e)}")
 
 
 # ============================================================
@@ -423,7 +522,7 @@ async def _fetch_overview_full(client):
         try:
             fr = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate", params={"symbol":sym,"limit":1})
             d = fr.json()
-            if d and isinstance(d, list): 
+            if d and isinstance(d, list):
                 funding_rates.append({"symbol":sym.replace("USDT",""),"rate":float(d[0]["fundingRate"]),"time":int(d[0]["fundingTime"])})
         except: continue
 
@@ -452,12 +551,10 @@ async def _fetch_overview_full(client):
 
 async def _fetch_overview_fallback(client):
     """Fallback: Binance Spot only (when Futures API is blocked/unavailable)"""
-    # BTC from Spot
     btc_res = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr", params={"symbol":"BTCUSDT"})
     btc_data = btc_res.json()
     btc_price = float(btc_data["lastPrice"])
 
-    # Top coins from Spot
     top_symbols = ["ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT"]
     top_coins = []
     for sym in top_symbols:
@@ -500,27 +597,33 @@ async def get_market_overview():
     1. Check Redis cache first
     2. Try full Binance Futures overview
     3. Fallback to Binance Spot if Futures unavailable
+    4. CHANGED: Stale fallback if all APIs fail
     """
     cached = cache_get("lq:market:overview")
     if cached:
         return cached
 
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # Try full overview (Futures)
-        try:
-            result = await _fetch_overview_full(client)
-            cache_set("lq:market:overview", result, ttl=15)
-            return result
-        except Exception as e:
-            print(f"⚠️ Futures unavailable ({e}), falling back to Spot...")
+    client = get_binance_client()
 
-        # Fallback to Spot only
-        try:
-            result = await _fetch_overview_fallback(client)
-            cache_set("lq:market:overview", result, ttl=15)
-            return result
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"All Binance APIs failed: {str(e)}")
+    # Try full overview (Futures)
+    try:
+        result = await _fetch_overview_full(client)
+        cache_set("lq:market:overview", result, ttl=15)
+        return result
+    except Exception as e:
+        print(f"⚠️ Futures unavailable ({e}), falling back to Spot...")
+
+    # Fallback to Spot only
+    try:
+        result = await _fetch_overview_fallback(client)
+        cache_set("lq:market:overview", result, ttl=15)
+        return result
+    except Exception as e:
+        # CHANGED: stale fallback instead of immediate 502
+        stale, _ = cache_get_with_stale("lq:market:overview")
+        if stale:
+            return stale
+        raise HTTPException(status_code=502, detail=f"All Binance APIs failed: {str(e)}")
 
 
 # ============================================================
@@ -531,51 +634,45 @@ async def get_market_overview():
 async def get_categories(limit: int = Query(10, ge=1, le=50)):
     """
     Top crypto sectors/narratives sorted by 24h market cap change.
-    From CoinGecko /coins/categories (free with demo key).
-    Cached 300s (5min) to conserve API calls.
+    Cached 300s (5min).
     """
     cached = cache_get("lq:market:categories")
     if cached:
-        # Return limited
         return cached[:limit]
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(
-                f"{COINGECKO_API}/coins/categories",
-                params={"order": "market_cap_change_24h_desc"},
-                headers=CG_HEADERS
-            )
-            if response.status_code == 429:
-                stale, _ = cache_get_with_stale("lq:market:categories")
-                if stale:
-                    return stale[:limit]
-                raise HTTPException(status_code=429, detail="CoinGecko rate limit")
-            response.raise_for_status()
-            raw = response.json()
+        client = get_coingecko_client()
+        response = await client.get(
+            f"{COINGECKO_API}/coins/categories",
+            params={"order": "market_cap_change_24h_desc"},
+            headers=CG_HEADERS
+        )
+        if response.status_code == 429:
+            stale, _ = cache_get_with_stale("lq:market:categories")
+            if stale:
+                return stale[:limit]
+            raise HTTPException(status_code=429, detail="CoinGecko rate limit")
+        response.raise_for_status()
+        raw = response.json()
 
-            # Filter out categories with very small or no data
-            categories = []
-            for cat in raw:
-                mcap = cat.get("market_cap", 0) or 0
-                if mcap < 1_000_000:  # Skip tiny categories
-                    continue
-                categories.append({
-                    "id": cat.get("id", ""),
-                    "name": cat.get("name", ""),
-                    "market_cap": mcap,
-                    "market_cap_change_24h": cat.get("market_cap_change_24h", 0) or 0,
-                    "volume_24h": cat.get("content", {}).get("total_volume", 0) if isinstance(cat.get("content"), dict) else (cat.get("total_volume", 0) or 0),
-                    "top_3_coins": cat.get("top_3_coins", [])[:3],
-                    "updated_at": cat.get("updated_at", ""),
-                })
+        categories = []
+        for cat in raw:
+            mcap = cat.get("market_cap", 0) or 0
+            if mcap < 1_000_000:
+                continue
+            categories.append({
+                "id": cat.get("id", ""),
+                "name": cat.get("name", ""),
+                "market_cap": mcap,
+                "market_cap_change_24h": cat.get("market_cap_change_24h", 0) or 0,
+                "volume_24h": cat.get("content", {}).get("total_volume", 0) if isinstance(cat.get("content"), dict) else (cat.get("total_volume", 0) or 0),
+                "top_3_coins": cat.get("top_3_coins", [])[:3],
+                "updated_at": cat.get("updated_at", ""),
+            })
 
-            # Sort by absolute 24h change (most movement = most interesting)
-            categories.sort(key=lambda x: abs(x["market_cap_change_24h"]), reverse=True)
-
-            # Cache top 30
-            cache_set("lq:market:categories", categories[:30], ttl=300)
-            return categories[:limit]
+        categories.sort(key=lambda x: abs(x["market_cap_change_24h"]), reverse=True)
+        cache_set("lq:market:categories", categories[:30], ttl=300)
+        return categories[:limit]
 
     except HTTPException:
         raise
@@ -588,48 +685,45 @@ async def get_categories(limit: int = Query(10, ge=1, le=50)):
 
 @router.get("/trending-categories")
 async def get_trending_categories():
-    """
-    Trending searched categories on CoinGecko (last 24h).
-    From /search/trending endpoint.
-    """
+    """Trending searched categories on CoinGecko (last 24h)."""
     cached = cache_get("lq:market:trending")
     if cached:
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.get(f"{COINGECKO_API}/search/trending", headers=CG_HEADERS)
-            if response.status_code == 429:
-                stale, _ = cache_get_with_stale("lq:market:trending")
-                if stale:
-                    return stale
-                raise HTTPException(status_code=429, detail="CoinGecko rate limit")
-            response.raise_for_status()
-            data = response.json()
+        client = get_coingecko_client()
+        response = await client.get(f"{COINGECKO_API}/search/trending", headers=CG_HEADERS)
+        if response.status_code == 429:
+            stale, _ = cache_get_with_stale("lq:market:trending")
+            if stale:
+                return stale
+            raise HTTPException(status_code=429, detail="CoinGecko rate limit")
+        response.raise_for_status()
+        data = response.json()
 
-            result = {
-                "coins": [
-                    {
-                        "id": c["item"]["id"],
-                        "name": c["item"]["name"],
-                        "symbol": c["item"]["symbol"],
-                        "market_cap_rank": c["item"].get("market_cap_rank"),
-                        "thumb": c["item"].get("thumb", ""),
-                        "price_btc": c["item"].get("price_btc", 0),
-                    }
-                    for c in data.get("coins", [])[:7]
-                ],
-                "categories": [
-                    {
-                        "id": cat.get("id"),
-                        "name": cat.get("name"),
-                        "market_cap_1h_change": cat.get("data", {}).get("market_cap_change_percentage_24h", {}).get("usd", 0) if isinstance(cat.get("data"), dict) else 0,
-                    }
-                    for cat in data.get("categories", [])[:5]
-                ],
-            }
-            cache_set("lq:market:trending", result, ttl=300)
-            return result
+        result = {
+            "coins": [
+                {
+                    "id": c["item"]["id"],
+                    "name": c["item"]["name"],
+                    "symbol": c["item"]["symbol"],
+                    "market_cap_rank": c["item"].get("market_cap_rank"),
+                    "thumb": c["item"].get("thumb", ""),
+                    "price_btc": c["item"].get("price_btc", 0),
+                }
+                for c in data.get("coins", [])[:7]
+            ],
+            "categories": [
+                {
+                    "id": cat.get("id"),
+                    "name": cat.get("name"),
+                    "market_cap_1h_change": cat.get("data", {}).get("market_cap_change_percentage_24h", {}).get("usd", 0) if isinstance(cat.get("data"), dict) else 0,
+                }
+                for cat in data.get("categories", [])[:5]
+            ],
+        }
+        cache_set("lq:market:trending", result, ttl=300)
+        return result
 
     except HTTPException:
         raise
@@ -647,105 +741,105 @@ async def get_trending_categories():
 @router.get("/derivatives-pulse")
 async def get_derivatives_pulse():
     """
-    Aggregated derivatives data:
-    - Top 10 funding rates (highest & lowest)
-    - Global long/short ratio
-    - Total aggregated open interest for top coins
-    All from Binance Futures API (free, no key needed).
-    Cached 60s.
+    Aggregated derivatives data.
+    CHANGED: stale fallback if Binance Futures fails.
     """
     cached = cache_get("lq:market:deriv-pulse")
     if cached:
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            # 1. Get ALL premium index (funding rates for all symbols)
-            premium_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
-            premium_res.raise_for_status()
-            premium_data = premium_res.json()
+        client = get_binance_client()
 
-            # Parse funding rates
-            all_funding = []
-            for item in premium_data:
-                sym = item.get("symbol", "")
-                if not sym.endswith("USDT"):
-                    continue
-                rate = float(item.get("lastFundingRate", 0))
-                mark_price = float(item.get("markPrice", 0))
-                all_funding.append({
-                    "symbol": sym.replace("USDT", ""),
-                    "rate": rate,
-                    "rate_pct": round(rate * 100, 4),
-                    "mark_price": mark_price,
-                })
+        # 1. Get ALL premium index (funding rates for all symbols)
+        premium_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
+        premium_res.raise_for_status()
+        premium_data = premium_res.json()
 
-            # Sort: top positive (most longs) and top negative (most shorts)
-            all_funding.sort(key=lambda x: x["rate"], reverse=True)
-            top_positive = all_funding[:5]  # Most bullish sentiment
-            top_negative = all_funding[-5:][::-1]  # Most bearish sentiment
+        all_funding = []
+        for item in premium_data:
+            sym = item.get("symbol", "")
+            if not sym.endswith("USDT"):
+                continue
+            rate = float(item.get("lastFundingRate", 0))
+            mark_price = float(item.get("markPrice", 0))
+            all_funding.append({
+                "symbol": sym.replace("USDT", ""),
+                "rate": rate,
+                "rate_pct": round(rate * 100, 4),
+                "mark_price": mark_price,
+            })
 
-            # 2. Global long/short for BTC & ETH
-            ls_results = {}
-            for sym in ["BTCUSDT", "ETHUSDT"]:
-                try:
-                    ls_res = await client.get(
-                        f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
-                        params={"symbol": sym, "period": "5m", "limit": 1}
-                    )
-                    ls_data = ls_res.json()
-                    if ls_data and isinstance(ls_data, list):
-                        ls_results[sym.replace("USDT", "")] = {
-                            "long": round(float(ls_data[0]["longAccount"]) * 100, 1),
-                            "short": round(float(ls_data[0]["shortAccount"]) * 100, 1),
-                            "ratio": float(ls_data[0]["longShortRatio"]),
-                        }
-                except:
-                    continue
+        all_funding.sort(key=lambda x: x["rate"], reverse=True)
+        top_positive = all_funding[:5]
+        top_negative = all_funding[-5:][::-1]
 
-            # 3. Aggregated OI for top coins
-            oi_results = []
-            for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]:
-                try:
-                    oi_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": sym})
-                    price_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price", params={"symbol": sym})
-                    if oi_res.status_code == 200 and price_res.status_code == 200:
-                        oi = float(oi_res.json()["openInterest"])
-                        price = float(price_res.json()["price"])
-                        oi_results.append({
-                            "symbol": sym.replace("USDT", ""),
-                            "oi_usd": round(oi * price, 0),
-                        })
-                except:
-                    continue
+        # 2. Global long/short for BTC & ETH
+        ls_results = {}
+        for sym in ["BTCUSDT", "ETHUSDT"]:
+            try:
+                ls_res = await client.get(
+                    f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
+                    params={"symbol": sym, "period": "5m", "limit": 1}
+                )
+                ls_data = ls_res.json()
+                if ls_data and isinstance(ls_data, list):
+                    ls_results[sym.replace("USDT", "")] = {
+                        "long": round(float(ls_data[0]["longAccount"]) * 100, 1),
+                        "short": round(float(ls_data[0]["shortAccount"]) * 100, 1),
+                        "ratio": float(ls_data[0]["longShortRatio"]),
+                    }
+            except:
+                continue
 
-            total_oi = sum(x["oi_usd"] for x in oi_results)
+        # 3. Aggregated OI for top coins
+        oi_results = []
+        for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]:
+            try:
+                oi_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": sym})
+                price_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price", params={"symbol": sym})
+                if oi_res.status_code == 200 and price_res.status_code == 200:
+                    oi = float(oi_res.json()["openInterest"])
+                    price = float(price_res.json()["price"])
+                    oi_results.append({
+                        "symbol": sym.replace("USDT", ""),
+                        "oi_usd": round(oi * price, 0),
+                    })
+            except:
+                continue
 
-            result = {
-                "funding": {
-                    "most_long": top_positive,
-                    "most_short": top_negative,
-                    "total_symbols": len(all_funding),
-                    "avg_rate": round(sum(f["rate"] for f in all_funding) / max(len(all_funding), 1) * 100, 4),
-                },
-                "longShort": ls_results,
-                "openInterest": {
-                    "total_usd": total_oi,
-                    "breakdown": oi_results,
-                },
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-            cache_set("lq:market:deriv-pulse", result, ttl=60)
-            return result
+        total_oi = sum(x["oi_usd"] for x in oi_results)
+
+        result = {
+            "funding": {
+                "most_long": top_positive,
+                "most_short": top_negative,
+                "total_symbols": len(all_funding),
+                "avg_rate": round(sum(f["rate"] for f in all_funding) / max(len(all_funding), 1) * 100, 4),
+            },
+            "longShort": ls_results,
+            "openInterest": {
+                "total_usd": total_oi,
+                "breakdown": oi_results,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        cache_set("lq:market:deriv-pulse", result, ttl=60)
+        return result
 
     except HTTPException:
         raise
     except Exception as e:
+        # CHANGED: stale fallback — this was the #1 source of 502 errors
+        stale, _ = cache_get_with_stale("lq:market:deriv-pulse")
+        if stale:
+            return stale
         raise HTTPException(status_code=502, detail=f"Derivatives pulse error: {str(e)}")
 
 
 # ============================================
 # BITCOIN EXTENDED DATA (from cache worker)
+# CHANGED: All endpoints now try stale fallback before returning error
 # ============================================
 
 @router.get("/bitcoin/technical")
@@ -754,6 +848,9 @@ async def get_btc_technical():
     cached = cache_get("lq:bitcoin:technical")
     if cached:
         return cached
+    stale, _ = cache_get_with_stale("lq:bitcoin:technical")
+    if stale:
+        return stale
     raise HTTPException(status_code=503, detail="Technical data not ready yet")
 
 
@@ -763,6 +860,9 @@ async def get_btc_network():
     cached = cache_get("lq:bitcoin:network")
     if cached:
         return cached
+    stale, _ = cache_get_with_stale("lq:bitcoin:network")
+    if stale:
+        return stale
     raise HTTPException(status_code=503, detail="Network data not ready yet")
 
 
@@ -772,6 +872,9 @@ async def get_btc_onchain():
     cached = cache_get("lq:bitcoin:onchain")
     if cached:
         return cached
+    stale, _ = cache_get_with_stale("lq:bitcoin:onchain")
+    if stale:
+        return stale
     raise HTTPException(status_code=503, detail="On-chain data not ready yet")
 
 
@@ -781,6 +884,9 @@ async def get_btc_news():
     cached = cache_get("lq:bitcoin:news")
     if cached:
         return cached
+    stale, _ = cache_get_with_stale("lq:bitcoin:news")
+    if stale:
+        return stale
     raise HTTPException(status_code=503, detail="News data not ready yet")
 
 
@@ -790,51 +896,58 @@ async def get_btc_full():
     technical = cache_get("lq:bitcoin:technical")
     network = cache_get("lq:bitcoin:network")
     onchain = cache_get("lq:bitcoin:onchain")
-    # Pinjam cache berita secara global jika spesifik BTC kosong
-    news = cache_get("lq:bitcoin:news") or cache_get("lq:mkt:crypto-news") 
+    news = cache_get("lq:bitcoin:news") or cache_get("lq:mkt:crypto-news")
 
-    # 1. ALTERNATIF REAL: Network Data (Real-time dari Mempool.space - Gratis & Tanpa Key)
+    # CHANGED: try stale for missing data before API fallback
+    if not technical:
+        technical, _ = cache_get_with_stale("lq:bitcoin:technical")
+    if not onchain:
+        onchain, _ = cache_get_with_stale("lq:bitcoin:onchain")
+    if not news:
+        news, _ = cache_get_with_stale("lq:bitcoin:news")
+
+    # Network data fallback — fetch live from mempool.space if not cached
+    if not network:
+        # Try stale first
+        network, _ = cache_get_with_stale("lq:bitcoin:network")
+
     if not network:
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                # Ambil data REAL langsung dari blockchain explorer mempool.space
-                f_res, d_res, h_res, m_res = await asyncio.gather(
-                    client.get("https://mempool.space/api/v1/fees/recommended"),
-                    client.get("https://mempool.space/api/v1/difficulty-adjustment"),
-                    client.get("https://mempool.space/api/v1/mining/hashrate/3d"),
-                    client.get("https://mempool.space/api/mempool"),
-                    return_exceptions=True
-                )
-                
-                if not isinstance(f_res, Exception) and f_res.status_code == 200:
-                    fees = f_res.json()
-                    diff = d_res.json() if not isinstance(d_res, Exception) and d_res.status_code == 200 else {}
-                    hash_data = h_res.json() if not isinstance(h_res, Exception) and h_res.status_code == 200 else {}
-                    memp = m_res.json() if not isinstance(m_res, Exception) and m_res.status_code == 200 else {}
-                    
-                    network = {
-                        "hashrate": hash_data.get("currentHashrate", 0),
-                        "difficulty": diff.get("difficulty", 0),
-                        "block_height": diff.get("previousRetargetHeight", 0),
-                        "mempool": {"count": memp.get("count", 0)},
-                        "fees": {
-                            "fastest": fees.get("fastestFee", 0),
-                            "half_hour": fees.get("halfHourFee", 0),
-                            "hour": fees.get("hourFee", 0),
-                            "economy": fees.get("economyFee", 0)
-                        },
-                        "difficulty_adjustment": {
-                            "progress": round(diff.get("progressPercent", 0), 2),
-                            "change": round(diff.get("difficultyChange", 0), 2),
-                            "remaining_blocks": diff.get("remainingBlocks", 0)
-                        }
+            client = get_general_client()
+            f_res, d_res, h_res, m_res = await asyncio.gather(
+                client.get("https://mempool.space/api/v1/fees/recommended"),
+                client.get("https://mempool.space/api/v1/difficulty-adjustment"),
+                client.get("https://mempool.space/api/v1/mining/hashrate/3d"),
+                client.get("https://mempool.space/api/mempool"),
+                return_exceptions=True
+            )
+
+            if not isinstance(f_res, Exception) and f_res.status_code == 200:
+                fees = f_res.json()
+                diff = d_res.json() if not isinstance(d_res, Exception) and d_res.status_code == 200 else {}
+                hash_data = h_res.json() if not isinstance(h_res, Exception) and h_res.status_code == 200 else {}
+                memp = m_res.json() if not isinstance(m_res, Exception) and m_res.status_code == 200 else {}
+
+                network = {
+                    "hashrate": hash_data.get("currentHashrate", 0),
+                    "difficulty": diff.get("difficulty", 0),
+                    "block_height": diff.get("previousRetargetHeight", 0),
+                    "mempool": {"count": memp.get("count", 0)},
+                    "fees": {
+                        "fastest": fees.get("fastestFee", 0),
+                        "half_hour": fees.get("halfHourFee", 0),
+                        "hour": fees.get("hourFee", 0),
+                        "economy": fees.get("economyFee", 0)
+                    },
+                    "difficulty_adjustment": {
+                        "progress": round(diff.get("progressPercent", 0), 2),
+                        "change": round(diff.get("difficultyChange", 0), 2),
+                        "remaining_blocks": diff.get("remainingBlocks", 0)
                     }
+                }
         except Exception as e:
             print(f"Mempool API fallback error: {e}")
 
-    # 2. TECHNICAL & ON-CHAIN (TETAP REAL)
-    # Jika worker belum siap, KITA BIARKAN NULL. Kita tidak mengirimkan estimasi palsu.
-    
     return {
         "technical": technical,
         "network": network,

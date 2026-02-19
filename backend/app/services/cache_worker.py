@@ -2,30 +2,31 @@
 LuxQuant Terminal - Background Cache Worker
 Pre-computes expensive queries and stores results in Redis.
 
-OPTIMIZED v2:
+OPTIMIZED v3:
 - Uses PERSISTENT table _cache_outcomes (not TEMP) — survives across DB sessions
 - Exponential backoff for Binance failures (Indonesia block)
 - Stale cache fallback when external APIs fail
 - Log suppression after first consecutive error
 - Smart retry intervals based on failure count
+- SHARED HTTP CLIENTS (no more per-request AsyncClient creation)
+- CONFIG-DRIVEN intervals (adjustable via .env)
+- REDUCED cache keys (~20 instead of ~48)
 """
 import asyncio
 import time
 import re
 import traceback
-import httpx
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
+from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
+from app.config import settings
 
-# Worker intervals
-SIGNAL_INTERVAL = 30   # seconds
-MARKET_INTERVAL = 15   # seconds
 
-# External APIs
+# External API base URLs
 BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 COINGECKO_API = "https://api.coingecko.com/api/v3"
@@ -40,7 +41,6 @@ BTC_NEWS_FEEDS = [
     "https://decrypt.co/feed",
 ]
 
-TIMEOUT = 15.0
 
 # ============================================
 # FAILURE TRACKER — exponential backoff & log suppression
@@ -216,6 +216,14 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
         'created_at': 's.call_message_id', 'pair': 's.pair', 'entry': 's.entry',
         'call_message_id': 's.call_message_id', 'status': "COALESCE(so.outcome, 'open')",
         'risk_level': "CASE WHEN LOWER(s.risk_level) LIKE 'low%' THEN 1 WHEN LOWER(s.risk_level) LIKE 'med%' THEN 2 WHEN LOWER(s.risk_level) LIKE 'high%' THEN 3 ELSE 4 END",
+        'market_cap': """CASE 
+            WHEN s.market_cap IS NULL THEN 0
+            WHEN UPPER(s.market_cap) LIKE '%T' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e12
+            WHEN UPPER(s.market_cap) LIKE '%B' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e9
+            WHEN UPPER(s.market_cap) LIKE '%M' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e6
+            WHEN UPPER(s.market_cap) LIKE '%K' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e3
+            ELSE CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC)
+            END""",
     }
     sort_col = valid_sorts.get(sort_by, 's.call_message_id')
     sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
@@ -474,15 +482,54 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 
 
 # ============================================
-# MARKET DATA FETCHERS (with backoff)
+# BULK 7D QUERY (all signals, no pagination — for frontend client-side pagination)
+# ============================================
+
+def query_signals_bulk_7d(db):
+    """
+    Fetch ALL signals from last 7 days in one query (no pagination).
+    Frontend handles sorting/filtering/pagination client-side = zero delay on page changes.
+    Typically 150-400 signals — small payload (~50-100KB JSON).
+    """
+    date_7d = get_7d_date()
+    rows = db.execute(text("""
+        SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
+            s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
+            s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
+            s.created_at,
+            CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
+                 WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
+            s.market_cap
+        FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+        WHERE s.created_at >= :date_from
+        ORDER BY s.call_message_id DESC
+    """), {"date_from": date_7d}).fetchall()
+
+    items = []
+    for r in rows:
+        items.append({
+            "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
+            "pair": r[4], "entry": float(r[5]) if r[5] else None,
+            "target1": float(r[6]) if r[6] else None, "target2": float(r[7]) if r[7] else None,
+            "target3": float(r[8]) if r[8] else None, "target4": float(r[9]) if r[9] else None,
+            "stop1": float(r[10]) if r[10] else None, "stop2": float(r[11]) if r[11] else None,
+            "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
+            "created_at": str(r[15]) if r[15] else None, "status": r[16], "market_cap": r[17],
+        })
+
+    return {"items": items, "total": len(items), "date_from": date_7d}
+
+
+# ============================================
+# MARKET DATA FETCHERS (with shared client + backoff)
 # ============================================
 
 async def fetch_market_overview():
     """
     Fetch market overview with failure tracking.
     Skips Binance if blocked (exponential backoff).
+    CHANGED: Uses shared client instead of creating new one per call.
     """
-    # Check backoff for Binance
     binance_blocked = _tracker.should_skip("binance_spot")
     futures_blocked = _tracker.should_skip("binance_futures")
 
@@ -497,205 +544,209 @@ async def fetch_market_overview():
         "source": "unavailable",
     }
 
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        # === BTC Price (Spot API) ===
-        if not binance_blocked:
-            try:
-                btc_res = await client.get(
-                    f"{BINANCE_SPOT_API}/api/v3/ticker/24hr",
-                    params={"symbol": "BTCUSDT"}
-                )
-                btc_data = btc_res.json()
-                btc_price = float(btc_data["lastPrice"])
-                result["btc"] = {
-                    "price": btc_price,
-                    "high_24h": float(btc_data["highPrice"]),
-                    "low_24h": float(btc_data["lowPrice"]),
-                    "volume_24h": float(btc_data["quoteVolume"]),
-                    "price_change_24h": float(btc_data["priceChange"]),
-                    "price_change_pct": float(btc_data["priceChangePercent"]),
-                }
-                result["source"] = "spot"
-                _tracker.record_success("binance_spot")
-            except Exception as e:
-                _tracker.record_failure("binance_spot", e, base_interval=MARKET_INTERVAL)
-        
-        # === Futures Data ===
-        if result["btc"] and not futures_blocked:
-            btc_price = result["btc"]["price"]
-            try:
-                # Funding rates
-                for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]:
-                    try:
-                        fr = await client.get(
-                            f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate",
-                            params={"symbol": sym, "limit": 1}
-                        )
-                        d = fr.json()
-                        if d and isinstance(d, list):
-                            result["fundingRates"].append({
-                                "symbol": sym.replace("USDT", ""),
-                                "rate": float(d[0]["fundingRate"]),
-                                "time": int(d[0]["fundingTime"])
-                            })
-                    except Exception:
-                        continue
+    client = get_binance_client()  # CHANGED: shared client
 
-                # Long/short ratio
-                ls = await client.get(
-                    f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
-                    params={"symbol": "BTCUSDT", "period": "5m", "limit": 1}
-                )
-                ls_data = ls.json()
-                if ls_data and isinstance(ls_data, list):
-                    result["longShortRatio"] = {
-                        "symbol": "BTCUSDT",
-                        "longAccount": float(ls_data[0]["longAccount"]),
-                        "shortAccount": float(ls_data[0]["shortAccount"]),
-                        "longShortRatio": float(ls_data[0]["longShortRatio"]),
-                        "timestamp": int(ls_data[0]["timestamp"])
-                    }
+    # === BTC Price (Spot API) ===
+    if not binance_blocked:
+        try:
+            btc_res = await client.get(
+                f"{BINANCE_SPOT_API}/api/v3/ticker/24hr",
+                params={"symbol": "BTCUSDT"}
+            )
+            btc_data = btc_res.json()
+            btc_price = float(btc_data["lastPrice"])
+            result["btc"] = {
+                "price": btc_price,
+                "high_24h": float(btc_data["highPrice"]),
+                "low_24h": float(btc_data["lowPrice"]),
+                "volume_24h": float(btc_data["quoteVolume"]),
+                "price_change_24h": float(btc_data["priceChange"]),
+                "price_change_pct": float(btc_data["priceChangePercent"]),
+            }
+            result["source"] = "spot"
+            _tracker.record_success("binance_spot")
+        except Exception as e:
+            _tracker.record_failure("binance_spot", e, base_interval=settings.MARKET_CACHE_INTERVAL)
 
-                # Open Interest
-                oi = await client.get(
-                    f"{BINANCE_FUTURES_API}/fapi/v1/openInterest",
-                    params={"symbol": "BTCUSDT"}
-                )
-                oi_val = float(oi.json()["openInterest"])
-                result["openInterest"] = {
+    # === Futures Data ===
+    if result["btc"] and not futures_blocked:
+        btc_price = result["btc"]["price"]
+        try:
+            # Funding rates — sequential with small delay to reduce connection pressure
+            for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]:
+                try:
+                    fr = await client.get(
+                        f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate",
+                        params={"symbol": sym, "limit": 1}
+                    )
+                    d = fr.json()
+                    if d and isinstance(d, list):
+                        result["fundingRates"].append({
+                            "symbol": sym.replace("USDT", ""),
+                            "rate": float(d[0]["fundingRate"]),
+                            "time": int(d[0]["fundingTime"])
+                        })
+                except Exception:
+                    continue
+                await asyncio.sleep(0.2)  # CHANGED: small delay between requests
+
+            # Long/short ratio
+            ls = await client.get(
+                f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
+                params={"symbol": "BTCUSDT", "period": "5m", "limit": 1}
+            )
+            ls_data = ls.json()
+            if ls_data and isinstance(ls_data, list):
+                result["longShortRatio"] = {
                     "symbol": "BTCUSDT",
-                    "openInterest": oi_val,
-                    "openInterestUsd": oi_val * btc_price
+                    "longAccount": float(ls_data[0]["longAccount"]),
+                    "shortAccount": float(ls_data[0]["shortAccount"]),
+                    "longShortRatio": float(ls_data[0]["longShortRatio"]),
+                    "timestamp": int(ls_data[0]["timestamp"])
                 }
 
-                # OI History
-                oih = await client.get(
-                    f"{BINANCE_FUTURES_API}/futures/data/openInterestHist",
-                    params={"symbol": "BTCUSDT", "period": "1h", "limit": 24}
-                )
-                result["oiHistory"] = [
-                    {"timestamp": int(i["timestamp"]), "sumOpenInterestValue": float(i["sumOpenInterestValue"])}
-                    for i in oih.json()
-                ]
+            # Open Interest
+            oi = await client.get(
+                f"{BINANCE_FUTURES_API}/fapi/v1/openInterest",
+                params={"symbol": "BTCUSDT"}
+            )
+            oi_val = float(oi.json()["openInterest"])
+            result["openInterest"] = {
+                "symbol": "BTCUSDT",
+                "openInterest": oi_val,
+                "openInterestUsd": oi_val * btc_price
+            }
 
-                result["source"] = "full"
-                _tracker.record_success("binance_futures")
+            # OI History
+            oih = await client.get(
+                f"{BINANCE_FUTURES_API}/futures/data/openInterestHist",
+                params={"symbol": "BTCUSDT", "period": "1h", "limit": 24}
+            )
+            result["oiHistory"] = [
+                {"timestamp": int(i["timestamp"]), "sumOpenInterestValue": float(i["sumOpenInterestValue"])}
+                for i in oih.json()
+            ]
 
-            except Exception as e:
-                _tracker.record_failure("binance_futures", e, base_interval=60)
-                result["source"] = "spot_only" if result["btc"] else "unavailable"
+            result["source"] = "full"
+            _tracker.record_success("binance_futures")
 
-    # Return None only if we got absolutely nothing
+        except Exception as e:
+            _tracker.record_failure("binance_futures", e, base_interval=60)
+            result["source"] = "spot_only" if result["btc"] else "unavailable"
+
     if result["btc"] is None:
         return None
     return result
 
 
 async def fetch_bitcoin_coingecko():
-    """Fetch Bitcoin + global + fear&greed from CoinGecko"""
+    """Fetch Bitcoin + global + fear&greed from CoinGecko.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("coingecko_bitcoin"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            btc_res, global_res, fg_res = await asyncio.gather(
-                client.get(f"{COINGECKO_API}/coins/bitcoin", params={"localization":"false","tickers":"false","community_data":"false","developer_data":"false"}),
-                client.get(f"{COINGECKO_API}/global"),
-                client.get(f"{FEAR_GREED_API}/?limit=1"),
-                return_exceptions=True,
-            )
+        client = get_coingecko_client()  # CHANGED: shared client
+        btc_res, global_res, fg_res = await asyncio.gather(
+            client.get(f"{COINGECKO_API}/coins/bitcoin", params={"localization":"false","tickers":"false","community_data":"false","developer_data":"false"}),
+            client.get(f"{COINGECKO_API}/global"),
+            client.get(f"{FEAR_GREED_API}/?limit=1"),
+            return_exceptions=True,
+        )
 
-            btc_data = btc_res.json() if not isinstance(btc_res, Exception) and btc_res.status_code == 200 else None
-            global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
+        btc_data = btc_res.json() if not isinstance(btc_res, Exception) and btc_res.status_code == 200 else None
+        global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
 
-            fear_greed = {"value": 50, "label": "Neutral"}
-            if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
-                fg = fg_res.json()
-                if fg.get("data") and len(fg["data"]) > 0:
-                    fear_greed = {"value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"]}
+        fear_greed = {"value": 50, "label": "Neutral"}
+        if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
+            fg = fg_res.json()
+            if fg.get("data") and len(fg["data"]) > 0:
+                fear_greed = {"value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"]}
 
-            if not btc_data:
-                _tracker.record_failure("coingecko_bitcoin", Exception("No BTC data"), base_interval=120)
-                return None
-            
-            _tracker.record_success("coingecko_bitcoin")
-            md = btc_data.get("market_data", {})
+        if not btc_data:
+            _tracker.record_failure("coingecko_bitcoin", Exception("No BTC data"), base_interval=120)
+            return None
 
-            return {
-                "price": md.get("current_price",{}).get("usd",0),
-                "priceChange24h": md.get("price_change_percentage_24h",0),
-                "priceChange7d": md.get("price_change_percentage_7d",0),
-                "priceChange30d": md.get("price_change_percentage_30d",0),
-                "high24h": md.get("high_24h",{}).get("usd",0),
-                "low24h": md.get("low_24h",{}).get("usd",0),
-                "ath": md.get("ath",{}).get("usd",0),
-                "athChange": md.get("ath_change_percentage",{}).get("usd",0),
-                "marketCap": md.get("market_cap",{}).get("usd",0),
-                "marketCapRank": btc_data.get("market_cap_rank",1),
-                "volume24h": md.get("total_volume",{}).get("usd",0),
-                "circulatingSupply": md.get("circulating_supply",0),
-                "maxSupply": md.get("max_supply") or 21000000,
-                "dominance": global_data.get("market_cap_percentage",{}).get("btc",0) if global_data else 0,
-                "fearGreed": fear_greed,
-            }
+        _tracker.record_success("coingecko_bitcoin")
+        md = btc_data.get("market_data", {})
+
+        return {
+            "price": md.get("current_price",{}).get("usd",0),
+            "priceChange24h": md.get("price_change_percentage_24h",0),
+            "priceChange7d": md.get("price_change_percentage_7d",0),
+            "priceChange30d": md.get("price_change_percentage_30d",0),
+            "high24h": md.get("high_24h",{}).get("usd",0),
+            "low24h": md.get("low_24h",{}).get("usd",0),
+            "ath": md.get("ath",{}).get("usd",0),
+            "athChange": md.get("ath_change_percentage",{}).get("usd",0),
+            "marketCap": md.get("market_cap",{}).get("usd",0),
+            "marketCapRank": btc_data.get("market_cap_rank",1),
+            "volume24h": md.get("total_volume",{}).get("usd",0),
+            "circulatingSupply": md.get("circulating_supply",0),
+            "maxSupply": md.get("max_supply") or 21000000,
+            "dominance": global_data.get("market_cap_percentage",{}).get("btc",0) if global_data else 0,
+            "fearGreed": fear_greed,
+        }
     except Exception as e:
         _tracker.record_failure("coingecko_bitcoin", e, base_interval=120)
         return None
 
 
 async def fetch_global_coingecko():
-    """Fetch global market data + top coins + fear&greed"""
+    """Fetch global market data + top coins + fear&greed.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("coingecko_global"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            global_res, coins_res, fg_res = await asyncio.gather(
-                client.get(f"{COINGECKO_API}/global"),
-                client.get(f"{COINGECKO_API}/coins/markets", params={"vs_currency":"usd","order":"market_cap_desc","per_page":20,"page":1,"sparkline":"false","price_change_percentage":"24h,7d"}),
-                client.get(f"{FEAR_GREED_API}/?limit=7"),
-                return_exceptions=True,
-            )
-            global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
-            coins_data = coins_res.json() if not isinstance(coins_res, Exception) and coins_res.status_code == 200 else []
+        client = get_coingecko_client()  # CHANGED: shared client
+        global_res, coins_res, fg_res = await asyncio.gather(
+            client.get(f"{COINGECKO_API}/global"),
+            client.get(f"{COINGECKO_API}/coins/markets", params={"vs_currency":"usd","order":"market_cap_desc","per_page":20,"page":1,"sparkline":"false","price_change_percentage":"24h,7d"}),
+            client.get(f"{FEAR_GREED_API}/?limit=7"),
+            return_exceptions=True,
+        )
+        global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
+        coins_data = coins_res.json() if not isinstance(coins_res, Exception) and coins_res.status_code == 200 else []
 
-            fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
-            if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
-                fg = fg_res.json()
-                if fg.get("data") and len(fg["data"]) > 0:
-                    fear_greed = {
-                        "value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"],
-                        "yesterday": int(fg["data"][1]["value"]) if len(fg["data"])>1 else 50,
-                        "lastWeek": int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50,
-                    }
-            
-            _tracker.record_success("coingecko_global")
-            return {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
+        fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
+        if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
+            fg = fg_res.json()
+            if fg.get("data") and len(fg["data"]) > 0:
+                fear_greed = {
+                    "value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"],
+                    "yesterday": int(fg["data"][1]["value"]) if len(fg["data"])>1 else 50,
+                    "lastWeek": int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50,
+                }
+
+        _tracker.record_success("coingecko_global")
+        return {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
     except Exception as e:
         _tracker.record_failure("coingecko_global", e, base_interval=120)
         return None
 
 
 async def fetch_coins_market(per_page=100, page=1, order="market_cap_desc"):
-    """Fetch coins market data from CoinGecko"""
+    """Fetch coins market data from CoinGecko.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("coingecko_coins"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            res = await client.get(f"{COINGECKO_API}/coins/markets", params={
-                "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
-                "sparkline":"false","price_change_percentage":"1h,24h,7d"
-            })
-            if res.status_code == 200:
-                _tracker.record_success("coingecko_coins")
-                return res.json()
-            _tracker.record_failure("coingecko_coins", Exception(f"HTTP {res.status_code}"), base_interval=120)
-            return None
+        client = get_coingecko_client()  # CHANGED: shared client
+        res = await client.get(f"{COINGECKO_API}/coins/markets", params={
+            "vs_currency":"usd","order":order,"per_page":per_page,"page":page,
+            "sparkline":"false","price_change_percentage":"1h,24h,7d"
+        })
+        if res.status_code == 200:
+            _tracker.record_success("coingecko_coins")
+            return res.json()
+        _tracker.record_failure("coingecko_coins", Exception(f"HTTP {res.status_code}"), base_interval=120)
+        return None
     except Exception as e:
         _tracker.record_failure("coingecko_coins", e, base_interval=120)
         return None
 
 
 # ============================================
-# BACKGROUND WORKERS
+# BACKGROUND WORKERS (with config-driven intervals)
 # ============================================
 
 def get_7d_date():
@@ -704,35 +755,43 @@ def get_7d_date():
 
 async def signal_cache_loop():
     """
-    Pre-compute signal data every SIGNAL_INTERVAL seconds.
-    Uses UNLOGGED TABLE that persists across sessions.
+    Pre-compute signal data every SIGNAL_CACHE_INTERVAL seconds.
+    CHANGED: interval from config, reduced pages (2 instead of 3)
     """
-    print(f"🔄 Signal cache worker started (interval: {SIGNAL_INTERVAL}s)")
+    interval = settings.SIGNAL_CACHE_INTERVAL
+    print(f"🔄 Signal cache worker started (interval: {interval}s)")
     await asyncio.sleep(2)
 
     while True:
         try:
             if not is_redis_available():
-                await asyncio.sleep(SIGNAL_INTERVAL)
+                await asyncio.sleep(interval)
                 continue
 
             start = time.time()
             db = SessionLocal()
             try:
                 cached = 0
-                ttl = SIGNAL_INTERVAL + 10
+                ttl = interval + 15  # CHANGED: buffer to prevent gap
 
-                # Step 1: Pre-compute outcomes ONCE (UNLOGGED TABLE — persists!)
+                # Step 1: Pre-compute outcomes ONCE (UNLOGGED TABLE)
                 t0 = time.time()
                 precompute_outcomes(db)
                 cte_ms = round((time.time() - t0) * 1000)
 
                 date_7d = get_7d_date()
 
+                # Step 1b: Cache BULK 7d data (all signals, no pagination)
+                # Frontend fetches this once, then sorts/filters/paginates client-side
+                bulk_7d = query_signals_bulk_7d(db)
+                cache_set("lq:signals:bulk-7d", bulk_7d, ttl=ttl)
+                cached += 1
+
                 # Step 2: Cache "Last 7 Days" pages (HIGHEST PRIORITY)
+                # CHANGED: only page 1-2 (page 3+ rarely accessed)
                 statuses = [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]
                 for st in statuses:
-                    for pg in range(1, 4):
+                    for pg in range(1, 3):  # CHANGED: was range(1, 4)
                         result = query_signals_page(db, page=pg, page_size=20, status=st,
                                                      sort_by="created_at", sort_order="desc",
                                                      date_from=date_7d)
@@ -742,16 +801,14 @@ async def signal_cache_loop():
                         if pg >= result.get("total_pages", 1):
                             break
 
-                # Step 3: Cache "All time" pages
+                # Step 3: Cache "All time" — only page 1
+                # CHANGED: was 3 pages, now only page 1 (deeper pages fetched on-demand)
                 for st in [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]:
-                    for pg in range(1, 4):
-                        result = query_signals_page(db, page=pg, page_size=20, status=st,
-                                                     sort_by="created_at", sort_order="desc")
-                        key = f"lq:signals:page:{pg}:20:{st or 'all'}:all:all:created_at:desc"
-                        cache_set(key, result, ttl=ttl)
-                        cached += 1
-                        if pg >= result.get("total_pages", 1):
-                            break
+                    result = query_signals_page(db, page=1, page_size=20, status=st,
+                                                 sort_by="created_at", sort_order="desc")
+                    key = f"lq:signals:page:1:20:{st or 'all'}:all:all:created_at:desc"
+                    cache_set(key, result, ttl=ttl)
+                    cached += 1
 
                 # Step 4: Stats & Active
                 cache_set("lq:signals:stats", query_signals_stats(db), ttl=ttl)
@@ -759,11 +816,16 @@ async def signal_cache_loop():
                 cache_set("lq:signals:active:20", query_active_signals(db, 20), ttl=ttl)
                 cached += 1
 
-                # Step 5: Analyze
+                # Step 5: Analyze — only weekly (daily rarely used)
+                # CHANGED: was 3 ranges × 2 modes = 6, now 3 ranges × 1 mode = 3
                 for tr in ["all", "7d", "30d"]:
-                    for tm in ["weekly", "daily"]:
-                        result = query_analyze(db, time_range=tr, trend_mode=tm)
-                        cache_set(f"lq:signals:analyze:{tr}:{tm}", result, ttl=ttl)
+                    result = query_analyze(db, time_range=tr, trend_mode="weekly")
+                    cache_set(f"lq:signals:analyze:{tr}:weekly", result, ttl=ttl)
+                    cached += 1
+                    # Also cache daily for "all" range (most common)
+                    if tr == "all":
+                        result_d = query_analyze(db, time_range=tr, trend_mode="daily")
+                        cache_set(f"lq:signals:analyze:{tr}:daily", result_d, ttl=ttl)
                         cached += 1
 
                 elapsed = round((time.time() - start) * 1000)
@@ -775,18 +837,20 @@ async def signal_cache_loop():
             print(f"❌ Signal cache error: {type(e).__name__}: {e}")
             traceback.print_exc()
 
-        await asyncio.sleep(SIGNAL_INTERVAL)
+        await asyncio.sleep(interval)
 
 
 async def market_cache_loop():
-    """Pre-compute market data with smart backoff"""
-    print(f"🔄 Market cache worker started (interval: {MARKET_INTERVAL}s)")
+    """Pre-compute market data with smart backoff.
+    CHANGED: interval from config."""
+    interval = settings.MARKET_CACHE_INTERVAL
+    print(f"🔄 Market cache worker started (interval: {interval}s)")
     await asyncio.sleep(3)
 
     while True:
         try:
             if not is_redis_available():
-                await asyncio.sleep(MARKET_INTERVAL)
+                await asyncio.sleep(interval)
                 continue
 
             start = time.time()
@@ -794,58 +858,59 @@ async def market_cache_loop():
 
             overview = await fetch_market_overview()
             if overview:
-                cache_set("lq:market:overview", overview, ttl=MARKET_INTERVAL + 5)
-                cache_set("lq:market:btc-ticker", overview["btc"], ttl=MARKET_INTERVAL + 5)
+                cache_set("lq:market:overview", overview, ttl=interval + 5)
+                cache_set("lq:market:btc-ticker", overview["btc"], ttl=interval + 5)
                 if overview.get("fundingRates"):
-                    cache_set("lq:market:funding-rates", overview["fundingRates"], ttl=MARKET_INTERVAL + 5)
+                    cache_set("lq:market:funding-rates", overview["fundingRates"], ttl=interval + 5)
                 if overview.get("longShortRatio"):
-                    cache_set("lq:market:long-short-ratio", overview["longShortRatio"], ttl=MARKET_INTERVAL + 5)
+                    cache_set("lq:market:long-short-ratio", overview["longShortRatio"], ttl=interval + 5)
                 if overview.get("openInterest"):
-                    cache_set("lq:market:open-interest", overview["openInterest"], ttl=MARKET_INTERVAL + 5)
+                    cache_set("lq:market:open-interest", overview["openInterest"], ttl=interval + 5)
                 if overview.get("oiHistory"):
-                    cache_set("lq:market:oi-history", overview["oiHistory"], ttl=MARKET_INTERVAL + 5)
+                    cache_set("lq:market:oi-history", overview["oiHistory"], ttl=interval + 5)
                 cached += 6
 
             elapsed = round((time.time() - start) * 1000)
             if cached > 0:
                 print(f"✅ Market cache: {cached} keys in {elapsed}ms")
-            # Don't log "0 keys" every 15s — too noisy when Binance blocked
 
         except Exception as e:
             print(f"❌ Market cache error: {type(e).__name__}: {e}")
             traceback.print_exc()
 
-        await asyncio.sleep(MARKET_INTERVAL)
+        await asyncio.sleep(interval)
 
 
 async def coingecko_cache_loop():
-    """Pre-compute CoinGecko data every 120 seconds"""
-    print(f"🔄 CoinGecko cache worker started (interval: 120s)")
+    """Pre-compute CoinGecko data.
+    CHANGED: interval from config (180s), longer delays between requests."""
+    interval = settings.COINGECKO_CACHE_INTERVAL
+    print(f"🔄 CoinGecko cache worker started (interval: {interval}s)")
     await asyncio.sleep(5)
 
     while True:
         try:
             if not is_redis_available():
-                await asyncio.sleep(120)
+                await asyncio.sleep(interval)
                 continue
 
             start = time.time()
             cached = 0
-            ttl = 130
+            ttl = interval + 15  # CHANGED: match interval
 
             btc = await fetch_bitcoin_coingecko()
             if btc:
                 cache_set("lq:market:bitcoin", btc, ttl=ttl)
                 cached += 1
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)  # CHANGED: 2s -> 3s delay
 
             glob = await fetch_global_coingecko()
             if glob:
                 cache_set("lq:market:global", glob, ttl=ttl)
                 cached += 1
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)  # CHANGED: 2s -> 3s delay
 
             coins = await fetch_coins_market(per_page=100, page=1)
             if coins:
@@ -858,7 +923,7 @@ async def coingecko_cache_loop():
             print(f"❌ CoinGecko cache error: {type(e).__name__}: {e}")
             traceback.print_exc()
 
-        await asyncio.sleep(120)
+        await asyncio.sleep(interval)
 
 
 # ============================================
@@ -942,184 +1007,188 @@ def calc_bollinger(closes, period=20, std_dev=2):
 
 
 async def fetch_btc_technical():
-    """Fetch BTC klines and calculate technical indicators — with backoff"""
+    """Fetch BTC klines and calculate technical indicators.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("binance_klines"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            timeframes = {"1h": "1h", "4h": "4h", "1d": "1d"}
-            result = {}
-            for tf_key, tf_interval in timeframes.items():
-                try:
-                    res = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params={
-                        "symbol": "BTCUSDT", "interval": tf_interval, "limit": 200
-                    })
-                    if res.status_code != 200:
-                        continue
-                    klines = res.json()
-                    closes = [float(k[4]) for k in klines]
-                    rsi = calc_rsi(closes, 14)
-                    macd = calc_macd(closes, 12, 26, 9)
-                    bb = calc_bollinger(closes, 20, 2)
-                    ema50 = calc_ema(closes, 50)
-                    ema200 = calc_ema(closes, 200)
-                    current_price = closes[-1]
-                    rsi_signal = "oversold" if rsi and rsi < 30 else "overbought" if rsi and rsi > 70 else "neutral"
-                    bb_position = None
-                    if bb:
-                        bb_range = bb["upper"] - bb["lower"]
-                        if bb_range > 0:
-                            bb_pct = (current_price - bb["lower"]) / bb_range
-                            bb_position = "near_upper" if bb_pct > 0.8 else "near_lower" if bb_pct < 0.2 else "middle"
-                    ema_cross = None
-                    if ema50 and ema200:
-                        ema_cross = "golden_cross" if ema50 > ema200 else "death_cross"
-                    result[tf_key] = {
-                        "rsi": rsi, "rsi_signal": rsi_signal, "macd": macd,
-                        "bollinger": bb, "bb_position": bb_position,
-                        "ema50": round(ema50, 2) if ema50 else None,
-                        "ema200": round(ema200, 2) if ema200 else None,
-                        "ema_cross": ema_cross, "price": current_price,
-                    }
-                except Exception as tf_err:
-                    print(f"⚠️ Technical {tf_key} error: {type(tf_err).__name__}: {tf_err}")
+        client = get_binance_client()  # CHANGED: shared client
+        timeframes = {"1h": "1h", "4h": "4h", "1d": "1d"}
+        result = {}
+        for tf_key, tf_interval in timeframes.items():
+            try:
+                res = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params={
+                    "symbol": "BTCUSDT", "interval": tf_interval, "limit": 200
+                })
+                if res.status_code != 200:
                     continue
+                klines = res.json()
+                closes = [float(k[4]) for k in klines]
+                rsi = calc_rsi(closes, 14)
+                macd = calc_macd(closes, 12, 26, 9)
+                bb = calc_bollinger(closes, 20, 2)
+                ema50 = calc_ema(closes, 50)
+                ema200 = calc_ema(closes, 200)
+                current_price = closes[-1]
+                rsi_signal = "oversold" if rsi and rsi < 30 else "overbought" if rsi and rsi > 70 else "neutral"
+                bb_position = None
+                if bb:
+                    bb_range = bb["upper"] - bb["lower"]
+                    if bb_range > 0:
+                        bb_pct = (current_price - bb["lower"]) / bb_range
+                        bb_position = "near_upper" if bb_pct > 0.8 else "near_lower" if bb_pct < 0.2 else "middle"
+                ema_cross = None
+                if ema50 and ema200:
+                    ema_cross = "golden_cross" if ema50 > ema200 else "death_cross"
+                result[tf_key] = {
+                    "rsi": rsi, "rsi_signal": rsi_signal, "macd": macd,
+                    "bollinger": bb, "bb_position": bb_position,
+                    "ema50": round(ema50, 2) if ema50 else None,
+                    "ema200": round(ema200, 2) if ema200 else None,
+                    "ema_cross": ema_cross, "price": current_price,
+                }
+            except Exception as tf_err:
+                print(f"⚠️ Technical {tf_key} error: {type(tf_err).__name__}: {tf_err}")
+                continue
+            await asyncio.sleep(0.3)  # CHANGED: small delay between timeframes
 
-            if not result:
-                _tracker.record_failure("binance_klines", Exception("All timeframes failed"), base_interval=60)
-                return None
+        if not result:
+            _tracker.record_failure("binance_klines", Exception("All timeframes failed"), base_interval=60)
+            return None
 
-            _tracker.record_success("binance_klines")
+        _tracker.record_success("binance_klines")
 
-            # Overall signal summary
-            buy_signals = sell_signals = total_signals = 0
-            for tf_data in result.values():
-                if tf_data.get("rsi_signal") == "oversold": buy_signals += 1
-                elif tf_data.get("rsi_signal") == "overbought": sell_signals += 1
+        # Overall signal summary
+        buy_signals = sell_signals = total_signals = 0
+        for tf_data in result.values():
+            if tf_data.get("rsi_signal") == "oversold": buy_signals += 1
+            elif tf_data.get("rsi_signal") == "overbought": sell_signals += 1
+            total_signals += 1
+            macd_data = tf_data.get("macd")
+            if macd_data:
+                if macd_data.get("histogram", 0) > 0: buy_signals += 1
+                else: sell_signals += 1
                 total_signals += 1
-                macd_data = tf_data.get("macd")
-                if macd_data:
-                    if macd_data.get("histogram", 0) > 0: buy_signals += 1
-                    else: sell_signals += 1
-                    total_signals += 1
-                if tf_data.get("bb_position") == "near_lower": buy_signals += 1
-                elif tf_data.get("bb_position") == "near_upper": sell_signals += 1
-                total_signals += 1
-                if tf_data.get("ema_cross") == "golden_cross": buy_signals += 1
-                elif tf_data.get("ema_cross") == "death_cross": sell_signals += 1
-                total_signals += 1
+            if tf_data.get("bb_position") == "near_lower": buy_signals += 1
+            elif tf_data.get("bb_position") == "near_upper": sell_signals += 1
+            total_signals += 1
+            if tf_data.get("ema_cross") == "golden_cross": buy_signals += 1
+            elif tf_data.get("ema_cross") == "death_cross": sell_signals += 1
+            total_signals += 1
 
-            if total_signals > 0:
-                buy_pct = buy_signals / total_signals
-                sell_pct = sell_signals / total_signals
-                if buy_pct >= 0.6: summary = "Strong Buy" if buy_pct >= 0.75 else "Buy"
-                elif sell_pct >= 0.6: summary = "Strong Sell" if sell_pct >= 0.75 else "Sell"
-                else: summary = "Neutral"
-            else:
-                summary = "Neutral"
+        if total_signals > 0:
+            buy_pct = buy_signals / total_signals
+            sell_pct = sell_signals / total_signals
+            if buy_pct >= 0.6: summary = "Strong Buy" if buy_pct >= 0.75 else "Buy"
+            elif sell_pct >= 0.6: summary = "Strong Sell" if sell_pct >= 0.75 else "Sell"
+            else: summary = "Neutral"
+        else:
+            summary = "Neutral"
 
-            return {
-                "timeframes": result, "summary": summary,
-                "buy_signals": buy_signals, "sell_signals": sell_signals,
-                "total_signals": total_signals,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+        return {
+            "timeframes": result, "summary": summary,
+            "buy_signals": buy_signals, "sell_signals": sell_signals,
+            "total_signals": total_signals,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
     except Exception as e:
         _tracker.record_failure("binance_klines", e, base_interval=60)
         return None
 
 
 # ============================================
-# NETWORK HEALTH & ON-CHAIN (unchanged logic, added backoff)
+# NETWORK HEALTH & ON-CHAIN (shared client + backoff)
 # ============================================
 
 async def fetch_network_health():
-    """Fetch Bitcoin network health metrics from mempool.space"""
+    """Fetch Bitcoin network health metrics from mempool.space.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("mempool"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            results = await asyncio.gather(
-                client.get(f"{MEMPOOL_API}/v1/fees/recommended"),
-                client.get(f"{MEMPOOL_API}/mempool"),
-                client.get(f"{MEMPOOL_API}/v1/mining/hashrate/1m"),
-                client.get(f"{MEMPOOL_API}/v1/difficulty-adjustment"),
-                client.get(f"{MEMPOOL_API}/blocks/tip/height"),
-                return_exceptions=True
-            )
-            data = {}
-            if not isinstance(results[0], Exception) and results[0].status_code == 200:
-                fees = results[0].json()
-                data["fees"] = {"fastest":fees.get("fastestFee",0),"half_hour":fees.get("halfHourFee",0),"hour":fees.get("hourFee",0),"economy":fees.get("economyFee",0),"minimum":fees.get("minimumFee",0)}
-            if not isinstance(results[1], Exception) and results[1].status_code == 200:
-                mp = results[1].json()
-                data["mempool"] = {"count":mp.get("count",0),"vsize":mp.get("vsize",0),"total_fee":mp.get("total_fee",0)}
-            if not isinstance(results[2], Exception) and results[2].status_code == 200:
-                hr = results[2].json()
-                data["hashrate"] = hr.get("currentHashrate",0)
-                data["difficulty"] = hr.get("currentDifficulty",0)
-            if not isinstance(results[3], Exception) and results[3].status_code == 200:
-                da = results[3].json()
-                data["difficulty_adjustment"] = {"progress":round(da.get("progressPercent",0),2),"change":round(da.get("difficultyChange",0),2),"estimated_date":da.get("estimatedRetargetDate",0),"remaining_blocks":da.get("remainingBlocks",0),"remaining_time":da.get("remainingTime",0)}
-            if not isinstance(results[4], Exception) and results[4].status_code == 200:
-                try: data["block_height"] = int(results[4].text)
-                except: data["block_height"] = 0
-            data["timestamp"] = datetime.utcnow().isoformat()
-            if len(data) > 1:
-                _tracker.record_success("mempool")
-                return data
-            _tracker.record_failure("mempool", Exception("No data"), base_interval=60)
-            return None
+        client = get_general_client()  # CHANGED: shared client
+        results = await asyncio.gather(
+            client.get(f"{MEMPOOL_API}/v1/fees/recommended"),
+            client.get(f"{MEMPOOL_API}/mempool"),
+            client.get(f"{MEMPOOL_API}/v1/mining/hashrate/1m"),
+            client.get(f"{MEMPOOL_API}/v1/difficulty-adjustment"),
+            client.get(f"{MEMPOOL_API}/blocks/tip/height"),
+            return_exceptions=True
+        )
+        data = {}
+        if not isinstance(results[0], Exception) and results[0].status_code == 200:
+            fees = results[0].json()
+            data["fees"] = {"fastest":fees.get("fastestFee",0),"half_hour":fees.get("halfHourFee",0),"hour":fees.get("hourFee",0),"economy":fees.get("economyFee",0),"minimum":fees.get("minimumFee",0)}
+        if not isinstance(results[1], Exception) and results[1].status_code == 200:
+            mp = results[1].json()
+            data["mempool"] = {"count":mp.get("count",0),"vsize":mp.get("vsize",0),"total_fee":mp.get("total_fee",0)}
+        if not isinstance(results[2], Exception) and results[2].status_code == 200:
+            hr = results[2].json()
+            data["hashrate"] = hr.get("currentHashrate",0)
+            data["difficulty"] = hr.get("currentDifficulty",0)
+        if not isinstance(results[3], Exception) and results[3].status_code == 200:
+            da = results[3].json()
+            data["difficulty_adjustment"] = {"progress":round(da.get("progressPercent",0),2),"change":round(da.get("difficultyChange",0),2),"estimated_date":da.get("estimatedRetargetDate",0),"remaining_blocks":da.get("remainingBlocks",0),"remaining_time":da.get("remainingTime",0)}
+        if not isinstance(results[4], Exception) and results[4].status_code == 200:
+            try: data["block_height"] = int(results[4].text)
+            except: data["block_height"] = 0
+        data["timestamp"] = datetime.utcnow().isoformat()
+        if len(data) > 1:
+            _tracker.record_success("mempool")
+            return data
+        _tracker.record_failure("mempool", Exception("No data"), base_interval=60)
+        return None
     except Exception as e:
         _tracker.record_failure("mempool", e, base_interval=60)
         return None
 
 
 async def fetch_onchain_metrics():
-    """Fetch on-chain metrics from blockchain.info"""
+    """Fetch on-chain metrics from blockchain.info.
+    CHANGED: Uses shared client."""
     if _tracker.should_skip("blockchain_info"):
         return None
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            charts = {"n-unique-addresses":"active_addresses","n-transactions":"daily_transactions","mvrv":"mvrv","nvt":"nvt"}
-            data = {}
-            for chart_name, key in charts.items():
-                try:
-                    res = await client.get(f"{BLOCKCHAIN_API}/charts/{chart_name}", params={"timespan":"7days","format":"json","sampled":"true"})
-                    if res.status_code == 200:
-                        chart_data = res.json()
-                        values = chart_data.get("values", [])
-                        if values:
-                            latest = values[-1]
-                            data[key] = {"value":latest.get("y",0),"timestamp":latest.get("x",0)}
-                            if len(values) > 1:
-                                first_val = values[0].get("y",0)
-                                last_val = values[-1].get("y",0)
-                                if first_val > 0:
-                                    data[key]["change_7d"] = round((last_val - first_val) / first_val * 100, 2)
-                except Exception as chart_err:
-                    print(f"⚠️ On-chain {chart_name} error: {type(chart_err).__name__}: {chart_err}")
-                    continue
-                await asyncio.sleep(0.5)
+        client = get_general_client()  # CHANGED: shared client
+        charts = {"n-unique-addresses":"active_addresses","n-transactions":"daily_transactions","mvrv":"mvrv","nvt":"nvt"}
+        data = {}
+        for chart_name, key in charts.items():
             try:
-                uc_res = await client.get(f"{BLOCKCHAIN_API}/q/unconfirmedcount")
-                if uc_res.status_code == 200:
-                    data["unconfirmed_tx"] = int(uc_res.text.strip())
-            except Exception:
-                pass
-            data["timestamp"] = datetime.utcnow().isoformat()
-            if len(data) > 1:
-                _tracker.record_success("blockchain_info")
-                return data
-            _tracker.record_failure("blockchain_info", Exception("No data"), base_interval=300)
-            return None
+                res = await client.get(f"{BLOCKCHAIN_API}/charts/{chart_name}", params={"timespan":"7days","format":"json","sampled":"true"})
+                if res.status_code == 200:
+                    chart_data = res.json()
+                    values = chart_data.get("values", [])
+                    if values:
+                        latest = values[-1]
+                        data[key] = {"value":latest.get("y",0),"timestamp":latest.get("x",0)}
+                        if len(values) > 1:
+                            first_val = values[0].get("y",0)
+                            last_val = values[-1].get("y",0)
+                            if first_val > 0:
+                                data[key]["change_7d"] = round((last_val - first_val) / first_val * 100, 2)
+            except Exception as chart_err:
+                print(f"⚠️ On-chain {chart_name} error: {type(chart_err).__name__}: {chart_err}")
+                continue
+            await asyncio.sleep(0.5)
+        try:
+            uc_res = await client.get(f"{BLOCKCHAIN_API}/q/unconfirmedcount")
+            if uc_res.status_code == 200:
+                data["unconfirmed_tx"] = int(uc_res.text.strip())
+        except Exception:
+            pass
+        data["timestamp"] = datetime.utcnow().isoformat()
+        if len(data) > 1:
+            _tracker.record_success("blockchain_info")
+            return data
+        _tracker.record_failure("blockchain_info", Exception("No data"), base_interval=300)
+        return None
     except Exception as e:
         _tracker.record_failure("blockchain_info", e, base_interval=300)
         return None
 
 
 # ============================================
-# BTC NEWS (RSS feeds) — unchanged
+# BTC NEWS (RSS feeds)
 # ============================================
 
 def parse_rss_date(date_str):
@@ -1138,63 +1207,64 @@ def extract_image_from_html(html_str):
 
 
 async def fetch_btc_news():
-    """Fetch Bitcoin news from RSS feeds"""
+    """Fetch Bitcoin news from RSS feeds.
+    CHANGED: Uses shared client."""
     articles = []
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-            for feed_url in BTC_NEWS_FEEDS:
-                try:
-                    res = await client.get(feed_url, headers={"User-Agent":"LuxQuant/1.0 (News Aggregator)"})
-                    if res.status_code != 200: continue
-                    root = ET.fromstring(res.text)
-                    source = "Unknown"
-                    if "cointelegraph" in feed_url: source = "CoinTelegraph"
-                    elif "coindesk" in feed_url: source = "CoinDesk"
-                    elif "decrypt" in feed_url: source = "Decrypt"
-                    ns = {"media":"http://search.yahoo.com/mrss/","dc":"http://purl.org/dc/elements/1.1/","content":"http://purl.org/rss/1.0/modules/content/"}
-                    items = root.findall(".//item")
-                    for item in items[:10]:
-                        title_el = item.find("title")
-                        link_el = item.find("link")
-                        desc_el = item.find("description")
-                        pub_el = item.find("pubDate")
-                        creator_el = item.find("dc:creator", ns)
-                        title = title_el.text.strip() if title_el is not None and title_el.text else None
-                        link = link_el.text.strip() if link_el is not None and link_el.text else None
-                        description = desc_el.text.strip() if desc_el is not None and desc_el.text else ""
-                        pub_date = pub_el.text.strip() if pub_el is not None and pub_el.text else None
-                        author = creator_el.text.strip() if creator_el is not None and creator_el.text else None
-                        if not title or not link: continue
-                        text_check = (title + " " + description).lower()
-                        btc_keywords = ["bitcoin","btc","satoshi","halving","mining"]
-                        if not any(kw in text_check for kw in btc_keywords): continue
-                        image = None
-                        media_content = item.find("media:content", ns)
-                        if media_content is not None: image = media_content.get("url")
-                        if not image:
-                            media_thumb = item.find("media:thumbnail", ns)
-                            if media_thumb is not None: image = media_thumb.get("url")
-                        if not image:
-                            enclosure = item.find("enclosure")
-                            if enclosure is not None and "image" in (enclosure.get("type") or ""): image = enclosure.get("url")
-                        if not image: image = extract_image_from_html(description)
-                        clean_desc = re.sub(r'<[^>]+>', '', description).strip()[:300]
-                        parsed_date = parse_rss_date(pub_date)
-                        iso_date = parsed_date.isoformat() if parsed_date else pub_date
-                        time_ago = ""
-                        if parsed_date:
-                            try:
-                                now = datetime.now(parsed_date.tzinfo) if parsed_date.tzinfo else datetime.utcnow()
-                                diff = now - parsed_date
-                                mins = int(diff.total_seconds() / 60)
-                                if mins < 60: time_ago = f"{mins}m ago"
-                                elif mins < 1440: time_ago = f"{mins//60}h ago"
-                                else: time_ago = f"{mins//1440}d ago"
-                            except: time_ago = ""
-                        articles.append({"title":title,"link":link,"description":clean_desc,"image":image,"source":source,"author":author,"published":iso_date,"time_ago":time_ago})
-                except Exception as feed_err:
-                    print(f"⚠️ RSS feed error ({feed_url}): {type(feed_err).__name__}: {feed_err}")
-                    continue
+        client = get_general_client()  # CHANGED: shared client
+        for feed_url in BTC_NEWS_FEEDS:
+            try:
+                res = await client.get(feed_url)
+                if res.status_code != 200: continue
+                root = ET.fromstring(res.text)
+                source = "Unknown"
+                if "cointelegraph" in feed_url: source = "CoinTelegraph"
+                elif "coindesk" in feed_url: source = "CoinDesk"
+                elif "decrypt" in feed_url: source = "Decrypt"
+                ns = {"media":"http://search.yahoo.com/mrss/","dc":"http://purl.org/dc/elements/1.1/","content":"http://purl.org/rss/1.0/modules/content/"}
+                items = root.findall(".//item")
+                for item in items[:10]:
+                    title_el = item.find("title")
+                    link_el = item.find("link")
+                    desc_el = item.find("description")
+                    pub_el = item.find("pubDate")
+                    creator_el = item.find("dc:creator", ns)
+                    title = title_el.text.strip() if title_el is not None and title_el.text else None
+                    link = link_el.text.strip() if link_el is not None and link_el.text else None
+                    description = desc_el.text.strip() if desc_el is not None and desc_el.text else ""
+                    pub_date = pub_el.text.strip() if pub_el is not None and pub_el.text else None
+                    author = creator_el.text.strip() if creator_el is not None and creator_el.text else None
+                    if not title or not link: continue
+                    text_check = (title + " " + description).lower()
+                    btc_keywords = ["bitcoin","btc","satoshi","halving","mining"]
+                    if not any(kw in text_check for kw in btc_keywords): continue
+                    image = None
+                    media_content = item.find("media:content", ns)
+                    if media_content is not None: image = media_content.get("url")
+                    if not image:
+                        media_thumb = item.find("media:thumbnail", ns)
+                        if media_thumb is not None: image = media_thumb.get("url")
+                    if not image:
+                        enclosure = item.find("enclosure")
+                        if enclosure is not None and "image" in (enclosure.get("type") or ""): image = enclosure.get("url")
+                    if not image: image = extract_image_from_html(description)
+                    clean_desc = re.sub(r'<[^>]+>', '', description).strip()[:300]
+                    parsed_date = parse_rss_date(pub_date)
+                    iso_date = parsed_date.isoformat() if parsed_date else pub_date
+                    time_ago = ""
+                    if parsed_date:
+                        try:
+                            now = datetime.now(parsed_date.tzinfo) if parsed_date.tzinfo else datetime.utcnow()
+                            diff = now - parsed_date
+                            mins = int(diff.total_seconds() / 60)
+                            if mins < 60: time_ago = f"{mins}m ago"
+                            elif mins < 1440: time_ago = f"{mins//60}h ago"
+                            else: time_ago = f"{mins//1440}d ago"
+                        except: time_ago = ""
+                    articles.append({"title":title,"link":link,"description":clean_desc,"image":image,"source":source,"author":author,"published":iso_date,"time_ago":time_ago})
+            except Exception as feed_err:
+                print(f"⚠️ RSS feed error ({feed_url}): {type(feed_err).__name__}: {feed_err}")
+                continue
         seen_titles = set()
         unique_articles = []
         for a in articles:
@@ -1211,18 +1281,20 @@ async def fetch_btc_news():
 
 
 # ============================================
-# BITCOIN DATA CACHE LOOP (60s interval)
+# BITCOIN DATA CACHE LOOP
 # ============================================
 
 async def bitcoin_data_cache_loop():
-    """Pre-compute all Bitcoin page data every 60 seconds"""
-    print(f"🔄 Bitcoin data cache worker started (interval: 60s)")
+    """Pre-compute all Bitcoin page data.
+    CHANGED: interval from config."""
+    interval = settings.BITCOIN_CACHE_INTERVAL
+    print(f"🔄 Bitcoin data cache worker started (interval: {interval}s)")
     await asyncio.sleep(4)
 
     while True:
         try:
             if not is_redis_available():
-                await asyncio.sleep(60)
+                await asyncio.sleep(interval)
                 continue
 
             start = time.time()
@@ -1230,12 +1302,12 @@ async def bitcoin_data_cache_loop():
 
             technical = await fetch_btc_technical()
             if technical:
-                cache_set("lq:bitcoin:technical", technical, ttl=70)
+                cache_set("lq:bitcoin:technical", technical, ttl=interval + 15)
                 cached += 1
 
             network = await fetch_network_health()
             if network:
-                cache_set("lq:bitcoin:network", network, ttl=70)
+                cache_set("lq:bitcoin:network", network, ttl=interval + 15)
                 cached += 1
 
             # On-chain: only every 5 minutes
@@ -1278,7 +1350,7 @@ async def bitcoin_data_cache_loop():
             print(f"❌ Bitcoin data cache error: {type(e).__name__}: {e}")
             traceback.print_exc()
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(interval)
 
 
 def start_cache_workers():

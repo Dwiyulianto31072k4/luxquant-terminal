@@ -239,12 +239,11 @@ export const getCoinData = async (symbol) => {
   }
 };
 
-// Get OHLC data for chart (Binance Spot - usually works)
+// CHANGED: Get OHLC data via backend proxy instead of direct Binance
 export const getOHLCData = async (symbol, interval = '1h', limit = 100) => {
   try {
-    // Binance Spot klines usually work in Indonesia
     const response = await fetch(
-      `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      `${API_BASE}/api/v1/market/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
     );
     
     if (!response.ok) throw new Error(`HTTP ${response.status}`);

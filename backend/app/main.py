@@ -6,6 +6,7 @@ from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
+from app.core.http_client import init_clients, close_clients  # NEW
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 
@@ -14,6 +15,9 @@ from app.services.overview_worker import start_overview_workers
 async def lifespan(app: FastAPI):
     print("🚀 LuxQuant API Starting...")
     print(f"📡 CoinGecko API Key: {'✓ Configured' if settings.COINGECKO_API_KEY else '✗ Not set'}")
+
+    # === Initialize shared HTTP clients ===
+    init_clients()
 
     # === Pre-create _cache_outcomes table BEFORE workers start ===
     # This ensures the table exists for any direct endpoint queries
@@ -35,7 +39,10 @@ async def lifespan(app: FastAPI):
         print("🟡 Redis not available — running without cache (DB direct queries)")
 
     yield
+
+    # === Cleanup ===
     print("👋 LuxQuant API Shutting down...")
+    await close_clients()
 
 
 app = FastAPI(

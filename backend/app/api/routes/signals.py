@@ -7,6 +7,7 @@ UPDATED:
 - Date-aware cache keys so "Last 7 Days" requests hit pre-computed cache
 - R:R now calculates per target level (potential R:R) instead of per outcome
 - FIXED: R:R SL query now uses signal_updates table directly (no missing CTE)
+- OPTIMIZED v3: stale cache fallback on all main endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,8 +27,8 @@ from app.schemas.signal import (
 )
 from app.config import settings
 from app.core.redis import (
-    cache_get, cache_set, build_signals_page_key,
-    is_redis_available
+    cache_get, cache_set, cache_get_with_stale,  # CHANGED: added cache_get_with_stale
+    build_signals_page_key, is_redis_available
 )
 
 router = APIRouter()
@@ -209,247 +210,310 @@ async def get_analyze_data(
         return AnalyzeResponse(**cached)
     
     # === FALLBACK TO DB ===
-    date_filter = ""
-    if time_range != 'all':
-        now = datetime.utcnow()
-        if time_range == 'ytd': start_date = datetime(now.year, 1, 1)
-        elif time_range == 'mtd': start_date = datetime(now.year, now.month, 1)
-        elif time_range == '30d': start_date = now - timedelta(days=30)
-        elif time_range == '7d': start_date = now - timedelta(days=7)
-        else: start_date = None
-        if start_date:
-            date_filter = f"AND s.created_at >= '{start_date.strftime('%Y-%m-%d')}'"
-    
-    # Pair metrics query
-    analyze_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE},
-        pair_stats AS (
+    try:
+        date_filter = ""
+        if time_range != 'all':
+            now = datetime.utcnow()
+            if time_range == 'ytd': start_date = datetime(now.year, 1, 1)
+            elif time_range == 'mtd': start_date = datetime(now.year, now.month, 1)
+            elif time_range == '30d': start_date = now - timedelta(days=30)
+            elif time_range == '7d': start_date = now - timedelta(days=7)
+            else: start_date = None
+            if start_date:
+                date_filter = f"AND s.created_at >= '{start_date.strftime('%Y-%m-%d')}'"
+        
+        # Pair metrics query
+        analyze_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE},
+            pair_stats AS (
+                SELECT 
+                    s.pair, COUNT(*) as total_signals, COUNT(so.outcome) as closed_trades,
+                    COUNT(*) - COUNT(so.outcome) as open_signals,
+                    SUM(CASE WHEN so.outcome = 'tp1' THEN 1 ELSE 0 END) as tp1_count,
+                    SUM(CASE WHEN so.outcome = 'tp2' THEN 1 ELSE 0 END) as tp2_count,
+                    SUM(CASE WHEN so.outcome = 'tp3' THEN 1 ELSE 0 END) as tp3_count,
+                    SUM(CASE WHEN so.outcome = 'tp4' THEN 1 ELSE 0 END) as tp4_count,
+                    SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as sl_count
+                FROM signals s
+                LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+                WHERE s.pair IS NOT NULL {date_filter}
+                GROUP BY s.pair
+            )
+            SELECT pair, total_signals, closed_trades, open_signals,
+                tp1_count, tp2_count, tp3_count, tp4_count, sl_count,
+                CASE WHEN closed_trades > 0 
+                    THEN ROUND((tp1_count + tp2_count + tp3_count + tp4_count)::numeric / closed_trades * 100, 2)
+                    ELSE 0 END as win_rate,
+                ROUND(
+                    CASE WHEN closed_trades > 0 THEN (tp1_count+tp2_count+tp3_count+tp4_count)::numeric/closed_trades*100*0.4 ELSE 0 END +
+                    LEAST(total_signals::numeric/20*100,100)*0.3 +
+                    CASE WHEN closed_trades > 0 THEN ((tp4_count*4+tp3_count*3+tp2_count*2+tp1_count*1)::numeric/closed_trades*25)*0.3 ELSE 0 END
+                , 2) as performance_score
+            FROM pair_stats
+            ORDER BY win_rate DESC, closed_trades DESC
+        """)
+        
+        result = db.execute(analyze_query)
+        rows = result.fetchall()
+        
+        pair_metrics = []
+        total_signals = total_closed = total_open = 0
+        total_tp1 = total_tp2 = total_tp3 = total_tp4 = total_sl = 0
+        
+        for row in rows:
+            pair_metrics.append(PairMetrics(
+                pair=row[0], total_signals=row[1], closed_trades=row[2], open_signals=row[3],
+                tp1_count=row[4], tp2_count=row[5], tp3_count=row[6], tp4_count=row[7], sl_count=row[8],
+                win_rate=float(row[9]) if row[9] else 0,
+                performance_score=float(row[10]) if row[10] else 0
+            ))
+            total_signals += row[1]; total_closed += row[2]; total_open += row[3]
+            total_tp1 += row[4]; total_tp2 += row[5]; total_tp3 += row[6]
+            total_tp4 += row[7]; total_sl += row[8]
+        
+        total_winners = total_tp1 + total_tp2 + total_tp3 + total_tp4
+        overall_win_rate = (total_winners / total_closed * 100) if total_closed > 0 else 0
+
+        # Win Rate Trend
+        dt = "DATE(s.created_at)" if trend_mode == 'daily' else "DATE(DATE_TRUNC('week', s.created_at::timestamp))"
+        trend_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT {dt} as period, COUNT(so.outcome), 
+                SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END),
+                SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END),
+                CASE WHEN COUNT(so.outcome)>0 THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric/COUNT(so.outcome)*100,2) ELSE 0 END
+            FROM signals s INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE s.created_at IS NOT NULL {date_filter}
+            GROUP BY {dt} HAVING COUNT(so.outcome) >= 3 ORDER BY period ASC
+        """)
+        
+        win_rate_trend = [WinRateTrendItem(period=str(r[0]), total_closed=int(r[1]), winners=int(r[2]), losers=int(r[3]), win_rate=float(r[4]) if r[4] else 0) for r in db.execute(trend_query).fetchall()]
+
+        # Risk:Reward
+        rr_query = text(f"""
+            SELECT level, COUNT(*) as cnt, AVG(avg_rr) as avg_rr
+            FROM (
+                SELECT 
+                    'TP1' as level,
+                    CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target1 > 0
+                        THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
+                        ELSE NULL END as avg_rr
+                FROM signals s
+                WHERE s.entry > 0 AND s.stop1 > 0 AND s.target1 > 0 {date_filter}
+                UNION ALL
+                SELECT 
+                    'TP2' as level,
+                    CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target2 > 0
+                        THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
+                        ELSE NULL END as avg_rr
+                FROM signals s
+                WHERE s.entry > 0 AND s.stop1 > 0 AND s.target2 > 0 {date_filter}
+                UNION ALL
+                SELECT 
+                    'TP3' as level,
+                    CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target3 > 0
+                        THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
+                        ELSE NULL END as avg_rr
+                FROM signals s
+                WHERE s.entry > 0 AND s.stop1 > 0 AND s.target3 > 0 {date_filter}
+                UNION ALL
+                SELECT 
+                    'TP4' as level,
+                    CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target4 > 0
+                        THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
+                        ELSE NULL END as avg_rr
+                FROM signals s
+                WHERE s.entry > 0 AND s.stop1 > 0 AND s.target4 > 0 {date_filter}
+                UNION ALL
+                SELECT 
+                    'SL' as level,
+                    -1.0 as avg_rr
+                FROM signals s
+                WHERE s.entry > 0 AND s.stop1 > 0 {date_filter}
+                    AND EXISTS (
+                        SELECT 1 FROM signal_updates su
+                        WHERE su.signal_id = s.signal_id
+                        AND (LOWER(su.update_type) LIKE '%sl%' OR LOWER(su.update_type) LIKE '%stop%')
+                    )
+            ) sub
+            WHERE avg_rr IS NOT NULL
+            GROUP BY level
+            ORDER BY CASE level WHEN 'TP1' THEN 1 WHEN 'TP2' THEN 2 WHEN 'TP3' THEN 3 WHEN 'TP4' THEN 4 WHEN 'SL' THEN 5 END
+        """)
+        
+        risk_reward = []
+        trw = trc = 0
+        for r in db.execute(rr_query).fetchall():
+            lv = str(r[0]); cnt = int(r[1]); arr = float(r[2]) if r[2] else 0
+            risk_reward.append(RiskRewardItem(level=lv, avg_rr=round(arr, 2), count=cnt))
+            if lv != 'SL': trw += arr * cnt; trc += cnt
+        avg_risk_reward = round(trw / trc, 2) if trc > 0 else 0
+
+        if not rows:
+            return AnalyzeResponse(
+                stats=AnalyzeStats(total_signals=0,closed_trades=0,open_signals=0,win_rate=0,total_winners=0,
+                    tp1_count=0,tp2_count=0,tp3_count=0,tp4_count=0,sl_count=0,active_pairs=0),
+                pair_metrics=[], win_rate_trend=[], risk_reward=[], avg_risk_reward=0,
+                risk_distribution=[], risk_trend=[], time_range=time_range)
+
+        # === RISK DISTRIBUTION ===
+        risk_dist_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
             SELECT 
-                s.pair, COUNT(*) as total_signals, COUNT(so.outcome) as closed_trades,
-                COUNT(*) - COUNT(so.outcome) as open_signals,
-                SUM(CASE WHEN so.outcome = 'tp1' THEN 1 ELSE 0 END) as tp1_count,
-                SUM(CASE WHEN so.outcome = 'tp2' THEN 1 ELSE 0 END) as tp2_count,
-                SUM(CASE WHEN so.outcome = 'tp3' THEN 1 ELSE 0 END) as tp3_count,
-                SUM(CASE WHEN so.outcome = 'tp4' THEN 1 ELSE 0 END) as tp4_count,
-                SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as sl_count
+                CASE 
+                    WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'Low'
+                    WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'Normal'
+                    WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'High'
+                    ELSE 'Unknown'
+                END as risk_group,
+                COUNT(*) as total_signals,
+                COUNT(so.outcome) as closed_trades,
+                SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners,
+                SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as losers,
+                CASE WHEN COUNT(so.outcome) > 0 
+                    THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric / COUNT(so.outcome) * 100, 2)
+                    ELSE 0 END as win_rate,
+                AVG(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') AND s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 THEN
+                    ABS(COALESCE(s.target4, s.target3, s.target2, s.target1) - s.entry) / ABS(s.entry - s.stop1)
+                    ELSE NULL END) as avg_rr
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-            WHERE s.pair IS NOT NULL {date_filter}
-            GROUP BY s.pair
-        )
-        SELECT pair, total_signals, closed_trades, open_signals,
-            tp1_count, tp2_count, tp3_count, tp4_count, sl_count,
-            CASE WHEN closed_trades > 0 
-                THEN ROUND((tp1_count + tp2_count + tp3_count + tp4_count)::numeric / closed_trades * 100, 2)
-                ELSE 0 END as win_rate,
-            ROUND(
-                CASE WHEN closed_trades > 0 THEN (tp1_count+tp2_count+tp3_count+tp4_count)::numeric/closed_trades*100*0.4 ELSE 0 END +
-                LEAST(total_signals::numeric/20*100,100)*0.3 +
-                CASE WHEN closed_trades > 0 THEN ((tp4_count*4+tp3_count*3+tp2_count*2+tp1_count*1)::numeric/closed_trades*25)*0.3 ELSE 0 END
-            , 2) as performance_score
-        FROM pair_stats
-        ORDER BY win_rate DESC, closed_trades DESC
-    """)
-    
-    result = db.execute(analyze_query)
-    rows = result.fetchall()
-    
-    pair_metrics = []
-    total_signals = total_closed = total_open = 0
-    total_tp1 = total_tp2 = total_tp3 = total_tp4 = total_sl = 0
-    
-    for row in rows:
-        pair_metrics.append(PairMetrics(
-            pair=row[0], total_signals=row[1], closed_trades=row[2], open_signals=row[3],
-            tp1_count=row[4], tp2_count=row[5], tp3_count=row[6], tp4_count=row[7], sl_count=row[8],
-            win_rate=float(row[9]) if row[9] else 0,
-            performance_score=float(row[10]) if row[10] else 0
-        ))
-        total_signals += row[1]; total_closed += row[2]; total_open += row[3]
-        total_tp1 += row[4]; total_tp2 += row[5]; total_tp3 += row[6]
-        total_tp4 += row[7]; total_sl += row[8]
-    
-    total_winners = total_tp1 + total_tp2 + total_tp3 + total_tp4
-    overall_win_rate = (total_winners / total_closed * 100) if total_closed > 0 else 0
+            WHERE s.risk_level IS NOT NULL {date_filter}
+            GROUP BY risk_group
+            ORDER BY 1
+        """)
+        
+        risk_distribution = []
+        for r in db.execute(risk_dist_query).fetchall():
+            if r[0] == 'Unknown': continue
+            risk_distribution.append(RiskDistributionItem(
+                risk_level=r[0], total_signals=int(r[1]), closed_trades=int(r[2]),
+                winners=int(r[3]), losers=int(r[4]), win_rate=float(r[5]) if r[5] else 0,
+                avg_rr=round(float(r[6]), 2) if r[6] else 0
+            ))
+        risk_order = {'Low': 0, 'Normal': 1, 'High': 2}
+        risk_distribution.sort(key=lambda x: risk_order.get(x.risk_level, 9))
 
-    # Win Rate Trend
-    dt = "DATE(s.created_at)" if trend_mode == 'daily' else "DATE(DATE_TRUNC('week', s.created_at::timestamp))"
-    trend_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT {dt} as period, COUNT(so.outcome), 
-            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END),
-            SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END),
-            CASE WHEN COUNT(so.outcome)>0 THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric/COUNT(so.outcome)*100,2) ELSE 0 END
-        FROM signals s INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE s.created_at IS NOT NULL {date_filter}
-        GROUP BY {dt} HAVING COUNT(so.outcome) >= 3 ORDER BY period ASC
-    """)
-    
-    win_rate_trend = [WinRateTrendItem(period=str(r[0]), total_closed=int(r[1]), winners=int(r[2]), losers=int(r[3]), win_rate=float(r[4]) if r[4] else 0) for r in db.execute(trend_query).fetchall()]
-
-    # ============================================
-    # Risk:Reward — R:R TO MAX TARGET per level
-    # Shows potential R:R for each TP level across ALL signals (not per outcome)
-    # FIXED: SL section now queries signal_updates directly instead of 
-    # referencing signal_outcomes CTE (which wasn't included in this query)
-    # ============================================
-    rr_query = text(f"""
-        SELECT level, COUNT(*) as cnt, AVG(avg_rr) as avg_rr
-        FROM (
+        # === RISK TREND ===
+        risk_trend_dt = "DATE(DATE_TRUNC('week', s.created_at::timestamp))" if trend_mode == 'weekly' else "DATE(s.created_at)"
+        risk_trend_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
             SELECT 
-                'TP1' as level,
-                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target1 > 0
-                    THEN ABS(s.target1 - s.entry) / ABS(s.entry - s.stop1)
-                    ELSE NULL END as avg_rr
+                {risk_trend_dt} as period,
+                CASE 
+                    WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'low'
+                    WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'normal'
+                    WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'high'
+                END as risk_group,
+                COUNT(so.outcome) as closed,
+                SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners
             FROM signals s
-            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target1 > 0 {date_filter}
-            UNION ALL
-            SELECT 
-                'TP2' as level,
-                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target2 > 0
-                    THEN ABS(s.target2 - s.entry) / ABS(s.entry - s.stop1)
-                    ELSE NULL END as avg_rr
-            FROM signals s
-            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target2 > 0 {date_filter}
-            UNION ALL
-            SELECT 
-                'TP3' as level,
-                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target3 > 0
-                    THEN ABS(s.target3 - s.entry) / ABS(s.entry - s.stop1)
-                    ELSE NULL END as avg_rr
-            FROM signals s
-            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target3 > 0 {date_filter}
-            UNION ALL
-            SELECT 
-                'TP4' as level,
-                CASE WHEN s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 AND s.target4 > 0
-                    THEN ABS(s.target4 - s.entry) / ABS(s.entry - s.stop1)
-                    ELSE NULL END as avg_rr
-            FROM signals s
-            WHERE s.entry > 0 AND s.stop1 > 0 AND s.target4 > 0 {date_filter}
-            UNION ALL
-            SELECT 
-                'SL' as level,
-                -1.0 as avg_rr
-            FROM signals s
-            WHERE s.entry > 0 AND s.stop1 > 0 {date_filter}
-                AND EXISTS (
-                    SELECT 1 FROM signal_updates su
-                    WHERE su.signal_id = s.signal_id
-                    AND (LOWER(su.update_type) LIKE '%sl%' OR LOWER(su.update_type) LIKE '%stop%')
-                )
-        ) sub
-        WHERE avg_rr IS NOT NULL
-        GROUP BY level
-        ORDER BY CASE level WHEN 'TP1' THEN 1 WHEN 'TP2' THEN 2 WHEN 'TP3' THEN 3 WHEN 'TP4' THEN 4 WHEN 'SL' THEN 5 END
-    """)
+            INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE s.risk_level IS NOT NULL AND LOWER(s.risk_level) NOT LIKE 'unk%' {date_filter}
+            GROUP BY period, risk_group
+            HAVING COUNT(so.outcome) >= 2
+            ORDER BY period ASC
+        """)
+
+        risk_trend_raw = {}
+        for r in db.execute(risk_trend_query).fetchall():
+            p = str(r[0])
+            if p not in risk_trend_raw:
+                risk_trend_raw[p] = {"period": p, "low_wr": None, "normal_wr": None, "high_wr": None, "low_count": 0, "normal_count": 0, "high_count": 0}
+            rg = r[1]
+            closed = int(r[2])
+            winners = int(r[3])
+            wr = round(winners / closed * 100, 2) if closed > 0 else None
+            if rg == 'low':
+                risk_trend_raw[p]["low_wr"] = wr
+                risk_trend_raw[p]["low_count"] = closed
+            elif rg == 'normal':
+                risk_trend_raw[p]["normal_wr"] = wr
+                risk_trend_raw[p]["normal_count"] = closed
+            elif rg == 'high':
+                risk_trend_raw[p]["high_wr"] = wr
+                risk_trend_raw[p]["high_count"] = closed
+
+        risk_trend = [RiskTrendItem(**v) for v in sorted(risk_trend_raw.values(), key=lambda x: x["period"])]
+        
+        response = AnalyzeResponse(
+            stats=AnalyzeStats(
+                total_signals=total_signals, closed_trades=total_closed, open_signals=total_open,
+                win_rate=round(overall_win_rate, 2), total_winners=total_winners,
+                tp1_count=total_tp1, tp2_count=total_tp2, tp3_count=total_tp3,
+                tp4_count=total_tp4, sl_count=total_sl, active_pairs=len(pair_metrics)),
+            pair_metrics=pair_metrics, win_rate_trend=win_rate_trend,
+            risk_reward=risk_reward, avg_risk_reward=avg_risk_reward,
+            risk_distribution=risk_distribution, risk_trend=risk_trend,
+            time_range=time_range)
+
+        # Cache the DB result for next time
+        cache_set(cache_key, response.model_dump(), ttl=60)
+        return response
+
+    except Exception as e:
+        # CHANGED: stale fallback if DB query fails
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            return AnalyzeResponse(**stale)
+        raise HTTPException(status_code=500, detail=f"Analyze query error: {str(e)}")
+
+
+# ============================================
+# GET /signals/bulk-7d — ALL signals last 7 days (for client-side pagination)
+# ============================================
+
+@router.get("/bulk-7d")
+async def get_signals_bulk_7d(db: Session = Depends(get_db)):
+    """
+    Return ALL signals from last 7 days in one response.
+    Frontend handles sorting/filtering/pagination client-side = zero delay.
+    Pre-computed every 90s by cache worker.
+    """
+    # Try cache first (always available after first cache cycle)
+    cached = cache_get("lq:signals:bulk-7d")
+    if cached:
+        return cached
     
-    risk_reward = []
-    trw = trc = 0
-    for r in db.execute(rr_query).fetchall():
-        lv = str(r[0]); cnt = int(r[1]); arr = float(r[2]) if r[2] else 0
-        risk_reward.append(RiskRewardItem(level=lv, avg_rr=round(arr, 2), count=cnt))
-        if lv != 'SL': trw += arr * cnt; trc += cnt
-    avg_risk_reward = round(trw / trc, 2) if trc > 0 else 0
-
-    if not rows:
-        return AnalyzeResponse(
-            stats=AnalyzeStats(total_signals=0,closed_trades=0,open_signals=0,win_rate=0,total_winners=0,
-                tp1_count=0,tp2_count=0,tp3_count=0,tp4_count=0,sl_count=0,active_pairs=0),
-            pair_metrics=[], win_rate_trend=[], risk_reward=[], avg_risk_reward=0,
-            risk_distribution=[], risk_trend=[], time_range=time_range)
-
-    # === RISK DISTRIBUTION ===
-    risk_dist_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT 
-            CASE 
-                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'Low'
-                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'Normal'
-                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'High'
-                ELSE 'Unknown'
-            END as risk_group,
-            COUNT(*) as total_signals,
-            COUNT(so.outcome) as closed_trades,
-            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners,
-            SUM(CASE WHEN so.outcome = 'sl' THEN 1 ELSE 0 END) as losers,
-            CASE WHEN COUNT(so.outcome) > 0 
-                THEN ROUND(SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END)::numeric / COUNT(so.outcome) * 100, 2)
-                ELSE 0 END as win_rate,
-            AVG(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') AND s.entry > 0 AND s.stop1 > 0 AND ABS(s.entry - s.stop1) > 0 THEN
-                ABS(COALESCE(s.target4, s.target3, s.target2, s.target1) - s.entry) / ABS(s.entry - s.stop1)
-                ELSE NULL END) as avg_rr
-        FROM signals s
-        LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE s.risk_level IS NOT NULL {date_filter}
-        GROUP BY risk_group
-        ORDER BY 1
-    """)
+    # Fallback: stale cache
+    stale, _ = cache_get_with_stale("lq:signals:bulk-7d")
+    if stale:
+        return stale
     
-    risk_distribution = []
-    for r in db.execute(risk_dist_query).fetchall():
-        if r[0] == 'Unknown': continue
-        risk_distribution.append(RiskDistributionItem(
-            risk_level=r[0], total_signals=int(r[1]), closed_trades=int(r[2]),
-            winners=int(r[3]), losers=int(r[4]), win_rate=float(r[5]) if r[5] else 0,
-            avg_rr=round(float(r[6]), 2) if r[6] else 0
-        ))
-    risk_order = {'Low': 0, 'Normal': 1, 'High': 2}
-    risk_distribution.sort(key=lambda x: risk_order.get(x.risk_level, 9))
-
-    # === RISK TREND (win rate per risk level over time) ===
-    risk_trend_dt = "DATE(DATE_TRUNC('week', s.created_at::timestamp))" if trend_mode == 'weekly' else "DATE(s.created_at)"
-    risk_trend_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT 
-            {risk_trend_dt} as period,
-            CASE 
-                WHEN LOWER(s.risk_level) LIKE 'low%' THEN 'low'
-                WHEN LOWER(s.risk_level) LIKE 'nor%' OR LOWER(s.risk_level) LIKE 'med%' THEN 'normal'
-                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 'high'
-            END as risk_group,
-            COUNT(so.outcome) as closed,
-            SUM(CASE WHEN so.outcome IN ('tp1','tp2','tp3','tp4') THEN 1 ELSE 0 END) as winners
-        FROM signals s
-        INNER JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE s.risk_level IS NOT NULL AND LOWER(s.risk_level) NOT LIKE 'unk%' {date_filter}
-        GROUP BY period, risk_group
-        HAVING COUNT(so.outcome) >= 2
-        ORDER BY period ASC
-    """)
-
-    # Pivot risk trend data
-    risk_trend_raw = {}
-    for r in db.execute(risk_trend_query).fetchall():
-        p = str(r[0])
-        if p not in risk_trend_raw:
-            risk_trend_raw[p] = {"period": p, "low_wr": None, "normal_wr": None, "high_wr": None, "low_count": 0, "normal_count": 0, "high_count": 0}
-        rg = r[1]
-        closed = int(r[2])
-        winners = int(r[3])
-        wr = round(winners / closed * 100, 2) if closed > 0 else None
-        if rg == 'low':
-            risk_trend_raw[p]["low_wr"] = wr
-            risk_trend_raw[p]["low_count"] = closed
-        elif rg == 'normal':
-            risk_trend_raw[p]["normal_wr"] = wr
-            risk_trend_raw[p]["normal_count"] = closed
-        elif rg == 'high':
-            risk_trend_raw[p]["high_wr"] = wr
-            risk_trend_raw[p]["high_count"] = closed
-
-    risk_trend = [RiskTrendItem(**v) for v in sorted(risk_trend_raw.values(), key=lambda x: x["period"])]
-    
-    return AnalyzeResponse(
-        stats=AnalyzeStats(
-            total_signals=total_signals, closed_trades=total_closed, open_signals=total_open,
-            win_rate=round(overall_win_rate, 2), total_winners=total_winners,
-            tp1_count=total_tp1, tp2_count=total_tp2, tp3_count=total_tp3,
-            tp4_count=total_tp4, sl_count=total_sl, active_pairs=len(pair_metrics)),
-        pair_metrics=pair_metrics, win_rate_trend=win_rate_trend,
-        risk_reward=risk_reward, avg_risk_reward=avg_risk_reward,
-        risk_distribution=risk_distribution, risk_trend=risk_trend,
-        time_range=time_range)
+    # Last resort: query DB directly (only happens on first startup)
+    try:
+        from datetime import datetime, timedelta
+        date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        rows = db.execute(text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
+                s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
+                s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
+                s.created_at,
+                CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
+                     WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
+                s.market_cap
+            FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE s.created_at >= :date_from
+            ORDER BY s.call_message_id DESC
+        """), {"date_from": date_7d}).fetchall()
+        
+        items = []
+        for r in rows:
+            items.append({
+                "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
+                "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7],
+                "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
+                "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
+                "created_at": r[15], "status": r[16], "market_cap": r[17],
+            })
+        
+        result = {"items": items, "total": len(items), "date_from": date_7d}
+        cache_set("lq:signals:bulk-7d", result, ttl=100)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Bulk 7d query error: {str(e)}")
 
 
 # ============================================
@@ -484,93 +548,108 @@ async def get_signals(
         return cached
     
     # === FALLBACK TO DB ===
-    conditions = []
-    params = {}
-    
-    if pair:
-        conditions.append("UPPER(s.pair) LIKE :pair")
-        params["pair"] = f"%{pair.upper()}%"
-    if risk_level:
-        risk_lower = risk_level.lower()
-        if risk_lower in ['med', 'medium']:
-            conditions.append("LOWER(s.risk_level) LIKE 'med%'")
-        else:
-            conditions.append("LOWER(s.risk_level) LIKE :risk")
-            params["risk"] = f"{risk_lower}%"
-    if date_from:
-        conditions.append("s.created_at >= :date_from")
-        params["date_from"] = date_from
-    if date_to:
-        conditions.append("s.created_at <= :date_to")
-        params["date_to"] = f"{date_to} 23:59:59"
-    if status:
-        mapped = status_to_filter(status)
-        if mapped == 'open':
-            conditions.append("so.outcome IS NULL")
-        else:
-            conditions.append("so.outcome = :status_filter")
-            params["status_filter"] = mapped
-    
-    where_clause = " AND ".join(conditions) if conditions else "1=1"
-    
-    valid_sorts = {
-        'created_at': 's.call_message_id', 'pair': 's.pair', 'entry': 's.entry',
-        'call_message_id': 's.call_message_id', 'status': "COALESCE(so.outcome, 'open')",
-        'risk_level': """CASE WHEN LOWER(s.risk_level) LIKE 'low%' THEN 1
-            WHEN LOWER(s.risk_level) LIKE 'med%' THEN 2
-            WHEN LOWER(s.risk_level) LIKE 'high%' THEN 3 ELSE 4 END""",
-    }
-    sort_col = valid_sorts.get(sort_by, 's.call_message_id')
-    sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
-    
-    count_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT COUNT(*) FROM signals s
-        LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE {where_clause}
-    """)
-    total = db.execute(count_query, params).scalar() or 0
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 1
-    offset = (page - 1) * page_size
-    
-    data_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT 
-            s.signal_id, s.channel_id, s.call_message_id, s.message_link,
-            s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
-            s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
-            s.created_at,
-            CASE WHEN so.outcome = 'tp4' THEN 'closed_win'
-                 WHEN so.outcome = 'sl' THEN 'closed_loss'
-                 WHEN so.outcome IS NOT NULL THEN so.outcome
-                 ELSE 'open' END as derived_status,
-            s.market_cap
-        FROM signals s
-        LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE {where_clause}
-        ORDER BY {sort_col} {sort_dir}
-        LIMIT :limit OFFSET :offset
-    """)
-    params["limit"] = page_size
-    params["offset"] = offset
-    
-    rows = db.execute(data_query, params).fetchall()
-    
-    items = []
-    for r in rows:
-        items.append({
-            "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
-            "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7],
-            "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
-            "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
-            "created_at": r[15], "status": r[16], "market_cap": r[17],
-        })
-    
-    result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
-    
-    cache_set(cache_key, result, ttl=40)
-    
-    return result
+    try:
+        conditions = []
+        params = {}
+        
+        if pair:
+            conditions.append("UPPER(s.pair) LIKE :pair")
+            params["pair"] = f"%{pair.upper()}%"
+        if risk_level:
+            risk_lower = risk_level.lower()
+            if risk_lower in ['med', 'medium']:
+                conditions.append("LOWER(s.risk_level) LIKE 'med%'")
+            else:
+                conditions.append("LOWER(s.risk_level) LIKE :risk")
+                params["risk"] = f"{risk_lower}%"
+        if date_from:
+            conditions.append("s.created_at >= :date_from")
+            params["date_from"] = date_from
+        if date_to:
+            conditions.append("s.created_at <= :date_to")
+            params["date_to"] = f"{date_to} 23:59:59"
+        if status:
+            mapped = status_to_filter(status)
+            if mapped == 'open':
+                conditions.append("so.outcome IS NULL")
+            else:
+                conditions.append("so.outcome = :status_filter")
+                params["status_filter"] = mapped
+        
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        
+        valid_sorts = {
+            'created_at': 's.call_message_id', 'pair': 's.pair', 'entry': 's.entry',
+            'call_message_id': 's.call_message_id', 'status': "COALESCE(so.outcome, 'open')",
+            'risk_level': """CASE WHEN LOWER(s.risk_level) LIKE 'low%' THEN 1
+                WHEN LOWER(s.risk_level) LIKE 'med%' THEN 2
+                WHEN LOWER(s.risk_level) LIKE 'high%' THEN 3 ELSE 4 END""",
+            'market_cap': """CASE 
+                WHEN s.market_cap IS NULL THEN 0
+                WHEN UPPER(s.market_cap) LIKE '%T' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e12
+                WHEN UPPER(s.market_cap) LIKE '%B' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e9
+                WHEN UPPER(s.market_cap) LIKE '%M' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e6
+                WHEN UPPER(s.market_cap) LIKE '%K' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e3
+                ELSE CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC)
+                END""",
+        }
+        sort_col = valid_sorts.get(sort_by, 's.call_message_id')
+        sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
+        
+        count_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT COUNT(*) FROM signals s
+            LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE {where_clause}
+        """)
+        total = db.execute(count_query, params).scalar() or 0
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+        offset = (page - 1) * page_size
+        
+        data_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT 
+                s.signal_id, s.channel_id, s.call_message_id, s.message_link,
+                s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
+                s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
+                s.created_at,
+                CASE WHEN so.outcome = 'tp4' THEN 'closed_win'
+                     WHEN so.outcome = 'sl' THEN 'closed_loss'
+                     WHEN so.outcome IS NOT NULL THEN so.outcome
+                     ELSE 'open' END as derived_status,
+                s.market_cap
+            FROM signals s
+            LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE {where_clause}
+            ORDER BY {sort_col} {sort_dir}
+            LIMIT :limit OFFSET :offset
+        """)
+        params["limit"] = page_size
+        params["offset"] = offset
+        
+        rows = db.execute(data_query, params).fetchall()
+        
+        items = []
+        for r in rows:
+            items.append({
+                "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
+                "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7],
+                "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
+                "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
+                "created_at": r[15], "status": r[16], "market_cap": r[17],
+            })
+        
+        result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+        cache_set(cache_key, result, ttl=40)
+        return result
+
+    except Exception as e:
+        # CHANGED: stale fallback if DB query fails
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            stale.pop("_cached_at", None)
+            return stale
+        raise HTTPException(status_code=500, detail=f"Signals query error: {str(e)}")
 
 
 # ============================================
@@ -586,24 +665,32 @@ async def get_active_signals(
     if cached and "items" in cached:
         return cached["items"]
     
-    query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
-            s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
-            s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den, s.created_at
-        FROM signals s
-        LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-        WHERE so.outcome IS NULL
-        ORDER BY s.call_message_id DESC LIMIT :limit
-    """)
-    
-    rows = db.execute(query, {"limit": limit}).fetchall()
-    return [{
-        "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
-        "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7], "target3": r[8], "target4": r[9],
-        "stop1": r[10], "stop2": r[11], "risk_level": r[12], "volume_rank_num": r[13],
-        "volume_rank_den": r[14], "created_at": r[15], "status": "open",
-    } for r in rows]
+    try:
+        query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
+                s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
+                s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den, s.created_at
+            FROM signals s
+            LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            WHERE so.outcome IS NULL
+            ORDER BY s.call_message_id DESC LIMIT :limit
+        """)
+        
+        rows = db.execute(query, {"limit": limit}).fetchall()
+        return [{
+            "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
+            "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7], "target3": r[8], "target4": r[9],
+            "stop1": r[10], "stop2": r[11], "risk_level": r[12], "volume_rank_num": r[13],
+            "volume_rank_den": r[14], "created_at": r[15], "status": "open",
+        } for r in rows]
+
+    except Exception as e:
+        # CHANGED: stale fallback
+        stale, _ = cache_get_with_stale(f"lq:signals:active:{limit}")
+        if stale and "items" in stale:
+            return stale["items"]
+        raise HTTPException(status_code=500, detail=f"Active signals error: {str(e)}")
 
 
 # ============================================
@@ -617,25 +704,34 @@ async def get_signal_stats(db: Session = Depends(get_db)):
         cached.pop("_cached_at", None)
         return SignalStats(**cached)
     
-    stats_query = text(f"""
-        WITH {SIGNAL_OUTCOMES_CTE}
-        SELECT COUNT(*), COUNT(CASE WHEN so.outcome IS NULL THEN 1 END),
-            SUM(CASE WHEN so.outcome='tp1' THEN 1 ELSE 0 END),
-            SUM(CASE WHEN so.outcome='tp2' THEN 1 ELSE 0 END),
-            SUM(CASE WHEN so.outcome='tp3' THEN 1 ELSE 0 END),
-            SUM(CASE WHEN so.outcome='tp4' THEN 1 ELSE 0 END),
-            SUM(CASE WHEN so.outcome='sl' THEN 1 ELSE 0 END)
-        FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
-    """)
-    
-    row = db.execute(stats_query).fetchone()
-    if not row:
-        return SignalStats(total_signals=0,open_signals=0,tp1_signals=0,tp2_signals=0,tp3_signals=0,closed_win=0,closed_loss=0,win_rate=0)
-    
-    t,o,t1,t2,t3,cw,cl = [int(x or 0) for x in row]
-    tc = t1+t2+t3+cw+cl; tw = t1+t2+t3+cw
-    wr = (tw/tc*100) if tc>0 else 0
-    return SignalStats(total_signals=t,open_signals=o,tp1_signals=t1,tp2_signals=t2,tp3_signals=t3,closed_win=cw,closed_loss=cl,win_rate=round(wr,2))
+    try:
+        stats_query = text(f"""
+            WITH {SIGNAL_OUTCOMES_CTE}
+            SELECT COUNT(*), COUNT(CASE WHEN so.outcome IS NULL THEN 1 END),
+                SUM(CASE WHEN so.outcome='tp1' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN so.outcome='tp2' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN so.outcome='tp3' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN so.outcome='tp4' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN so.outcome='sl' THEN 1 ELSE 0 END)
+            FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+        """)
+        
+        row = db.execute(stats_query).fetchone()
+        if not row:
+            return SignalStats(total_signals=0,open_signals=0,tp1_signals=0,tp2_signals=0,tp3_signals=0,closed_win=0,closed_loss=0,win_rate=0)
+        
+        t,o,t1,t2,t3,cw,cl = [int(x or 0) for x in row]
+        tc = t1+t2+t3+cw+cl; tw = t1+t2+t3+cw
+        wr = (tw/tc*100) if tc>0 else 0
+        return SignalStats(total_signals=t,open_signals=o,tp1_signals=t1,tp2_signals=t2,tp3_signals=t3,closed_win=cw,closed_loss=cl,win_rate=round(wr,2))
+
+    except Exception as e:
+        # CHANGED: stale fallback
+        stale, _ = cache_get_with_stale("lq:signals:stats")
+        if stale:
+            stale.pop("_cached_at", None)
+            return SignalStats(**stale)
+        raise HTTPException(status_code=500, detail=f"Stats query error: {str(e)}")
 
 
 # ============================================
@@ -675,9 +771,6 @@ async def get_top_performers(
 ):
     """
     Top Gainers & Fastest Hits — deduplicated per pair.
-    Top Gainers: first entry → highest TP price across all signals for that pair.
-    Fastest Hits: single signal with fastest first-TP-hit per pair.
-    Returns all_signal_ids per pair for modal navigation.
     """
     if date_from and date_to:
         actual_from = date_from
@@ -888,6 +981,10 @@ async def get_top_performers(
         cache_set(cache_key, result, ttl=60)
         return result
     except Exception as e:
+        # CHANGED: stale fallback
+        stale, _ = cache_get_with_stale(cache_key)
+        if stale:
+            return stale
         raise HTTPException(status_code=500, detail=f"Query error: {str(e)}")
 
 
