@@ -188,14 +188,21 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, error, setError } = useAuth();
+  const { login, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // FIX BLANK PAGE: Navigate when auth state is settled
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    try { await login(email, password); navigate('/'); }
+    try { await login(email, password); /* navigate via useEffect */ }
     catch (err) { /* context */ }
     finally { setLoading(false); }
   };

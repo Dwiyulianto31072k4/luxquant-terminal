@@ -44,10 +44,18 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { loading } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const moreMenuRef = useRef(null);
+
+  // Reset to terminal tab when user logs out
+  // This prevents blank page when activeTab is on a protected page after logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveTab("terminal");
+    }
+  }, [isAuthenticated]);
 
   // Track scroll for header shadow
   useEffect(() => {
@@ -91,6 +99,12 @@ function AppContent() {
   }, [moreMenuOpen]);
 
   const handleTabClick = (key) => {
+    // Protected tabs - require login
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
+    if (protectedTabs.includes(key) && !isAuthenticated) {
+      navigate("/login");
+      return;
+    }
     setActiveTab(key);
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
@@ -106,12 +120,13 @@ function AppContent() {
     { key: "markets", label: "Markets", icon: "🌐" },
   ];
 
-  // "More" dropdown items
+  // "More" dropdown items (secondary — hidden under dropdown on desktop)
   const moreMenuItems = [
     { key: "tips", label: "Tips", icon: "📚", description: "Trading guides & education" },
     { key: "watchlist", label: "Watchlist", icon: "⭐", description: "Your saved coins" },
   ];
 
+  // Check if "More" dropdown has an active item
   const moreHasActive = moreMenuItems.some((item) => activeTab === item.key);
 
   // Mobile bottom nav
@@ -165,6 +180,47 @@ function AppContent() {
   ];
 
   const renderPage = () => {
+    // Protected pages - show login prompt if not authenticated
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
+    if (protectedTabs.includes(activeTab) && !isAuthenticated) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center mb-6">
+            <svg className="w-10 h-10 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-display font-bold text-white mb-2">Login Required</h2>
+          <p className="text-text-muted mb-6 max-w-md">
+            Login untuk mengakses fitur ini. Nikmati semua fitur trading terminal LuxQuant.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate("/login")}
+              className="px-6 py-2.5 rounded-xl font-semibold transition-all"
+              style={{
+                background: 'linear-gradient(to right, #d4a853, #8b6914)',
+                color: '#0a0506',
+                boxShadow: '0 0 20px rgba(212, 168, 83, 0.3)'
+              }}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => navigate("/register")}
+              className="px-6 py-2.5 rounded-xl font-semibold transition-colors border"
+              style={{
+                color: '#d4a853',
+                borderColor: 'rgba(212, 168, 83, 0.3)'
+              }}
+            >
+              Daftar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "terminal": return <OverviewPage />;
       case "signals": return <SignalsPage />;
@@ -191,6 +247,7 @@ function AppContent() {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen">
@@ -433,8 +490,7 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Router — FIX: exact paths prevent AppContent
-// from rendering on /login and /register
+// Router
 // ════════════════════════════════════════
 function App() {
   return (
@@ -444,7 +500,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/watchlist" element={<AppContent />} />
-          <Route path="/" element={<AppContent />} />
+          <Route path="/*" element={<AppContent />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

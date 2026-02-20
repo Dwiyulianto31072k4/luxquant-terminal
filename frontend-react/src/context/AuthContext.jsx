@@ -1,5 +1,5 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../services/authApi';
 
 const AuthContext = createContext(null);
@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
           // Token invalid, clear storage
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          setUser(null);
         }
       }
       setLoading(false);
@@ -36,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     setError(null);
     try {
       const response = await authApi.login(email, password);
@@ -49,9 +50,9 @@ export const AuthProvider = ({ children }) => {
       setError(message);
       throw err;
     }
-  };
+  }, []);
 
-  const register = async (email, username, password) => {
+  const register = useCallback(async (email, username, password) => {
     setError(null);
     try {
       const response = await authApi.register(email, username, password);
@@ -64,13 +65,14 @@ export const AuthProvider = ({ children }) => {
       setError(message);
       throw err;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     setUser(null);
-  };
+    setError(null);
+  }, []);
 
   const value = {
     user,
@@ -82,6 +84,24 @@ export const AuthProvider = ({ children }) => {
     logout,
     setError
   };
+
+  // Don't render children until initial auth check is done
+  // This prevents flash of wrong state (blank pages, wrong redirects)
+  if (loading) {
+    return (
+      <AuthContext.Provider value={value}>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212, 168, 83, 0.2)' }} />
+              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
+            </div>
+            <p className="text-sm font-medium tracking-wide" style={{ color: '#6b5c52' }}>Loading LuxQuant...</p>
+          </div>
+        </div>
+      </AuthContext.Provider>
+    );
+  }
 
   return (
     <AuthContext.Provider value={value}>
