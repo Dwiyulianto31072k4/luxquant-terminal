@@ -756,7 +756,11 @@ def get_7d_date():
 async def signal_cache_loop():
     """
     Pre-compute signal data every SIGNAL_CACHE_INTERVAL seconds.
-    CHANGED: interval from config, reduced pages (2 instead of 3)
+    
+    UPDATED v4:
+    - Step 2: Cache ALL "Last 7 Days" pages (not just 1-2) — fallback for server-side pagination
+    - Step 3: Cache first 5 "All time" pages per status (not just page 1)
+    - Bulk 7d still cached for client-side pagination (primary path)
     """
     interval = settings.SIGNAL_CACHE_INTERVAL
     print(f"🔄 Signal cache worker started (interval: {interval}s)")
@@ -772,7 +776,7 @@ async def signal_cache_loop():
             db = SessionLocal()
             try:
                 cached = 0
-                ttl = interval + 15  # CHANGED: buffer to prevent gap
+                ttl = interval + 15
 
                 # Step 1: Pre-compute outcomes ONCE (UNLOGGED TABLE)
                 t0 = time.time()
@@ -787,11 +791,12 @@ async def signal_cache_loop():
                 cache_set("lq:signals:bulk-7d", bulk_7d, ttl=ttl)
                 cached += 1
 
-                # Step 2: Cache "Last 7 Days" pages (HIGHEST PRIORITY)
-                # CHANGED: only page 1-2 (page 3+ rarely accessed)
+                # Step 2: Cache "Last 7 Days" ALL pages (fallback for server-side pagination)
+                # Each query uses pre-computed _cache_outcomes → fast (~5ms per page)
+                MAX_PAGES_7D = 50  # safety limit — stops when no more pages
                 statuses = [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]
                 for st in statuses:
-                    for pg in range(1, 3):  # CHANGED: was range(1, 4)
+                    for pg in range(1, MAX_PAGES_7D + 1):
                         result = query_signals_page(db, page=pg, page_size=20, status=st,
                                                      sort_by="created_at", sort_order="desc",
                                                      date_from=date_7d)
@@ -801,14 +806,17 @@ async def signal_cache_loop():
                         if pg >= result.get("total_pages", 1):
                             break
 
-                # Step 3: Cache "All time" — only page 1
-                # CHANGED: was 3 pages, now only page 1 (deeper pages fetched on-demand)
+                # Step 3: Cache "All time" — first 5 pages per status
+                MAX_PAGES_ALL = 5
                 for st in [None, "open", "tp1", "tp2", "tp3", "tp4", "closed_loss"]:
-                    result = query_signals_page(db, page=1, page_size=20, status=st,
-                                                 sort_by="created_at", sort_order="desc")
-                    key = f"lq:signals:page:1:20:{st or 'all'}:all:all:created_at:desc"
-                    cache_set(key, result, ttl=ttl)
-                    cached += 1
+                    for pg in range(1, MAX_PAGES_ALL + 1):
+                        result = query_signals_page(db, page=pg, page_size=20, status=st,
+                                                     sort_by="created_at", sort_order="desc")
+                        key = f"lq:signals:page:{pg}:20:{st or 'all'}:all:all:created_at:desc"
+                        cache_set(key, result, ttl=ttl)
+                        cached += 1
+                        if pg >= result.get("total_pages", 1):
+                            break
 
                 # Step 4: Stats & Active
                 cache_set("lq:signals:stats", query_signals_stats(db), ttl=ttl)
@@ -817,7 +825,6 @@ async def signal_cache_loop():
                 cached += 1
 
                 # Step 5: Analyze — only weekly (daily rarely used)
-                # CHANGED: was 3 ranges × 2 modes = 6, now 3 ranges × 1 mode = 3
                 for tr in ["all", "7d", "30d"]:
                     result = query_analyze(db, time_range=tr, trend_mode="weekly")
                     cache_set(f"lq:signals:analyze:{tr}:weekly", result, ttl=ttl)

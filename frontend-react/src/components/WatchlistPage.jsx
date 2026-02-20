@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { watchlistApi } from '../services/watchlistApi';
 import StarButton from './StarButton';
 import CoinLogo from './CoinLogo';
+import SignalModal from './SignalModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -15,6 +16,7 @@ const WatchlistPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
+  const [selectedSignal, setSelectedSignal] = useState(null);
 
   // Fetch watchlist
   useEffect(() => {
@@ -37,7 +39,7 @@ const WatchlistPage = () => {
     fetchWatchlist();
   }, [isAuthenticated, navigate]);
 
-  // CHANGED: Fetch prices via backend proxy instead of direct Binance
+  // Fetch prices via backend proxy
   const fetchCurrentPrices = useCallback(async () => {
     if (watchlist.length === 0) return;
     
@@ -51,7 +53,6 @@ const WatchlistPage = () => {
         return;
       }
       
-      // Single call to backend — handles Futures→Spot fallback internally
       const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${pairs.join(',')}`);
       if (response.ok) {
         const priceMap = await response.json();
@@ -64,7 +65,6 @@ const WatchlistPage = () => {
     }
   }, [watchlist]);
 
-  // Fetch prices when watchlist changes and every 10 seconds
   useEffect(() => {
     if (watchlist.length > 0) {
       fetchCurrentPrices();
@@ -73,25 +73,21 @@ const WatchlistPage = () => {
     }
   }, [fetchCurrentPrices, watchlist.length]);
 
-  // Handle remove from watchlist
   const handleRemove = (signalId) => {
     setWatchlist(prev => prev.filter(item => item.signal_id !== signalId));
   };
 
-  // Calculate profit/loss percentage
   const calcProfitLoss = (entry, currentPrice) => {
     if (!entry || !currentPrice) return null;
     return ((currentPrice - entry) / entry * 100);
   };
 
-  // Get max target from signal
   const getMaxTarget = (item) => {
     const targets = [item.target4, item.target3, item.target2, item.target1].filter(t => t);
     if (targets.length === 0) return null;
     return targets[0];
   };
 
-  // Format price based on value
   const formatPrice = (price) => {
     if (!price) return '-';
     if (price < 0.0001) return price.toFixed(8);
@@ -101,7 +97,6 @@ const WatchlistPage = () => {
     return price.toFixed(2);
   };
 
-  // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -113,7 +108,6 @@ const WatchlistPage = () => {
     });
   };
 
-  // Get status badge
   const getStatusBadge = (status) => {
     const config = {
       'open': { bg: 'bg-cyan-500', text: 'OPEN', icon: '●' },
@@ -134,7 +128,6 @@ const WatchlistPage = () => {
     );
   };
 
-  // Get coin name without USDT
   const getCoinName = (pair) => {
     if (!pair) return '';
     return pair.replace(/USDT$/i, '');
@@ -151,7 +144,6 @@ const WatchlistPage = () => {
     );
   }
 
-  // Count stats
   const openCount = watchlist.filter(w => w.status?.toLowerCase() === 'open').length;
   const inProfitCount = watchlist.filter(w => {
     const cp = currentPrices[w.pair];
@@ -176,7 +168,6 @@ const WatchlistPage = () => {
           </p>
         </div>
         
-        {/* Refresh indicator */}
         {watchlist.length > 0 && (
           <div className="flex items-center gap-2 text-text-muted text-sm">
             <span className={`w-2 h-2 rounded-full ${
@@ -241,7 +232,8 @@ const WatchlistPage = () => {
                   return (
                     <tr 
                       key={item.id} 
-                      className="border-b border-gold-primary/5 hover:bg-gold-primary/5 transition-colors"
+                      className="border-b border-gold-primary/5 hover:bg-gold-primary/5 transition-colors cursor-pointer"
+                      onClick={() => setSelectedSignal(item)}
                     >
                       {/* Pair with Logo */}
                       <td className="py-4 px-4">
@@ -325,8 +317,8 @@ const WatchlistPage = () => {
                         </span>
                       </td>
                       
-                      {/* Star Action */}
-                      <td className="py-4 px-4 text-center">
+                      {/* Star Action — stopPropagation so clicking star doesn't open modal */}
+                      <td className="py-4 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <StarButton 
                           signalId={item.signal_id} 
                           isStarred={true}
@@ -364,6 +356,15 @@ const WatchlistPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Signal Detail Modal */}
+      {selectedSignal && (
+        <SignalModal 
+          signal={selectedSignal} 
+          isOpen={!!selectedSignal}
+          onClose={() => setSelectedSignal(null)} 
+        />
       )}
     </div>
   );
