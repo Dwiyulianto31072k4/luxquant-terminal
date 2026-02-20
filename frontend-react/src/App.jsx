@@ -106,14 +106,12 @@ function AppContent() {
     { key: "markets", label: "Markets", icon: "🌐" },
   ];
 
-  // "More" dropdown items (secondary — hidden under dropdown on desktop)
-  // Easy to extend: just add new items here
+  // "More" dropdown items
   const moreMenuItems = [
     { key: "tips", label: "Tips", icon: "📚", description: "Trading guides & education" },
     { key: "watchlist", label: "Watchlist", icon: "⭐", description: "Your saved coins" },
   ];
 
-  // Check if "More" dropdown has an active item
   const moreHasActive = moreMenuItems.some((item) => activeTab === item.key);
 
   // Mobile bottom nav
@@ -193,9 +191,6 @@ function AppContent() {
       </div>
     );
   }
-
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
-  if (isAuthPage) return null;
 
   return (
     <div className="min-h-screen">
@@ -324,8 +319,6 @@ function AppContent() {
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                 </svg>
-                {/* Notification dot — show when there are unread notifications */}
-                {/* <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-bg-primary" /> */}
               </button>
 
               {/* User Menu */}
@@ -347,32 +340,21 @@ function AppContent() {
           <nav className="flex-1 py-6 px-3 space-y-0.5 overflow-y-auto">
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Navigation</p>
 
-            {/* Terminal */}
             <SidebarItem active={activeTab === "terminal"} onClick={() => handleTabClick("terminal")} label="Terminal"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />}
             />
-
-            {/* Potential Trades */}
             <SidebarItem active={activeTab === "signals"} onClick={() => handleTabClick("signals")} label="Potential Trades"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
             />
-
-            {/* Performance */}
             <SidebarItem active={activeTab === "analytics"} onClick={() => handleTabClick("analytics")} label="Performance"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />}
             />
-
-            {/* Bitcoin */}
             <SidebarItem active={activeTab === "bitcoin"} onClick={() => handleTabClick("bitcoin")} label="Bitcoin"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
             />
-
-            {/* Markets */}
             <SidebarItem active={activeTab === "markets"} onClick={() => handleTabClick("markets")} label="Markets"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />}
             />
-
-            {/* Tips */}
             <SidebarItem active={activeTab === "tips"} onClick={() => handleTabClick("tips")} label="Tips"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />}
             />
@@ -380,7 +362,6 @@ function AppContent() {
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Personal</p>
 
-            {/* Watchlist */}
             <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label="Watchlist"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />}
             />
@@ -395,14 +376,12 @@ function AppContent() {
 
       {/* ═══════════════ MOBILE BOTTOM NAV ═══════════════ */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        {/* Top edge glow */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="bg-bg-primary/95 backdrop-blur-xl border-t border-gold-primary/10">
           <div className="flex items-end justify-around h-16 px-2 max-w-lg mx-auto relative">
             {bottomNavItems.map((item) => {
               const isActive = activeTab === item.key;
 
-              // Center "Trades" button — elevated floating style
               if (item.isCenter) {
                 return (
                   <button
@@ -454,7 +433,8 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Router
+// Router — FIX: exact paths prevent AppContent
+// from rendering on /login and /register
 // ════════════════════════════════════════
 function App() {
   return (
@@ -464,7 +444,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/watchlist" element={<AppContent />} />
-          <Route path="/*" element={<AppContent />} />
+          <Route path="/" element={<AppContent />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
