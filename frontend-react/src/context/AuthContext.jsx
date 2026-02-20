@@ -17,22 +17,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check token on mount
+  // Check token on mount — with timeout to prevent stuck loading
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const userData = await authApi.getMe();
-          setUser(userData);
-        } catch (err) {
-          // Token invalid, clear storage
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Race between getMe() and a timeout (8 seconds max)
+        const userData = await Promise.race([
+          authApi.getMe(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+          )
+        ]);
+        setUser(userData);
+      } catch (err) {
+        // Token invalid / expired / backend down / timeout
+        // Only clear tokens if it's an auth error (401), not a timeout or network error
+        if (err?.response?.status === 401) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          setUser(null);
         }
+        // For timeout or network errors, keep tokens but don't set user
+        // User can retry by refreshing the page
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     initAuth();
   }, []);

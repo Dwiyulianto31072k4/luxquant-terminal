@@ -36,7 +36,9 @@ body {
   overflow-x: hidden;
 }
 
-/* Glass Card */
+/* ==========================================
+   Glass Card - Enhanced with better depth
+   ========================================== */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -55,10 +57,12 @@ body {
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--gold-primary), transparent);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
-/* Luxury Background */
+/* ==========================================
+   Luxury Background
+   ========================================== */
 .luxury-bg {
   position: fixed;
   top: 0;
@@ -74,7 +78,9 @@ body {
   z-index: 0;
 }
 
-/* Corner Ornaments */
+/* ==========================================
+   Corner Ornaments
+   ========================================== */
 .corner-ornament {
   position: fixed;
   width: 100px;
@@ -116,32 +122,22 @@ body {
   border-bottom-right-radius: 16px;
 }
 
-/* Animations */
+/* ==========================================
+   Animations
+   ========================================== */
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.2); }
 }
 
 @keyframes fadeIn {
-  from { 
-    opacity: 0; 
-    transform: translateY(-8px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-10px) scaleY(0.95); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scaleY(1); 
-  }
+  from { opacity: 0; transform: translateY(-10px) scaleY(0.95); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
 }
 
 .live-dot {
@@ -157,7 +153,9 @@ body {
   transform-origin: top;
 }
 
-/* Table Styles */
+/* ==========================================
+   Table Styles
+   ========================================== */
 .signals-table {
   width: 100%;
   border-collapse: separate;
@@ -196,7 +194,9 @@ body {
   background: linear-gradient(90deg, rgba(212, 168, 83, 0.08), transparent);
 }
 
-/* Scrollbar */
+/* ==========================================
+   Scrollbar
+   ========================================== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -215,7 +215,9 @@ body {
   background: var(--gold-primary);
 }
 
-/* Status Badges */
+/* ==========================================
+   Status Badges
+   ========================================== */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -253,7 +255,9 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
-/* Risk Badges */
+/* ==========================================
+   Risk Badges
+   ========================================== */
 .risk-badge {
   display: inline-flex;
   align-items: center;
@@ -283,7 +287,9 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
-/* Header Dropdown */
+/* ==========================================
+   Header Dropdown
+   ========================================== */
 .header-dropdown {
   animation: slideDown 0.2s ease-out;
   transform-origin: top;
@@ -302,4 +308,64 @@ body {
   border-radius: 2px;
 }
 
+/* ==========================================
+   BOTTOM NAVIGATION - Mobile Only
+   ========================================== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: rgba(10, 5, 6, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(212, 168, 83, 0.1);
+  padding: 8px 8px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+}
 
+/* Subtle top glow on bottom nav */
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+}
+
+/* ==========================================
+   Mobile Responsive Overrides
+   ========================================== */
+@media (max-width: 767px) {
+  /* Ensure main content doesn't overlap bottom nav */
+  main {
+    padding-bottom: 100px !important;
+  }
+
+  /* Make glass cards slightly smaller padding on mobile */
+  .glass-card {
+    border-radius: 16px;
+  }
+
+  /* Signals table: horizontal scroll hint */
+  .signals-table th {
+    padding: 12px 8px;
+    font-size: 10px;
+  }
+
+  .signals-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+}
+
+/* Tablet breakpoint adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .corner-ornament {
+    width: 60px;
+    height: 60px;
+  }
+}
