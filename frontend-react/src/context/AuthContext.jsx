@@ -82,6 +82,58 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // LOGIN WITH GOOGLE - Fixed for Vite (dengan semua opsi yang sudah ada)
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      // Untuk Vite, gunakan import.meta.env, BUKAN process.env
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      
+      // PENDEKATAN 1: Redirect biasa (paling umum untuk OAuth)
+      console.log('Redirecting to Google auth:', `${apiUrl}/api/auth/google`);
+      window.location.href = `${apiUrl}/api/auth/google`;
+      
+      /* 
+      // PENDEKATAN 2: Jika menggunakan popup (alternatif)
+      const width = 500;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        `${apiUrl}/api/auth/google`,
+        'Google Login',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+      
+      // Listen for message from popup
+      const handleMessage = (event) => {
+        if (event.origin !== apiUrl) return;
+        if (event.data.token) {
+          localStorage.setItem('access_token', event.data.token);
+          localStorage.setItem('refresh_token', event.data.refresh_token);
+          setUser(event.data.user);
+          popup.close();
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      */
+      
+      /* 
+      // PENDEKATAN 3: Testing dengan dummy data (tanpa backend)
+      window.location.href = 'http://localhost:3000/auth/google/callback?token=test123&refresh_token=test456&user=%7B%22id%22:1,%22email%22:%22test%40gmail.com%22,%22name%22:%22Test%20User%22%7D';
+      */
+      
+    } catch (err) {
+      console.error('Google login error:', err);
+      const message = err.response?.data?.detail || 'Google login gagal';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -97,6 +149,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    loginWithGoogle,
+    setUser,
     setError
   };
 

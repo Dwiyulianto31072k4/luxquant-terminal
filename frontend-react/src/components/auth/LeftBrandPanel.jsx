@@ -1,21 +1,22 @@
 // src/components/auth/LeftBrandPanel.jsx
-// Shared brand panel for Login & Register pages
-// Premium glassmorphism flag badges + typewriter + globe
+// Desktop: left 55% panel with globe | Mobile: just the desktop panel (hidden on mobile)
+// Mobile globe is now rendered INSIDE LoginPage/RegisterPage directly
 
 import { useEffect, useRef, useState } from 'react';
 
 /* ================================================================
-   TYPEWRITER — white text with gold highlights on key phrases
+   TYPEWRITER — longer, more contextual taglines
    ================================================================ */
 const TAGLINES = [
-  { parts: [{ text: 'Algorithmic ', g: false }, { text: 'Crypto Intelligence', g: true }, { text: ' 24/7', g: false }] },
-  { parts: [{ text: 'Proactive Algorithms, ', g: false }, { text: 'Better Trades', g: true }] },
-  { parts: [{ text: 'Founded in ', g: false }, { text: 'Taiwan 🇹🇼', g: true }, { text: ' Serving Global', g: false }] },
-  { parts: [{ text: 'Data-Driven ', g: false }, { text: 'Signals', g: true }, { text: ' for Smarter Trades', g: false }] },
-  { parts: [{ text: '2,000+ Traders ', g: false }, { text: 'Trust LuxQuant', g: true }] },
+  { parts: [{ text: 'Professional-Grade ', g: false }, { text: 'Crypto Signals', g: true }, { text: ' Delivered to You 24/7', g: false }] },
+  { parts: [{ text: 'Join ', g: false }, { text: '2,000+ Traders', g: true }, { text: ' Worldwide Who Trust LuxQuant', g: false }] },
+  { parts: [{ text: 'Proactive Algorithms That ', g: false }, { text: 'Identify Opportunities', g: true }, { text: ' Before The Market Moves', g: false }] },
+  { parts: [{ text: 'Built in ', g: false }, { text: 'Taiwan 🇹🇼', g: true }, { text: ' — Serving Traders Across 20+ Countries', g: false }] },
+  { parts: [{ text: 'Data-Driven ', g: false }, { text: 'Entry & Exit Signals', g: true }, { text: ' for Smarter Crypto Trading', g: false }] },
+  { parts: [{ text: 'Real-Time Market Analysis ', g: false }, { text: 'Powered by AI', g: true }, { text: ' — Your Edge in Every Trade', g: false }] },
 ];
 
-const useTypewriter = (taglines, speed = 45, delSpeed = 20, pause = 3000) => {
+const useTypewriter = (taglines, speed = 40, delSpeed = 18, pause = 3200) => {
   const [cc, setCc] = useState(0);
   const [idx, setIdx] = useState(0);
   const [del, setDel] = useState(false);
@@ -39,24 +40,8 @@ const useTypewriter = (taglines, speed = 45, delSpeed = 20, pause = 3000) => {
   return vis;
 };
 
-const TypewriterDisplay = () => {
-  const parts = useTypewriter(TAGLINES);
-  return (
-    <div style={{ textAlign: 'center', minHeight: 40 }}>
-      <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 600, lineHeight: 1.35 }}>
-        {parts.map((p, i) => (
-          <span key={i} style={{ color: p.g ? '#d4a853' : '#ffffff' }}>{p.text}</span>
-        ))}
-        <span style={{ color: '#d4a853', fontWeight: 300, marginLeft: 1, animation: 'lq-blink 1s step-end infinite' }}>|</span>
-      </p>
-    </div>
-  );
-};
-
 /* ================================================================
-   GLASSMORPHISM FLAG BADGES — scattered with gentle bobbing
-   Each badge = frosted pill with flag emoji + country name
-   Individual float animation with unique duration/delay
+   FLAG BADGES
    ================================================================ */
 const FLAGS = [
   { emoji: '🇹🇼', name: 'Taiwan',    top: 4,   left: 50,  dur: 5.5, del: 0,   sz: 'lg' },
@@ -79,7 +64,7 @@ const SZ = {
   sm: { fs: 11, ef: 14, pad: '3px 9px 3px 6px', gap: 4 },
 };
 
-const FlagBadges = () => (
+const FlagBadges = ({ compact }) => (
   <>
     <style>{`
       @keyframes lq-float {
@@ -89,7 +74,7 @@ const FlagBadges = () => (
       }
     `}</style>
     {FLAGS.map((f, i) => {
-      const s = SZ[f.sz];
+      const s = compact ? SZ.sm : SZ[f.sz];
       return (
         <div key={i} style={{
           position: 'absolute', top: `${f.top}%`, left: `${f.left}%`, zIndex: 20,
@@ -120,7 +105,7 @@ const FlagBadges = () => (
 );
 
 /* ================================================================
-   GLOBE — THREE.js from index.html
+   GLOBE — THREE.js
    ================================================================ */
 const LOCS = [
   { lat: 25.033, lng: 121.565, s: 0.9, hub: true },
@@ -198,51 +183,100 @@ const GlobeViz = () => {
 };
 
 /* ================================================================
-   LEFT BRAND PANEL — main export
+   MOBILE GLOBE SECTION — exported for use inside Login/Register pages
+   Placed AFTER the heading, BEFORE form fields
    ================================================================ */
-const LOGO_IMG = 'https://raw.githubusercontent.com/Dwiyulianto31072k4/luxquant/main/logolqemas.png';
+export const MobileGlobeSection = () => (
+  <div className="lg:hidden" style={{ margin: '0 -32px' }}>
+    <style>{`
+      @keyframes lq-spin { to { transform: rotate(360deg); } }
+    `}</style>
+    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 0.85', maxWidth: 420, margin: '0 auto' }}>
+      <GlobeViz />
+      <FlagBadges compact />
+    </div>
+    {/* "And more countries" text */}
+    <p className="text-center" style={{ fontSize: 12, color: '#6b5c52', marginTop: -4, paddingBottom: 8, letterSpacing: '0.03em' }}>
+      <span style={{ color: '#d4a853' }}>🌍</span>{' '}
+      And <span style={{ color: '#b8a89a', fontWeight: 600 }}>20+ more countries</span> trust our signals
+    </p>
+  </div>
+);
 
+/* ================================================================
+   TYPEWRITER DISPLAY — exported for use inside Login/Register pages
+   ================================================================ */
+export const TypewriterLine = ({ mobile }) => {
+  const parts = useTypewriter(TAGLINES);
+  return (
+    <div style={{ textAlign: mobile ? 'left' : 'center', minHeight: mobile ? 44 : 40 }}>
+      <p style={{ fontFamily: 'Playfair Display, serif', fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: '#6b5c52' }}>
+        {parts.map((p, i) => (
+          <span key={i} style={{ color: p.g ? '#d4a853' : '#8a7d73' }}>{p.text}</span>
+        ))}
+        <span style={{ color: '#d4a853', fontWeight: 300, marginLeft: 1, animation: 'lq-blink 1s step-end infinite' }}>|</span>
+      </p>
+    </div>
+  );
+};
+
+/* ================================================================
+   DESKTOP LEFT PANEL — only visible on lg+
+   ================================================================ */
 const LeftBrandPanel = () => (
-  <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden" style={{ flexDirection: 'column' }}>
-    {/* BG layers */}
-    <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #1a0a0c 0%, #0d0405 50%, #110607 100%)' }} />
-    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 15%, rgba(139,26,26,0.35) 0%, transparent 55%)' }} />
-    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 85% 85%, rgba(100,18,18,0.18) 0%, transparent 50%)' }} />
-    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 55%, rgba(212,168,83,0.04) 0%, transparent 45%)' }} />
-    <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 10%, rgba(212,168,83,0.12) 50%, transparent 90%)' }} />
-    <div className="absolute top-0 right-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,168,83,0.08), transparent)' }} />
+  <>
     <style>{`
       @keyframes lq-spin { to { transform: rotate(360deg); } }
       @keyframes lq-blink { 50% { opacity: 0; } }
     `}</style>
 
-    <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-6" style={{ flexDirection: 'column' }}>
-      {/* Logo */}
-      <div className="flex items-center gap-3">
-        <img src={LOGO_IMG} alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }}
-          onError={(e) => { e.target.style.display = 'none'; }} />
-        <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
-      </div>
+    <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden" style={{ flexDirection: 'column' }}>
+      {/* BG layers */}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #1a0a0c 0%, #0d0405 50%, #110607 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 15%, rgba(139,26,26,0.35) 0%, transparent 55%)' }} />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 85% 85%, rgba(100,18,18,0.18) 0%, transparent 50%)' }} />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 55%, rgba(212,168,83,0.04) 0%, transparent 45%)' }} />
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 10%, rgba(212,168,83,0.12) 50%, transparent 90%)' }} />
+      <div className="absolute top-0 right-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,168,83,0.08), transparent)' }} />
 
-      {/* Center */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {/* Typewriter — above globe with spacing */}
-        <div style={{ marginBottom: 36, position: 'relative', zIndex: 30 }}>
-          <TypewriterDisplay />
+      <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-6" style={{ flexDirection: 'column' }}>
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
+          <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
         </div>
-        {/* Globe + flag badges */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1 / 1' }}>
-          <GlobeViz />
-          <FlagBadges />
-        </div>
-      </div>
 
-      {/* Bottom */}
-      <div style={{ borderTop: '1px solid rgba(212,168,83,0.06)', paddingTop: 10, textAlign: 'center' }}>
-        <p style={{ fontSize: 10, color: '#3d352f', letterSpacing: '0.1em', textTransform: 'uppercase' }}>© 2025 LuxQuant Algorithm · All rights reserved</p>
+        {/* Center */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ marginBottom: 36, position: 'relative', zIndex: 30, textAlign: 'center', minHeight: 40 }}>
+            {/* Desktop typewriter */}
+            <DesktopTypewriter />
+          </div>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1 / 1' }}>
+            <GlobeViz />
+            <FlagBadges />
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div style={{ borderTop: '1px solid rgba(212,168,83,0.06)', paddingTop: 10, textAlign: 'center' }}>
+          <p style={{ fontSize: 10, color: '#3d352f', letterSpacing: '0.1em', textTransform: 'uppercase' }}>© 2026 LuxQuant Algorithm · All rights reserved</p>
+        </div>
       </div>
     </div>
-  </div>
+  </>
 );
+
+const DesktopTypewriter = () => {
+  const parts = useTypewriter(TAGLINES);
+  return (
+    <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 600, lineHeight: 1.4 }}>
+      {parts.map((p, i) => (
+        <span key={i} style={{ color: p.g ? '#d4a853' : '#ffffff' }}>{p.text}</span>
+      ))}
+      <span style={{ color: '#d4a853', fontWeight: 300, marginLeft: 1, animation: 'lq-blink 1s step-end infinite' }}>|</span>
+    </p>
+  );
+};
 
 export default LeftBrandPanel;

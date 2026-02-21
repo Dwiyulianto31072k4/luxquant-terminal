@@ -34,6 +34,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+# 1. TAMBAHAN BARU: Schema untuk menerima token Google
+class GoogleLogin(BaseModel):
+    token: str
+
+
 class TokenRefresh(BaseModel):
     refresh_token: str
 
@@ -48,6 +53,10 @@ class UserResponse(BaseModel):
     is_verified: bool
     is_admin: bool = False
     role: str = "free"
+    
+    # 2. TAMBAHAN BARU: Penanda metode login (agar frontend tahu ini user Google/Local)
+    auth_provider: str = "local"
+    
     created_at: datetime
     
     class Config:

@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState, useEffect, useRef } from "react";
 import {
   BrowserRouter,
@@ -15,6 +16,7 @@ import AnalyzePage from "./components/AnalyzePage";
 import WatchlistPage from "./components/WatchlistPage";
 import TipsPage from "./components/TipsPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
+import GoogleCallback from "./components/auth/GoogleCallback"; // IMPORT GOOGLE CALLBACK
 
 // ════════════════════════════════════════
 // Sidebar Menu Item (mobile hamburger)
@@ -25,7 +27,7 @@ const SidebarItem = ({ active, onClick, label, icon }) => (
     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
       active
         ? "text-gold-primary bg-gold-primary/10 border border-gold-primary/20"
-        : "text-text-secondary hover:text-white hover:bg-white/[0.04] border border-transparent"
+        : "text-text-secondary hover:text-white bg-transparent hover:bg-white/[0.04] border border-transparent"
     }`}
   >
     <svg className={`w-5 h-5 flex-shrink-0 ${active ? 'text-gold-primary' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,6 +50,16 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const moreMenuRef = useRef(null);
+
+  // Check for error params in URL (from Google callback)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const error = params.get('error');
+    if (error === 'google_auth_failed') {
+      // You could show a toast notification here
+      console.log('Google login failed');
+    }
+  }, [location]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -121,10 +133,7 @@ function AppContent() {
 
   const moreHasActive = moreMenuItems.some((item) => activeTab === item.key);
 
-  // ════════════════════════════════════════
-  // Mobile bottom nav — REDESIGNED ICONS ONLY
-  // Same keys, same structure, just consistent SVG icons
-  // ════════════════════════════════════════
+  // Mobile bottom nav items
   const bottomNavItems = [
     {
       key: "terminal",
@@ -252,7 +261,7 @@ function AppContent() {
       <div className="corner-ornament bottom-left hidden md:block" />
       <div className="corner-ornament bottom-right hidden md:block" />
 
-      {/* ═══════════════ HEADER — IDENTICAL TO OLD ═══════════════ */}
+      {/* HEADER */}
       <header className={`sticky top-0 z-50 bg-bg-primary/95 backdrop-blur-md border-b transition-all duration-300 ${scrolled ? 'border-gold-primary/15 shadow-lg shadow-black/20' : 'border-gold-primary/10'}`}>
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
@@ -361,7 +370,7 @@ function AppContent() {
         </div>
       </header>
 
-      {/* ═══════════════ MOBILE SLIDE MENU — IDENTICAL TO OLD ═══════════════ */}
+      {/* MOBILE SLIDE MENU */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
@@ -396,12 +405,12 @@ function AppContent() {
         </div>
       </div>
 
-      {/* ═══════════════ MAIN CONTENT — IDENTICAL ═══════════════ */}
+      {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
         {renderPage()}
       </main>
 
-      {/* ═══════════════ MOBILE BOTTOM NAV — REDESIGNED ═══════════════ */}
+      {/* MOBILE BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="bg-bg-primary/95 backdrop-blur-xl border-t border-gold-primary/10">
@@ -460,15 +469,21 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Router — IDENTICAL TO OLD
+// Router - Main App Component
 // ════════════════════════════════════════
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          
+          {/* Google OAuth Callback Route */}
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
+          
+          {/* Protected/Public Routes */}
           <Route path="/watchlist" element={<AppContent />} />
           <Route path="/*" element={<AppContent />} />
         </Routes>
