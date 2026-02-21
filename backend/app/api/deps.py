@@ -1,3 +1,4 @@
+# backend/app/api/deps.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -62,6 +63,21 @@ async def get_current_user(
         )
     
     return user
+
+
+async def get_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency untuk endpoint admin-only.
+    Cek apakah current user punya role 'admin'.
+    """
+    if current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Hanya admin yang bisa mengakses fitur ini"
+        )
+    return current_user
 
 
 async def get_current_user_optional(

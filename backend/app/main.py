@@ -6,10 +6,11 @@ from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
-from app.core.http_client import init_clients, close_clients  # NEW
+from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.api.routes.telegram_auth import router as telegram_auth_router
+from app.api.routes.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -21,8 +22,6 @@ async def lifespan(app: FastAPI):
     init_clients()
 
     # === Pre-create _cache_outcomes table BEFORE workers start ===
-    # This ensures the table exists for any direct endpoint queries
-    # that might happen before the first cache cycle completes.
     try:
         db = SessionLocal()
         precompute_outcomes(db)
@@ -30,7 +29,6 @@ async def lifespan(app: FastAPI):
         print("📋 Signal outcomes table initialized")
     except Exception as e:
         print(f"⚠️ Could not pre-create outcomes table: {e}")
-        # Non-fatal — the cache worker will create it on first cycle
 
     if is_redis_available():
         print(f"🟢 Redis connected ({settings.REDIS_HOST}:{settings.REDIS_PORT})")
@@ -70,6 +68,7 @@ app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
 
 
 @app.get("/")

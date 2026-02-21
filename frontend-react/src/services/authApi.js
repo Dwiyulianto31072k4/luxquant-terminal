@@ -1,7 +1,12 @@
 // src/services/authApi.js
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
+// ── FIX: Pakai empty string (relative path) supaya request lewat Vite proxy ──
+// Sebelumnya: const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
+// Masalah: dari HP, localhost = HP itu sendiri, bukan MacBook
+// Solusi: pakai relative path '', request akan ke origin yang sama (10.10.3.139:3000)
+//         lalu Vite proxy forward ke backend (127.0.0.1:8002)
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // Axios instance dengan interceptor
 const api = axios.create({
