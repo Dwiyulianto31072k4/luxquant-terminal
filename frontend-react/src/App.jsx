@@ -18,7 +18,7 @@ import TipsPage from "./components/TipsPage";
 import UserManagementPage from "./components/UserManagementPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
-import { PricingPage, PaymentPage } from "./components/subscription";    // ← NEW
+import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";    // ← UPDATED
 
 // ════════════════════════════════════════
 // Sidebar Menu Item (mobile hamburger)
@@ -48,6 +48,7 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);    // ← NEW
   const { loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,10 +107,24 @@ function AppContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [moreMenuOpen]);
 
+  // ── Helper: check if user has premium access ──
+  const isPremiumUser = () => {
+    if (!user) return false;
+    return user.role === 'admin' || user.role === 'premium' || user.role === 'subscriber' || user.is_admin;
+  };
+
   const handleTabClick = (key) => {
     const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin"];
     if (protectedTabs.includes(key) && !isAuthenticated) {
       navigate("/login");
+      return;
+    }
+    // ── NEW: Premium check — free users see pricing modal ──
+    const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
+    if (premiumTabs.includes(key) && isAuthenticated && !isPremiumUser()) {
+      setShowPremiumModal(true);
+      setMobileMenuOpen(false);
+      setMoreMenuOpen(false);
       return;
     }
     setActiveTab(key);
@@ -478,6 +493,9 @@ function AppContent() {
         </div>
         <div className="bg-bg-primary/95 h-safe-area-bottom" />
       </nav>
+
+      {/* ── PREMIUM MODAL ── */}
+      <PremiumModal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
     </div>
   );
 }
@@ -497,7 +515,7 @@ function App() {
           {/* Google OAuth Callback Route */}
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
           
-          {/* Subscription Routes (NEW) */}
+          {/* Subscription Routes */}
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/payment" element={<PaymentPage />} />
           

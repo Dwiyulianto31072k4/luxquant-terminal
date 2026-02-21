@@ -9,6 +9,7 @@ Changes from original:
 + Cache worker intervals (SIGNAL_CACHE_INTERVAL, MARKET_CACHE_INTERVAL, etc.)
 + HTTP client timeouts (BINANCE_TIMEOUT, COINGECKO_TIMEOUT)
 + Production CORS origins
++ BSCSCAN_API_KEY + RECEIVING_WALLET_BSC for subscription payments
 """
 from pydantic_settings import BaseSettings
 from typing import List
@@ -85,6 +86,12 @@ class Settings(BaseSettings):
     # ============================================
     COINGECKO_API_KEY: str = os.getenv("COINGECKO_API_KEY", "")
     SOSOVALUE_API_KEY: str = os.getenv("SOSOVALUE_API_KEY", "")
+
+    # ============================================
+    # Subscription / BSCScan (NEW)
+    # ============================================
+    BSCSCAN_API_KEY: str = os.getenv("BSCSCAN_API_KEY", "")
+    RECEIVING_WALLET_BSC: str = os.getenv("RECEIVING_WALLET_BSC", "")
 
     class Config:
         env_file = ".env"

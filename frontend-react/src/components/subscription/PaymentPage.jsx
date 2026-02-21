@@ -14,17 +14,34 @@ const PaymentPage = () => {
   const [copied, setCopied] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
 
+  // ── Extract data robustly from invoice response ──
+  // Backend returns: { payment: {...}, wallet_to: "0x...", amount_usdt: 50, expires_at: "...", plan: {...} }
+  const walletAddress = invoice?.wallet_to || invoice?.payment?.wallet_to || '';
+  const amount = invoice?.amount_usdt || invoice?.payment?.amount_usdt || '';
+  const expiresAt = invoice?.expires_at || invoice?.payment?.expires_at || '';
+  const paymentId = invoice?.payment?.id || invoice?.id || null;
+  const planLabel = plan?.label || invoice?.plan?.label || invoice?.plan?.name || 'Subscription';
+
   // If no invoice data, redirect to pricing
   useEffect(() => {
     if (!invoice) navigate('/pricing');
   }, [invoice, navigate]);
 
+  // Debug: log invoice data
+  useEffect(() => {
+    if (invoice) {
+      console.log('📦 Invoice data received:', JSON.stringify(invoice, null, 2));
+      console.log('📦 Plan data received:', JSON.stringify(plan, null, 2));
+      console.log('📦 Extracted → wallet:', walletAddress, '| amount:', amount, '| paymentId:', paymentId);
+    }
+  }, [invoice]);
+
   // Countdown timer
   useEffect(() => {
-    if (!invoice?.expires_at) return;
+    if (!expiresAt) return;
     const interval = setInterval(() => {
       const now = new Date();
-      const expires = new Date(invoice.expires_at);
+      const expires = new Date(expiresAt);
       const diff = expires - now;
       if (diff <= 0) {
         setTimeLeft('Expired');
@@ -37,21 +54,22 @@ const PaymentPage = () => {
       setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
     }, 1000);
     return () => clearInterval(interval);
-  }, [invoice]);
+  }, [expiresAt]);
 
   const handleCopy = (text, label) => {
-    navigator.clipboard.writeText(text);
+    if (!text) return;
+    navigator.clipboard.writeText(String(text));
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
 
   const handleVerify = async () => {
-    if (!txHash.trim()) return;
+    if (!txHash.trim() || !paymentId) return;
     setVerifying(true);
     setResult(null);
 
     try {
-      const res = await subscriptionApi.verifyPayment(invoice.payment.id, txHash.trim());
+      const res = await subscriptionApi.verifyPayment(paymentId, txHash.trim());
       setResult(res);
 
       if (res.status === 'confirmed') {
@@ -70,9 +88,6 @@ const PaymentPage = () => {
 
   if (!invoice) return null;
 
-  const walletAddress = invoice.wallet_to;
-  const amount = invoice.amount_usdt;
-
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ background: '#0a0506' }}>
       <div className="absolute inset-0"
@@ -85,7 +100,7 @@ const PaymentPage = () => {
             Pembayaran
           </h1>
           <p style={{ color: '#8a7b6b' }}>
-            {plan?.label || 'Subscription'} — {amount} USDT
+            {planLabel} — {amount || '?'} USDT
           </p>
         </div>
 
@@ -99,7 +114,7 @@ const PaymentPage = () => {
             <span className="text-sm" style={{ color: '#6b5c52' }}>Invoice expires in:</span>
             <span className={`text-sm font-mono font-bold ${timeLeft === 'Expired' ? 'text-red-400' : ''}`}
                   style={timeLeft !== 'Expired' ? { color: '#d4a853' } : {}}>
-              {timeLeft}
+              {timeLeft || 'Calculating...'}
             </span>
           </div>
 
@@ -116,11 +131,14 @@ const PaymentPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs mb-1" style={{ color: '#6b5c52' }}>Jumlah</p>
-                  <p className="text-2xl font-bold text-white">{amount} <span className="text-sm" style={{ color: '#d4a853' }}>USDT</span></p>
+                  <p className="text-2xl font-bold text-white">
+                    {amount || '—'} <span className="text-sm" style={{ color: '#d4a853' }}>USDT</span>
+                  </p>
                 </div>
                 <button
                   onClick={() => handleCopy(String(amount), 'amount')}
-                  className="px-3 py-1.5 rounded-lg text-xs transition-colors"
+                  disabled={!amount}
+                  className="px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-30"
                   style={{ background: 'rgba(212, 168, 83, 0.1)', color: '#d4a853', border: '1px solid rgba(212, 168, 83, 0.2)' }}
                 >
                   {copied === 'amount' ? '✓ Copied' : 'Copy'}
@@ -132,10 +150,13 @@ const PaymentPage = () => {
             <div className="rounded-xl p-4" style={{ background: '#120809', border: '1px solid rgba(212, 168, 83, 0.1)' }}>
               <p className="text-xs mb-2" style={{ color: '#6b5c52' }}>Wallet Address (BEP-20 / BSC)</p>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-mono text-white break-all flex-1">{walletAddress}</p>
+                <p className="text-sm font-mono text-white break-all flex-1">
+                  {walletAddress || '—'}
+                </p>
                 <button
                   onClick={() => handleCopy(walletAddress, 'wallet')}
-                  className="px-3 py-1.5 rounded-lg text-xs transition-colors flex-shrink-0"
+                  disabled={!walletAddress}
+                  className="px-3 py-1.5 rounded-lg text-xs transition-colors flex-shrink-0 disabled:opacity-30"
                   style={{ background: 'rgba(212, 168, 83, 0.1)', color: '#d4a853', border: '1px solid rgba(212, 168, 83, 0.2)' }}
                 >
                   {copied === 'wallet' ? '✓ Copied' : 'Copy'}
@@ -170,14 +191,14 @@ const PaymentPage = () => {
               type="text"
               value={txHash}
               onChange={(e) => setTxHash(e.target.value)}
-              placeholder="0x..."
+              placeholder="0x . . ."
               className="w-full px-4 py-3 rounded-xl text-white text-sm font-mono focus:outline-none mb-3"
               style={{ background: '#120809', border: '1px solid rgba(212, 168, 83, 0.2)' }}
             />
 
             <button
               onClick={handleVerify}
-              disabled={verifying || !txHash.trim() || timeLeft === 'Expired'}
+              disabled={verifying || !txHash.trim() || timeLeft === 'Expired' || !paymentId}
               className="w-full py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: 'linear-gradient(to right, #d4a853, #8b6914)',
