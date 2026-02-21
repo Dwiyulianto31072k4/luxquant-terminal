@@ -1,3 +1,4 @@
+# backend/app/schemas/user.py
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
@@ -34,9 +35,20 @@ class UserLogin(BaseModel):
     password: str
 
 
-# 1. TAMBAHAN BARU: Schema untuk menerima token Google
 class GoogleLogin(BaseModel):
-    token: str
+    """Schema untuk Google OAuth login — frontend kirim id_token dari Google"""
+    id_token: str
+
+
+class TelegramLogin(BaseModel):
+    """Schema untuk Telegram Login Widget — frontend kirim auth data dari Telegram"""
+    id: int
+    first_name: str
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+    photo_url: Optional[str] = None
+    auth_date: int
+    hash: str
 
 
 class TokenRefresh(BaseModel):
@@ -51,12 +63,11 @@ class UserResponse(BaseModel):
     username: str
     is_active: bool
     is_verified: bool
-    is_admin: bool = False
-    role: str = "free"
-    
-    # 2. TAMBAHAN BARU: Penanda metode login (agar frontend tahu ini user Google/Local)
-    auth_provider: str = "local"
-    
+    role: Optional[str] = 'free'
+    auth_provider: Optional[str] = 'local'
+    avatar_url: Optional[str] = None
+    telegram_id: Optional[int] = None
+    telegram_username: Optional[str] = None
     created_at: datetime
     
     class Config:

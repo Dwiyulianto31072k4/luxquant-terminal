@@ -10,7 +10,8 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, loginWithGoogle, error, setError, isAuthenticated } = useAuth();
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  const { login, loginWithGoogle, loginWithTelegram, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,12 +34,24 @@ const LoginPage = () => {
     setError(null);
     try {
       await loginWithGoogle();
-      // Redirect akan otomatis terjadi karena isAuthenticated berubah
     } catch (err) {
       console.error('Google login error:', err);
-      // Error sudah dihandle di context
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleTelegramLogin = async () => {
+    setTelegramLoading(true);
+    setError(null);
+    try {
+      await loginWithTelegram();
+    } catch (err) {
+      if (err.message !== 'Dibatalkan') {
+        console.error('Telegram login error:', err);
+      }
+    } finally {
+      setTelegramLoading(false);
     }
   };
 
@@ -74,7 +87,6 @@ const LoginPage = () => {
         </div>
 
         {/* EFEK KACA (GLASSMORPHISM WRAPPER) */}
-        {/* mt-20 pada mobile untuk memberi jarak agar card tidak menabrak logo di atas */}
         <div className="relative z-10 w-full max-w-md px-6 py-8 sm:px-10 sm:py-10 rounded-[2rem] transition-all duration-500 mt-20 lg:mt-0 mb-8 lg:mb-0"
              style={{ 
                background: 'rgba(255, 255, 255, 0.02)', 
@@ -130,7 +142,8 @@ const LoginPage = () => {
             <SocialBtn 
               icon={<TelegramIcon />} 
               text="Telegram" 
-              onClick={() => alert('Telegram login akan segera hadir!')}
+              onClick={handleTelegramLogin}
+              loading={telegramLoading}
             />
           </div>
 

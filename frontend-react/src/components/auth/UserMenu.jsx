@@ -58,16 +58,14 @@ const UserMenu = () => {
     if (path.startsWith('/')) {
       navigate(path);
     } else {
-      // Dispatch custom event for tab navigation
       window.dispatchEvent(new CustomEvent('navigate', { detail: path }));
     }
     handleClose();
   };
 
-  // Subscription mock data — replace with real data from user context
   const subscription = user?.subscription || {
     plan: 'Pro',
-    status: 'active', // 'active' | 'trial' | 'expired' | 'free'
+    status: 'active',
     expires_at: '2027-02-20',
     days_left: null,
   };
@@ -87,6 +85,7 @@ const UserMenu = () => {
 
   const badge = getPlanBadge();
   const initial = user?.username?.charAt(0).toUpperCase() || 'U';
+  const avatarUrl = user?.avatar_url;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -118,7 +117,21 @@ const UserMenu = () => {
             : 'hover:ring-2 hover:ring-white/10 hover:ring-offset-1 hover:ring-offset-bg-primary'
         }`}
       >
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark flex items-center justify-center shadow-sm">
+        {avatarUrl ? (
+          <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark" style={{ boxShadow: '0 0 10px rgba(212,168,83,0.5), 0 0 20px rgba(212,168,83,0.2)' }}>
+            <img 
+              src={avatarUrl} 
+              alt={user?.username} 
+              className="w-full h-full rounded-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => { e.target.parentElement.style.display = 'none'; e.target.parentElement.nextSibling.style.display = 'flex'; }}
+            />
+          </div>
+        ) : null}
+        <div 
+          className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark items-center justify-center"
+          style={{ display: avatarUrl ? 'none' : 'flex', boxShadow: '0 0 10px rgba(212,168,83,0.5), 0 0 20px rgba(212,168,83,0.2)' }}
+        >
           <span className="text-sm font-bold text-bg-primary leading-none">{initial}</span>
         </div>
       </button>
@@ -128,14 +141,30 @@ const UserMenu = () => {
         <div className={`absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden z-50 shadow-2xl shadow-black/60 ${isClosing ? 'user-menu-exit' : 'user-menu-enter'}`}
           style={{ background: '#0d0a10', border: '1px solid rgba(255,255,255,0.07)' }}
         >
-          {/* Top accent */}
           <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
           {/* ─── Section 1: User Info + Subscription ─── */}
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-start gap-3">
               {/* Large Avatar */}
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark flex items-center justify-center shadow-lg shadow-gold-primary/20 flex-shrink-0">
+              {avatarUrl ? (
+                <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark flex-shrink-0" style={{ boxShadow: '0 0 12px rgba(212,168,83,0.5), 0 0 24px rgba(212,168,83,0.2)' }}>
+                  <img 
+                    src={avatarUrl} 
+                    alt={user?.username}
+                    className="w-full h-full rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { 
+                      e.target.parentElement.style.display = 'none'; 
+                      e.target.parentElement.nextSibling.style.display = 'flex'; 
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div 
+                className="w-11 h-11 rounded-full bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark items-center justify-center flex-shrink-0"
+                style={{ display: avatarUrl ? 'none' : 'flex', boxShadow: '0 0 12px rgba(212,168,83,0.5), 0 0 24px rgba(212,168,83,0.2)' }}
+              >
                 <span className="text-lg font-bold text-bg-primary leading-none">{initial}</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -222,7 +251,6 @@ const UserMenu = () => {
   );
 };
 
-// ── Reusable Menu Item ──
 const MenuItem = ({ icon, label, sublabel, onClick, badge }) => (
   <button
     onClick={onClick}

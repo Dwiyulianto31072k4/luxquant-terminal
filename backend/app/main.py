@@ -9,6 +9,7 @@ from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients  # NEW
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
+from app.api.routes.telegram_auth import router as telegram_auth_router
 
 
 @asynccontextmanager
@@ -68,6 +69,7 @@ app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
+app.include_router(telegram_auth_router, prefix="/api/v1")
 
 
 @app.get("/")

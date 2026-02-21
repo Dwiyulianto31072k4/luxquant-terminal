@@ -4,6 +4,9 @@ import { authApi } from '../services/authApi';
 
 const AuthContext = createContext(null);
 
+// Google Client ID — sama dengan yang di backend
+const GOOGLE_CLIENT_ID = '352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com';
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -16,8 +19,34 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [googleReady, setGoogleReady] = useState(false);
 
-  // Check token on mount — with timeout to prevent stuck loading
+  // ─── Load Google Identity Services SDK ───
+  useEffect(() => {
+    // Cek apakah script sudah ada
+    if (document.getElementById('google-gsi-script')) {
+      if (window.google?.accounts?.id) {
+        setGoogleReady(true);
+      }
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      // SDK loaded, tapi initialization dilakukan saat loginWithGoogle dipanggil
+      setGoogleReady(true);
+    };
+    script.onerror = () => {
+      console.error('Failed to load Google Identity Services SDK');
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  // ─── Check token on mount ───
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
@@ -27,7 +56,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        // Race between getMe() and a timeout (8 seconds max)
         const userData = await Promise.race([
           authApi.getMe(),
           new Promise((_, reject) =>
@@ -36,14 +64,10 @@ export const AuthProvider = ({ children }) => {
         ]);
         setUser(userData);
       } catch (err) {
-        // Token invalid / expired / backend down / timeout
-        // Only clear tokens if it's an auth error (401), not a timeout or network error
         if (err?.response?.status === 401) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
         }
-        // For timeout or network errors, keep tokens but don't set user
-        // User can retry by refreshing the page
         setUser(null);
       } finally {
         setLoading(false);
@@ -52,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // ─── Standard login ───
   const login = useCallback(async (email, password) => {
     setError(null);
     try {
@@ -67,6 +92,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // ─── Standard register ───
   const register = useCallback(async (email, username, password) => {
     setError(null);
     try {
@@ -82,63 +108,218 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // LOGIN WITH GOOGLE - Fixed for Vite (dengan semua opsi yang sudah ada)
-  const loginWithGoogle = useCallback(async () => {
-    setError(null);
-    try {
-      // Untuk Vite, gunakan import.meta.env, BUKAN process.env
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  // ─── Google Login via GSI Popup ───
+  const loginWithGoogle = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      setError(null);
+
+      if (!window.google?.accounts?.id) {
+        const msg = 'Google login belum siap. Coba refresh halaman.';
+        setError(msg);
+        reject(new Error(msg));
+        return;
+      }
+
+      // Initialize GSI with callback
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          // response.credential = id_token dari Google
+          try {
+            const result = await authApi.googleLogin(response.credential);
+            localStorage.setItem('access_token', result.access_token);
+            localStorage.setItem('refresh_token', result.refresh_token);
+            setUser(result.user);
+            resolve(result);
+          } catch (err) {
+            const message = err.response?.data?.detail || 'Google login gagal';
+            setError(message);
+            reject(err);
+          }
+        },
+        auto_select: false,
+        itp_support: true,
+      });
+
+      // Trigger popup Google One Tap / account chooser
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          // One Tap tidak bisa ditampilkan, fallback ke tombol biasa
+          // Ini bisa terjadi karena browser block popup, cooldown, dll
+          console.log('One Tap not displayed:', notification.getNotDisplayedReason());
+          
+          // Fallback: gunakan renderButton approach
+          // Buat temporary container untuk Google button
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'fixed';
+          tempDiv.style.top = '50%';
+          tempDiv.style.left = '50%';
+          tempDiv.style.transform = 'translate(-50%, -50%)';
+          tempDiv.style.zIndex = '99999';
+          tempDiv.style.background = 'rgba(0,0,0,0.8)';
+          tempDiv.style.padding = '32px';
+          tempDiv.style.borderRadius = '16px';
+          tempDiv.style.border = '1px solid rgba(212,168,83,0.3)';
+          tempDiv.id = 'google-fallback-container';
+          
+          // Close button
+          const closeBtn = document.createElement('button');
+          closeBtn.innerHTML = '✕';
+          closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;color:#8a7a6e;background:none;border:none;font-size:18px;cursor:pointer;';
+          closeBtn.onclick = () => { document.body.removeChild(tempDiv); reject(new Error('Dibatalkan')); };
+          tempDiv.appendChild(closeBtn);
+          
+          // Title
+          const title = document.createElement('p');
+          title.textContent = 'Pilih akun Google';
+          title.style.cssText = 'color:#b8a89a;margin-bottom:16px;text-align:center;font-size:14px;';
+          tempDiv.appendChild(title);
+          
+          // Google button container
+          const btnDiv = document.createElement('div');
+          btnDiv.id = 'google-fallback-btn';
+          tempDiv.appendChild(btnDiv);
+          
+          document.body.appendChild(tempDiv);
+          
+          window.google.accounts.id.renderButton(btnDiv, {
+            theme: 'filled_black',
+            size: 'large',
+            width: 280,
+            text: 'continue_with',
+          });
+        }
+        
+        if (notification.isDismissedMoment()) {
+          console.log('One Tap dismissed:', notification.getDismissedReason());
+          // Hapus fallback container jika ada
+          const fallback = document.getElementById('google-fallback-container');
+          if (fallback) document.body.removeChild(fallback);
+        }
+      });
+    });
+  }, []);
+
+  // ─── Telegram Login via Widget ───
+  const loginWithTelegram = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      setError(null);
+
+      // Telegram Login Widget menggunakan callback approach
+      // Kita set global callback function yang dipanggil oleh widget
+      window.onTelegramAuth = async (telegramUser) => {
+        try {
+          const result = await authApi.telegramLogin(telegramUser);
+          localStorage.setItem('access_token', result.access_token);
+          localStorage.setItem('refresh_token', result.refresh_token);
+          setUser(result.user);
+          
+          // Hapus fallback container kalau ada
+          const container = document.getElementById('telegram-login-container');
+          if (container) document.body.removeChild(container);
+          
+          resolve(result);
+        } catch (err) {
+          const message = err.response?.data?.detail || 'Telegram login gagal';
+          setError(message);
+          reject(err);
+        }
+      };
+
+      // Buat popup overlay dengan Telegram Login Widget
+      const container = document.createElement('div');
+      container.id = 'telegram-login-container';
+      container.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);';
       
-      // PENDEKATAN 1: Redirect biasa (paling umum untuk OAuth)
-      console.log('Redirecting to Google auth:', `${apiUrl}/api/auth/google`);
-      window.location.href = `${apiUrl}/api/auth/google`;
+      // Inner card
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#1a1014;padding:32px;border-radius:16px;border:1px solid rgba(212,168,83,0.3);text-align:center;min-width:300px;';
       
-      /* 
-      // PENDEKATAN 2: Jika menggunakan popup (alternatif)
-      const width = 500;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
+      // Title
+      const title = document.createElement('p');
+      title.textContent = 'Login dengan Telegram';
+      title.style.cssText = 'color:#b8a89a;margin-bottom:20px;font-size:16px;font-weight:600;';
+      card.appendChild(title);
+
+      // Telegram widget script
+      const widgetDiv = document.createElement('div');
+      widgetDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:16px;';
       
-      const popup = window.open(
-        `${apiUrl}/api/auth/google`,
-        'Google Login',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', 'LuxQuantTerminalBot');
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-radius', '12');
+      script.async = true;
+      widgetDiv.appendChild(script);
+      card.appendChild(widgetDiv);
+
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Batal';
+      closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.2);padding:8px 24px;border-radius:12px;cursor:pointer;font-size:14px;margin-top:8px;';
+      closeBtn.onmouseenter = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.5)'; closeBtn.style.color = '#b8a89a'; };
+      closeBtn.onmouseleave = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.2)'; closeBtn.style.color = '#8a7a6e'; };
+      closeBtn.onclick = () => { 
+        document.body.removeChild(container);
+        reject(new Error('Dibatalkan'));
+      };
+      card.appendChild(closeBtn);
+
+      container.appendChild(card);
       
-      // Listen for message from popup
-      const handleMessage = (event) => {
-        if (event.origin !== apiUrl) return;
-        if (event.data.token) {
-          localStorage.setItem('access_token', event.data.token);
-          localStorage.setItem('refresh_token', event.data.refresh_token);
-          setUser(event.data.user);
-          popup.close();
-          window.removeEventListener('message', handleMessage);
+      // Close on backdrop click
+      container.onclick = (e) => {
+        if (e.target === container) {
+          document.body.removeChild(container);
+          reject(new Error('Dibatalkan'));
         }
       };
       
-      window.addEventListener('message', handleMessage);
-      */
-      
-      /* 
-      // PENDEKATAN 3: Testing dengan dummy data (tanpa backend)
-      window.location.href = 'http://localhost:3000/auth/google/callback?token=test123&refresh_token=test456&user=%7B%22id%22:1,%22email%22:%22test%40gmail.com%22,%22name%22:%22Test%20User%22%7D';
-      */
-      
-    } catch (err) {
-      console.error('Google login error:', err);
-      const message = err.response?.data?.detail || 'Google login gagal';
-      setError(message);
-      throw err;
-    }
+      document.body.appendChild(container);
+    });
   }, []);
 
+  // ─── Refresh VIP Status (periodik) ───
+  const refreshVipStatus = useCallback(async () => {
+    try {
+      const result = await authApi.refreshVipStatus();
+      if (result.updated && user) {
+        // Update local user state dengan role baru
+        setUser(prev => prev ? { ...prev, role: result.new_role } : prev);
+      }
+      return result;
+    } catch (err) {
+      console.error('Failed to refresh VIP status:', err);
+      return null;
+    }
+  }, [user]);
+
+  // ─── Periodic VIP Check (setiap 30 menit) ───
+  useEffect(() => {
+    if (!user?.telegram_id) return;
+    
+    // Check VIP status setiap 30 menit
+    const interval = setInterval(() => {
+      refreshVipStatus();
+    }, 30 * 60 * 1000); // 30 menit
+    
+    return () => clearInterval(interval);
+  }, [user?.telegram_id, refreshVipStatus]);
+
+  // ─── Logout ───
   const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     setUser(null);
     setError(null);
+    
+    // Revoke Google session juga
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
   }, []);
 
   const value = {
@@ -146,16 +327,18 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: !!user,
+    googleReady,
     login,
     register,
     logout,
     loginWithGoogle,
+    loginWithTelegram,
+    refreshVipStatus,
     setUser,
     setError
   };
 
   // Don't render children until initial auth check is done
-  // This prevents flash of wrong state (blank pages, wrong redirects)
   if (loading) {
     return (
       <AuthContext.Provider value={value}>

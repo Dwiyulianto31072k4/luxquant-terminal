@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuxQuant Top Gainers</title>
+<style>
+    /* =========================================
+       COLOR PALETTE & VARIABLES (Sesuaikan Tema)
+       ========================================= */
+    :root {
+        --bg-main: #110A0A;         /* Background paling gelap */
+        --bg-card: #1C1211;         /* Background kartu default */
+        --bg-card-hover: #261A18;   /* Background saat di-hover */
+        --border-color: #332422;    /* Garis batas tipis */
+        
+        --text-primary: #FFFFFF;    /* Teks utama */
+        --text-secondary: #9E8F8D;  /* Teks abu-abu/keterangan */
+        
+        --accent-gold: #D4AF37;     /* Emas khas LuxQuant */
+        --accent-green: #00C853;    /* Hijau profit */
+        
+        --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background-color: var(--bg-main);
+        font-family: var(--font-main);
+        color: var(--text-primary);
+        padding: 40px;
+        /* Simulasi lebar dashboard */
+        display: flex;
+        justify-content: center;
+    }
+
+    .lux-top-gainer-container {
+        width: 100%;
+        max-width: 1200px;
+    }
+
+    /* =========================================
+       1. THE PODIUM (TOP 3) STYLES
+       ========================================= */
+    .podium-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end; /* Rata bawah agar Rank 1 menonjol ke atas */
+        gap: 24px;
+        margin-bottom: 40px;
+        padding-top: 20px;
+    }
+
+    .podium-card {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 24px 20px;
+        width: 240px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        transition: transform 0.3s ease;
+    }
+
+    /* Spesial untuk Rank 1 (Di Tengah) */
+    .podium-card.rank-1 {
+        transform: scale(1.15); /* Dibuat lebih besar 15% */
+        border-color: rgba(212, 175, 55, 0.4); /* Border emas */
+        background: linear-gradient(180deg, rgba(28,18,17,1) 0%, rgba(36,26,20,1) 100%);
+        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.08); /* Glow emas tipis */
+        z-index: 10;
+        margin: 0 10px;
+    }
+
+    /* Rank Badge (Angka 1, 2, 3) */
+    .rank-badge {
+        position: absolute;
+        top: -12px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        background-color: #333;
+        border: 2px solid var(--bg-main);
+    }
+    .rank-1 .rank-badge { background-color: var(--accent-gold); color: #000; width: 32px; height: 32px; top: -16px; font-size: 16px; }
+    .rank-2 .rank-badge { background-color: #C0C0C0; color: #000; }
+    .rank-3 .rank-badge { background-color: #CD7F32; color: #000; }
+
+    /* Logo Koin Dummy */
+    .coin-logo-lg {
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        background-color: #2A2A2A;
+        margin-bottom: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+    }
+    .rank-1 .coin-logo-lg {
+        width: 72px; height: 72px; font-size: 28px;
+        border: 2px solid var(--accent-gold);
+    }
+
+    .coin-name-podium { font-size: 20px; font-weight: bold; margin-bottom: 4px; letter-spacing: 1px; }
+    .coin-signal { font-size: 12px; color: var(--accent-gold); background: rgba(212, 175, 55, 0.1); padding: 2px 8px; border-radius: 4px; margin-bottom: 16px; }
+    
+    .gain-text-podium { font-size: 28px; font-weight: 800; color: var(--accent-green); margin-bottom: 8px; }
+    .rank-1 .gain-text-podium { font-size: 34px; }
+    
+    .duration-text { font-size: 12px; color: var(--text-secondary); }
+
+    /* =========================================
+       2. THE LIST (RANKS 4-10) STYLES
+       ========================================= */
+    .list-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .list-header {
+        display: grid;
+        grid-template-columns: 50px 2fr 3fr 2fr 1.5fr;
+        padding: 0 24px 12px 24px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 8px;
+    }
+
+    .list-row {
+        display: grid;
+        grid-template-columns: 50px 2fr 3fr 2fr 1.5fr;
+        align-items: center;
+        background-color: var(--bg-card);
+        padding: 16px 24px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .list-row:hover {
+        background-color: var(--bg-card-hover);
+        border-color: var(--border-color);
+        cursor: pointer;
+    }
+
+    .col-rank { color: var(--text-secondary); font-weight: bold; }
+    
+    .col-coin { display: flex; align-items: center; gap: 12px; }
+    .coin-logo-sm { width: 32px; height: 32px; border-radius: 50%; background-color: #333; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .coin-symbol { font-weight: bold; font-size: 16px; }
+    .coin-fullname { font-size: 12px; color: var(--text-secondary); }
+
+    .col-entry { display: flex; flex-direction: column; gap: 4px; }
+    .entry-price { font-size: 14px; color: var(--text-primary); }
+    .entry-target { font-size: 12px; color: var(--text-secondary); }
+
+    .col-gain { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+    .gain-text-list { font-size: 16px; font-weight: bold; color: var(--accent-green); }
+
+    /* Dummy Sparkline Line (Hanya Visualisasi CSS) */
+    .dummy-sparkline {
+        width: 80%;
+        height: 24px;
+        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,25 C20,20 30,30 50,15 C70,0 80,10 100,5" fill="none" stroke="%2300C853" stroke-width="2"/></svg>') no-repeat center;
+        background-size: 100% 100%;
+        opacity: 0.8;
+    }
+</style>
+</head>
+<body>
+
+<div class="lux-top-gainer-container">
+
+    <div class="podium-wrapper">
+        
+        <div class="podium-card rank-2">
+            <div class="rank-badge">2</div>
+            <div class="coin-logo-lg">🟠</div>
+            <div class="coin-name-podium">ALLO</div>
+            <div class="coin-signal">TP 4 Hit</div>
+            <div class="gain-text-podium">+24.85%</div>
+            <div class="duration-text">⏱ 12h 56m to last TP</div>
+        </div>
+
+        <div class="podium-card rank-1">
+            <div class="rank-badge">👑 1</div>
+            <div class="coin-logo-lg">🛡️</div>
+            <div class="coin-name-podium">YGG</div>
+            <div class="coin-signal">TP 4 Hit • Called 2x</div>
+            <div class="gain-text-podium">+26.91%</div>
+            <div class="duration-text">⏱ 18h 11m to last TP</div>
+        </div>
+
+        <div class="podium-card rank-3">
+            <div class="rank-badge">3</div>
+            <div class="coin-logo-lg">💠</div>
+            <div class="coin-name-podium">AZTEC</div>
+            <div class="coin-signal">TP 4 Hit</div>
+            <div class="gain-text-podium">+21.94%</div>
+            <div class="duration-text">⏱ 17h 16m to last TP</div>
+        </div>
+
+    </div>
+
+
+    <div class="list-wrapper">
+        
+        <div class="list-header">
+            <div>#</div>
+            <div>Asset</div>
+            <div>Entry Details</div>
+            <div>Trend (Entry to TP)</div>
+            <div style="text-align: right;">Total Gain</div>
+        </div>
+
+        <div class="list-row">
+            <div class="col-rank">4</div>
+            <div class="col-coin">
+                <div class="coin-logo-sm">🕉️</div>
+                <div>
+                    <div class="coin-symbol">OM</div>
+                    <div class="coin-fullname">Mantra</div>
+                </div>
+            </div>
+            <div class="col-entry">
+                <div class="entry-price">Entry $0.060100</div>
+                <div class="entry-target">Target TP 4 Reached</div>
+            </div>
+            <div class="col-trend">
+                <div class="dummy-sparkline"></div>
+            </div>
+            <div class="col-gain">
+                <div class="gain-text-list">+16.14%</div>
+                <div class="duration-text">17h 11m</div>
+            </div>
+        </div>
+
+        <div class="list-row">
+            <div class="col-rank">5</div>
+            <div class="col-coin">
+                <div class="coin-logo-sm">🅰️</div>
+                <div>
+                    <div class="coin-symbol">EDEN</div>
+                    <div class="coin-fullname">Eden Network</div>
+                </div>
+            </div>
+            <div class="col-entry">
+                <div class="entry-price">Entry $0.034700</div>
+                <div class="entry-target">Target TP 4 Reached</div>
+            </div>
+            <div class="col-trend">
+                <div class="dummy-sparkline"></div>
+            </div>
+            <div class="col-gain">
+                <div class="gain-text-list">+14.70%</div>
+                <div class="duration-text">5h 56m</div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
