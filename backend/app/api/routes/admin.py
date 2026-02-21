@@ -9,6 +9,8 @@ Features:
 - User stats & dashboard data
 - Expiring subscription alerts
 - Auto-downgrade expired subscribers
+- Subscription Plans management (NEW)
+- Payments management (NEW)
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -19,12 +21,14 @@ from sqlalchemy import func, or_, and_, case
 
 from app.core.database import get_db
 from app.models.user import User
+from app.models.subscription import SubscriptionPlan, Payment          # ← NEW
 from app.api.deps import get_admin_user
 from app.schemas.user import (
     AdminUserResponse,
     GrantSubscription,
     MessageResponse,
 )
+from app.schemas.subscription import PlanResponse, PlanUpdate          # ← NEW
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -97,6 +101,12 @@ async def get_admin_stats(
         func.count(User.id)
     ).group_by(User.auth_provider).all()
     
+    # ── Payment stats (NEW) ──────────────────
+    confirmed_payments = db.query(func.count(Payment.id)).filter(Payment.status == 'confirmed').scalar() or 0
+    total_revenue = db.query(func.coalesce(func.sum(Payment.amount_usdt), 0)).filter(Payment.status == 'confirmed').scalar()
+    pending_payments = db.query(func.count(Payment.id)).filter(Payment.status == 'pending').scalar() or 0
+    # ─────────────────────────────────────────
+    
     return {
         "total_users": total_users,
         "active_subscribers": active_subscribers,
@@ -106,7 +116,11 @@ async def get_admin_stats(
         "expiring_soon": expiring_soon,
         "expired_not_downgraded": expired,
         "new_users_30d": new_users_30d,
-        "auth_providers": {provider: count for provider, count in provider_stats}
+        "auth_providers": {provider: count for provider, count in provider_stats},
+        # NEW
+        "confirmed_payments": confirmed_payments,
+        "total_revenue": float(total_revenue),
+        "pending_payments": pending_payments,
     }
 
 
@@ -416,4 +430,93 @@ async def toggle_user_active(
         "success": True,
         "message": f"User {user.username} sekarang {status_text}",
         "user": AdminUserResponse.model_validate(user)
+    }
+
+
+# ════════════════════════════════════════════════════════════
+# 8. Subscription Plans Management (NEW)
+# ════════════════════════════════════════════════════════════
+
+@router.get("/plans", response_model=list[PlanResponse])
+async def list_plans(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """List all subscription plans (including inactive)"""
+    return db.query(SubscriptionPlan).order_by(SubscriptionPlan.sort_order).all()
+
+
+@router.put("/plans/{plan_id}", response_model=PlanResponse)
+async def update_plan(
+    plan_id: int,
+    data: PlanUpdate,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Update plan price, label, status, etc"""
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan tidak ditemukan")
+
+    for field in ['label', 'description', 'price_usdt', 'duration_days', 'is_active', 'sort_order']:
+        val = getattr(data, field, None)
+        if val is not None:
+            setattr(plan, field, val)
+
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+# ════════════════════════════════════════════════════════════
+# 9. Payments Management (NEW)
+# ════════════════════════════════════════════════════════════
+
+@router.get("/payments")
+async def list_payments(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+    status_filter: Optional[str] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """List all crypto payments with user info"""
+    query = db.query(Payment)
+    
+    if status_filter:
+        query = query.filter(Payment.status == status_filter)
+    
+    total = query.count()
+    payments = query.order_by(Payment.created_at.desc())\
+        .offset((page - 1) * page_size).limit(page_size).all()
+    
+    items = []
+    for p in payments:
+        user = db.query(User).filter(User.id == p.user_id).first()
+        items.append({
+            "id": p.id,
+            "user_id": p.user_id,
+            "email": user.email if user else None,
+            "username": user.username if user else None,
+            "plan_id": p.plan_id,
+            "plan_name": p.plan.name if p.plan else None,
+            "plan_label": p.plan.label if p.plan else None,
+            "amount_usdt": float(p.amount_usdt),
+            "tx_hash": p.tx_hash,
+            "wallet_from": p.wallet_from,
+            "wallet_to": p.wallet_to,
+            "network": p.network,
+            "status": p.status,
+            "verified_at": p.verified_at.isoformat() if p.verified_at else None,
+            "expires_at": p.expires_at.isoformat() if p.expires_at else None,
+            "notes": p.notes,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        })
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
     }

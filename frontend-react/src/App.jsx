@@ -18,6 +18,7 @@ import TipsPage from "./components/TipsPage";
 import UserManagementPage from "./components/UserManagementPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
+import { PricingPage, PaymentPage } from "./components/subscription";    // ← NEW
 
 // ════════════════════════════════════════
 // Sidebar Menu Item (mobile hamburger)
@@ -495,6 +496,10 @@ function App() {
           
           {/* Google OAuth Callback Route */}
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
+          
+          {/* Subscription Routes (NEW) */}
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
           
           {/* Protected/Public Routes */}
           <Route path="/watchlist" element={<AppContent />} />
