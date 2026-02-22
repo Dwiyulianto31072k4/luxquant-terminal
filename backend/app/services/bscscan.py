@@ -9,22 +9,23 @@ Flow:
 4. Return verification result
 """
 import httpx
-import os
 import logging
 from decimal import Decimal
 from typing import Optional, Dict, Any
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 # BSCScan API config
 BSCSCAN_API_URL = "https://api.bscscan.com/api"
-BSCSCAN_API_KEY = os.getenv("BSCSCAN_API_KEY", "")
+BSCSCAN_API_KEY = settings.BSCSCAN_API_KEY
 
 # USDT BEP-20 contract address on BSC
 USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955".lower()
 
-# Receiving wallet address (set via env or config)
-RECEIVING_WALLET = os.getenv("RECEIVING_WALLET_BSC", "").lower()
+# Receiving wallet address
+RECEIVING_WALLET = settings.RECEIVING_WALLET_BSC.lower() if settings.RECEIVING_WALLET_BSC else ""
 
 # Minimum confirmations required
 MIN_CONFIRMATIONS = 12

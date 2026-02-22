@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-import os
 
+from app.config import settings
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -30,8 +30,8 @@ from app.services.bscscan import verify_bep20_tx
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
 
-RECEIVING_WALLET = os.getenv("RECEIVING_WALLET_BSC", "")
-PAYMENT_WINDOW_HOURS = int(os.getenv("PAYMENT_WINDOW_HOURS", "24"))
+RECEIVING_WALLET = settings.RECEIVING_WALLET_BSC
+PAYMENT_WINDOW_HOURS = 24
 
 
 # ============================================
@@ -80,13 +80,35 @@ async def create_subscription(
         ).first()
 
     if pending:
-        return {
-            "payment": _payment_to_dict(pending),
-            "wallet_to": RECEIVING_WALLET,
-            "message": "Kamu sudah punya invoice yang belum dibayar"
-        }
+        # Same plan — return existing invoice
+        if pending.plan_id == data.plan_id:
+            return {
+                "payment": _payment_to_dict(pending),
+                "wallet_to": RECEIVING_WALLET,
+                "amount_usdt": float(pending.amount_usdt),
+                "plan": {"name": plan.name, "label": plan.label, "duration_days": plan.duration_days},
+                "expires_at": pending.expires_at.isoformat(),
+                "message": "Kamu sudah punya invoice untuk paket ini"
+            }
+        else:
+            # Different plan — cancel old invoice
+            pending.status = "cancelled"
+            pending.notes = f"Auto-cancelled: user switched to plan_id={data.plan_id}"
+            pending.updated_at = datetime.now(timezone.utc)
+            db.flush()
 
-    # Create payment
+    # Cancel any other stale pending payments
+    db.query(Payment)\
+        .filter(
+            Payment.user_id == current_user.id,
+            Payment.status == "pending",
+            Payment.id != (pending.id if pending else -1)
+        ).update(
+            {"status": "cancelled", "notes": "Auto-cancelled: new invoice created"},
+            synchronize_session=False
+        )
+
+    # Create new payment
     payment = Payment(
         user_id=current_user.id,
         plan_id=plan.id,
@@ -134,6 +156,9 @@ async def verify_payment(
 
     if payment.status == "expired":
         raise HTTPException(status_code=400, detail="Payment expired, buat invoice baru")
+
+    if payment.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Payment sudah dibatalkan, buat invoice baru")
 
     # Check duplicate TX hash
     existing = db.query(Payment)\
