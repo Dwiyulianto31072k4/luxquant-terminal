@@ -102,7 +102,7 @@ const PricingPage = () => {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: '#0a0506' }}>
+    <div className="relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0" 
            style={{ 

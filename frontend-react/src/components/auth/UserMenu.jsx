@@ -63,19 +63,48 @@ const UserMenu = () => {
     handleClose();
   };
 
-  const subscription = user?.subscription || {
-    plan: 'Pro',
-    status: 'active',
-    expires_at: '2027-02-20',
-    days_left: null,
+  // ── Derive subscription info from actual user data ──
+  const getSubscriptionInfo = () => {
+    const role = user?.role || 'free';
+    const expiresAt = user?.subscription_expires_at;
+
+    if (role === 'admin') {
+      return { plan: 'Admin', status: 'active', expires_at: null, days_left: null };
+    }
+
+    if (role === 'premium' || role === 'subscriber') {
+      if (!expiresAt) {
+        // Lifetime
+        return { plan: 'Lifetime', status: 'active', expires_at: null, days_left: null };
+      }
+
+      const now = new Date();
+      const exp = new Date(expiresAt);
+      const daysLeft = Math.max(0, Math.ceil((exp - now) / (1000 * 60 * 60 * 24)));
+
+      if (daysLeft <= 0) {
+        return { plan: 'Premium', status: 'expired', expires_at: expiresAt, days_left: 0 };
+      }
+
+      // Determine plan label from note or duration
+      let planLabel = 'Premium';
+      const note = user?.subscription_note || '';
+      if (note.includes('lifetime') || note.includes('Lifetime')) planLabel = 'Lifetime';
+      else if (note.includes('yearly') || note.includes('1 Tahun') || daysLeft > 60) planLabel = 'Yearly';
+      else planLabel = 'Monthly';
+
+      return { plan: planLabel, status: 'active', expires_at: expiresAt, days_left: daysLeft };
+    }
+
+    return { plan: 'Free', status: 'free', expires_at: null, days_left: null };
   };
+
+  const subscription = getSubscriptionInfo();
 
   const getPlanBadge = () => {
     switch (subscription.status) {
       case 'active':
         return { label: subscription.plan, color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' };
-      case 'trial':
-        return { label: `Trial · ${subscription.days_left}d left`, color: 'bg-amber-500/15 text-amber-400 border-amber-500/20' };
       case 'expired':
         return { label: 'Expired', color: 'bg-red-500/15 text-red-400 border-red-500/20' };
       default:
@@ -90,7 +119,14 @@ const UserMenu = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  // Subscription sublabel for menu item
+  const getSubLabel = () => {
+    if (subscription.status === 'active') return `${subscription.plan} Plan`;
+    if (subscription.status === 'expired') return 'Subscription expired';
+    return 'Upgrade ke Premium';
   };
 
   return (
@@ -146,7 +182,6 @@ const UserMenu = () => {
           {/* ─── Section 1: User Info + Subscription ─── */}
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-start gap-3">
-              {/* Large Avatar */}
               {avatarUrl ? (
                 <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark flex-shrink-0" style={{ boxShadow: '0 0 12px rgba(212,168,83,0.5), 0 0 24px rgba(212,168,83,0.2)' }}>
                   <img 
@@ -175,14 +210,31 @@ const UserMenu = () => {
                   </span>
                 </div>
                 <p className="text-text-muted text-[11px] truncate mt-0.5">{user?.email}</p>
+                {/* Subscription status line */}
                 {subscription.status === 'active' && subscription.expires_at && (
                   <p className="text-text-muted text-[10px] mt-1">
-                    Active until <span className="text-text-secondary">{formatDate(subscription.expires_at)}</span>
+                    Aktif sampai <span className="text-text-secondary">{formatDate(subscription.expires_at)}</span>
+                    {subscription.days_left !== null && (
+                      <span className={subscription.days_left <= 7 ? ' text-amber-400' : ''}>
+                        {' '}· {subscription.days_left} hari
+                      </span>
+                    )}
                   </p>
                 )}
-                {subscription.status === 'trial' && (
-                  <p className="text-amber-400/70 text-[10px] mt-1">
-                    {subscription.days_left} days remaining in trial
+                {subscription.status === 'active' && !subscription.expires_at && subscription.plan !== 'Admin' && (
+                  <p className="text-emerald-400/70 text-[10px] mt-1">Lifetime ∞</p>
+                )}
+                {subscription.status === 'active' && subscription.plan === 'Admin' && (
+                  <p className="text-red-400/70 text-[10px] mt-1">Administrator</p>
+                )}
+                {subscription.status === 'expired' && (
+                  <p className="text-red-400/70 text-[10px] mt-1">Subscription berakhir</p>
+                )}
+                {subscription.status === 'free' && (
+                  <p className="text-text-muted text-[10px] mt-1">
+                    <span className="text-gold-primary cursor-pointer hover:underline" onClick={() => { handleClose(); navigate('/pricing'); }}>
+                      Upgrade ke Premium →
+                    </span>
                   </p>
                 )}
               </div>
@@ -202,9 +254,9 @@ const UserMenu = () => {
             <MenuItem
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />}
               label="Subscription & Billing"
-              sublabel={subscription.status === 'active' ? `${subscription.plan} Plan` : 'Manage your plan'}
+              sublabel={getSubLabel()}
               onClick={() => handleNavClick('/pricing')}
-              badge={subscription.status === 'trial' ? { label: 'Upgrade', color: 'bg-gold-primary/15 text-gold-primary' } : null}
+              badge={subscription.status === 'free' ? { label: 'Upgrade', color: 'bg-gold-primary/15 text-gold-primary' } : null}
             />
             <MenuItem
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />}
@@ -232,7 +284,7 @@ const UserMenu = () => {
 
           <div className="mx-3 h-px bg-white/[0.05]" />
 
-          {/* ─── Section 4: Logout + Version ─── */}
+          {/* ─── Section 4: Logout ─── */}
           <div className="py-1.5 px-1.5">
             <button
               onClick={handleLogout}

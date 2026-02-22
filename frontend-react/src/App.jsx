@@ -16,9 +16,11 @@ import AnalyzePage from "./components/AnalyzePage";
 import WatchlistPage from "./components/WatchlistPage";
 import TipsPage from "./components/TipsPage";
 import UserManagementPage from "./components/UserManagementPage";
+import MacroCalendarPage from "./components/MacroCalendarPage";
+import WhaleAlertPage from "./components/WhaleAlertPage";                    // ← WHALE ALERT
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
-import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";    // ← UPDATED
+import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
 
 // ════════════════════════════════════════
 // Sidebar Menu Item (mobile hamburger)
@@ -48,7 +50,7 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);    // ← NEW
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,7 +121,7 @@ function AppContent() {
       navigate("/login");
       return;
     }
-    // ── NEW: Premium check — free users see pricing modal ──
+    // ── Premium check — free users see pricing modal ──
     const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
     if (premiumTabs.includes(key) && isAuthenticated && !isPremiumUser()) {
       setShowPremiumModal(true);
@@ -142,6 +144,8 @@ function AppContent() {
   ];
 
   const moreMenuItems = [
+    { key: "calendar", label: "Calendar", icon: "📅", description: "Macro economic events" },
+    { key: "whale", label: "Whale Alert", icon: "🐋", description: "Large transaction tracker" },
     { key: "tips", label: "Tips", icon: "📚", description: "Trading guides & education" },
     { key: "watchlist", label: "Watchlist", icon: "⭐", description: "Your saved coins" },
     ...(user?.role === 'admin' ? [
@@ -203,6 +207,8 @@ function AppContent() {
   ];
 
   const renderPage = () => {
+    if (location.pathname === '/pricing') return <PricingPage />;
+    if (location.pathname === '/payment') return <PaymentPage />;
     const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin"];
     if (protectedTabs.includes(activeTab) && !isAuthenticated) {
       return (
@@ -251,6 +257,8 @@ function AppContent() {
       case "markets": return <MarketsPage />;
       case "watchlist": return <WatchlistPage />;
       case "tips": return <TipsPage />;
+      case "calendar": return <MacroCalendarPage />;
+      case "whale": return <WhaleAlertPage />;
       case "admin": return <UserManagementPage />;
       default: return <OverviewPage />;
     }
@@ -274,11 +282,6 @@ function AppContent() {
   return (
     <div className="min-h-screen">
       <div className="luxury-bg" />
-
-      <div className="corner-ornament top-left hidden md:block" />
-      <div className="corner-ornament top-right hidden md:block" />
-      <div className="corner-ornament bottom-left hidden md:block" />
-      <div className="corner-ornament bottom-right hidden md:block" />
 
       {/* HEADER */}
       <header className={`sticky top-0 z-50 bg-bg-primary/95 backdrop-blur-md border-b transition-all duration-300 ${scrolled ? 'border-gold-primary/15 shadow-lg shadow-black/20' : 'border-gold-primary/10'}`}>
@@ -412,9 +415,19 @@ function AppContent() {
             <SidebarItem active={activeTab === "markets"} onClick={() => handleTabClick("markets")} label="Markets"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />}
             />
+
+            <div className="my-4 mx-3 h-px bg-white/[0.05]" />
+            <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
+            <SidebarItem active={activeTab === "calendar"} onClick={() => handleTabClick("calendar")} label="Calendar"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />}
+            />
+            <SidebarItem active={activeTab === "whale"} onClick={() => handleTabClick("whale")} label="Whale Alert"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738.145l-1.093.819a.89.89 0 00-.284.97l.448 1.345a1.336 1.336 0 01-.06.885l-1.334 2.668a.75.75 0 00.34 1.006l2.053.684a.75.75 0 00.588-.012l1.527-.763a.75.75 0 00.294-.235l1.092-1.638a.252.252 0 01.428.032l.603 1.072a.662.662 0 001.106.07l.926-1.159a.753.753 0 00.132-.795z" />}
+            />
             <SidebarItem active={activeTab === "tips"} onClick={() => handleTabClick("tips")} label="Tips"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />}
             />
+
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Personal</p>
             <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label="Watchlist"
@@ -514,10 +527,6 @@ function App() {
           
           {/* Google OAuth Callback Route */}
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
-          
-          {/* Subscription Routes */}
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/payment" element={<PaymentPage />} />
           
           {/* Protected/Public Routes */}
           <Route path="/watchlist" element={<AppContent />} />

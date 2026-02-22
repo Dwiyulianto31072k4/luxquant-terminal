@@ -88,7 +88,7 @@ const PaymentPage = () => {
   if (!invoice) return null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: '#0a0506' }}>
+    <div className="relative overflow-hidden">
       <div className="absolute inset-0"
            style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(212, 168, 83, 0.06) 0%, transparent 60%)' }} />
 
