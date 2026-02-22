@@ -33,6 +33,7 @@ class PlanUpdate(BaseModel):
 
 class PaymentCreate(BaseModel):
     plan_id: int
+    is_upgrade: bool = False  # True when upgrading existing subscription
 
 
 class PaymentVerify(BaseModel):
@@ -83,7 +84,10 @@ class SubscriptionStatusResponse(BaseModel):
     tier: str                                      # "free", "premium", "admin"
     expires_at: Optional[datetime] = None
     days_remaining: Optional[int] = None
-    plan_note: Optional[str] = None
+    plan_label: Optional[str] = None
+    plan_name: Optional[str] = None
+    can_upgrade: bool = True
+    can_downgrade: bool = False
 
 
 # ============ Admin Schemas ============

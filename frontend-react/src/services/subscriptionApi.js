@@ -11,8 +11,11 @@ const subscriptionApi = {
 
   // ============ Subscribe & Pay ============
   
-  createInvoice: async (planId) => {
-    const response = await api.post('/api/v1/subscription/subscribe', { plan_id: planId });
+  createInvoice: async (planId, isUpgrade = false) => {
+    const response = await api.post('/api/v1/subscription/subscribe', {
+      plan_id: planId,
+      is_upgrade: isUpgrade,
+    });
     return response.data;
   },
 

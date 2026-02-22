@@ -1,11 +1,13 @@
 // src/components/subscription/PaymentPage.jsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import subscriptionApi from '../../services/subscriptionApi';
 
 const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const { invoice, plan } = location.state || {};
 
   const [txHash, setTxHash] = useState('');
@@ -14,8 +16,7 @@ const PaymentPage = () => {
   const [copied, setCopied] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
 
-  // ── Extract data robustly from invoice response ──
-  // Backend returns: { payment: {...}, wallet_to: "0x...", amount_usdt: 50, expires_at: "...", plan: {...} }
+  // Extract data from invoice response
   const walletAddress = invoice?.wallet_to || invoice?.payment?.wallet_to || '';
   const amount = invoice?.amount_usdt || invoice?.payment?.amount_usdt || '';
   const expiresAt = invoice?.expires_at || invoice?.payment?.expires_at || '';
@@ -26,15 +27,6 @@ const PaymentPage = () => {
   useEffect(() => {
     if (!invoice) navigate('/pricing');
   }, [invoice, navigate]);
-
-  // Debug: log invoice data
-  useEffect(() => {
-    if (invoice) {
-      console.log('📦 Invoice data received:', JSON.stringify(invoice, null, 2));
-      console.log('📦 Plan data received:', JSON.stringify(plan, null, 2));
-      console.log('📦 Extracted → wallet:', walletAddress, '| amount:', amount, '| paymentId:', paymentId);
-    }
-  }, [invoice]);
 
   // Countdown timer
   useEffect(() => {
@@ -73,7 +65,14 @@ const PaymentPage = () => {
       setResult(res);
 
       if (res.status === 'confirmed') {
-        // Success! Redirect after 3s
+        // Auto-refresh user data so premium access works immediately
+        if (res.user && refreshUser) {
+          await refreshUser(res.user);
+        } else if (refreshUser) {
+          await refreshUser();
+        }
+
+        // Redirect after 3s
         setTimeout(() => navigate('/'), 3000);
       }
     } catch (err) {
@@ -230,7 +229,14 @@ const PaymentPage = () => {
               <div className="text-center">
                 <div className="text-4xl mb-3">✅</div>
                 <h3 className="text-lg font-bold text-green-400 mb-1">Pembayaran Berhasil!</h3>
-                <p className="text-sm text-green-300/70">Subscription kamu sudah aktif. Redirecting...</p>
+                <p className="text-sm text-green-300/70">
+                  {result.subscription?.plan_label} aktif
+                  {result.subscription?.expires_at
+                    ? ` sampai ${new Date(result.subscription.expires_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    : ' — Lifetime ∞'
+                  }
+                </p>
+                <p className="text-xs mt-2 text-green-300/50">Redirecting ke dashboard...</p>
               </div>
             ) : (
               <div className="text-center">

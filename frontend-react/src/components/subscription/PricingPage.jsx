@@ -9,23 +9,31 @@ const PricingPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [subStatus, setSubStatus] = useState(null);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadPlans();
+    loadData();
   }, []);
 
-  const loadPlans = async () => {
+  const loadData = async () => {
     try {
-      const data = await subscriptionApi.getPlans();
-      setPlans(data);
+      const [plansData, statusData] = await Promise.all([
+        subscriptionApi.getPlans(),
+        isAuthenticated ? subscriptionApi.getMySubscription().catch(() => null) : null,
+      ]);
+      setPlans(plansData);
+      setSubStatus(statusData);
     } catch (err) {
-      console.error('Failed to load plans:', err);
+      console.error('Failed to load data:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  const isPremium = subStatus?.is_subscribed && subStatus?.tier !== 'admin';
+  const currentPlanName = subStatus?.plan_name;
 
   const handleSubscribe = async (plan) => {
     if (!isAuthenticated) {
@@ -33,12 +41,17 @@ const PricingPage = () => {
       return;
     }
 
+    // If clicking current plan
+    if (isPremium && plan.name === currentPlanName) {
+      alert('Kamu sudah berlangganan paket ini.');
+      return;
+    }
+
     setSelectedPlan(plan.id);
     setCreating(true);
 
     try {
-      const invoice = await subscriptionApi.createInvoice(plan.id);
-      // Navigate to payment page with invoice data
+      const invoice = await subscriptionApi.createInvoice(plan.id, isPremium);
       navigate('/payment', { state: { invoice, plan } });
     } catch (err) {
       const msg = err.response?.data?.detail || 'Gagal membuat invoice';
@@ -66,6 +79,19 @@ const PricingPage = () => {
     return null;
   };
 
+  const getButtonLabel = (plan) => {
+    if (!isPremium) return 'Pilih Paket';
+    if (plan.name === currentPlanName) return 'Paket Aktif';
+
+    // Compare sort_order to determine upgrade/downgrade
+    const currentPlan = plans.find(p => p.name === currentPlanName);
+    if (currentPlan && plan.sort_order > currentPlan.sort_order) return 'Upgrade';
+    if (currentPlan && plan.sort_order < currentPlan.sort_order) return 'Downgrade';
+    return 'Ganti Paket';
+  };
+
+  const isCurrentPlan = (plan) => isPremium && plan.name === currentPlanName;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
@@ -92,10 +118,13 @@ const PricingPage = () => {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4"
               style={{ fontFamily: 'Playfair Display, serif' }}>
-            Upgrade ke <span style={{ color: '#d4a853' }}>Premium</span>
+            {isPremium ? 'Ganti' : 'Upgrade ke'} <span style={{ color: '#d4a853' }}>Premium</span>
           </h1>
           <p className="text-lg max-w-2xl mx-auto" style={{ color: '#8a7b6b' }}>
-            Akses penuh ke semua trading signals, analytics, dan fitur premium LuxQuant Terminal
+            {isPremium
+              ? `Kamu sedang berlangganan ${subStatus.plan_label || 'Premium'}${subStatus.days_remaining != null ? ` — ${subStatus.days_remaining} hari tersisa` : ' — Lifetime'}`
+              : 'Akses penuh ke semua trading signals, analytics, dan fitur premium LuxQuant Terminal'
+            }
           </p>
         </div>
 
@@ -104,6 +133,7 @@ const PricingPage = () => {
           {plans.map((plan) => {
             const isHighlighted = getPlanHighlight(plan.name);
             const badge = getSavingBadge(plan);
+            const isCurrent = isCurrentPlan(plan);
 
             return (
               <div
@@ -112,22 +142,31 @@ const PricingPage = () => {
                   isHighlighted ? 'md:-mt-4 md:mb-4' : ''
                 }`}
                 style={{
-                  background: isHighlighted
-                    ? 'linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(20, 10, 12, 0.9))'
-                    : 'rgba(20, 10, 12, 0.6)',
-                  border: isHighlighted
-                    ? '2px solid rgba(212, 168, 83, 0.5)'
-                    : '1px solid rgba(212, 168, 83, 0.15)',
+                  background: isCurrent
+                    ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(20, 10, 12, 0.9))'
+                    : isHighlighted
+                      ? 'linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(20, 10, 12, 0.9))'
+                      : 'rgba(20, 10, 12, 0.6)',
+                  border: isCurrent
+                    ? '2px solid rgba(34, 197, 94, 0.5)'
+                    : isHighlighted
+                      ? '2px solid rgba(212, 168, 83, 0.5)'
+                      : '1px solid rgba(212, 168, 83, 0.15)',
                   backdropFilter: 'blur(10px)',
                 }}
               >
                 {/* Badge */}
-                {badge && (
+                {isCurrent ? (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
+                       style={{ background: 'linear-gradient(to right, #22c55e, #16a34a)', color: '#fff' }}>
+                    Paket Aktif
+                  </div>
+                ) : badge ? (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
                        style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}>
                     {badge}
                   </div>
-                )}
+                ) : null}
 
                 {/* Plan Icon */}
                 <div className="text-4xl mb-4 mt-2">{getPlanIcon(plan.name)}</div>
@@ -158,7 +197,7 @@ const PricingPage = () => {
                     plan.name === 'lifetime' && 'Lifetime updates',
                   ].filter(Boolean).map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm" style={{ color: '#b8a89a' }}>
-                      <svg className="w-4 h-4 flex-shrink-0" style={{ color: '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 flex-shrink-0" style={{ color: isCurrent ? '#22c55e' : '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {feature}
@@ -169,9 +208,14 @@ const PricingPage = () => {
                 {/* CTA Button */}
                 <button
                   onClick={() => handleSubscribe(plan)}
-                  disabled={creating}
-                  className="w-full py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50"
-                  style={isHighlighted ? {
+                  disabled={creating || isCurrent}
+                  className="w-full py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={isCurrent ? {
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    cursor: 'default'
+                  } : isHighlighted ? {
                     background: 'linear-gradient(to right, #d4a853, #8b6914)',
                     color: '#0a0506',
                     boxShadow: '0 0 30px rgba(212, 168, 83, 0.3)'
@@ -181,7 +225,7 @@ const PricingPage = () => {
                     border: '1px solid rgba(212, 168, 83, 0.3)'
                   }}
                 >
-                  {creating && selectedPlan === plan.id ? 'Memproses...' : 'Pilih Paket'}
+                  {creating && selectedPlan === plan.id ? 'Memproses...' : getButtonLabel(plan)}
                 </button>
               </div>
             );

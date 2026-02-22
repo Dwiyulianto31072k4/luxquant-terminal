@@ -28,16 +28,21 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     plan_id = Column(Integer, ForeignKey("subscription_plans.id"), nullable=False)
     amount_usdt = Column(Numeric(10, 2), nullable=False)
-    tx_hash = Column(String(100), unique=True, nullable=True)
+
+    # TX hash — NOT unique (retry allowed, uniqueness checked at app level)
+    tx_hash = Column(String(100), nullable=True, index=True)
     wallet_from = Column(String(50), nullable=True)
     wallet_to = Column(String(50), nullable=True)
     network = Column(String(20), default="BSC")
+
+    # Status: pending → verifying → confirmed / failed / expired / cancelled
     status = Column(String(20), nullable=False, default="pending")
+
     verified_at = Column(DateTime(timezone=True), nullable=True)
-    expires_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)     # Invoice expiry (24h window)
     bscscan_data = Column(JSONB, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -47,4 +52,4 @@ class Payment(Base):
     plan = relationship("SubscriptionPlan", lazy="joined")
 
     def __repr__(self):
-        return f"<Payment {self.id} status={self.status}>"
+        return f"<Payment {self.id} user={self.user_id} status={self.status}>"
