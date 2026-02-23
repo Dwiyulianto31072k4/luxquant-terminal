@@ -489,6 +489,10 @@ def query_signals_bulk_7d(db):
     """
     Fetch ALL signals from last 7 days in one query (no pagination).
     NOW INCLUDES: last_update_at + last_update_type for "Recently Updated" filter/sort.
+    
+    FIXED: last_updates CTE now orders by level DESC first (TP4 > TP3 > TP2 > TP1 > SL),
+    then by update_at DESC. This prevents wrong label when batch scraper inserts
+    multiple updates with identical timestamps.
     """
     date_7d = get_7d_date()
     rows = db.execute(text("""
@@ -506,7 +510,16 @@ def query_signals_bulk_7d(db):
                 END as last_update_type
             FROM signal_updates
             WHERE update_type IS NOT NULL
-            ORDER BY signal_id, update_at DESC
+            ORDER BY signal_id,
+                CASE 
+                    WHEN LOWER(update_type) LIKE '%%tp4%%' THEN 4
+                    WHEN LOWER(update_type) LIKE '%%tp3%%' THEN 3
+                    WHEN LOWER(update_type) LIKE '%%tp2%%' THEN 2
+                    WHEN LOWER(update_type) LIKE '%%tp1%%' THEN 1
+                    WHEN LOWER(update_type) LIKE '%%sl%%' OR LOWER(update_type) LIKE '%%stop%%' THEN 0
+                    ELSE -1
+                END DESC,
+                update_at DESC
         )
         SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
             s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
