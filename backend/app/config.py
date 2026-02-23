@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     # ============================================
     COINGECKO_API_KEY: str = os.getenv("COINGECKO_API_KEY", "")
     SOSOVALUE_API_KEY: str = os.getenv("SOSOVALUE_API_KEY", "")
+    ETHERSCAN_API_KEY: str = os.getenv("ETHERSCAN_API_KEY", "") # ✅ Tambahkan baris ini
 
     # ============================================
     # Subscription / BSCScan (NEW)

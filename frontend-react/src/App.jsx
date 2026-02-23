@@ -17,7 +17,8 @@ import WatchlistPage from "./components/WatchlistPage";
 import TipsPage from "./components/TipsPage";
 import UserManagementPage from "./components/UserManagementPage";
 import MacroCalendarPage from "./components/MacroCalendarPage";
-import WhaleAlertPage from "./components/WhaleAlertPage";                    // ← WHALE ALERT
+import WhaleAlertPage from "./components/WhaleAlertPage";
+import OrderBookPage from "./components/OrderBookPage";                      // ← ORDER BOOK
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
@@ -109,7 +110,6 @@ function AppContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [moreMenuOpen]);
 
-  // ── Helper: check if user has premium access ──
   const isPremiumUser = () => {
     if (!user) return false;
     return user.role === 'admin' || user.role === 'premium' || user.role === 'subscriber' || user.is_admin;
@@ -121,7 +121,6 @@ function AppContent() {
       navigate("/login");
       return;
     }
-    // ── Premium check — free users see pricing modal ──
     const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
     if (premiumTabs.includes(key) && isAuthenticated && !isPremiumUser()) {
       setShowPremiumModal(true);
@@ -144,6 +143,7 @@ function AppContent() {
   ];
 
   const moreMenuItems = [
+    { key: "orderbook", label: "Order Book", icon: "📊", description: "Buy/sell wall imbalance" },
     { key: "calendar", label: "Calendar", icon: "📅", description: "Macro economic events" },
     { key: "whale", label: "Whale Alert", icon: "🐋", description: "Large transaction tracker" },
     { key: "tips", label: "Tips", icon: "📚", description: "Trading guides & education" },
@@ -155,7 +155,6 @@ function AppContent() {
 
   const moreHasActive = moreMenuItems.some((item) => activeTab === item.key);
 
-  // Mobile bottom nav items
   const bottomNavItems = [
     {
       key: "terminal",
@@ -259,6 +258,7 @@ function AppContent() {
       case "tips": return <TipsPage />;
       case "calendar": return <MacroCalendarPage />;
       case "whale": return <WhaleAlertPage />;
+      case "orderbook": return <OrderBookPage />;
       case "admin": return <UserManagementPage />;
       default: return <OverviewPage />;
     }
@@ -418,6 +418,9 @@ function AppContent() {
 
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
+            <SidebarItem active={activeTab === "orderbook"} onClick={() => handleTabClick("orderbook")} label="Order Book"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
+            />
             <SidebarItem active={activeTab === "calendar"} onClick={() => handleTabClick("calendar")} label="Calendar"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />}
             />
@@ -433,7 +436,6 @@ function AppContent() {
             <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label="Watchlist"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />}
             />
-            {/* Admin menu - hanya tampil untuk admin */}
             {user?.role === 'admin' && (
               <>
                 <div className="my-4 mx-3 h-px bg-white/[0.05]" />
@@ -521,14 +523,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          
-          {/* Google OAuth Callback Route */}
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
-          
-          {/* Protected/Public Routes */}
           <Route path="/watchlist" element={<AppContent />} />
           <Route path="/*" element={<AppContent />} />
         </Routes>

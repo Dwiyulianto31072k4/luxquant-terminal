@@ -9,14 +9,6 @@ const BLOCKCHAINS = [
   { key: null, label: "All Chains" },
   { key: "bitcoin", label: "Bitcoin", symbol: "BTC", color: "#F7931A" },
   { key: "ethereum", label: "Ethereum", symbol: "ETH", color: "#627EEA" },
-  { key: "solana", label: "Solana", symbol: "SOL", color: "#9945FF" },
-  { key: "ripple", label: "XRP", symbol: "XRP", color: "#23292F" },
-  { key: "tron", label: "Tron", symbol: "TRX", color: "#FF0013" },
-  { key: "cardano", label: "Cardano", symbol: "ADA", color: "#0033AD" },
-  { key: "dogecoin", label: "Dogecoin", symbol: "DOGE", color: "#C3A634" },
-  { key: "litecoin", label: "Litecoin", symbol: "LTC", color: "#BFBBBB" },
-  { key: "polygon", label: "Polygon", symbol: "MATIC", color: "#8247E5" },
-  { key: "avalanche", label: "Avalanche", symbol: "AVAX", color: "#E84142" },
 ];
 
 const TRANSFER_TYPES = [
@@ -28,11 +20,11 @@ const TRANSFER_TYPES = [
 ];
 
 const MIN_USD_OPTIONS = [
+  { value: 50000, label: "$50K+" },
   { value: 100000, label: "$100K+" },
   { value: 500000, label: "$500K+" },
   { value: 1000000, label: "$1M+" },
   { value: 5000000, label: "$5M+" },
-  { value: 10000000, label: "$10M+" },
 ];
 
 // ═══════════════════════════════════════════
@@ -415,7 +407,7 @@ export default function WhaleAlertPage() {
   // Filters
   const [blockchain, setBlockchain] = useState(null);
   const [transferType, setTransferType] = useState(null);
-  const [minUsd, setMinUsd] = useState(500000);
+  const [minUsd, setMinUsd] = useState(100000);
 
   // Auto-refresh
   const [autoRefresh, setAutoRefresh] = useState(true);

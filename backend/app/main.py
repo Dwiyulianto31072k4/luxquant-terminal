@@ -11,9 +11,10 @@ from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.api.routes.telegram_auth import router as telegram_auth_router
 from app.api.routes.admin import router as admin_router
-from app.api.routes.subscription import router as subscription_router    # ← NEW
-from app.api.routes.calendar import router as calendar_router            # ← CALENDAR
-from app.api.routes.whale import router as whale_router                  # ← WHALE ALERT
+from app.api.routes.subscription import router as subscription_router
+from app.api.routes.calendar import router as calendar_router
+from app.api.routes.whale import router as whale_router
+from app.api.routes.orderbook import router as orderbook_router              # ← ORDER BOOK
 
 
 @asynccontextmanager
@@ -72,9 +73,10 @@ app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingeck
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
-app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])    # ← NEW
-app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])            # ← CALENDAR
-app.include_router(whale_router, prefix="/api/v1", tags=["whale"])                  # ← WHALE ALERT
+app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
+app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
+app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
+app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])   # ← ORDER BOOK
 
 
 @app.get("/")
