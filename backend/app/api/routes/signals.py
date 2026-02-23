@@ -9,6 +9,7 @@ UPDATED:
 - FIXED: R:R SL query now uses signal_updates table directly (no missing CTE)
 - OPTIMIZED v3: stale cache fallback on all main endpoints
 - NEW: last_update_at + last_update_type fields for "Recently Updated" filter/sort
+- FIXED: LAST_UPDATE_CTE now returns highest level hit + its timestamp (synced with status)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -181,23 +182,39 @@ SIGNAL_OUTCOMES_CTE = """
 
 # ============================================
 # Helper: CTE for last update per signal
+# FIXED: Now returns HIGHEST LEVEL hit + its timestamp
+# This syncs with status column (TP4 > TP3 > TP2 > TP1 > SL)
 # ============================================
 LAST_UPDATE_CTE = """
     last_updates AS (
-        SELECT DISTINCT ON (signal_id)
-            signal_id,
-            update_at as last_update_at,
-            CASE 
-                WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
-                WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
-                WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
-                WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 'tp1'
-                WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 'sl'
-                ELSE update_type
-            END as last_update_type
-        FROM signal_updates
-        WHERE update_type IS NOT NULL
-        ORDER BY signal_id, update_at DESC
+        SELECT signal_id, last_update_at, last_update_type
+        FROM (
+            SELECT 
+                signal_id,
+                update_at as last_update_at,
+                CASE 
+                    WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
+                    WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
+                    WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
+                    WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 'tp1'
+                    WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 'sl'
+                    ELSE update_type
+                END as last_update_type,
+                ROW_NUMBER() OVER (PARTITION BY signal_id ORDER BY 
+                    CASE 
+                        WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
+                        WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
+                        WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
+                        WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 1
+                        WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 0
+                        ELSE -1
+                    END DESC,
+                    update_at DESC
+                ) as rn
+            FROM signal_updates
+            WHERE update_type IS NOT NULL
+        ) ranked
+        WHERE rn = 1
     )
 """
 
@@ -632,7 +649,7 @@ async def get_signals(
         # For last_update sort, push NULLs to the end
         null_handling = ""
         if sort_by == 'last_update':
-            null_handling = " NULLS LAST" if sort_dir == 'DESC' else " NULLS LAST"
+            null_handling = " NULLS LAST"
         
         count_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}
