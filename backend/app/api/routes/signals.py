@@ -8,6 +8,7 @@ UPDATED:
 - R:R now calculates per target level (potential R:R) instead of per outcome
 - FIXED: R:R SL query now uses signal_updates table directly (no missing CTE)
 - OPTIMIZED v3: stale cache fallback on all main endpoints
+- NEW: last_update_at + last_update_type fields for "Recently Updated" filter/sort
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -27,7 +28,7 @@ from app.schemas.signal import (
 )
 from app.config import settings
 from app.core.redis import (
-    cache_get, cache_set, cache_get_with_stale,  # CHANGED: added cache_get_with_stale
+    cache_get, cache_set, cache_get_with_stale,
     build_signals_page_key, is_redis_available
 )
 
@@ -175,6 +176,28 @@ SIGNAL_OUTCOMES_CTE = """
             WHERE update_type IS NOT NULL
         ) ranked
         WHERE rn = 1 AND outcome IS NOT NULL
+    )
+"""
+
+# ============================================
+# Helper: CTE for last update per signal
+# ============================================
+LAST_UPDATE_CTE = """
+    last_updates AS (
+        SELECT DISTINCT ON (signal_id)
+            signal_id,
+            update_at as last_update_at,
+            CASE 
+                WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
+                WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
+                WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
+                WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 'tp1'
+                WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 'sl'
+                ELSE update_type
+            END as last_update_type
+        FROM signal_updates
+        WHERE update_type IS NOT NULL
+        ORDER BY signal_id, update_at DESC
     )
 """
 
@@ -452,7 +475,6 @@ async def get_analyze_data(
         return response
 
     except Exception as e:
-        # CHANGED: stale fallback if DB query fails
         stale, _ = cache_get_with_stale(cache_key)
         if stale:
             return AnalyzeResponse(**stale)
@@ -461,16 +483,18 @@ async def get_analyze_data(
 
 # ============================================
 # GET /signals/bulk-7d — ALL signals last 7 days (for client-side pagination)
+# NOW INCLUDES: last_update_at, last_update_type per signal
 # ============================================
 
 @router.get("/bulk-7d")
 async def get_signals_bulk_7d(db: Session = Depends(get_db)):
     """
     Return ALL signals from last 7 days in one response.
+    Includes last_update_at and last_update_type for "Recently Updated" sort/filter.
     Frontend handles sorting/filtering/pagination client-side = zero delay.
     Pre-computed every 90s by cache worker.
     """
-    # Try cache first (always available after first cache cycle)
+    # Try cache first
     cached = cache_get("lq:signals:bulk-7d")
     if cached:
         return cached
@@ -480,21 +504,26 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
     if stale:
         return stale
     
-    # Last resort: query DB directly (only happens on first startup)
+    # Last resort: query DB directly
     try:
         from datetime import datetime, timedelta
         date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
         
         rows = db.execute(text(f"""
-            WITH {SIGNAL_OUTCOMES_CTE}
+            WITH {SIGNAL_OUTCOMES_CTE},
+            {LAST_UPDATE_CTE}
             SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
                 s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
                 s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
                 s.created_at,
                 CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
                      WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
-                s.market_cap
-            FROM signals s LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+                s.market_cap,
+                lu.last_update_at,
+                lu.last_update_type
+            FROM signals s
+            LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
             WHERE s.created_at >= :date_from
             ORDER BY s.call_message_id DESC
         """), {"date_from": date_7d}).fetchall()
@@ -507,6 +536,8 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
                 "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
+                "last_update_at": str(r[18]) if r[18] else None,
+                "last_update_type": r[19],
             })
         
         result = {"items": items, "total": len(items), "date_from": date_7d}
@@ -518,6 +549,7 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
 
 # ============================================
 # GET /signals/ — with date-aware cache key
+# NOW INCLUDES: last_update_at, last_update_type + sort_by=last_update
 # ============================================
 
 @router.get("/")
@@ -592,9 +624,15 @@ async def get_signals(
                 WHEN UPPER(s.market_cap) LIKE '%K' THEN CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC) * 1e3
                 ELSE CAST(REGEXP_REPLACE(s.market_cap, '[^0-9.]', '', 'g') AS NUMERIC)
                 END""",
+            'last_update': 'lu.last_update_at',
         }
         sort_col = valid_sorts.get(sort_by, 's.call_message_id')
         sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
+        
+        # For last_update sort, push NULLs to the end
+        null_handling = ""
+        if sort_by == 'last_update':
+            null_handling = " NULLS LAST" if sort_dir == 'DESC' else " NULLS LAST"
         
         count_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}
@@ -607,7 +645,8 @@ async def get_signals(
         offset = (page - 1) * page_size
         
         data_query = text(f"""
-            WITH {SIGNAL_OUTCOMES_CTE}
+            WITH {SIGNAL_OUTCOMES_CTE},
+            {LAST_UPDATE_CTE}
             SELECT 
                 s.signal_id, s.channel_id, s.call_message_id, s.message_link,
                 s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
@@ -617,11 +656,14 @@ async def get_signals(
                      WHEN so.outcome = 'sl' THEN 'closed_loss'
                      WHEN so.outcome IS NOT NULL THEN so.outcome
                      ELSE 'open' END as derived_status,
-                s.market_cap
+                s.market_cap,
+                lu.last_update_at,
+                lu.last_update_type
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
+            LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
             WHERE {where_clause}
-            ORDER BY {sort_col} {sort_dir}
+            ORDER BY {sort_col} {sort_dir}{null_handling}
             LIMIT :limit OFFSET :offset
         """)
         params["limit"] = page_size
@@ -637,6 +679,8 @@ async def get_signals(
                 "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
                 "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
+                "last_update_at": str(r[18]) if r[18] else None,
+                "last_update_type": r[19],
             })
         
         result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
@@ -644,7 +688,6 @@ async def get_signals(
         return result
 
     except Exception as e:
-        # CHANGED: stale fallback if DB query fails
         stale, _ = cache_get_with_stale(cache_key)
         if stale:
             stale.pop("_cached_at", None)
@@ -686,7 +729,6 @@ async def get_active_signals(
         } for r in rows]
 
     except Exception as e:
-        # CHANGED: stale fallback
         stale, _ = cache_get_with_stale(f"lq:signals:active:{limit}")
         if stale and "items" in stale:
             return stale["items"]
@@ -726,7 +768,6 @@ async def get_signal_stats(db: Session = Depends(get_db)):
         return SignalStats(total_signals=t,open_signals=o,tp1_signals=t1,tp2_signals=t2,tp3_signals=t3,closed_win=cw,closed_loss=cl,win_rate=round(wr,2))
 
     except Exception as e:
-        # CHANGED: stale fallback
         stale, _ = cache_get_with_stale("lq:signals:stats")
         if stale:
             stale.pop("_cached_at", None)
@@ -981,7 +1022,6 @@ async def get_top_performers(
         cache_set(cache_key, result, ttl=60)
         return result
     except Exception as e:
-        # CHANGED: stale fallback
         stale, _ = cache_get_with_stale(cache_key)
         if stale:
             return stale

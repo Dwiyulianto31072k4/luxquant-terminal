@@ -38,7 +38,7 @@ const SignalsTable = ({
     );
   };
 
-  // CHANGED: Fetch prices via backend proxy instead of direct Binance
+  // Fetch prices via backend proxy
   useEffect(() => {
     if (!signals || signals.length === 0) return;
 
@@ -51,7 +51,6 @@ const SignalsTable = ({
           return;
         }
 
-        // Use backend proxy — handles Futures→Spot fallback internally
         const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
         if (!response.ok) throw new Error('Failed to fetch prices');
         
@@ -172,6 +171,41 @@ const SignalsTable = ({
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
 
+  // ─── NEW: Last Update helpers ───
+  const getUpdateTypeBadge = (updateType) => {
+    if (!updateType) return null;
+    const ut = updateType.toLowerCase();
+    const config = {
+      'tp1': { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/25', label: 'TP1' },
+      'tp2': { bg: 'bg-lime-500/15', text: 'text-lime-400', border: 'border-lime-500/25', label: 'TP2' },
+      'tp3': { bg: 'bg-yellow-500/15', text: 'text-yellow-400', border: 'border-yellow-500/25', label: 'TP3' },
+      'tp4': { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/25', label: 'TP4' },
+      'sl': { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/25', label: 'SL' },
+    };
+    const c = config[ut] || { bg: 'bg-gray-500/15', text: 'text-gray-400', border: 'border-gray-500/25', label: updateType.toUpperCase() };
+    return (
+      <span className={`${c.bg} ${c.text} ${c.border} border text-[10px] font-bold px-1.5 py-0.5 rounded`}>
+        {c.label}
+      </span>
+    );
+  };
+
+  const formatTimeAgo = (dt) => {
+    if (!dt) return '';
+    const now = new Date();
+    const d = new Date(dt);
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDateTimeShort(dt);
+  };
+
   // ─── Desktop Table Headers ───
   const SortableHeader = ({ field, label, align = 'left' }) => {
     const isActive = sortBy === field;
@@ -198,7 +232,7 @@ const SignalsTable = ({
     );
   };
 
-  const TOTAL_COLUMNS = 11;
+  const TOTAL_COLUMNS = 12;
 
   // ════════════════════════════════════════
   // MOBILE CARD COMPONENT
@@ -237,6 +271,15 @@ const SignalsTable = ({
             />
           </div>
         </div>
+
+        {/* NEW: Last Update Badge (mobile) */}
+        {signal.last_update_at && (
+          <div className="flex items-center gap-2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+            <span className="text-amber-400 text-[10px]">🔔</span>
+            {getUpdateTypeBadge(signal.last_update_type)}
+            <span className="text-amber-400/80 text-[10px] font-mono">{formatTimeAgo(signal.last_update_at)}</span>
+          </div>
+        )}
 
         {/* Price Row: Entry / Current / P&L */}
         <div className="grid grid-cols-3 gap-2 mb-2.5">
@@ -440,9 +483,10 @@ const SignalsTable = ({
                 <SortableHeader field="max_target" label="Max Target" align="right" />
                 <Header label="Stop Loss" align="right" />
                 <SortableHeader field="risk_level" label="Risk" align="center" />
-                <SortableHeader field="market_cap" label="Market Cap" align="center" />
-                <Header label="Vol Rank" align="center" />
+                <SortableHeader field="market_cap" label="MCap" align="center" />
+                <Header label="Vol" align="center" />
                 <SortableHeader field="status" label="Status" align="center" />
+                <SortableHeader field="last_update" label="Last Update" align="center" />
                 <SortableHeader field="created_at" label="Time" align="right" />
               </tr>
             </thead>
@@ -555,7 +599,7 @@ const SignalsTable = ({
                         </span>
                       </td>
 
-                      {/* Market Cap — CHANGED: now sortable */}
+                      {/* Market Cap */}
                       <td className="py-4 px-4 text-center">
                         {signal.market_cap ? (
                           <span className={`text-xs font-semibold ${getMarketCapStyle(signal.market_cap)}`}>
@@ -581,6 +625,20 @@ const SignalsTable = ({
                       {/* Status */}
                       <td className="py-4 px-4 text-center">
                         {getStatusBadge(signal.status)}
+                      </td>
+
+                      {/* NEW: Last Update column */}
+                      <td className="py-4 px-3 text-center">
+                        {signal.last_update_at ? (
+                          <div className="flex flex-col items-center gap-1">
+                            {getUpdateTypeBadge(signal.last_update_type)}
+                            <span className="text-text-muted text-[10px] font-mono">
+                              {formatTimeAgo(signal.last_update_at)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-text-muted/40 text-xs">—</span>
+                        )}
                       </td>
                       
                       {/* Time */}

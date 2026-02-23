@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import SignalsTable from './SignalsTable';
 import SignalModal from './SignalModal';
+import BtcDomAlert from './BtcDomAlert';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -12,6 +13,10 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
  * 2. Sort, filter, paginate entirely on client-side
  * 3. Page changes = instant (no network request)
  * 4. Auto-refresh every 90s to match cache worker interval
+ * 
+ * NEW: "Recently Updated" sort + "Has Update" filter
+ *   - sort_by=last_update sorts by last_update_at DESC (most recent update first)
+ *   - statusFilter="updated" shows only signals that have at least one update
  */
 const SignalsPage = () => {
   // Raw data from backend (all 7d signals)
@@ -82,6 +87,11 @@ const SignalsPage = () => {
     setPage(1);
   }, [searchPair, statusFilter, riskFilter, sortBy, sortOrder]);
 
+  // ─── Count signals with updates (for badge) ───
+  const updatedCount = useMemo(() => {
+    return allSignals.filter(s => s.last_update_at).length;
+  }, [allSignals]);
+
   // ─── Compute today's stats from allSignals ───
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -113,8 +123,10 @@ const SignalsPage = () => {
       filtered = filtered.filter(s => s.pair && s.pair.toUpperCase().includes(search));
     }
 
-    // Filter by status
-    if (statusFilter !== 'all') {
+    // Filter by status — NEW: "updated" filter shows only signals with updates
+    if (statusFilter === 'updated') {
+      filtered = filtered.filter(s => s.last_update_at);
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(s => {
         const st = (s.status || '').toLowerCase();
         switch (statusFilter) {
@@ -142,7 +154,7 @@ const SignalsPage = () => {
       });
     }
 
-    // Sort
+    // Sort — NEW: last_update sorts by last_update_at
     filtered.sort((a, b) => {
       let valA, valB;
       switch (sortBy) {
@@ -184,6 +196,16 @@ const SignalsPage = () => {
           valA = parseMcap(a.market_cap);
           valB = parseMcap(b.market_cap);
           break;
+        case 'last_update':
+          // Signals with no update go to the bottom
+          const tsA = a.last_update_at ? new Date(a.last_update_at).getTime() : 0;
+          const tsB = b.last_update_at ? new Date(b.last_update_at).getTime() : 0;
+          // If one has update and other doesn't, the one with update goes first (DESC)
+          if (tsA === 0 && tsB !== 0) return 1;
+          if (tsA !== 0 && tsB === 0) return -1;
+          valA = tsA;
+          valB = tsB;
+          break;
         case 'created_at':
         default:
           valA = a.call_message_id || 0;
@@ -216,9 +238,10 @@ const SignalsPage = () => {
     }
   };
 
-  // Status filter options
+  // Status filter options — NEW: added "Updated" option
   const statusOptions = [
     { value: 'all', label: 'All', icon: '📊' },
+    { value: 'updated', label: 'Newest Update Hit', icon: '🔔' },
     { value: 'open', label: 'Open', icon: '🟢' },
     { value: 'tp1', label: 'TP1', icon: '✓' },
     { value: 'tp2', label: 'TP2', icon: '✓' },
@@ -235,9 +258,10 @@ const SignalsPage = () => {
     { value: 'high', label: 'High' },
   ];
 
-  // Sort options for dropdown
+  // Sort options — NEW: added "Last Update"
   const sortOptions = [
     { value: 'created_at', label: 'Time' },
+    { value: 'last_update', label: 'Last Update' },
     { value: 'pair', label: 'Pair' },
     { value: 'status', label: 'Status' },
     { value: 'risk_level', label: 'Risk' },
@@ -259,6 +283,11 @@ const SignalsPage = () => {
         <div className="flex items-center gap-4">
           <span className="text-text-muted text-sm">
             Last 7 Days · <span className="text-white font-semibold">{allSignals.length}</span> signals
+            {updatedCount > 0 && (
+              <span className="ml-2 text-gold-primary">
+                · <span className="font-semibold">{updatedCount}</span> updated
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-2 text-text-muted text-sm">
             <span className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`} />
@@ -294,6 +323,8 @@ const SignalsPage = () => {
           <p className="text-text-muted text-xs mt-1">signals in view</p>
         </div>
       </div>
+
+      <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
 
       {/* Filters */}
       <div className="glass-card rounded-xl p-4 border border-gold-primary/10 space-y-4">
@@ -347,15 +378,29 @@ const SignalsPage = () => {
               {statusOptions.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setStatusFilter(opt.value)}
+                  onClick={() => {
+                    setStatusFilter(opt.value);
+                    // Auto-switch to last_update sort when clicking "Updated"
+                    if (opt.value === 'updated' && sortBy === 'created_at') {
+                      setSortBy('last_update');
+                    }
+                  }}
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
                     statusFilter === opt.value
-                      ? 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
+                      ? opt.value === 'updated'
+                        ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/20'
+                        : 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow'
                       : 'bg-bg-primary border border-gold-primary/20 text-text-secondary hover:text-white hover:border-gold-primary/40'
                   }`}
                 >
                   <span>{opt.icon}</span>
                   <span>{opt.label}</span>
+                  {/* Show count badge for "Updated" */}
+                  {opt.value === 'updated' && updatedCount > 0 && statusFilter !== 'updated' && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-full">
+                      {updatedCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

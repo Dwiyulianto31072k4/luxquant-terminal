@@ -488,19 +488,38 @@ def query_analyze(db, time_range="all", trend_mode="weekly"):
 def query_signals_bulk_7d(db):
     """
     Fetch ALL signals from last 7 days in one query (no pagination).
-    Frontend handles sorting/filtering/pagination client-side = zero delay on page changes.
-    Typically 150-400 signals — small payload (~50-100KB JSON).
+    NOW INCLUDES: last_update_at + last_update_type for "Recently Updated" filter/sort.
     """
     date_7d = get_7d_date()
     rows = db.execute(text("""
+        WITH last_updates AS (
+            SELECT DISTINCT ON (signal_id)
+                signal_id,
+                update_at as last_update_at,
+                CASE 
+                    WHEN LOWER(update_type) LIKE '%%tp4%%' THEN 'tp4'
+                    WHEN LOWER(update_type) LIKE '%%tp3%%' THEN 'tp3'
+                    WHEN LOWER(update_type) LIKE '%%tp2%%' THEN 'tp2'
+                    WHEN LOWER(update_type) LIKE '%%tp1%%' THEN 'tp1'
+                    WHEN LOWER(update_type) LIKE '%%sl%%' OR LOWER(update_type) LIKE '%%stop%%' THEN 'sl'
+                    ELSE update_type
+                END as last_update_type
+            FROM signal_updates
+            WHERE update_type IS NOT NULL
+            ORDER BY signal_id, update_at DESC
+        )
         SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
             s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
             s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
             s.created_at,
             CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
                  WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
-            s.market_cap
-        FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+            s.market_cap,
+            lu.last_update_at,
+            lu.last_update_type
+        FROM signals s
+        LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
+        LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
         WHERE s.created_at >= :date_from
         ORDER BY s.call_message_id DESC
     """), {"date_from": date_7d}).fetchall()
@@ -515,6 +534,8 @@ def query_signals_bulk_7d(db):
             "stop1": float(r[10]) if r[10] else None, "stop2": float(r[11]) if r[11] else None,
             "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
             "created_at": str(r[15]) if r[15] else None, "status": r[16], "market_cap": r[17],
+            "last_update_at": str(r[18]) if r[18] else None,
+            "last_update_type": r[19],
         })
 
     return {"items": items, "total": len(items), "date_from": date_7d}
