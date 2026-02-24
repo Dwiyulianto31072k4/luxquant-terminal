@@ -1,7 +1,10 @@
 # backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import os
+
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.core.database import engine, Base, SessionLocal
@@ -15,6 +18,8 @@ from app.api.routes.subscription import router as subscription_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.whale import router as whale_router
 from app.api.routes.orderbook import router as orderbook_router              # ← ORDER BOOK
+
+SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
 
 @asynccontextmanager
@@ -77,6 +82,16 @@ app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
 app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
 app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])   # ← ORDER BOOK
+
+# ═══════════════════════════════════════════
+# Serve chart screenshots as static files
+# URL: /api/v1/charts/{signal_id}/{filename}.png
+# ═══════════════════════════════════════════
+if os.path.exists(SCREENSHOTS_DIR):
+    app.mount("/api/v1/charts", StaticFiles(directory=SCREENSHOTS_DIR), name="charts")
+    print(f"📸 Charts directory mounted: {SCREENSHOTS_DIR}")
+else:
+    print(f"⚠️ Charts directory not found: {SCREENSHOTS_DIR}")
 
 
 @app.get("/")
