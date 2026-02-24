@@ -6,31 +6,28 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const chartContainerRef = useRef(null);
   const widgetRef = useRef(null);
   const coinInfoFetchedRef = useRef(false);
+  
   const [signalDetail, setSignalDetail] = useState(null);
   const [activeTab, setActiveTab] = useState('chart');
   const [coinInfo, setCoinInfo] = useState(null);
   const [coinInfoLoading, setCoinInfoLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => { setIsClosing(false); onClose(); }, 200);
   };
 
-  // Lock body scroll when modal is open (no more hiding header/nav)
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    if (isOpen) document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !signal) return;
     setSignalDetail(null); setCoinInfo(null); setCoinInfoLoading(false);
-    coinInfoFetchedRef.current = false; setIsClosing(false);
+    coinInfoFetchedRef.current = false; setIsClosing(false); setLightboxImg(null);
     const fetchDetail = async () => {
       try { const r = await fetch(`/api/v1/signals/detail/${signal.signal_id}`); if (r.ok) setSignalDetail(await r.json()); }
       catch (e) { console.error('Failed to fetch signal detail:', e); }
@@ -52,10 +49,14 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   }, [isOpen, signal, activeTab]);
 
   useEffect(() => {
-    const handleEscape = (e) => { if (e.key === 'Escape') handleClose(); };
+    const handleEscape = (e) => { 
+      if (e.key === 'Escape') {
+        if (lightboxImg) setLightboxImg(null); else handleClose(); 
+      }
+    };
     if (isOpen) document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, lightboxImg]);
 
   const getUserTimezone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'Etc/UTC'; } };
 
@@ -132,9 +133,10 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     { label: 'SL2', value: signal.stop2, pct: calcPct(signal.stop2, signal.entry), hit: false, reachedAt: getUpdateInfo('sl2')?.update_at },
   ].filter(s => s.value);
   const statusStyles = { 'open': 'bg-cyan-500', 'tp1': 'bg-green-500', 'tp2': 'bg-lime-500', 'tp3': 'bg-yellow-500', 'tp4': 'bg-orange-500', 'closed_win': 'bg-green-600', 'closed_loss': 'bg-red-500', 'sl': 'bg-red-500' };
-  const riskPct = signal.stop1 && signal.entry ? Math.abs((signal.stop1 - signal.entry) / signal.entry * 100) : null;
-  const maxRewardPct = targets.length > 0 ? Math.abs(parseFloat(targets[targets.length - 1].pct)) : null;
-  const rrRatio = riskPct && maxRewardPct ? (maxRewardPct / riskPct).toFixed(1) : null;
+
+  // Image URLs
+  const entryImg = signalDetail?.entry_chart_url || signal?.entry_chart_url;
+  const afterImg = signalDetail?.latest_chart_url || signal?.latest_chart_url;
 
   // === LINKS ===
   const researchLinks = [
@@ -301,7 +303,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-gold-primary/50 rounded-tr-2xl pointer-events-none hidden sm:block" />
 
             {/* HEADER */}
-            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2">
+            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2 z-10">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <CoinLogo pair={signal.pair} size={28} />
@@ -335,105 +337,153 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
               {/* CHART TAB */}
               {activeTab === 'chart' && (
                 <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-                  {/* Chart area - on mobile take remaining space minus panel */}
                   <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
                     <div id="tv_chart_modal" ref={chartContainerRef} className="w-full h-full" />
                   </div>
-                  {/* Desktop sidebar */}
                   <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
                     <TargetsPanel layout="sidebar" />
                   </div>
-                  {/* Mobile bottom panel - scrollable */}
                   <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
                     <TargetsPanel layout="bottom" />
                   </div>
                 </div>
               )}
 
-              {/* TRADE TAB */}
+              {/* TRADE TAB - GAMBAR FULL WIDTH MAKSIMAL */}
               {activeTab === 'trade' && (
-                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
-                  <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-3 sm:mb-5">
-                      <div className="flex items-center justify-center gap-2 mb-1"><CoinLogo pair={signal.pair} size={24} /><h3 className="text-base sm:text-lg font-display text-white">Trade {signal.pair}</h3></div>
-                      <p className="text-text-muted text-xs sm:text-sm">Signal progress & exchange links</p>
+                <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 custom-scrollbar bg-[#0a0a0a]">
+                  {/* Container diubah ke max-w-7xl biar super lega dan melebar penuh */}
+                  <div className="max-w-7xl w-full mx-auto">
+                    
+                    {/* Header Trade Tab */}
+                    <div className="text-center mb-6 sm:mb-8">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <CoinLogo pair={signal.pair} size={28} />
+                        <h3 className="text-lg sm:text-xl font-display text-white">Trade {signal.pair}</h3>
+                      </div>
+                      <p className="text-text-muted text-xs sm:text-sm">Trade execution proof & signal progress</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-4 sm:mb-5">
-                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-green-500/15">
-                        <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mb-2">🎯 Targets</p>
-                        <div className="space-y-1.5">{targets.map((t, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded text-[9px] font-bold flex items-center justify-center ${t.hit ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{t.hit ? '✓' : i+1}</div>
-                              <span className={`text-[11px] ${t.hit ? 'text-green-400' : 'text-text-muted'}`}>{t.label} <span className="font-mono">{formatPrice(t.value)}</span></span>
+
+                    {/* TRADE PROOF: Side-by-Side Besar */}
+                    {(entryImg || afterImg) && (
+                      <div className="mb-10 w-full">
+                        <div className="flex flex-col md:flex-row items-stretch gap-4 sm:gap-6 w-full">
+                          
+                          {/* KIRI: Before (Entry) */}
+                          <div className="flex-1 w-full min-w-0 flex flex-col">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                              <span className="text-blue-400 text-xs sm:text-sm font-bold tracking-wide uppercase flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Before (Entry)
+                              </span>
+                              <span className="text-text-muted/50 text-[10px] sm:text-xs font-mono">{formatShortDateTime(signal.created_at)}</span>
                             </div>
-                            <div className="text-right">
-                              <span className={`text-[10px] font-mono font-bold ${t.hit ? 'text-green-400' : 'text-green-400/50'}`}>+{t.pct}%</span>
-                              {t.hit && t.reachedAt && <p className="text-[8px] text-green-400/50">{formatShortDateTime(t.reachedAt)}</p>}
+                            {entryImg ? (
+                              // Ukuran diperbesar menggunakan aspect-video (16:9) yang nge-fill flex container
+                              <div className="relative group rounded-xl overflow-hidden border border-blue-500/20 bg-[#0d0d0d] aspect-video w-full cursor-zoom-in shadow-lg" onClick={() => setLightboxImg(entryImg)}>
+                                <img src={entryImg} alt="Entry Chart" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
+                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 View Fullscreen</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border border-dashed border-gray-700 bg-gray-800/20 flex flex-col items-center justify-center aspect-video w-full text-gray-500">
+                                <span className="text-3xl mb-3">⏳</span>
+                                <p className="text-sm">Waiting for entry screenshot...</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* TENGAH: Garis Penghubung & Panah */}
+                          <div className="hidden md:flex flex-col items-center justify-center w-12 shrink-0 relative mt-8">
+                            <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/50 via-gold-primary/50 to-green-500/50 -translate-y-1/2 z-0" />
+                            <div className="relative z-10 bg-[#0a0a0a] border border-gold-primary/50 text-gold-primary w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(212,168,83,0.3)]">
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
                             </div>
                           </div>
-                        ))}</div>
-                        {stops.length > 0 && (<><div className="border-t border-white/5 my-2" /><p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mb-1.5">🛑 Stop Loss</p>{stops.map((s, i) => (<div key={i} className="flex items-center justify-between"><span className={`text-[11px] ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label} <span className="font-mono">{formatPrice(s.value)}</span></span><span className={`text-[10px] font-mono font-bold ${s.hit ? 'text-red-400' : 'text-red-400/50'}`}>{s.pct}%</span></div>))}</>)}
-                      </div>
-                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                        <p className="text-gold-primary/70 text-[10px] uppercase tracking-wider font-semibold mb-2">📊 Signal Stats</p>
-                        <div className="space-y-2">
-                          {rrRatio && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk : Reward</span><span className="text-gold-primary text-sm font-bold font-mono">1 : {rrRatio}</span></div>}
-                          {riskPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk %</span><span className="text-red-400 text-[11px] font-mono">-{riskPct.toFixed(2)}%</span></div>}
-                          {maxRewardPct && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Max Reward %</span><span className="text-green-400 text-[11px] font-mono">+{maxRewardPct.toFixed(2)}%</span></div>}
-                          <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Targets Hit</span><span className="text-white text-[11px] font-bold">{hitTargets.filter(Boolean).length} / {targets.length}</span></div>
-                          <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Status</span><span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status?.toUpperCase()}</span></div>
-                          {signal.volume_rank_num && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Volume Rank</span><span className="text-white text-[11px] font-mono">#{signal.volume_rank_num} / {signal.volume_rank_den}</span></div>}
-                          {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[11px]">Risk Level</span><span className={`text-[11px] font-bold ${signal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-yellow-400'}`}>{signal.risk_level}</span></div>}
+
+                          {/* MOBILE: Garis Penghubung Vertikal */}
+                          <div className="md:hidden flex justify-center py-3 relative">
+                             <div className="w-[2px] h-10 bg-gradient-to-b from-blue-500/50 via-gold-primary/50 to-green-500/50 relative">
+                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-green-500/80" />
+                             </div>
+                          </div>
+
+                          {/* KANAN: After (Latest Update) */}
+                          <div className="flex-1 w-full min-w-0 flex flex-col">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                              <span className={`text-xs sm:text-sm font-bold tracking-wide uppercase flex items-center gap-2 ${isStopped ? 'text-red-400' : 'text-green-400'}`}>
+                                <span className={`w-2 h-2 rounded-full ${isStopped ? 'bg-red-500' : 'bg-green-500'} shadow-[0_0_8px_currentColor]`}></span> 
+                                After ({signal.status === 'open' ? 'LATEST' : signal.status?.toUpperCase()})
+                              </span>
+                            </div>
+                            {afterImg ? (
+                              <div className={`relative group rounded-xl overflow-hidden border bg-[#0d0d0d] aspect-video w-full cursor-zoom-in shadow-lg ${isStopped ? 'border-red-500/20' : 'border-green-500/20'}`} onClick={() => setLightboxImg(afterImg)}>
+                                <img src={afterImg} alt="Latest Chart" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
+                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 View Fullscreen</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border border-dashed border-gray-700 bg-gray-800/20 flex flex-col items-center justify-center aspect-video w-full text-gray-500">
+                                <span className="text-3xl mb-3">📈</span>
+                                <p className="text-sm">Trade still active</p>
+                              </div>
+                            )}
+                          </div>
+
                         </div>
                       </div>
-                    </div>
+                    )}
+
                     {/* Timeline */}
-                    <div className="mb-4 sm:mb-5">
-                      <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-                        <span className="text-gold-primary text-xs font-semibold">⏱️ Signal Journey</span>
-                        {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[10px] text-text-muted bg-[#1a1a1a] px-2 py-0.5 rounded font-mono">Total: {d}</span> : <span className="text-[10px] text-cyan-400/70">● Active</span>; })()}
+                    <div className="mb-6 sm:mb-8">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <span className="text-gold-primary text-sm font-semibold">⏱️ Signal Journey</span>
+                        {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[11px] text-text-muted bg-[#1a1a1a] px-3 py-1 rounded font-mono">Total Duration: {d}</span> : <span className="text-[11px] text-cyan-400/70">● Running Active</span>; })()}
                       </div>
-                      <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-3 sm:p-4">
+                      <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-4 sm:p-5">
                         {timeline.map((ev, idx) => {
                           const isLast = idx === timeline.length - 1, isAct = ev.type === 'called' || ev.hit;
                           const prev = idx > 0 ? timeline[idx-1] : null, dur = (prev?.time && ev.time) ? calcTimeDiff(prev.time, ev.time) : null;
                           return (
-                            <div key={idx} className="relative flex gap-2.5 sm:gap-3">
-                              {!isLast && <div className={`absolute left-[11px] sm:left-[13px] top-[24px] sm:top-[28px] bottom-0 w-[2px] ${isAct ? ev.colorClasses.line : 'bg-gray-700/30'}`} />}
-                              <div className="flex-shrink-0 z-10 mt-0.5"><div className={`w-6 h-6 sm:w-[28px] sm:h-[28px] rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border-2 ${isAct ? `${ev.colorClasses.bg} text-white border-transparent` : 'bg-[#1a1a1a] text-gray-500 border-gray-700'}`}>{ev.icon}</div></div>
-                              <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3 sm:pb-5'}`}>
-                                <div className="flex items-center gap-2 flex-wrap"><span className={`text-xs sm:text-sm font-semibold ${isAct ? ev.colorClasses.text : 'text-gray-500'}`}>{ev.label}</span>{dur && <span className="text-[9px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded font-mono">+{dur}</span>}</div>
-                                <p className={`text-[10px] sm:text-xs font-mono ${isAct ? 'text-white/70' : 'text-gray-600'}`}>{ev.sublabel}</p>
-                                {ev.time && <p className="text-[9px] text-text-muted mt-0.5">{formatShortDateTime(ev.time)}</p>}
+                            <div key={idx} className="relative flex gap-3 sm:gap-4">
+                              {!isLast && <div className={`absolute left-[13px] sm:left-[15px] top-[28px] sm:top-[32px] bottom-0 w-[2px] ${isAct ? ev.colorClasses.line : 'bg-gray-700/30'}`} />}
+                              <div className="flex-shrink-0 z-10 mt-0.5"><div className={`w-7 h-7 sm:w-[32px] sm:h-[32px] rounded-full flex items-center justify-center text-[11px] sm:text-xs font-bold border-2 ${isAct ? `${ev.colorClasses.bg} text-white border-transparent` : 'bg-[#1a1a1a] text-gray-500 border-gray-700'}`}>{ev.icon}</div></div>
+                              <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4 sm:pb-6'}`}>
+                                <div className="flex items-center gap-2 flex-wrap"><span className={`text-sm sm:text-base font-semibold ${isAct ? ev.colorClasses.text : 'text-gray-500'}`}>{ev.label}</span>{dur && <span className="text-[10px] text-text-muted bg-white/5 px-2 py-0.5 rounded font-mono">+{dur}</span>}</div>
+                                <p className={`text-xs sm:text-sm font-mono mt-1 ${isAct ? 'text-white/70' : 'text-gray-600'}`}>{ev.sublabel}</p>
+                                {ev.time && <p className="text-[10px] text-text-muted mt-1">{formatShortDateTime(ev.time)}</p>}
                               </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
+
                     {/* Exchange links */}
-                    <div className="mb-4 sm:mb-5">
-                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🏦 Open Trade on Exchange</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                    <div className="mb-6 sm:mb-8">
+                      <p className="text-gold-primary text-sm font-semibold mb-3 sm:mb-4">🏦 Open Trade on Exchange</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                         {tradeLinks.map((link, i) => (
-                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 sm:gap-2 p-2.5 sm:p-4 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-black/30 flex items-center justify-center"><img src={link.logo} alt={link.name} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} /></div>
-                            <p className="text-white text-[10px] sm:text-[11px] font-medium group-hover:text-gold-primary text-center">{link.name}</p>
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-5 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-black/30 flex items-center justify-center"><img src={link.logo} alt={link.name} className="w-6 h-6 sm:w-7 sm:h-7 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} /></div>
+                            <p className="text-white text-xs sm:text-sm font-medium group-hover:text-gold-primary text-center">{link.name}</p>
                           </a>
                         ))}
                       </div>
                     </div>
+
                     {/* Summary */}
-                    <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-3 sm:p-4 border border-gold-primary/25 mb-2">
-                      <h4 className="text-gold-primary font-display text-sm mb-2.5 sm:mb-3">Signal Summary</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-                        <div><p className="text-text-muted text-[10px] uppercase">Entry</p><p className="text-white font-mono text-sm mt-0.5">{formatPrice(signal.entry)}</p></div>
-                        <div><p className="text-text-muted text-[10px] uppercase">Status</p><span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white mt-1 ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
-                        <div><p className="text-text-muted text-[10px] uppercase">Targets Hit</p><p className="text-white text-sm mt-0.5">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
-                        <div><p className="text-text-muted text-[10px] uppercase">Max Profit</p><p className="text-green-400 text-sm mt-0.5">+{targets[targets.length-1]?.pct || 0}%</p></div>
+                    <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-4 sm:p-5 border border-gold-primary/25 mb-2">
+                      <h4 className="text-gold-primary font-display text-base mb-3 sm:mb-4">Signal Summary</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                        <div><p className="text-text-muted text-xs uppercase mb-1">Entry</p><p className="text-white font-mono text-base">{formatPrice(signal.entry)}</p></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">Status</p><span className={`inline-block px-2.5 py-1 rounded text-xs font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">Targets Hit</p><p className="text-white text-base">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">Max Profit</p><p className="text-green-400 text-base">+{targets[targets.length-1]?.pct || 0}%</p></div>
                       </div>
                     </div>
+
                   </div>
                 </div>
               )}
@@ -513,6 +563,27 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
+      {lightboxImg && (
+        <div 
+          className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img 
+            src={lightboxImg} 
+            alt="Fullscreen Chart" 
+            className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()} 
+          />
+          <button 
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm"
+            onClick={() => setLightboxImg(null)}
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      )}
 
       {/* === STYLES === */}
       <style>{`

@@ -33,6 +33,13 @@ class SignalResponse(BaseModel):
     status: str = "open"
     created_at: Optional[str] = None
     
+    # === TAMBAHAN BARU ===
+    market_cap: Optional[str] = None
+    last_update_at: Optional[str] = None
+    last_update_type: Optional[str] = None
+    entry_chart_url: Optional[str] = None   # URL untuk chart Before/Entry
+    latest_chart_url: Optional[str] = None  # URL untuk chart After/Latest
+    
     class Config:
         from_attributes = True
 

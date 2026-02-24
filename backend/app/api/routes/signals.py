@@ -10,6 +10,7 @@ UPDATED:
 - OPTIMIZED v3: stale cache fallback on all main endpoints
 - NEW: last_update_at + last_update_type fields for "Recently Updated" filter/sort
 - FIXED: LAST_UPDATE_CTE now returns highest level hit + its timestamp (synced with status)
+- CHART UPDATES: Added entry and latest chart URLs to all endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -32,6 +33,7 @@ from app.core.redis import (
     cache_get, cache_set, cache_get_with_stale,
     build_signals_page_key, is_redis_available
 )
+from app.utils.chart_urls import chart_path_to_url  # TAMBAHAN: Import untuk convert chart URL
 
 router = APIRouter()
 
@@ -143,6 +145,8 @@ class SignalDetailResponse(BaseModel):
     created_at: Optional[str] = None
     market_cap: Optional[str] = None
     risk_reasons: Optional[str] = None
+    entry_chart_url: Optional[str] = None   # TAMBAHAN
+    latest_chart_url: Optional[str] = None  # TAMBAHAN
     updates: List[SignalUpdateItem] = []
 
 
@@ -500,7 +504,7 @@ async def get_analyze_data(
 
 # ============================================
 # GET /signals/bulk-7d — ALL signals last 7 days (for client-side pagination)
-# NOW INCLUDES: last_update_at, last_update_type per signal
+# NOW INCLUDES: last_update_at, last_update_type per signal + CHART URLs
 # ============================================
 
 @router.get("/bulk-7d")
@@ -537,7 +541,8 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                      WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
                 s.market_cap,
                 lu.last_update_at,
-                lu.last_update_type
+                lu.last_update_type,
+                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -555,6 +560,8 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
                 "last_update_at": str(r[18]) if r[18] else None,
                 "last_update_type": r[19],
+                "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
+                "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
             })
         
         result = {"items": items, "total": len(items), "date_from": date_7d}
@@ -566,7 +573,7 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
 
 # ============================================
 # GET /signals/ — with date-aware cache key
-# NOW INCLUDES: last_update_at, last_update_type + sort_by=last_update
+# NOW INCLUDES: last_update_at, last_update_type + sort_by=last_update + CHART URLs
 # ============================================
 
 @router.get("/")
@@ -675,7 +682,8 @@ async def get_signals(
                      ELSE 'open' END as derived_status,
                 s.market_cap,
                 lu.last_update_at,
-                lu.last_update_type
+                lu.last_update_type,
+                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -698,6 +706,8 @@ async def get_signals(
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
                 "last_update_at": str(r[18]) if r[18] else None,
                 "last_update_type": r[19],
+                "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
+                "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
             })
         
         result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
@@ -730,7 +740,8 @@ async def get_active_signals(
             WITH {SIGNAL_OUTCOMES_CTE}
             SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
                 s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
-                s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den, s.created_at
+                s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den, s.created_at,
+                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             WHERE so.outcome IS NULL
@@ -743,6 +754,8 @@ async def get_active_signals(
             "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7], "target3": r[8], "target4": r[9],
             "stop1": r[10], "stop2": r[11], "risk_level": r[12], "volume_rank_num": r[13],
             "volume_rank_den": r[14], "created_at": r[15], "status": "open",
+            "entry_chart_url": chart_path_to_url(r[16]),   # TAMBAHAN
+            "latest_chart_url": chart_path_to_url(r[17])   # TAMBAHAN
         } for r in rows]
 
     except Exception as e:
@@ -1081,10 +1094,12 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
             seen_types.add(normalized_type)
             updates.append(SignalUpdateItem(update_type=normalized_type, price=row[1], update_at=row[2]))
     
-    market_cap = risk_reasons = None
+    market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
     try:
-        extra = db.execute(text("SELECT market_cap, risk_reasons FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
-        if extra: market_cap = extra[0]; risk_reasons = extra[1]
+        # TAMBAHAN: Select path chart
+        extra = db.execute(text("SELECT market_cap, risk_reasons, entry_chart_path, latest_chart_path FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
+        if extra: 
+            market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
     return SignalDetailResponse(
@@ -1095,7 +1110,10 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
         stop1=signal.stop1, stop2=signal.stop2,
         risk_level=signal.risk_level, volume_rank_num=signal.volume_rank_num, volume_rank_den=signal.volume_rank_den,
         status=signal.status, created_at=signal.created_at,
-        market_cap=market_cap, risk_reasons=risk_reasons, updates=updates)
+        market_cap=market_cap, risk_reasons=risk_reasons, 
+        entry_chart_url=chart_path_to_url(entry_chart_path),   # TAMBAHAN
+        latest_chart_url=chart_path_to_url(latest_chart_path), # TAMBAHAN
+        updates=updates)
 
 
 # ============================================
@@ -1134,5 +1152,7 @@ async def get_signal_detail(signal_id: str, db: Session = Depends(get_db)):
         "stop1": signal.stop1, "stop2": signal.stop2,
         "risk_level": signal.risk_level, "volume_rank_num": signal.volume_rank_num, "volume_rank_den": signal.volume_rank_den,
         "status": derived_status, "created_at": signal.created_at,
+        "entry_chart_url": chart_path_to_url(signal.entry_chart_path),   # TAMBAHAN
+        "latest_chart_url": chart_path_to_url(signal.latest_chart_path), # TAMBAHAN
         "updates": [{"update_type": u.update_type, "price": u.price, "update_at": u.update_at, "message_link": u.message_link} for u in updates]
     }

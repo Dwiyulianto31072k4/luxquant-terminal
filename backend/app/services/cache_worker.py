@@ -24,6 +24,7 @@ from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
 from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
 from app.config import settings
+from app.utils.chart_urls import chart_path_to_url # TAMBAHAN: Import converter URL
 
 
 # External API base URLs
@@ -237,7 +238,7 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     offset = (page - 1) * page_size
 
-    # Data
+    # Data - TAMBAHAN s.entry_chart_path, s.latest_chart_path
     params["limit"] = page_size
     params["offset"] = offset
     rows = db.execute(text(f"""
@@ -247,7 +248,8 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
             s.created_at,
             CASE WHEN so.outcome = 'tp4' THEN 'closed_win' WHEN so.outcome = 'sl' THEN 'closed_loss'
                  WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
-            s.market_cap
+            s.market_cap,
+            s.entry_chart_path, s.latest_chart_path 
         FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE {where_clause} ORDER BY {sort_col} {sort_dir} LIMIT :limit OFFSET :offset
     """), params).fetchall()
@@ -262,6 +264,8 @@ def query_signals_page(db, page=1, page_size=20, status=None, pair=None,
             "stop1": float(r[10]) if r[10] else None, "stop2": float(r[11]) if r[11] else None,
             "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
             "created_at": str(r[15]) if r[15] else None, "status": r[16], "market_cap": r[17],
+            "entry_chart_url": chart_path_to_url(r[18]),     # TAMBAHAN
+            "latest_chart_url": chart_path_to_url(r[19]),    # TAMBAHAN
         })
 
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
@@ -291,7 +295,8 @@ def query_active_signals(db, limit=20):
         SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
             s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
             s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den,
-            s.created_at, s.market_cap
+            s.created_at, s.market_cap,
+            s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
         FROM signals s LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         WHERE so.outcome IS NULL ORDER BY s.call_message_id DESC LIMIT :limit
     """), {"limit": limit}).fetchall()
@@ -302,7 +307,9 @@ def query_active_signals(db, limit=20):
          "target3":float(r[8]) if r[8] else None,"target4":float(r[9]) if r[9] else None,
          "stop1":float(r[10]) if r[10] else None,"stop2":float(r[11]) if r[11] else None,
          "risk_level":r[12],"volume_rank_num":r[13],"volume_rank_den":r[14],
-         "created_at":str(r[15]) if r[15] else None,"status":"open","market_cap":r[16]}
+         "created_at":str(r[15]) if r[15] else None,"status":"open","market_cap":r[16],
+         "entry_chart_url": chart_path_to_url(r[17]),    # TAMBAHAN
+         "latest_chart_url": chart_path_to_url(r[18])}   # TAMBAHAN
         for r in rows
     ]}
 
@@ -529,7 +536,8 @@ def query_signals_bulk_7d(db):
                  WHEN so.outcome IS NOT NULL THEN so.outcome ELSE 'open' END as derived_status,
             s.market_cap,
             lu.last_update_at,
-            lu.last_update_type
+            lu.last_update_type,
+            s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
         FROM signals s
         LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -549,6 +557,8 @@ def query_signals_bulk_7d(db):
             "created_at": str(r[15]) if r[15] else None, "status": r[16], "market_cap": r[17],
             "last_update_at": str(r[18]) if r[18] else None,
             "last_update_type": r[19],
+            "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
+            "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
         })
 
     return {"items": items, "total": len(items), "date_from": date_7d}
