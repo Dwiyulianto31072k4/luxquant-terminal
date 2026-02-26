@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
 import StarButton from './StarButton';
@@ -17,6 +18,8 @@ const SignalsTable = ({
   sortOrder,
   onSort 
 }) => {
+  const { t } = useTranslation(); // <-- 2. Inisialisasi i18n
+
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
@@ -284,11 +287,11 @@ const SignalsTable = ({
         {/* Price Row: Entry / Current / P&L */}
         <div className="grid grid-cols-3 gap-2 mb-2.5">
           <div>
-            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Entry</p>
+            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">{t('signals.entry_price')}</p>
             <p className="text-white font-mono text-xs font-medium">{formatPrice(signal.entry)}</p>
           </div>
           <div>
-            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">Current</p>
+            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">{t('signals.current_price')}</p>
             {pricesLoading && !currentPrice ? (
               <div className="h-4 w-14 bg-bg-card rounded animate-pulse" />
             ) : currentPrice ? (
@@ -341,7 +344,7 @@ const SignalsTable = ({
           <div className="bg-red-500/5 rounded-lg px-2.5 py-1.5 border border-red-500/10 mb-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <p className="text-red-400/70 text-[9px] uppercase tracking-wider font-semibold">🛑 Stop Loss</p>
+                <p className="text-red-400/70 text-[9px] uppercase tracking-wider font-semibold">🛑 {t('signals.stop_loss')}</p>
                 <p className="text-red-400 font-mono text-[11px] font-medium">{formatPrice(signal.stop1)}</p>
               </div>
               {(() => {
@@ -477,17 +480,17 @@ const SignalsTable = ({
             <thead>
               <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
                 <Header label="" align="center" />
-                <SortableHeader field="pair" label="Pair" />
-                <Header label="Current Price" align="right" />
-                <SortableHeader field="entry" label="Entry" align="right" />
-                <SortableHeader field="max_target" label="Max Target" align="right" />
-                <Header label="Stop Loss" align="right" />
-                <SortableHeader field="risk_level" label="Risk" align="center" />
-                <SortableHeader field="market_cap" label="MCap" align="center" />
-                <Header label="Vol" align="center" />
-                <SortableHeader field="status" label="Status" align="center" />
-                <SortableHeader field="last_update" label="Last Update" align="center" />
-                <SortableHeader field="created_at" label="Time" align="right" />
+                <SortableHeader field="pair" label={t('signals.pair')} />
+                <Header label={t('signals.current_price')} align="right" />
+                <SortableHeader field="entry" label={t('signals.entry_price')} align="right" />
+                <SortableHeader field="max_target" label={t('signals.max_target')} align="right" />
+                <Header label={t('signals.stop_loss')} align="right" />
+                <SortableHeader field="risk_level" label={t('signals.risk_level')} align="center" />
+                <SortableHeader field="market_cap" label={t('signals.mcap')} align="center" />
+                <Header label={t('signals.vol')} align="center" />
+                <SortableHeader field="status" label={t('signals.status')} align="center" />
+                <SortableHeader field="last_update" label={t('signals.last_update')} align="center" />
+                <SortableHeader field="created_at" label={t('signals.time')} align="right" />
               </tr>
             </thead>
             <tbody>

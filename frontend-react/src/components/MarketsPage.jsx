@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import NewsPreviewModal from "./NewsPreviewModal"; // 1. IMPORT MODAL
+import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
+import NewsPreviewModal from "./NewsPreviewModal";
 
 const API_BASE = '/api/v1';
 
@@ -8,6 +9,8 @@ const API_BASE = '/api/v1';
 // ════════════════════════════════════════════
 
 const MarketsPage = () => {
+  const { t } = useTranslation(); // <-- 2. Panggil i18n
+
   const [global, setGlobal] = useState(null);
   const [heatmap, setHeatmap] = useState(null);
   const [trending, setTrending] = useState(null);
@@ -29,7 +32,7 @@ const MarketsPage = () => {
 
   // News pagination & Modal State
   const [newsPage, setNewsPage] = useState(0);
-  const [selectedArticle, setSelectedArticle] = useState(null); // 2. STATE UNTUK MODAL
+  const [selectedArticle, setSelectedArticle] = useState(null);
   const NEWS_PER_PAGE = 8;
 
   useEffect(() => {
@@ -64,6 +67,16 @@ const MarketsPage = () => {
     }
   };
 
+  // Helper terjemahan waktu yang didapat dari API berita jika diperlukan
+  const translateTimeAgo = (timeStr) => {
+    if (!timeStr) return '';
+    let res = timeStr.toLowerCase();
+    res = res.replace('h ago', ` ${t('markets.h_ago')}`);
+    res = res.replace('m ago', ` ${t('markets.m_ago')}`);
+    res = res.replace('d ago', ` ${t('markets.d_ago')}`);
+    return res;
+  };
+
   // ── Filtered coins for table ──
   const filteredCoins = useMemo(() => {
     let list = [...coins];
@@ -81,7 +94,7 @@ const MarketsPage = () => {
   const totalCoinPages = Math.ceil(filteredCoins.length / COINS_PER_PAGE);
 
   if (loading) return <LoadingSkeleton />;
-  if (error && !global) return <ErrorState error={error} onRetry={() => { setLoading(true); fetchAll(); }} />;
+  if (error && !global) return <ErrorState error={error} onRetry={() => { setLoading(true); fetchAll(); }} t={t} />;
 
   const gd = global?.global;
   const fg = global?.fearGreed;
@@ -97,53 +110,53 @@ const MarketsPage = () => {
         <div className="relative">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
-            <h2 className="text-[10px] uppercase tracking-[0.2em] text-gold-primary font-bold">Global Market Overview</h2>
+            <h2 className="text-[10px] uppercase tracking-[0.2em] text-gold-primary font-bold">{t('markets.global_overview')}</h2>
             <div className="flex-1 h-[1px] bg-gradient-to-r from-gold-primary/20 to-transparent" />
-            <span className="text-[9px] text-text-muted">Live</span>
+            <span className="text-[9px] text-text-muted">{t('markets.live')}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <GlobalStat
-              label="Total Market Cap"
+              label={t('markets.total_mcap')}
               value={gd ? `$${fmtLarge(gd.total_market_cap?.usd)}` : '-'}
               change={gd?.market_cap_change_percentage_24h_usd}
             />
             <GlobalStat
-              label="24h Volume"
+              label={t('markets.vol_24h')}
               value={gd ? `$${fmtLarge(gd.total_volume?.usd)}` : '-'}
             />
             <GlobalStat
-              label="BTC Dominance"
+              label={t('markets.btc_dom')}
               value={gd ? `${gd.market_cap_percentage?.btc?.toFixed(1)}%` : '-'}
               accent="text-orange-400"
             />
             <GlobalStat
-              label="ETH Dominance"
+              label={t('markets.eth_dom')}
               value={gd ? `${gd.market_cap_percentage?.eth?.toFixed(1)}%` : '-'}
               accent="text-blue-400"
             />
             <GlobalStat
-              label="Active Coins"
+              label={t('markets.active_coins')}
               value={gd ? fmtNum(gd.active_cryptocurrencies) : '-'}
             />
-            <FearGreedMini value={fg?.value} label={fg?.label} />
+            <FearGreedMini value={fg?.value} label={fg?.label} t={t} />
           </div>
         </div>
       </div>
 
       {/* ═══ SECTION 2: HEATMAP ═══ */}
       <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-1">
-        <SectionHeader title="Market Heatmap" subtitle="Top 50 by Market Cap" icon="🗺️" />
+        <SectionHeader title={t('markets.heatmap')} subtitle={t('markets.top_50_mcap')} icon="🗺️" />
         {heatmap?.coins?.length > 0 ? (
           <HeatmapGrid coins={heatmap.coins} />
         ) : (
-          <EmptyState text="Loading heatmap data..." />
+          <EmptyState text={t('markets.loading_heatmap')} />
         )}
       </div>
 
       {/* ═══ SECTION 3: TRENDING & CATEGORIES ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-2">
-          <SectionHeader title="Trending Coins" subtitle="Most searched" icon="🔥" />
+          <SectionHeader title={t('markets.trending')} subtitle={t('markets.most_searched')} icon="🔥" />
           {trending?.coins?.length > 0 ? (
             <div className="space-y-2 mt-3">
               {trending.coins.map((c, i) => (
@@ -161,12 +174,12 @@ const MarketsPage = () => {
               ))}
             </div>
           ) : (
-            <EmptyState text="Loading trending..." />
+            <EmptyState text={t('markets.loading_trending')} />
           )}
         </div>
 
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-2">
-          <SectionHeader title="Top Categories" subtitle="Sectors by performance" icon="📊" />
+          <SectionHeader title={t('markets.top_categories')} subtitle={t('markets.sectors_perf')} icon="📊" />
           {categories?.length > 0 ? (
             <div className="space-y-2 mt-3">
               {(Array.isArray(categories) ? categories : []).slice(0, 8).map((cat) => (
@@ -185,14 +198,14 @@ const MarketsPage = () => {
               ))}
             </div>
           ) : (
-            <EmptyState text="Loading categories..." />
+            <EmptyState text={t('markets.loading_categories')} />
           )}
         </div>
       </div>
 
       {/* ═══ CRYPTO NEWS ═══ */}
       <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-2">
-        <SectionHeader title="Crypto News" subtitle="Latest headlines" icon="📰" />
+        <SectionHeader title={t('markets.news_title')} subtitle={t('markets.news_sub')} icon="📰" />
         {news?.articles?.length > 0 ? (() => {
           const allArticles = news.articles;
           const featured = allArticles.slice(0, 2);
@@ -202,7 +215,6 @@ const MarketsPage = () => {
 
           return (
             <div className="mt-3">
-              {/* Featured - 3. UBAH KE DIV + ONCLICK */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 {featured.map((a, i) => (
                   <div
@@ -219,14 +231,13 @@ const MarketsPage = () => {
                       <p className="text-white text-xs font-semibold leading-snug group-hover:text-gold-primary transition-colors line-clamp-2">{a.title}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-gold-primary/10 text-gold-primary font-bold">{a.source}</span>
-                        <span className="text-text-muted text-[9px]">{a.time_ago}</span>
+                        <span className="text-text-muted text-[9px]">{translateTimeAgo(a.time_ago)}</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Compact list with thumbnails - 3. UBAH KE DIV + ONCLICK */}
               <div className="space-y-1">
                 {pageArticles.map((a, i) => (
                   <div
@@ -248,17 +259,16 @@ const MarketsPage = () => {
                       {a.description && <p className="text-text-muted text-[9px] truncate mt-0.5">{a.description.slice(0, 80)}</p>}
                     </div>
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-text-muted whitespace-nowrap">{a.source}</span>
-                    <span className="text-text-muted text-[9px] whitespace-nowrap">{a.time_ago}</span>
+                    <span className="text-text-muted text-[9px] whitespace-nowrap">{translateTimeAgo(a.time_ago)}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-white/5">
                   <button onClick={() => setNewsPage(p => Math.max(0, p - 1))} disabled={newsPage === 0}
                     className="text-[10px] px-2.5 py-1 rounded-md bg-white/5 text-text-muted hover:text-white disabled:opacity-30 transition-colors">
-                    ← Prev
+                    {t('markets.prev')}
                   </button>
                   <div className="flex gap-1">
                     {[...Array(totalPages)].map((_, i) => (
@@ -268,14 +278,14 @@ const MarketsPage = () => {
                   </div>
                   <button onClick={() => setNewsPage(p => Math.min(totalPages - 1, p + 1))} disabled={newsPage >= totalPages - 1}
                     className="text-[10px] px-2.5 py-1 rounded-md bg-white/5 text-text-muted hover:text-white disabled:opacity-30 transition-colors">
-                    Next →
+                    {t('markets.next')}
                   </button>
                 </div>
               )}
             </div>
           );
         })() : (
-          <EmptyState text="Loading crypto news..." />
+          <EmptyState text={t('markets.loading_news')} />
         )}
       </div>
 
@@ -283,15 +293,15 @@ const MarketsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 4a: Funding + Long/Short */}
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-3">
-          <SectionHeader title="Derivatives" subtitle="Funding & Sentiment" icon="⚡" />
+          <SectionHeader title={t('markets.derivatives')} subtitle={t('markets.funding_sentiment')} icon="⚡" />
           {derivatives ? (
             <div className="space-y-4 mt-3">
               {/* Funding Rates */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Funding Rates</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.funding_rates')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <p className="text-[8px] uppercase tracking-wider text-green-400/70 font-bold mb-1">Most Long</p>
+                    <p className="text-[8px] uppercase tracking-wider text-green-400/70 font-bold mb-1">{t('markets.most_long')}</p>
                     {derivatives.funding?.most_long?.slice(0, 3).map(f => (
                       <div key={f.symbol} className="flex justify-between items-center py-1">
                         <span className="text-white text-[11px] font-medium">{f.symbol}</span>
@@ -300,7 +310,7 @@ const MarketsPage = () => {
                     ))}
                   </div>
                   <div>
-                    <p className="text-[8px] uppercase tracking-wider text-red-400/70 font-bold mb-1">Most Short</p>
+                    <p className="text-[8px] uppercase tracking-wider text-red-400/70 font-bold mb-1">{t('markets.most_short')}</p>
                     {derivatives.funding?.most_short?.slice(0, 3).map(f => (
                       <div key={f.symbol} className="flex justify-between items-center py-1">
                         <span className="text-white text-[11px] font-medium">{f.symbol}</span>
@@ -310,27 +320,27 @@ const MarketsPage = () => {
                   </div>
                 </div>
                 <div className="mt-2 pt-2 border-t border-white/5 flex justify-between">
-                  <span className="text-text-muted text-[9px]">Avg Rate: <span className="text-white font-mono">{derivatives.funding?.avg_rate?.toFixed(4)}%</span></span>
-                  <span className="text-text-muted text-[9px]">{derivatives.funding?.total_symbols} pairs</span>
+                  <span className="text-text-muted text-[9px]">{t('markets.avg_rate')} <span className="text-white font-mono">{derivatives.funding?.avg_rate?.toFixed(4)}%</span></span>
+                  <span className="text-text-muted text-[9px]">{derivatives.funding?.total_symbols} {t('markets.pairs')}</span>
                 </div>
               </div>
 
               {/* Long/Short Ratio */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Long/Short Ratio</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.ls_ratio')}</p>
                 {Object.entries(derivatives.longShort || {}).map(([sym, d]) => (
                   <div key={sym} className="mb-2">
                     <div className="flex justify-between text-[10px] mb-1">
                       <span className="text-white font-semibold">{sym}</span>
-                      <span className="text-text-muted">Ratio: {d.ratio?.toFixed(2)}</span>
+                      <span className="text-text-muted">{t('markets.ratio')} {d.ratio?.toFixed(2)}</span>
                     </div>
                     <div className="flex h-3 rounded-full overflow-hidden bg-white/5">
                       <div className="bg-gradient-to-r from-green-500 to-green-400 transition-all" style={{ width: `${d.long}%` }} />
                       <div className="bg-gradient-to-r from-red-400 to-red-500 transition-all" style={{ width: `${d.short}%` }} />
                     </div>
                     <div className="flex justify-between text-[9px] mt-0.5">
-                      <span className="text-green-400">Long {d.long}%</span>
-                      <span className="text-red-400">Short {d.short}%</span>
+                      <span className="text-green-400">{t('markets.long')} {d.long}%</span>
+                      <span className="text-red-400">{t('markets.short')} {d.short}%</span>
                     </div>
                   </div>
                 ))}
@@ -338,7 +348,7 @@ const MarketsPage = () => {
 
               {/* Open Interest */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Open Interest</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.open_interest')}</p>
                 <p className="text-white text-lg font-bold font-mono mb-2">${fmtLarge(derivatives.openInterest?.total_usd)}</p>
                 <div className="space-y-1">
                   {derivatives.openInterest?.breakdown?.map(oi => {
@@ -357,27 +367,27 @@ const MarketsPage = () => {
               </div>
             </div>
           ) : (
-            <EmptyState text="Loading derivatives..." />
+            <EmptyState text={t('markets.loading_deriv')} />
           )}
         </div>
 
         {/* 4b: Liquidations */}
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-3">
-          <SectionHeader title="Liquidations" subtitle="Recent forced closures" icon="💥" />
+          <SectionHeader title={t('markets.liquidations')} subtitle={t('markets.recent_closures')} icon="💥" />
           {liquidations && (liquidations.summary?.count > 0 || liquidations.recent?.length > 0) ? (
             <div className="mt-3">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 <div className="bg-white/[0.03] rounded-lg p-3 text-center border border-white/5">
-                  <p className="text-[9px] uppercase tracking-wider text-text-muted font-bold">Total</p>
+                  <p className="text-[9px] uppercase tracking-wider text-text-muted font-bold">{t('markets.total')}</p>
                   <p className="text-white text-sm font-bold font-mono mt-1">${fmtLarge(liquidations.summary?.total_usd)}</p>
                 </div>
                 <div className="bg-green-500/[0.05] rounded-lg p-3 text-center border border-green-500/10">
-                  <p className="text-[9px] uppercase tracking-wider text-green-400/70 font-bold">Longs Liq.</p>
+                  <p className="text-[9px] uppercase tracking-wider text-green-400/70 font-bold">{t('markets.longs_liq')}</p>
                   <p className="text-green-400 text-sm font-bold font-mono mt-1">${fmtLarge(liquidations.summary?.long_liquidated)}</p>
                 </div>
                 <div className="bg-red-500/[0.05] rounded-lg p-3 text-center border border-red-500/10">
-                  <p className="text-[9px] uppercase tracking-wider text-red-400/70 font-bold">Shorts Liq.</p>
+                  <p className="text-[9px] uppercase tracking-wider text-red-400/70 font-bold">{t('markets.shorts_liq')}</p>
                   <p className="text-red-400 text-sm font-bold font-mono mt-1">${fmtLarge(liquidations.summary?.short_liquidated)}</p>
                 </div>
               </div>
@@ -399,7 +409,7 @@ const MarketsPage = () => {
               )}
 
               {/* Recent list */}
-              <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Recent Orders</p>
+              <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.recent_orders')}</p>
               <div className="space-y-1 max-h-[320px] overflow-y-auto scrollbar-thin">
                 {liquidations.recent?.slice(0, 15).map((liq, i) => {
                   const isLong = liq.side === 'SELL';
@@ -410,7 +420,7 @@ const MarketsPage = () => {
                       </span>
                       <span className="text-white text-[11px] font-medium w-10">{liq.symbol}</span>
                       <span className="text-text-muted text-[10px] font-mono flex-1">${fmtNum(liq.usd)}</span>
-                      <span className="text-text-muted text-[9px]">{timeAgo(liq.time)}</span>
+                      <span className="text-text-muted text-[9px]">{timeAgo(liq.time, t)}</span>
                     </div>
                   );
                 })}
@@ -419,11 +429,11 @@ const MarketsPage = () => {
           ) : (
             liquidations ? (
               <div className="mt-3 flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-text-muted text-[11px]">No recent liquidations captured</p>
-                <p className="text-text-muted/60 text-[9px] mt-1">Data updates every 30 seconds from OKX Futures</p>
+                <p className="text-text-muted text-[11px]">{t('markets.no_liq')}</p>
+                <p className="text-text-muted/60 text-[9px] mt-1">{t('markets.liq_update')}</p>
               </div>
             ) : (
-              <EmptyState text="Loading liquidations..." />
+              <EmptyState text={t('markets.loading_liq')} />
             )
           )}
         </div>
@@ -433,17 +443,17 @@ const MarketsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 5: DeFi */}
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-4">
-          <SectionHeader title="DeFi Overview" subtitle="Total Value Locked" icon="🏦" />
+          <SectionHeader title={t('markets.defi_overview')} subtitle={t('markets.total_tvl')} icon="🏦" />
           {defi ? (
             <div className="mt-3 space-y-4">
               <div className="flex items-baseline gap-2">
                 <p className="text-2xl font-bold font-mono text-white">${fmtLarge(defi.totalTvl)}</p>
-                <span className="text-text-muted text-[10px]">Total TVL</span>
+                <span className="text-text-muted text-[10px]">{t('markets.tvl_label')}</span>
               </div>
 
               {/* Top Chains */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Top Chains</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.top_chains')}</p>
                 <div className="space-y-1.5">
                   {defi.chains?.slice(0, 8).map((chain, i) => {
                     const pct = defi.totalTvl > 0 ? (chain.tvl / defi.totalTvl) * 100 : 0;
@@ -464,7 +474,7 @@ const MarketsPage = () => {
 
               {/* Top Protocols */}
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">Top Protocols</p>
+                <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.top_protocols')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {defi.protocols?.slice(0, 6).map(p => (
                     <div key={p.name} className="bg-white/[0.02] rounded-lg p-2.5 border border-white/5 flex items-center gap-2">
@@ -482,20 +492,20 @@ const MarketsPage = () => {
               </div>
             </div>
           ) : (
-            <EmptyState text="Loading DeFi data..." />
+            <EmptyState text={t('markets.loading_defi')} />
           )}
         </div>
 
         {/* 6: Stablecoins + ETF */}
         <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in fade-in-4">
-          <SectionHeader title="Macro & Stablecoins" subtitle="Stablecoin supply & ETF flows" icon="🏛️" />
+          <SectionHeader title={t('markets.macro_stable')} subtitle={t('markets.macro_sub')} icon="🏛️" />
           <div className="mt-3 space-y-4">
             {/* Stablecoins */}
             {stablecoins ? (
               <div>
                 <div className="flex items-baseline gap-2 mb-3">
                   <p className="text-xl font-bold font-mono text-white">${fmtLarge(stablecoins.totalMcap)}</p>
-                  <span className="text-text-muted text-[10px]">Stablecoin MCap</span>
+                  <span className="text-text-muted text-[10px]">{t('markets.stable_mcap')}</span>
                 </div>
 
                 {/* Donut-like bars */}
@@ -516,23 +526,23 @@ const MarketsPage = () => {
                 </div>
               </div>
             ) : (
-              <EmptyState text="Loading stablecoins..." />
+              <EmptyState text={t('markets.loading_stable')} />
             )}
 
             {/* ETF Flows */}
             <div className="pt-3 border-t border-white/5">
-              <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">ETF Net Flows</p>
+              <p className="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-2">{t('markets.etf_flows')}</p>
               {etfFlows && !etfFlows.error ? (
                 <div className="grid grid-cols-2 gap-3">
-                  <EtfCard label="Bitcoin ETF" data={etfFlows.btc} />
-                  <EtfCard label="Ethereum ETF" data={etfFlows.eth} />
+                  <EtfCard label={t('markets.btc_etf')} data={etfFlows.btc} t={t} />
+                  <EtfCard label={t('markets.eth_etf')} data={etfFlows.eth} t={t} />
                 </div>
               ) : (
                 <div className="bg-white/[0.02] rounded-lg p-4 border border-white/5 text-center">
                   <p className="text-text-muted text-[10px]">
                     {etfFlows?.error === 'SoSoValue API key not configured'
-                      ? '🔑 ETF data requires SoSoValue API key configuration'
-                      : etfFlows?.error || 'ETF data loading...'}
+                      ? t('markets.etf_key_err')
+                      : etfFlows?.error || t('markets.loading_etf')}
                   </p>
                 </div>
               )}
@@ -544,21 +554,21 @@ const MarketsPage = () => {
       {/* ═══ COIN TABLE ═══ */}
       <div className="glass-card rounded-2xl p-5 border border-gold-primary/10 fade-in">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <SectionHeader title="All Coins" subtitle="Top 100 by Market Cap" icon="💎" />
+          <SectionHeader title={t('markets.all_coins')} subtitle={t('markets.top_100')} icon="💎" />
           <div className="flex gap-1">
             {[
-              { key: 'all', label: 'All' },
-              { key: 'gainers', label: '🟢 Gainers' },
-              { key: 'losers', label: '🔴 Losers' },
-              { key: 'volume', label: '📊 Volume' },
-            ].map(t => (
-              <button key={t.key} onClick={() => { setCoinTab(t.key); setCoinPage(1); }}
+              { key: 'all', label: t('markets.tab_all') },
+              { key: 'gainers', label: t('markets.tab_gainers') },
+              { key: 'losers', label: t('markets.tab_losers') },
+              { key: 'volume', label: t('markets.tab_vol') },
+            ].map(tab => (
+              <button key={tab.key} onClick={() => { setCoinTab(tab.key); setCoinPage(1); }}
                 className={`text-[10px] px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  coinTab === t.key
+                  coinTab === tab.key
                     ? 'bg-gold-primary/20 text-gold-primary border border-gold-primary/30'
                     : 'bg-white/5 text-text-muted border border-transparent hover:text-white'
                 }`}>
-                {t.label}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -569,7 +579,7 @@ const MarketsPage = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
-                {['#', 'Coin', 'Price', '1h %', '24h %', '7d %', 'Market Cap', 'Volume'].map(h => (
+                {['#', t('markets.th_coin'), t('markets.th_price'), '1h %', '24h %', '7d %', t('markets.th_mcap'), t('markets.th_vol')].map(h => (
                   <th key={h} className="text-[9px] uppercase tracking-wider text-text-muted font-bold py-2.5 px-2 text-left whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -601,7 +611,7 @@ const MarketsPage = () => {
         {totalCoinPages > 1 && (
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
             <span className="text-text-muted text-[10px]">
-              Showing {(coinPage - 1) * COINS_PER_PAGE + 1}–{Math.min(coinPage * COINS_PER_PAGE, filteredCoins.length)} of {filteredCoins.length}
+              {t('markets.showing')} {(coinPage - 1) * COINS_PER_PAGE + 1}–{Math.min(coinPage * COINS_PER_PAGE, filteredCoins.length)} {t('markets.of')} {filteredCoins.length}
             </span>
             <div className="flex gap-1">
               <button onClick={() => setCoinPage(p => Math.max(1, p - 1))} disabled={coinPage === 1}
@@ -619,7 +629,6 @@ const MarketsPage = () => {
         )}
       </div>
 
-      {/* 4. RENDER MODAL DISINI */}
       {selectedArticle && (
         <NewsPreviewModal
           article={selectedArticle}
@@ -655,18 +664,19 @@ const GlobalStat = ({ label, value, change, accent }) => (
   </div>
 );
 
-const FearGreedMini = ({ value, label }) => {
+const FearGreedMini = ({ value, label, t }) => {
   const v = value || 50;
   const color = v <= 25 ? 'text-red-400' : v <= 45 ? 'text-orange-400' : v <= 55 ? 'text-yellow-400' : v <= 75 ? 'text-lime-400' : 'text-green-400';
   const ring = v <= 25 ? 'fear-ring-red' : v <= 45 ? 'fear-ring-orange' : v <= 55 ? 'fear-ring-yellow' : v <= 75 ? 'fear-ring-lime' : 'fear-ring-green';
   return (
     <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
-      <p className="text-text-muted text-[8px] uppercase tracking-[0.15em] font-bold">Fear & Greed</p>
+      <p className="text-text-muted text-[8px] uppercase tracking-[0.15em] font-bold">{t('markets.fear_greed')}</p>
       <div className="flex items-center gap-2 mt-1">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${ring}`}>
           <span className={`text-sm font-bold font-mono ${color}`}>{v}</span>
         </div>
-        <span className={`text-[10px] font-semibold ${color}`}>{label || 'Neutral'}</span>
+        {/* Jika label dari API adalah 'Neutral' dsb. Kalau API sudah terjemahkan, tampilkan. Kalau belum, kita bisa mapping. Kita pakai fallback manual: */}
+        <span className={`text-[10px] font-semibold ${color}`}>{label || t('markets.neutral')}</span>
       </div>
     </div>
   );
@@ -694,11 +704,11 @@ const PctText = ({ value }) => {
   );
 };
 
-const EtfCard = ({ label, data }) => {
+const EtfCard = ({ label, data, t }) => {
   if (!data || !data.records?.length) return (
     <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
       <p className="text-text-muted text-[9px] font-bold">{label}</p>
-      <p className="text-text-muted text-[10px] mt-2">No data</p>
+      <p className="text-text-muted text-[10px] mt-2">{t('markets.no_data')}</p>
     </div>
   );
   const latest = data.records[0];
@@ -711,7 +721,7 @@ const EtfCard = ({ label, data }) => {
         {pos ? '+' : ''}{flow != null ? `$${fmtLarge(Math.abs(flow))}` : '-'}
       </p>
       <p className="text-text-muted text-[9px] mt-0.5">{latest?.date || ''}</p>
-      {latest?.totalAum && <p className="text-text-muted text-[9px]">AUM: ${fmtLarge(latest.totalAum)}</p>}
+      {latest?.totalAum && <p className="text-text-muted text-[9px]">{t('markets.aum')} ${fmtLarge(latest.totalAum)}</p>}
     </div>
   );
 };
@@ -982,7 +992,7 @@ const EmptyState = ({ text }) => (
   </div>
 );
 
-const ErrorState = ({ error, onRetry }) => (
+const ErrorState = ({ error, onRetry, t }) => (
   <div className="space-y-6">
     <div className="flex items-center gap-3">
       <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
@@ -995,7 +1005,9 @@ const ErrorState = ({ error, onRetry }) => (
         </svg>
       </div>
       <p className="text-red-400 mb-4 text-sm">{error}</p>
-      <button onClick={onRetry} className="px-5 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm font-semibold border border-gold-primary/20">Retry</button>
+      <button onClick={onRetry} className="px-5 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm font-semibold border border-gold-primary/20">
+        {t ? t('markets.retry') : 'Retry'}
+      </button>
     </div>
   </div>
 );
@@ -1058,16 +1070,19 @@ function fmtPrice(n) {
   return n.toFixed(6);
 }
 
-function timeAgo(ts) {
+// Saya menyuntikkan fungsi 't' ke timeAgo untuk mengubah 'ago', 'h', 'm', dsb.
+function timeAgo(ts, t) {
   if (!ts) return '';
   const now = Date.now();
   const diff = now - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  
+  // Jika bahasa Mandarin terpilih, gunakan terjemahan dari kamus
+  if (mins < 1) return t ? t('markets.just_now') : 'just now';
+  if (mins < 60) return `${mins} ${t ? t('markets.m_ago') : 'm ago'}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `${hours} ${t ? t('markets.h_ago') : 'h ago'}`;
+  return `${Math.floor(hours / 24)} ${t ? t('markets.d_ago') : 'd ago'}`;
 }
 
 export default MarketsPage;

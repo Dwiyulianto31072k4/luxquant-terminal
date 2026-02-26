@@ -1,5 +1,6 @@
 // src/components/OrderBookPage.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next"; // <-- 1. Import i18n
 import orderbookApi from "../services/orderbookApi";
 
 // ═══════════════════════════════════════════
@@ -39,19 +40,29 @@ const sentimentColors = {
 // ═══════════════════════════════════════════
 // Imbalance Gauge Component
 // ═══════════════════════════════════════════
-const ImbalanceGauge = ({ data }) => {
-  const { bid_pct, ask_pct, bid_usd, ask_usd, sentiment, sentiment_label } = data || {};
+const ImbalanceGauge = ({ data, t }) => {
+  const { bid_pct, ask_pct, bid_usd, ask_usd, sentiment } = data || {};
   const sc = sentimentColors[sentiment] || sentimentColors.neutral;
+
+  // Terjemahkan sentimen menggunakan kamus btc yang sudah ada
+  const getTranslatedSentiment = () => {
+    if (!sentiment) return t('orderbook.loading');
+    if (sentiment === 'strong_buy') return t('btc.strong_buy');
+    if (sentiment === 'buy') return t('btc.buy');
+    if (sentiment === 'strong_sell') return t('btc.strong_sell');
+    if (sentiment === 'sell') return t('btc.sell');
+    return t('btc.neutral');
+  };
 
   return (
     <div className="rounded-2xl p-5" style={{ background: sc.bg, border: `1px solid ${sc.border}`, boxShadow: sc.glow }}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Order Book Imbalance</p>
-          <p className="text-xl font-bold mt-1" style={{ color: sc.text }}>{sentiment_label || "Loading..."}</p>
+          <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">{t('orderbook.imbalance_title')}</p>
+          <p className="text-xl font-bold mt-1" style={{ color: sc.text }}>{getTranslatedSentiment()}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-text-muted">Bid / Ask Volume</p>
+          <p className="text-xs text-text-muted">{t('orderbook.bid_ask_vol')}</p>
           <p className="text-sm font-semibold text-white">{fmt(bid_usd)} <span className="text-text-muted">/</span> {fmt(ask_usd)}</p>
         </div>
       </div>
@@ -77,8 +88,8 @@ const ImbalanceGauge = ({ data }) => {
       </div>
 
       <div className="flex justify-between mt-2 text-[11px] text-text-muted">
-        <span>Buyers (Bids)</span>
-        <span>Sellers (Asks)</span>
+        <span>{t('orderbook.buyers_bids')}</span>
+        <span>{t('orderbook.sellers_asks')}</span>
       </div>
     </div>
   );
@@ -112,12 +123,12 @@ const WallCard = ({ wall, type, maxUsd }) => {
 // ═══════════════════════════════════════════
 // Depth Chart Component (visual bars)
 // ═══════════════════════════════════════════
-const DepthChart = ({ depth }) => {
+const DepthChart = ({ depth, t }) => {
   const bids = depth?.bids || [];
   const asks = depth?.asks || [];
 
   if (!bids.length && !asks.length) {
-    return <div className="text-center text-text-muted py-8 text-sm">No depth data</div>;
+    return <div className="text-center text-text-muted py-8 text-sm">{t('orderbook.no_depth')}</div>;
   }
 
   // Get max cumulative for scaling
@@ -152,7 +163,7 @@ const DepthChart = ({ depth }) => {
       {/* Mid price divider */}
       <div className="flex items-center gap-2 h-7 my-1">
         <div className="flex-1 h-px bg-gold-primary/30" />
-        <span className="text-xs font-bold text-gold-primary px-2">MID</span>
+        <span className="text-xs font-bold text-gold-primary px-2">{t('orderbook.mid')}</span>
         <div className="flex-1 h-px bg-gold-primary/30" />
       </div>
 
@@ -179,7 +190,7 @@ const DepthChart = ({ depth }) => {
 // ═══════════════════════════════════════════
 // S/R Levels Component
 // ═══════════════════════════════════════════
-const SRLevels = ({ data }) => {
+const SRLevels = ({ data, t }) => {
   const support = data?.support || [];
   const resistance = data?.resistance || [];
 
@@ -187,26 +198,26 @@ const SRLevels = ({ data }) => {
     <div className="space-y-3">
       {/* Resistance */}
       <div>
-        <p className="text-[11px] uppercase tracking-wider text-red-400 font-semibold mb-2">🔴 Resistance Levels</p>
+        <p className="text-[11px] uppercase tracking-wider text-red-400 font-semibold mb-2">🔴 {t('orderbook.res_levels')}</p>
         {resistance.length ? resistance.map((r, i) => (
           <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-red-500/5">
             <span className="text-sm font-mono font-semibold text-white">{fmtPrice(r.price)}</span>
-            <span className="text-xs text-red-400 font-semibold">{fmt(r.usd)} wall</span>
+            <span className="text-xs text-red-400 font-semibold">{fmt(r.usd)} {t('orderbook.wall')}</span>
           </div>
-        )) : <p className="text-xs text-text-muted px-2">No significant resistance walls</p>}
+        )) : <p className="text-xs text-text-muted px-2">{t('orderbook.no_res_walls')}</p>}
       </div>
 
       <div className="h-px bg-white/[0.05]" />
 
       {/* Support */}
       <div>
-        <p className="text-[11px] uppercase tracking-wider text-green-400 font-semibold mb-2">🟢 Support Levels</p>
+        <p className="text-[11px] uppercase tracking-wider text-green-400 font-semibold mb-2">🟢 {t('orderbook.sup_levels')}</p>
         {support.length ? support.map((s, i) => (
           <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-green-500/5">
             <span className="text-sm font-mono font-semibold text-white">{fmtPrice(s.price)}</span>
-            <span className="text-xs text-green-400 font-semibold">{fmt(s.usd)} wall</span>
+            <span className="text-xs text-green-400 font-semibold">{fmt(s.usd)} {t('orderbook.wall')}</span>
           </div>
-        )) : <p className="text-xs text-text-muted px-2">No significant support walls</p>}
+        )) : <p className="text-xs text-text-muted px-2">{t('orderbook.no_sup_walls')}</p>}
       </div>
     </div>
   );
@@ -216,6 +227,7 @@ const SRLevels = ({ data }) => {
 // Main Page Component
 // ═══════════════════════════════════════════
 export default function OrderBookPage() {
+  const { t } = useTranslation(); // <-- 2. Panggil hook i18n
   const [activeSymbol, setActiveSymbol] = useState("BTCUSDT");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -233,11 +245,11 @@ export default function OrderBookPage() {
       setError(null);
     } catch (err) {
       console.error("OrderBook fetch error:", err);
-      setError("Failed to load order book data");
+      setError(t('orderbook.loading_ob')); // Reuse string from dict
     } finally {
       setLoading(false);
     }
-  }, [activeSymbol]);
+  }, [activeSymbol, t]);
 
   useEffect(() => {
     fetchData(true);
@@ -270,9 +282,9 @@ export default function OrderBookPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-white flex items-center gap-2">
-            📊 Order Book
+            📊 {t('orderbook.title')}
           </h1>
-          <p className="text-sm text-text-muted mt-1">Real-time buy/sell wall detection & imbalance analysis</p>
+          <p className="text-sm text-text-muted mt-1">{t('orderbook.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -285,7 +297,7 @@ export default function OrderBookPage() {
                 : "bg-white/5 text-text-muted border border-white/10"
             }`}
           >
-            {autoRefresh ? "● Live 15s" : "○ Paused"}
+            {autoRefresh ? t('orderbook.live_15s') : t('orderbook.paused_dot')}
           </button>
 
           {/* Manual refresh */}
@@ -293,7 +305,7 @@ export default function OrderBookPage() {
             onClick={() => fetchData(false)}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10 transition-all"
           >
-            ↻ Refresh
+            {t('orderbook.refresh')}
           </button>
         </div>
       </div>
@@ -325,7 +337,7 @@ export default function OrderBookPage() {
           <div className="ml-auto flex items-center gap-3">
             <div className="text-right">
               <p className="text-lg font-mono font-bold text-white">{fmtPrice(data.mid_price)}</p>
-              <p className="text-[11px] text-text-muted">Spread: {data.spread_pct?.toFixed(4)}%</p>
+              <p className="text-[11px] text-text-muted">{t('orderbook.spread')} {data.spread_pct?.toFixed(4)}%</p>
             </div>
           </div>
         ) : null}
@@ -336,7 +348,7 @@ export default function OrderBookPage() {
         <div className="flex items-center justify-center py-16">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
-            <p className="text-sm text-text-muted">Loading order book...</p>
+            <p className="text-sm text-text-muted">{t('orderbook.loading_ob')}</p>
           </div>
         </div>
       )}
@@ -345,7 +357,7 @@ export default function OrderBookPage() {
         <div className="rounded-xl p-6 text-center" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
           <p className="text-red-400">{error}</p>
           <button onClick={() => fetchData(true)} className="mt-3 px-4 py-1.5 rounded-lg text-xs font-semibold bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors">
-            Retry
+            {t('orderbook.retry')}
           </button>
         </div>
       )}
@@ -353,23 +365,23 @@ export default function OrderBookPage() {
       {data && (
         <>
           {/* ── Imbalance Gauge ── */}
-          <ImbalanceGauge data={imbalance} />
+          <ImbalanceGauge data={imbalance} t={t} />
 
           {/* ── Main Grid ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Left: Depth Chart */}
             <div className="lg:col-span-2 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white">📈 Depth Chart</h3>
-                <span className="text-[11px] text-text-muted">{data.total_levels} levels</span>
+                <h3 className="text-sm font-semibold text-white">📈 {t('orderbook.depth_chart')}</h3>
+                <span className="text-[11px] text-text-muted">{data.total_levels} {t('orderbook.levels')}</span>
               </div>
-              <DepthChart depth={depth} />
+              <DepthChart depth={depth} t={t} />
             </div>
 
             {/* Right: S/R Levels */}
             <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <h3 className="text-sm font-semibold text-white mb-3">🎯 Support / Resistance</h3>
-              <SRLevels data={sr} />
+              <h3 className="text-sm font-semibold text-white mb-3">🎯 {t('orderbook.sup_res')}</h3>
+              <SRLevels data={sr} t={t} />
             </div>
           </div>
 
@@ -378,7 +390,7 @@ export default function OrderBookPage() {
             {/* Buy Walls */}
             <div className="rounded-2xl p-4" style={{ background: "rgba(34,197,94,0.03)", border: "1px solid rgba(34,197,94,0.1)" }}>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-green-400">🟢 Buy Walls (Support)</h3>
+                <h3 className="text-sm font-semibold text-green-400">🟢 {t('orderbook.buy_walls')}</h3>
                 <span className="text-xs text-green-400/70 font-semibold">{fmt(walls.buy_total_usd)}</span>
               </div>
               {walls.buy?.length ? (
@@ -386,14 +398,14 @@ export default function OrderBookPage() {
                   {walls.buy.map((w, i) => <WallCard key={i} wall={w} type="buy" maxUsd={maxWallUsd} />)}
                 </div>
               ) : (
-                <p className="text-sm text-text-muted text-center py-4">No significant buy walls detected</p>
+                <p className="text-sm text-text-muted text-center py-4">{t('orderbook.no_buy_walls')}</p>
               )}
             </div>
 
             {/* Sell Walls */}
             <div className="rounded-2xl p-4" style={{ background: "rgba(239,68,68,0.03)", border: "1px solid rgba(239,68,68,0.1)" }}>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-red-400">🔴 Sell Walls (Resistance)</h3>
+                <h3 className="text-sm font-semibold text-red-400">🔴 {t('orderbook.sell_walls')}</h3>
                 <span className="text-xs text-red-400/70 font-semibold">{fmt(walls.sell_total_usd)}</span>
               </div>
               {walls.sell?.length ? (
@@ -401,22 +413,22 @@ export default function OrderBookPage() {
                   {walls.sell.map((w, i) => <WallCard key={i} wall={w} type="sell" maxUsd={maxWallUsd} />)}
                 </div>
               ) : (
-                <p className="text-sm text-text-muted text-center py-4">No significant sell walls detected</p>
+                <p className="text-sm text-text-muted text-center py-4">{t('orderbook.no_sell_walls')}</p>
               )}
             </div>
           </div>
 
           {/* ── Footer Info ── */}
           <div className="flex items-center justify-center gap-4 text-[11px] text-text-muted py-2">
-            <span>Data source: Bybit Derivatives</span>
+            <span>{t('orderbook.data_source')}</span>
             <span>·</span>
-            <span>Cache: 10s</span>
+            <span>{t('orderbook.cache_10s')}</span>
             <span>·</span>
-            <span>Auto-refresh: {autoRefresh ? "15s" : "paused"}</span>
+            <span>{t('orderbook.auto_refresh')} {autoRefresh ? "15s" : t('orderbook.paused')}</span>
             {lastUpdate && (
               <>
                 <span>·</span>
-                <span>Updated: {lastUpdate.toLocaleTimeString()}</span>
+                <span>{t('orderbook.updated')} {lastUpdate.toLocaleTimeString()}</span>
               </>
             )}
           </div>

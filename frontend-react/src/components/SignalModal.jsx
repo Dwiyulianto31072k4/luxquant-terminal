@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
 import CoinLogo from './CoinLogo';
 
 const SignalModal = ({ signal, isOpen, onClose }) => {
+  const { t } = useTranslation(); // <-- 2. Panggil i18n
+
   const chartContainerRef = useRef(null);
   const widgetRef = useRef(null);
   const coinInfoFetchedRef = useRef(false);
@@ -158,15 +161,15 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const grayC = { bg: 'bg-gray-700', text: 'text-text-muted', line: 'bg-gray-700/30' };
   const buildTimeline = () => {
     const ev = [];
-    ev.push({ type: 'called', label: 'Signal Called', sublabel: `Entry @ ${formatPrice(signal.entry)}`, time: signal.created_at, icon: '📡', hit: true, colorClasses: { bg: 'bg-gold-primary', text: 'text-gold-primary', line: 'bg-gold-primary/40' } });
+    ev.push({ type: 'called', label: t('modal.signal_called'), sublabel: `${t('modal.entry')} @ ${formatPrice(signal.entry)}`, time: signal.created_at, icon: '📡', hit: true, colorClasses: { bg: 'bg-gold-primary', text: 'text-gold-primary', line: 'bg-gold-primary/40' } });
     const tps = [
       { k: 'tp1', l: 'TP1', v: signal.target1, c: { bg: 'bg-green-500', text: 'text-green-400', line: 'bg-green-500/40' } },
       { k: 'tp2', l: 'TP2', v: signal.target2, c: { bg: 'bg-lime-500', text: 'text-lime-400', line: 'bg-lime-500/40' } },
       { k: 'tp3', l: 'TP3', v: signal.target3, c: { bg: 'bg-yellow-500', text: 'text-yellow-400', line: 'bg-yellow-500/40' } },
       { k: 'tp4', l: 'TP4', v: signal.target4, c: { bg: 'bg-orange-500', text: 'text-orange-400', line: 'bg-orange-500/40' } },
     ];
-    tps.forEach((tp, i) => { if (!tp.v) return; const u = getUpdateInfo(tp.k); const h = hitTargets[i]; ev.push({ type: tp.k, label: `${tp.l} Hit`, sublabel: `${formatPrice(tp.v)} (+${calcPct(tp.v, signal.entry)}%)`, time: u?.update_at || null, icon: h ? '✓' : (i+1).toString(), hit: h, colorClasses: h ? tp.c : grayC }); });
-    if (signal.stop1) { const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); const sc = { bg: 'bg-red-500', text: 'text-red-400', line: 'bg-red-500/40' }; ev.push({ type: 'sl', label: 'Stop Loss Hit', sublabel: `${formatPrice(signal.stop1)} (${calcPct(signal.stop1, signal.entry)}%)`, time: su?.update_at || null, icon: isStopped ? '✗' : '⊘', hit: isStopped, colorClasses: isStopped ? sc : grayC }); }
+    tps.forEach((tp, i) => { if (!tp.v) return; const u = getUpdateInfo(tp.k); const h = hitTargets[i]; ev.push({ type: tp.k, label: `${tp.l} ${t('modal.hit')}`, sublabel: `${formatPrice(tp.v)} (+${calcPct(tp.v, signal.entry)}%)`, time: u?.update_at || null, icon: h ? '✓' : (i+1).toString(), hit: h, colorClasses: h ? tp.c : grayC }); });
+    if (signal.stop1) { const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); const sc = { bg: 'bg-red-500', text: 'text-red-400', line: 'bg-red-500/40' }; ev.push({ type: 'sl', label: t('modal.stop_loss_hit'), sublabel: `${formatPrice(signal.stop1)} (${calcPct(signal.stop1, signal.entry)}%)`, time: su?.update_at || null, icon: isStopped ? '✗' : '⊘', hit: isStopped, colorClasses: isStopped ? sc : grayC }); }
     return ev;
   };
   const timeline = buildTimeline();
@@ -180,7 +183,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
         <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gold-primary/70 text-[8px] uppercase tracking-wider font-medium">Entry</p>
+              <p className="text-gold-primary/70 text-[8px] uppercase tracking-wider font-medium">{t('modal.entry')}</p>
               <p className={`font-mono font-bold text-gold-primary ${isCompact ? 'text-sm' : 'text-lg'}`}>{formatPrice(signal.entry)}</p>
             </div>
             <p className="text-[9px] text-gold-primary/70">{formatShortDateTime(signal.created_at)}</p>
@@ -206,7 +209,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           </div>
         ) : (
           <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
-            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🎯 Targets</p>
+            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🎯 {t('modal.targets')}</p>
             <div className="space-y-1">{targets.map((t, i) => (
               <div key={i} className={`p-1.5 rounded ${t.hit ? 'bg-green-500/10 border border-green-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
                 <div className="flex items-center justify-between">
@@ -234,7 +237,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             </div>
           ) : (
             <div className="bg-[#111]/80 rounded-lg p-2 border border-red-500/15">
-              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🛑 Stop Loss</p>
+              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">🛑 {t('modal.stop_loss')}</p>
               <div className="space-y-1">{stops.map((s, i) => (
                 <div key={i} className={`p-1.5 rounded ${s.hit ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
                   <div className="flex items-center justify-between"><span className={`text-[10px] font-medium ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.label}</span><span className={`text-[10px] font-mono ${s.hit ? 'text-red-400' : 'text-text-muted'}`}>{s.pct}%</span></div>
@@ -248,14 +251,14 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
           <>
             {signal.volume_rank_num && (
               <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/15">
-                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5">📊 Volume Rank</p>
+                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5">📊 {t('modal.vol_rank')}</p>
                 <p className="text-base font-bold text-white">#{signal.volume_rank_num}<span className="text-text-muted text-xs font-normal ml-1">/ {signal.volume_rank_den}</span></p>
               </div>
             )}
             {(signal.risk_level || signal.market_cap) && (
               <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/10 space-y-1">
-                {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Risk Level</span><span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${signal.risk_level?.toLowerCase().startsWith('low') ? 'bg-green-500/15 text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>{signal.risk_level}</span></div>}
-                {signal.market_cap && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">Market Cap</span><span className="text-white text-[9px] font-medium">{signal.market_cap}</span></div>}
+                {signal.risk_level && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">{t('modal.risk_level')}</span><span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${signal.risk_level?.toLowerCase().startsWith('low') ? 'bg-green-500/15 text-green-400' : signal.risk_level?.toLowerCase().startsWith('high') ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>{signal.risk_level}</span></div>}
+                {signal.market_cap && <div className="flex items-center justify-between"><span className="text-text-muted text-[9px]">{t('modal.market_cap')}</span><span className="text-white text-[9px] font-medium">{signal.market_cap}</span></div>}
               </div>
             )}
           </>
@@ -277,7 +280,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
             )}
             {signal.market_cap && (
               <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
-                <span className="text-text-muted text-[9px]">Cap</span>
+                <span className="text-text-muted text-[9px]">{t('modal.cap')}</span>
                 <span className="text-white text-[9px] font-medium">{signal.market_cap}</span>
               </div>
             )}
@@ -320,7 +323,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                     {['chart', 'trade', 'research'].map(tab => (
                       <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-gold-primary text-black' : 'text-text-secondary hover:text-white hover:bg-white/5'}`}>
                         <span className="sm:hidden">{tab === 'chart' ? '📈' : tab === 'trade' ? '💹' : '🔍'}</span>
-                        <span className="hidden sm:inline">{tab === 'chart' ? '📈 Chart' : tab === 'trade' ? '💹 Trade' : '🔍 Research'}</span>
+                        <span className="hidden sm:inline">{tab === 'chart' ? `📈 ${t('modal.chart')}` : tab === 'trade' ? `💹 ${t('modal.trade')}` : `🔍 ${t('modal.research')}`}</span>
                       </button>
                     ))}
                   </div>
@@ -359,9 +362,9 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                     <div className="text-center mb-6 sm:mb-8">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <CoinLogo pair={signal.pair} size={28} />
-                        <h3 className="text-lg sm:text-xl font-display text-white">Trade {signal.pair}</h3>
+                        <h3 className="text-lg sm:text-xl font-display text-white">{t('modal.trade')} {signal.pair}</h3>
                       </div>
-                      <p className="text-text-muted text-xs sm:text-sm">Trade execution proof & signal progress</p>
+                      <p className="text-text-muted text-xs sm:text-sm">{t('modal.trade_proof')}</p>
                     </div>
 
                     {/* TRADE PROOF: Side-by-Side Besar */}
@@ -373,7 +376,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                           <div className="flex-1 w-full min-w-0 flex flex-col">
                             <div className="flex items-center justify-between mb-3 px-1">
                               <span className="text-blue-400 text-xs sm:text-sm font-bold tracking-wide uppercase flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Before (Entry)
+                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> {t('modal.before_entry')}
                               </span>
                               <span className="text-text-muted/50 text-[10px] sm:text-xs font-mono">{formatShortDateTime(signal.created_at)}</span>
                             </div>
@@ -382,13 +385,13 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                               <div className="relative group rounded-xl overflow-hidden border border-blue-500/20 bg-[#0d0d0d] aspect-video w-full cursor-zoom-in shadow-lg" onClick={() => setLightboxImg(entryImg)}>
                                 <img src={entryImg} alt="Entry Chart" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 View Fullscreen</span>
+                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 {t('modal.view_full')}</span>
                                 </div>
                               </div>
                             ) : (
                               <div className="rounded-xl border border-dashed border-gray-700 bg-gray-800/20 flex flex-col items-center justify-center aspect-video w-full text-gray-500">
                                 <span className="text-3xl mb-3">⏳</span>
-                                <p className="text-sm">Waiting for entry screenshot...</p>
+                                <p className="text-sm">{t('modal.waiting_ss')}</p>
                               </div>
                             )}
                           </div>
@@ -413,20 +416,20 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                             <div className="flex items-center justify-between mb-3 px-1">
                               <span className={`text-xs sm:text-sm font-bold tracking-wide uppercase flex items-center gap-2 ${isStopped ? 'text-red-400' : 'text-green-400'}`}>
                                 <span className={`w-2 h-2 rounded-full ${isStopped ? 'bg-red-500' : 'bg-green-500'} shadow-[0_0_8px_currentColor]`}></span> 
-                                After ({signal.status === 'open' ? 'LATEST' : signal.status?.toUpperCase()})
+                                {t('modal.after')} ({signal.status === 'open' ? t('modal.latest') : signal.status?.toUpperCase()})
                               </span>
                             </div>
                             {afterImg ? (
                               <div className={`relative group rounded-xl overflow-hidden border bg-[#0d0d0d] aspect-video w-full cursor-zoom-in shadow-lg ${isStopped ? 'border-red-500/20' : 'border-green-500/20'}`} onClick={() => setLightboxImg(afterImg)}>
                                 <img src={afterImg} alt="Latest Chart" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 View Fullscreen</span>
+                                  <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-4 py-2 rounded-lg font-medium backdrop-blur-sm transition-all shadow-xl">🔍 {t('modal.view_full')}</span>
                                 </div>
                               </div>
                             ) : (
                               <div className="rounded-xl border border-dashed border-gray-700 bg-gray-800/20 flex flex-col items-center justify-center aspect-video w-full text-gray-500">
                                 <span className="text-3xl mb-3">📈</span>
-                                <p className="text-sm">Trade still active</p>
+                                <p className="text-sm">{t('modal.trade_active')}</p>
                               </div>
                             )}
                           </div>
@@ -438,8 +441,8 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                     {/* Timeline */}
                     <div className="mb-6 sm:mb-8">
                       <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <span className="text-gold-primary text-sm font-semibold">⏱️ Signal Journey</span>
-                        {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[11px] text-text-muted bg-[#1a1a1a] px-3 py-1 rounded font-mono">Total Duration: {d}</span> : <span className="text-[11px] text-cyan-400/70">● Running Active</span>; })()}
+                        <span className="text-gold-primary text-sm font-semibold">⏱️ {t('modal.signal_journey')}</span>
+                        {(() => { const lh = [...targets.filter(t => t.hit && t.reachedAt), ...stops.filter(s => s.hit && s.reachedAt)].sort((a,b) => new Date(b.reachedAt) - new Date(a.reachedAt))[0]; const d = lh && signal.created_at ? calcTimeDiff(signal.created_at, lh.reachedAt) : null; return d ? <span className="text-[11px] text-text-muted bg-[#1a1a1a] px-3 py-1 rounded font-mono">{t('modal.total_duration')}: {d}</span> : <span className="text-[11px] text-cyan-400/70">● {t('modal.running_active')}</span>; })()}
                       </div>
                       <div className="bg-[#111] rounded-xl border border-gold-primary/15 p-4 sm:p-5">
                         {timeline.map((ev, idx) => {
@@ -462,7 +465,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
                     {/* Exchange links */}
                     <div className="mb-6 sm:mb-8">
-                      <p className="text-gold-primary text-sm font-semibold mb-3 sm:mb-4">🏦 Open Trade on Exchange</p>
+                      <p className="text-gold-primary text-sm font-semibold mb-3 sm:mb-4">🏦 {t('modal.open_exchange')}</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                         {tradeLinks.map((link, i) => (
                           <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-2 sm:gap-3 p-3 sm:p-5 bg-gradient-to-br ${link.color} rounded-xl transition-all group border hover:scale-[1.02] active:scale-95`}>
@@ -475,12 +478,12 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
                     {/* Summary */}
                     <div className="bg-gradient-to-br from-gold-primary/10 to-transparent rounded-xl p-4 sm:p-5 border border-gold-primary/25 mb-2">
-                      <h4 className="text-gold-primary font-display text-base mb-3 sm:mb-4">Signal Summary</h4>
+                      <h4 className="text-gold-primary font-display text-base mb-3 sm:mb-4">{t('modal.summary')}</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                        <div><p className="text-text-muted text-xs uppercase mb-1">Entry</p><p className="text-white font-mono text-base">{formatPrice(signal.entry)}</p></div>
-                        <div><p className="text-text-muted text-xs uppercase mb-1">Status</p><span className={`inline-block px-2.5 py-1 rounded text-xs font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
-                        <div><p className="text-text-muted text-xs uppercase mb-1">Targets Hit</p><p className="text-white text-base">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
-                        <div><p className="text-text-muted text-xs uppercase mb-1">Max Profit</p><p className="text-green-400 text-base">+{targets[targets.length-1]?.pct || 0}%</p></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">{t('modal.entry')}</p><p className="text-white font-mono text-base">{formatPrice(signal.entry)}</p></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">{t('modal.status')}</p><span className={`inline-block px-2.5 py-1 rounded text-xs font-bold text-white ${statusStyles[signal.status?.toLowerCase()] || 'bg-gray-500'}`}>{signal.status}</span></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">{t('modal.targets_hit')}</p><p className="text-white text-base">{hitTargets.filter(Boolean).length} / {targets.length}</p></div>
+                        <div><p className="text-text-muted text-xs uppercase mb-1">{t('modal.max_profit')}</p><p className="text-green-400 text-base">+{targets[targets.length-1]?.pct || 0}%</p></div>
                       </div>
                     </div>
 
@@ -492,7 +495,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
               {activeTab === 'research' && (
                 <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
                   <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-3 sm:mb-5"><h3 className="text-base sm:text-lg font-display text-white mb-1">Research & Analytics</h3><p className="text-text-muted text-xs sm:text-sm">Deep dive into <span className="text-gold-primary font-semibold">{coinSymbol}</span></p></div>
+                    <div className="text-center mb-3 sm:mb-5"><h3 className="text-base sm:text-lg font-display text-white mb-1">{t('modal.research_analytics')}</h3><p className="text-text-muted text-xs sm:text-sm">{t('modal.deep_dive')} <span className="text-gold-primary font-semibold">{coinSymbol}</span></p></div>
                     {coinInfoLoading && (
                       <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-4 sm:mb-5 animate-pulse">
                         <div className="flex items-center gap-3 mb-3"><div className="w-8 h-8 rounded-full bg-gold-primary/10" /><div><div className="h-4 bg-gold-primary/10 rounded w-32 mb-1" /><div className="h-3 bg-white/5 rounded w-48" /></div></div>
@@ -511,19 +514,19 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                         {coinInfo.description && <p className="text-text-muted text-xs leading-relaxed mb-3 line-clamp-4 sm:line-clamp-none">{coinInfo.description}</p>}
                         {coinInfo.market_data && (
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/5">
-                            {coinInfo.market_data.current_price != null && <div><p className="text-text-muted text-[9px] uppercase">Price</p><p className="text-white text-xs font-mono">${coinInfo.market_data.current_price.toLocaleString()}</p></div>}
-                            {coinInfo.market_data.market_cap != null && <div><p className="text-text-muted text-[9px] uppercase">Market Cap</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.market_cap)}</p></div>}
-                            {coinInfo.market_data.market_cap_rank != null && <div><p className="text-text-muted text-[9px] uppercase">Rank</p><p className="text-white text-xs font-mono">#{coinInfo.market_data.market_cap_rank}</p></div>}
-                            {coinInfo.market_data.total_volume != null && <div><p className="text-text-muted text-[9px] uppercase">24h Volume</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.total_volume)}</p></div>}
+                            {coinInfo.market_data.current_price != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.price')}</p><p className="text-white text-xs font-mono">${coinInfo.market_data.current_price.toLocaleString()}</p></div>}
+                            {coinInfo.market_data.market_cap != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.market_cap')}</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.market_cap)}</p></div>}
+                            {coinInfo.market_data.market_cap_rank != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.rank')}</p><p className="text-white text-xs font-mono">#{coinInfo.market_data.market_cap_rank}</p></div>}
+                            {coinInfo.market_data.total_volume != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.vol_24h')}</p><p className="text-white text-xs">{formatBigNum(coinInfo.market_data.total_volume)}</p></div>}
                             {coinInfo.market_data.price_change_24h_pct != null && <div><p className="text-text-muted text-[9px] uppercase">24h</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_24h_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_24h_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_24h_pct.toFixed(2)}%</p></div>}
                             {coinInfo.market_data.price_change_7d_pct != null && <div><p className="text-text-muted text-[9px] uppercase">7d</p><p className={`text-xs font-mono ${coinInfo.market_data.price_change_7d_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{coinInfo.market_data.price_change_7d_pct >= 0 ? '+' : ''}{coinInfo.market_data.price_change_7d_pct.toFixed(2)}%</p></div>}
-                            {coinInfo.market_data.ath != null && <div><p className="text-text-muted text-[9px] uppercase">ATH</p><p className="text-white text-xs font-mono">${coinInfo.market_data.ath.toLocaleString()}</p>{coinInfo.market_data.ath_change_pct != null && <p className="text-red-400/70 text-[8px] font-mono">{coinInfo.market_data.ath_change_pct.toFixed(1)}%</p>}</div>}
-                            {coinInfo.market_data.circulating_supply != null && <div><p className="text-text-muted text-[9px] uppercase">Supply</p><p className="text-white text-xs">{(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M</p></div>}
+                            {coinInfo.market_data.ath != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.ath')}</p><p className="text-white text-xs font-mono">${coinInfo.market_data.ath.toLocaleString()}</p>{coinInfo.market_data.ath_change_pct != null && <p className="text-red-400/70 text-[8px] font-mono">{coinInfo.market_data.ath_change_pct.toFixed(1)}%</p>}</div>}
+                            {coinInfo.market_data.circulating_supply != null && <div><p className="text-text-muted text-[9px] uppercase">{t('modal.supply')}</p><p className="text-white text-xs">{(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M</p></div>}
                           </div>
                         )}
                         {coinInfo.links && (
                           <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
-                            {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">🌐 Website</a>}
+                            {coinInfo.links.homepage && <a href={coinInfo.links.homepage} target="_blank" rel="noopener noreferrer" className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors">🌐 {t('modal.website')}</a>}
                             {coinInfo.links.twitter && <a href={`https://twitter.com/${coinInfo.links.twitter}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors">🐦 @{coinInfo.links.twitter}</a>}
                             {coinInfo.links.telegram && <a href={`https://t.me/${coinInfo.links.telegram}`} target="_blank" rel="noopener noreferrer" className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors">📨 Telegram</a>}
                             {coinInfo.links.subreddit && <a href={coinInfo.links.subreddit} target="_blank" rel="noopener noreferrer" className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors">🤖 Reddit</a>}
@@ -534,11 +537,11 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                     )}
                     {!coinInfo && !coinInfoLoading && (
                       <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-white/5 mb-4 sm:mb-5 text-center">
-                        <p className="text-text-muted text-xs">Coin info not available for <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
+                        <p className="text-text-muted text-xs">{t('modal.no_info')} <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
                       </div>
                     )}
                     <div className="mb-3 sm:mb-5">
-                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🔗 Research Links</p>
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🔗 {t('modal.research_links')}</p>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {researchLinks.map((link, i) => (
                           <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-lg transition-all group border active:scale-95`}>
@@ -549,10 +552,10 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                       </div>
                     </div>
                     <div className="mb-2">
-                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">💬 Sentiment</p>
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">💬 {t('modal.sentiment')}</p>
                       <a href={sentimentLinks[0].url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-br from-gray-700/20 to-gray-900/10 rounded-xl border border-gray-600/30 hover:border-gray-500/50 group transition-all active:scale-[0.98]">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center flex-shrink-0"><img src={sentimentLinks[0].logo} alt="X" className="w-6 h-6 sm:w-7 sm:h-7 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = sentimentLinks[0].fallbackLogo; }} /></div>
-                        <div className="flex-1 min-w-0"><p className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">Twitter / X Live Feed</p><p className="text-text-muted text-xs sm:text-sm truncate">See what traders say about ${coinSymbol}</p></div>
+                        <div className="flex-1 min-w-0"><p className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">{t('modal.twitter_feed')}</p><p className="text-text-muted text-xs sm:text-sm truncate">{t('modal.see_what_traders')} ${coinSymbol}</p></div>
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-hover:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                       </a>
                     </div>

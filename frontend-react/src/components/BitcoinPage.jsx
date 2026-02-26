@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next"; // <-- Import i18n
 import NewsPreviewModal from "./NewsPreviewModal";
 
 const API_BASE = "/api/v1";
 
 const BitcoinPage = () => {
+  const { t } = useTranslation(); // <-- Panggil hook i18n
+
   const [data, setData] = useState(null);
   const [extra, setExtra] = useState({
     technical: null,
@@ -47,6 +50,24 @@ const BitcoinPage = () => {
     }
   };
 
+  // Helper untuk menerjemahkan nilai API yang bersifat teks (Strong Buy, dll)
+  const getApiTranslation = (str) => {
+    if (!str) return '';
+    const key = str.toLowerCase().replace(/ /g, '_');
+    const translated = t(`btc.${key}`);
+    return translated === `btc.${key}` ? str : translated;
+  };
+
+  // Helper untuk menerjemahkan waktu berita ("2h ago", "15m ago")
+  const translateTimeAgo = (timeStr) => {
+    if (!timeStr) return '';
+    let res = timeStr.toLowerCase();
+    res = res.replace('h ago', ` ${t('btc.h_ago')}`);
+    res = res.replace('m ago', ` ${t('btc.m_ago')}`);
+    res = res.replace('d ago', ` ${t('btc.d_ago')}`);
+    return res;
+  };
+
   if (loading) return <LoadingSkeleton />;
   if (error)
     return (
@@ -56,6 +77,7 @@ const BitcoinPage = () => {
           setLoading(true);
           fetchAll();
         }}
+        t={t}
       />
     );
   if (!data) return null;
@@ -114,14 +136,14 @@ const BitcoinPage = () => {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-display font-bold text-white tracking-tight">
-                  Bitcoin
+                  {t('btc.title')}
                 </h1>
                 <span className="px-2 py-0.5 bg-gradient-to-r from-gold-primary/25 to-orange-500/15 text-gold-primary text-[10px] font-bold rounded-md border border-gold-primary/20">
-                  Rank #{data.marketCapRank}
+                  {t('btc.rank')} #{data.marketCapRank}
                 </span>
               </div>
               <p className="text-text-muted text-xs mt-0.5 tracking-wide">
-                BTC · Bitcoin Network
+                BTC · {t('btc.network')}
               </p>
             </div>
           </div>
@@ -145,7 +167,7 @@ const BitcoinPage = () => {
       {/* ── KEY METRICS ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard
-          label="24H Range"
+          label={t('btc.range_24h')}
           value={`$${fmtNum(data.low24h)} – $${fmtNum(data.high24h)}`}
           icon={
             <svg
@@ -167,7 +189,7 @@ const BitcoinPage = () => {
           delay="1"
         />
         <MetricCard
-          label="Market Cap"
+          label={t('btc.mcap')}
           value={`$${fmtLarge(data.marketCap)}`}
           icon={
             <svg
@@ -189,7 +211,7 @@ const BitcoinPage = () => {
           delay="2"
         />
         <MetricCard
-          label="24H Volume"
+          label={t('btc.vol_24h')}
           value={`$${fmtLarge(data.volume24h)}`}
           icon={
             <svg
@@ -211,7 +233,7 @@ const BitcoinPage = () => {
           delay="3"
         />
         <MetricCard
-          label="BTC Dominance"
+          label={t('btc.dominance')}
           value={`${data.dominance?.toFixed(1)}%`}
           icon={
             <svg
@@ -240,17 +262,17 @@ const BitcoinPage = () => {
         <div className="glass-card rounded-xl p-5 border border-gold-primary/10 card-hover fade-in fade-in-1 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
           <p className="text-text-muted text-[10px] uppercase tracking-widest mb-3 font-semibold">
-            Supply
+            {t('btc.supply')}
           </p>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-text-muted text-xs">Circulating</span>
+              <span className="text-text-muted text-xs">{t('btc.circulating')}</span>
               <span className="text-white font-mono text-sm font-semibold">
                 {(data.circulatingSupply / 1e6).toFixed(2)}M
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted text-xs">Max Supply</span>
+              <span className="text-text-muted text-xs">{t('btc.max_supply')}</span>
               <span className="text-white font-mono text-sm font-semibold">
                 21M
               </span>
@@ -265,7 +287,7 @@ const BitcoinPage = () => {
               <div className="flex justify-between mt-1.5">
                 <span className="text-text-muted text-[9px]">0%</span>
                 <span className="text-orange-400/80 text-[10px] font-bold">
-                  {supplyPct.toFixed(2)}% mined
+                  {supplyPct.toFixed(2)}% {t('btc.mined')}
                 </span>
                 <span className="text-text-muted text-[9px]">100%</span>
               </div>
@@ -277,7 +299,7 @@ const BitcoinPage = () => {
         <div className="glass-card rounded-xl p-5 border border-gold-primary/10 card-hover fade-in fade-in-2 relative overflow-hidden ath-gradient">
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
           <p className="text-text-muted text-[10px] uppercase tracking-widest mb-2 font-semibold">
-            All-Time High
+            {t('btc.ath')}
           </p>
           <p className="text-2xl font-display font-bold text-white tracking-tight">
             ${data.ath?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -310,7 +332,7 @@ const BitcoinPage = () => {
               </svg>
               {Math.abs(data.athChange)?.toFixed(2)}%
             </div>
-            <span className="text-text-muted text-[10px]">from ATH</span>
+            <span className="text-text-muted text-[10px]">{t('btc.from_ath')}</span>
           </div>
         </div>
 
@@ -318,7 +340,7 @@ const BitcoinPage = () => {
         <div className="glass-card rounded-xl p-5 border border-gold-primary/10 card-hover fade-in fade-in-3 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           <p className="text-text-muted text-[10px] uppercase tracking-widest mb-3 font-semibold">
-            Fear & Greed Index
+            {t('btc.fg_index')}
           </p>
           <div className="flex items-center gap-4">
             {(() => {
@@ -352,7 +374,7 @@ const BitcoinPage = () => {
                 {data.fearGreed?.label}
               </p>
               <p className="text-text-muted text-[10px] mt-0.5">
-                Current market sentiment
+                {t('btc.sentiment')}
               </p>
               <div className="flex items-center gap-0.5 mt-1.5">
                 {[...Array(10)].map((_, i) => {
@@ -383,7 +405,7 @@ const BitcoinPage = () => {
       <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden fade-in">
         <div className="relative">
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-orange-500/30 to-transparent z-10" />
-          <BtcTradingViewChart />
+          <BtcTradingViewChart t={t} />
         </div>
       </div>
 
@@ -395,22 +417,22 @@ const BitcoinPage = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-white font-semibold text-base">
-                Technical Analysis
+                {t('btc.tech_analysis')}
               </h3>
               <p className="text-text-muted text-[10px] mt-0.5">
-                RSI · MACD · Bollinger · EMA
+                {t('btc.tech_desc')}
               </p>
             </div>
             {technical?.summary && (
               <span
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold ${technical.summary.includes("Strong Buy") ? "bg-green-500/20 text-green-400 border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,.15)]" : technical.summary.includes("Buy") ? "bg-green-500/15 text-green-400 border border-green-500/25" : technical.summary.includes("Strong Sell") ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,.15)]" : technical.summary.includes("Sell") ? "bg-red-500/15 text-red-400 border border-red-500/25" : "bg-yellow-500/15 text-yellow-400 border border-yellow-500/25"}`}
               >
-                {technical.summary}
+                {getApiTranslation(technical.summary)}
               </span>
             )}
           </div>
           {!technical ? (
-            <EmptyState text="Loading technical data..." />
+            <EmptyState text={t('btc.loading_tech')} />
           ) : (
             <div className="space-y-3">
               {/* RSI */}
@@ -464,7 +486,7 @@ const BitcoinPage = () => {
                         <p
                           className={`text-[8px] font-bold uppercase tracking-wide ${c}`}
                         >
-                          {under ? "Oversold" : over ? "Overbought" : "Neutral"}
+                          {under ? getApiTranslation("Oversold") : over ? getApiTranslation("Overbought") : getApiTranslation("Neutral")}
                         </p>
                       </div>
                     );
@@ -502,7 +524,7 @@ const BitcoinPage = () => {
                         <p
                           className={`text-sm font-bold ${bull ? "text-green-400" : "text-red-400"}`}
                         >
-                          {bull ? "▲ Bullish" : "▼ Bearish"}
+                          {bull ? `▲ ${getApiTranslation("Bullish")}` : `▼ ${getApiTranslation("Bearish")}`}
                         </p>
                         <p className="text-text-muted text-[9px] font-mono mt-0.5">
                           H: {d.histogram?.toFixed(1)}
@@ -532,19 +554,19 @@ const BitcoinPage = () => {
                       </p>
                       <div className="space-y-1 text-[10px] font-mono">
                         <div className="flex justify-between">
-                          <span className="text-red-400/80">Upper</span>
+                          <span className="text-red-400/80">{t('btc.upper')}</span>
                           <span className="text-white">
                             ${fmtNum(bb.upper)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-yellow-400/80">Mid</span>
+                          <span className="text-yellow-400/80">{t('btc.mid')}</span>
                           <span className="text-white">
                             ${fmtNum(bb.middle)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-green-400/80">Lower</span>
+                          <span className="text-green-400/80">{t('btc.lower')}</span>
                           <span className="text-white">
                             ${fmtNum(bb.lower)}
                           </span>
@@ -555,10 +577,10 @@ const BitcoinPage = () => {
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         {pos === "near_lower"
-                          ? "Near Lower Band"
+                          ? getApiTranslation("Near Lower Band")
                           : pos === "near_upper"
-                            ? "Near Upper Band"
-                            : "Middle Range"}
+                            ? getApiTranslation("Near Upper Band")
+                            : getApiTranslation("Middle Range")}
                       </div>
                     </div>
                   );
@@ -601,7 +623,7 @@ const BitcoinPage = () => {
                         className={`mt-1.5 flex items-center gap-1 text-[9px] font-bold ${g ? "text-green-400" : "text-red-400"}`}
                       >
                         <span className="text-sm">✦</span>
-                        {g ? "Golden Cross" : "Death Cross"}
+                        {g ? getApiTranslation("Golden Cross") : getApiTranslation("Death Cross")}
                       </div>
                     </div>
                   );
@@ -612,13 +634,13 @@ const BitcoinPage = () => {
                 <div className="pt-3 border-t border-white/5">
                   <div className="flex justify-between items-center text-[10px] mb-2">
                     <span className="text-green-400 font-bold">
-                      Buy ({technical.buy_signals})
+                      {t('btc.buy')} ({technical.buy_signals})
                     </span>
                     <span className="text-text-muted text-[9px] uppercase tracking-wider font-semibold">
-                      Signal Meter
+                      {t('btc.signal_meter')}
                     </span>
                     <span className="text-red-400 font-bold">
-                      Sell ({technical.sell_signals})
+                      {t('btc.sell')} ({technical.sell_signals})
                     </span>
                   </div>
                   <div className="h-2.5 rounded-full overflow-hidden flex bg-white/5">
@@ -653,33 +675,33 @@ const BitcoinPage = () => {
           <div className="glass-card rounded-xl p-5 border border-gold-primary/10 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
             <h3 className="text-white font-semibold text-base">
-              Network Health
+              {t('btc.net_health')}
             </h3>
             <p className="text-text-muted text-[10px] mt-0.5 mb-3">
-              Hashrate · Fees · Mempool · Difficulty
+              {t('btc.net_desc')}
             </p>
             {!network ? (
-              <EmptyState text="Loading network data..." />
+              <EmptyState text={t('btc.loading_net')} />
             ) : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <MiniStat
-                    label="Hashrate"
+                    label={t('btc.hashrate')}
                     value={fmtHashrate(network.hashrate)}
                     color="text-cyan-400"
                   />
                   <MiniStat
-                    label="Difficulty"
+                    label={t('btc.difficulty')}
                     value={fmtLarge(network.difficulty)}
                     color="text-purple-400"
                   />
                   <MiniStat
-                    label="Block Height"
+                    label={t('btc.block_height')}
                     value={network.block_height?.toLocaleString()}
                     color="text-white"
                   />
                   <MiniStat
-                    label="Mempool"
+                    label={t('btc.mempool')}
                     value={`${(network.mempool?.count || 0).toLocaleString()} tx`}
                     color="text-yellow-400"
                   />
@@ -687,33 +709,33 @@ const BitcoinPage = () => {
                 {network.fees && (
                   <div>
                     <p className="text-text-muted text-[10px] uppercase tracking-widest mb-1.5 font-semibold">
-                      Fees (sat/vB)
+                      {t('btc.fees')}
                     </p>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[
                         {
-                          l: "Fast",
+                          l: t('btc.fast'),
                           v: network.fees.fastest,
                           c: "text-red-400",
                           bg: "bg-red-500/[0.06]",
                           b: "border-red-500/15",
                         },
                         {
-                          l: "30min",
+                          l: t('btc.min_30'),
                           v: network.fees.half_hour,
                           c: "text-orange-400",
                           bg: "bg-orange-500/[0.06]",
                           b: "border-orange-500/15",
                         },
                         {
-                          l: "1hr",
+                          l: t('btc.hr_1'),
                           v: network.fees.hour,
                           c: "text-yellow-400",
                           bg: "bg-yellow-500/[0.06]",
                           b: "border-yellow-500/15",
                         },
                         {
-                          l: "Eco",
+                          l: t('btc.eco'),
                           v: network.fees.economy,
                           c: "text-green-400",
                           bg: "bg-green-500/[0.06]",
@@ -737,7 +759,7 @@ const BitcoinPage = () => {
                   <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
                     <div className="flex justify-between items-center text-[10px] mb-2">
                       <span className="text-text-muted uppercase tracking-wider font-semibold">
-                        Next Difficulty Adj.
+                        {t('btc.next_adj')}
                       </span>
                       <span
                         className={`font-bold ${network.difficulty_adjustment.change >= 0 ? "text-red-400" : "text-green-400"}`}
@@ -756,11 +778,10 @@ const BitcoinPage = () => {
                     </div>
                     <div className="flex justify-between text-[9px] text-text-muted mt-1.5">
                       <span>
-                        {network.difficulty_adjustment.progress}% complete
+                        {network.difficulty_adjustment.progress}% {t('btc.complete')}
                       </span>
                       <span>
-                        {network.difficulty_adjustment.remaining_blocks} blocks
-                        left
+                        {network.difficulty_adjustment.remaining_blocks} {t('btc.blocks_left')}
                       </span>
                     </div>
                   </div>
@@ -773,26 +794,26 @@ const BitcoinPage = () => {
           <div className="glass-card rounded-xl p-5 border border-gold-primary/10 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
             <h3 className="text-white font-semibold text-base">
-              On-Chain Metrics
+              {t('btc.onchain')}
             </h3>
             <p className="text-text-muted text-[10px] mt-0.5 mb-3">
-              MVRV · NVT · Addresses · Transactions
+              {t('btc.onchain_desc')}
             </p>
             {!onchain ? (
-              <EmptyState text="Loading on-chain data..." />
+              <EmptyState text={t('btc.loading_onchain')} />
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {onchain.mvrv && (
                   <OnChainCard
-                    label="MVRV Ratio"
+                    label={t('btc.mvrv')}
                     value={onchain.mvrv.value?.toFixed(2)}
                     change={onchain.mvrv.change_7d}
                     hint={
                       onchain.mvrv.value > 3.5
-                        ? "Overvalued"
+                        ? getApiTranslation("Overvalued")
                         : onchain.mvrv.value < 1
-                          ? "Undervalued"
-                          : "Fair Value"
+                          ? getApiTranslation("Undervalued")
+                          : getApiTranslation("Fair Value")
                     }
                     hintColor={
                       onchain.mvrv.value > 3.5
@@ -805,15 +826,15 @@ const BitcoinPage = () => {
                 )}
                 {onchain.nvt && (
                   <OnChainCard
-                    label="NVT Signal"
+                    label={t('btc.nvt')}
                     value={onchain.nvt.value?.toFixed(1)}
                     change={onchain.nvt.change_7d}
                     hint={
                       onchain.nvt.value > 150
-                        ? "Overvalued"
+                        ? getApiTranslation("Overvalued")
                         : onchain.nvt.value < 45
-                          ? "Undervalued"
-                          : "Normal"
+                          ? getApiTranslation("Undervalued")
+                          : getApiTranslation("Normal")
                     }
                     hintColor={
                       onchain.nvt.value > 150
@@ -826,14 +847,14 @@ const BitcoinPage = () => {
                 )}
                 {onchain.active_addresses && (
                   <OnChainCard
-                    label="Active Addresses"
+                    label={t('btc.active_add')}
                     value={fmtLarge(onchain.active_addresses.value)}
                     change={onchain.active_addresses.change_7d}
                   />
                 )}
                 {onchain.daily_transactions && (
                   <OnChainCard
-                    label="Daily TX"
+                    label={t('btc.daily_tx')}
                     value={fmtLarge(onchain.daily_transactions.value)}
                     change={onchain.daily_transactions.change_7d}
                   />
@@ -850,20 +871,20 @@ const BitcoinPage = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-white font-semibold text-base">
-              Latest Bitcoin News
+              {t('btc.latest_news')}
             </h3>
             <p className="text-text-muted text-[10px] mt-0.5">
-              CoinDesk · CoinTelegraph · Decrypt
+              {t('btc.news_desc')}
             </p>
           </div>
           {news?.total > 0 && (
             <span className="px-2.5 py-1 bg-orange-500/10 text-orange-400 text-[10px] font-bold rounded-lg border border-orange-500/15">
-              {news.total} articles
+              {news.total} {t('btc.articles')}
             </span>
           )}
         </div>
         {!news?.articles?.length ? (
-          <EmptyState text="Loading news..." />
+          <EmptyState text={t('btc.loading_news')} />
         ) : (
           (() => {
             const restArticles = news.articles.slice(2);
@@ -918,7 +939,7 @@ const BitcoinPage = () => {
                                 </span>
                               )}
                               <span className="text-text-muted text-[10px]">
-                                · {a.time_ago}
+                                · {translateTimeAgo(a.time_ago)}
                               </span>
                             </div>
                           </div>
@@ -963,7 +984,7 @@ const BitcoinPage = () => {
                               {a.source}
                             </span>
                             <span className="text-text-muted text-[9px]">
-                              · {a.time_ago}
+                              · {translateTimeAgo(a.time_ago)}
                             </span>
                           </div>
                         </div>
@@ -993,7 +1014,7 @@ const BitcoinPage = () => {
                           d="M15 19l-7-7 7-7"
                         />
                       </svg>
-                      Previous
+                      {t('btc.prev')}
                     </button>
                     <div className="flex items-center gap-1">
                       {[...Array(totalPages)].map((_, i) => (
@@ -1013,7 +1034,7 @@ const BitcoinPage = () => {
                       disabled={newsPage === totalPages - 1}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${newsPage === totalPages - 1 ? "text-text-muted/30 cursor-not-allowed" : "text-gold-primary hover:bg-gold-primary/10 border border-gold-primary/20"}`}
                     >
-                      Next
+                      {t('btc.next')}
                       <svg
                         className="w-3.5 h-3.5"
                         fill="none"
@@ -1045,7 +1066,7 @@ const BitcoinPage = () => {
   );
 };
 
-const BtcTradingViewChart = () => {
+const BtcTradingViewChart = ({ t }) => {
   const chartRef = useRef(null);
   const widgetRef = useRef(null);
 
@@ -1128,7 +1149,7 @@ const BtcTradingViewChart = () => {
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">
-              BTC/USDT Perpetual
+              BTC/USDT {t('btc.perp')}
             </h3>
             <p className="text-text-muted text-[10px]">
               Binance · Default 4H · MACD + Stoch RSI
@@ -1138,7 +1159,7 @@ const BtcTradingViewChart = () => {
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-positive rounded-full animate-pulse" />
           <span className="text-positive text-[10px] font-semibold uppercase">
-            Live Chart
+            {t('btc.live_chart')}
           </span>
         </div>
       </div>
@@ -1239,7 +1260,7 @@ const EmptyState = ({ text }) => (
   </div>
 );
 
-const ErrorState = ({ error, onRetry }) => (
+const ErrorState = ({ error, onRetry, t }) => (
   <div className="space-y-6">
     <div className="flex items-center gap-3">
       <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
@@ -1263,12 +1284,12 @@ const ErrorState = ({ error, onRetry }) => (
           />
         </svg>
       </div>
-      <p className="text-red-400 mb-4 text-sm">{error}</p>
+      <p className="text-red-400 mb-4 text-sm">{t('btc.failed')}</p>
       <button
         onClick={onRetry}
         className="px-5 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-sm font-semibold border border-gold-primary/20"
       >
-        Retry
+        {t('btc.retry')}
       </button>
     </div>
   </div>

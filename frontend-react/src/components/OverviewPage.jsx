@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next'; // <-- Import i18n
 import TopPerformers from './TopPerformers';
 
 const API_BASE = '/api/v1';
@@ -8,6 +9,7 @@ const API_BASE = '/api/v1';
  * RESPONSIVE: All grids adapt to mobile/tablet/desktop
  */
 const OverviewPage = () => {
+  const { t } = useTranslation(); // <-- Panggil i18n
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState(null);
   const [trending, setTrending] = useState(null);
@@ -86,7 +88,7 @@ const OverviewPage = () => {
 
       <div className="flex items-center gap-3">
         <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-        <h2 className="font-display text-xl lg:text-3xl font-bold text-white">Market Overview</h2>
+        <h2 className="font-display text-xl lg:text-3xl font-bold text-white">{t('overview.title')}</h2>
       </div>
 
       {marketLoading ? (
@@ -107,34 +109,34 @@ const OverviewPage = () => {
         </>
       ) : (
         <>
-          {/* BANNER ERROR KECIL */}
+          {/* BANNER ERROR */}
           {marketError && (
             <div className="glass-card rounded-xl p-3 lg:p-4 border border-red-500/30 flex items-center justify-between bg-red-500/5">
               <p className="text-red-400 text-xs lg:text-sm font-medium flex items-center gap-2">
-                <span>⚠️</span> Global market data temporarily unavailable (API Limit).
+                <span>⚠️</span> {t('overview.error_api')}
               </p>
               <button
                 onClick={() => { setMarketLoading(true); fetchAll(); }}
                 className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-xs font-semibold"
               >
-                Retry
+                {t('overview.retry')}
               </button>
             </div>
           )}
 
-          {/* KEY METRICS - Hanya render jika data ada */}
+          {/* KEY METRICS */}
           {data && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard label="Total Market Cap" value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon="💰" />
-              <MetricCard label="24h Volume" value={formatLargeNumber(data.totalVolume24h)} icon="📊" />
-              <MetricCard label="BTC Dominance" value={`${data.btcDominance.toFixed(1)}%`} icon="👑" color="text-orange-400" />
-              <MetricCard label="Active Cryptos" value={data.activeCryptos.toLocaleString()} icon="🪙" />
+              <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon="💰" />
+              <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon="📊" />
+              <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon="👑" color="text-orange-400" />
+              <MetricCard label={t('overview.active_crypto')} value={data.activeCryptos.toLocaleString()} icon="🪙" />
             </div>
           )}
 
-          {/* SECTOR PERFORMANCE - Render independen */}
+          {/* SECTOR PERFORMANCE */}
           {categories && categories.length > 0 && (
-            <SectorPerformance categories={categories} trending={trending} />
+            <SectorPerformance categories={categories} trending={trending} t={t} />
           )}
 
           {/* GRID 3 KOLOM */}
@@ -142,26 +144,26 @@ const OverviewPage = () => {
             {data && (
               <>
                 <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-5">Market Indicators</h3>
+                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-5">{t('overview.indicators')}</h3>
                   <div className="space-y-3 lg:space-y-4">
-                    <IndicatorRow label="ETH Dominance" value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} color="bg-blue-500" />
-                    <IndicatorRow label="BTC Dominance" value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} color="bg-orange-500" />
-                    <IndicatorRow label="Stablecoin Dom" value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} color="bg-emerald-500" />
+                    <IndicatorRow label={t('overview.eth_dom')} value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} color="bg-blue-500" />
+                    <IndicatorRow label={t('overview.btc_dom')} value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} color="bg-orange-500" />
+                    <IndicatorRow label={t('overview.stable_dom')} value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} color="bg-emerald-500" />
                     <div className="pt-2 border-t border-gold-primary/10">
                       <div className="flex justify-between items-center">
-                        <span className="text-text-muted text-xs lg:text-sm">Altcoin MCap</span>
+                        <span className="text-text-muted text-xs lg:text-sm">{t('overview.alt_mcap')}</span>
                         <span className="text-white font-mono text-xs lg:text-sm">{formatLargeNumber(data.altcoinMarketCap)}</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-text-muted text-xs lg:text-sm">ETH/BTC</span>
+                      <span className="text-text-muted text-xs lg:text-sm">{t('overview.eth_btc')}</span>
                       <span className="text-white font-mono text-xs lg:text-sm">{data.ethBtcRatio?.toFixed(5)}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">Fear & Greed Index</h3>
+                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">{t('overview.fg_index')}</h3>
                   <div className="flex flex-col items-center">
                     <div className="relative w-24 h-24 lg:w-32 lg:h-32 mb-2 lg:mb-3">
                       <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
@@ -190,18 +192,18 @@ const OverviewPage = () => {
                     </div>
                     <div className="flex gap-4 lg:gap-6 mt-1">
                       <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">Yesterday</p>
+                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.yesterday')}</p>
                         <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.yesterday)}`}>{data.fearGreed.yesterday}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">Last Week</p>
+                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.last_week')}</p>
                         <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.lastWeek)}`}>{data.fearGreed.lastWeek}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">Trend</p>
+                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.trend')}</p>
                         <p className={`text-xs lg:text-sm font-semibold ${data.fearGreed.value > data.fearGreed.lastWeek ?
                           'text-green-400' : data.fearGreed.value < data.fearGreed.lastWeek ? 'text-red-400' : 'text-text-muted'}`}>
-                          {data.fearGreed.value > data.fearGreed.lastWeek ? '↑ Up' : data.fearGreed.value < data.fearGreed.lastWeek ? '↓ Down' : '→ Flat'}
+                          {data.fearGreed.value > data.fearGreed.lastWeek ? t('overview.up') : data.fearGreed.value < data.fearGreed.lastWeek ? t('overview.down') : t('overview.flat')}
                         </p>
                       </div>
                     </div>
@@ -210,23 +212,23 @@ const OverviewPage = () => {
               </>
             )}
 
-            {/* DERIVATIVES PULSE - Render independen */}
+            {/* DERIVATIVES PULSE */}
             {derivPulse ? (
-              <DerivativesPulseCard data={derivPulse} />
+              <DerivativesPulseCard data={derivPulse} t={t} />
             ) : (
               <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10 flex items-center justify-center">
-                <span className="text-text-muted text-sm">Derivatives data pending...</span>
+                <span className="text-text-muted text-sm">{t('overview.deriv_pending')}</span>
               </div>
             )}
           </div>
 
-          {/* GAINERS & LOSERS - Hanya render jika data ada */}
+          {/* GAINERS & LOSERS */}
           {data && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
               <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
                   <span>📈</span>
-                  <h3 className="text-white font-semibold text-sm lg:text-base">Top Gainers (24h)</h3>
+                  <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.top_gainers_24h')}</h3>
                 </div>
                 <div className="divide-y divide-gold-primary/5">
                   {data.topGainers.map((coin, idx) => (
@@ -238,7 +240,7 @@ const OverviewPage = () => {
               <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
                 <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
                   <span>📉</span>
-                  <h3 className="text-white font-semibold text-sm lg:text-base">Top Losers (24h)</h3>
+                  <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.top_losers_24h')}</h3>
                 </div>
                 <div className="divide-y divide-gold-primary/5">
                   {data.topLosers.map((coin, idx) => (
@@ -258,7 +260,7 @@ const OverviewPage = () => {
 // SECTOR PERFORMANCE SECTION
 // ================================================================
 
-const SectorPerformance = ({ categories, trending }) => {
+const SectorPerformance = ({ categories, trending, t }) => {
   const gainers = categories.filter(c => c.market_cap_change_24h > 0).slice(0, 5);
   const losers = categories.filter(c => c.market_cap_change_24h < 0)
     .sort((a, b) => a.market_cap_change_24h - b.market_cap_change_24h).slice(0, 5);
@@ -268,12 +270,12 @@ const SectorPerformance = ({ categories, trending }) => {
       <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span>🔥</span>
-          <h3 className="text-white font-semibold text-sm lg:text-base">Sector Performance</h3>
-          <span className="text-text-muted text-[10px] lg:text-xs ml-1 lg:ml-2">24h Change</span>
+          <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.sector_perf')}</h3>
+          <span className="text-text-muted text-[10px] lg:text-xs ml-1 lg:ml-2">{t('overview.change_24h')}</span>
         </div>
         {trending?.categories?.length > 0 && (
           <div className="flex items-center gap-1.5 lg:gap-2 flex-wrap">
-            <span className="text-text-muted text-[10px] lg:text-xs">Trending:</span>
+            <span className="text-text-muted text-[10px] lg:text-xs">{t('overview.trending')}</span>
             {trending.categories.slice(0, 3).map((cat, i) => (
               <a
                 key={i}
@@ -293,13 +295,13 @@ const SectorPerformance = ({ categories, trending }) => {
         <div className="p-3 lg:p-4">
           <p className="text-green-400 text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-2 lg:mb-3 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-            Hot Narratives
+            {t('overview.hot')}
           </p>
           <div className="space-y-0.5 lg:space-y-1">
             {gainers.length > 0 ? gainers.map((cat, idx) => (
               <SectorRow key={idx} cat={cat} rank={idx + 1} />
             )) : (
-              <p className="text-text-muted text-sm py-2">No gaining sectors</p>
+              <p className="text-text-muted text-sm py-2">{t('overview.no_gain_sec')}</p>
             )}
           </div>
         </div>
@@ -307,13 +309,13 @@ const SectorPerformance = ({ categories, trending }) => {
         <div className="p-3 lg:p-4">
           <p className="text-red-400 text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-2 lg:mb-3 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-            Cooling Down
+            {t('overview.cool')}
           </p>
           <div className="space-y-0.5 lg:space-y-1">
             {losers.length > 0 ? losers.map((cat, idx) => (
               <SectorRow key={idx} cat={cat} rank={idx + 1} isNeg />
             )) : (
-              <p className="text-text-muted text-sm py-2">No losing sectors</p>
+              <p className="text-text-muted text-sm py-2">{t('overview.no_lose_sec')}</p>
             )}
           </div>
         </div>
@@ -326,14 +328,14 @@ const SectorPerformance = ({ categories, trending }) => {
 // DERIVATIVES PULSE CARD
 // ================================================================
 
-const DerivativesPulseCard = ({ data }) => {
+const DerivativesPulseCard = ({ data, t }) => {
   const funding = data?.funding;
   const ls = data?.longShort;
   const oi = data?.openInterest;
 
   return (
     <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-      <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">Derivatives Pulse</h3>
+      <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">{t('overview.deriv_pulse')}</h3>
 
       {ls && (
         <div className="mb-3 lg:mb-4 space-y-2 lg:space-y-3">
@@ -364,7 +366,7 @@ const DerivativesPulseCard = ({ data }) => {
 
       {oi && (
         <div className="flex justify-between items-center py-2 lg:py-2.5 px-2.5 lg:px-3 rounded-lg bg-white/[0.02] border border-white/5 mb-2 lg:mb-3">
-          <span className="text-text-muted text-[10px] lg:text-xs">Total Open Interest</span>
+          <span className="text-text-muted text-[10px] lg:text-xs">{t('overview.total_oi')}</span>
           <span className="text-white font-mono text-xs lg:text-sm font-semibold">{formatLargeNumber(oi.total_usd)}</span>
         </div>
       )}
@@ -372,9 +374,9 @@ const DerivativesPulseCard = ({ data }) => {
       {funding && (
         <div className="pt-2">
           <p className="text-text-muted text-[10px] lg:text-xs mb-2 lg:mb-2.5 flex items-center justify-between">
-            <span>Funding Rates</span>
+            <span>{t('overview.funding')}</span>
             <span className={`font-mono ${funding.avg_rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              avg {funding.avg_rate >= 0 ? '+' : ''}{funding.avg_rate}%
+              {t('overview.avg')} {funding.avg_rate >= 0 ? '+' : ''}{funding.avg_rate}%
             </span>
           </p>
           <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
@@ -395,7 +397,7 @@ const DerivativesPulseCard = ({ data }) => {
               ))}
             </div>
           </div>
-          <p className="text-text-muted text-[10px] mt-1.5 lg:mt-2 text-center opacity-60">{funding.total_symbols} pairs tracked</p>
+          <p className="text-text-muted text-[10px] mt-1.5 lg:mt-2 text-center opacity-60">{funding.total_symbols} {t('overview.pairs_tracked')}</p>
         </div>
       )}
     </div>

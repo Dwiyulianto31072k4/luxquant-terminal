@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * BTC Dominance Alert Banner
@@ -6,6 +7,8 @@ import { useMemo } from 'react';
  * prominent "Get to know" button, and elegant compact layout.
  */
 const BtcDomAlert = ({ allSignals, onSignalClick }) => {
+  const { t } = useTranslation();
+
   const btcdomSignal = useMemo(() => {
     if (!allSignals || allSignals.length === 0) return null;
     
@@ -29,7 +32,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
   const getStatusInfo = (status) => {
     const map = {
-      'open': { label: 'OPEN', color: 'text-gray-300 bg-white/5 border-white/10', textColor: 'text-white' },
+      'open': { label: t('signals.open'), color: 'text-gray-300 bg-white/5 border-white/10', textColor: 'text-white' },
       'tp1': { label: 'TP1', color: 'text-green-400 bg-green-500/10 border-green-500/20', textColor: 'text-green-400' },
       'tp2': { label: 'TP2', color: 'text-green-400 bg-green-500/10 border-green-500/20', textColor: 'text-green-400' },
       'tp3': { label: 'TP3', color: 'text-green-400 bg-green-500/10 border-green-500/20', textColor: 'text-green-400' },
@@ -57,26 +60,37 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
   const hitCount = tpLevels.filter(tp => tp.hit).length;
   const progressWidth = tpLevels.length > 1 ? `${(hitCount / (tpLevels.length - 1)) * 100}%` : '0%';
 
-  // --- TIME FORMATTERS ---
+  // --- TIME FORMATTERS (Terjemahan Dinamis) ---
   const formatTimeAgo = (dt) => {
     if (!dt) return '';
     const diffMs = new Date() - new Date(dt);
-    if (diffMs < 0) return 'just now';
+    if (diffMs < 0) return t('signals.just_now');
     const diffMins = Math.floor(diffMs / 60000), diffHours = Math.floor(diffMins / 60), diffDays = Math.floor(diffHours / 24);
-    if (diffDays > 0) return `${diffDays}d ago`;
-    if (diffHours > 0) return `${diffHours}h ago`;
-    if (diffMins > 0) return `${diffMins}m ago`;
-    return 'just now';
+    if (diffDays > 0) return `${diffDays}${t('signals.d_ago')}`;
+    if (diffHours > 0) return `${diffHours}${t('signals.h_ago')}`;
+    if (diffMins > 0) return `${diffMins}${t('signals.m_ago')}`;
+    return t('signals.just_now');
   };
 
   const formatExactTime = (dt) => {
     if (!dt) return '';
     const d = new Date(dt);
     const day = d.getDate().toString().padStart(2, '0');
-    const month = d.toLocaleString('en-US', { month: 'short' });
+    // Jika bahasa Mandarin, bulannya dalam angka agar lebih alami
+    const isZH = t('signals.called') === '发出';
+    const month = isZH ? `${d.getMonth() + 1}月` : d.toLocaleString('en-US', { month: 'short' });
     const hours = d.getHours().toString().padStart(2, '0');
     const mins = d.getMinutes().toString().padStart(2, '0');
-    return `${day} ${month}, ${hours}:${mins}`;
+    return isZH ? `${month}${day}日, ${hours}:${mins}` : `${day} ${month}, ${hours}:${mins}`;
+  };
+
+  // Terjemahan Tingkat Risiko
+  const getRiskLabel = (riskStr) => {
+    const r = (riskStr || '').toLowerCase();
+    if (r.startsWith('low')) return t('signals.low');
+    if (r.startsWith('med')) return t('signals.medium');
+    if (r.startsWith('high')) return t('signals.high');
+    return t('signals.normal');
   };
 
   return (
@@ -96,7 +110,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           </div>
           <h3 className="text-amber-500 font-bold text-xs tracking-widest uppercase flex items-center gap-2">
-            BTC Dominance Alert
+            {t('signals.btc_alert')}
           </h3>
         </div>
         
@@ -104,13 +118,13 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
         <div className="flex items-center flex-wrap justify-end gap-3 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-right">
             <span className="text-[10px] text-text-muted truncate">
-              Called: <strong className="text-white font-mono">{formatExactTime(btcdomSignal.created_at)}</strong> <span className="text-text-muted/70 font-normal ml-0.5">({formatTimeAgo(btcdomSignal.created_at)})</span>
+              {t('signals.called')}: <strong className="text-white font-mono">{formatExactTime(btcdomSignal.created_at)}</strong> <span className="text-text-muted/70 font-normal ml-0.5">({formatTimeAgo(btcdomSignal.created_at)})</span>
             </span>
             {btcdomSignal.last_update_at && (
               <>
                 <span className="hidden sm:inline text-white/20">•</span>
                 <span className="text-[10px] text-text-muted truncate">
-                  Update: <strong className={`${statusInfo.textColor} font-mono`}>{formatExactTime(btcdomSignal.last_update_at)}</strong> <span className="text-text-muted/70 font-normal ml-0.5">({formatTimeAgo(btcdomSignal.last_update_at)})</span>
+                  {t('signals.update')}: <strong className={`${statusInfo.textColor} font-mono`}>{formatExactTime(btcdomSignal.last_update_at)}</strong> <span className="text-text-muted/70 font-normal ml-0.5">({formatTimeAgo(btcdomSignal.last_update_at)})</span>
                 </span>
               </>
             )}
@@ -140,7 +154,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                 </div>
                 <div>
                   <h4 className="text-white text-lg font-bold">BTCDOMUSDT</h4>
-                  <p className="text-text-muted text-[10px]">Dominance Index</p>
+                  <p className="text-text-muted text-[10px]">{t('signals.dom_index')}</p>
                 </div>
               </div>
 
@@ -152,7 +166,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-text-muted hover:text-white hover:bg-white/10 transition-all text-[10px] font-medium shrink-0"
               >
-                <span>Get to know</span>
+                <span>{t('signals.get_to_know')}</span>
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
               </a>
             </div>
@@ -160,19 +174,19 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             {/* Stats Mini Cards */}
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-[#111] rounded-lg border border-white/5 p-2 flex flex-col justify-center">
-                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">Entry Price</span>
+                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">{t('signals.entry_price')}</span>
                 <span className="text-white font-mono text-sm font-bold">{formatPrice(btcdomSignal.entry)}</span>
               </div>
               <div className="bg-[#111] rounded-lg border border-white/5 p-2 flex flex-col justify-center">
-                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">Stop Loss</span>
+                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">{t('signals.stop_loss')}</span>
                 <span className="text-red-400 font-mono text-sm font-bold">{formatPrice(btcdomSignal.stop1)}</span>
               </div>
               <div className="bg-[#111] rounded-lg border border-white/5 p-2 flex flex-col justify-center">
-                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">Risk Level</span>
+                <span className="text-text-muted text-[9px] uppercase tracking-wider mb-0.5">{t('signals.risk_level')}</span>
                 <span className={`text-sm font-bold ${
                   btcdomSignal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' :
                   btcdomSignal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-amber-400'
-                }`}>{btcdomSignal.risk_level || 'Normal'}</span>
+                }`}>{getRiskLabel(btcdomSignal.risk_level)}</span>
               </div>
             </div>
 
@@ -180,7 +194,7 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
             {tpLevels.length > 0 && (
               <div className="mt-auto pt-2">
                 <div className="flex items-center justify-between mb-3">
-                   <p className="text-text-muted text-[10px] uppercase tracking-wider">Target Journey</p>
+                   <p className="text-text-muted text-[10px] uppercase tracking-wider">{t('signals.target_journey')}</p>
                 </div>
                 
                 <div className="relative w-full max-w-xl mx-auto sm:mx-0">
@@ -212,17 +226,15 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              <h3 className="text-white text-[11px] font-bold tracking-widest uppercase">Action Plan</h3>
+              <h3 className="text-white text-[11px] font-bold tracking-widest uppercase">{t('signals.action_plan')}</h3>
             </div>
 
             <div className="space-y-4 flex-1 flex flex-col justify-center">
               {/* Alert Box */}
               <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3">
-                <p className="text-white text-xs font-semibold leading-relaxed">
-                  If $BTCDOM is rising, <strong className="text-red-400">SELL your altcoins</strong>.
-                </p>
+                <p className="text-white text-xs font-semibold leading-relaxed" dangerouslySetInnerHTML={{ __html: t('signals.action_desc') }} />
                 <p className="text-text-muted text-[10px] mt-1.5 leading-snug">
-                  BTC absorbs market liquidity. Even if BTC dumps, Altcoins might dump much harder.
+                  {t('signals.action_sub')}
                 </p>
               </div>
 
@@ -232,8 +244,8 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                    <svg className="w-2.5 h-2.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" /></svg>
                 </div>
                 <div>
-                  <p className="text-white text-[10px] font-bold uppercase tracking-wider mb-0.5">Risk Management</p>
-                  <p className="text-text-muted text-[10px] leading-snug">Reduce position sizes drastically. Keep assets in liquid funds (USDT).</p>
+                  <p className="text-white text-[10px] font-bold uppercase tracking-wider mb-0.5">{t('signals.risk_mgmt')}</p>
+                  <p className="text-text-muted text-[10px] leading-snug">{t('signals.risk_desc')}</p>
                 </div>
               </div>
 
@@ -242,8 +254,8 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                    <svg className="w-2.5 h-2.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </div>
                 <div>
-                  <p className="text-green-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Recovery Plan</p>
-                  <p className="text-text-muted text-[10px] leading-snug">Buy back when reversal signs appear, or repurpose funds for high-probability setups.</p>
+                  <p className="text-green-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">{t('signals.recovery')}</p>
+                  <p className="text-text-muted text-[10px] leading-snug">{t('signals.rec_desc')}</p>
                 </div>
               </div>
             </div>

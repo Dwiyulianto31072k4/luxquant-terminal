@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n hook
 
 /**
  * NewsPreviewModal - Centered article preview popup
@@ -6,8 +7,20 @@ import { useState, useEffect } from 'react';
  * Single CTA: "Open Article"
  */
 const NewsPreviewModal = ({ article, onClose }) => {
+  const { t } = useTranslation(); // <-- 2. Inisialisasi fungsi t()
+  
   const [isClosing, setIsClosing] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+
+  // Helper terjemahan waktu yang dikirim dari props atau API
+  const translateTimeAgo = (timeStr) => {
+    if (!timeStr) return '';
+    let res = timeStr.toLowerCase();
+    res = res.replace('h ago', ` ${t('btc.h_ago')}`);
+    res = res.replace('m ago', ` ${t('btc.m_ago')}`);
+    res = res.replace('d ago', ` ${t('btc.d_ago')}`);
+    return res;
+  };
 
   if (!article) return null;
 
@@ -90,7 +103,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
               {article.source}
             </span>
             {article.time_ago && (
-              <span className="text-text-muted text-[10px]">{article.time_ago}</span>
+              <span className="text-text-muted text-[10px]">{translateTimeAgo(article.time_ago)}</span>
             )}
           </div>
           <button
@@ -133,7 +146,7 @@ const NewsPreviewModal = ({ article, onClose }) => {
               </div>
               <span className="text-text-secondary text-[11px] font-medium">{article.author}</span>
               {article.time_ago && (
-                <span className="text-text-muted text-[10px]">· {article.time_ago}</span>
+                <span className="text-text-muted text-[10px]">· {translateTimeAgo(article.time_ago)}</span>
               )}
             </div>
           )}
@@ -154,7 +167,8 @@ const NewsPreviewModal = ({ article, onClose }) => {
             </div>
             <div className="min-w-0">
               <p className="text-white text-xs font-semibold">{article.source}</p>
-              <p className="text-text-muted text-[10px]">Crypto News</p>
+              {/* Memanggil terjemahan "Crypto News" */}
+              <p className="text-text-muted text-[10px]">{t('btc.crypto_news')}</p>
             </div>
           </div>
         </div>
@@ -167,7 +181,8 @@ const NewsPreviewModal = ({ article, onClose }) => {
             rel="noopener noreferrer"
             className="group flex items-center justify-center gap-2.5 w-full py-3 bg-gradient-to-r from-gold-dark via-gold-primary to-gold-light text-bg-primary rounded-xl text-sm font-bold shadow-lg shadow-gold-primary/20 hover:shadow-gold-primary/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
           >
-            Open Article
+            {/* Memanggil terjemahan "Open Article" */}
+            {t('btc.open_article')}
             <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>

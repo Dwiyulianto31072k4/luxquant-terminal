@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next'; // <-- 1. Import i18next
 import SignalsTable from './SignalsTable';
 import SignalModal from './SignalModal';
 import BtcDomAlert from './BtcDomAlert';
@@ -7,18 +8,18 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 /**
  * SignalsPage - Client-side pagination for zero delay
- * 
- * Strategy:
+ * * Strategy:
  * 1. Fetch ALL 7-day signals in one call (/signals/bulk-7d) — pre-cached by backend
  * 2. Sort, filter, paginate entirely on client-side
  * 3. Page changes = instant (no network request)
  * 4. Auto-refresh every 90s to match cache worker interval
- * 
- * NEW: "Recently Updated" sort + "Has Update" filter
- *   - sort_by=last_update sorts by last_update_at DESC (most recent update first)
- *   - statusFilter="updated" shows only signals that have at least one update
+ * * NEW: "Recently Updated" sort + "Has Update" filter
+ * - sort_by=last_update sorts by last_update_at DESC (most recent update first)
+ * - statusFilter="updated" shows only signals that have at least one update
  */
 const SignalsPage = () => {
+  const { t } = useTranslation(); // <-- 2. Panggil hook i18n
+
   // Raw data from backend (all 7d signals)
   const [allSignals, setAllSignals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -240,14 +241,14 @@ const SignalsPage = () => {
 
   // Status filter options — NEW: added "Updated" option
   const statusOptions = [
-    { value: 'all', label: 'All', icon: '📊' },
-    { value: 'updated', label: 'Newest Update Hit', icon: '🔔' },
-    { value: 'open', label: 'Open', icon: '🟢' },
+    { value: 'all', label: t('signals.all'), icon: '📊' },
+    { value: 'updated', label: t('signals.newest_hit'), icon: '🔔' },
+    { value: 'open', label: t('signals.open'), icon: '🟢' },
     { value: 'tp1', label: 'TP1', icon: '✓' },
     { value: 'tp2', label: 'TP2', icon: '✓' },
     { value: 'tp3', label: 'TP3', icon: '✓' },
     { value: 'closed_win', label: 'TP4', icon: '🏆' },
-    { value: 'closed_loss', label: 'Loss', icon: '✗' },
+    { value: 'closed_loss', label: t('signals.loss'), icon: '✗' },
   ];
 
   // Risk filter options
@@ -260,12 +261,12 @@ const SignalsPage = () => {
 
   // Sort options — NEW: added "Last Update"
   const sortOptions = [
-    { value: 'created_at', label: 'Time' },
-    { value: 'last_update', label: 'Last Update' },
-    { value: 'pair', label: 'Pair' },
-    { value: 'status', label: 'Status' },
-    { value: 'risk_level', label: 'Risk' },
-    { value: 'market_cap', label: 'Market Cap' },
+    { value: 'created_at', label: t('signals.time') },
+    { value: 'last_update', label: t('signals.last_update') },
+    { value: 'pair', label: t('signals.pair') },
+    { value: 'status', label: t('signals.status') },
+    { value: 'risk_level', label: t('signals.risk_level') },
+    { value: 'market_cap', label: t('signals.mcap') },
   ];
 
   return (
@@ -275,17 +276,17 @@ const SignalsPage = () => {
         <div>
           <div className="flex items-center gap-3">
             <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-            <h1 className="text-2xl font-display font-bold text-white">Potential Trades</h1>
+            <h1 className="text-2xl font-display font-bold text-white">{t('signals.title')}</h1>
           </div>
         </div>
         
         {/* Right side info */}
         <div className="flex items-center gap-4">
           <span className="text-text-muted text-sm">
-            Last 7 Days · <span className="text-white font-semibold">{allSignals.length}</span> signals
+            {t('signals.last_7d')} · <span className="text-white font-semibold">{allSignals.length}</span> {t('signals.signals')}
             {updatedCount > 0 && (
               <span className="ml-2 text-gold-primary">
-                · <span className="font-semibold">{updatedCount}</span> updated
+                · <span className="font-semibold">{updatedCount}</span> {t('signals.updated')}
               </span>
             )}
           </span>
@@ -301,26 +302,26 @@ const SignalsPage = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-          <p className="text-text-muted text-xs uppercase tracking-wider">Today</p>
+          <p className="text-text-muted text-xs uppercase tracking-wider">{t('signals.today')}</p>
           <p className="text-white text-2xl font-bold mt-1">{todayStats.total}</p>
           <p className="text-text-muted text-xs mt-1">
-            <span className="text-green-400">{todayStats.open} open</span> · {todayStats.wins}W / {todayStats.losses}L
+            <span className="text-green-400">{todayStats.open} {t('signals.open')}</span> · {todayStats.wins}W / {todayStats.losses}L
           </p>
         </div>
         <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-          <p className="text-text-muted text-xs uppercase tracking-wider">Today WR</p>
+          <p className="text-text-muted text-xs uppercase tracking-wider">{t('signals.today')} WR</p>
           <p className="text-green-400 text-2xl font-bold mt-1">{todayStats.wr}%</p>
-          <p className="text-text-muted text-xs mt-1">{todayStats.closedCount} closed</p>
+          <p className="text-text-muted text-xs mt-1">{todayStats.closedCount} {t('signals.closed')}</p>
         </div>
         <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-          <p className="text-text-muted text-xs uppercase tracking-wider">Overall WR</p>
+          <p className="text-text-muted text-xs uppercase tracking-wider">{t('signals.overall_wr')}</p>
           <p className="text-green-400 text-2xl font-bold mt-1">{stats?.win_rate ?? '—'}%</p>
-          <p className="text-text-muted text-xs mt-1">{stats ? `${(stats.total_signals || 0).toLocaleString()} total` : '—'}</p>
+          <p className="text-text-muted text-xs mt-1">{stats ? `${(stats.total_signals || 0).toLocaleString()} ${t('signals.total')}` : '—'}</p>
         </div>
         <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
-          <p className="text-text-muted text-xs uppercase tracking-wider">This Week</p>
+          <p className="text-text-muted text-xs uppercase tracking-wider">{t('signals.this_week')}</p>
           <p className="text-white text-2xl font-bold mt-1">{allSignals.length}</p>
-          <p className="text-text-muted text-xs mt-1">signals in view</p>
+          <p className="text-text-muted text-xs mt-1">{t('signals.in_view')}</p>
         </div>
       </div>
 
@@ -331,7 +332,7 @@ const SignalsPage = () => {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
-            <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">Search Pair</p>
+            <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('signals.search_pair')}</p>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">🔍</span>
               <input
@@ -347,7 +348,7 @@ const SignalsPage = () => {
           {/* Sort By + Order */}
           <div className="flex gap-3">
             <div>
-              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">Sort By</p>
+              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('signals.sort_by')}</p>
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
@@ -359,7 +360,7 @@ const SignalsPage = () => {
               </select>
             </div>
             <div>
-              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">Order</p>
+              <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('signals.order')}</p>
               <button
                 onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
                 className="px-4 py-2.5 bg-bg-primary border border-gold-primary/20 rounded-xl text-white text-sm hover:border-gold-primary/40 transition-colors"
@@ -373,7 +374,7 @@ const SignalsPage = () => {
         {/* Status + Risk Filters */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mb-2">Status</p>
+            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mb-2">{t('signals.status')}</p>
             <div className="flex flex-wrap gap-2">
               {statusOptions.map((opt) => (
                 <button
@@ -407,7 +408,7 @@ const SignalsPage = () => {
           </div>
 
           <div>
-            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mb-2">Risk Level</p>
+            <p className="text-text-muted text-xs font-semibold uppercase tracking-wider mb-2">{t('signals.risk_level')}</p>
             <div className="flex flex-wrap gap-2">
               {riskOptions.map((opt) => (
                 <button

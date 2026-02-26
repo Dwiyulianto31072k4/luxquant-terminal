@@ -7,6 +7,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import OverviewPage from "./components/OverviewPage";
 import SignalsPage from "./components/SignalsPage";
@@ -18,7 +19,7 @@ import TipsPage from "./components/TipsPage";
 import UserManagementPage from "./components/UserManagementPage";
 import MacroCalendarPage from "./components/MacroCalendarPage";
 import WhaleAlertPage from "./components/WhaleAlertPage";
-import OrderBookPage from "./components/OrderBookPage";                      // ← ORDER BOOK
+import OrderBookPage from "./components/OrderBookPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
@@ -47,6 +48,7 @@ const SidebarItem = ({ active, onClick, label, icon }) => (
 // Main App Content
 // ════════════════════════════════════════
 function AppContent() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState("terminal");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -135,21 +137,21 @@ function AppContent() {
   };
 
   const navItems = [
-    { key: "terminal", label: "Terminal", icon: "📊" },
-    { key: "signals", label: "Potential Trades", icon: "📡" },
-    { key: "analytics", label: "Performance", icon: "📈" },
-    { key: "bitcoin", label: "Bitcoin", icon: "₿" },
-    { key: "markets", label: "Markets", icon: "🌐" },
+    { key: "terminal", label: t("nav.home"), icon: "📊" },
+    { key: "signals", label: t("nav.signals"), icon: "📡" },
+    { key: "analytics", label: t("nav.analytics"), icon: "📈" },
+    { key: "bitcoin", label: t("nav.bitcoin"), icon: "₿" },
+    { key: "markets", label: t("nav.markets"), icon: "🌐" },
   ];
 
   const moreMenuItems = [
-    { key: "orderbook", label: "Order Book", icon: "📊", description: "Buy/sell wall imbalance" },
-    { key: "calendar", label: "Calendar", icon: "📅", description: "Macro economic events" },
-    { key: "whale", label: "Whale Alert", icon: "🐋", description: "Large transaction tracker" },
-    { key: "tips", label: "Tips", icon: "📚", description: "Trading guides & education" },
-    { key: "watchlist", label: "Watchlist", icon: "⭐", description: "Your saved coins" },
+    { key: "orderbook", label: t("nav.orderbook"), icon: "📊", description: t("desc.orderbook") },
+    { key: "calendar", label: t("nav.calendar"), icon: "📅", description: t("desc.calendar") },
+    { key: "whale", label: t("nav.whale"), icon: "🐋", description: t("desc.whale") },
+    { key: "tips", label: t("nav.tips"), icon: "📚", description: t("desc.tips") },
+    { key: "watchlist", label: t("nav.watchlist"), icon: "⭐", description: t("desc.watchlist") },
     ...(user?.role === 'admin' ? [
-      { key: "admin", label: "Admin", icon: "🛡️", description: "User management" },
+      { key: "admin", label: t("nav.admin"), icon: "🛡️", description: t("desc.admin") },
     ] : []),
   ];
 
@@ -158,7 +160,7 @@ function AppContent() {
   const bottomNavItems = [
     {
       key: "terminal",
-      label: "Home",
+      label: t("nav.home"),
       icon: (
         <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />
@@ -167,7 +169,7 @@ function AppContent() {
     },
     {
       key: "analytics",
-      label: "Perf.",
+      label: t("nav.perf"),
       icon: (
         <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 20V10M12 20V4M6 20v-6"/>
@@ -176,7 +178,7 @@ function AppContent() {
     },
     {
       key: "signals",
-      label: "Trades",
+      label: t("nav.trades"),
       isCenter: true,
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -186,7 +188,7 @@ function AppContent() {
     },
     {
       key: "bitcoin",
-      label: "BTC",
+      label: t("nav.btc"),
       icon: (
         <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -195,7 +197,7 @@ function AppContent() {
     },
     {
       key: "markets",
-      label: "Markets",
+      label: t("nav.markets"),
       icon: (
         <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -334,7 +336,7 @@ function AppContent() {
                       moreHasActive ? "text-gold-primary" : "text-text-secondary hover:text-white"
                     }`}
                   >
-                    <span>More</span>
+                    <span>{t("nav.more")}</span>
                     <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
@@ -378,6 +380,51 @@ function AppContent() {
             </div>
 
             <div className="flex items-center gap-1.5 lg:gap-2">
+              
+              {/* --- MULAI: TOMBOL GANTI BAHASA UI LUXURY --- */}
+              <div className="flex items-center bg-bg-primary/80 backdrop-blur-md border border-gold-primary/20 rounded-xl p-0.5 mr-1 lg:mr-2 shadow-sm shadow-black/20">
+                {/* Ikon Globe */}
+                <div className="flex items-center justify-center px-2 text-gold-primary/70">
+                  <svg className="w-3.5 h-3.5 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                
+                {/* Garis Pemisah */}
+                <div className="w-px h-3.5 bg-gold-primary/20 mx-0.5"></div>
+
+                {/* Tombol EN */}
+                <button 
+                  onClick={() => i18n.changeLanguage('en')}
+                  className={`relative px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300 overflow-hidden ${
+                    i18n.language?.startsWith('en') 
+                      ? 'text-bg-primary shadow-md' 
+                      : 'text-text-secondary hover:text-gold-primary hover:bg-white/5'
+                  }`}
+                >
+                  {i18n.language?.startsWith('en') && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark" />
+                  )}
+                  <span className="relative z-10">EN</span>
+                </button>
+
+                {/* Tombol ZH */}
+                <button 
+                  onClick={() => i18n.changeLanguage('zh')}
+                  className={`relative px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300 overflow-hidden ${
+                    i18n.language?.startsWith('zh') 
+                      ? 'text-bg-primary shadow-md' 
+                      : 'text-text-secondary hover:text-gold-primary hover:bg-white/5'
+                  }`}
+                >
+                  {i18n.language?.startsWith('zh') && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark" />
+                  )}
+                  <span className="relative z-10">ZH</span>
+                </button>
+              </div>
+              {/* --- SELESAI: TOMBOL GANTI BAHASA UI LUXURY --- */}
+
               <button
                 className="relative w-9 h-9 flex items-center justify-center rounded-full text-text-muted hover:text-white hover:bg-white/[0.06] transition-all"
                 title="Notifications"
@@ -400,47 +447,47 @@ function AppContent() {
         <div className="flex flex-col h-full">
           <nav className="flex-1 py-6 px-3 space-y-0.5 overflow-y-auto">
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Navigation</p>
-            <SidebarItem active={activeTab === "terminal"} onClick={() => handleTabClick("terminal")} label="Terminal"
+            <SidebarItem active={activeTab === "terminal"} onClick={() => handleTabClick("terminal")} label={t("nav.home")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />}
             />
-            <SidebarItem active={activeTab === "signals"} onClick={() => handleTabClick("signals")} label="Potential Trades"
+            <SidebarItem active={activeTab === "signals"} onClick={() => handleTabClick("signals")} label={t("nav.signals")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
             />
-            <SidebarItem active={activeTab === "analytics"} onClick={() => handleTabClick("analytics")} label="Performance"
+            <SidebarItem active={activeTab === "analytics"} onClick={() => handleTabClick("analytics")} label={t("nav.analytics")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />}
             />
-            <SidebarItem active={activeTab === "bitcoin"} onClick={() => handleTabClick("bitcoin")} label="Bitcoin"
+            <SidebarItem active={activeTab === "bitcoin"} onClick={() => handleTabClick("bitcoin")} label={t("nav.bitcoin")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
             />
-            <SidebarItem active={activeTab === "markets"} onClick={() => handleTabClick("markets")} label="Markets"
+            <SidebarItem active={activeTab === "markets"} onClick={() => handleTabClick("markets")} label={t("nav.markets")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />}
             />
 
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
-            <SidebarItem active={activeTab === "orderbook"} onClick={() => handleTabClick("orderbook")} label="Order Book"
+            <SidebarItem active={activeTab === "orderbook"} onClick={() => handleTabClick("orderbook")} label={t("nav.orderbook")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
             />
-            <SidebarItem active={activeTab === "calendar"} onClick={() => handleTabClick("calendar")} label="Calendar"
+            <SidebarItem active={activeTab === "calendar"} onClick={() => handleTabClick("calendar")} label={t("nav.calendar")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />}
             />
-            <SidebarItem active={activeTab === "whale"} onClick={() => handleTabClick("whale")} label="Whale Alert"
+            <SidebarItem active={activeTab === "whale"} onClick={() => handleTabClick("whale")} label={t("nav.whale")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738.145l-1.093.819a.89.89 0 00-.284.97l.448 1.345a1.336 1.336 0 01-.06.885l-1.334 2.668a.75.75 0 00.34 1.006l2.053.684a.75.75 0 00.588-.012l1.527-.763a.75.75 0 00.294-.235l1.092-1.638a.252.252 0 01.428.032l.603 1.072a.662.662 0 001.106.07l.926-1.159a.753.753 0 00.132-.795z" />}
             />
-            <SidebarItem active={activeTab === "tips"} onClick={() => handleTabClick("tips")} label="Tips"
+            <SidebarItem active={activeTab === "tips"} onClick={() => handleTabClick("tips")} label={t("nav.tips")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />}
             />
 
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Personal</p>
-            <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label="Watchlist"
+            <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label={t("nav.watchlist")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />}
             />
             {user?.role === 'admin' && (
               <>
                 <div className="my-4 mx-3 h-px bg-white/[0.05]" />
                 <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Admin</p>
-                <SidebarItem active={activeTab === "admin"} onClick={() => handleTabClick("admin")} label="User Management"
+                <SidebarItem active={activeTab === "admin"} onClick={() => handleTabClick("admin")} label={t("nav.admin")}
                   icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
                 />
               </>

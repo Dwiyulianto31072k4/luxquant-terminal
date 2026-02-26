@@ -3,11 +3,14 @@
 Macro Economic Calendar — ForexFactory data
 Free, no API key needed.
 Fetches weekly calendar, caches in memory for 1 hour.
+Automatically translates event titles to Chinese.
 """
 import httpx
 import logging
-from datetime import datetime, timezone, timedelta
+import asyncio
+from datetime import datetime, timezone
 from typing import Optional
+from deep_translator import GoogleTranslator
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +18,35 @@ logger = logging.getLogger(__name__)
 _cache: dict = {"data": None, "fetched_at": None}
 CACHE_TTL = 3600  # 1 hour
 
+# ── Translation Cache (Mencegah limit Google Translate) ──
+_translation_cache: dict = {}
+
 FF_URLS = [
     "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
     "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
 ]
+
+
+async def translate_text(text: str) -> str:
+    """Menerjemahkan teks ke bahasa Mandarin secara asinkron dengan caching"""
+    if not text:
+        return text
+    
+    # Jika sudah pernah diterjemahkan, ambil dari cache
+    if text in _translation_cache:
+        return _translation_cache[text]
+    
+    try:
+        # Jalankan deep-translator di thread terpisah agar tidak memblokir async loop
+        translator = GoogleTranslator(source='en', target='zh-CN')
+        translated = await asyncio.to_thread(translator.translate, text)
+        
+        # Simpan ke cache
+        _translation_cache[text] = translated
+        return translated
+    except Exception as e:
+        logger.error(f"Translation failed for '{text}': {e}")
+        return text  # Fallback ke bahasa Inggris jika gagal
 
 
 async def get_calendar(
@@ -71,7 +99,7 @@ async def get_upcoming_high_impact(limit: int = 5) -> list[dict]:
 
 
 async def _fetch_cached(include_next_week: bool = False) -> list[dict]:
-    """Fetch with simple in-memory cache"""
+    """Fetch with simple in-memory cache and translate titles"""
     now = datetime.now(timezone.utc)
     cache_key = "with_next" if include_next_week else "this_week"
 
@@ -92,8 +120,14 @@ async def _fetch_cached(include_next_week: bool = False) -> list[dict]:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 data = resp.json()
+                
+                # TRANSLATE SETIAP JUDUL EVENT
+                for event in data:
+                    title = event.get("title", "")
+                    event["title_zh"] = await translate_text(title)
+                
                 all_events.extend(data)
-                logger.info(f"📅 Fetched {len(data)} events from {url}")
+                logger.info(f"📅 Fetched and translated {len(data)} events from {url}")
             except Exception as e:
                 logger.error(f"❌ Failed to fetch calendar from {url}: {e}")
 
