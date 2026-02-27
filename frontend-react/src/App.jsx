@@ -20,6 +20,7 @@ import UserManagementPage from "./components/UserManagementPage";
 import MacroCalendarPage from "./components/MacroCalendarPage";
 import WhaleAlertPage from "./components/WhaleAlertPage";
 import OrderBookPage from "./components/OrderBookPage";
+import AIArenaPage from "./components/AIArenaPage"; // <--- TAMBAHKAN INI
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
@@ -118,12 +119,14 @@ function AppContent() {
   };
 
   const handleTabClick = (key) => {
-    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin"];
+    // Tambahkan "ai-arena" ke daftar tab yang diproteksi login
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena"];
     if (protectedTabs.includes(key) && !isAuthenticated) {
       navigate("/login");
       return;
     }
-    const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips"];
+    // Tambahkan "ai-arena" ke daftar tab premium (opsional: hapus jika gratis untuk user login biasa)
+    const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "ai-arena"];
     if (premiumTabs.includes(key) && isAuthenticated && !isPremiumUser()) {
       setShowPremiumModal(true);
       setMobileMenuOpen(false);
@@ -145,6 +148,7 @@ function AppContent() {
   ];
 
   const moreMenuItems = [
+    { key: "ai-arena", label: "AI Arena", icon: "🤖", description: "Laporan Pasar AI Institusional" },
     { key: "orderbook", label: t("nav.orderbook"), icon: "📊", description: t("desc.orderbook") },
     { key: "calendar", label: t("nav.calendar"), icon: "📅", description: t("desc.calendar") },
     { key: "whale", label: t("nav.whale"), icon: "🐋", description: t("desc.whale") },
@@ -210,7 +214,8 @@ function AppContent() {
   const renderPage = () => {
     if (location.pathname === '/pricing') return <PricingPage />;
     if (location.pathname === '/payment') return <PaymentPage />;
-    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin"];
+    // Tambahkan juga di sini agar render komponen terlindungi
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena"];
     if (protectedTabs.includes(activeTab) && !isAuthenticated) {
       return (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -252,6 +257,7 @@ function AppContent() {
 
     switch (activeTab) {
       case "terminal": return <OverviewPage />;
+      case "ai-arena": return <AIArenaPage />; // <--- RENDER HALAMAN AI ARENA
       case "signals": return <SignalsPage />;
       case "analytics": return <AnalyzePage />;
       case "bitcoin": return <BitcoinPage />;
@@ -465,6 +471,10 @@ function AppContent() {
 
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
+            {/* Navigasi Mobile untuk AI Arena */}
+            <SidebarItem active={activeTab === "ai-arena"} onClick={() => handleTabClick("ai-arena")} label="AI Arena"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
+            />
             <SidebarItem active={activeTab === "orderbook"} onClick={() => handleTabClick("orderbook")} label={t("nav.orderbook")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
             />
