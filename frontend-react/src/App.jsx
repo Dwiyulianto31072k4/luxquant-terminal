@@ -20,7 +20,8 @@ import UserManagementPage from "./components/UserManagementPage";
 import MacroCalendarPage from "./components/MacroCalendarPage";
 import WhaleAlertPage from "./components/WhaleAlertPage";
 import OrderBookPage from "./components/OrderBookPage";
-import AIArenaPage from "./components/AIArenaPage"; // <--- TAMBAHKAN INI
+import AIArenaPage from "./components/AIArenaPage";
+import ReferralPage from "./components/ReferralPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
@@ -82,6 +83,7 @@ function AppContent() {
 
   useEffect(() => {
     if (location.pathname === "/watchlist") setActiveTab("watchlist");
+    if (location.pathname === "/referral") setActiveTab("referral");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -119,13 +121,11 @@ function AppContent() {
   };
 
   const handleTabClick = (key) => {
-    // Tambahkan "ai-arena" ke daftar tab yang diproteksi login
-    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena"];
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena", "referral"];
     if (protectedTabs.includes(key) && !isAuthenticated) {
       navigate("/login");
       return;
     }
-    // Tambahkan "ai-arena" ke daftar tab premium (opsional: hapus jika gratis untuk user login biasa)
     const premiumTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "ai-arena"];
     if (premiumTabs.includes(key) && isAuthenticated && !isPremiumUser()) {
       setShowPremiumModal(true);
@@ -136,24 +136,30 @@ function AppContent() {
     setActiveTab(key);
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
-    navigate(key === "watchlist" ? "/watchlist" : "/");
+
+    if (key === "watchlist") navigate("/watchlist");
+    else if (key === "referral") navigate("/referral");
+    else navigate("/");
   };
 
+  // ═══ DESKTOP NAV: AI Arena replaces Performance ═══
   const navItems = [
     { key: "terminal", label: t("nav.home"), icon: "📊" },
     { key: "signals", label: t("nav.signals"), icon: "📡" },
-    { key: "analytics", label: t("nav.analytics"), icon: "📈" },
+    { key: "ai-arena", label: "AI Arena", icon: "🤖" },
     { key: "bitcoin", label: t("nav.bitcoin"), icon: "₿" },
     { key: "markets", label: t("nav.markets"), icon: "🌐" },
   ];
 
+  // ═══ MORE MENU: Performance moved here ═══
   const moreMenuItems = [
-    { key: "ai-arena", label: "AI Arena", icon: "🤖", description: "Laporan Pasar AI Institusional" },
+    { key: "analytics", label: t("nav.analytics"), icon: "📈", description: "Performance analytics & win rate" },
     { key: "orderbook", label: t("nav.orderbook"), icon: "📊", description: t("desc.orderbook") },
     { key: "calendar", label: t("nav.calendar"), icon: "📅", description: t("desc.calendar") },
     { key: "whale", label: t("nav.whale"), icon: "🐋", description: t("desc.whale") },
     { key: "tips", label: t("nav.tips"), icon: "📚", description: t("desc.tips") },
     { key: "watchlist", label: t("nav.watchlist"), icon: "⭐", description: t("desc.watchlist") },
+    { key: "referral", label: "Referral", icon: "🎟️", description: "Earn commissions by inviting friends" },
     ...(user?.role === 'admin' ? [
       { key: "admin", label: t("nav.admin"), icon: "🛡️", description: t("desc.admin") },
     ] : []),
@@ -161,6 +167,7 @@ function AppContent() {
 
   const moreHasActive = moreMenuItems.some((item) => activeTab === item.key);
 
+  // ═══ MOBILE BOTTOM NAV: AI replaces Perf ═══
   const bottomNavItems = [
     {
       key: "terminal",
@@ -172,11 +179,11 @@ function AppContent() {
       ),
     },
     {
-      key: "analytics",
-      label: t("nav.perf"),
+      key: "ai-arena",
+      label: "AI",
       icon: (
         <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 20V10M12 20V4M6 20v-6"/>
+          <path d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />
         </svg>
       ),
     },
@@ -214,8 +221,9 @@ function AppContent() {
   const renderPage = () => {
     if (location.pathname === '/pricing') return <PricingPage />;
     if (location.pathname === '/payment') return <PaymentPage />;
-    // Tambahkan juga di sini agar render komponen terlindungi
-    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena"];
+    if (location.pathname === '/referral') return <ReferralPage />;
+
+    const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena", "referral"];
     if (protectedTabs.includes(activeTab) && !isAuthenticated) {
       return (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -257,7 +265,7 @@ function AppContent() {
 
     switch (activeTab) {
       case "terminal": return <OverviewPage />;
-      case "ai-arena": return <AIArenaPage />; // <--- RENDER HALAMAN AI ARENA
+      case "ai-arena": return <AIArenaPage />;
       case "signals": return <SignalsPage />;
       case "analytics": return <AnalyzePage />;
       case "bitcoin": return <BitcoinPage />;
@@ -268,6 +276,7 @@ function AppContent() {
       case "whale": return <WhaleAlertPage />;
       case "orderbook": return <OrderBookPage />;
       case "admin": return <UserManagementPage />;
+      case "referral": return <ReferralPage />;
       default: return <OverviewPage />;
     }
   };
@@ -387,19 +396,14 @@ function AppContent() {
 
             <div className="flex items-center gap-1.5 lg:gap-2">
               
-              {/* --- MULAI: TOMBOL GANTI BAHASA UI LUXURY --- */}
+              {/* --- TOMBOL GANTI BAHASA --- */}
               <div className="flex items-center bg-bg-primary/80 backdrop-blur-md border border-gold-primary/20 rounded-xl p-0.5 mr-1 lg:mr-2 shadow-sm shadow-black/20">
-                {/* Ikon Globe */}
                 <div className="flex items-center justify-center px-2 text-gold-primary/70">
                   <svg className="w-3.5 h-3.5 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                
-                {/* Garis Pemisah */}
                 <div className="w-px h-3.5 bg-gold-primary/20 mx-0.5"></div>
-
-                {/* Tombol EN */}
                 <button 
                   onClick={() => i18n.changeLanguage('en')}
                   className={`relative px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300 overflow-hidden ${
@@ -413,8 +417,6 @@ function AppContent() {
                   )}
                   <span className="relative z-10">EN</span>
                 </button>
-
-                {/* Tombol ZH */}
                 <button 
                   onClick={() => i18n.changeLanguage('zh')}
                   className={`relative px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-300 overflow-hidden ${
@@ -429,7 +431,6 @@ function AppContent() {
                   <span className="relative z-10">ZH</span>
                 </button>
               </div>
-              {/* --- SELESAI: TOMBOL GANTI BAHASA UI LUXURY --- */}
 
               <button
                 className="relative w-9 h-9 flex items-center justify-center rounded-full text-text-muted hover:text-white hover:bg-white/[0.06] transition-all"
@@ -459,6 +460,9 @@ function AppContent() {
             <SidebarItem active={activeTab === "signals"} onClick={() => handleTabClick("signals")} label={t("nav.signals")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
             />
+            <SidebarItem active={activeTab === "ai-arena"} onClick={() => handleTabClick("ai-arena")} label="AI Arena"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
+            />
             <SidebarItem active={activeTab === "analytics"} onClick={() => handleTabClick("analytics")} label={t("nav.analytics")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />}
             />
@@ -471,10 +475,6 @@ function AppContent() {
 
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
-            {/* Navigasi Mobile untuk AI Arena */}
-            <SidebarItem active={activeTab === "ai-arena"} onClick={() => handleTabClick("ai-arena")} label="AI Arena"
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
-            />
             <SidebarItem active={activeTab === "orderbook"} onClick={() => handleTabClick("orderbook")} label={t("nav.orderbook")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
             />
@@ -493,6 +493,10 @@ function AppContent() {
             <SidebarItem active={activeTab === "watchlist"} onClick={() => handleTabClick("watchlist")} label={t("nav.watchlist")}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />}
             />
+            <SidebarItem active={activeTab === "referral"} onClick={() => handleTabClick("referral")} label="Referral"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />}
+            />
+
             {user?.role === 'admin' && (
               <>
                 <div className="my-4 mx-3 h-px bg-white/[0.05]" />
@@ -573,7 +577,7 @@ function AppContent() {
 }
 
 // ════════════════════════════════════════
-// Router - Main App Component
+// Router
 // ════════════════════════════════════════
 function App() {
   return (
@@ -584,6 +588,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
           <Route path="/watchlist" element={<AppContent />} />
+          <Route path="/referral" element={<AppContent />} />
           <Route path="/*" element={<AppContent />} />
         </Routes>
       </AuthProvider>

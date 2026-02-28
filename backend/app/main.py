@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
-import asyncio # ← Tambahkan asyncio untuk menjalankan task AI di background
+import asyncio
 
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
@@ -21,10 +21,11 @@ from app.api.routes.subscription import router as subscription_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.whale import router as whale_router
 from app.api.routes.orderbook import router as orderbook_router
-from app.api.routes import ai_arena                                   # ← ROUTER AI ARENA BARU
+from app.api.routes.referral import router as referral_router          # ← REFERRAL
+from app.api.routes import ai_arena
 
 # Import AI Worker
-from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline # ← WORKER AI BARU
+from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -54,10 +55,7 @@ async def lifespan(app: FastAPI):
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
         # ═══════════════════════════════════════════
-        start_ai_worker() # Mulai penjadwalan tiap jam
-        
-        # Jalankan satu kali pemindaian awal (First Scan) agar saat server nyala, 
-        # frontend langsung punya data laporan terbaru tanpa nunggu jam berikutnya.
+        start_ai_worker()
         asyncio.create_task(run_ai_report_pipeline())
         # ═══════════════════════════════════════════
         
@@ -100,7 +98,8 @@ app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
 app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
 app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])
-app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"]) # ← ENDPOINT AI ARENA
+app.include_router(referral_router, prefix="/api/v1", tags=["referral"])   # ← REFERRAL
+app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"])
 
 # ═══════════════════════════════════════════
 # Serve chart screenshots as static files
