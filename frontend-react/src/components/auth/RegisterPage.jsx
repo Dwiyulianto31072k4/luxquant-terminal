@@ -70,14 +70,14 @@ const RegisterPage = () => {
         <div className="hidden lg:block absolute left-0 top-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(212,168,83,0.15) 50%, transparent 90%)' }} />
         <style>{`@keyframes lq-blink { 50% { opacity: 0; } }`}</style>
 
-        {/* LOGO MOBILE - Di luar border (Pojok Kiri Atas) */}
-        <div className="lg:hidden absolute top-6 left-6 sm:top-8 sm:left-8 flex items-center gap-3 z-30">
-          <img src="/logo.png" alt="LuxQuant" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover' }} />
-          <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
+        {/* LOGO MOBILE */}
+        <div className="lg:hidden absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2.5 z-30">
+          <img src="/logo.png" alt="LuxQuant" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
+          <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 17 }}>LuxQuant</span>
         </div>
 
-        {/* EFEK KACA (GLASSMORPHISM WRAPPER) */}
-        <div className="relative z-10 w-full max-w-md px-6 py-6 sm:px-10 sm:py-10 rounded-[2rem] transition-all duration-500 mt-20 lg:mt-10 mb-8"
+        {/* GLASSMORPHISM WRAPPER */}
+        <div className="relative z-10 w-full max-w-md px-5 py-5 sm:px-10 sm:py-10 rounded-[2rem] transition-all duration-500 mt-16 sm:mt-20 lg:mt-10 mb-6 sm:mb-8"
              style={{ 
                background: 'rgba(255, 255, 255, 0.02)', 
                border: '1px solid rgba(212, 168, 83, 0.08)',
@@ -87,47 +87,47 @@ const RegisterPage = () => {
              }}>
 
           {/* Heading */}
-          <div className="mb-2 text-center lg:text-left">
-            <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>Buat Akun</h1>
+          <div className="mb-1 text-center lg:text-left">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>Buat Akun</h1>
             <p className="text-sm" style={{ color: '#8a7a6e' }}>Bergabung dengan ribuan trader cerdas lainnya</p>
           </div>
 
           {/* Mobile typewriter */}
-          <div className="lg:hidden mb-2 mt-3">
+          <div className="lg:hidden mb-1 mt-2">
             <TypewriterLine mobile />
           </div>
 
-          {/* Mobile globe — compact for register (less height) */}
-          <div className="lg:hidden mb-4" style={{ margin: '0 -32px' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 320, aspectRatio: '1 / 0.7', margin: '0 auto' }}>
+          {/* Mobile globe — compact for register */}
+          <div className="lg:hidden mb-2" style={{ margin: '0 -24px' }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 280, aspectRatio: '1 / 0.65', margin: '0 auto' }}>
               <MobileGlobeInner />
               <FlagBadgesCompact />
             </div>
-            <p className="text-center" style={{ fontSize: 11, color: '#8a7a6e', marginTop: -2, paddingBottom: 6, letterSpacing: '0.03em' }}>
+            <p className="text-center" style={{ fontSize: 11, color: '#8a7a6e', marginTop: -2, paddingBottom: 4, letterSpacing: '0.03em' }}>
               <span style={{ color: '#d4a853' }}>🌍</span>{' '}
               And <span style={{ color: '#b8a89a', fontWeight: 600 }}>20+ more countries</span> trust our signals
             </p>
           </div>
 
           {displayError && (
-            <div className="mb-5 p-4 rounded-xl text-sm flex items-center gap-3 animate-pulse" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
+            <div className="mb-4 p-3.5 rounded-xl text-sm flex items-center gap-3 animate-pulse" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               {displayError}
             </div>
           )}
 
-          {/* ── FORM FIRST ── */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ── FORM ── */}
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <FormInput label="Email" type="email" value={email} onChange={setEmail} placeholder="contoh@email.com" />
             <div>
               <FormInput label="Username" type="text" value={username} onChange={setUsername} placeholder="username_kamu" />
-              <p className="mt-1.5 text-xs ml-1" style={{ color: '#8a7a6e' }}>Huruf, angka, underscore. Min 3 karakter.</p>
+              <p className="mt-1 text-xs ml-1" style={{ color: '#8a7a6e' }}>Huruf, angka, underscore. Min 3 karakter.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#b8a89a' }}>Password</label>
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>Password</label>
               <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder="Minimal 8 karakter" />
               {password && (
-                <div className="mt-3 bg-black/30 p-2.5 rounded-xl border border-white/5 transition-all">
+                <div className="mt-2 bg-black/30 p-2 rounded-xl border border-white/5 transition-all">
                   <div className="flex items-center gap-3">
                     <span className="text-[11px] font-bold uppercase tracking-wider w-12 text-right transition-colors" style={{ color: strength.color }}>{strength.label}</span>
                     <div className="flex-1 flex gap-1.5">
@@ -140,40 +140,40 @@ const RegisterPage = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#b8a89a' }}>Konfirmasi Password</label>
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>Konfirmasi Password</label>
               <PasswordField value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} placeholder="Ulangi password" />
               {confirmPassword && confirmPassword !== password && (
-                <p className="mt-1.5 text-xs flex items-center gap-1 ml-1" style={{ color: '#f87171' }}>
+                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#f87171' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   Password tidak sama
                 </p>
               )}
               {confirmPassword && confirmPassword === password && password && (
-                <p className="mt-1.5 text-xs flex items-center gap-1 ml-1" style={{ color: '#4ade80' }}>
+                <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#4ade80' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   Password cocok
                 </p>
               )}
             </div>
 
-            <div className="pt-3">
+            <div className="pt-1 sm:pt-3">
               <GoldButton loading={loading} text="Buat Akun" loadingText="Membuat akun..." />
             </div>
           </form>
 
-          {/* ── SOCIAL AT BOTTOM ── */}
+          {/* ── SOCIAL ── */}
           <Divider text="Atau daftar dengan" />
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6">
             <SocialBtn icon={<GoogleIcon />} text="Google" />
             <SocialBtn icon={<TelegramIcon />} text="Telegram" />
           </div>
 
-          <p className="mt-6 text-center text-sm" style={{ color: '#8a7a6e' }}>
+          <p className="mt-3 sm:mt-6 text-center text-sm" style={{ color: '#8a7a6e' }}>
             Sudah punya akun?{' '}
             <Link to="/login" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>Login</Link>
           </p>
-          <p className="mt-4 text-center pb-2" style={{ color: '#6b5c52', fontSize: 11 }}>
+          <p className="mt-2 sm:mt-4 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
             Dengan mendaftar, kamu setuju dengan{' '}
             <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>Terms & Conditions</a>
             {' '}dan{' '}
@@ -185,7 +185,7 @@ const RegisterPage = () => {
   );
 };
 
-/* ── Inline globe for register (smaller, uses same Three.js from window) ── */
+/* ── Inline globe for register ── */
 
 const MobileGlobeInner = () => {
   const ref = useRef(null), anim = useRef(null);
@@ -291,13 +291,13 @@ const FlagBadgesCompact = () => (
   </>
 );
 
-/* ── Shared form components — with hover & active states ── */
+/* ── Shared form components ── */
 
 const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
   <div>
-    {label && <label className="block text-sm font-medium mb-2" style={{ color: '#b8a89a' }}>{label}</label>}
+    {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{label}</label>}
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3.5 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
+      className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
       style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
@@ -315,7 +315,7 @@ const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
 const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
   <div className="relative group">
     <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3.5 pr-12 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
+      className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
       style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
       onFocus={e => { 
         e.target.style.borderColor = '#d4a853'; 
@@ -339,7 +339,7 @@ const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
 
 const GoldButton = ({ loading, text, loadingText }) => (
   <button type="submit" disabled={loading}
-    className="w-full py-4 font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
+    className="w-full py-3.5 sm:py-4 font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
     style={{ background: 'linear-gradient(135deg, #d4a853 0%, #8b6914 100%)', color: '#0a0506', boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(212,168,83,0.4)' }}>
     <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, #fceca1 0%, #d4a853 100%)' }} />
     <span className="relative flex justify-center items-center gap-2">{loading ? (
@@ -352,16 +352,16 @@ const GoldButton = ({ loading, text, loadingText }) => (
 );
 
 const Divider = ({ text }) => (
-  <div className="flex items-center gap-4 my-7 opacity-70">
+  <div className="flex items-center gap-4 my-4 sm:my-7 opacity-70">
     <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.4))' }} />
-    <span style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8a7a6e' }}>{text}</span>
+    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8a7a6e' }}>{text}</span>
     <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, rgba(212,168,83,0.4))' }} />
   </div>
 );
 
 const SocialBtn = ({ icon, text }) => (
   <button type="button"
-    className="w-full py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm"
+    className="w-full py-3 sm:py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm"
     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,83,0.15)', color: '#b8a89a' }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; e.currentTarget.style.background = 'rgba(212,168,83,0.08)'; e.currentTarget.style.color = '#fff'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.color = '#b8a89a'; }}>

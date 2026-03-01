@@ -128,7 +128,7 @@ const BitcoinPage = () => {
               }}
             >
               <img
-                src="https://cryptologos.cc/logos/bitcoin-btc-logo.svg"
+                src="https://assets.coingecko.com/coins/images/1/standard/bitcoin.png"
                 alt="Bitcoin"
                 className="w-12 h-12 object-contain"
               />
