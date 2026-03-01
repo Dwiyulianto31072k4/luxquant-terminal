@@ -12,7 +12,7 @@ SCREENSHOTS_BASE = "/opt/luxquant/screenshots"
 
 # Menggunakan IP VPS kamu sebagai default URL. 
 # (Jika di VPS jalan di port 8000, ubah jadi "http://76.13.194.86:8000/api/v1/charts")
-API_CHARTS_PREFIX = os.getenv("CHARTS_BASE_URL", "http://76.13.194.86/api/v1/charts")
+API_CHARTS_PREFIX = os.getenv("CHARTS_BASE_URL", "https://luxquantdata.cloud/api/v1/charts")
 
 def chart_path_to_url(fs_path: str | None) -> str | None:
     """Convert filesystem path to API URL path."""
