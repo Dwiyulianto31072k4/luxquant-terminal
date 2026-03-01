@@ -5,11 +5,16 @@ import CoinLogo from './CoinLogo';
 
 const API_BASE = '/api/v1';
 
-// Rank medal colors
+// Rank medal colors (10 items)
 const RANK_STYLES = [
   { bg: 'bg-gradient-to-br from-yellow-400 to-amber-600', text: 'text-black', shadow: 'shadow-amber-500/30' },
   { bg: 'bg-gradient-to-br from-gray-300 to-gray-500', text: 'text-black', shadow: 'shadow-gray-400/20' },
   { bg: 'bg-gradient-to-br from-amber-600 to-amber-800', text: 'text-white', shadow: 'shadow-amber-700/20' },
+  { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
+  { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
+  { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
+  { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
+  { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
   { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
   { bg: 'bg-bg-card border border-gold-primary/20', text: 'text-gold-primary', shadow: '' },
 ];
@@ -40,7 +45,7 @@ const TopPerformers = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_BASE}/signals/top-performers?limit=5`;
+      let url = `${API_BASE}/signals/top-performers?limit=10`;
       if (activeFilter === 'custom' && customFrom && customTo) {
         url += `&date_from=${customFrom}&date_to=${customTo}`;
       } else if (activeFilter !== 'custom') {
@@ -97,13 +102,11 @@ const TopPerformers = () => {
           <div className="w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
           <h2 className="font-display text-3xl font-bold text-white">{t('top.title')}</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[0, 1].map(i => (
-            <div key={i} className="bg-bg-card rounded-xl p-5 border border-gold-primary/10 animate-pulse">
-              <div className="h-5 w-40 bg-bg-primary/50 rounded mb-4" />
-              {[...Array(5)].map((_, j) => <div key={j} className="h-14 bg-bg-primary/30 rounded-lg mb-2" />)}
-            </div>
-          ))}
+        <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10 animate-pulse">
+          <div className="h-5 w-40 bg-bg-primary/50 rounded mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[...Array(10)].map((_, j) => <div key={j} className="h-14 bg-bg-primary/30 rounded-lg" />)}
+          </div>
         </div>
       </div>
     );
@@ -155,80 +158,47 @@ const TopPerformers = () => {
         <div className="text-center py-8 mb-4 bg-bg-card/40 rounded-xl border border-gold-primary/10"><p className="text-text-muted text-sm">{t('top.no_tp')}</p></div>
       )}
 
-      {data && (data.top_gainers?.length > 0 || data.fastest_hits?.length > 0) && (
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${loading ? 'opacity-50' : ''}`}>
-          {/* TOP GAINERS */}
+      {data && data.top_gainers?.length > 0 && (
+        <div className={`${loading ? 'opacity-50' : ''}`}>
+          {/* TOP GAINERS - FULL WIDTH, 2 COLUMN */}
           <div className="bg-bg-card rounded-xl border border-gold-primary/10 overflow-hidden">
             <div className="px-5 py-3 border-b border-gold-primary/10 flex items-center gap-2">
               <span>🏆</span>
               <h3 className="text-gold-primary font-semibold text-sm uppercase tracking-wider">{t('top.top_gainers')}</h3>
             </div>
-            <div className="p-3 space-y-1.5">
-              {data.top_gainers?.map((item, idx) => {
-                const barW = maxGain > 0 ? Math.max((item.gain_pct / maxGain) * 100, 8) : 8;
-                const rank = RANK_STYLES[Math.min(idx, RANK_STYLES.length - 1)];
-                return (
-                  <div key={idx} onClick={() => handleItemClick(item)}
-                    className="relative flex items-center gap-3 px-3 py-3.5 bg-bg-primary/40 rounded-lg border border-green-500/10 hover:border-green-500/30 hover:bg-bg-primary/60 transition-all cursor-pointer group overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 bg-green-500/[0.06] rounded-lg" style={{ width: `${barW}%` }} />
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 relative z-10 text-xs font-bold ${rank.bg} ${rank.text} ${rank.shadow}`}>
-                      {idx + 1}
-                    </div>
-                    <div className="flex-shrink-0 relative z-10"><CoinLogo pair={cleanPair(item.pair)} size={32} /></div>
-                    <div className="flex-1 min-w-0 relative z-10">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">{coinSymbol(item.pair)}</span>
-                        {item.tp_level && <span className="px-1.5 py-0.5 bg-green-500/15 text-green-400 text-[10px] font-bold rounded leading-none">{item.tp_level.trim()}</span>}
-                        {item.signal_count > 1 && <span className="px-1.5 py-0.5 bg-gold-primary/15 text-gold-primary text-[9px] font-semibold rounded leading-none">{t('top.called')} {item.signal_count}x</span>}
+            <div className="p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 md:grid-rows-5 md:grid-flow-col gap-1.5">
+                {data.top_gainers?.map((item, idx) => {
+                  const barW = maxGain > 0 ? Math.max((item.gain_pct / maxGain) * 100, 8) : 8;
+                  const rank = RANK_STYLES[Math.min(idx, RANK_STYLES.length - 1)];
+                  return (
+                    <div key={idx} onClick={() => handleItemClick(item)}
+                      className="relative flex items-center gap-3 px-3 py-3.5 bg-bg-primary/40 rounded-lg border border-green-500/10 hover:border-green-500/30 hover:bg-bg-primary/60 transition-all cursor-pointer group overflow-hidden">
+                      <div className="absolute inset-y-0 left-0 bg-green-500/[0.06] rounded-lg" style={{ width: `${barW}%` }} />
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 relative z-10 text-xs font-bold ${rank.bg} ${rank.text} ${rank.shadow}`}>
+                        {idx + 1}
                       </div>
-                      <p className="text-text-muted text-[10px] mt-0.5">
-                        {t('top.first_entry')} ${formatPrice(item.entry)}
-                        <span className="text-text-muted/40 mx-1">·</span>
-                        {item.duration_display} {t('top.to_last_tp')}
-                      </p>
+                      <div className="flex-shrink-0 relative z-10"><CoinLogo pair={cleanPair(item.pair)} size={32} /></div>
+                      <div className="flex-1 min-w-0 relative z-10">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">{coinSymbol(item.pair)}</span>
+                          {item.tp_level && <span className="px-1.5 py-0.5 bg-green-500/15 text-green-400 text-[10px] font-bold rounded leading-none">{item.tp_level.trim()}</span>}
+                          {item.signal_count > 1 && <span className="px-1.5 py-0.5 bg-gold-primary/15 text-gold-primary text-[9px] font-semibold rounded leading-none">{t('top.called')} {item.signal_count}x</span>}
+                        </div>
+                        <p className="text-text-muted text-[10px] mt-0.5">
+                          {t('top.first_entry')} ${formatPrice(item.entry)}
+                          <span className="text-text-muted/40 mx-1">·</span>
+                          {item.duration_display} {t('top.to_last_tp')}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0 relative z-10">
+                        <span className="text-green-400 font-mono font-bold text-sm">+{item.gain_pct.toFixed(2)}%</span>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0 relative z-10">
-                      <span className="text-green-400 font-mono font-bold text-sm">+{item.gain_pct.toFixed(2)}%</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
               {(!data.top_gainers || data.top_gainers.length === 0) && <p className="text-text-muted text-sm text-center py-4">{t('top.no_data')}</p>}
-            </div>
-          </div>
-
-          {/* FASTEST HITS */}
-          <div className="bg-bg-card rounded-xl border border-gold-primary/10 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gold-primary/10 flex items-center gap-2">
-              <span>⚡</span>
-              <h3 className="text-gold-primary font-semibold text-sm uppercase tracking-wider">{t('top.fastest_hits')}</h3>
-            </div>
-            <div className="p-3 space-y-1.5">
-              {data.fastest_hits?.map((item, idx) => {
-                const rank = RANK_STYLES[Math.min(idx, RANK_STYLES.length - 1)];
-                return (
-                  <div key={idx} onClick={() => handleItemClick(item)}
-                    className="flex items-center gap-3 px-3 py-3.5 bg-bg-primary/40 rounded-lg border border-yellow-500/10 hover:border-yellow-500/30 hover:bg-bg-primary/60 transition-all cursor-pointer group">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold ${rank.bg} ${rank.text} ${rank.shadow}`}>{idx + 1}</div>
-                    <div className="flex-shrink-0"><CoinLogo pair={cleanPair(item.pair)} size={32} /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors">{coinSymbol(item.pair)}</span>
-                        {item.tp_level && <span className="px-1.5 py-0.5 bg-yellow-500/15 text-yellow-400 text-[10px] font-bold rounded leading-none">{item.tp_level.trim()}</span>}
-                      </div>
-                      <p className="text-text-muted text-[10px] mt-0.5">
-                        {t('top.entry')} ${formatPrice(item.entry)}
-                        <span className="text-text-muted/40 mx-1">·</span>
-                        <span className="text-green-400">+{item.gain_pct.toFixed(2)}%</span>
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-yellow-400 font-mono font-bold text-sm">{item.duration_display}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {(!data.fastest_hits || data.fastest_hits.length === 0) && <p className="text-text-muted text-sm text-center py-4">{t('top.no_data')}</p>}
             </div>
           </div>
         </div>
@@ -270,48 +240,121 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
     setPeakPrice(null);
   }, [currentIndex]);
 
-  // Fetch Peak Price from Binance (Mulai dari TP terakhir)
+  // Fetch Peak Price AFTER highest TP hit — Binance → Bybit fallback chain
   useEffect(() => {
     if (!detail?.entry || !created || !pair) return;
 
-    const fetchPeakFromBinance = async () => {
+    const fetchPeakPrice = async () => {
       try {
-        const tpUpdates = detail.updates?.filter(u => u.update_type.toLowerCase().startsWith('tp')) || [];
-        if (tpUpdates.length === 0) return; 
-
-        const lastTp = tpUpdates[tpUpdates.length - 1]; 
-        const startTime = new Date(lastTp.update_at).getTime(); 
-        
-        const isShort = tpUpdates[0].price < detail.entry;
+        const entryVal = Number(detail.entry);
         const symbol = pair.replace('USDT', '') + 'USDT';
-        
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&startTime=${startTime}&limit=30`);
-        const data = await res.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          let bestPeak = lastTp.price; 
-          
-          data.forEach(candle => {
-            const high = parseFloat(candle[2]); 
-            const low = parseFloat(candle[3]);  
-            
-            if (isShort) {
-              if (low > 0 && low < bestPeak) bestPeak = low;
-            } else {
-              if (high > bestPeak) bestPeak = high;
-            }
+
+        const tpUpdates = detail.updates?.filter(u => u.update_type?.toLowerCase()?.startsWith('tp')) || [];
+        if (tpUpdates.length === 0) return;
+
+        const isShort = Number(tpUpdates[0].price) < entryVal;
+
+        // Find highest hit TP price and its timestamp (start measuring from here)
+        const lastTpUpdate = tpUpdates[tpUpdates.length - 1];
+        const startTime = new Date(lastTpUpdate.update_at).getTime();
+
+        let highestTpPrice = Number(lastTpUpdate.price);
+        tpUpdates.forEach(u => {
+          const p = Number(u.price);
+          if (isShort) { if (p > 0 && p < highestTpPrice) highestTpPrice = p; }
+          else { if (p > highestTpPrice) highestTpPrice = p; }
+        });
+
+        // Helper: find peak strictly beyond the highest TP
+        const extractPeak = (candles, getHigh, getLow) => {
+          if (!Array.isArray(candles) || candles.length === 0) return null;
+          let best = highestTpPrice;
+          candles.forEach(c => {
+            const high = getHigh(c);
+            const low = getLow(c);
+            if (isShort) { if (low > 0 && low < best) best = low; }
+            else { if (high > best) best = high; }
           });
-          
-          if (bestPeak !== lastTp.price) {
-            setPeakPrice(bestPeak);
+          if (isShort) return best < highestTpPrice ? best : null;
+          return best > highestTpPrice ? best : null;
+        };
+
+        const binanceH = (c) => parseFloat(c[2]);
+        const binanceL = (c) => parseFloat(c[3]);
+        const bybitH = (c) => parseFloat(c.high);
+        const bybitL = (c) => parseFloat(c.low);
+
+        let peak = null;
+
+        // === 1. BINANCE FUTURES ===
+        try {
+          const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) peak = extractPeak(data, binanceH, binanceL);
           }
+        } catch (e) { console.warn('[PeakPrice] Binance futures failed:', e.message); }
+
+        // === 2. BINANCE SPOT ===
+        if (peak === null) {
+          try {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`);
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data) && data.length > 0) peak = extractPeak(data, binanceH, binanceL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Binance spot failed:', e.message); }
+        }
+
+        // === 3. BYBIT ID LINEAR ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit ID linear failed:', e.message); }
+        }
+
+        // === 4. BYBIT GLOBAL LINEAR ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit global linear failed:', e.message); }
+        }
+
+        // === 5. BYBIT ID SPOT ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit ID spot failed:', e.message); }
+        }
+
+        // Only show if peak is strictly beyond highest TP
+        if (peak !== null) {
+          setPeakPrice(peak);
         }
       } catch (error) {
-        console.error("Gagal mengambil peak price:", error);
+        console.error("[PeakPrice] All providers failed:", error);
       }
     };
 
-    fetchPeakFromBinance();
+    fetchPeakPrice();
   }, [detail, created, pair]);
 
   const handleClose = () => {
@@ -464,7 +507,6 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
               <div className="w-full">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">📸 {t('top.trade_proof')}</span>
-                  {/* Tombol Telegram dihapus dari sini */}
                 </div>
                 
                 {!hasAnyImg ? (

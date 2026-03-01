@@ -21,6 +21,9 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
   const [peakPrice, setPeakPrice] = useState(null);
   const [showTV, setShowTV] = useState(false);
 
+  // State untuk AI Prompt copy
+  const [promptCopied, setPromptCopied] = useState(false);
+
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
   // 1. Kunci scroll body saat modal buka
@@ -40,6 +43,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     setLightboxImg(null);
     setPeakPrice(null);
     setShowTV(false);
+    setPromptCopied(false);
     
     const fetchDetail = async () => {
       try { 
@@ -69,48 +73,130 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
       .finally(() => setCoinInfoLoading(false));
   }, [isOpen, signal, activeTab, coinInfo]);
 
-  // 4. Fetch Peak Price dari Binance (Hanya jika detail sudah ter-load)
+  // 4. Fetch Peak Price AFTER highest TP hit — Binance → Bybit fallback chain
+  // Shows how much higher price went BEYOND the last target hit
   useEffect(() => {
     if (!isOpen || !signal || !signalDetail?.entry || !signal.created_at) return;
 
-    const fetchPeakFromBinance = async () => {
+    const fetchPeakPrice = async () => {
       try {
-        const tpUpdates = signalDetail.updates?.filter(u => u?.update_type?.toLowerCase()?.startsWith('tp')) || [];
-        if (tpUpdates.length === 0) return; 
-
-        const lastTp = tpUpdates[tpUpdates.length - 1]; 
-        const startTime = new Date(lastTp.update_at).getTime(); 
-        
-        const isShort = Number(tpUpdates[0].price) < Number(signalDetail.entry);
+        const entryVal = Number(signalDetail.entry);
         const symbol = (signal.pair || '').replace('USDT', '') + 'USDT';
-        
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&startTime=${startTime}&limit=30`);
-        const data = await res.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          let bestPeak = Number(lastTp.price); 
-          
-          data.forEach(candle => {
-            const high = parseFloat(candle[2]); 
-            const low = parseFloat(candle[3]);  
-            
-            if (isShort) {
-              if (low > 0 && low < bestPeak) bestPeak = low;
-            } else {
-              if (high > bestPeak) bestPeak = high;
-            }
+
+        // Determine direction
+        const firstTp = signal.target1 ? Number(signal.target1) : null;
+        const isShort = firstTp !== null && firstTp < entryVal;
+
+        // Find the highest hit TP and its timestamp
+        const tpUpdates = signalDetail.updates?.filter(u => u?.update_type?.toLowerCase()?.startsWith('tp')) || [];
+        if (tpUpdates.length === 0) return; // no TPs hit, nothing to show
+
+        // Get the last (highest) TP update — this is where we start measuring
+        const lastTpUpdate = tpUpdates[tpUpdates.length - 1];
+        const lastTpPrice = Number(lastTpUpdate.price);
+        const startTime = new Date(lastTpUpdate.update_at).getTime();
+
+        // Also check target values for the highest hit TP price
+        let highestTpPrice = lastTpPrice;
+        const targetValues = [signal.target1, signal.target2, signal.target3, signal.target4];
+        targetValues.forEach((tv, i) => {
+          if (!tv || !hitTargets[i]) return;
+          const p = Number(tv);
+          if (isShort) { if (p > 0 && p < highestTpPrice) highestTpPrice = p; }
+          else { if (p > highestTpPrice) highestTpPrice = p; }
+        });
+
+        // Helper: find peak strictly beyond the highest TP
+        const extractPeak = (candles, getHigh, getLow) => {
+          if (!Array.isArray(candles) || candles.length === 0) return null;
+          let best = highestTpPrice;
+          candles.forEach(c => {
+            const high = getHigh(c);
+            const low = getLow(c);
+            if (isShort) { if (low > 0 && low < best) best = low; }
+            else { if (high > best) best = high; }
           });
-          
-          if (bestPeak !== Number(lastTp.price)) {
-            setPeakPrice(bestPeak);
+          // Only return if peak is strictly beyond highest TP
+          if (isShort) return best < highestTpPrice ? best : null;
+          return best > highestTpPrice ? best : null;
+        };
+
+        const binanceH = (c) => parseFloat(c[2]);
+        const binanceL = (c) => parseFloat(c[3]);
+        const bybitH = (c) => parseFloat(c.high);
+        const bybitL = (c) => parseFloat(c.low);
+
+        let peak = null;
+
+        // === 1. BINANCE FUTURES ===
+        try {
+          const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) peak = extractPeak(data, binanceH, binanceL);
           }
+        } catch (e) { console.warn('[PeakPrice] Binance futures failed:', e.message); }
+
+        // === 2. BINANCE SPOT ===
+        if (peak === null) {
+          try {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`);
+            if (res.ok) {
+              const data = await res.json();
+              if (Array.isArray(data) && data.length > 0) peak = extractPeak(data, binanceH, binanceL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Binance spot failed:', e.message); }
+        }
+
+        // === 3. BYBIT ID LINEAR ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit ID linear failed:', e.message); }
+        }
+
+        // === 4. BYBIT GLOBAL LINEAR ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit global linear failed:', e.message); }
+        }
+
+        // === 5. BYBIT ID SPOT ===
+        if (peak === null) {
+          try {
+            const endTime = Date.now();
+            const res = await fetch(`https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${endTime}&limit=200`);
+            if (res.ok) {
+              const json = await res.json();
+              const list = (json?.result?.list || []).map(k => ({ high: k[2], low: k[3] }));
+              peak = extractPeak(list, bybitH, bybitL);
+            }
+          } catch (e) { console.warn('[PeakPrice] Bybit ID spot failed:', e.message); }
+        }
+
+        // Only show if peak exists (strictly beyond highest TP)
+        if (peak !== null) {
+          setPeakPrice(peak);
         }
       } catch (error) {
-        console.error("Gagal mengambil peak price:", error);
+        console.error("[PeakPrice] All providers failed:", error);
       }
     };
 
-    fetchPeakFromBinance();
+    fetchPeakPrice();
   }, [isOpen, signal, signalDetail]);
 
   // 5. Handle tombol Escape (Esc)
@@ -325,19 +411,33 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
     { name: 'BingX', url: `https://bingx.com/en-us/spot/${coinSymbol}USDT/`, logo: 'https://bingx.com/favicon.ico', fallbackLogo: 'https://www.google.com/s2/favicons?domain=bingx.com&sz=64', color: 'from-blue-400/10 to-blue-600/5 hover:border-blue-400/30' },
   ];
 
-  // === TIMELINE (HORIZONTAL) ===
+  // === TIMELINE (HORIZONTAL) — SL ON LEFT OF ENTRY ===
   const buildTimeline = () => {
     const ev = [];
+
+    // SL goes FIRST (left of entry)
+    if (signal?.stop1) { 
+      const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); 
+      ev.push({ 
+        label: 'SL', sub: isStopped ? formatShortDateTime(su?.update_at) : 'Pending', 
+        detail: `${formatPrice(signal.stop1)}`, pct: `${calcPct(signal.stop1, signal?.entry)}%`,
+        icon: isStopped ? '✗' : '⊘', active: isStopped, 
+        color: isStopped ? 'text-red-400' : 'text-gray-500', border: isStopped ? 'border-red-500/30' : 'border-gray-700', bg: isStopped ? 'bg-red-500/10' : 'bg-[#111]' 
+      }); 
+    }
+
+    // ENTRY in the middle
     ev.push({ 
       label: 'ENTRY', sub: formatShortDateTime(signal?.created_at), detail: `@ ${formatPrice(signal?.entry)}`, 
       icon: '📡', active: true, color: 'text-gold-primary', border: 'border-gold-primary/30', bg: 'bg-gold-primary/10' 
     });
     
+    // TPs go RIGHT of entry — unified green color for elegance
     const tps = [
       { k: 'tp1', l: 'TP1', v: signal?.target1, c: 'text-green-400', b: 'border-green-500/30', bg: 'bg-green-500/10' },
-      { k: 'tp2', l: 'TP2', v: signal?.target2, c: 'text-lime-400', b: 'border-lime-500/30', bg: 'bg-lime-500/10' },
-      { k: 'tp3', l: 'TP3', v: signal?.target3, c: 'text-yellow-400', b: 'border-yellow-500/30', bg: 'bg-yellow-500/10' },
-      { k: 'tp4', l: 'TP4', v: signal?.target4, c: 'text-orange-400', b: 'border-orange-500/30', bg: 'bg-orange-500/10' },
+      { k: 'tp2', l: 'TP2', v: signal?.target2, c: 'text-green-400', b: 'border-green-500/30', bg: 'bg-green-500/10' },
+      { k: 'tp3', l: 'TP3', v: signal?.target3, c: 'text-green-400', b: 'border-green-500/30', bg: 'bg-green-500/10' },
+      { k: 'tp4', l: 'TP4', v: signal?.target4, c: 'text-green-400', b: 'border-green-500/30', bg: 'bg-green-500/10' },
     ];
     
     tps.forEach((tp, i) => { 
@@ -351,19 +451,109 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
       }); 
     });
 
-    if (signal?.stop1) { 
-      const su = getUpdateInfo('sl') || getUpdateInfo('sl1'); 
-      ev.push({ 
-        label: 'SL', sub: isStopped ? formatShortDateTime(su?.update_at) : 'Pending', 
-        detail: `${formatPrice(signal.stop1)}`, pct: `${calcPct(signal.stop1, signal?.entry)}%`,
-        icon: isStopped ? '✗' : '⊘', active: isStopped, 
-        color: isStopped ? 'text-red-400' : 'text-gray-500', border: isStopped ? 'border-red-500/30' : 'border-gray-700', bg: isStopped ? 'bg-red-500/10' : 'bg-[#111]' 
-      }); 
-    }
     return ev;
   };
   const timeline = buildTimeline();
   const LinkIcon = () => (<svg className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>);
+
+  // === AI PROMPT GENERATOR ===
+  const generateAIPrompt = () => {
+    const direction = (() => {
+      if (!signal?.entry || !signal?.target1) return 'LONG';
+      return Number(signal.target1) > Number(signal.entry) ? 'LONG' : 'SHORT';
+    })();
+
+    const tpList = [signal?.target1, signal?.target2, signal?.target3, signal?.target4]
+      .filter(Boolean)
+      .map((tp, i) => `  - TP${i + 1}: $${formatPrice(tp)} (${calcPct(tp, signal?.entry) > 0 ? '+' : ''}${calcPct(tp, signal?.entry)}%)`)
+      .join('\n');
+
+    const slList = [signal?.stop1, signal?.stop2]
+      .filter(Boolean)
+      .map((sl, i) => `  - SL${i + 1}: $${formatPrice(sl)} (${calcPct(sl, signal?.entry)}%)`)
+      .join('\n');
+
+    const currentStatus = signal?.status?.toUpperCase() || 'OPEN';
+    const hitCount = hitTargets.filter(Boolean).length;
+    
+    const riskReward = (() => {
+      if (!signal?.entry || !signal?.target4 || !signal?.stop1) return null;
+      const reward = Math.abs(Number(signal.target4) - Number(signal.entry));
+      const risk = Math.abs(Number(signal.stop1) - Number(signal.entry));
+      if (risk === 0) return null;
+      return (reward / risk).toFixed(2);
+    })();
+
+    const coinInfoSection = coinInfo ? `
+## Additional Context from CoinGecko:
+- Full Name: ${coinInfo.name || 'N/A'} (${coinInfo.symbol || 'N/A'})
+- Categories: ${coinInfo.categories?.join(', ') || 'N/A'}
+- Current Price: $${coinInfo.market_data?.current_price?.toLocaleString() || 'N/A'}
+- Market Cap: ${coinInfo.market_data?.market_cap ? formatBigNum(coinInfo.market_data.market_cap) : 'N/A'} (Rank #${coinInfo.market_data?.market_cap_rank || 'N/A'})
+- 24h Volume: ${coinInfo.market_data?.total_volume ? formatBigNum(coinInfo.market_data.total_volume) : 'N/A'}
+- 24h Change: ${coinInfo.market_data?.price_change_24h_pct != null ? `${coinInfo.market_data.price_change_24h_pct.toFixed(2)}%` : 'N/A'}
+- 7d Change: ${coinInfo.market_data?.price_change_7d_pct != null ? `${coinInfo.market_data.price_change_7d_pct.toFixed(2)}%` : 'N/A'}
+- ATH: $${coinInfo.market_data?.ath?.toLocaleString() || 'N/A'} (${coinInfo.market_data?.ath_change_pct != null ? `${coinInfo.market_data.ath_change_pct.toFixed(1)}% from ATH` : ''})
+- Circulating Supply: ${coinInfo.market_data?.circulating_supply ? `${(coinInfo.market_data.circulating_supply / 1e6).toFixed(1)}M` : 'N/A'}` : '';
+
+    const prompt = `You are an expert cryptocurrency derivatives trader and technical analyst. I need you to analyze the following trading signal and provide a comprehensive trade evaluation.
+
+## Signal Details:
+- Pair: ${signal?.pair || 'N/A'} (USDT Perpetual Futures)
+- Direction: ${direction}
+- Entry Price: $${formatPrice(signal?.entry)}
+- Signal Date: ${signal?.created_at ? new Date(signal.created_at).toLocaleString() : 'N/A'}
+- Current Status: ${currentStatus}${hitCount > 0 ? ` (${hitCount} target${hitCount > 1 ? 's' : ''} hit)` : ''}
+
+## Take Profit Targets:
+${tpList || '  - None specified'}
+
+## Stop Loss Levels:
+${slList || '  - None specified'}
+
+## Risk Parameters:
+- Risk Level: ${signal?.risk_level || 'N/A'}
+- Market Cap Category: ${signal?.market_cap || 'N/A'}
+- Volume Rank: ${signal?.volume_rank_num ? `#${signal.volume_rank_num}/${signal.volume_rank_den}` : 'N/A'}${riskReward ? `\n- Risk/Reward Ratio (to TP4): 1:${riskReward}` : ''}
+${coinInfoSection}
+
+## Please Analyze:
+1. **Trade Setup Quality**: Evaluate the entry price relative to the targets and stop loss. Is the risk-reward ratio favorable? Are the TP levels realistic based on typical price action for this asset?
+
+2. **Position Sizing Recommendation**: Based on the risk level and stop loss distance, what percentage of portfolio would you recommend allocating? Consider the market cap category and volume.
+
+3. **Key Technical Levels**: What are the critical support and resistance levels to watch near the entry, TPs, and SL? Any confluence zones?
+
+4. **Risk Assessment**: What are the main risks for this trade? Consider market conditions, the asset's volatility profile, and any potential catalysts that could invalidate the setup.
+
+5. **Trade Management Strategy**: How should the trader manage this position? When to move SL to breakeven? Should partial profits be taken at each TP level? Recommended trailing stop approach?
+
+6. **Overall Verdict**: Rate this signal (Strong Buy / Buy / Neutral / Avoid) and explain your reasoning. Would you take this trade? What would make you more confident or cause you to skip it?
+
+Provide actionable, specific advice. Be direct about both the strengths and weaknesses of this setup. Think like a professional risk manager, not a hype trader.`;
+
+    return prompt;
+  };
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(generateAIPrompt());
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2500);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = generateAIPrompt();
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2500);
+    }
+  };
 
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
   const renderTargetsPanel = (layout) => {
@@ -681,14 +871,14 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                       </div>
                     </div>
 
-                    {/* Data / Exchanges Grid */}
+                    {/* Data / Exchanges Grid — CENTERED */}
                     <div>
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">🏦 Trade on Exchanges</h4>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
+                      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                         
                         {/* Tombol Telegram */}
                         {signalDetail?.message_link && (
-                          <a href={signalDetail.message_link} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 p-2 bg-gradient-to-b from-blue-500/10 to-blue-900/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all group">
+                          <a href={signalDetail.message_link} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all group">
                             <span className="text-xl">✈️</span>
                             <span className="text-blue-400 text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">View Telegram</span>
                           </a>
@@ -696,7 +886,7 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
 
                         {/* List Exchange (10+) */}
                         {tradeLinks.map((link, i) => (
-                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 p-2 bg-gradient-to-b ${link.color} rounded-lg border border-white/5 hover:bg-white/5 transition-all group`}>
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b ${link.color} rounded-lg border border-white/5 hover:bg-white/5 transition-all group`}>
                             <img src={link.logo} alt={link.name} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = link.fallbackLogo; }} />
                             <span className="text-white/70 text-[9px] sm:text-[10px] font-medium group-hover:text-white truncate w-full text-center">{link.name}</span>
                           </a>
@@ -757,6 +947,58 @@ const SignalModal = ({ signal, isOpen, onClose }) => {
                         <p className="text-text-muted text-xs">{t('modal.no_info')} <span className="text-gold-primary font-mono">{coinSymbol}</span></p>
                       </div>
                     )}
+
+                    {/* === AI PROMPT GENERATOR SECTION === */}
+                    <div className="mb-4 sm:mb-5">
+                      <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] rounded-xl border border-purple-500/20 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-purple-500/10 bg-purple-500/5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center">
+                              <span className="text-xs">🤖</span>
+                            </div>
+                            <div>
+                              <h4 className="text-purple-300 text-xs sm:text-sm font-semibold">AI Trade Analysis Prompt</h4>
+                              <p className="text-text-muted text-[9px] sm:text-[10px]">Copy & paste to any AI (ChatGPT, Claude, Gemini, etc.)</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleCopyPrompt}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
+                              promptCopied 
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                                : 'bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25 hover:text-purple-200 active:scale-95'
+                            }`}
+                          >
+                            {promptCopied ? (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                                Copy Prompt
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        {/* Prompt Preview */}
+                        <div className="p-3 sm:p-4 max-h-[280px] overflow-y-auto custom-scrollbar">
+                          <pre className="text-[10px] sm:text-[11px] text-text-secondary font-mono leading-relaxed whitespace-pre-wrap break-words select-all">
+                            {generateAIPrompt()}
+                          </pre>
+                        </div>
+                        {/* Footer hint */}
+                        <div className="px-3 sm:px-4 py-2 border-t border-purple-500/10 bg-purple-500/[0.03]">
+                          <p className="text-[9px] sm:text-[10px] text-text-muted flex items-center gap-1.5">
+                            <svg className="w-3 h-3 text-purple-400/60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>This prompt includes all signal details{coinInfo ? ', market data from CoinGecko,' : ''} and asks AI for trade setup analysis, position sizing, risk assessment, and trade management strategy.</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="mb-3 sm:mb-5">
                       <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">🔗 {t('modal.research_links')}</p>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
