@@ -33,16 +33,16 @@ const UserMenu = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => navigate('/login')}
-          className="px-3 py-1.5 rounded-lg text-sm font-medium text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/10 transition-all"
+          className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/10 transition-all whitespace-nowrap"
         >
           {t('userMenu.login')}
         </button>
         <button
           onClick={() => navigate('/register')}
-          className="px-3 py-1.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all"
+          className="hidden sm:block px-3 py-1.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all whitespace-nowrap"
         >
           {t('userMenu.register')}
         </button>
