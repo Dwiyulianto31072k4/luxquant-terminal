@@ -12,6 +12,7 @@ import { userMenuEn, userMenuZh } from './locales/userMenu';
 import { pricingEn, pricingZh } from './locales/pricing';
 import { paymentEn, paymentZh } from './locales/payment';
 import { referralEn, referralZh } from './locales/referral';
+import { authEn, authZh } from './locales/auth';
 
 const resources = {
   en: {
@@ -35,6 +36,7 @@ const resources = {
       pricing: pricingEn,
       payment: paymentEn,
       referral: referralEn,
+      auth: authEn,
     }
   },
   zh: {
@@ -58,6 +60,7 @@ const resources = {
       pricing: pricingZh,
       payment: paymentZh,
       referral: referralZh,
+      auth: authZh,
     }
   }
 };

@@ -1,20 +1,21 @@
 // src/components/auth/LeftBrandPanel.jsx
-// Desktop: left 55% panel with globe | Mobile: just the desktop panel (hidden on mobile)
-// Mobile globe is now rendered INSIDE LoginPage/RegisterPage directly
-
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /* ================================================================
-   TYPEWRITER — longer, more contextual taglines
+   TAGLINES — now translation-aware
    ================================================================ */
-const TAGLINES = [
-  { parts: [{ text: 'Professional-Grade ', g: false }, { text: 'Crypto Signals', g: true }, { text: ' Delivered to You 24/7', g: false }] },
-  { parts: [{ text: 'Join ', g: false }, { text: '2,000+ Traders', g: true }, { text: ' Worldwide Who Trust LuxQuant', g: false }] },
-  { parts: [{ text: 'Proactive Algorithms That ', g: false }, { text: 'Identify Opportunities', g: true }, { text: ' Before The Market Moves', g: false }] },
-  { parts: [{ text: 'Built in ', g: false }, { text: 'Taiwan 🇹🇼', g: true }, { text: ' — Serving Traders Across 20+ Countries', g: false }] },
-  { parts: [{ text: 'Data-Driven ', g: false }, { text: 'Entry & Exit Signals', g: true }, { text: ' for Smarter Crypto Trading', g: false }] },
-  { parts: [{ text: 'Real-Time Market Analysis ', g: false }, { text: 'Powered by AI', g: true }, { text: ' — Your Edge in Every Trade', g: false }] },
-];
+const getTaglines = (t) => {
+  const a = (key) => t(`auth.${key}`);
+  return [
+    { parts: [{ text: a('tagline_1_a'), g: false }, { text: a('tagline_1_b'), g: true }, { text: a('tagline_1_c'), g: false }] },
+    { parts: [{ text: a('tagline_2_a'), g: false }, { text: a('tagline_2_b'), g: true }, { text: a('tagline_2_c'), g: false }] },
+    { parts: [{ text: a('tagline_3_a'), g: false }, { text: a('tagline_3_b'), g: true }, { text: a('tagline_3_c'), g: false }] },
+    { parts: [{ text: a('tagline_4_a'), g: false }, { text: a('tagline_4_b'), g: true }, { text: a('tagline_4_c'), g: false }] },
+    { parts: [{ text: a('tagline_5_a'), g: false }, { text: a('tagline_5_b'), g: true }, { text: a('tagline_5_c'), g: false }] },
+    { parts: [{ text: a('tagline_6_a'), g: false }, { text: a('tagline_6_b'), g: true }, { text: a('tagline_6_c'), g: false }] },
+  ];
+};
 
 const useTypewriter = (taglines, speed = 40, delSpeed = 18, pause = 3200) => {
   const [cc, setCc] = useState(0);
@@ -184,30 +185,34 @@ const GlobeViz = () => {
 
 /* ================================================================
    MOBILE GLOBE SECTION — exported for use inside Login/Register pages
-   Placed AFTER the heading, BEFORE form fields
    ================================================================ */
-export const MobileGlobeSection = () => (
-  <div className="lg:hidden" style={{ margin: '0 -32px' }}>
-    <style>{`
-      @keyframes lq-spin { to { transform: rotate(360deg); } }
-    `}</style>
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 0.85', maxWidth: 420, margin: '0 auto' }}>
-      <GlobeViz />
-      <FlagBadges compact />
+export const MobileGlobeSection = () => {
+  const { t } = useTranslation();
+  const a = (key) => t(`auth.${key}`);
+  return (
+    <div className="lg:hidden" style={{ margin: '0 -32px' }}>
+      <style>{`
+        @keyframes lq-spin { to { transform: rotate(360deg); } }
+      `}</style>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 0.85', maxWidth: 420, margin: '0 auto' }}>
+        <GlobeViz />
+        <FlagBadges compact />
+      </div>
+      <p className="text-center" style={{ fontSize: 12, color: '#6b5c52', marginTop: -4, paddingBottom: 8, letterSpacing: '0.03em' }}>
+        <span style={{ color: '#d4a853' }}>🌍</span>{' '}
+        {a('globe_more')} <span style={{ color: '#b8a89a', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
+      </p>
     </div>
-    {/* "And more countries" text */}
-    <p className="text-center" style={{ fontSize: 12, color: '#6b5c52', marginTop: -4, paddingBottom: 8, letterSpacing: '0.03em' }}>
-      <span style={{ color: '#d4a853' }}>🌍</span>{' '}
-      And <span style={{ color: '#b8a89a', fontWeight: 600 }}>20+ more countries</span> trust our signals
-    </p>
-  </div>
-);
+  );
+};
 
 /* ================================================================
    TYPEWRITER DISPLAY — exported for use inside Login/Register pages
    ================================================================ */
 export const TypewriterLine = ({ mobile }) => {
-  const parts = useTypewriter(TAGLINES);
+  const { t } = useTranslation();
+  const taglines = getTaglines(t);
+  const parts = useTypewriter(taglines);
   return (
     <div style={{ textAlign: mobile ? 'left' : 'center', minHeight: mobile ? 44 : 40 }}>
       <p style={{ fontFamily: 'Playfair Display, serif', fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: '#6b5c52' }}>
@@ -223,52 +228,56 @@ export const TypewriterLine = ({ mobile }) => {
 /* ================================================================
    DESKTOP LEFT PANEL — only visible on lg+
    ================================================================ */
-const LeftBrandPanel = () => (
-  <>
-    <style>{`
-      @keyframes lq-spin { to { transform: rotate(360deg); } }
-      @keyframes lq-blink { 50% { opacity: 0; } }
-    `}</style>
+const LeftBrandPanel = () => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <style>{`
+        @keyframes lq-spin { to { transform: rotate(360deg); } }
+        @keyframes lq-blink { 50% { opacity: 0; } }
+      `}</style>
 
-    <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden" style={{ flexDirection: 'column' }}>
-      {/* BG layers */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #1a0a0c 0%, #0d0405 50%, #110607 100%)' }} />
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 15%, rgba(139,26,26,0.35) 0%, transparent 55%)' }} />
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 85% 85%, rgba(100,18,18,0.18) 0%, transparent 50%)' }} />
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 55%, rgba(212,168,83,0.04) 0%, transparent 45%)' }} />
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 10%, rgba(212,168,83,0.12) 50%, transparent 90%)' }} />
-      <div className="absolute top-0 right-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,168,83,0.08), transparent)' }} />
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden" style={{ flexDirection: 'column' }}>
+        {/* BG layers */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #1a0a0c 0%, #0d0405 50%, #110607 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 15%, rgba(139,26,26,0.35) 0%, transparent 55%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 85% 85%, rgba(100,18,18,0.18) 0%, transparent 50%)' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 55%, rgba(212,168,83,0.04) 0%, transparent 45%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 10%, rgba(212,168,83,0.12) 50%, transparent 90%)' }} />
+        <div className="absolute top-0 right-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,168,83,0.08), transparent)' }} />
 
-      <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-6" style={{ flexDirection: 'column' }}>
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
-          <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
-        </div>
-
-        {/* Center */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ marginBottom: 36, position: 'relative', zIndex: 30, textAlign: 'center', minHeight: 40 }}>
-            {/* Desktop typewriter */}
-            <DesktopTypewriter />
+        <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-6" style={{ flexDirection: 'column' }}>
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
+            <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
           </div>
-          <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1 / 1' }}>
-            <GlobeViz />
-            <FlagBadges />
-          </div>
-        </div>
 
-        {/* Bottom */}
-        <div style={{ borderTop: '1px solid rgba(212,168,83,0.06)', paddingTop: 10, textAlign: 'center' }}>
-          <p style={{ fontSize: 10, color: '#3d352f', letterSpacing: '0.1em', textTransform: 'uppercase' }}>© 2026 LuxQuant Algorithm · All rights reserved</p>
+          {/* Center */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ marginBottom: 36, position: 'relative', zIndex: 30, textAlign: 'center', minHeight: 40 }}>
+              <DesktopTypewriter />
+            </div>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 500, aspectRatio: '1 / 1' }}>
+              <GlobeViz />
+              <FlagBadges />
+            </div>
+          </div>
+
+          {/* Bottom */}
+          <div style={{ borderTop: '1px solid rgba(212,168,83,0.06)', paddingTop: 10, textAlign: 'center' }}>
+            <p style={{ fontSize: 10, color: '#3d352f', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('auth.copyright')}</p>
+          </div>
         </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 const DesktopTypewriter = () => {
-  const parts = useTypewriter(TAGLINES);
+  const { t } = useTranslation();
+  const taglines = getTaglines(t);
+  const parts = useTypewriter(taglines);
   return (
     <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 600, lineHeight: 1.4 }}>
       {parts.map((p, i) => (

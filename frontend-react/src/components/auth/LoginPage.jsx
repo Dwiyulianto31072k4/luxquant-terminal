@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import LeftBrandPanel, { MobileGlobeSection, TypewriterLine } from './LeftBrandPanel';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
+  const a = (key) => t(`auth.${key}`);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +66,7 @@ const LoginPage = () => {
             <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212,168,83,0.2)' }} />
             <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>Mengarahkan ke dashboard...</p>
+          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>{a('redirecting')}</p>
         </div>
       </div>
     );
@@ -98,8 +101,8 @@ const LoginPage = () => {
 
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>Login</h1>
-            <p className="text-sm" style={{ color: '#8a7a6e' }}>Masuk ke akun LuxQuant Terminal kamu</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>{a('login_title')}</h1>
+            <p className="text-sm" style={{ color: '#8a7a6e' }}>{a('login_subtitle')}</p>
           </div>
 
           {/* Mobile typewriter */}
@@ -120,20 +123,20 @@ const LoginPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
-            <FormInput label="Email" type="email" value={email} onChange={setEmail} placeholder="contoh@email.com" />
+            <FormInput label={a('email')} type="email" value={email} onChange={setEmail} placeholder={a('email_placeholder')} />
             <div>
               <div className="flex justify-between items-center mb-1.5 sm:mb-2">
-                <label className="block text-sm font-medium" style={{ color: '#b8a89a' }}>Password</label>
-                <button type="button" className="text-xs font-medium hover:underline transition-all" style={{ color: '#d4a853' }}>Lupa password?</button>
+                <label className="block text-sm font-medium" style={{ color: '#b8a89a' }}>{a('password')}</label>
+                <button type="button" className="text-xs font-medium hover:underline transition-all" style={{ color: '#d4a853' }}>{a('forgot_password')}</button>
               </div>
-              <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder="Masukkan Password" />
+              <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder={a('password_placeholder')} />
             </div>
             <div className="pt-1">
-              <GoldButton loading={loading} text="Masuk Terminal" loadingText="Memverifikasi..." />
+              <GoldButton loading={loading} text={a('login_button')} loadingText={a('login_loading')} />
             </div>
           </form>
 
-          <Divider text="Atau masuk dengan" />
+          <Divider text={a('or_login_with')} />
           <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6">
             <SocialBtn 
               icon={<GoogleIcon />} 
@@ -150,11 +153,11 @@ const LoginPage = () => {
           </div>
 
           <p className="mt-4 sm:mt-8 text-center text-sm" style={{ color: '#8a7a6e' }}>
-            Belum punya akun?{' '}
-            <Link to="/register" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>Daftar Sekarang</Link>
+            {a('no_account')}{' '}
+            <Link to="/register" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>{a('register_now')}</Link>
           </p>
           <p className="mt-2.5 sm:mt-4 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
-            Dengan login, kamu setuju dengan <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>Terms & Conditions</a>
+            {a('login_terms')} <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('terms')}</a>
           </p>
         </div>
       </div>

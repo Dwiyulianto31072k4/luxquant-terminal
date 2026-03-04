@@ -2,9 +2,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import LeftBrandPanel, { TypewriterLine } from './LeftBrandPanel';
 
 const RegisterPage = () => {
+  const { t } = useTranslation();
+  const a = (key) => t(`auth.${key}`);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,9 +27,9 @@ const RegisterPage = () => {
     e.preventDefault();
     setLocalError(null);
     setError(null);
-    if (password !== confirmPassword) { setLocalError('Password tidak sama'); return; }
-    if (password.length < 8) { setLocalError('Password minimal 8 karakter'); return; }
-    if (username.length < 3) { setLocalError('Username minimal 3 karakter'); return; }
+    if (password !== confirmPassword) { setLocalError(a('err_password_mismatch')); return; }
+    if (password.length < 8) { setLocalError(a('err_password_min')); return; }
+    if (username.length < 3) { setLocalError(a('err_username_min')); return; }
     setLoading(true);
     try { await register(email, username, password); }
     catch (err) { /* handled */ }
@@ -40,10 +43,10 @@ const RegisterPage = () => {
     let s = 0;
     if (pwd.length >= 8) s++; if (pwd.length >= 12) s++;
     if (/[A-Z]/.test(pwd)) s++; if (/[0-9]/.test(pwd)) s++; if (/[^A-Za-z0-9]/.test(pwd)) s++;
-    if (s <= 1) return { level: 1, label: 'Lemah', color: '#f87171' };
-    if (s <= 2) return { level: 2, label: 'Cukup', color: '#fbbf24' };
-    if (s <= 3) return { level: 3, label: 'Bagus', color: '#4ade80' };
-    return { level: 4, label: 'Kuat', color: '#22c55e' };
+    if (s <= 1) return { level: 1, label: a('strength_weak'), color: '#f87171' };
+    if (s <= 2) return { level: 2, label: a('strength_fair'), color: '#fbbf24' };
+    if (s <= 3) return { level: 3, label: a('strength_good'), color: '#4ade80' };
+    return { level: 4, label: a('strength_strong'), color: '#22c55e' };
   };
   const strength = getStrength(password);
 
@@ -55,7 +58,7 @@ const RegisterPage = () => {
             <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212,168,83,0.2)' }} />
             <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
           </div>
-          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>Mempersiapkan workspace kamu...</p>
+          <p className="text-sm font-medium" style={{ color: '#8a7a6e' }}>{a('preparing')}</p>
         </div>
       </div>
     );
@@ -88,8 +91,8 @@ const RegisterPage = () => {
 
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>Buat Akun</h1>
-            <p className="text-sm" style={{ color: '#8a7a6e' }}>Bergabung dengan ribuan trader cerdas lainnya</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>{a('register_title')}</h1>
+            <p className="text-sm" style={{ color: '#8a7a6e' }}>{a('register_subtitle')}</p>
           </div>
 
           {/* Mobile typewriter */}
@@ -105,7 +108,7 @@ const RegisterPage = () => {
             </div>
             <p className="text-center" style={{ fontSize: 11, color: '#8a7a6e', marginTop: -2, paddingBottom: 4, letterSpacing: '0.03em' }}>
               <span style={{ color: '#d4a853' }}>🌍</span>{' '}
-              And <span style={{ color: '#b8a89a', fontWeight: 600 }}>20+ more countries</span> trust our signals
+              {a('globe_more')} <span style={{ color: '#b8a89a', fontWeight: 600 }}>{a('globe_countries')}</span> {a('globe_trust')}
             </p>
           </div>
 
@@ -118,14 +121,14 @@ const RegisterPage = () => {
 
           {/* ── FORM ── */}
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-            <FormInput label="Email" type="email" value={email} onChange={setEmail} placeholder="contoh@email.com" />
+            <FormInput label={a('email')} type="email" value={email} onChange={setEmail} placeholder={a('email_placeholder')} />
             <div>
-              <FormInput label="Username" type="text" value={username} onChange={setUsername} placeholder="username_kamu" />
-              <p className="mt-1 text-xs ml-1" style={{ color: '#8a7a6e' }}>Huruf, angka, underscore. Min 3 karakter.</p>
+              <FormInput label={a('username')} type="text" value={username} onChange={setUsername} placeholder={a('username_placeholder')} />
+              <p className="mt-1 text-xs ml-1" style={{ color: '#8a7a6e' }}>{a('username_hint')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>Password</label>
-              <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder="Minimal 8 karakter" />
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{a('password')}</label>
+              <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder={a('password_min')} />
               {password && (
                 <div className="mt-2 bg-black/30 p-2 rounded-xl border border-white/5 transition-all">
                   <div className="flex items-center gap-3">
@@ -140,29 +143,29 @@ const RegisterPage = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>Konfirmasi Password</label>
-              <PasswordField value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} placeholder="Ulangi password" />
+              <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{a('confirm_password')}</label>
+              <PasswordField value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} placeholder={a('confirm_placeholder')} />
               {confirmPassword && confirmPassword !== password && (
                 <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#f87171' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  Password tidak sama
+                  {a('password_mismatch')}
                 </p>
               )}
               {confirmPassword && confirmPassword === password && password && (
                 <p className="mt-1 text-xs flex items-center gap-1 ml-1" style={{ color: '#4ade80' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  Password cocok
+                  {a('password_match')}
                 </p>
               )}
             </div>
 
             <div className="pt-1 sm:pt-3">
-              <GoldButton loading={loading} text="Buat Akun" loadingText="Membuat akun..." />
+              <GoldButton loading={loading} text={a('register_button')} loadingText={a('register_loading')} />
             </div>
           </form>
 
           {/* ── SOCIAL ── */}
-          <Divider text="Atau daftar dengan" />
+          <Divider text={a('or_register_with')} />
 
           <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6">
             <SocialBtn icon={<GoogleIcon />} text="Google" />
@@ -170,14 +173,14 @@ const RegisterPage = () => {
           </div>
 
           <p className="mt-3 sm:mt-6 text-center text-sm" style={{ color: '#8a7a6e' }}>
-            Sudah punya akun?{' '}
-            <Link to="/login" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>Login</Link>
+            {a('has_account')}{' '}
+            <Link to="/login" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>{a('login_title')}</Link>
           </p>
           <p className="mt-2 sm:mt-4 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
-            Dengan mendaftar, kamu setuju dengan{' '}
-            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>Terms & Conditions</a>
-            {' '}dan{' '}
-            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>Privacy Policy</a>
+            {a('register_terms')}{' '}
+            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('terms')}</a>
+            {' '}{a('and')}{' '}
+            <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('privacy')}</a>
           </p>
         </div>
       </div>
