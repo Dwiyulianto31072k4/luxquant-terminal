@@ -1,5 +1,5 @@
 // src/components/landing/LandingPage.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -78,14 +78,6 @@ const FeatureCard = ({ icon, title, desc }) => (
   </div>
 );
 
-const StatCard = ({ value, label, icon }) => (
-  <div className="glass-card rounded-xl p-5 border border-gold-primary/10 text-center">
-    <span className="text-2xl mb-2 block">{icon}</span>
-    <p className="font-display text-2xl lg:text-3xl font-bold text-gold-primary">{value}</p>
-    <p className="text-text-muted text-xs mt-1 uppercase tracking-wider">{label}</p>
-  </div>
-);
-
 const TestimonialCard = ({ name, role, text, flag }) => (
   <div className="glass-card rounded-xl p-6 border border-gold-primary/10">
     <div className="flex items-center gap-1 mb-3">
@@ -158,114 +150,243 @@ const RuntimeCounter = () => {
 };
 
 const LivePerformanceStats = () => {
-  const [stats, setStats] = useState(null);
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const res = await fetch('/api/v1/signals/analyze?time_range=all&trend_mode=weekly');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data.stats);
-        }
+        if (res.ok) setData(await res.json());
       } catch (e) { console.warn('Stats fetch failed:', e); }
     };
     fetchStats();
   }, []);
 
-  const winRate = stats?.win_rate || 0;
-  const totalSignals = stats?.total_signals || 0;
-  const closedTrades = stats?.closed_trades || 0;
-  const winners = stats?.winners || 0;
-  const losses = stats?.losses || 0;
-  const uniquePairs = stats?.unique_pairs || 0;
+  const stats = data?.stats;
+  const goPerf = () => navigate('/terminal?tab=analytics');
+
+  // Correct API field names
+  const winRate = stats?.win_rate ?? 0;
+  const totalSignals = stats?.total_signals ?? 0;
+  const closedTrades = stats?.closed_trades ?? 0;
+  const totalWinners = stats?.total_winners ?? 0;
+  const slCount = stats?.sl_count ?? 0;
+  const activePairs = stats?.active_pairs ?? 0;
+  const tp1 = stats?.tp1_count ?? 0;
+  const tp2 = stats?.tp2_count ?? 0;
+  const tp3 = stats?.tp3_count ?? 0;
+  const tp4 = stats?.tp4_count ?? 0;
+  const openSignals = stats?.open_signals ?? 0;
+
+  // Outcome distribution
+  const outcomeItems = [
+    { label: 'TP1', count: tp1, color: '#22C55E' },
+    { label: 'TP2', count: tp2, color: '#84CC16' },
+    { label: 'TP3', count: tp3, color: '#EAB308' },
+    { label: 'TP4', count: tp4, color: '#F97316' },
+    { label: 'SL',  count: slCount, color: '#EF4444' },
+  ];
+  const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
+
+  // Risk distribution
+  const riskDist = data?.risk_distribution || [];
+  const riskColors = {
+    'Low': { text: 'text-green-400', dot: 'bg-green-500', bar: '#22C55E', border: 'border-green-500/20', bg: 'from-green-500/[0.06]' },
+    'Normal': { text: 'text-yellow-400', dot: 'bg-yellow-500', bar: '#EAB308', border: 'border-yellow-500/20', bg: 'from-yellow-500/[0.06]' },
+    'High': { text: 'text-red-400', dot: 'bg-red-500', bar: '#EF4444', border: 'border-red-500/20', bg: 'from-red-500/[0.06]' },
+  };
+  const riskTotal = riskDist.reduce((s, r) => s + (r.total_signals || 0), 0);
 
   return (
     <div>
-      <div className="text-center mb-8">
-        <p className="text-gold-primary text-xs font-semibold uppercase tracking-[0.2em] mb-3">Verified Performance</p>
-        <h2 className="font-display text-3xl lg:text-4xl font-bold text-white mb-3">
-          Transparent & <span className="text-gold-primary">Data-Driven</span>
+      {/* ── HEADER: Built in Taiwan highlight ── */}
+      <div className="text-center mb-10">
+        {/* Taiwan badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-5">
+          <span className="text-base">🇹🇼</span>
+          <span className="text-gold-primary text-xs font-semibold tracking-wide">Built in Taiwan · Running Since 2023</span>
+        </div>
+
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
+          Transparent & <span className="text-gold-primary">Verified</span> Performance
         </h2>
-        <p className="text-text-secondary text-base max-w-2xl mx-auto">
-          Every signal is recorded, tracked, and verified on-chain. Full history available — no hidden trades, no cherry-picking.
+        <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
+          Every signal is recorded on-chain since day one. Full history, no hidden trades, no cherry-picking — 
+          <span className="text-white font-medium"> {stats ? totalSignals.toLocaleString() : '...'} signals</span> and counting.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {/* Runtime counter - full width */}
+      {/* ── RUNTIME COUNTER ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
         <RuntimeCounter />
+      </div>
 
-        {/* Main metrics */}
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Win Rate</p>
-          <p className={`font-mono text-2xl lg:text-3xl font-bold ${winRate >= 70 ? 'text-positive' : winRate >= 50 ? 'text-gold-primary' : 'text-negative'}`}>
-            {stats ? `${winRate.toFixed(1)}%` : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">All-time performance</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Total Signals</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-white">
-            {stats ? totalSignals.toLocaleString() : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">Calls generated</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Winners</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-positive">
-            {stats ? winners.toLocaleString() : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">Profitable trades</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Losses</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-negative">
-            {stats ? losses.toLocaleString() : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">Stop-loss hit</p>
-        </div>
-
-        {/* Extra metrics */}
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Closed Trades</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-white">
-            {stats ? closedTrades.toLocaleString() : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">Resolved signals</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Unique Pairs</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">
-            {stats ? uniquePairs.toLocaleString() : '—'}
-          </p>
-          <p className="text-text-muted text-[10px] mt-1">Coins traded</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">24/7 Monitoring</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">Non-Stop</p>
-          <p className="text-text-muted text-[10px] mt-1">Always scanning markets</p>
-        </div>
-
-        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Full History</p>
-          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">100%</p>
-          <p className="text-text-muted text-[10px] mt-1">Transparent records</p>
+      {/* ── KPI METRICS (clickable → performance page) ── */}
+      <div onClick={goPerf} className="cursor-pointer group">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
+          {/* Win Rate */}
+          <div className="rounded-xl p-3 lg:p-4 border bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20 group-hover:border-gold-primary/40 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Win Rate</p>
+            <p className={`text-xl lg:text-2xl font-bold font-mono leading-none ${winRate >= 75 ? 'text-green-400' : winRate >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
+              {stats ? `${winRate.toFixed(1)}%` : '—'}
+            </p>
+          </div>
+          {/* Closed Trades */}
+          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Closed Trades</p>
+            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-white">{stats ? closedTrades.toLocaleString() : '—'}</p>
+            <p className="text-text-muted text-[9px] mt-1">of {stats ? totalSignals.toLocaleString() : '—'}</p>
+          </div>
+          {/* Winners */}
+          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Winners</p>
+            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-green-400">{stats ? totalWinners.toLocaleString() : '—'}</p>
+          </div>
+          {/* Losses */}
+          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Losses</p>
+            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-red-400">{stats ? slCount.toLocaleString() : '—'}</p>
+          </div>
+          {/* Active Pairs */}
+          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Pairs Traded</p>
+            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-gold-primary">{stats ? activePairs.toLocaleString() : '—'}</p>
+          </div>
+          {/* Not Hit */}
+          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
+            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Not Hit</p>
+            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-text-secondary">{stats ? openSignals.toLocaleString() : '—'}</p>
+          </div>
         </div>
       </div>
 
-      {/* Trust banner */}
-      <div className="mt-6 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
-        <span className="text-2xl">🔒</span>
-        <p className="text-text-secondary text-sm leading-relaxed">
-          <span className="text-white font-semibold">Every single trade is on record.</span>{' '}
-          All {stats ? totalSignals.toLocaleString() : '...'} signals since December 2023 are publicly verifiable with entry, targets, stop-loss, and outcome — no edits, no deletions.
-        </p>
+      {/* ── OUTCOME DISTRIBUTION + RISK LEVEL ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 mb-4" onClick={goPerf} style={{ cursor: 'pointer' }}>
+        {/* Outcome Distribution */}
+        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all">
+          <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Outcome Distribution</h3>
+          <p className="text-text-muted text-[10px] lg:text-xs mb-4">{stats ? closedTrades.toLocaleString() : '—'} closed trades</p>
+
+          {outcomeTotal > 0 ? (
+            <div className="space-y-4">
+              {/* Stacked bar */}
+              <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
+                {outcomeItems.filter(i => i.count > 0).map((item, idx) => {
+                  const pct = (item.count / outcomeTotal * 100);
+                  return (
+                    <div key={idx} style={{ width: `${pct}%`, backgroundColor: item.color }}
+                      className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative">
+                      {pct > 10 && (
+                        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/90 drop-shadow">
+                          {pct.toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Breakdown bars */}
+              <div className="space-y-2">
+                {outcomeItems.map((item) => {
+                  const pct = outcomeTotal > 0 ? (item.count / outcomeTotal * 100) : 0;
+                  return (
+                    <div key={item.label} className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-bold w-6" style={{ color: item.color }}>{item.label}</span>
+                      <div className="flex-1 h-2 rounded-full bg-bg-card/60 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: item.color }} />
+                      </div>
+                      <div className="flex items-center gap-1.5 min-w-[75px] justify-end">
+                        <span className="text-white text-[11px] font-mono font-semibold">{item.count.toLocaleString()}</span>
+                        <span className="text-text-muted text-[9px] font-mono w-[32px] text-right">{pct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="h-32 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* Risk Level Analysis */}
+        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all">
+          <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Risk Level Analysis</h3>
+          <p className="text-text-muted text-[10px] lg:text-xs mb-4">Performance breakdown by signal risk level</p>
+
+          {riskDist.length > 0 ? (
+            <div className="space-y-3">
+              {riskDist.map((rd) => {
+                const c = riskColors[rd.risk_level] || riskColors['Normal'];
+                const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades * 100) : 0;
+                const pct = riskTotal > 0 ? (rd.total_signals / riskTotal * 100).toFixed(1) : '0';
+                return (
+                  <div key={rd.risk_level} className={`rounded-xl p-3 lg:p-4 bg-gradient-to-b ${c.bg} to-transparent border ${c.border}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${c.dot}`} />
+                        <span className={`font-bold text-sm ${c.text}`}>{rd.risk_level}</span>
+                      </div>
+                      <span className="text-text-muted text-[10px] font-mono">{pct}%</span>
+                    </div>
+                    <p className={`text-2xl lg:text-3xl font-bold font-mono ${c.text} leading-none mb-1`}>{rd.win_rate.toFixed(1)}%</p>
+                    <p className="text-text-muted text-[9px] mb-2">Win Rate</p>
+                    {/* W/L bar */}
+                    <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-1.5">
+                      <div className="h-full bg-green-500/70 rounded-l-full" style={{ width: `${winPct}%` }} />
+                      <div className="h-full bg-red-500/70 rounded-r-full" style={{ width: `${100 - winPct}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-green-400/80 font-mono">{rd.winners?.toLocaleString()} W</span>
+                      <span className="text-red-400/80 font-mono">{rd.losers?.toLocaleString()} L</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Distribution bar */}
+              <div className="flex items-center gap-3 pt-2">
+                <div className="flex-1 h-2 rounded-full overflow-hidden flex bg-bg-card/80">
+                  {riskDist.map((rd, i) => (
+                    <div key={i} className="h-full" style={{ width: `${riskTotal > 0 ? (rd.total_signals / riskTotal * 100) : 0}%`, backgroundColor: (riskColors[rd.risk_level] || riskColors['Normal']).bar }} />
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {riskDist.map((rd) => (
+                    <div key={rd.risk_level} className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: (riskColors[rd.risk_level] || riskColors['Normal']).bar }} />
+                      <span className="text-text-muted text-[9px]">{riskTotal > 0 ? (rd.total_signals / riskTotal * 100).toFixed(0) : 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-32 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── TRUST FOOTER ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex items-center gap-3">
+          <span className="text-xl">🔒</span>
+          <p className="text-text-secondary text-xs lg:text-sm leading-relaxed">
+            <span className="text-white font-semibold">Every trade on record.</span>{' '}
+            All {stats ? totalSignals.toLocaleString() : '...'} signals publicly verifiable — no edits, no deletions.
+          </p>
+        </div>
+        <button onClick={goPerf}
+          className="px-6 py-4 rounded-xl font-bold text-sm transition-all hover:scale-105 flex items-center justify-center gap-2 flex-shrink-0"
+          style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506', boxShadow: '0 0 20px rgba(212, 168, 83, 0.3)' }}>
+          View Full Analytics
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+        </button>
       </div>
     </div>
   );
@@ -309,9 +430,10 @@ const LandingPage = () => {
             </div>
 
             <nav className="hidden lg:flex items-center gap-6">
-              {[['Features', 'features'], ['Performance', 'performance'], ['Testimonials', 'testimonials']].map(([label, id]) => (
+              {[['Home', 'hero'], ['Features', 'features'], ['How It Works', 'how-it-works'], ['Performance', 'performance'], ['Testimonials', 'testimonials']].map(([label, id]) => (
                 <button key={id} onClick={() => scrollTo(id)} className="text-text-secondary hover:text-gold-primary text-sm font-medium transition-colors">{label}</button>
               ))}
+              <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-gold-primary text-sm font-medium transition-colors">Telegram</a>
             </nav>
 
             <div className="hidden lg:flex items-center gap-3">
@@ -337,9 +459,10 @@ const LandingPage = () => {
 
         {mobileMenuOpen && (
           <div className="lg:hidden bg-bg-primary/98 backdrop-blur-xl border-t border-gold-primary/10 px-4 py-6 space-y-4">
-            {[['Features', 'features'], ['Performance', 'performance'], ['Testimonials', 'testimonials']].map(([label, id]) => (
+            {[['Home', 'hero'], ['Features', 'features'], ['How It Works', 'how-it-works'], ['Performance', 'performance'], ['Testimonials', 'testimonials']].map(([label, id]) => (
               <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-text-secondary hover:text-gold-primary text-sm font-medium py-2">{label}</button>
             ))}
+            <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="block w-full text-left text-text-secondary hover:text-gold-primary text-sm font-medium py-2">Telegram</a>
             <div className="pt-4 border-t border-gold-primary/10 flex flex-col gap-3">
               {isAuthenticated ? (
                 <button onClick={goTerminal} className="w-full py-3 rounded-xl font-semibold text-sm" style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}>Open Terminal</button>
@@ -355,7 +478,7 @@ const LandingPage = () => {
       </header>
 
       {/* HERO */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-20 pb-16 lg:pb-24">
+      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-20 pb-16 lg:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-6">
@@ -424,7 +547,7 @@ const LandingPage = () => {
       {/* ═══════════════════════════════════
           HOW IT WORKS — System Architecture
       ═══════════════════════════════════ */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
+      <section id="how-it-works" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
         <div className="text-center mb-12">
           <p className="text-gold-primary text-xs font-semibold uppercase tracking-[0.2em] mb-3">How It Works</p>
           <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
@@ -602,8 +725,8 @@ const LandingPage = () => {
               <span className="text-text-muted text-xs ml-2">© {new Date().getFullYear()}</span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-gold-primary transition-colors text-sm">Telegram</a>
-              <a href="https://x.com/luxquant" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-gold-primary transition-colors text-sm">Twitter</a>
+              <a href="https://t.me/LuxQuantSignal" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-gold-primary transition-colors text-sm">Telegram</a>
+              <a href="https://x.com/luxquantcrypto" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-gold-primary transition-colors text-sm">Twitter</a>
             </div>
           </div>
           <p className="text-text-muted text-xs text-center mt-8 max-w-2xl mx-auto leading-relaxed">
