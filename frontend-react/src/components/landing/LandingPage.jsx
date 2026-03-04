@@ -256,6 +256,136 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ═══════════════════════════════════
+          HOW IT WORKS — System Architecture
+      ═══════════════════════════════════ */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
+        <div className="text-center mb-12">
+          <p className="text-gold-primary text-xs font-semibold uppercase tracking-[0.2em] mb-3">How It Works</p>
+          <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
+            System <span className="text-gold-primary">Architecture</span>
+          </h2>
+          <p className="text-text-secondary text-base max-w-xl mx-auto">
+            See how our algorithm processes market data to generate high-quality trading signals
+          </p>
+        </div>
+
+        {/* Architecture Diagram */}
+        <div className="relative flex flex-col lg:flex-row items-center lg:items-stretch justify-between gap-6 lg:gap-0">
+
+          {/* LEFT: Input Sources */}
+          <div className="flex flex-col gap-4 w-full lg:w-[260px] flex-shrink-0">
+            {[
+              { icon: '📈', title: 'Market Data', sub: 'Real-time prices', color: 'text-blue-400' },
+              { icon: '📊', title: 'Volume Analysis', sub: '24h tracking', color: 'text-gold-primary' },
+              { icon: '😀', title: 'Sentiment Data', sub: 'Market mood', color: 'text-green-400' },
+            ].map((item, i) => (
+              <div key={i} className="glass-card rounded-xl p-4 border border-gold-primary/10 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">{item.icon}</span>
+                </div>
+                <div>
+                  <p className="text-white text-sm font-semibold">{item.title}</p>
+                  <p className="text-text-muted text-xs font-mono">{item.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CONNECTOR LINE LEFT */}
+          <div className="hidden lg:flex items-center justify-center w-16 flex-shrink-0">
+            <div className="w-full h-0.5 bg-gradient-to-r from-gold-primary/40 to-gold-primary/20 relative">
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gold-primary" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gold-primary/60" />
+            </div>
+          </div>
+          {/* Mobile arrow */}
+          <div className="lg:hidden flex justify-center">
+            <svg className="w-6 h-6 text-gold-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          </div>
+
+          {/* CENTER: Processing */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8 flex-1 justify-center">
+            {/* Data Pipeline */}
+            <div className="glass-card rounded-xl p-5 border border-gold-primary/10 text-center w-[160px]">
+              <div className="flex flex-col gap-1.5 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-2 rounded-full bg-gradient-to-r from-gold-primary/30 to-gold-primary/10" style={{ width: `${70 + i * 6}%`, marginLeft: 'auto', marginRight: 'auto' }} />
+                ))}
+              </div>
+              <p className="text-gold-primary text-xs font-semibold">Data Pipeline</p>
+              <p className="text-text-muted text-[10px] uppercase tracking-wider mt-0.5">Processing Node</p>
+            </div>
+
+            {/* Connector */}
+            <div className="hidden sm:flex items-center w-10">
+              <div className="w-full h-0.5 bg-gradient-to-r from-gold-primary/30 to-gold-primary/20 relative">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gold-primary/60" />
+              </div>
+            </div>
+            <div className="sm:hidden">
+              <svg className="w-6 h-6 text-gold-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </div>
+
+            {/* Algorithm Core */}
+            <div className="relative">
+              <div className="w-28 h-28 lg:w-36 lg:h-36 rounded-full border-2 border-gold-primary/30 flex items-center justify-center relative" style={{ background: 'radial-gradient(circle, rgba(212,168,83,0.08) 0%, transparent 70%)' }}>
+                <div className="absolute inset-2 rounded-full border border-gold-primary/15" />
+                <div className="text-center">
+                  <p className="text-gold-primary font-mono text-2xl lg:text-3xl font-bold">&lt;/&gt;</p>
+                  <p className="text-text-muted text-[8px] lg:text-[10px] uppercase tracking-wider mt-1 font-semibold">LuxQuant</p>
+                  <p className="text-gold-primary text-[7px] lg:text-[8px] uppercase tracking-widest">Algorithm</p>
+                </div>
+              </div>
+              {/* Pulse ring */}
+              <div className="absolute inset-0 rounded-full border border-gold-primary/20 animate-ping" style={{ animationDuration: '3s' }} />
+            </div>
+          </div>
+
+          {/* CONNECTOR LINE RIGHT */}
+          <div className="hidden lg:flex items-center justify-center w-16 flex-shrink-0">
+            <div className="w-full h-0.5 bg-gradient-to-r from-gold-primary/20 to-gold-primary/40 relative">
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gold-primary/60" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gold-primary" />
+            </div>
+          </div>
+          <div className="lg:hidden flex justify-center">
+            <svg className="w-6 h-6 text-gold-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          </div>
+
+          {/* RIGHT: Output */}
+          <div className="glass-card rounded-xl p-5 border border-gold-primary/10 w-full lg:w-[280px] flex-shrink-0">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center">
+                <span className="text-lg">⚡</span>
+              </div>
+              <div>
+                <p className="text-white text-sm font-bold">Output for</p>
+                <p className="text-gold-primary text-sm font-bold">Potential Trade</p>
+              </div>
+            </div>
+            <p className="text-text-secondary text-xs mb-4 leading-relaxed">
+              High-probability signals delivered instantly to your device
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {['Instant Alert', 'Risk Analysis', 'Entry Points'].map((tag) => (
+                <span key={tag} className="px-3 py-1.5 rounded-lg bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-xs font-semibold flex items-center gap-1.5">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom description */}
+        <div className="mt-12 text-center max-w-3xl mx-auto">
+          <p className="font-display text-lg lg:text-xl text-text-secondary italic leading-relaxed">
+            Operating 24/7 with real-time market monitoring and lightning-fast execution, powered by an adaptive algorithm that dynamically adjusts strategies based on market conditions to deliver high-quality trading signals.
+          </p>
+        </div>
+      </section>
+
       {/* STATS */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
