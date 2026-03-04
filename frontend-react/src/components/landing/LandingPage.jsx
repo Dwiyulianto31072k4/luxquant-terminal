@@ -1,5 +1,5 @@
 // src/components/landing/LandingPage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -105,6 +105,171 @@ const TestimonialCard = ({ name, role, text, flag }) => (
     </div>
   </div>
 );
+
+// ════════════════════════════════════════
+// Live Performance Stats (from /api/v1/signals/analyze)
+// ════════════════════════════════════════
+const FIRST_SIGNAL_DATE = new Date('2023-12-27T13:25:00Z');
+
+const formatRuntime = (ms) => {
+  const s = Math.floor(ms / 1000);
+  const days = Math.floor(s / 86400);
+  const hrs = Math.floor((s % 86400) / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  return { days, hrs, mins, secs };
+};
+
+const RuntimeCounter = () => {
+  const [runtime, setRuntime] = useState(formatRuntime(Date.now() - FIRST_SIGNAL_DATE.getTime()));
+  useEffect(() => {
+    const iv = setInterval(() => setRuntime(formatRuntime(Date.now() - FIRST_SIGNAL_DATE.getTime())), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div className="glass-card rounded-xl p-5 lg:p-6 border border-gold-primary/20 col-span-2 lg:col-span-4">
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 bg-positive rounded-full animate-pulse" />
+          <div>
+            <p className="text-white font-semibold text-sm lg:text-base">Algorithm Running Since</p>
+            <p className="text-text-muted text-xs">First signal: 27 December 2023, 13:25 UTC</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 lg:gap-3">
+          {[
+            { val: runtime.days, label: 'Days' },
+            { val: runtime.hrs, label: 'Hours' },
+            { val: runtime.mins, label: 'Min' },
+            { val: runtime.secs, label: 'Sec' },
+          ].map(({ val, label }) => (
+            <div key={label} className="text-center">
+              <div className="bg-bg-primary border border-gold-primary/20 rounded-lg px-3 py-2 min-w-[52px]">
+                <span className="text-gold-primary font-mono text-lg lg:text-xl font-bold">{String(val).padStart(2, '0')}</span>
+              </div>
+              <p className="text-text-muted text-[9px] mt-1 uppercase tracking-wider">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LivePerformanceStats = () => {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/v1/signals/analyze?time_range=all&trend_mode=weekly');
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+        }
+      } catch (e) { console.warn('Stats fetch failed:', e); }
+    };
+    fetchStats();
+  }, []);
+
+  const winRate = stats?.win_rate || 0;
+  const totalSignals = stats?.total_signals || 0;
+  const closedTrades = stats?.closed_trades || 0;
+  const winners = stats?.winners || 0;
+  const losses = stats?.losses || 0;
+  const uniquePairs = stats?.unique_pairs || 0;
+
+  return (
+    <div>
+      <div className="text-center mb-8">
+        <p className="text-gold-primary text-xs font-semibold uppercase tracking-[0.2em] mb-3">Verified Performance</p>
+        <h2 className="font-display text-3xl lg:text-4xl font-bold text-white mb-3">
+          Transparent & <span className="text-gold-primary">Data-Driven</span>
+        </h2>
+        <p className="text-text-secondary text-base max-w-2xl mx-auto">
+          Every signal is recorded, tracked, and verified on-chain. Full history available — no hidden trades, no cherry-picking.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {/* Runtime counter - full width */}
+        <RuntimeCounter />
+
+        {/* Main metrics */}
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Win Rate</p>
+          <p className={`font-mono text-2xl lg:text-3xl font-bold ${winRate >= 70 ? 'text-positive' : winRate >= 50 ? 'text-gold-primary' : 'text-negative'}`}>
+            {stats ? `${winRate.toFixed(1)}%` : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">All-time performance</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Total Signals</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-white">
+            {stats ? totalSignals.toLocaleString() : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">Calls generated</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Winners</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-positive">
+            {stats ? winners.toLocaleString() : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">Profitable trades</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Losses</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-negative">
+            {stats ? losses.toLocaleString() : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">Stop-loss hit</p>
+        </div>
+
+        {/* Extra metrics */}
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Closed Trades</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-white">
+            {stats ? closedTrades.toLocaleString() : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">Resolved signals</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Unique Pairs</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">
+            {stats ? uniquePairs.toLocaleString() : '—'}
+          </p>
+          <p className="text-text-muted text-[10px] mt-1">Coins traded</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">24/7 Monitoring</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">Non-Stop</p>
+          <p className="text-text-muted text-[10px] mt-1">Always scanning markets</p>
+        </div>
+
+        <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
+          <p className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Full History</p>
+          <p className="font-mono text-2xl lg:text-3xl font-bold text-gold-primary">100%</p>
+          <p className="text-text-muted text-[10px] mt-1">Transparent records</p>
+        </div>
+      </div>
+
+      {/* Trust banner */}
+      <div className="mt-6 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+        <span className="text-2xl">🔒</span>
+        <p className="text-text-secondary text-sm leading-relaxed">
+          <span className="text-white font-semibold">Every single trade is on record.</span>{' '}
+          All {stats ? totalSignals.toLocaleString() : '...'} signals since December 2023 are publicly verifiable with entry, targets, stop-loss, and outcome — no edits, no deletions.
+        </p>
+      </div>
+    </div>
+  );
+};
 
 // ════════════════════════════════════════
 // LANDING PAGE
@@ -386,14 +551,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* STATS */}
+      {/* LIVE PERFORMANCE STATS */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon="📡" value="500+" label="Signals Generated" />
-          <StatCard icon="🏆" value="89%" label="Overall Win Rate" />
-          <StatCard icon="🌍" value="50+" label="Countries" />
-          <StatCard icon="⚡" value="<2s" label="Signal Delivery" />
-        </div>
+        <LivePerformanceStats />
       </section>
 
       {/* TESTIMONIALS */}
