@@ -25,6 +25,7 @@ import ReferralPage from "./components/ReferralPage";
 import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
+import { LandingPage } from "./components/landing";
 
 // ════════════════════════════════════════
 // Sidebar Menu Item (mobile hamburger)
@@ -82,8 +83,9 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (location.pathname === "/watchlist") setActiveTab("watchlist");
-    if (location.pathname === "/referral") setActiveTab("referral");
+    const path = location.pathname;
+    if (path === "/terminal/watchlist" || path === "/watchlist") setActiveTab("watchlist");
+    if (path === "/terminal/referral" || path === "/referral") setActiveTab("referral");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -137,9 +139,9 @@ function AppContent() {
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
 
-    if (key === "watchlist") navigate("/watchlist");
-    else if (key === "referral") navigate("/referral");
-    else navigate("/");
+    if (key === "watchlist") navigate("/terminal/watchlist");
+    else if (key === "referral") navigate("/terminal/referral");
+    else navigate("/terminal");
   };
 
   // ═══ DESKTOP NAV: AI Arena replaces Performance ═══
@@ -219,9 +221,9 @@ function AppContent() {
   ];
 
   const renderPage = () => {
-    if (location.pathname === '/pricing') return <PricingPage />;
-    if (location.pathname === '/payment') return <PaymentPage />;
-    if (location.pathname === '/referral') return <ReferralPage />;
+    if (location.pathname === '/pricing' || location.pathname === '/terminal/pricing') return <PricingPage />;
+    if (location.pathname === '/payment' || location.pathname === '/terminal/payment') return <PaymentPage />;
+    if (location.pathname === '/terminal/referral' || location.pathname === '/referral') return <ReferralPage />;
 
     const protectedTabs = ["signals", "analytics", "bitcoin", "markets", "watchlist", "tips", "admin", "ai-arena", "referral"];
     if (protectedTabs.includes(activeTab) && !isAuthenticated) {
@@ -584,12 +586,25 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Landing page */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Auth */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
+
+          {/* Terminal */}
+          <Route path="/terminal" element={<AppContent />} />
+          <Route path="/terminal/watchlist" element={<AppContent />} />
+          <Route path="/terminal/referral" element={<AppContent />} />
+          <Route path="/terminal/*" element={<AppContent />} />
+
+          {/* Backward compat */}
           <Route path="/watchlist" element={<AppContent />} />
           <Route path="/referral" element={<AppContent />} />
-          <Route path="/*" element={<AppContent />} />
+          <Route path="/pricing" element={<AppContent />} />
+          <Route path="/payment" element={<AppContent />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
