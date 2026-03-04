@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+
 /* ================================================================
    TAGLINES — now translation-aware
    ================================================================ */
@@ -288,4 +289,5 @@ const DesktopTypewriter = () => {
   );
 };
 
+export { GlobeViz, FlagBadges };
 export default LeftBrandPanel;
