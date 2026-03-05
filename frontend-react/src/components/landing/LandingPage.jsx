@@ -883,18 +883,42 @@ const LandingPage = () => {
 
         </div>
 
-        {/* ═══ MOBILE: Phone + Coins ═══ */}
-        <div className="lg:hidden mt-10 flex flex-col items-center gap-4">
-          <div 
-            className="w-[140px] aspect-[9/19] bg-[#0a0506] border-[4px] border-[#1f2937] rounded-[1.8rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative"
-            style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.5s both' }}
-          >
-            <div className="absolute top-0 inset-x-0 h-3 bg-[#1f2937] w-[45%] mx-auto rounded-b-lg z-10" />
-            <img src="/mockup-hp.png" alt="LuxQuant App" className="w-full h-full object-cover" onError={e => e.target.style.display = 'none'} />
+        {/* ═══ MOBILE: Visual Showcase (Globe + Phone) ═══ */}
+        <div className="lg:hidden w-full mt-12 mb-10 relative flex flex-col items-center justify-center min-h-[420px]">
+          
+          {/* 1. Globe Background - Diberi ruang agar tidak terpotong */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] w-[120%] max-w-[400px] aspect-square flex justify-center items-center -z-10 pointer-events-none opacity-60">
+            <div className="w-full h-full relative" style={{ animation: 'heroCardFadeIn 1s ease-out 0.4s both' }}>
+              <GlobeViz />
+            </div>
           </div>
-          {topGainers.length > 0 && (
-            <MobileRotatingCoins gainers={topGainers} />
-          )}
+
+          {/* 2. Floating Phone Mockup - Diperhalus ukurannya */}
+          <div 
+            className="relative w-[150px] sm:w-[170px] aspect-[9/19.5] bg-black border-[4.5px] border-[#2a2a2a] rounded-[2rem] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9)] z-10"
+            style={{ animation: 'floatPhone 5s ease-in-out infinite' }}
+          >
+            {/* Notch HP */}
+            <div className="absolute top-0 inset-x-0 z-30">
+              <div className="w-[40%] h-[14px] bg-[#2a2a2a] mx-auto rounded-b-xl" />
+            </div>
+            
+            {/* Screen Content */}
+            <img 
+              src="/mockup-hp.png" 
+              alt="LuxQuant App" 
+              className="w-full h-full object-cover" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
+
+          {/* 3. Mobile Flying Coins - Diberi jarak agar rapi */}
+          <div className="mt-8 z-20 w-full relative min-h-[40px]">
+            {topGainers.length > 0 && (
+              <MobileRotatingCoins gainers={topGainers} />
+            )}
+          </div>
+
         </div>
 
       </section>
