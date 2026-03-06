@@ -581,7 +581,7 @@ const LandingPage = () => {
   const stats = performanceData?.stats;
 
   return (
-    <div className="min-h-screen bg-bg-primary text-white relative pb-20 lg:pb-0"> 
+    <div className="min-h-screen bg-bg-primary text-white relative pb-20 lg:pb-0 overflow-x-hidden"> 
       <div className="luxury-bg" />
       <TickerBar />
 
