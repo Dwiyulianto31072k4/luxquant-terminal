@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { ResponsiveContainer, Tooltip, Bar, XAxis, YAxis, CartesianGrid, Area, ReferenceLine, Line, ComposedChart } from 'recharts';
 import TopPerformers from '../TopPerformers';
 import CoinLogo from '../CoinLogo';
-import GlobalNetworkSection from './GlobalNetworkSection'; // <-- IMPORT KOMPONEN GLOBE BUATANMU
+import GlobalNetworkSection from './GlobalNetworkSection'; // <-- Import Peta Globe 3D buatanmu
 
 import './LandingPage.css';
 
@@ -204,9 +205,92 @@ const RuntimeCounter = () => {
   );
 };
 
+// --- CHART WIN RATE TREND KHUSUS LANDING PAGE ---
+// --- CHART WIN RATE TREND KHUSUS LANDING PAGE ---
+const LandingWinRateChart = ({ data }) => {
+  if (!data || data.length === 0) return <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted">Loading trend data...</div>;
+
+  const chartData = data.map((item) => {
+    let shortLabel = item.period;
+    let tooltipLabel = item.period;
+    
+    // Logika untuk mengubah tanggal menjadi format "Weekly" yang jelas
+    try { 
+      const dt = new Date(item.period); 
+      if (!isNaN(dt)) {
+        // Tampil di sumbu X bawah (contoh: "Jan 8")
+        shortLabel = dt.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        // Tampil saat di-hover (contoh: "Week of January 8, 2024")
+        tooltipLabel = `Week of ${dt.toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric'})}`;
+      }
+    } catch (e) {}
+
+    return {
+      period: shortLabel,
+      fullDate: tooltipLabel,
+      winRate: item.win_rate,
+      winners: item.winners,
+      losers: item.losers,
+      total: item.total_closed,
+    };
+  });
+
+  const validRates = chartData.map(d => d.winRate).filter(v => v > 0);
+  const avgWR = validRates.length > 0 ? validRates.reduce((s, v) => s + v, 0) / validRates.length : 0;
+  const maxVol = Math.max(...chartData.map(d => d.total), 1);
+
+  return (
+    <div className="h-48 lg:h-64 w-full mt-6">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="winRateGlowLnd" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#d4a853" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#d4a853" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="volBarGradLnd" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#d4a853" stopOpacity={0.15} />
+              <stop offset="100%" stopColor="#d4a853" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.05)" vertical={false} />
+          
+          {/* Sumbu X menampilkan tanggal pendek */}
+          <XAxis dataKey="period" stroke="#6b5c52" fontSize={10} tickLine={false} axisLine={false} dy={10} />
+          
+          <YAxis yAxisId="rate" stroke="#6b5c52" fontSize={10} domain={[0, 100]} tickFormatter={v => `${v}%`} tickLine={false} axisLine={false} />
+          <YAxis yAxisId="vol" orientation="right" domain={[0, maxVol * 4]} hide />
+          <ReferenceLine yAxisId="rate" y={avgWR} stroke="rgba(212,168,83,0.2)" strokeDasharray="4 4" />
+          <Bar yAxisId="vol" dataKey="total" fill="url(#volBarGradLnd)" radius={[2, 2, 0, 0]} maxBarSize={12} />
+          <Area yAxisId="rate" type="monotone" dataKey="winRate" stroke="none" fill="url(#winRateGlowLnd)" />
+          <Line yAxisId="rate" type="monotone" dataKey="winRate" stroke="#d4a853" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#d4a853', stroke: '#0a0506', strokeWidth: 2 }} />
+          
+          <Tooltip
+            content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload.find(p => p.dataKey === 'winRate')?.payload || payload[0]?.payload;
+              if (!d) return null;
+              return (
+                <div className="bg-[#0a0805]/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-xl">
+                  {/* Tooltip menampilkan informasi bahwa ini data Weekly */}
+                  <p className="text-gold-primary text-xs font-bold mb-1">{d.fullDate}</p>
+                  <p className="text-white text-sm">Win Rate: <span className="text-green-400 font-mono">{d.winRate.toFixed(1)}%</span></p>
+                  <p className="text-text-muted text-[10px] mt-1">{d.total} Trades ({d.winners}W / {d.losers}L)</p>
+                </div>
+              );
+            }}
+            cursor={{ stroke: 'rgba(212,168,83,0.2)', strokeWidth: 1, strokeDasharray: '3 3' }}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
 const LivePerformanceStats = ({ data }) => {
   const navigate = useNavigate();
   const stats = data?.stats;
+  const trendData = data?.win_rate_trend || [];
   const goPerf = () => navigate('/terminal?tab=analytics');
 
   const winRate = stats?.win_rate ?? 0;
@@ -215,17 +299,13 @@ const LivePerformanceStats = ({ data }) => {
   const totalWinners = stats?.total_winners ?? 0;
   const slCount = stats?.sl_count ?? 0;
   const activePairs = stats?.active_pairs ?? 0;
-  const tp1 = stats?.tp1_count ?? 0;
-  const tp2 = stats?.tp2_count ?? 0;
-  const tp3 = stats?.tp3_count ?? 0;
-  const tp4 = stats?.tp4_count ?? 0;
   const openSignals = stats?.open_signals ?? 0;
 
   const outcomeItems = [
-    { label: 'TP1', count: tp1, color: '#22C55E' },
-    { label: 'TP2', count: tp2, color: '#84CC16' },
-    { label: 'TP3', count: tp3, color: '#EAB308' },
-    { label: 'TP4', count: tp4, color: '#F97316' },
+    { label: 'TP1', count: stats?.tp1_count ?? 0, color: '#22C55E' },
+    { label: 'TP2', count: stats?.tp2_count ?? 0, color: '#84CC16' },
+    { label: 'TP3', count: stats?.tp3_count ?? 0, color: '#EAB308' },
+    { label: 'TP4', count: stats?.tp4_count ?? 0, color: '#F97316' },
     { label: 'SL',  count: slCount, color: '#EF4444' },
   ];
   const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
@@ -259,6 +339,7 @@ const LivePerformanceStats = ({ data }) => {
         <RuntimeCounter />
       </div>
 
+      {/* KPI STRIP */}
       <div onClick={goPerf} className="cursor-pointer group">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
           <div className="rounded-xl p-3 lg:p-4 border bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20 group-hover:border-gold-primary/40 transition-all">
@@ -270,7 +351,6 @@ const LivePerformanceStats = ({ data }) => {
           <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
             <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Closed Trades</p>
             <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-white">{stats ? closedTrades.toLocaleString() : '—'}</p>
-            <p className="text-text-muted text-[9px] mt-1">of {stats ? totalSignals.toLocaleString() : '—'}</p>
           </div>
           <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
             <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">Winners</p>
@@ -291,97 +371,52 @@ const LivePerformanceStats = ({ data }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 mb-4" onClick={goPerf} style={{ cursor: 'pointer' }}>
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all">
+      {/* ROW 1 BENTO: CHART TREN (2 KOLOM) + OUTCOME (1 KOLOM) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 mb-4">
+        
+        {/* CHART WINT RATE TREN */}
+        <div onClick={goPerf} className="lg:col-span-2 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Performance Trend</h3>
+              <p className="text-text-muted text-[10px] lg:text-xs">Weekly algorithmic win rate progression</p>
+            </div>
+            <div className="px-3 py-1 bg-gold-primary/10 border border-gold-primary/20 rounded-lg">
+              <span className="text-gold-primary text-[10px] font-bold uppercase tracking-wider">Weekly</span>
+            </div>
+          </div>
+          <LandingWinRateChart data={trendData} />
+        </div>
+
+        {/* OUTCOME DISTRIBUTION */}
+        <div onClick={goPerf} className="lg:col-span-1 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer">
           <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Outcome Distribution</h3>
-          <p className="text-text-muted text-[10px] lg:text-xs mb-4">{stats ? closedTrades.toLocaleString() : '—'} closed trades</p>
+          <p className="text-text-muted text-[10px] lg:text-xs mb-6">{stats ? closedTrades.toLocaleString() : '—'} closed trades</p>
           {outcomeTotal > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
                 {outcomeItems.filter(i => i.count > 0).map((item, idx) => {
                   const pct = (item.count / outcomeTotal * 100);
                   return (
-                    <div key={idx} style={{ width: `${pct}%`, backgroundColor: item.color }}
-                      className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative">
-                      {pct > 10 && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/90 drop-shadow">
-                          {pct.toFixed(0)}%
-                        </span>
-                      )}
-                    </div>
+                    <div key={idx} style={{ width: `${pct}%`, backgroundColor: item.color }} className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative" />
                   );
                 })}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {outcomeItems.map((item) => {
                   const pct = outcomeTotal > 0 ? (item.count / outcomeTotal * 100) : 0;
                   return (
-                    <div key={item.label} className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-bold w-6" style={{ color: item.color }}>{item.label}</span>
+                    <div key={item.label} className="flex items-center gap-3">
+                      <span className="text-[11px] font-bold w-8" style={{ color: item.color }}>{item.label}</span>
                       <div className="flex-1 h-2 rounded-full bg-bg-card/60 overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: item.color }} />
                       </div>
-                      <div className="flex items-center gap-1.5 min-w-[75px] justify-end">
+                      <div className="flex items-center justify-end w-12">
                         <span className="text-white text-[11px] font-mono font-semibold">{item.count.toLocaleString()}</span>
-                        <span className="text-text-muted text-[9px] font-mono w-[32px] text-right">{pct.toFixed(1)}%</span>
                       </div>
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          ) : (
-            <div className="h-32 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all">
-          <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Risk Level Analysis</h3>
-          <p className="text-text-muted text-[10px] lg:text-xs mb-4">Performance breakdown by signal risk level</p>
-          {riskDist.length > 0 ? (
-            <div className="space-y-3">
-              {riskDist.map((rd) => {
-                const c = riskColors[rd.risk_level] || riskColors['Normal'];
-                const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades * 100) : 0;
-                const pct = riskTotal > 0 ? (rd.total_signals / riskTotal * 100).toFixed(1) : '0';
-                return (
-                  <div key={rd.risk_level} className={`rounded-xl p-3 lg:p-4 bg-gradient-to-b ${c.bg} to-transparent border ${c.border}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${c.dot}`} />
-                        <span className={`font-bold text-sm ${c.text}`}>{rd.risk_level}</span>
-                      </div>
-                      <span className="text-text-muted text-[10px] font-mono">{pct}%</span>
-                    </div>
-                    <p className={`text-2xl lg:text-3xl font-bold font-mono ${c.text} leading-none mb-1`}>{rd.win_rate.toFixed(1)}%</p>
-                    <p className="text-text-muted text-[9px] mb-2">Win Rate</p>
-                    <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-1.5">
-                      <div className="h-full bg-green-500/70 rounded-l-full" style={{ width: `${winPct}%` }} />
-                      <div className="h-full bg-red-500/70 rounded-r-full" style={{ width: `${100 - winPct}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-green-400/80 font-mono">{rd.winners?.toLocaleString()} W</span>
-                      <span className="text-red-400/80 font-mono">{rd.losers?.toLocaleString()} L</span>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="flex items-center gap-3 pt-2">
-                <div className="flex-1 h-2 rounded-full overflow-hidden flex bg-bg-card/80">
-                  {riskDist.map((rd, i) => (
-                    <div key={i} className="h-full" style={{ width: `${riskTotal > 0 ? (rd.total_signals / riskTotal * 100) : 0}%`, backgroundColor: (riskColors[rd.risk_level] || riskColors['Normal']).bar }} />
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {riskDist.map((rd) => (
-                    <div key={rd.risk_level} className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: (riskColors[rd.risk_level] || riskColors['Normal']).bar }} />
-                      <span className="text-text-muted text-[9px]">{riskTotal > 0 ? (rd.total_signals / riskTotal * 100).toFixed(0) : 0}%</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           ) : (
@@ -392,6 +427,62 @@ const LivePerformanceStats = ({ data }) => {
         </div>
       </div>
 
+      {/* ROW 2: RISK LEVEL ANALYSIS */}
+      <div onClick={goPerf} className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all mb-4 cursor-pointer">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
+          <div>
+            <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Risk Level Analysis</h3>
+            <p className="text-text-muted text-[10px] lg:text-xs">Performance breakdown by signal risk level</p>
+          </div>
+          
+          {riskDist.length > 0 && (
+            <div className="flex items-center gap-3 bg-bg-card/30 p-2 rounded-lg border border-white/5">
+              {riskDist.map((rd) => (
+                <div key={rd.risk_level} className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: (riskColors[rd.risk_level] || riskColors['Normal']).bar }} />
+                  <span className="text-text-muted text-[10px] font-mono">{riskTotal > 0 ? (rd.total_signals / riskTotal * 100).toFixed(0) : 0}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {riskDist.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+            {riskDist.map((rd) => {
+              const c = riskColors[rd.risk_level] || riskColors['Normal'];
+              const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades * 100) : 0;
+              return (
+                <div key={rd.risk_level} className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} to-transparent border ${c.border}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${c.dot}`} />
+                      <span className={`font-bold text-sm ${c.text}`}>{rd.risk_level}</span>
+                    </div>
+                  </div>
+                  <p className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none mb-1`}>{rd.win_rate.toFixed(1)}%</p>
+                  <p className="text-text-muted text-[10px] mb-3">Win Rate</p>
+                  
+                  <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
+                    <div className="h-full bg-green-500/70 rounded-l-full" style={{ width: `${winPct}%` }} />
+                    <div className="h-full bg-red-500/70 rounded-r-full" style={{ width: `${100 - winPct}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-green-400/80 font-mono">{rd.winners?.toLocaleString()} W</span>
+                    <span className="text-red-400/80 font-mono">{rd.losers?.toLocaleString()} L</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="h-32 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
+
+      {/* BOTTOM BANNER */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex items-center gap-3">
           <span className="text-xl">🔒</span>
@@ -416,7 +507,7 @@ const LivePerformanceStats = ({ data }) => {
 // ════════════════════════════════════════
 const PhoneFlyingCoins = ({ gainers }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
-  const allCoins = gainers.slice(0, 20); // Menampung hingga 20 koin campuran
+  const allCoins = gainers.slice(0, 20);
 
   useEffect(() => {
     if (allCoins.length === 0) return;
@@ -513,8 +604,6 @@ const LandingPage = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const [performanceData, setPerformanceData] = useState(null);
-  
-  // State ini sekarang akan menyimpan koin gabungan (Daily & Weekly)
   const [topGainers, setTopGainers] = useState([]);
 
   useEffect(() => {
@@ -533,7 +622,6 @@ const LandingPage = () => {
     fetchStats();
   }, []);
 
-  // Fetch API untuk menarik Daily dan Weekly lalu menggabungkannya secara selang-seling
   useEffect(() => {
     const fetchTopGainers = async () => {
       try {
@@ -547,17 +635,14 @@ const LandingPage = () => {
 
         if (resDaily.ok) {
           const dataDaily = await resDaily.json();
-          // Beri label 'Daily' pada setiap item
           daily = (dataDaily?.top_gainers || []).map(item => ({ ...item, type: 'Daily' }));
         }
 
         if (resWeekly.ok) {
           const dataWeekly = await resWeekly.json();
-          // Beri label 'Weekly' pada setiap item
           weekly = (dataWeekly?.top_gainers || []).map(item => ({ ...item, type: 'Weekly' }));
         }
 
-        // Susun selang-seling: [Daily1, Weekly1, Daily2, Weekly2, ...]
         const combined = [];
         const maxLength = Math.max(daily.length, weekly.length);
         for (let i = 0; i < maxLength; i++) {
@@ -580,6 +665,7 @@ const LandingPage = () => {
 
   const stats = performanceData?.stats;
 
+  // DIV INI SUDAH DITAMBAHKAN "overflow-x-hidden" AGAR HALAMAN TIDAK MELEBAR / BISA DI-SCROLL KE SAMPING
   return (
     <div className="min-h-screen bg-bg-primary text-white relative pb-20 lg:pb-0 overflow-x-hidden"> 
       <div className="luxury-bg" />
