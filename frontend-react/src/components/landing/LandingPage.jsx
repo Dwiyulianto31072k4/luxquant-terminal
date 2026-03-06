@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import TopPerformers from '../TopPerformers';
 import CoinLogo from '../CoinLogo';
-import { GlobeViz, FlagBadges } from '../auth/LeftBrandPanel';
+import GlobalNetworkSection from './GlobalNetworkSection'; // <-- IMPORT KOMPONEN GLOBE BUATANMU
 
 import './LandingPage.css';
 
@@ -643,9 +643,9 @@ const LandingPage = () => {
       </header>
 
       {/* ════════════════════════════════════════
-          HERO SECTION
+          HERO SECTION (Fokus Platform Saja)
       ════════════════════════════════════════ */}
-      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-14 lg:pt-20 pb-16 lg:pb-28 overflow-visible">
+      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-14 lg:pt-20 pb-16 lg:pb-20 overflow-visible">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] pointer-events-none -z-10">
           <div className="absolute inset-0 bg-gold-primary/[0.03] rounded-full blur-[150px]" style={{ animation: 'heroGlowPulse 6s ease-in-out infinite' }} />
           <div className="absolute top-20 -left-40 w-[400px] h-[400px] bg-[#8b1a1a]/[0.05] rounded-full blur-[120px]" />
@@ -653,10 +653,10 @@ const LandingPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-8 items-center relative z-10">
-
+          
           <div className="relative z-20">
             <div className="flex items-center gap-3 mb-8" style={{ animation: 'heroCardFadeIn 0.6s ease-out 0.1s both' }}>
-              <div className="h-px bg-gradient-to-r from-gold-primary to-transparent" style={{ animation: 'heroLineGrow 1s ease-out 0.3s both' }} />
+              <div className="h-px bg-gradient-to-r from-gold-primary to-transparent" style={{ animation: 'heroLineGrow 1s ease-out 0.3s both', width: '40px' }} />
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 shadow-[0_0_15px_rgba(212,168,83,0.1)]">
                 <span className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
                 <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">AI-Powered Algorithm</span>
@@ -701,81 +701,42 @@ const LandingPage = () => {
                 </button>
               </div>
             </div>
-
-            <div style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.55s both' }}>
-              <div className="flex items-center gap-4">
-                <div className="flex -space-x-2.5">
-                  {['🇹🇼', '🇮🇩', '🇸🇬', '🇯🇵', '🇦🇺'].map((flag, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-[#1a150b] border-2 border-bg-primary flex items-center justify-center text-xs shadow-lg" style={{ zIndex: 10 - i }}>
-                      {flag}
-                    </div>
-                  ))}
-                  <div className="w-8 h-8 rounded-full bg-gold-primary/10 border-2 border-bg-primary flex items-center justify-center text-[9px] font-bold text-gold-primary shadow-[0_0_12px_rgba(212,168,83,0.2)]" style={{ zIndex: 0 }}>
-                    +20
-                  </div>
-                </div>
-                <p className="text-text-muted text-[10px] uppercase tracking-wider font-medium">
-                  Trusted by traders in <span className="text-white font-semibold">20+ Countries</span>
-                </p>
-              </div>
-            </div>
           </div>
 
-          <div className="hidden lg:flex flex-row items-center justify-center gap-8 relative w-full" style={{ minHeight: 520 }}>
-            <div className="relative w-[420px] flex-shrink-0">
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
-                <GlobeViz />
-                <FlagBadges />
-              </div>
-            </div>
-
+          <div className="hidden lg:flex flex-row items-center justify-center relative w-full" style={{ minHeight: 520 }}>
             <div className="relative flex-shrink-0 z-20">
               <div style={{ animation: 'floatPhone 5s ease-in-out infinite' }}>
-                <div className="relative w-[185px] xl:w-[200px] aspect-[9/19.5] bg-black rounded-[2.4rem] border-[5px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.3)]">
+                <div className="relative w-[200px] xl:w-[220px] aspect-[9/19.5] bg-black rounded-[2.8rem] border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.8),0_0_40px_rgba(212,168,83,0.15)]">
                   <div className="absolute top-0 inset-x-0 z-30">
-                    <div className="w-[35%] h-[18px] bg-black mx-auto rounded-b-xl" />
+                    <div className="w-[35%] h-[20px] bg-black mx-auto rounded-b-2xl" />
                   </div>
-                  <div className="absolute -right-[6px] top-[85px] w-[3px] h-[32px] bg-[#3a3a3a] rounded-l" />
-                  <div className="absolute -left-[6px] top-[70px] w-[3px] h-[22px] bg-[#3a3a3a] rounded-r" />
-                  <div className="absolute -left-[6px] top-[100px] w-[3px] h-[40px] bg-[#3a3a3a] rounded-r" />
-                  <div className="absolute inset-[2px] rounded-[2.1rem] overflow-hidden bg-bg-primary">
+                  <div className="absolute inset-[2px] rounded-[2.4rem] overflow-hidden bg-bg-primary">
                     <img src="/mockup-hp.png" alt="LuxQuant App" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
-                      <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
-                      <p className="text-gold-primary/30 text-[7px] font-semibold uppercase tracking-widest">LuxQuant</p>
+                      <img src="/logo.png" alt="" className="w-10 h-10 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
                     </div>
                   </div>
-                  <div className="absolute bottom-[4px] inset-x-0 z-30 flex justify-center">
-                    <div className="w-[35%] h-[3px] bg-white/20 rounded-full" />
+                  <div className="absolute bottom-[5px] inset-x-0 z-30 flex justify-center">
+                    <div className="w-[35%] h-[4px] bg-white/20 rounded-full" />
                   </div>
                 </div>
               </div>
-              {/* Komponen koin yang sekarang sudah membawa data selang-seling */}
               <PhoneFlyingCoins gainers={topGainers} />
             </div>
           </div>
 
         </div>
 
-        <div className="lg:hidden w-full mt-12 mb-10 flex flex-col items-center justify-center gap-10 relative z-10">
-          <div className="relative w-[90%] max-w-[320px] aspect-square flex justify-center items-center opacity-80" style={{ animation: 'heroCardFadeIn 1s ease-out 0.4s both' }}>
-            <GlobeViz />
-            <FlagBadges />
-          </div>
-
+        <div className="lg:hidden w-full mt-10 flex flex-col items-center justify-center gap-8 relative z-10">
           <div className="relative flex-shrink-0 z-20">
-            <div className="relative w-[185px] sm:w-[200px] aspect-[9/19.5] bg-black rounded-[2.4rem] border-[5px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.3)]" style={{ animation: 'floatPhone 5s ease-in-out infinite' }}>
+            <div className="relative w-[200px] sm:w-[220px] aspect-[9/19.5] bg-black rounded-[2.6rem] border-[5px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.2)]" style={{ animation: 'floatPhone 5s ease-in-out infinite' }}>
               <div className="absolute top-0 inset-x-0 z-30">
                 <div className="w-[35%] h-[18px] bg-black mx-auto rounded-b-xl" />
               </div>
-              <div className="absolute -right-[6px] top-[85px] w-[3px] h-[32px] bg-[#3a3a3a] rounded-l" />
-              <div className="absolute -left-[6px] top-[70px] w-[3px] h-[22px] bg-[#3a3a3a] rounded-r" />
-              <div className="absolute -left-[6px] top-[100px] w-[3px] h-[40px] bg-[#3a3a3a] rounded-r" />
-              <div className="absolute inset-[2px] rounded-[2.1rem] overflow-hidden bg-bg-primary">
+              <div className="absolute inset-[2px] rounded-[2.3rem] overflow-hidden bg-bg-primary">
                 <img src="/mockup-hp.png" alt="LuxQuant App" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
                   <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
-                  <p className="text-gold-primary/30 text-[7px] font-semibold uppercase tracking-widest">LuxQuant</p>
                 </div>
               </div>
               <div className="absolute bottom-[4px] inset-x-0 z-30 flex justify-center">
@@ -785,11 +746,15 @@ const LandingPage = () => {
           </div>
 
           <div className="z-20 w-full relative min-h-[40px]">
-            {/* Komponen koin mobile yang juga membaca data selang-seling */}
             {topGainers.length > 0 && <MobileRotatingCoins gainers={topGainers} />}
           </div>
         </div>
       </section>
+
+      {/* ════════════════════════════════════════
+          GLOBAL NETWORK SECTION BUATANMU
+      ════════════════════════════════════════ */}
+      <GlobalNetworkSection />
 
       {/* ════════════════════════════════════════
           RECENT WINNER CAPTURES
