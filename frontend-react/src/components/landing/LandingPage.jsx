@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ResponsiveContainer, Tooltip, Bar, XAxis, YAxis, CartesianGrid, Area, ReferenceLine, Line, ComposedChart } from 'recharts';
 import TopPerformers from '../TopPerformers';
 import CoinLogo from '../CoinLogo';
-import GlobalNetworkSection from './GlobalNetworkSection'; // <-- Import Peta Globe 3D buatanmu
+import GlobalNetworkSection from './GlobalNetworkSection';
 
 import './LandingPage.css';
 
@@ -93,22 +93,10 @@ const TestimonialCard = ({ name, role, text, flag }) => (
 );
 
 const FAQ_DATA = [
-  {
-    q: "Is it suitable for beginners?",
-    a: "Absolutely! Our signals provide comprehensive details including exact entry points, multiple profit targets (TP1-TP4), and strict stop-loss (SL) levels. You just need to follow the provided numbers on your preferred exchange."
-  },
-  {
-    q: "What is the recommended starting capital?",
-    a: "While there is no strict minimum, we recommend starting with at least $100 - $500 for proper risk management. This allows you to safely distribute your capital across multiple algorithm signals."
-  },
-  {
-    q: "What happens if the algorithm makes a wrong prediction (Loss)?",
-    a: "Trading always carries risk, and no algorithm wins 100% of the time. That's why every single signal includes a strict Stop-Loss (SL) level to protect your capital. Our algorithm is mathematically designed to win more trades with a highly positive Risk:Reward ratio over time."
-  },
-  {
-    q: "Do I need to monitor the screen 24/7?",
-    a: "Not at all. Our system operates 24/7 and sends real-time push notifications directly to your Telegram or Dashboard the moment a high-probability setup is detected. You can trade on the go."
-  }
+  { q: "Is it suitable for beginners?", a: "Absolutely! Our signals provide comprehensive details including exact entry points, multiple profit targets (TP1-TP4), and strict stop-loss (SL) levels." },
+  { q: "What is the recommended starting capital?", a: "While there is no strict minimum, we recommend starting with at least $100 - $500 for proper risk management." },
+  { q: "What happens if the algorithm makes a wrong prediction (Loss)?", a: "Trading always carries risk. That's why every single signal includes a strict Stop-Loss (SL) level to protect your capital." },
+  { q: "Do I need to monitor the screen 24/7?", a: "Not at all. Our system operates 24/7 and sends real-time push notifications directly to your Telegram or Dashboard." }
 ];
 
 const FAQItem = ({ q, a, isOpen, onClick }) => (
@@ -118,12 +106,195 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
       <span className={`text-gold-primary transform transition-transform duration-300 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
     </button>
     <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-      <div className="px-6 pb-5 text-text-secondary text-sm leading-relaxed border-t border-gold-primary/5 pt-4">
-        {a}
-      </div>
+      <div className="px-6 pb-5 text-text-secondary text-sm leading-relaxed border-t border-gold-primary/5 pt-4">{a}</div>
     </div>
   </div>
 );
+
+// ════════════════════════════════════════
+// Feature Slider (Mac & Phone Mockup)
+// ════════════════════════════════════════
+const FEATURES = [
+  { id: 'signals', title: 'Algorithmic Signals', desc: 'High-probability setups with precise Entry, TP1-TP4, and strict Stop-Loss levels. Delivered 24/7.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
+  { id: 'ai-arena', title: 'AI Arena Consensus', desc: 'Synthesize predictions from multiple quantitative models to determine overall market direction (Bullish/Bearish).', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
+  { id: 'whale', title: 'Whale Surveillance', desc: 'Track massive on-chain transfers and exchange netflows to anticipate retail market reactions.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> },
+  { id: 'orderbook', title: 'Order Book Heatmap', desc: 'Visualize bid/ask liquidity walls across major exchanges to pinpoint exact support and resistance.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg> },
+  { id: 'macro', title: 'Macroeconomic Sync', desc: 'Correlate crypto volatility with live global economic events like CPI, FOMC, and interest rates.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> }
+];
+
+const FeatureSliderSection = () => {
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    const iv = setInterval(() => setActiveIdx((prev) => (prev + 1) % FEATURES.length), 5000);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 py-20 lg:py-28 overflow-hidden">
+      <div className="text-center mb-12 lg:mb-16">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gold-primary/20 bg-gold-primary/5 rounded-full mb-4">
+          <span className="text-gold-primary font-mono text-[9px] uppercase tracking-[0.3em]">Core Technology</span>
+        </div>
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
+          Interactive <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Terminal Preview</span>
+        </h2>
+        <p className="text-text-secondary text-sm lg:text-base max-w-2xl mx-auto">
+          Explore the tools that give institutional traders their edge, now unified in one dashboard.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        {/* LFT: Feature List Navigation */}
+        <div className="lg:col-span-4 flex flex-col gap-3 relative z-20">
+          {FEATURES.map((feat, idx) => (
+            <div 
+              key={feat.id} 
+              onClick={() => setActiveIdx(idx)}
+              className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border ${activeIdx === idx ? 'bg-gradient-to-r from-gold-primary/10 to-transparent border-gold-primary/40 shadow-[0_0_20px_rgba(212,168,83,0.1)]' : 'bg-transparent border-transparent hover:border-white/10 hover:bg-white/5'}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${activeIdx === idx ? 'bg-gold-primary text-[#0a0506]' : 'bg-white/5 text-gold-primary/70'}`}>
+                  {feat.icon}
+                </div>
+                <h3 className={`font-bold ${activeIdx === idx ? 'text-white' : 'text-white/60'}`}>{feat.title}</h3>
+              </div>
+              {activeIdx === idx && (
+                <p className="text-text-secondary text-sm leading-relaxed mt-2 animate-[fadeIn_0.5s_ease-out]">
+                  {feat.desc}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* RGT: Mockups (Mac & iPhone) */}
+        <div className="lg:col-span-8 relative flex justify-center lg:justify-end mt-10 lg:mt-0 px-4 sm:px-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
+          
+          {/* Mac Mockup */}
+          <div className="relative w-full max-w-[700px] aspect-[16/10] bg-[#0a0805] rounded-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+            {/* Mac Topbar */}
+            <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full">
+              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-red-500/80"></div>
+              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80"></div>
+              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-green-500/80"></div>
+              <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono">terminal.luxquant.tw</div>
+            </div>
+            
+            {/* Mac Dynamic Content */}
+            <div className="relative w-full h-full p-4 lg:p-6 bg-gradient-to-b from-transparent to-[#050302]">
+              {FEATURES.map((feat, idx) => (
+                <div key={feat.id} className={`absolute inset-0 p-4 lg:p-6 transition-opacity duration-700 ${activeIdx === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                  {idx === 0 && ( /* Signals */
+                    <div className="w-full h-full flex gap-4">
+                      <div className="flex-1 bg-white/5 rounded-lg border border-white/5 p-4 flex flex-col justify-end">
+                        <div className="w-full h-[60%] border-b border-dashed border-green-500/30 relative">
+                          <div className="absolute bottom-0 left-10 w-4 h-[40%] bg-green-500/80"></div>
+                          <div className="absolute bottom-10 left-20 w-4 h-[70%] bg-red-500/80"></div>
+                          <div className="absolute bottom-0 left-30 w-4 h-[90%] bg-green-500/80"></div>
+                        </div>
+                      </div>
+                      <div className="w-1/3 bg-black/40 rounded-lg border border-gold-primary/20 p-4">
+                         <div className="h-4 w-20 bg-gold-primary/20 rounded mb-4"></div>
+                         <div className="space-y-3">
+                           <div className="h-8 w-full bg-green-500/10 border border-green-500/20 rounded flex items-center px-2 text-[10px] text-green-400">TP1 Hit</div>
+                           <div className="h-8 w-full bg-green-500/10 border border-green-500/20 rounded flex items-center px-2 text-[10px] text-green-400">TP2 Hit</div>
+                         </div>
+                      </div>
+                    </div>
+                  )}
+                  {idx === 1 && ( /* AI Arena */
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-6">
+                       <div className="text-gold-primary text-xs font-mono">MODEL CONSENSUS</div>
+                       <div className="flex w-full h-12 rounded-full overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(212,168,83,0.1)]">
+                         <div className="bg-gradient-to-r from-gold-dark to-gold-primary w-[82%] h-full flex items-center px-4 font-bold text-black text-sm">82% BULLISH</div>
+                         <div className="bg-red-500/20 w-[18%] h-full"></div>
+                       </div>
+                    </div>
+                  )}
+                  {idx === 2 && ( /* Whale */
+                    <div className="w-full h-full bg-black/40 rounded-lg border border-white/5 p-4 flex flex-col gap-2">
+                       <div className="flex justify-between text-xs text-white/40 border-b border-white/10 pb-2 mb-2"><span>TIME</span><span>AMOUNT</span><span>DESTINATION</span></div>
+                       {[1,2,3].map(i => (
+                         <div key={i} className="flex justify-between items-center text-xs bg-white/5 p-2 rounded">
+                           <span className="text-white/60">Just now</span>
+                           <span className="text-blue-400 font-mono font-bold">1,250 BTC</span>
+                           <span className="text-white/80">Binance</span>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                  {idx === 3 && ( /* Orderbook */
+                    <div className="w-full h-full flex gap-2 items-end justify-center pt-8">
+                       <div className="w-16 h-[30%] bg-green-500/40 rounded-t border-t-2 border-green-400"></div>
+                       <div className="w-16 h-[60%] bg-green-500/40 rounded-t border-t-2 border-green-400"></div>
+                       <div className="w-px h-full bg-white/20 mx-4"></div>
+                       <div className="w-16 h-[50%] bg-red-500/40 rounded-t border-t-2 border-red-400"></div>
+                       <div className="w-16 h-[80%] bg-red-500/40 rounded-t border-t-2 border-red-400"></div>
+                    </div>
+                  )}
+                  {idx === 4 && ( /* Macro */
+                    <div className="w-full h-full grid grid-cols-4 gap-3">
+                       {[...Array(8)].map((_, i) => (
+                         <div key={i} className="bg-white/5 rounded-lg border border-white/5 p-3 flex flex-col justify-between">
+                           <span className="text-[10px] text-white/40">MAR {10+i}</span>
+                           {i === 2 && <div className="text-xs text-red-400 font-bold bg-red-500/10 px-1 py-0.5 rounded">CPI DATA</div>}
+                           {i === 5 && <div className="text-xs text-yellow-400 font-bold bg-yellow-500/10 px-1 py-0.5 rounded">FOMC</div>}
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* iPhone Mockup (Overlapping) */}
+          <div className="absolute -bottom-8 -right-4 lg:-right-8 w-[120px] sm:w-[140px] lg:w-[170px] aspect-[9/19.5] bg-[#050302] border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
+            <div className="absolute top-0 inset-x-0 h-4 bg-[#2a2a2a] rounded-b-xl w-1/3 mx-auto z-30"></div>
+            <div className="relative w-full h-full pt-8 px-3 bg-gradient-to-b from-[#120f0a] to-[#0a0805]">
+               {FEATURES.map((feat, idx) => (
+                <div key={feat.id} className={`absolute inset-0 pt-8 px-3 transition-opacity duration-700 ${activeIdx === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                  {idx === 0 && (
+                    <div className="bg-gold-primary/10 border border-gold-primary/30 p-2 rounded-xl text-center shadow-lg mt-2">
+                      <div className="text-[10px] text-gold-primary font-bold mb-1">LONG BTCUSDT</div>
+                      <div className="text-[9px] text-green-400">+12.4% Profit</div>
+                    </div>
+                  )}
+                  {idx === 1 && (
+                    <div className="flex flex-col items-center justify-center h-1/2 gap-2">
+                       <div className="w-12 h-12 rounded-full border-[4px] border-green-500 flex items-center justify-center text-[10px] font-bold text-white">82%</div>
+                       <div className="text-[8px] text-white/50">BULL MARKET</div>
+                    </div>
+                  )}
+                  {idx === 2 && (
+                    <div className="bg-blue-500/10 border border-blue-500/30 p-2 rounded-xl shadow-lg mt-2">
+                      <div className="text-[8px] text-blue-400 font-bold mb-1">WHALE ALERT</div>
+                      <div className="text-[10px] text-white">1.2K BTC Transferred</div>
+                    </div>
+                  )}
+                  {idx === 3 && (
+                    <div className="w-full space-y-2 mt-4">
+                      <div className="w-full bg-green-500/20 h-4 rounded flex items-center px-1 text-[8px] text-green-400">Bid Wall: 50M</div>
+                      <div className="w-[70%] bg-red-500/20 h-4 rounded flex items-center px-1 text-[8px] text-red-400">Ask Wall: 32M</div>
+                    </div>
+                  )}
+                  {idx === 4 && (
+                    <div className="bg-red-500/10 border border-red-500/30 p-2 rounded-xl shadow-lg mt-2 text-center">
+                      <div className="text-[10px] text-red-400 font-bold">HIGH VOLATILITY</div>
+                      <div className="text-[8px] text-white/60 mt-1">CPI Report in 15m</div>
+                    </div>
+                  )}
+                </div>
+               ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 
 // ════════════════════════════════════════
@@ -151,25 +322,29 @@ const PromoFlyingCoins = ({ gainers }) => {
       key={currentIdx} // Kunci ini penting agar animasinya ter-reset setiap ganti koin
       className="absolute z-30 pointer-events-none"
       style={{ 
-        top: '15%', 
-        right: '-25%',
-        animation: 'coin-float-up-right 3.5s ease-out both' // Memakai animasi terbang yang sama dengan hero
+        // POSISI BARU: Mulai dari tengah HP
+        left: '50%',
+        top: '50%',
+        // ANIMASI BARU: Terbang perlahan ke atas dari tengah
+        animation: 'centerFloat 3.5s ease-out both' 
       }}
     >
       <div
-        className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)]"
+        className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)] min-w-[140px]"
         style={{
           background: 'rgba(10,5,6,0.85)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
         }}
       >
-        <div className="flex items-center gap-2">
-          <CoinLogo pair={item.pair} size={20} />
-          <span className="text-white text-sm font-bold">{symbol}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CoinLogo pair={item.pair} size={20} />
+            <span className="text-white text-sm font-bold">{symbol}</span>
+          </div>
           <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(2)}%</span>
         </div>
-        <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left">
+        <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left mt-1 block">
           Live Gainer Call
         </span>
       </div>
@@ -185,6 +360,16 @@ const TelegramPromo = ({ gainers }) => {
   return (
     <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       
+      {/* Keyframe Khusus untuk PromoFlyingCoins agar terbang dari tengah */}
+      <style>{`
+        @keyframes centerFloat {
+          0% { opacity: 0; transform: translate(-50%, 0) scale(0.8); }
+          20% { opacity: 1; transform: translate(-50%, -30px) scale(1.05); }
+          80% { opacity: 1; transform: translate(-50%, -50px) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -70px) scale(0.9); }
+        }
+      `}</style>
+
       {/* Dekorasi Cahaya Latar */}
       <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold-primary/5 blur-[100px] -z-10" />
       <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#229ED9]/5 blur-[80px] -z-10" />
@@ -226,7 +411,8 @@ const TelegramPromo = ({ gainers }) => {
             
             <div className="flex flex-col items-center sm:items-start">
               <span className="text-white font-mono text-sm">Thousands of Traders</span>
-              <span className="text-green-400/80 text-[10px] uppercase tracking-tighter italic">Active Community</span>
+              {/* REVISI: Warna hijau diubah ke gold/muted */}
+              <span className="text-gold-primary/70 text-[10px] uppercase tracking-tighter italic">Active Community</span>
             </div>
           </div>
         </div>
@@ -238,20 +424,18 @@ const TelegramPromo = ({ gainers }) => {
           <div className="relative w-[260px] lg:w-[280px] h-[520px] lg:h-[560px] bg-[#050302] border-[8px] border-[#1a1a1a] rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-10 group">
             <div className="absolute top-0 inset-x-0 h-6 bg-[#1a1a1a] rounded-b-3xl w-1/3 mx-auto z-20"></div>
             
+            {/* REVISI: Tambah ?v=2 di ujung src untuk memaksa browser download versi terbaru (bypass cache) */}
             <img 
-              src="/telegram-ss.png" 
+              src="/telegram-ss.png?v=2" 
               alt="LuxQuant Telegram Channel Content" 
               className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
-              onError={(e) => {
-                  // Cukup sembunyikan jika gagal load, JANGAN gunakan innerHTML
-                  e.target.style.display = 'none';
-              }}
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
           </div>
 
-          {/* Lencana Terbang Dinamis */}
+          {/* Lencana Terbang Dinamis (Sekarang terbang dari tengah) */}
           <PromoFlyingCoins gainers={gainers} />
 
         </div>
@@ -320,7 +504,6 @@ const LandingWinRateChart = ({ data }) => {
     let shortLabel = item.period;
     let tooltipLabel = item.period;
     
-    // Logika untuk mengubah tanggal menjadi format "Weekly" yang jelas
     try { 
       const dt = new Date(item.period); 
       if (!isNaN(dt)) {
@@ -944,6 +1127,11 @@ const LandingPage = () => {
       <GlobalNetworkSection />
 
       {/* ════════════════════════════════════════
+          FITUR SLIDER BARU: MAC & iPHONE (Tarik dari Repo-mu)
+      ════════════════════════════════════════ */}
+      <FeatureSliderSection />
+
+      {/* ════════════════════════════════════════
           RECENT WINNER CAPTURES
       ════════════════════════════════════════ */}
       <section id="performance-top" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24 pt-12 mt-4">
@@ -985,7 +1173,6 @@ const LandingPage = () => {
       ════════════════════════════════════════ */}
       <section id="how-it-works" className="relative z-10 w-full px-4 lg:px-8 pb-20 lg:pb-32 mt-12 lg:mt-20">
         
-        {/* Ambient Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-gold-primary/[0.03] rounded-[100%] blur-[120px] pointer-events-none -z-10" />
 
         <div className="text-center mb-12 lg:mb-20 relative z-10">
@@ -1004,7 +1191,6 @@ const LandingPage = () => {
         {/* DESKTOP LAYOUT */}
         <div className="hidden lg:flex items-center justify-center max-w-[1200px] mx-auto w-full relative z-10">
           
-          {/* 1. INPUT NODES */}
           <div className="flex flex-col gap-3 w-[220px] xl:w-[260px] flex-shrink-0 z-20">
             {[
               { id: '0x1', title: 'ORDER BOOK DEPTH', desc: 'Bid/Ask liquidity tracking' },
@@ -1025,12 +1211,9 @@ const LandingPage = () => {
             <div className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]" style={{ animation: 'data-stream-right 2s linear infinite' }} />
           </div>
 
-          {/* 2. DATA SANITIZATION */}
           <div className="w-[120px] xl:w-[140px] bg-[#050302] border border-white/10 rounded-xl flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-1 transition-transform">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-t-xl" />
-            <svg className="w-6 h-6 text-white/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
+            <svg className="w-6 h-6 text-white/50 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
             <p className="text-white text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">Data<br/>Filter</p>
           </div>
 
@@ -1038,19 +1221,14 @@ const LandingPage = () => {
             <div className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]" style={{ animation: 'data-stream-right 2s linear infinite 0.5s' }} />
           </div>
 
-          {/* 3. ALPHA CORE */}
           <div className="relative flex items-center justify-center flex-shrink-0 z-20 mx-2">
             <div className="absolute w-[220px] h-[220px] xl:w-[260px] xl:h-[260px] rounded-full border border-white/5 border-l-gold-primary/30 border-r-gold-primary/30" style={{ animation: 'spin-slow 15s linear infinite' }} />
             <div className="absolute w-[180px] h-[180px] xl:w-[210px] xl:h-[210px] rounded-full border border-dashed border-white/10" style={{ animation: 'spin-reverse-slow 20s linear infinite' }} />
-            
             <div className="relative w-40 h-40 xl:w-48 xl:h-48 bg-[#0a0805] rounded-2xl border-[1.5px] border-white/10 flex flex-col items-center justify-center overflow-hidden" style={{ animation: 'core-pulse 4s ease-in-out infinite' }}>
               <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gold-primary/10 to-transparent w-full h-[20%]" style={{ animation: 'scanline 3s linear infinite' }} />
-              
               <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-lg border border-gold-primary/30 flex items-center justify-center mb-3 bg-gold-primary/[0.05]">
-                <svg className="w-6 h-6 xl:w-7 xl:h-7 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                </svg>
+                <svg className="w-6 h-6 xl:w-7 xl:h-7 text-gold-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>
               </div>
               <h3 className="text-white font-mono font-bold tracking-widest text-[10px] xl:text-xs">PREDICTIVE ALPHA</h3>
               <p className="text-gold-primary/60 font-mono text-[7px] xl:text-[8px] mt-1 uppercase tracking-[0.2em]">Quantum Engine</p>
@@ -1061,12 +1239,9 @@ const LandingPage = () => {
             <div className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]" style={{ animation: 'data-stream-right 2s linear infinite 1s' }} />
           </div>
 
-          {/* 4. API GATEWAY NODE */}
           <div className="w-[120px] xl:w-[140px] bg-[#050302] border border-white/10 rounded-xl flex flex-col items-center justify-center p-4 relative z-20 flex-shrink-0 hover:-translate-y-1 transition-transform">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent rounded-t-xl" />
-            <svg className="w-6 h-6 text-gold-primary/70 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <svg className="w-6 h-6 text-gold-primary/70 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <p className="text-white text-[10px] xl:text-xs font-bold tracking-widest text-center uppercase">API<br/>Gateway</p>
             <p className="text-text-muted text-[7px] xl:text-[8px] font-mono mt-1 text-center">Payload Formatter</p>
           </div>
@@ -1075,7 +1250,6 @@ const LandingPage = () => {
             <div className="absolute top-[-1px] left-0 w-1/2 h-[3px] bg-gold-primary rounded-full shadow-[0_0_10px_#d4a853]" style={{ animation: 'data-stream-right 2s linear infinite 1.5s' }} />
           </div>
 
-          {/* 5. TICKET */}
           <div className="relative w-[240px] xl:w-[280px] flex-shrink-0 z-20">
             <div className="bg-[#0a0805] rounded-xl border border-gold-primary/30 p-5 shadow-[0_0_30px_rgba(212,168,83,0.08)]">
               <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
@@ -1085,7 +1259,6 @@ const LandingPage = () => {
                 </div>
                 <span className="text-green-400 font-mono text-[8px] bg-green-400/10 px-1.5 py-0.5 rounded">SYNCED</span>
               </div>
-
               <div className="space-y-3 font-mono">
                 <div className="flex justify-between items-end border-b border-white/5 pb-2">
                   <div>
@@ -1136,9 +1309,7 @@ const LandingPage = () => {
           </div>
 
           <div className="w-[160px] bg-[#050302] border border-white/10 rounded-xl flex flex-col items-center justify-center p-3 relative z-20">
-            <svg className="w-5 h-5 text-white/50 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
+            <svg className="w-5 h-5 text-white/50 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
             <p className="text-white text-[10px] font-bold tracking-widest text-center uppercase">Data Filter</p>
           </div>
 
@@ -1149,9 +1320,7 @@ const LandingPage = () => {
           <div className="relative w-48 h-48 flex items-center justify-center z-20 my-4">
              <div className="absolute w-[200px] h-[200px] rounded-full border border-white/5 border-l-gold-primary/30 border-r-gold-primary/30" style={{ animation: 'spin-slow 15s linear infinite' }} />
              <div className="relative w-32 h-32 bg-[#0a0805] rounded-2xl border border-white/20 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(212,168,83,0.15)]">
-                <svg className="w-6 h-6 text-gold-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                </svg>
+                <svg className="w-6 h-6 text-gold-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>
                 <h3 className="text-white font-mono font-bold tracking-widest text-[9px] text-center">PREDICTIVE<br/>ALPHA</h3>
              </div>
           </div>
@@ -1161,9 +1330,7 @@ const LandingPage = () => {
           </div>
 
           <div className="w-[160px] bg-[#050302] border border-white/10 rounded-xl flex items-center justify-center gap-3 p-3 relative z-20">
-            <svg className="w-5 h-5 text-gold-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+            <svg className="w-5 h-5 text-gold-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <div className="text-left">
               <p className="text-white text-[10px] font-bold tracking-widest uppercase">API Gateway</p>
               <p className="text-text-muted text-[7px] font-mono">Payload Format</p>
