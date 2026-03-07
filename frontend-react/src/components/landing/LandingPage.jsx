@@ -125,34 +125,125 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
   </div>
 );
 
-const TelegramPromo = () => (
-  <div className="glass-card rounded-3xl p-8 lg:p-12 border border-[#229ED9]/30 bg-gradient-to-br from-bg-primary via-bg-card to-[#0a192f] overflow-hidden relative mt-16 shadow-[0_0_40px_rgba(34,158,217,0.1)]">
-    <div className="flex flex-col lg:flex-row items-center gap-10 relative z-10">
-      <div className="flex-1 text-center lg:text-left">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#229ED9]/10 border border-[#229ED9]/20 mb-6">
-          <span className="w-2 h-2 bg-[#229ED9] rounded-full animate-pulse" />
-          <span className="text-[#229ED9] text-xs font-semibold uppercase tracking-wider">Free Community</span>
-        </div>
-        <h2 className="font-display text-3xl lg:text-4xl font-bold text-white mb-4">Try Our <span className="text-[#229ED9]">Free</span> Signals</h2>
-        <p className="text-text-secondary mb-8 text-lg leading-relaxed">
-          Still hesitating? Join our public Telegram channel today. Enjoy daily market updates, educational insights, and selected free algorithm signals every week.
-        </p>
-        <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-sm bg-[#229ED9] text-white hover:bg-[#1D88BA] transition-all hover:scale-105 shadow-[0_0_20px_rgba(34,158,217,0.3)]">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-          Join Free Telegram
-        </a>
-      </div>
+const TelegramPromo = () => {
+
+  // Contoh data statis untuk visual terbang yang konsisten dengan pattern Hero,
+  // menampilkan salah satu call gainer terbesar dari image_1.png
+  const highlightCoin = { pair: 'TRIAUSDT', gain: 23.71, type: 'Weekly' };
+  const symbol = highlightCoin.pair.replace(/USDT$/i, '');
+
+  return (
+    <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       
-      <div className="flex-1 flex justify-center lg:justify-end relative mt-8 lg:mt-0">
-        <div className="relative w-[220px] lg:w-[240px] h-[440px] lg:h-[480px] bg-[#0a0506] border-[6px] border-[#1f2937] rounded-[2.5rem] overflow-hidden shadow-2xl z-10">
-          <div className="absolute top-0 inset-x-0 h-5 lg:h-6 bg-[#1f2937] rounded-b-2xl w-1/2 mx-auto z-20"></div>
-          <img src="/telegram-ss.png" alt="Telegram Channel Free" className="w-full h-full object-cover" />
+      {/* Dekorasi Cahaya Latar */}
+      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold-primary/5 blur-[100px] -z-10" />
+      <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#229ED9]/5 blur-[80px] -z-10" />
+
+      <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
+        
+        {/* Sisi Kiri: Konten Teks */}
+        <div className="flex-1 text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-6">
+            <span className="w-2 h-2 bg-gold-primary rounded-full animate-pulse" />
+            <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">Public Alpha Access</span>
+          </div>
+          
+          <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+            Experience the <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
+              24/7 Intelligence.
+            </span>
+          </h2>
+          
+          {/* Revisi Deskripsi Teks (Revisi #1: institutional market insights dihapus) */}
+          <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl">
+            Get a taste of our quantitative edge. Join <span className="text-white font-semibold">@LuxQuantSignal</span> for real-time algorithm previews, 
+            weekly high-probability free calls—delivered 24/7 directly to your pocket.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <a 
+              href="https://t.me/LuxQuantSignal" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="group relative inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-sm overflow-hidden transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+            >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <svg className="w-5 h-5 relative z-10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+              </svg>
+              <span className="relative z-10 uppercase tracking-widest">Join Telegram Signal</span>
+            </a>
+            
+            <div className="flex flex-col items-center sm:items-start">
+              <span className="text-white font-mono text-sm">1,028+ Members</span>
+              <span className="text-gold-primary/60 text-[10px] uppercase tracking-tighter italic">Growing Community</span>
+            </div>
+          </div>
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#229ED9]/20 blur-3xl rounded-full"></div>
+        
+        {/* Sisi Kanan: Mockup HP Bersih & Lencana Terbang yang Diselaraskan (Revisi #2) */}
+        <div className="flex-1 flex justify-center lg:justify-end relative">
+          {/* Glow effect */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gold-primary/20 blur-[80px] rounded-full animate-pulse"></div>
+          
+          {/* Phone container */}
+          <div className="relative w-[260px] lg:w-[280px] h-[520px] lg:h-[560px] bg-[#050302] border-[8px] border-[#1a1a1a] rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-10 group">
+            {/* Notch */}
+            <div className="absolute top-0 inset-x-0 h-6 bg-[#1a1a1a] rounded-b-3xl w-1/3 mx-auto z-20"></div>
+            
+            {/* User Content: Screenshot bersih untuk kamu isi sendiri */}
+            <img 
+              src="/telegram-ss.png" // Perbarui file ini dengan screenshot asli channel kamu
+              alt="LuxQuant Telegram Channel Content" 
+              className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
+              onError={(e) => {
+                  e.target.style.display = 'none';
+                  const parent = e.target.parentNode;
+                  parent.classList.add('flex', 'items-center', 'justify-center');
+                  parent.innerHTML += '<span class="text-text-muted text-xs">Upload your screenshot</span>';
+              }}
+            />
+
+            {/* Overlay minimal untuk bayangan bawah */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
+
+          </div>
+
+          {/* Lencana Terbang yang Diselaraskan (Visual Pattern sama dengan Hero Top Gainer) */}
+          <div 
+            className="absolute z-30 pointer-events-none animate-float-slow"
+            style={{
+                top: '15%',
+                right: '-25%', // Menyesuaikan posisi di luar HP
+            }}
+          >
+            <div
+                className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)]"
+                style={{
+                    background: 'rgba(10,5,6,0.85)',
+                    backdropFilter: 'blur(14px)',
+                    WebkitBackdropFilter: 'blur(14px)',
+                }}
+            >
+                <div className="flex items-center gap-2">
+                    {/* Menggunakan data statis callout TRIAUSDT */}
+                    <CoinLogo pair={highlightCoin.pair} size={20} />
+                    <span className="text-white text-sm font-bold">{symbol}</span>
+                    <span className="text-green-400 text-sm font-bold font-mono">+{highlightCoin.gain.toFixed(2)}%</span>
+                </div>
+                <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left">
+                    {highlightCoin.type} Gainer Call
+                </span>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ════════════════════════════════════════
 // Live Performance Stats
