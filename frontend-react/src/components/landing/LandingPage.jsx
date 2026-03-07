@@ -125,11 +125,11 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
   </div>
 );
 
+
 const TelegramPromo = () => {
 
-  // Contoh data statis untuk visual terbang yang konsisten dengan pattern Hero,
-  // menampilkan salah satu call gainer terbesar dari image_1.png
-  const highlightCoin = { pair: 'TRIAUSDT', gain: 23.71, type: 'Weekly' };
+  // Ubah 'type' dari 'Weekly' menjadi 'Live' agar lencananya bertuliskan "Live Gainer Call"
+  const highlightCoin = { pair: 'TRIAUSDT', gain: 23.71, type: 'Live' };
   const symbol = highlightCoin.pair.replace(/USDT$/i, '');
 
   return (
@@ -145,20 +145,19 @@ const TelegramPromo = () => {
         <div className="flex-1 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-6">
             <span className="w-2 h-2 bg-gold-primary rounded-full animate-pulse" />
-            <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">Public Alpha Access</span>
+            <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">100% Free Tier</span>
           </div>
           
           <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-            Experience the <br />
+            Try Before You <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
-              24/7 Intelligence.
+              Subscribe.
             </span>
           </h2>
           
-          {/* Revisi Deskripsi Teks (Revisi #1: institutional market insights dihapus) */}
+          {/* REVISI COPYWRITING: Menghapus 'weekly' dan menegaskan sistem jalan 24/7 non-stop dengan fitur limited */}
           <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl">
-            Get a taste of our quantitative edge. Join <span className="text-white font-semibold">@LuxQuantSignal</span> for real-time algorithm previews, 
-            weekly high-probability free calls—delivered 24/7 directly to your pocket.
+            Want to test our accuracy before unlocking the full institutional terminal? Join <span className="text-white font-semibold">@LuxQuantSignal</span> for our free public channel. Experience our 24/7 non-stop quantitative edge with real-time algorithm previews and selected high-probability calls. Powerful intelligence directly to your pocket—completely free.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -173,29 +172,25 @@ const TelegramPromo = () => {
               <svg className="w-5 h-5 relative z-10" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
               </svg>
-              <span className="relative z-10 uppercase tracking-widest">Join Telegram Signal</span>
+              <span className="relative z-10 uppercase tracking-widest">Join Free Channel</span>
             </a>
             
             <div className="flex flex-col items-center sm:items-start">
-              <span className="text-white font-mono text-sm">1,028+ Members</span>
-              <span className="text-gold-primary/60 text-[10px] uppercase tracking-tighter italic">Growing Community</span>
+              <span className="text-white font-mono text-sm">Thousands of Traders</span>
+              <span className="text-green-400/80 text-[10px] uppercase tracking-tighter italic">Active Community</span>
             </div>
           </div>
         </div>
         
-        {/* Sisi Kanan: Mockup HP Bersih & Lencana Terbang yang Diselaraskan (Revisi #2) */}
+        {/* Sisi Kanan: Mockup HP */}
         <div className="flex-1 flex justify-center lg:justify-end relative">
-          {/* Glow effect */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gold-primary/20 blur-[80px] rounded-full animate-pulse"></div>
           
-          {/* Phone container */}
           <div className="relative w-[260px] lg:w-[280px] h-[520px] lg:h-[560px] bg-[#050302] border-[8px] border-[#1a1a1a] rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-10 group">
-            {/* Notch */}
             <div className="absolute top-0 inset-x-0 h-6 bg-[#1a1a1a] rounded-b-3xl w-1/3 mx-auto z-20"></div>
             
-            {/* User Content: Screenshot bersih untuk kamu isi sendiri */}
             <img 
-              src="/telegram-ss.png" // Perbarui file ini dengan screenshot asli channel kamu
+              src="/telegram-ss.png" 
               alt="LuxQuant Telegram Channel Content" 
               className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
               onError={(e) => {
@@ -206,18 +201,13 @@ const TelegramPromo = () => {
               }}
             />
 
-            {/* Overlay minimal untuk bayangan bawah */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
-
           </div>
 
-          {/* Lencana Terbang yang Diselaraskan (Visual Pattern sama dengan Hero Top Gainer) */}
+          {/* Lencana Terbang - Sekarang menampilkan "Live Gainer Call" */}
           <div 
             className="absolute z-30 pointer-events-none animate-float-slow"
-            style={{
-                top: '15%',
-                right: '-25%', // Menyesuaikan posisi di luar HP
-            }}
+            style={{ top: '15%', right: '-25%' }}
           >
             <div
                 className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)]"
@@ -228,7 +218,6 @@ const TelegramPromo = () => {
                 }}
             >
                 <div className="flex items-center gap-2">
-                    {/* Menggunakan data statis callout TRIAUSDT */}
                     <CoinLogo pair={highlightCoin.pair} size={20} />
                     <span className="text-white text-sm font-bold">{symbol}</span>
                     <span className="text-green-400 text-sm font-bold font-mono">+{highlightCoin.gain.toFixed(2)}%</span>
