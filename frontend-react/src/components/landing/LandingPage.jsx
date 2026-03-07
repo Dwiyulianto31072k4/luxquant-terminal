@@ -7,6 +7,7 @@ import { ResponsiveContainer, Tooltip, Bar, XAxis, YAxis, CartesianGrid, Area, R
 import TopPerformers from '../TopPerformers';
 import CoinLogo from '../CoinLogo';
 import GlobalNetworkSection from './GlobalNetworkSection';
+import FeatureSliderSection from './FeatureSliderSection'; 
 
 import './LandingPage.css';
 
@@ -114,189 +115,14 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
 // ════════════════════════════════════════
 // Feature Slider (Mac & Phone Mockup)
 // ════════════════════════════════════════
-const FEATURES = [
-  { id: 'signals', title: 'Algorithmic Signals', desc: 'High-probability setups with precise Entry, TP1-TP4, and strict Stop-Loss levels. Delivered 24/7.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
-  { id: 'ai-arena', title: 'AI Arena Consensus', desc: 'Synthesize predictions from multiple quantitative models to determine overall market direction (Bullish/Bearish).', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
-  { id: 'whale', title: 'Whale Surveillance', desc: 'Track massive on-chain transfers and exchange netflows to anticipate retail market reactions.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> },
-  { id: 'orderbook', title: 'Order Book Heatmap', desc: 'Visualize bid/ask liquidity walls across major exchanges to pinpoint exact support and resistance.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg> },
-  { id: 'macro', title: 'Macroeconomic Sync', desc: 'Correlate crypto volatility with live global economic events like CPI, FOMC, and interest rates.', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> }
-];
 
-const FeatureSliderSection = () => {
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  useEffect(() => {
-    const iv = setInterval(() => setActiveIdx((prev) => (prev + 1) % FEATURES.length), 5000);
-    return () => clearInterval(iv);
-  }, []);
-
-  return (
-    <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 py-20 lg:py-28 overflow-hidden">
-      <div className="text-center mb-12 lg:mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gold-primary/20 bg-gold-primary/5 rounded-full mb-4">
-          <span className="text-gold-primary font-mono text-[9px] uppercase tracking-[0.3em]">Core Technology</span>
-        </div>
-        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
-          Interactive <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Terminal Preview</span>
-        </h2>
-        <p className="text-text-secondary text-sm lg:text-base max-w-2xl mx-auto">
-          Explore the tools that give institutional traders their edge, now unified in one dashboard.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        {/* LFT: Feature List Navigation */}
-        <div className="lg:col-span-4 flex flex-col gap-3 relative z-20">
-          {FEATURES.map((feat, idx) => (
-            <div 
-              key={feat.id} 
-              onClick={() => setActiveIdx(idx)}
-              className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border ${activeIdx === idx ? 'bg-gradient-to-r from-gold-primary/10 to-transparent border-gold-primary/40 shadow-[0_0_20px_rgba(212,168,83,0.1)]' : 'bg-transparent border-transparent hover:border-white/10 hover:bg-white/5'}`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${activeIdx === idx ? 'bg-gold-primary text-[#0a0506]' : 'bg-white/5 text-gold-primary/70'}`}>
-                  {feat.icon}
-                </div>
-                <h3 className={`font-bold ${activeIdx === idx ? 'text-white' : 'text-white/60'}`}>{feat.title}</h3>
-              </div>
-              {activeIdx === idx && (
-                <p className="text-text-secondary text-sm leading-relaxed mt-2 animate-[fadeIn_0.5s_ease-out]">
-                  {feat.desc}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* RGT: Mockups (Mac & iPhone) */}
-        <div className="lg:col-span-8 relative flex justify-center lg:justify-end mt-10 lg:mt-0 px-4 sm:px-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
-          
-          {/* Mac Mockup */}
-          <div className="relative w-full max-w-[700px] aspect-[16/10] bg-[#0a0805] rounded-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
-            {/* Mac Topbar */}
-            <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full">
-              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-red-500/80"></div>
-              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80"></div>
-              <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-green-500/80"></div>
-              <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono">terminal.luxquant.tw</div>
-            </div>
-            
-            {/* Mac Dynamic Content */}
-            <div className="relative w-full h-full p-4 lg:p-6 bg-gradient-to-b from-transparent to-[#050302]">
-              {FEATURES.map((feat, idx) => (
-                <div key={feat.id} className={`absolute inset-0 p-4 lg:p-6 transition-opacity duration-700 ${activeIdx === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                  {idx === 0 && ( /* Signals */
-                    <div className="w-full h-full flex gap-4">
-                      <div className="flex-1 bg-white/5 rounded-lg border border-white/5 p-4 flex flex-col justify-end">
-                        <div className="w-full h-[60%] border-b border-dashed border-green-500/30 relative">
-                          <div className="absolute bottom-0 left-10 w-4 h-[40%] bg-green-500/80"></div>
-                          <div className="absolute bottom-10 left-20 w-4 h-[70%] bg-red-500/80"></div>
-                          <div className="absolute bottom-0 left-30 w-4 h-[90%] bg-green-500/80"></div>
-                        </div>
-                      </div>
-                      <div className="w-1/3 bg-black/40 rounded-lg border border-gold-primary/20 p-4">
-                         <div className="h-4 w-20 bg-gold-primary/20 rounded mb-4"></div>
-                         <div className="space-y-3">
-                           <div className="h-8 w-full bg-green-500/10 border border-green-500/20 rounded flex items-center px-2 text-[10px] text-green-400">TP1 Hit</div>
-                           <div className="h-8 w-full bg-green-500/10 border border-green-500/20 rounded flex items-center px-2 text-[10px] text-green-400">TP2 Hit</div>
-                         </div>
-                      </div>
-                    </div>
-                  )}
-                  {idx === 1 && ( /* AI Arena */
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-6">
-                       <div className="text-gold-primary text-xs font-mono">MODEL CONSENSUS</div>
-                       <div className="flex w-full h-12 rounded-full overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(212,168,83,0.1)]">
-                         <div className="bg-gradient-to-r from-gold-dark to-gold-primary w-[82%] h-full flex items-center px-4 font-bold text-black text-sm">82% BULLISH</div>
-                         <div className="bg-red-500/20 w-[18%] h-full"></div>
-                       </div>
-                    </div>
-                  )}
-                  {idx === 2 && ( /* Whale */
-                    <div className="w-full h-full bg-black/40 rounded-lg border border-white/5 p-4 flex flex-col gap-2">
-                       <div className="flex justify-between text-xs text-white/40 border-b border-white/10 pb-2 mb-2"><span>TIME</span><span>AMOUNT</span><span>DESTINATION</span></div>
-                       {[1,2,3].map(i => (
-                         <div key={i} className="flex justify-between items-center text-xs bg-white/5 p-2 rounded">
-                           <span className="text-white/60">Just now</span>
-                           <span className="text-blue-400 font-mono font-bold">1,250 BTC</span>
-                           <span className="text-white/80">Binance</span>
-                         </div>
-                       ))}
-                    </div>
-                  )}
-                  {idx === 3 && ( /* Orderbook */
-                    <div className="w-full h-full flex gap-2 items-end justify-center pt-8">
-                       <div className="w-16 h-[30%] bg-green-500/40 rounded-t border-t-2 border-green-400"></div>
-                       <div className="w-16 h-[60%] bg-green-500/40 rounded-t border-t-2 border-green-400"></div>
-                       <div className="w-px h-full bg-white/20 mx-4"></div>
-                       <div className="w-16 h-[50%] bg-red-500/40 rounded-t border-t-2 border-red-400"></div>
-                       <div className="w-16 h-[80%] bg-red-500/40 rounded-t border-t-2 border-red-400"></div>
-                    </div>
-                  )}
-                  {idx === 4 && ( /* Macro */
-                    <div className="w-full h-full grid grid-cols-4 gap-3">
-                       {[...Array(8)].map((_, i) => (
-                         <div key={i} className="bg-white/5 rounded-lg border border-white/5 p-3 flex flex-col justify-between">
-                           <span className="text-[10px] text-white/40">MAR {10+i}</span>
-                           {i === 2 && <div className="text-xs text-red-400 font-bold bg-red-500/10 px-1 py-0.5 rounded">CPI DATA</div>}
-                           {i === 5 && <div className="text-xs text-yellow-400 font-bold bg-yellow-500/10 px-1 py-0.5 rounded">FOMC</div>}
-                         </div>
-                       ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* iPhone Mockup (Overlapping) */}
-          <div className="absolute -bottom-8 -right-4 lg:-right-8 w-[120px] sm:w-[140px] lg:w-[170px] aspect-[9/19.5] bg-[#050302] border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
-            <div className="absolute top-0 inset-x-0 h-4 bg-[#2a2a2a] rounded-b-xl w-1/3 mx-auto z-30"></div>
-            <div className="relative w-full h-full pt-8 px-3 bg-gradient-to-b from-[#120f0a] to-[#0a0805]">
-               {FEATURES.map((feat, idx) => (
-                <div key={feat.id} className={`absolute inset-0 pt-8 px-3 transition-opacity duration-700 ${activeIdx === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                  {idx === 0 && (
-                    <div className="bg-gold-primary/10 border border-gold-primary/30 p-2 rounded-xl text-center shadow-lg mt-2">
-                      <div className="text-[10px] text-gold-primary font-bold mb-1">LONG BTCUSDT</div>
-                      <div className="text-[9px] text-green-400">+12.4% Profit</div>
-                    </div>
-                  )}
-                  {idx === 1 && (
-                    <div className="flex flex-col items-center justify-center h-1/2 gap-2">
-                       <div className="w-12 h-12 rounded-full border-[4px] border-green-500 flex items-center justify-center text-[10px] font-bold text-white">82%</div>
-                       <div className="text-[8px] text-white/50">BULL MARKET</div>
-                    </div>
-                  )}
-                  {idx === 2 && (
-                    <div className="bg-blue-500/10 border border-blue-500/30 p-2 rounded-xl shadow-lg mt-2">
-                      <div className="text-[8px] text-blue-400 font-bold mb-1">WHALE ALERT</div>
-                      <div className="text-[10px] text-white">1.2K BTC Transferred</div>
-                    </div>
-                  )}
-                  {idx === 3 && (
-                    <div className="w-full space-y-2 mt-4">
-                      <div className="w-full bg-green-500/20 h-4 rounded flex items-center px-1 text-[8px] text-green-400">Bid Wall: 50M</div>
-                      <div className="w-[70%] bg-red-500/20 h-4 rounded flex items-center px-1 text-[8px] text-red-400">Ask Wall: 32M</div>
-                    </div>
-                  )}
-                  {idx === 4 && (
-                    <div className="bg-red-500/10 border border-red-500/30 p-2 rounded-xl shadow-lg mt-2 text-center">
-                      <div className="text-[10px] text-red-400 font-bold">HIGH VOLATILITY</div>
-                      <div className="text-[8px] text-white/60 mt-1">CPI Report in 15m</div>
-                    </div>
-                  )}
-                </div>
-               ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
+{/* 👇 2. ELEMEN INI SEKARANG MENGAMBIL DARI FILE BARU 👇 */}
+      <FeatureSliderSection />
 
 
+// ════════════════════════════════════════
+// Promo Flying Coins (Untuk Mockup Telegram)
+// ════════════════════════════════════════
 // ════════════════════════════════════════
 // Promo Flying Coins (Untuk Mockup Telegram)
 // ════════════════════════════════════════
@@ -316,17 +142,16 @@ const PromoFlyingCoins = ({ gainers }) => {
 
   const item = allCoins[currentIdx];
   const symbol = item?.pair?.replace(/USDT$/i, '').replace(/^3A/, '') || '???';
+  
+  // 👇 INI LOGIKA BARUNYA: Ambil tipe (Daily/Weekly) dari data 👇
+  const labelText = item?.type ? `${item.type} Top Gainer` : 'Live Gainer Call';
 
   return (
     <div 
-      key={currentIdx} // Kunci ini penting agar animasinya ter-reset setiap ganti koin
-      className="absolute z-30 pointer-events-none"
+      key={currentIdx} 
+      className="absolute z-30 pointer-events-none -left-6 lg:-left-16 top-[35%] lg:top-[40%]"
       style={{ 
-        // POSISI BARU: Mulai dari tengah HP
-        left: '50%',
-        top: '50%',
-        // ANIMASI BARU: Terbang perlahan ke atas dari tengah
-        animation: 'centerFloat 3.5s ease-out both' 
+        animation: 'sideFloat 3.5s ease-out both' 
       }}
     >
       <div
@@ -344,8 +169,10 @@ const PromoFlyingCoins = ({ gainers }) => {
           </div>
           <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(2)}%</span>
         </div>
+        
+        {/* 👇 TAMPILKAN LABEL DINAMIS DI SINI 👇 */}
         <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left mt-1 block">
-          Live Gainer Call
+          {labelText}
         </span>
       </div>
     </div>
@@ -360,13 +187,13 @@ const TelegramPromo = ({ gainers }) => {
   return (
     <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       
-      {/* Keyframe Khusus untuk PromoFlyingCoins agar terbang dari tengah */}
+      {/* 👇 UBAH NAMA DAN ANIMASI KEYFRAME DI SINI 👇 */}
       <style>{`
-        @keyframes centerFloat {
-          0% { opacity: 0; transform: translate(-50%, 0) scale(0.8); }
-          20% { opacity: 1; transform: translate(-50%, -30px) scale(1.05); }
-          80% { opacity: 1; transform: translate(-50%, -50px) scale(1); }
-          100% { opacity: 0; transform: translate(-50%, -70px) scale(0.9); }
+        @keyframes sideFloat {
+          0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+          20% { opacity: 1; transform: translateY(-10px) scale(1.05); }
+          80% { opacity: 1; transform: translateY(-40px) scale(1); }
+          100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
         }
       `}</style>
 
@@ -1013,50 +840,45 @@ const LandingPage = () => {
       </header>
 
       {/* ════════════════════════════════════════
-          HERO SECTION (Fokus Platform Saja)
+          HERO SECTION (Algorithmic Focus + Multi-Device)
       ════════════════════════════════════════ */}
-      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-14 lg:pt-20 pb-16 lg:pb-20 overflow-visible">
+      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-20 pb-16 lg:pb-20 overflow-visible">
+        {/* Background Ambient Glows */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] pointer-events-none -z-10">
           <div className="absolute inset-0 bg-gold-primary/[0.03] rounded-full blur-[150px]" style={{ animation: 'heroGlowPulse 6s ease-in-out infinite' }} />
           <div className="absolute top-20 -left-40 w-[400px] h-[400px] bg-[#8b1a1a]/[0.05] rounded-full blur-[120px]" />
           <div className="absolute -bottom-20 -right-20 w-[300px] h-[300px] bg-gold-primary/[0.04] rounded-full blur-[100px]" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-8 items-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center relative z-10">
           
+          {/* LFT: Text Content */}
           <div className="relative z-20">
-            <div className="flex items-center gap-3 mb-8" style={{ animation: 'heroCardFadeIn 0.6s ease-out 0.1s both' }}>
-              <div className="h-px bg-gradient-to-r from-gold-primary to-transparent" style={{ animation: 'heroLineGrow 1s ease-out 0.3s both', width: '40px' }} />
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 shadow-[0_0_15px_rgba(212,168,83,0.1)]">
-                <span className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
-                <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">AI-Powered Algorithm</span>
-              </div>
-            </div>
-
             <h1 
-              className="font-display text-5xl sm:text-6xl lg:text-[4.2rem] xl:text-[4.8rem] font-bold text-white leading-[1.08] mb-6 tracking-tight"
+              className="font-display text-4xl sm:text-5xl lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.1] mb-6 tracking-tight"
               style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.2s both' }}
             >
-              The Ultimate <br />
-              <span className="relative inline-block mt-2">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f0d890] via-[#d4a853] to-[#8b6914] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-                  AI Trading Edge.
-                </span>
-                <svg className="absolute w-[105%] h-3 -bottom-1 -left-[2.5%] text-gold-primary/30" viewBox="0 0 100 10" preserveAspectRatio="none">
+              An <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f0d890] via-[#d4a853] to-[#8b6914] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Algorithm</span> <br />
+              Built to Outsmart <br />
+              <span className="relative inline-block mt-1 lg:mt-2">
+                The Market.
+                <svg className="absolute w-[105%] h-2 lg:h-3 -bottom-1 -left-[2.5%] text-gold-primary/40" viewBox="0 0 100 10" preserveAspectRatio="none">
                   <path d="M0 8 Q 25 2 50 6 T 100 4" fill="transparent" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </span>
             </h1>
 
             <p 
-              className="text-text-secondary text-base lg:text-lg leading-relaxed mb-10 max-w-lg"
+              className="text-text-secondary text-sm sm:text-base lg:text-lg leading-relaxed mb-10 max-w-[540px]"
               style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.35s both' }}
             >
-              Outsmart the market with <span className="text-white font-medium">24/7 AI-driven intelligence</span>. 
-              Our machine-learning models process millions of data points to adapt instantly to crypto volatility, delivering high-probability setups with strict risk management.
+              Our algorithm runs <span className="text-white font-medium">24/7</span> — scanning price action, derivatives flow, on-chain whale movements, and order book liquidity to deliver precision projection and strict risk management on every call. 
+              <br/><br/>
+              Complemented by an <span className="text-white font-medium">AI market researcher</span> that synthesizes sentiment, macro events, and technical indicators into one clear market verdict — so every decision you make is backed by data, not emotion.
             </p>
 
-            <div className="mb-12" style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.45s both' }}>
+            {/* BUTTON: Sembunyi di Mobile (hidden), Muncul di Desktop (lg:block) */}
+            <div className="hidden lg:block mb-12" style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.45s both' }}>
               <div className="inline-flex relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-gold-primary to-gold-dark rounded-xl blur opacity-30 group-hover:opacity-70 transition duration-500" />
                 <button 
@@ -1073,51 +895,87 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="hidden lg:flex flex-row items-center justify-center relative w-full" style={{ minHeight: 520 }}>
-            <div className="relative flex-shrink-0 z-20">
-              <div style={{ animation: 'floatPhone 5s ease-in-out infinite' }}>
-                <div className="relative w-[200px] xl:w-[220px] aspect-[9/19.5] bg-black rounded-[2.8rem] border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_30px_70px_rgba(0,0,0,0.8),0_0_40px_rgba(212,168,83,0.15)]">
-                  <div className="absolute top-0 inset-x-0 z-30">
-                    <div className="w-[35%] h-[20px] bg-black mx-auto rounded-b-2xl" />
-                  </div>
-                  <div className="absolute inset-[2px] rounded-[2.4rem] overflow-hidden bg-bg-primary">
-                    <img src="/mockup-hp.png" alt="LuxQuant App" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+          {/* RGT: Multi-Device Mockup (Mac 3D + Phone + Flying Coins) */}
+          <div className="flex flex-col items-center justify-center relative w-full pt-8 lg:pt-0" style={{ minHeight: '480px' }}>
+            
+            {/* Ambient Backlight Aura for Devices */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-gold-primary/20 to-[#8b1a1a]/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none z-0" />
+
+            {/* 1. THE MAC MOCKUP (Background, Angled 3D) */}
+            <div 
+              className="relative z-10 w-full max-w-[340px] sm:max-w-[450px] lg:max-w-[650px] mx-auto" 
+              style={{ perspective: '1200px' }}
+            >
+              <div 
+                style={{ 
+                  animation: 'floatPhone 7s ease-in-out infinite', 
+                  transform: 'rotateY(-12deg) rotateX(4deg)', 
+                  transformStyle: 'preserve-3d' 
+                }} 
+                className="w-full relative"
+              >
+                {/* Mac Screen */}
+                <div className="relative w-full aspect-[16/10] bg-[#0a0805] rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-[#2a2a2a] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
+                  <div className="absolute inset-0 border border-black rounded-t-lg lg:rounded-t-3xl overflow-hidden bg-bg-primary">
+                    {/* Camera Notch */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-[#0a0805] rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
+                       <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-white/10" />
+                    </div>
+                    {/* Screen Image */}
+                    <img 
+                      src="/mockups/hero-mac-dashboard.png" 
+                      alt="Dashboard Preview" 
+                      className="w-full h-full object-cover object-top opacity-95" 
+                      onError={(e) => { e.target.style.display = 'none'; }} 
+                    />
+                    {/* Fallback Display */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
-                      <img src="/logo.png" alt="" className="w-10 h-10 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
+                      <img src="/logo.png" alt="" className="w-8 h-8 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl mb-2 lg:mb-3 opacity-30" onError={e => e.target.style.display = 'none'} />
                     </div>
                   </div>
-                  <div className="absolute bottom-[5px] inset-x-0 z-30 flex justify-center">
-                    <div className="w-[35%] h-[4px] bg-white/20 rounded-full" />
+                </div>
+                {/* Mac Base */}
+                <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-[#0a0a0a] rounded-b-sm lg:rounded-b-lg border-b border-white/10 flex justify-center shadow-2xl z-20">
+                  <div className="w-[15%] h-[1px] lg:h-1 bg-[#222] rounded-b-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. THE PHONE MOCKUP (Foreground, Overlapping Right) */}
+            <div 
+              className="relative sm:absolute -mt-16 sm:mt-0 sm:-bottom-8 lg:-bottom-12 sm:-right-4 lg:-right-8 z-30 flex-shrink-0"
+            >
+              {/* Animasi float untuk HP dibuat lebih cepat agar terlihat dinamis terhadap Mac */}
+              <div style={{ animation: 'floatPhone 5s ease-in-out infinite 1s' }}>
+                <div className="relative w-[140px] sm:w-[160px] lg:w-[200px] xl:w-[220px] aspect-[9/19.5] bg-black rounded-[2rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
+                  <div className="absolute top-0 inset-x-0 z-30">
+                    <div className="w-[35%] h-[12px] lg:h-[20px] bg-black mx-auto rounded-b-lg lg:rounded-b-2xl" />
+                  </div>
+                  <div className="absolute inset-[2px] rounded-[1.8rem] lg:rounded-[2.4rem] overflow-hidden bg-bg-primary">
+                    <img src="/mockup-hp.png" alt="LuxQuant Mobile" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
+                      <img src="/logo.png" alt="" className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-[3px] lg:bottom-[5px] inset-x-0 z-30 flex justify-center">
+                    <div className="w-[35%] h-[3px] lg:h-[4px] bg-white/20 rounded-full" />
                   </div>
                 </div>
               </div>
-              <PhoneFlyingCoins gainers={topGainers} />
-            </div>
-          </div>
-
-        </div>
-
-        <div className="lg:hidden w-full mt-10 flex flex-col items-center justify-center gap-8 relative z-10">
-          <div className="relative flex-shrink-0 z-20">
-            <div className="relative w-[200px] sm:w-[220px] aspect-[9/19.5] bg-black rounded-[2.6rem] border-[5px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.2)]" style={{ animation: 'floatPhone 5s ease-in-out infinite' }}>
-              <div className="absolute top-0 inset-x-0 z-30">
-                <div className="w-[35%] h-[18px] bg-black mx-auto rounded-b-xl" />
-              </div>
-              <div className="absolute inset-[2px] rounded-[2.3rem] overflow-hidden bg-bg-primary">
-                <img src="/mockup-hp.png" alt="LuxQuant App" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
-                  <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
-                </div>
-              </div>
-              <div className="absolute bottom-[4px] inset-x-0 z-30 flex justify-center">
-                <div className="w-[35%] h-[3px] bg-white/20 rounded-full" />
+              
+              {/* Flying Coins (Hanya tampil di layar Desktop/Tablet) */}
+              <div className="hidden sm:block">
+                <PhoneFlyingCoins gainers={topGainers} />
               </div>
             </div>
+
+            {/* Mobile Rotating Coins (Hanya tampil di layar Mobile, di bawah HP) */}
+            <div className="sm:hidden w-full relative min-h-[40px] mt-6 z-40">
+              {topGainers.length > 0 && <MobileRotatingCoins gainers={topGainers} />}
+            </div>
+
           </div>
 
-          <div className="z-20 w-full relative min-h-[40px]">
-            {topGainers.length > 0 && <MobileRotatingCoins gainers={topGainers} />}
-          </div>
         </div>
       </section>
 
