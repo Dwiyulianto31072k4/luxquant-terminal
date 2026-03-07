@@ -126,12 +126,62 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
 );
 
 
-const TelegramPromo = () => {
+// ════════════════════════════════════════
+// Promo Flying Coins (Untuk Mockup Telegram)
+// ════════════════════════════════════════
+const PromoFlyingCoins = ({ gainers }) => {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const allCoins = gainers?.slice(0, 20) || [];
 
-  // Ubah 'type' dari 'Weekly' menjadi 'Live' agar lencananya bertuliskan "Live Gainer Call"
-  const highlightCoin = { pair: 'TRIAUSDT', gain: 23.71, type: 'Live' };
-  const symbol = highlightCoin.pair.replace(/USDT$/i, '');
+  useEffect(() => {
+    if (allCoins.length === 0) return;
+    const iv = setInterval(() => {
+      setCurrentIdx(prev => (prev + 1) % allCoins.length);
+    }, 3500); // Berganti setiap 3.5 detik
+    return () => clearInterval(iv);
+  }, [allCoins.length]);
 
+  if (allCoins.length === 0) return null;
+
+  const item = allCoins[currentIdx];
+  const symbol = item?.pair?.replace(/USDT$/i, '').replace(/^3A/, '') || '???';
+
+  return (
+    <div 
+      key={currentIdx} // Kunci ini penting agar animasinya ter-reset setiap ganti koin
+      className="absolute z-30 pointer-events-none"
+      style={{ 
+        top: '15%', 
+        right: '-25%',
+        animation: 'coin-float-up-right 3.5s ease-out both' // Memakai animasi terbang yang sama dengan hero
+      }}
+    >
+      <div
+        className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)]"
+        style={{
+          background: 'rgba(10,5,6,0.85)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <CoinLogo pair={item.pair} size={20} />
+          <span className="text-white text-sm font-bold">{symbol}</span>
+          <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(2)}%</span>
+        </div>
+        <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left">
+          Live Gainer Call
+        </span>
+      </div>
+    </div>
+  );
+};
+
+
+// ════════════════════════════════════════
+// Telegram Promo Component
+// ════════════════════════════════════════
+const TelegramPromo = ({ gainers }) => {
   return (
     <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
       
@@ -155,7 +205,6 @@ const TelegramPromo = () => {
             </span>
           </h2>
           
-          {/* REVISI COPYWRITING: Menghapus 'weekly' dan menegaskan sistem jalan 24/7 non-stop dengan fitur limited */}
           <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl">
             Want to test our accuracy before unlocking the full institutional terminal? Join <span className="text-white font-semibold">@LuxQuantSignal</span> for our free public channel. Experience our 24/7 non-stop quantitative edge with real-time algorithm previews and selected high-probability calls. Powerful intelligence directly to your pocket—completely free.
           </p>
@@ -194,45 +243,23 @@ const TelegramPromo = () => {
               alt="LuxQuant Telegram Channel Content" 
               className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
               onError={(e) => {
+                  // Cukup sembunyikan jika gagal load, JANGAN gunakan innerHTML
                   e.target.style.display = 'none';
-                  const parent = e.target.parentNode;
-                  parent.classList.add('flex', 'items-center', 'justify-center');
-                  parent.innerHTML += '<span class="text-text-muted text-xs">Upload your screenshot</span>';
               }}
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
           </div>
 
-          {/* Lencana Terbang - Sekarang menampilkan "Live Gainer Call" */}
-          <div 
-            className="absolute z-30 pointer-events-none animate-float-slow"
-            style={{ top: '15%', right: '-25%' }}
-          >
-            <div
-                className="flex flex-col gap-1 px-4 py-2.5 rounded-2xl border border-gold-primary/30 shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_15px_rgba(212,168,83,0.15)]"
-                style={{
-                    background: 'rgba(10,5,6,0.85)',
-                    backdropFilter: 'blur(14px)',
-                    WebkitBackdropFilter: 'blur(14px)',
-                }}
-            >
-                <div className="flex items-center gap-2">
-                    <CoinLogo pair={highlightCoin.pair} size={20} />
-                    <span className="text-white text-sm font-bold">{symbol}</span>
-                    <span className="text-green-400 text-sm font-bold font-mono">+{highlightCoin.gain.toFixed(2)}%</span>
-                </div>
-                <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left">
-                    {highlightCoin.type} Gainer Call
-                </span>
-            </div>
-          </div>
+          {/* Lencana Terbang Dinamis */}
+          <PromoFlyingCoins gainers={gainers} />
 
         </div>
       </div>
     </div>
   );
 };
+
 
 // ════════════════════════════════════════
 // Live Performance Stats
@@ -286,7 +313,6 @@ const RuntimeCounter = () => {
 };
 
 // --- CHART WIN RATE TREND KHUSUS LANDING PAGE ---
-// --- CHART WIN RATE TREND KHUSUS LANDING PAGE ---
 const LandingWinRateChart = ({ data }) => {
   if (!data || data.length === 0) return <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted">Loading trend data...</div>;
 
@@ -298,9 +324,7 @@ const LandingWinRateChart = ({ data }) => {
     try { 
       const dt = new Date(item.period); 
       if (!isNaN(dt)) {
-        // Tampil di sumbu X bawah (contoh: "Jan 8")
         shortLabel = dt.toLocaleDateString('en', { month: 'short', day: 'numeric' });
-        // Tampil saat di-hover (contoh: "Week of January 8, 2024")
         tooltipLabel = `Week of ${dt.toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric'})}`;
       }
     } catch (e) {}
@@ -335,7 +359,6 @@ const LandingWinRateChart = ({ data }) => {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.05)" vertical={false} />
           
-          {/* Sumbu X menampilkan tanggal pendek */}
           <XAxis dataKey="period" stroke="#6b5c52" fontSize={10} tickLine={false} axisLine={false} dy={10} />
           
           <YAxis yAxisId="rate" stroke="#6b5c52" fontSize={10} domain={[0, 100]} tickFormatter={v => `${v}%`} tickLine={false} axisLine={false} />
@@ -352,7 +375,6 @@ const LandingWinRateChart = ({ data }) => {
               if (!d) return null;
               return (
                 <div className="bg-[#0a0805]/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-xl">
-                  {/* Tooltip menampilkan informasi bahwa ini data Weekly */}
                   <p className="text-gold-primary text-xs font-bold mb-1">{d.fullDate}</p>
                   <p className="text-white text-sm">Win Rate: <span className="text-green-400 font-mono">{d.winRate.toFixed(1)}%</span></p>
                   <p className="text-text-muted text-[10px] mt-1">{d.total} Trades ({d.winners}W / {d.losers}L)</p>
@@ -745,7 +767,6 @@ const LandingPage = () => {
 
   const stats = performanceData?.stats;
 
-  // DIV INI SUDAH DITAMBAHKAN "overflow-x-hidden" AGAR HALAMAN TIDAK MELEBAR / BISA DI-SCROLL KE SAMPING
   return (
     <div className="min-h-screen bg-bg-primary text-white relative pb-20 lg:pb-0 overflow-x-hidden"> 
       <div className="luxury-bg" />
@@ -1392,7 +1413,7 @@ const LandingPage = () => {
           TELEGRAM CTA
       ════════════════════════════════════════ */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24">
-        <TelegramPromo />
+        <TelegramPromo gainers={topGainers} />
       </section>
 
       {/* ════════════════════════════════════════
