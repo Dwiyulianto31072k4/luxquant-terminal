@@ -109,19 +109,19 @@ const FeatureSliderSection = () => {
         <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
           Interactive <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Terminal Preview</span>
         </h2>
-        {/* COPY BARU: Lebih realistis, tanpa "institutional traders" */}
         <p className="text-text-secondary text-sm lg:text-base max-w-2xl mx-auto">
           Explore the analytical tools that give you a clear quantitative edge, now unified in one dashboard.
         </p>
       </div>
 
-      {/* 1. HORIZONTAL NAVIGATION TABS WITH CONTROLLERS */}
+      {/* 1. SEAMLESS HORIZONTAL NAVIGATION TABS (No Boxes) */}
       <div className="w-full relative max-w-7xl mx-auto mb-8 px-4 lg:px-12">
+        {/* Transparent Left Controller */}
         <button 
           onClick={() => scrollNav('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center rounded-full bg-[#0a0805] border border-white/10 text-white/50 hover:text-gold-primary hover:border-gold-primary/50 shadow-xl transition-all"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-white/30 hover:text-gold-primary transition-all bg-transparent"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
 
         <div className="absolute left-4 lg:left-12 top-0 bottom-0 w-8 lg:w-16 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
@@ -129,31 +129,37 @@ const FeatureSliderSection = () => {
         
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto gap-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-4 py-2"
+          className="flex overflow-x-auto gap-6 lg:gap-8 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-4 py-2"
         >
           {FEATURES.map((feat, idx) => (
             <button
               key={feat.id}
               onClick={() => handleTabClick(idx)}
-              className={`flex items-center gap-2.5 px-5 py-3.5 rounded-2xl flex-shrink-0 snap-center transition-all duration-300 border ${
+              className={`flex flex-col items-center justify-center gap-2 px-2 py-3 flex-shrink-0 snap-center transition-all duration-300 relative ${
                 activeIdx === idx 
-                  ? 'bg-gradient-to-r from-gold-primary/10 to-gold-dark/10 border-gold-primary/40 shadow-[0_0_20px_rgba(212,168,83,0.15)] text-white scale-105' 
-                  : 'bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/5 text-text-muted hover:text-white/80'
+                  ? 'text-white' 
+                  : 'text-text-muted hover:text-white/80'
               }`}
             >
-              <div className={activeIdx === idx ? 'text-gold-primary' : 'text-current opacity-70'}>
+              <div className={`transition-all duration-300 ${activeIdx === idx ? 'text-gold-primary drop-shadow-[0_0_8px_rgba(212,168,83,0.5)] scale-110' : 'text-current opacity-60'}`}>
                 {feat.icon}
               </div>
-              <span className="font-semibold text-sm lg:text-base tracking-wide whitespace-nowrap">{feat.title}</span>
+              <span className="font-semibold text-sm tracking-wide whitespace-nowrap">{feat.title}</span>
+              
+              {/* Elegant Bottom Underline Indicator for Active Tab */}
+              {activeIdx === idx && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[2px] bg-gradient-to-r from-transparent via-gold-primary to-transparent shadow-[0_0_10px_rgba(212,168,83,0.8)]" />
+              )}
             </button>
           ))}
         </div>
 
+        {/* Transparent Right Controller */}
         <button 
           onClick={() => scrollNav('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center rounded-full bg-[#0a0805] border border-white/10 text-white/50 hover:text-gold-primary hover:border-gold-primary/50 shadow-xl transition-all"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden lg:flex items-center justify-center text-white/30 hover:text-gold-primary transition-all bg-transparent"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
 
@@ -199,7 +205,6 @@ const FeatureSliderSection = () => {
         </div>
 
         {/* iPhone Mockup */}
-        {/* PERBAIKAN: Posisi right-2 sm:-right-6, ukuran lebih proporsional, border lebih tipis di mobile agar tidak makan tempat */}
         <div className="absolute -bottom-6 right-2 sm:-bottom-8 sm:-right-6 lg:-bottom-12 lg:-right-12 w-[100px] sm:w-[150px] lg:w-[190px] xl:w-[220px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
           <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
           
@@ -222,17 +227,17 @@ const FeatureSliderSection = () => {
         </div>
       </div>
 
-      {/* 4. "...AND MUCH MORE" FOOTER BANNER */}
-      <div className="max-w-4xl mx-auto px-4 relative z-20">
-        <div className="p-6 lg:p-8 rounded-2xl border border-dashed border-gold-primary/30 bg-gradient-to-b from-white/[0.02] to-transparent text-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gold-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-2 italic">
-            ...and much <span className="text-gold-primary">more</span>
-          </h3>
-          <p className="text-text-secondary text-sm lg:text-base leading-relaxed max-w-2xl mx-auto">
-            Everything else a serious trader needs, already built in and waiting for you inside the terminal. No extra plugins, no hidden fees.
-          </p>
-        </div>
+      {/* 4. SEAMLESS "...AND MUCH MORE" FOOTER (No Boxes) */}
+      <div className="max-w-4xl mx-auto px-4 relative z-20 text-center">
+        {/* Subtle separating line */}
+        <div className="w-16 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent mx-auto mb-6" />
+        
+        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-2 italic">
+          ...and much <span className="text-gold-primary">more</span>
+        </h3>
+        <p className="text-text-secondary text-sm lg:text-base leading-relaxed max-w-2xl mx-auto">
+          Everything else a serious trader needs, already built in and waiting for you inside the terminal. No extra plugins, no hidden fees.
+        </p>
       </div>
 
     </section>

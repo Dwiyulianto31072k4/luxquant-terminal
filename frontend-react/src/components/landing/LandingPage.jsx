@@ -783,60 +783,94 @@ const LandingPage = () => {
       <TickerBar />
 
       {/* HEADER */}
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-bg-primary/95 backdrop-blur-md border-b border-gold-primary/15 shadow-lg shadow-black/20' : 'bg-transparent'}`}>
+      {/* ════════════════════════════════════════
+          HEADER (Elegant & Symmetrical)
+      ════════════════════════════════════════ */}
+      <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#0a0506]/85 backdrop-blur-xl border-b border-gold-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
-            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <img src="/logo.png" alt="LuxQuant" className="w-10 h-10 object-cover rounded-xl group-hover:scale-105 transition-transform" />
-              <h1 className="font-display text-lg font-semibold text-white tracking-wide group-hover:text-gold-primary transition-colors">LuxQuant</h1>
+            
+            {/* KIRI: Logo */}
+            <div className="flex-1 flex items-center gap-2.5 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <div className="relative overflow-hidden rounded-xl">
+                 <img src="/logo.png" alt="LuxQuant" className="w-8 h-8 lg:w-10 lg:h-10 object-cover group-hover:scale-110 transition-transform duration-500" />
+                 <div className="absolute inset-0 bg-gold-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </div>
+              <h1 className="font-display text-lg lg:text-xl font-bold text-white tracking-wide group-hover:text-gold-primary transition-colors duration-300">LuxQuant</h1>
             </div>
 
-            <nav className="hidden lg:flex items-center gap-6">
-              {[['Home', 'hero'], ['Architecture', 'how-it-works'], ['Ecosystem', 'features'], ['Performance', 'performance']].map(([label, id]) => (
-                <button key={id} onClick={() => scrollTo(id)} className="text-text-secondary hover:text-gold-primary text-sm font-medium transition-colors">{label}</button>
+            {/* TENGAH: Menu Navigasi Minimalis */}
+            <nav className="hidden lg:flex flex-1 justify-center items-center gap-8">
+              {[['Home', 'hero'], ['Terminal', 'features'], ['Architecture', 'how-it-works'], ['Performance', 'performance-top'], ['FAQ', 'faq']].map(([label, id]) => (
+                <button 
+                  key={id} 
+                  onClick={() => scrollTo(id)} 
+                  className="text-white/60 hover:text-white text-sm font-medium tracking-wide transition-colors relative group py-2"
+                >
+                  {label}
+                  {/* Efek hover: Underline emas menyebar dari tengah */}
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-gold-primary to-transparent transition-all duration-500 group-hover:w-[80%] opacity-0 group-hover:opacity-100"></span>
+                </button>
               ))}
-              <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-gold-primary text-sm font-medium transition-colors">Telegram</a>
             </nav>
 
-            <div className="hidden lg:flex items-center gap-3">
-              {isAuthenticated ? (
-                <button onClick={goTerminal} className="px-6 py-2.5 rounded-xl font-semibold text-sm" style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506', boxShadow: '0 0 20px rgba(212, 168, 83, 0.3)' }}>Open Terminal</button>
-              ) : (
-                <>
-                  <button onClick={goLogin} className="text-text-secondary hover:text-white text-sm font-medium transition-colors">Login</button>
-                  <button onClick={goRegister} className="px-6 py-2.5 rounded-xl font-semibold text-sm" style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506', boxShadow: '0 0 20px rgba(212, 168, 83, 0.3)' }}>Get Started</button>
-                </>
-              )}
+            {/* KANAN: Tombol Aksi "Open Platform" */}
+            <div className="hidden lg:flex flex-1 justify-end items-center">
+              <button 
+                onClick={isAuthenticated ? goTerminal : goLogin} 
+                className="relative overflow-hidden px-6 py-2.5 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,168,83,0.25)] flex items-center gap-2 group" 
+                style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+              >
+                <span className="relative z-10 uppercase tracking-widest text-[10px] lg:text-xs">Open Platform</span>
+                <svg className="w-3.5 h-3.5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                {/* Efek kilap (shine) saat di hover */}
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              </button>
             </div>
 
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 text-text-secondary hover:text-white">
-              <div className="w-5 h-4 flex flex-col justify-between">
-                <span className={`block h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
-                <span className={`block h-0.5 bg-current rounded-full transition-all duration-200 ${mobileMenuOpen ? 'opacity-0' : ''}`} />
-                <span className={`block h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
-              </div>
-            </button>
+            {/* Tombol Hamburger (Mobile) */}
+            <div className="flex-1 flex justify-end lg:hidden">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-white/70 hover:text-white focus:outline-none">
+                <div className="w-5 h-4 flex flex-col justify-between">
+                  <span className={`block h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-[7px] text-gold-primary' : ''}`} />
+                  <span className={`block h-0.5 bg-current rounded-full transition-all duration-200 ${mobileMenuOpen ? 'opacity-0' : ''}`} />
+                  <span className={`block h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-[7px] text-gold-primary' : ''}`} />
+                </div>
+              </button>
+            </div>
+            
           </div>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-bg-primary/98 backdrop-blur-xl border-t border-gold-primary/10 px-4 py-6 space-y-4">
-            {[['Home', 'hero'], ['Architecture', 'how-it-works'], ['Ecosystem', 'features'], ['Performance', 'performance']].map(([label, id]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-text-secondary hover:text-gold-primary text-sm font-medium py-2">{label}</button>
+        {/* Menu Dropdown Animasi Meluncur (Mobile) */}
+        <div className={`lg:hidden absolute top-full left-0 w-full bg-[#0a0506]/95 backdrop-blur-3xl overflow-hidden transition-all duration-500 ease-in-out ${mobileMenuOpen ? 'max-h-[400px] opacity-100 border-b border-gold-primary/20 shadow-2xl' : 'max-h-0 opacity-0'}`}>
+          <div className="px-6 py-6 space-y-2">
+            {[['Home', 'hero'], ['Terminal', 'features'], ['Architecture', 'how-it-works'], ['Performance', 'performance-top'], ['FAQ', 'faq']].map(([label, id]) => (
+              <button 
+                key={id} 
+                onClick={() => scrollTo(id)} 
+                className="block w-full text-left text-white/70 hover:text-gold-primary hover:bg-white/[0.03] px-4 py-3 rounded-xl text-sm font-medium tracking-wide transition-colors"
+              >
+                {label}
+              </button>
             ))}
-            <a href="https://t.me/luxquant" target="_blank" rel="noopener noreferrer" className="block w-full text-left text-text-secondary hover:text-gold-primary text-sm font-medium py-2">Telegram</a>
-            <div className="pt-4 border-t border-gold-primary/10 flex flex-col gap-3">
-              {isAuthenticated ? (
-                <button onClick={goTerminal} className="w-full py-3 rounded-xl font-semibold text-sm" style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}>Open Terminal</button>
-              ) : (
-                <>
-                  <button onClick={goLogin} className="w-full py-3 rounded-xl font-semibold text-sm border border-gold-primary/30 text-gold-primary">Login</button>
-                  <button onClick={goRegister} className="w-full py-3 rounded-xl font-semibold text-sm" style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}>Get Started</button>
-                </>
-              )}
+            
+            <div className="pt-4 mt-2 border-t border-white/5">
+              <button 
+                onClick={isAuthenticated ? goTerminal : goLogin} 
+                className="w-full py-3.5 rounded-xl font-bold text-xs text-center uppercase tracking-widest flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(212,168,83,0.15)]" 
+                style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}
+              >
+                Open Platform
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </header>
 
       {/* ════════════════════════════════════════
