@@ -53,7 +53,9 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
 
     const fetchDetail = async () => {
       try {
-        const r = await fetch(`/api/v1/signals/detail/${currentSignal.signal_id}`);
+        const r = await fetch(
+          `/api/v1/signals/detail/${currentSignal.signal_id}`,
+        );
         if (r.ok) setSignalDetail(await r.json());
       } catch (e) {
         console.error("Failed to fetch signal detail:", e);
@@ -1999,10 +2001,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               )}
               {activeTab === "history" && (
                 <SignalHistoryTab
-                  signal={activeSignal}
+                  signal={signal}
                   onSwitchSignal={(newSignal) => {
-                    setOverrideSignal(newSignal);
-                    setActiveTab("chart");
+                    if (onSwitchSignal) {
+                      onSwitchSignal(newSignal);
+                    }
                   }}
                 />
               )}

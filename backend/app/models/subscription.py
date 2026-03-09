@@ -45,6 +45,12 @@ class Payment(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)     # Invoice expiry (24h window)
     bscscan_data = Column(JSONB, nullable=True)
     notes = Column(Text, nullable=True)
+
+    # Referral
+    referral_use_id = Column(Integer, ForeignKey("referral_uses.id"), nullable=True)
+    discount_amount = Column(Numeric(10, 2), default=0)
+    final_amount = Column(Numeric(10, 2), nullable=True)  # amount_usdt - discount
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

@@ -200,3 +200,4 @@ export const enBtc = {
   perp: "Perpetual",
   live_chart: "LIVE CHART"
 };
+
