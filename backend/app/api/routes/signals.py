@@ -591,13 +591,9 @@ async def get_signals(
 ):
     """Get paginated signals with DERIVED status from signal_updates"""
     
-    # === TRY CACHE FIRST (now includes date params) ===
-    cache_key = build_signals_page_key(
-        page=page, page_size=page_size,
-        status=status or "", pair=pair or "",
-        risk=risk_level or "", sort_by=sort_by, sort_order=sort_order,
-        date_from=date_from or "", date_to=date_to or ""
-    )
+    # ✨ PERBAIKAN 1: Buat Cache Key secara MANUAL agar date_from & date_to pasti terdeteksi
+    cache_key = f"lq:signals:page={page}:size={page_size}:st={status or 'all'}:pair={pair or 'all'}:risk={risk_level or 'all'}:sb={sort_by}:so={sort_order}:df={date_from or 'none'}:dt={date_to or 'none'}"
+    
     cached = cache_get(cache_key)
     if cached:
         cached.pop("_cached_at", None)
@@ -618,13 +614,17 @@ async def get_signals(
             else:
                 conditions.append("LOWER(s.risk_level) LIKE :risk")
                 params["risk"] = f"{risk_lower}%"
+                
+        # ✨ PERBAIKAN 2: Pastikan format waktu dari 00:00:00 sampai 23:59:59 ter-apply
         if date_from:
             conditions.append("s.created_at >= :date_from")
-            params["date_from"] = date_from
+            params["date_from"] = f"{date_from} 00:00:00"
         if date_to:
             conditions.append("s.created_at <= :date_to")
             params["date_to"] = f"{date_to} 23:59:59"
-        if status:
+            
+        # ✨ PERBAIKAN 3: Jika status="all", abaikan filter (tampilkan semua open/closed)
+        if status and status.lower() != 'all':
             mapped = status_to_filter(status)
             if mapped == 'open':
                 conditions.append("so.outcome IS NULL")

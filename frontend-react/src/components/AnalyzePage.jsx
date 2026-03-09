@@ -530,13 +530,28 @@ const AnalyzePage = () => {
         <div className="p-4 lg:p-6 pb-0 lg:pb-0">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
-              <h3 className="text-white font-semibold text-base lg:text-lg">
-                {t("perf.sig_history")}
-              </h3>
-              <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-                {sigTotal.toLocaleString()} {t("perf.total_signals")}
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-white font-semibold text-base lg:text-lg">
+                  {t("perf.sig_history")}
+                </h3>
+                <span className="px-2 py-0.5 rounded-md bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-[9px] lg:text-[10px] font-semibold uppercase tracking-wider">
+                  Proof of Calls
+                </span>
+              </div>
+              <p className="text-text-muted text-[10px] lg:text-xs mt-1">
+                {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
               </p>
             </div>
+            
+              <a href="/signals"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-[10px] lg:text-xs font-semibold hover:bg-gold-primary/20 transition-all group"
+            >
+              <svg className="w-3 h-3 lg:w-3.5 lg:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t("perf.view_latest")}
+              <span className="text-[8px] lg:text-[9px] px-1.5 py-0.5 rounded bg-gold-primary/20 text-gold-primary/80">PRO</span>
+            </a>
           </div>
         </div>
 
