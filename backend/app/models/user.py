@@ -1,5 +1,5 @@
 # backend/app/models/user.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -19,6 +19,14 @@ class User(Base):
     # Google OAuth
     google_id = Column(String(255), unique=True, nullable=True)
     avatar_url = Column(Text, nullable=True)
+    
+    # Auth provider
+    auth_provider = Column(String(50), default='local')  # local, google, telegram
+    is_admin = Column(Boolean, default=False)
+    
+    # Telegram fields
+    telegram_id = Column(BigInteger, unique=True, nullable=True)
+    telegram_username = Column(String(100), nullable=True)
 
     # Subscription
     role = Column(String(20), default="free", nullable=False)  # free, premium, admin
@@ -47,9 +55,7 @@ class User(Base):
         from datetime import datetime, timezone
         return self.subscription_expires_at > datetime.now(timezone.utc)
 
-    @property
-    def is_admin(self) -> bool:
-        return self.role == 'admin'
+
 
     def __repr__(self):
         return f"<User {self.username} role={self.role}>"
