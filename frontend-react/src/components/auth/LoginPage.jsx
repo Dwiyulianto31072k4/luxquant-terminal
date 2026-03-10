@@ -1,36 +1,21 @@
 // src/components/auth/LoginPage.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LeftBrandPanel, { MobileGlobeSection, TypewriterLine } from './LeftBrandPanel';
 
 const LoginPage = () => {
   const { t } = useTranslation();
   const a = (key) => t(`auth.${key}`);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
-  const { login, loginWithGoogle, loginWithTelegram, error, setError, isAuthenticated } = useAuth();
+  const { loginWithGoogle, loginWithTelegram, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try { 
-      await login(email, password); 
-    }
-    catch (err) { /* handled in context */ }
-    finally { setLoading(false); }
-  };
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -122,41 +107,33 @@ const LoginPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
-            <FormInput label={a('email')} type="email" value={email} onChange={setEmail} placeholder={a('email_placeholder')} />
-            <div>
-              <div className="flex justify-between items-center mb-1.5 sm:mb-2">
-                <label className="block text-sm font-medium" style={{ color: '#b8a89a' }}>{a('password')}</label>
-                <button type="button" className="text-xs font-medium hover:underline transition-all" style={{ color: '#d4a853' }}>{a('forgot_password')}</button>
-              </div>
-              <PasswordField value={password} onChange={setPassword} show={showPassword} toggle={() => setShowPassword(!showPassword)} placeholder={a('password_placeholder')} />
-            </div>
-            <div className="pt-1">
-              <GoldButton loading={loading} text={a('login_button')} loadingText={a('login_loading')} />
-            </div>
-          </form>
-
-          <Divider text={a('or_login_with')} />
-          <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6">
-            <SocialBtn 
-              icon={<GoogleIcon />} 
-              text="Google" 
+          {/* Login Buttons */}
+          <div className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
+            <LoginButton
+              icon={<GoogleIcon />}
+              text={a('continue_google') || 'Continue with Google'}
               onClick={handleGoogleLogin}
               loading={googleLoading}
+              loadingText="Connecting..."
             />
-            <SocialBtn 
-              icon={<TelegramIcon />} 
-              text="Telegram" 
+            <LoginButton
+              icon={<TelegramIcon />}
+              text={a('continue_telegram') || 'Continue with Telegram'}
               onClick={handleTelegramLogin}
               loading={telegramLoading}
+              loadingText="Connecting..."
             />
           </div>
 
-          <p className="mt-4 sm:mt-8 text-center text-sm" style={{ color: '#8a7a6e' }}>
-            {a('no_account')}{' '}
-            <Link to="/register" className="font-semibold transition-all hover:tracking-wide" style={{ color: '#d4a853' }}>{a('register_now')}</Link>
-          </p>
-          <p className="mt-2.5 sm:mt-4 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
+          {/* Security note */}
+          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2" style={{ color: '#6b5c52' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <span style={{ fontSize: 11 }}>{a('secure_login') || 'Secure login — no password needed'}</span>
+          </div>
+
+          <p className="mt-4 sm:mt-6 text-center pb-1" style={{ color: '#6b5c52', fontSize: 11 }}>
             {a('login_terms')} <a href="#" className="underline hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('terms')}</a>
           </p>
         </div>
@@ -165,105 +142,40 @@ const LoginPage = () => {
   );
 };
 
-/* ── Shared form components ── */
-
-const FormInput = ({ label, type = 'text', value, onChange, placeholder }) => (
-  <div>
-    {label && <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#b8a89a' }}>{label}</label>}
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3 sm:py-3.5 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
-      onFocus={e => { 
-        e.target.style.borderColor = '#d4a853'; 
-        e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
-        e.target.style.background = 'rgba(0,0,0,0.5)';
-      }}
-      onBlur={e => { 
-        e.target.style.borderColor = 'rgba(212,168,83,0.15)'; 
-        e.target.style.boxShadow = 'none';
-        e.target.style.background = 'rgba(0,0,0,0.3)';
-      }} />
-  </div>
-);
-
-const PasswordField = ({ value, onChange, show, toggle, placeholder }) => (
-  <div className="relative group">
-    <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required
-      className="w-full px-4 py-3 sm:py-3.5 pr-12 rounded-2xl text-white text-sm focus:outline-none transition-all duration-300"
-      style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
-      onFocus={e => { 
-        e.target.style.borderColor = '#d4a853'; 
-        e.target.style.boxShadow = '0 0 0 4px rgba(212,168,83,0.15)';
-        e.target.style.background = 'rgba(0,0,0,0.5)';
-      }}
-      onBlur={e => { 
-        e.target.style.borderColor = 'rgba(212,168,83,0.15)'; 
-        e.target.style.boxShadow = 'none';
-        e.target.style.background = 'rgba(0,0,0,0.3)';
-      }} />
-    <button type="button" onClick={toggle} className="absolute right-4 top-1/2 p-1 rounded-md transition-all" style={{ transform: 'translateY(-50%)', color: '#6b5c52', background: 'transparent' }}
-      onMouseEnter={e => { e.currentTarget.style.color = '#d4a853'; e.currentTarget.style.background = 'rgba(212,168,83,0.1)'; }} 
-      onMouseLeave={e => { e.currentTarget.style.color = '#6b5c52'; e.currentTarget.style.background = 'transparent'; }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {show ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></> : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>}
-      </svg>
-    </button>
-  </div>
-);
-
-const GoldButton = ({ loading, text, loadingText }) => (
-  <button type="submit" disabled={loading}
-    className="w-full py-3.5 sm:py-4 font-bold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group active:scale-[0.98]"
-    style={{ background: 'linear-gradient(135deg, #d4a853 0%, #8b6914 100%)', color: '#0a0506', boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(212,168,83,0.4)' }}>
-    <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(135deg, #fceca1 0%, #d4a853 100%)' }} />
-    <span className="relative flex justify-center items-center gap-2">
-      {loading ? (
-        <>
-          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          {loadingText}
-        </>
-      ) : text}
-    </span>
-  </button>
-);
-
-const Divider = ({ text }) => (
-  <div className="flex items-center gap-4 my-4 sm:my-7 opacity-70">
-    <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.4))' }} />
-    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8a7a6e' }}>{text}</span>
-    <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, rgba(212,168,83,0.4))' }} />
-  </div>
-);
-
-const SocialBtn = ({ icon, text, onClick, loading = false }) => (
+/* ── Login Button ── */
+const LoginButton = ({ icon, text, onClick, loading = false, loadingText = 'Loading...' }) => (
   <button 
     type="button"
     onClick={onClick}
     disabled={loading}
-    className="w-full py-3 sm:py-3.5 rounded-2xl font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-1 active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,168,83,0.15)', color: '#b8a89a' }}
+    className="w-full py-3.5 sm:py-4 rounded-2xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-3 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+    style={{ 
+      background: 'rgba(255,255,255,0.03)', 
+      border: '1px solid rgba(212,168,83,0.2)', 
+      color: '#d4cfc8',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+    }}
     onMouseEnter={e => { 
       if (!loading) {
-        e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; 
+        e.currentTarget.style.borderColor = 'rgba(212,168,83,0.5)'; 
         e.currentTarget.style.background = 'rgba(212,168,83,0.08)'; 
         e.currentTarget.style.color = '#fff';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(212,168,83,0.15)';
       }
     }}
     onMouseLeave={e => { 
-      e.currentTarget.style.borderColor = 'rgba(212,168,83,0.15)'; 
-      e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; 
-      e.currentTarget.style.color = '#b8a89a';
+      e.currentTarget.style.borderColor = 'rgba(212,168,83,0.2)'; 
+      e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; 
+      e.currentTarget.style.color = '#d4cfc8';
+      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
     }}>
     {loading ? (
       <>
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
         </svg>
-        <span>Loading...</span>
+        <span>{loadingText}</span>
       </>
     ) : (
       <>
@@ -274,7 +186,7 @@ const SocialBtn = ({ icon, text, onClick, loading = false }) => (
 );
 
 const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24">
+  <svg width="20" height="20" viewBox="0 0 24 24">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -283,7 +195,7 @@ const GoogleIcon = () => (
 );
 
 const TelegramIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#29ABE2">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#29ABE2">
     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
   </svg>
 );

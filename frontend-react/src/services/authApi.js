@@ -1,14 +1,8 @@
 // src/services/authApi.js
 import axios from 'axios';
 
-// ── FIX: Pakai empty string (relative path) supaya request lewat Vite proxy ──
-// Sebelumnya: const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
-// Masalah: dari HP, localhost = HP itu sendiri, bukan MacBook
-// Solusi: pakai relative path '', request akan ke origin yang sama (10.10.3.139:3000)
-//         lalu Vite proxy forward ke backend (127.0.0.1:8002)
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
-// Axios instance dengan interceptor
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -34,7 +28,6 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Jika 401 dan belum retry, coba refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
@@ -48,11 +41,9 @@ api.interceptors.response.use(
           localStorage.setItem('access_token', response.data.access_token);
           localStorage.setItem('refresh_token', response.data.refresh_token);
           
-          // Retry original request dengan token baru
           originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
           return api(originalRequest);
         } catch (refreshError) {
-          // Refresh gagal, clear tokens
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/login';
@@ -64,16 +55,6 @@ api.interceptors.response.use(
 );
 
 export const authApi = {
-  login: async (email, password) => {
-    const response = await api.post('/api/v1/auth/login', { email, password });
-    return response.data;
-  },
-
-  register: async (email, username, password) => {
-    const response = await api.post('/api/v1/auth/register', { email, username, password });
-    return response.data;
-  },
-
   // Google OAuth — kirim id_token dari GSI ke backend
   googleLogin: async (idToken) => {
     const response = await api.post('/api/v1/auth/google', { id_token: idToken });

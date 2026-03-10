@@ -23,7 +23,6 @@ export const AuthProvider = ({ children }) => {
 
   // ─── Load Google Identity Services SDK ───
   useEffect(() => {
-    // Cek apakah script sudah ada
     if (document.getElementById('google-gsi-script')) {
       if (window.google?.accounts?.id) {
         setGoogleReady(true);
@@ -37,7 +36,6 @@ export const AuthProvider = ({ children }) => {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // SDK loaded, tapi initialization dilakukan saat loginWithGoogle dipanggil
       setGoogleReady(true);
     };
     script.onerror = () => {
@@ -76,38 +74,6 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // ─── Standard login ───
-  const login = useCallback(async (email, password) => {
-    setError(null);
-    try {
-      const response = await authApi.login(email, password);
-      localStorage.setItem('access_token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
-      setUser(response.user);
-      return response;
-    } catch (err) {
-      const message = err.response?.data?.detail || 'Login gagal';
-      setError(message);
-      throw err;
-    }
-  }, []);
-
-  // ─── Standard register ───
-  const register = useCallback(async (email, username, password) => {
-    setError(null);
-    try {
-      const response = await authApi.register(email, username, password);
-      localStorage.setItem('access_token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
-      setUser(response.user);
-      return response;
-    } catch (err) {
-      const message = err.response?.data?.detail || 'Registrasi gagal';
-      setError(message);
-      throw err;
-    }
-  }, []);
-
   // ─── Google Login via GSI Popup ───
   const loginWithGoogle = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -124,7 +90,6 @@ export const AuthProvider = ({ children }) => {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
-          // response.credential = id_token dari Google
           try {
             const result = await authApi.googleLogin(response.credential);
             localStorage.setItem('access_token', result.access_token);
@@ -144,12 +109,9 @@ export const AuthProvider = ({ children }) => {
       // Trigger popup Google One Tap / account chooser
       window.google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
-          // One Tap tidak bisa ditampilkan, fallback ke tombol biasa
-          // Ini bisa terjadi karena browser block popup, cooldown, dll
           console.log('One Tap not displayed:', notification.getNotDisplayedReason());
           
           // Fallback: gunakan renderButton approach
-          // Buat temporary container untuk Google button
           const tempDiv = document.createElement('div');
           tempDiv.style.position = 'fixed';
           tempDiv.style.top = '50%';
@@ -192,7 +154,6 @@ export const AuthProvider = ({ children }) => {
         
         if (notification.isDismissedMoment()) {
           console.log('One Tap dismissed:', notification.getDismissedReason());
-          // Hapus fallback container jika ada
           const fallback = document.getElementById('google-fallback-container');
           if (fallback) document.body.removeChild(fallback);
         }
@@ -206,7 +167,6 @@ export const AuthProvider = ({ children }) => {
       setError(null);
 
       // Telegram Login Widget menggunakan callback approach
-      // Kita set global callback function yang dipanggil oleh widget
       window.onTelegramAuth = async (telegramUser) => {
         try {
           const result = await authApi.telegramLogin(telegramUser);
@@ -214,7 +174,6 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('refresh_token', result.refresh_token);
           setUser(result.user);
           
-          // Hapus fallback container kalau ada
           const container = document.getElementById('telegram-login-container');
           if (container) document.body.removeChild(container);
           
@@ -231,17 +190,14 @@ export const AuthProvider = ({ children }) => {
       container.id = 'telegram-login-container';
       container.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);';
       
-      // Inner card
       const card = document.createElement('div');
       card.style.cssText = 'background:#1a1014;padding:32px;border-radius:16px;border:1px solid rgba(212,168,83,0.3);text-align:center;min-width:300px;';
       
-      // Title
       const title = document.createElement('p');
       title.textContent = 'Login dengan Telegram';
       title.style.cssText = 'color:#b8a89a;margin-bottom:20px;font-size:16px;font-weight:600;';
       card.appendChild(title);
 
-      // Telegram widget script
       const widgetDiv = document.createElement('div');
       widgetDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:16px;';
       
@@ -256,7 +212,6 @@ export const AuthProvider = ({ children }) => {
       widgetDiv.appendChild(script);
       card.appendChild(widgetDiv);
 
-      // Close button
       const closeBtn = document.createElement('button');
       closeBtn.textContent = 'Batal';
       closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.2);padding:8px 24px;border-radius:12px;cursor:pointer;font-size:14px;margin-top:8px;';
@@ -270,7 +225,6 @@ export const AuthProvider = ({ children }) => {
 
       container.appendChild(card);
       
-      // Close on backdrop click
       container.onclick = (e) => {
         if (e.target === container) {
           document.body.removeChild(container);
@@ -287,7 +241,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await authApi.refreshVipStatus();
       if (result.updated && user) {
-        // Update local user state dengan role baru
         setUser(prev => prev ? { ...prev, role: result.new_role } : prev);
       }
       return result;
@@ -301,10 +254,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user?.telegram_id) return;
     
-    // Check VIP status setiap 30 menit
     const interval = setInterval(() => {
       refreshVipStatus();
-    }, 30 * 60 * 1000); // 30 menit
+    }, 30 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, [user?.telegram_id, refreshVipStatus]);
@@ -316,7 +268,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setError(null);
     
-    // Revoke Google session juga
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
     }
@@ -328,8 +279,6 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated: !!user,
     googleReady,
-    login,
-    register,
     logout,
     loginWithGoogle,
     loginWithTelegram,
@@ -338,7 +287,6 @@ export const AuthProvider = ({ children }) => {
     setError
   };
 
-  // Don't render children until initial auth check is done
   if (loading) {
     return (
       <AuthContext.Provider value={value}>

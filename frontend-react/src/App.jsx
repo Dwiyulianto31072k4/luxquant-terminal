@@ -19,8 +19,7 @@
 //   /admin               → User Management              [ADMIN]
 //   /pricing             → Pricing                      [PUBLIC]
 //   /payment             → Payment                      [PUBLIC]
-//   /login               → Login                        [PUBLIC]
-//   /register            → Register                     [PUBLIC]
+//   /login               → Login (Google/Telegram)      [PUBLIC]
 //
 // ════════════════════════════════════════════════════════════════
 
@@ -41,7 +40,7 @@ import WhaleAlertPage from "./components/WhaleAlertPage";
 import OrderBookPage from "./components/OrderBookPage";
 import AIArenaPage from "./components/AIArenaPage";
 import ReferralPage from "./components/ReferralPage";
-import { LoginPage, RegisterPage, UserMenu } from "./components/auth";
+import { LoginPage, UserMenu } from "./components/auth";
 import GoogleCallback from "./components/auth/GoogleCallback";
 import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
 import { LandingPage } from "./components/landing";
@@ -316,7 +315,7 @@ function AppShell({ children }) {
 }
 
 // ════════════════════════════════════════
-// AUTH WRAPPERS
+// AUTH WRAPPER
 // ════════════════════════════════════════
 function LoginPageWrapper() {
   const { isAuthenticated } = useAuth();
@@ -324,11 +323,6 @@ function LoginPageWrapper() {
   const redirectTo = new URLSearchParams(location.search).get("redirect") || "/home";
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   return <LoginPage />;
-}
-function RegisterPageWrapper() {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) return <Navigate to="/home" replace />;
-  return <RegisterPage />;
 }
 
 // ════════════════════════════════════════
@@ -342,10 +336,12 @@ function App() {
           {/* Landing — everyone sees this first */}
           <Route path="/" element={<LandingPage />} />
 
-          {/* Auth */}
+          {/* Auth — only Google & Telegram */}
           <Route path="/login" element={<LoginPageWrapper />} />
-          <Route path="/register" element={<RegisterPageWrapper />} />
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
+
+          {/* Redirect old /register to /login */}
+          <Route path="/register" element={<Navigate to="/login" replace />} />
 
           {/* PUBLIC */}
           <Route path="/home" element={<AppShell><OverviewPage /></AppShell>} />
