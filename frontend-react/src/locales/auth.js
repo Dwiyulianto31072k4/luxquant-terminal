@@ -1,53 +1,18 @@
-// src/locales/auth.js
+// src/i18n/locales/auth.js
 
 export const authEn = {
   // Login Page
   login_title: "Login",
   login_subtitle: "Sign in to your LuxQuant Terminal account",
-  email: "Email",
-  email_placeholder: "example@email.com",
-  password: "Password",
-  password_placeholder: "Enter Password",
-  forgot_password: "Forgot password?",
-  login_button: "Enter Terminal",
-  login_loading: "Verifying...",
-  or_login_with: "Or sign in with",
-  no_account: "Don't have an account?",
-  register_now: "Register Now",
   login_terms: "By logging in, you agree to our",
   terms: "Terms & Conditions",
   privacy: "Privacy Policy",
   redirecting: "Redirecting to dashboard...",
 
-  // Register Page
-  register_title: "Create Account",
-  register_subtitle: "Join thousands of smart traders worldwide",
-  username: "Username",
-  username_placeholder: "your_username",
-  username_hint: "Letters, numbers, underscore. Min 3 characters.",
-  password_min: "Minimum 8 characters",
-  confirm_password: "Confirm Password",
-  confirm_placeholder: "Repeat password",
-  password_mismatch: "Passwords do not match",
-  password_match: "Passwords match",
-  register_button: "Create Account",
-  register_loading: "Creating account...",
-  or_register_with: "Or register with",
-  has_account: "Already have an account?",
-  register_terms: "By registering, you agree to our",
-  and: "and",
-  preparing: "Preparing your workspace...",
-
-  // Password Strength
-  strength_weak: "Weak",
-  strength_fair: "Fair",
-  strength_good: "Good",
-  strength_strong: "Strong",
-
-  // Validation errors
-  err_password_mismatch: "Passwords do not match",
-  err_password_min: "Password must be at least 8 characters",
-  err_username_min: "Username must be at least 3 characters",
+  // Social Login
+  continue_google: "Continue with Google",
+  continue_telegram: "Continue with Telegram",
+  secure_login: "Secure login — no password needed",
 
   // LeftBrandPanel / Typewriter
   tagline_1_a: "Professional-Grade ",
@@ -79,50 +44,15 @@ export const authZh = {
   // Login Page
   login_title: "登录",
   login_subtitle: "登录你的 LuxQuant 终端帐号",
-  email: "电子邮件",
-  email_placeholder: "example@email.com",
-  password: "密码",
-  password_placeholder: "输入密码",
-  forgot_password: "忘记密码？",
-  login_button: "进入终端",
-  login_loading: "验证中...",
-  or_login_with: "或使用以下方式登录",
-  no_account: "还没有帐号？",
-  register_now: "立即注册",
   login_terms: "登录即表示你同意我们的",
   terms: "服务条款",
   privacy: "隐私政策",
   redirecting: "正在跳转到仪表板...",
 
-  // Register Page
-  register_title: "创建帐号",
-  register_subtitle: "加入全球数千位聪明的交易者",
-  username: "用户名",
-  username_placeholder: "your_username",
-  username_hint: "字母、数字、下划线，最少 3 个字符。",
-  password_min: "最少 8 个字符",
-  confirm_password: "确认密码",
-  confirm_placeholder: "重复密码",
-  password_mismatch: "密码不一致",
-  password_match: "密码一致",
-  register_button: "创建帐号",
-  register_loading: "正在创建帐号...",
-  or_register_with: "或使用以下方式注册",
-  has_account: "已有帐号？",
-  register_terms: "注册即表示你同意我们的",
-  and: "和",
-  preparing: "正在准备你的工作区...",
-
-  // Password Strength
-  strength_weak: "弱",
-  strength_fair: "一般",
-  strength_good: "好",
-  strength_strong: "强",
-
-  // Validation errors
-  err_password_mismatch: "密码不一致",
-  err_password_min: "密码最少 8 个字符",
-  err_username_min: "用户名最少 3 个字符",
+  // Social Login
+  continue_google: "使用 Google 登录",
+  continue_telegram: "使用 Telegram 登录",
+  secure_login: "安全登录 — 无需密码",
 
   // LeftBrandPanel / Typewriter
   tagline_1_a: "专业级 ",
