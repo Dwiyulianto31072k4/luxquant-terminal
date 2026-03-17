@@ -7,6 +7,8 @@ OPTIMIZED v3:
 - SHARED HTTP CLIENTS (no more per-request AsyncClient creation)
 - STALE FALLBACK on ALL endpoints (never return 502 if we have old data)
 - Config-driven timeouts
+
+v4: /prices endpoint now returns {price, volume} per symbol
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Any
@@ -73,12 +75,10 @@ class OIHistoryItem(BaseModel):
 @router.get("/bitcoin")
 async def get_bitcoin_data():
     """Bitcoin data from CoinGecko (cached by worker)"""
-    # Try fresh cache first
     cached = cache_get("lq:market:bitcoin")
     if cached:
         return cached
 
-    # Cache miss — try direct fetch
     try:
         client = get_coingecko_client()
         btc_res, global_res, fg_res = await asyncio.gather(
@@ -97,7 +97,6 @@ async def get_bitcoin_data():
                 fear_greed = {"value": int(fg["data"][0]["value"]), "label": fg["data"][0]["value_classification"]}
 
         if not btc_data:
-            # Direct fetch failed — try stale
             stale, _ = cache_get_with_stale("lq:market:bitcoin")
             if stale:
                 return stale
@@ -184,7 +183,6 @@ async def get_global_data():
             return_exceptions=True,
         )
 
-        # Check for rate limiting
         for res in [global_res, coins_res]:
             if not isinstance(res, Exception) and res.status_code == 429:
                 stale, _ = cache_get_with_stale("lq:market:global")
@@ -242,7 +240,6 @@ async def get_btc_ticker():
         cache_set("lq:market:btc-ticker", result, ttl=15)
         return BtcTickerResponse(**result)
     except Exception as e:
-        # CHANGED: stale fallback instead of immediate 502
         stale, _ = cache_get_with_stale("lq:market:btc-ticker")
         if stale:
             return BtcTickerResponse(**stale)
@@ -269,7 +266,6 @@ async def get_funding_rates(symbols: str = "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT"):
                 results.append(FundingRateItem(symbol=symbol.replace("USDT",""), rate=float(data[0]["fundingRate"]), time=int(data[0]["fundingTime"])))
         except: continue
 
-    # CHANGED: if direct fetch failed completely, try stale
     if not results and symbols == "BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT":
         stale, _ = cache_get_with_stale("lq:market:funding-rates")
         if stale:
@@ -313,7 +309,6 @@ async def get_long_short_ratio(symbol: str = "BTCUSDT", period: str = "5m"):
     except HTTPException:
         raise
     except Exception as e:
-        # CHANGED: stale fallback
         if symbol.upper() == "BTCUSDT" and period == "5m":
             stale, _ = cache_get_with_stale("lq:market:long-short-ratio")
             if stale:
@@ -367,7 +362,6 @@ async def get_open_interest(symbol: str = "BTCUSDT"):
         price = float(price_res.json()["price"])
         return OpenInterestResponse(symbol=symbol, openInterest=oi, openInterestUsd=oi*price)
     except Exception as e:
-        # CHANGED: stale fallback
         if symbol.upper() == "BTCUSDT":
             stale, _ = cache_get_with_stale("lq:market:open-interest")
             if stale:
@@ -389,7 +383,6 @@ async def get_open_interest_history(symbol: str = "BTCUSDT", period: str = "1h",
         response.raise_for_status()
         return [OIHistoryItem(timestamp=int(i["timestamp"]), sumOpenInterest=float(i["sumOpenInterest"]), sumOpenInterestValue=float(i["sumOpenInterestValue"])) for i in response.json()]
     except Exception as e:
-        # CHANGED: stale fallback
         if symbol.upper() == "BTCUSDT" and period == "1h" and limit == 24:
             stale, _ = cache_get_with_stale("lq:market:oi-history")
             if stale:
@@ -419,68 +412,79 @@ async def get_taker_volume(symbol: str = "BTCUSDT", period: str = "5m", limit: i
         raise HTTPException(status_code=502, detail=f"Binance API error: {str(e)}")
 
 
+# ============================================================
+# BATCH PRICES + VOLUME (v4 — now includes 24h volume)
+# ============================================================
+
 @router.get("/prices")
 async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
     """
-    Batch prices with 5-second Redis cache.
-    Uses single bulk API call instead of per-symbol sequential calls.
-    All users share the same cached price data — near-instant response.
+    Batch prices + 24h volume with 5-second Redis cache.
+    Returns: { "BTCUSDT": { "price": 100000.5, "volume": 5000000000 }, ... }
+    
+    v4 CHANGED: Uses ticker/24hr instead of ticker/price for volume data.
+    Frontend SignalsTable consumes this for both current price display and volume column.
     """
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
     if not symbol_list:
         return {}
 
-    # Step 1: Check cache for ALL futures prices (single key, refreshed every 5s)
-    cache_key = "lq:market:all-futures-prices"
-    all_prices = cache_get(cache_key)
+    # Step 1: Check cache for ALL futures ticker data (single key, refreshed every 5s)
+    cache_key = "lq:market:all-futures-tickers"
+    all_tickers = cache_get(cache_key)
 
-    if not all_prices:
-        # Cache miss — fetch ALL futures prices in single call
+    if not all_tickers:
+        # Cache miss — fetch ALL futures 24hr tickers in single call
         client = get_binance_client()
-        all_prices = {}
+        all_tickers = {}
         try:
-            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/price")
+            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
             if response.status_code == 200:
                 for item in response.json():
-                    all_prices[item["symbol"]] = float(item["price"])
-                cache_set(cache_key, all_prices, ttl=5)
+                    all_tickers[item["symbol"]] = {
+                        "price": float(item["lastPrice"]),
+                        "volume": float(item["quoteVolume"]),
+                    }
+                cache_set(cache_key, all_tickers, ttl=5)
         except Exception:
-            # Fallback: try stale cache
-            stale = cache_get_with_stale(cache_key)
+            stale, _ = cache_get_with_stale(cache_key)
             if stale:
-                all_prices = stale
+                all_tickers = stale
 
     # Step 2: Extract requested symbols
     results = {}
     missing = []
     for symbol in symbol_list:
-        if symbol in all_prices:
-            results[symbol] = all_prices[symbol]
+        if symbol in all_tickers:
+            results[symbol] = all_tickers[symbol]
         else:
             missing.append(symbol)
 
     # Step 3: For symbols not on Futures, try Spot bulk (also cached)
     if missing:
-        spot_cache_key = "lq:market:all-spot-prices"
-        spot_prices = cache_get(spot_cache_key)
+        spot_cache_key = "lq:market:all-spot-tickers"
+        spot_tickers = cache_get(spot_cache_key)
 
-        if not spot_prices:
+        if not spot_tickers:
             client = get_binance_client()
-            spot_prices = {}
+            spot_tickers = {}
             try:
-                response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/price")
+                response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr")
                 if response.status_code == 200:
                     for item in response.json():
-                        spot_prices[item["symbol"]] = float(item["price"])
-                    cache_set(spot_cache_key, spot_prices, ttl=5)
+                        spot_tickers[item["symbol"]] = {
+                            "price": float(item["lastPrice"]),
+                            "volume": float(item["quoteVolume"]),
+                        }
+                    cache_set(spot_cache_key, spot_tickers, ttl=5)
             except Exception:
-                stale = cache_get_with_stale(spot_cache_key)
+                stale, _ = cache_get_with_stale(spot_cache_key)
                 if stale:
-                    spot_prices = stale
+                    spot_tickers = stale
 
         for symbol in missing:
-            if symbol in spot_prices:
-                results[symbol] = spot_prices[symbol]
+            if symbol in spot_tickers:
+                results[symbol] = spot_tickers[symbol]
 
     return results
 
@@ -494,7 +498,6 @@ async def get_klines(symbol: str = "BTCUSDT", interval: str = "1h", limit: int =
     """Proxy Binance klines (OHLC data) through backend to avoid CORS."""
     try:
         client = get_binance_client()
-        # Try Spot first (usually works even in Indonesia)
         response = await client.get(
             f"{BINANCE_SPOT_API}/api/v3/klines",
             params={"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 500)}
@@ -516,7 +519,6 @@ async def _fetch_overview_full(client):
     btc_data = btc_res.json()
     btc_price = float(btc_data["lastPrice"])
 
-    # Funding rates
     funding_rates = []
     for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT"]:
         try:
@@ -526,16 +528,13 @@ async def _fetch_overview_full(client):
                 funding_rates.append({"symbol":sym.replace("USDT",""),"rate":float(d[0]["fundingRate"]),"time":int(d[0]["fundingTime"])})
         except: continue
 
-    # Long/short
     ls_res = await client.get(f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio", params={"symbol":"BTCUSDT","period":"5m","limit":1})
     ls_data = ls_res.json()
     long_short = {"symbol":"BTCUSDT","longAccount":float(ls_data[0]["longAccount"]),"shortAccount":float(ls_data[0]["shortAccount"]),"longShortRatio":float(ls_data[0]["longShortRatio"]),"timestamp":int(ls_data[0]["timestamp"])} if ls_data and isinstance(ls_data, list) else None
 
-    # OI
     oi_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol":"BTCUSDT"})
     oi_val = float(oi_res.json()["openInterest"])
 
-    # OI history
     oih = await client.get(f"{BINANCE_FUTURES_API}/futures/data/openInterestHist", params={"symbol":"BTCUSDT","period":"1h","limit":24})
     oi_hist = [{"timestamp":int(i["timestamp"]),"sumOpenInterestValue":float(i["sumOpenInterestValue"])} for i in oih.json()]
 
@@ -591,21 +590,13 @@ async def _fetch_overview_fallback(client):
 
 @router.get("/overview")
 async def get_market_overview():
-    """
-    Complete market overview.
-    Strategy:
-    1. Check Redis cache first
-    2. Try full Binance Futures overview
-    3. Fallback to Binance Spot if Futures unavailable
-    4. CHANGED: Stale fallback if all APIs fail
-    """
+    """Complete market overview."""
     cached = cache_get("lq:market:overview")
     if cached:
         return cached
 
     client = get_binance_client()
 
-    # Try full overview (Futures)
     try:
         result = await _fetch_overview_full(client)
         cache_set("lq:market:overview", result, ttl=15)
@@ -613,13 +604,11 @@ async def get_market_overview():
     except Exception as e:
         print(f"⚠️ Futures unavailable ({e}), falling back to Spot...")
 
-    # Fallback to Spot only
     try:
         result = await _fetch_overview_fallback(client)
         cache_set("lq:market:overview", result, ttl=15)
         return result
     except Exception as e:
-        # CHANGED: stale fallback instead of immediate 502
         stale, _ = cache_get_with_stale("lq:market:overview")
         if stale:
             return stale
@@ -632,10 +621,7 @@ async def get_market_overview():
 
 @router.get("/categories")
 async def get_categories(limit: int = Query(10, ge=1, le=50)):
-    """
-    Top crypto sectors/narratives sorted by 24h market cap change.
-    Cached 300s (5min).
-    """
+    """Top crypto sectors/narratives sorted by 24h market cap change."""
     cached = cache_get("lq:market:categories")
     if cached:
         return cached[:limit]
@@ -740,10 +726,7 @@ async def get_trending_categories():
 
 @router.get("/derivatives-pulse")
 async def get_derivatives_pulse():
-    """
-    Aggregated derivatives data.
-    CHANGED: stale fallback if Binance Futures fails.
-    """
+    """Aggregated derivatives data."""
     cached = cache_get("lq:market:deriv-pulse")
     if cached:
         return cached
@@ -751,7 +734,6 @@ async def get_derivatives_pulse():
     try:
         client = get_binance_client()
 
-        # 1. Get ALL premium index (funding rates for all symbols)
         premium_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
         premium_res.raise_for_status()
         premium_data = premium_res.json()
@@ -774,7 +756,6 @@ async def get_derivatives_pulse():
         top_positive = all_funding[:5]
         top_negative = all_funding[-5:][::-1]
 
-        # 2. Global long/short for BTC & ETH
         ls_results = {}
         for sym in ["BTCUSDT", "ETHUSDT"]:
             try:
@@ -792,7 +773,6 @@ async def get_derivatives_pulse():
             except:
                 continue
 
-        # 3. Aggregated OI for top coins
         oi_results = []
         for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]:
             try:
@@ -830,7 +810,6 @@ async def get_derivatives_pulse():
     except HTTPException:
         raise
     except Exception as e:
-        # CHANGED: stale fallback — this was the #1 source of 502 errors
         stale, _ = cache_get_with_stale("lq:market:deriv-pulse")
         if stale:
             return stale
@@ -839,7 +818,6 @@ async def get_derivatives_pulse():
 
 # ============================================
 # BITCOIN EXTENDED DATA (from cache worker)
-# CHANGED: All endpoints now try stale fallback before returning error
 # ============================================
 
 @router.get("/bitcoin/technical")
@@ -898,7 +876,6 @@ async def get_btc_full():
     onchain = cache_get("lq:bitcoin:onchain")
     news = cache_get("lq:bitcoin:news") or cache_get("lq:mkt:crypto-news")
 
-    # CHANGED: try stale for missing data before API fallback
     if not technical:
         technical, _ = cache_get_with_stale("lq:bitcoin:technical")
     if not onchain:
@@ -906,9 +883,7 @@ async def get_btc_full():
     if not news:
         news, _ = cache_get_with_stale("lq:bitcoin:news")
 
-    # Network data fallback — fetch live from mempool.space if not cached
     if not network:
-        # Try stale first
         network, _ = cache_get_with_stale("lq:bitcoin:network")
 
     if not network:

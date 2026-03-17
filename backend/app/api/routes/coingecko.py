@@ -1,8 +1,8 @@
 # backend/app/api/routes/coingecko.py
 """
 LuxQuant Terminal - CoinGecko Routes
-API endpoints untuk data dari CoinGecko
-UPDATED: Trimmed file, removed duplicates. Only /coin-info/{symbol} kept for SignalModal Research tab.
+FIXED v2: Better symbol matching — no longer falls back to first search result blindly.
+Now tries: exact symbol match → name-contains match → returns not_found.
 """
 from fastapi import APIRouter
 import httpx
@@ -13,12 +13,8 @@ from app.core.redis import cache_get, cache_set
 
 router = APIRouter(tags=["coingecko"])
 
-# CoinGecko configuration
 COINGECKO_API_KEY = settings.COINGECKO_API_KEY
 
-# ============================================
-# GET /coin-info/{symbol} — For SignalModal Research Tab
-# ============================================
 
 @router.get("/coin-info/{symbol}")
 async def get_coin_info(symbol: str):
@@ -29,7 +25,6 @@ async def get_coin_info(symbol: str):
     if cached:
         return cached
 
-    # Always use free API — demo key doesn't work with pro-api.coingecko.com
     FREE_URL = "https://api.coingecko.com/api/v3"
     headers = {"accept": "application/json"}
     if COINGECKO_API_KEY:
@@ -44,12 +39,26 @@ async def get_coin_info(symbol: str):
             coins = search_res.json().get("coins", [])
 
             coin_id = None
+
+            # Strategy 1: Exact symbol match (case-insensitive)
             for c in coins:
                 if (c.get("symbol") or "").upper() == symbol_upper:
                     coin_id = c.get("id")
                     break
-            if not coin_id and coins:
-                coin_id = coins[0].get("id")
+
+            # Strategy 2: Name contains the symbol (e.g. "COIN" → "Coinbase Global Markets" has coin_id)
+            # Only if the name starts with or closely matches the symbol
+            if not coin_id:
+                symbol_lower = symbol_upper.lower()
+                for c in coins:
+                    name_lower = (c.get("name") or "").lower()
+                    c_symbol = (c.get("symbol") or "").upper()
+                    # Match if name starts with the search term, or symbol is a close variant
+                    if name_lower.startswith(symbol_lower) or name_lower.replace(" ", "") == symbol_lower:
+                        coin_id = c.get("id")
+                        break
+
+            # NO blind fallback to coins[0] — if we can't match, return not_found
             if not coin_id:
                 return {"error": "not_found", "symbol": symbol_upper}
 

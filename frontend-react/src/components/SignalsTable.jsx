@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
 import StarButton from './StarButton';
@@ -16,15 +16,15 @@ const SignalsTable = ({
   onPageChange,
   sortBy,
   sortOrder,
-  onSort 
+  onSort,
+  onPricesUpdate,
 }) => {
-  const { t } = useTranslation(); // <-- 2. Inisialisasi i18n
+  const { t } = useTranslation();
 
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
 
-  // ─── Watchlist integration ───
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
 
@@ -41,7 +41,6 @@ const SignalsTable = ({
     );
   };
 
-  // Fetch prices via backend proxy
   useEffect(() => {
     if (!signals || signals.length === 0) return;
 
@@ -57,8 +56,10 @@ const SignalsTable = ({
         const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
         if (!response.ok) throw new Error('Failed to fetch prices');
         
-        const priceMap = await response.json();
-        setCurrentPrices(priceMap);
+        const tickerMap = await response.json();
+        setCurrentPrices(tickerMap);
+        
+        if (onPricesUpdate) onPricesUpdate(tickerMap);
       } catch (error) {
         console.error('Error fetching current prices:', error);
       } finally {
@@ -72,6 +73,19 @@ const SignalsTable = ({
   }, [signals]);
 
   // ─── Helpers ───
+  const getPrice = (pair) => {
+    const data = currentPrices[pair];
+    if (!data) return null;
+    if (typeof data === 'number') return data;
+    return data.price ?? null;
+  };
+
+  const getVolume = (pair) => {
+    const data = currentPrices[pair];
+    if (!data || typeof data === 'number') return null;
+    return data.volume ?? null;
+  };
+
   const formatPrice = (price) => {
     if (!price && price !== 0) return '-';
     const num = parseFloat(price);
@@ -80,6 +94,25 @@ const SignalsTable = ({
     if (num < 1) return num.toFixed(6);
     if (num < 10) return num.toFixed(4);
     return num.toFixed(2);
+  };
+
+  const formatVolume = (vol) => {
+    if (!vol) return '-';
+    const num = parseFloat(vol);
+    if (isNaN(num)) return '-';
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(0)}M`;
+    if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
+    return `$${num.toFixed(0)}`;
+  };
+
+  const getVolumeStyle = (vol) => {
+    if (!vol) return 'text-text-muted';
+    const num = parseFloat(vol);
+    if (num >= 1e9) return 'text-green-400';
+    if (num >= 100e6) return 'text-yellow-400';
+    if (num >= 10e6) return 'text-orange-400';
+    return 'text-text-muted';
   };
 
   const getCoinName = (pair) => pair ? pair.replace(/USDT$/i, '') : '';
@@ -174,7 +207,6 @@ const SignalsTable = ({
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
 
-  // ─── NEW: Last Update helpers ───
   const getUpdateTypeBadge = (updateType) => {
     if (!updateType) return null;
     const ut = updateType.toLowerCase();
@@ -209,7 +241,7 @@ const SignalsTable = ({
     return formatDateTimeShort(dt);
   };
 
-  // ─── Desktop Table Headers ───
+  // ─── ALL headers sortable (except star) ───
   const SortableHeader = ({ field, label, align = 'left' }) => {
     const isActive = sortBy === field;
     const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
@@ -226,22 +258,14 @@ const SignalsTable = ({
     );
   };
 
-  const Header = ({ label, align = 'left' }) => {
-    const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
-    return (
-      <th className={`py-4 px-4 text-gold-primary/70 text-xs font-semibold uppercase tracking-wider ${textAlign}`}>
-        {label}
-      </th>
-    );
-  };
-
   const TOTAL_COLUMNS = 12;
 
   // ════════════════════════════════════════
   // MOBILE CARD COMPONENT
   // ════════════════════════════════════════
   const MobileSignalCard = ({ signal }) => {
-    const currentPrice = currentPrices[signal.pair];
+    const currentPrice = getPrice(signal.pair);
+    const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
 
     const tpList = [
@@ -275,7 +299,7 @@ const SignalsTable = ({
           </div>
         </div>
 
-        {/* NEW: Last Update Badge (mobile) */}
+        {/* Last Update Badge (mobile) */}
         {signal.last_update_at && (
           <div className="flex items-center gap-2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
             <span className="text-amber-400 text-[10px]">🔔</span>
@@ -312,7 +336,7 @@ const SignalsTable = ({
           </div>
         </div>
 
-        {/* Targets with % from entry */}
+        {/* Targets */}
         {tpList.length > 0 && (
           <div className="bg-green-500/5 rounded-lg px-2.5 py-2 border border-green-500/10 mb-2">
             <p className="text-green-400/70 text-[9px] uppercase tracking-wider mb-1.5">🎯 Targets</p>
@@ -339,7 +363,7 @@ const SignalsTable = ({
           </div>
         )}
 
-        {/* Stop Loss with % from entry */}
+        {/* Stop Loss */}
         {signal.stop1 && (
           <div className="bg-red-500/5 rounded-lg px-2.5 py-1.5 border border-red-500/10 mb-2.5">
             <div className="flex items-center justify-between">
@@ -357,7 +381,7 @@ const SignalsTable = ({
           </div>
         )}
 
-        {/* Bottom Row: Risk, MCap, Vol, Time */}
+        {/* Bottom Row: Risk, MCap, Vol 24H, Time */}
         <div className="flex items-center justify-between text-[10px]">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${getRiskBadge(signal.risk_level)}`}>
@@ -368,11 +392,15 @@ const SignalsTable = ({
                 {formatMarketCap(signal.market_cap)}
               </span>
             )}
-            {signal.volume_rank_num && signal.volume_rank_den && (
+            {currentVol ? (
+              <span className={`font-semibold ${getVolumeStyle(currentVol)}`}>
+                Vol {formatVolume(currentVol)}
+              </span>
+            ) : signal.volume_rank_num && signal.volume_rank_den ? (
               <span className="text-text-muted">
                 Vol <span className="text-white font-semibold">{signal.volume_rank_num}</span>/{signal.volume_rank_den}
               </span>
-            )}
+            ) : null}
           </div>
           <span className="text-text-muted font-mono flex-shrink-0">{formatDateTimeShort(signal.created_at)}</span>
         </div>
@@ -413,29 +441,18 @@ const SignalsTable = ({
     </div>
   );
 
-  // ════════════════════════════════════════
-  // PAGINATION (mobile)
-  // ════════════════════════════════════════
   const MobilePagination = () => {
     if (totalPages <= 1) return null;
     return (
       <div className="flex items-center justify-between py-3 mt-2 mb-2">
-        <p className="text-text-muted text-xs">
-          Page {page}/{totalPages}
-        </p>
+        <p className="text-text-muted text-xs">Page {page}/{totalPages}</p>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
-          >
+          <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
+            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs">
             ← Prev
           </button>
-          <button
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
-          >
+          <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
+            className="px-3 py-1.5 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs">
             Next →
           </button>
         </div>
@@ -445,9 +462,7 @@ const SignalsTable = ({
 
   return (
     <>
-      {/* ════════════════════════════════════════ */}
-      {/* MOBILE VIEW (< 1024px): Card Layout     */}
-      {/* ════════════════════════════════════════ */}
+      {/* MOBILE VIEW */}
       <div className="lg:hidden">
         {loading ? (
           <MobileLoadingSkeleton />
@@ -471,23 +486,21 @@ const SignalsTable = ({
         <MobilePagination />
       </div>
 
-      {/* ════════════════════════════════════════ */}
-      {/* DESKTOP VIEW (≥ 1024px): Table Layout    */}
-      {/* ════════════════════════════════════════ */}
+      {/* DESKTOP VIEW — ALL headers sortable */}
       <div className="hidden lg:block glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
-                <Header label="" align="center" />
+                <th className="py-4 px-4 text-gold-primary/70 text-xs font-semibold uppercase tracking-wider text-center w-10"></th>
                 <SortableHeader field="pair" label={t('signals.pair')} />
-                <Header label={t('signals.current_price')} align="right" />
+                <SortableHeader field="current_price" label={t('signals.current_price')} align="right" />
                 <SortableHeader field="entry" label={t('signals.entry_price')} align="right" />
                 <SortableHeader field="max_target" label={t('signals.max_target')} align="right" />
-                <Header label={t('signals.stop_loss')} align="right" />
+                <SortableHeader field="stop_loss" label={t('signals.stop_loss')} align="right" />
                 <SortableHeader field="risk_level" label={t('signals.risk_level')} align="center" />
                 <SortableHeader field="market_cap" label={t('signals.mcap')} align="center" />
-                <Header label={t('signals.vol')} align="center" />
+                <SortableHeader field="volume" label="VOL 24H" align="center" />
                 <SortableHeader field="status" label={t('signals.status')} align="center" />
                 <SortableHeader field="last_update" label={t('signals.last_update')} align="center" />
                 <SortableHeader field="created_at" label={t('signals.time')} align="right" />
@@ -519,7 +532,8 @@ const SignalsTable = ({
               ) : (
                 signals?.map((signal, idx) => {
                   const maxTarget = getMaxTarget(signal);
-                  const currentPrice = currentPrices[signal.pair];
+                  const currentPrice = getPrice(signal.pair);
+                  const currentVol = getVolume(signal.pair);
                   const priceChange = getPriceChange(signal.entry, currentPrice);
                   
                   return (
@@ -528,29 +542,20 @@ const SignalsTable = ({
                       onClick={() => setSelectedSignal(signal)}
                       className="border-b border-gold-primary/5 hover:bg-gold-primary/5 cursor-pointer transition-colors group"
                     >
-                      {/* Star */}
                       <td className="py-4 px-4 text-center">
-                        <StarButton
-                          signalId={signal.signal_id}
-                          isStarred={watchlistIds.includes(signal.signal_id)}
-                          onToggle={handleStarToggle}
-                        />
+                        <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
                       </td>
 
-                      {/* Pair */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <CoinLogo pair={signal.pair} size={40} />
                           <div>
-                            <p className="text-white font-semibold group-hover:text-gold-primary transition-colors">
-                              {getCoinName(signal.pair)}
-                            </p>
+                            <p className="text-white font-semibold group-hover:text-gold-primary transition-colors">{getCoinName(signal.pair)}</p>
                             <p className="text-text-muted text-xs">USDT</p>
                           </div>
                         </div>
                       </td>
                       
-                      {/* Current Price */}
                       <td className="py-4 px-4 text-right">
                         {pricesLoading && !currentPrice ? (
                           <div className="h-5 w-20 bg-bg-card rounded animate-pulse ml-auto" />
@@ -568,87 +573,68 @@ const SignalsTable = ({
                         )}
                       </td>
 
-                      {/* Entry */}
                       <td className="py-4 px-4 text-right">
                         <span className="text-white font-mono">{formatPrice(signal.entry)}</span>
                       </td>
 
-                      {/* Max Target + % */}
                       <td className="py-4 px-4 text-right">
                         <span className="text-positive font-mono">{maxTarget ? formatPrice(maxTarget) : '-'}</span>
                         {maxTarget && (() => {
                           const pct = calcPct(maxTarget, signal.entry);
-                          return pct !== null ? (
-                            <p className="text-positive/70 text-xs font-mono">+{pct.toFixed(1)}%</p>
-                          ) : null;
+                          return pct !== null ? <p className="text-positive/70 text-xs font-mono">+{pct.toFixed(1)}%</p> : null;
                         })()}
                       </td>
 
-                      {/* Stop Loss + % */}
                       <td className="py-4 px-4 text-right">
                         <span className="text-negative font-mono">{signal.stop1 ? formatPrice(signal.stop1) : '-'}</span>
                         {signal.stop1 && (() => {
                           const pct = calcPct(signal.stop1, signal.entry);
-                          return pct !== null ? (
-                            <p className="text-negative/70 text-xs font-mono">{pct.toFixed(1)}%</p>
-                          ) : null;
+                          return pct !== null ? <p className="text-negative/70 text-xs font-mono">{pct.toFixed(1)}%</p> : null;
                         })()}
                       </td>
 
-                      {/* Risk */}
                       <td className="py-4 px-4 text-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getRiskBadge(signal.risk_level)}`}>
                           {getRiskLabel(signal.risk_level)}
                         </span>
                       </td>
 
-                      {/* Market Cap */}
                       <td className="py-4 px-4 text-center">
                         {signal.market_cap ? (
-                          <span className={`text-xs font-semibold ${getMarketCapStyle(signal.market_cap)}`}>
-                            {formatMarketCap(signal.market_cap)}
+                          <span className={`text-xs font-semibold ${getMarketCapStyle(signal.market_cap)}`}>{formatMarketCap(signal.market_cap)}</span>
+                        ) : (
+                          <span className="text-text-muted text-xs">-</span>
+                        )}
+                      </td>
+                      
+                      <td className="py-4 px-4 text-center">
+                        {currentVol ? (
+                          <span className={`text-xs font-semibold font-mono ${getVolumeStyle(currentVol)}`}>{formatVolume(currentVol)}</span>
+                        ) : signal.volume_rank_num && signal.volume_rank_den ? (
+                          <span className="text-white text-xs">
+                            <span className="font-semibold">{signal.volume_rank_num}</span>
+                            <span className="text-text-muted">/{signal.volume_rank_den}</span>
                           </span>
                         ) : (
                           <span className="text-text-muted text-xs">-</span>
                         )}
                       </td>
                       
-                      {/* Vol Rank */}
-                      <td className="py-4 px-4 text-center">
-                        {signal.volume_rank_num && signal.volume_rank_den ? (
-                          <span className="text-white">
-                            <span className="font-semibold">{signal.volume_rank_num}</span>
-                            <span className="text-text-muted">/{signal.volume_rank_den}</span>
-                          </span>
-                        ) : (
-                          <span className="text-text-muted">-</span>
-                        )}
-                      </td>
-                      
-                      {/* Status */}
-                      <td className="py-4 px-4 text-center">
-                        {getStatusBadge(signal.status)}
-                      </td>
+                      <td className="py-4 px-4 text-center">{getStatusBadge(signal.status)}</td>
 
-                      {/* NEW: Last Update column */}
                       <td className="py-4 px-3 text-center">
                         {signal.last_update_at ? (
                           <div className="flex flex-col items-center gap-1">
                             {getUpdateTypeBadge(signal.last_update_type)}
-                            <span className="text-text-muted text-[10px] font-mono">
-                              {formatTimeAgo(signal.last_update_at)}
-                            </span>
+                            <span className="text-text-muted text-[10px] font-mono">{formatTimeAgo(signal.last_update_at)}</span>
                           </div>
                         ) : (
                           <span className="text-text-muted/40 text-xs">—</span>
                         )}
                       </td>
                       
-                      {/* Time */}
                       <td className="py-4 px-4 text-right">
-                        <span className="text-text-muted font-mono text-sm">
-                          {formatDateTime(signal.created_at)}
-                        </span>
+                        <span className="text-text-muted font-mono text-sm">{formatDateTime(signal.created_at)}</span>
                       </td>
                     </tr>
                   );
@@ -658,23 +644,16 @@ const SignalsTable = ({
           </table>
         </div>
 
-        {/* Desktop pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gold-primary/10">
             <p className="text-text-muted text-sm">Page {page} of {totalPages}</p>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1}
-                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+              <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}
+                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 ← Prev
               </button>
-              <button
-                onClick={() => onPageChange(page + 1)}
-                disabled={page >= totalPages}
-                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+              <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
+                className="px-4 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white hover:border-gold-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 Next →
               </button>
             </div>
@@ -682,12 +661,7 @@ const SignalsTable = ({
         )}
       </div>
 
-      {/* Signal Detail Modal */}
-      <SignalModal 
-        signal={selectedSignal} 
-        isOpen={!!selectedSignal} 
-        onClose={() => setSelectedSignal(null)} 
-      />
+      <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />
     </>
   );
 };

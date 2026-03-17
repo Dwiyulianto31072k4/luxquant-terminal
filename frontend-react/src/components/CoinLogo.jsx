@@ -3,28 +3,15 @@ import { useState, useEffect, useRef } from 'react';
 /**
  * CoinLogo Component - Optimized with Multi-Layer Caching
  * 
- * OPTIMIZATIONS:
- * 1. Module-level cache (shared across ALL instances) — resolved URLs persist in memory
- * 2. localStorage persist — survives page refresh, no re-fetching next session
- * 3. Reduced to 3 best sources (CoinCap → CryptoIcons → LiveCoinWatch)
- * 4. Failed symbols blacklisted — instant fallback, no wasted requests
- * 5. Preload hint via <link rel="preload"> for visible coins
+ * v3: Bumped CACHE_VERSION to flush corrupted logo cache entries.
  */
 
-// ════════════════════════════════════════
-// MODULE-LEVEL CACHE (shared by ALL CoinLogo instances)
-// ════════════════════════════════════════
-
 const CACHE_KEY = 'lq:coin-logos';
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;  // BUMPED from 2 → 3 to flush bad entries
 
-// In-memory cache: symbol → resolved URL (or 'FAIL')
 const _logoCache = new Map();
-
-// Track failed symbols to skip immediately
 const _failedSymbols = new Set();
 
-// Load from localStorage on module init
 try {
   const stored = localStorage.getItem(CACHE_KEY);
   if (stored) {
@@ -39,11 +26,8 @@ try {
       });
     }
   }
-} catch (e) {
-  // localStorage unavailable or corrupt — start fresh
-}
+} catch (e) {}
 
-// Debounced save to localStorage (batch writes)
 let _saveTimer = null;
 const _saveToStorage = () => {
   if (_saveTimer) clearTimeout(_saveTimer);
@@ -53,36 +37,19 @@ const _saveToStorage = () => {
       _logoCache.forEach((url, symbol) => { data[symbol] = url; });
       _failedSymbols.forEach((symbol) => { data[symbol] = 'FAIL'; });
       localStorage.setItem(CACHE_KEY, JSON.stringify({ v: CACHE_VERSION, data }));
-    } catch (e) {
-      // Storage full or unavailable — silently ignore
-    }
+    } catch (e) {}
   }, 2000);
 };
-
-
-// ════════════════════════════════════════
-// LOGO SOURCES (reduced to 3 most reliable + free)
-// ════════════════════════════════════════
 
 const getLogoSources = (symbol) => {
   const clean = symbol.toLowerCase().replace(/^1000/, '');
   
   return [
-    // 1. CoinCap — very reliable, fast CDN, good coverage
     `https://assets.coincap.io/assets/icons/${clean}@2x.png`,
-    
-    // 2. CryptoIcons GitHub — great coverage, reliable CDN (raw.githubusercontent)
     `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${clean}.png`,
-    
-    // 3. LiveCoinWatch — good fallback for newer/smaller coins
     `https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/${clean}.png`,
   ];
 };
-
-
-// ════════════════════════════════════════
-// COLOR MAPPINGS (for fallback avatars)
-// ════════════════════════════════════════
 
 const COIN_COLORS = {
   'BTC': ['#f7931a', '#c57612'], 'ETH': ['#627eea', '#4158b0'],
@@ -201,11 +168,6 @@ const COIN_COLORS = {
   'SRM': ['#52e4cb', '#42b6a2'], 'CTK': ['#c5985f', '#9e7a4c'],
 };
 
-
-// ════════════════════════════════════════
-// GRADIENT HELPERS
-// ════════════════════════════════════════
-
 const GRADIENTS = [
   ['#f7931a', '#c57612'], ['#627eea', '#4158b0'], ['#00d4aa', '#00a383'],
   ['#e84142', '#b33233'], ['#f3ba2f', '#d4a017'], ['#8247e5', '#6235b0'],
@@ -231,18 +193,12 @@ const getInitials = (symbol) => {
   return display ? display.substring(0, 2).toUpperCase() : '?';
 };
 
-
-// ════════════════════════════════════════
-// COIN LOGO COMPONENT
-// ════════════════════════════════════════
-
 const CoinLogo = ({ pair, size = 40, className = '' }) => {
   const [resolvedUrl, setResolvedUrl] = useState(null);
   const [failed, setFailed] = useState(false);
   const sourceIndexRef = useRef(0);
   const sourcesRef = useRef([]);
 
-  // Extract symbol
   const symbol = pair
     ? pair.replace(/USDT$/i, '').replace(/BUSD$/i, '').replace(/USDC$/i, '').replace(/USD$/i, '').toUpperCase()
     : '';
@@ -250,20 +206,17 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   useEffect(() => {
     if (!symbol) { setFailed(true); return; }
 
-    // 1. Check in-memory cache (instant)
     if (_logoCache.has(symbol)) {
       setResolvedUrl(_logoCache.get(symbol));
       setFailed(false);
       return;
     }
 
-    // 2. Check failed blacklist (instant fallback)
     if (_failedSymbols.has(symbol)) {
       setFailed(true);
       return;
     }
 
-    // 3. Start loading from sources
     sourceIndexRef.current = 0;
     sourcesRef.current = getLogoSources(symbol);
     setResolvedUrl(sourcesRef.current[0]);
@@ -276,7 +229,6 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
       sourceIndexRef.current = nextIndex;
       setResolvedUrl(sourcesRef.current[nextIndex]);
     } else {
-      // All sources failed — blacklist this symbol
       _failedSymbols.add(symbol);
       _saveToStorage();
       setFailed(true);
@@ -284,14 +236,12 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   };
 
   const handleLoad = () => {
-    // Cache the working URL for this symbol
     if (resolvedUrl && !_logoCache.has(symbol)) {
       _logoCache.set(symbol, resolvedUrl);
       _saveToStorage();
     }
   };
 
-  // Fallback: gradient letter avatar
   if (failed || !resolvedUrl) {
     const [color1, color2] = getGradientForSymbol(symbol);
     return (
