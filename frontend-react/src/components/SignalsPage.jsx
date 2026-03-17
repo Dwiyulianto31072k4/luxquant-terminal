@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
@@ -15,7 +15,11 @@ const SignalsPage = () => {
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [stats, setStats] = useState(null);
-  const [currentPrices, setCurrentPrices] = useState({});
+
+  // Use ref for currentPrices to avoid re-render loops in useMemo
+  const currentPricesRef = useRef({});
+  // Counter to trigger re-sort when prices update (controlled, not every tick)
+  const [priceVersion, setPriceVersion] = useState(0);
 
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -95,17 +99,23 @@ const SignalsPage = () => {
     return { total, open, wins, losses, closedCount, wr };
   }, [allSignals]);
 
-  // ─── Helper: get price/volume from currentPrices ───
+  // Callback from SignalsTable — update ref + bump version for re-sort
+  const handlePricesUpdate = useCallback((priceMap) => {
+    currentPricesRef.current = priceMap;
+    setPriceVersion((v) => v + 1);
+  }, []);
+
+  // ─── Helper: get price/volume from currentPrices ref ───
   const getPriceVal = (pair) => {
-    const data = currentPrices[pair];
+    const data = currentPricesRef.current[pair];
     if (!data) return 0;
-    if (typeof data === 'number') return data;
+    if (typeof data === "number") return data;
     return data.price || 0;
   };
 
   const getVolVal = (pair) => {
-    const data = currentPrices[pair];
-    if (!data || typeof data === 'number') return 0;
+    const data = currentPricesRef.current[pair];
+    if (!data || typeof data === "number") return 0;
     return data.volume || 0;
   };
 
@@ -267,7 +277,7 @@ const SignalsPage = () => {
     sortOrder,
     page,
     pageSize,
-    currentPrices,
+    priceVersion, // triggers re-sort when prices update, but doesn't cause infinite loop
   ]);
 
   const handleSort = (field) => {
@@ -499,7 +509,7 @@ const SignalsPage = () => {
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
-          onPricesUpdate={setCurrentPrices}
+          onPricesUpdate={handlePricesUpdate}
         />
       )}
 

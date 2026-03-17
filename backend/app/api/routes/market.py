@@ -9,6 +9,7 @@ OPTIMIZED v3:
 - Config-driven timeouts
 
 v4: /prices endpoint now returns {price, volume} per symbol
+v5: /prices Bybit fallback when Binance is blocked/unavailable
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Any
@@ -26,6 +27,10 @@ BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 COINGECKO_API = "https://api.coingecko.com/api/v3"
 FEAR_GREED_API = "https://api.alternative.me/fng"
+
+# Bybit fallback endpoints
+BYBIT_API = "https://api.bybit.com"
+BYBIT_ID_API = "https://api.bybit.id"
 
 # CoinGecko Demo API Key
 import os
@@ -413,8 +418,73 @@ async def get_taker_volume(symbol: str = "BTCUSDT", period: str = "5m", limit: i
 
 
 # ============================================================
-# BATCH PRICES + VOLUME (v4 — now includes 24h volume)
+# BATCH PRICES + VOLUME (v5 — Binance → Bybit fallback chain)
 # ============================================================
+
+async def _fetch_binance_tickers(client):
+    """Fetch all futures tickers from Binance. Returns dict or None."""
+    try:
+        response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
+        if response.status_code == 200:
+            tickers = {}
+            for item in response.json():
+                tickers[item["symbol"]] = {
+                    "price": float(item["lastPrice"]),
+                    "volume": float(item["quoteVolume"]),
+                }
+            return tickers
+    except Exception as e:
+        print(f"⚠️ Binance futures tickers failed: {e}")
+    
+    # Fallback: Binance spot
+    try:
+        response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr")
+        if response.status_code == 200:
+            tickers = {}
+            for item in response.json():
+                tickers[item["symbol"]] = {
+                    "price": float(item["lastPrice"]),
+                    "volume": float(item["quoteVolume"]),
+                }
+            return tickers
+    except Exception as e:
+        print(f"⚠️ Binance spot tickers failed: {e}")
+    
+    return None
+
+
+async def _fetch_bybit_tickers(client):
+    """Fetch tickers from Bybit as fallback. Returns dict or None."""
+    # Try Bybit global linear first
+    for base_url in [BYBIT_API, BYBIT_ID_API]:
+        for category in ["linear", "spot"]:
+            try:
+                response = await client.get(
+                    f"{base_url}/v5/market/tickers",
+                    params={"category": category}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    items = data.get("result", {}).get("list", [])
+                    if not items:
+                        continue
+                    tickers = {}
+                    for item in items:
+                        symbol = item.get("symbol", "")
+                        if not symbol.endswith("USDT"):
+                            continue
+                        tickers[symbol] = {
+                            "price": float(item.get("lastPrice", 0) or 0),
+                            "volume": float(item.get("turnover24h", 0) or 0),
+                        }
+                    if tickers:
+                        return tickers
+            except Exception as e:
+                print(f"⚠️ Bybit {base_url} {category} failed: {e}")
+                continue
+    
+    return None
+
 
 @router.get("/prices")
 async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
@@ -422,36 +492,39 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
     Batch prices + 24h volume with 5-second Redis cache.
     Returns: { "BTCUSDT": { "price": 100000.5, "volume": 5000000000 }, ... }
     
-    v4 CHANGED: Uses ticker/24hr instead of ticker/price for volume data.
-    Frontend SignalsTable consumes this for both current price display and volume column.
+    v5: Binance → Bybit fallback chain. Never returns empty if stale data exists.
     """
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
     if not symbol_list:
         return {}
 
-    # Step 1: Check cache for ALL futures ticker data (single key, refreshed every 5s)
+    # Step 1: Check cache (shared across all requests, refreshed every 5s)
     cache_key = "lq:market:all-futures-tickers"
     all_tickers = cache_get(cache_key)
 
     if not all_tickers:
-        # Cache miss — fetch ALL futures 24hr tickers in single call
         client = get_binance_client()
-        all_tickers = {}
-        try:
-            response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
-            if response.status_code == 200:
-                for item in response.json():
-                    all_tickers[item["symbol"]] = {
-                        "price": float(item["lastPrice"]),
-                        "volume": float(item["quoteVolume"]),
-                    }
-                cache_set(cache_key, all_tickers, ttl=5)
-        except Exception:
+        
+        # Try Binance first
+        all_tickers = await _fetch_binance_tickers(client)
+        
+        # Fallback: Bybit
+        if not all_tickers:
+            general_client = get_general_client()
+            all_tickers = await _fetch_bybit_tickers(general_client)
+        
+        # Cache whatever we got
+        if all_tickers:
+            cache_set(cache_key, all_tickers, ttl=5)
+        else:
+            # All providers failed — try stale cache
             stale, _ = cache_get_with_stale(cache_key)
             if stale:
                 all_tickers = stale
+            else:
+                all_tickers = {}
 
-    # Step 2: Extract requested symbols
+    # Step 2: Extract requested symbols from futures/linear data
     results = {}
     missing = []
     for symbol in symbol_list:
@@ -460,17 +533,17 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
         else:
             missing.append(symbol)
 
-    # Step 3: For symbols not on Futures, try Spot bulk (also cached)
+    # Step 3: For symbols not found, try spot data
     if missing:
         spot_cache_key = "lq:market:all-spot-tickers"
         spot_tickers = cache_get(spot_cache_key)
 
         if not spot_tickers:
             client = get_binance_client()
-            spot_tickers = {}
             try:
                 response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr")
                 if response.status_code == 200:
+                    spot_tickers = {}
                     for item in response.json():
                         spot_tickers[item["symbol"]] = {
                             "price": float(item["lastPrice"]),
@@ -478,9 +551,38 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
                         }
                     cache_set(spot_cache_key, spot_tickers, ttl=5)
             except Exception:
+                pass
+
+            # Spot Binance failed — try Bybit spot
+            if not spot_tickers:
+                try:
+                    general_client = get_general_client()
+                    response = await general_client.get(
+                        f"{BYBIT_API}/v5/market/tickers",
+                        params={"category": "spot"}
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        items = data.get("result", {}).get("list", [])
+                        spot_tickers = {}
+                        for item in items:
+                            symbol_name = item.get("symbol", "")
+                            if symbol_name.endswith("USDT"):
+                                spot_tickers[symbol_name] = {
+                                    "price": float(item.get("lastPrice", 0) or 0),
+                                    "volume": float(item.get("turnover24h", 0) or 0),
+                                }
+                        if spot_tickers:
+                            cache_set(spot_cache_key, spot_tickers, ttl=5)
+                except Exception:
+                    pass
+
+            if not spot_tickers:
                 stale, _ = cache_get_with_stale(spot_cache_key)
                 if stale:
                     spot_tickers = stale
+                else:
+                    spot_tickers = {}
 
         for symbol in missing:
             if symbol in spot_tickers:

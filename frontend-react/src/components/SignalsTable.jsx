@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
@@ -28,6 +28,9 @@ const SignalsTable = ({
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
 
+  // Ref to track pairs for stable useEffect dependency
+  const pairsKeyRef = useRef('');
+
   useEffect(() => {
     if (!isAuthenticated) return;
     watchlistApi.getWatchlistIds()
@@ -41,36 +44,98 @@ const SignalsTable = ({
     );
   };
 
+  // Stable price fetching — only re-run when actual pair list changes
   useEffect(() => {
     if (!signals || signals.length === 0) return;
 
-    const fetchCurrentPrices = async () => {
-      setPricesLoading(true);
-      try {
-        const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))];
-        if (uniquePairs.length === 0) {
-          setPricesLoading(false);
-          return;
-        }
+    const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))].sort();
+    const newPairsKey = uniquePairs.join(',');
+    
+    // Skip if pairs haven't changed (prevents re-fetch on every re-render)
+    if (newPairsKey === pairsKeyRef.current && Object.keys(currentPrices).length > 0) {
+      // Pairs same, interval already running — do nothing
+    }
+    pairsKeyRef.current = newPairsKey;
 
+    if (uniquePairs.length === 0) return;
+
+    const fetchCurrentPrices = async () => {
+      try {
+        // Primary: Backend proxy (Binance via /api/v1/market/prices)
         const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
-        if (!response.ok) throw new Error('Failed to fetch prices');
+        if (!response.ok) throw new Error('Backend prices failed');
         
         const tickerMap = await response.json();
-        setCurrentPrices(tickerMap);
         
+        // Validate response has data
+        const keys = Object.keys(tickerMap);
+        if (keys.length === 0) throw new Error('Empty response');
+        
+        setCurrentPrices(tickerMap);
         if (onPricesUpdate) onPricesUpdate(tickerMap);
-      } catch (error) {
-        console.error('Error fetching current prices:', error);
-      } finally {
-        setPricesLoading(false);
+        return;
+      } catch (err) {
+        console.warn('[Prices] Backend failed, trying Bybit fallback:', err.message);
+      }
+
+      // Fallback: Bybit direct API
+      try {
+        const bybitMap = {};
+        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
+        if (res.ok) {
+          const json = await res.json();
+          const list = json?.result?.list || [];
+          for (const item of list) {
+            if (uniquePairs.includes(item.symbol)) {
+              bybitMap[item.symbol] = {
+                price: parseFloat(item.lastPrice) || 0,
+                volume: parseFloat(item.turnover24h) || 0,
+              };
+            }
+          }
+        }
+        if (Object.keys(bybitMap).length > 0) {
+          setCurrentPrices(bybitMap);
+          if (onPricesUpdate) onPricesUpdate(bybitMap);
+          return;
+        }
+      } catch (err2) {
+        console.warn('[Prices] Bybit fallback also failed:', err2.message);
+      }
+
+      // Fallback 2: Bybit spot
+      try {
+        const bybitSpotMap = {};
+        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=spot');
+        if (res.ok) {
+          const json = await res.json();
+          const list = json?.result?.list || [];
+          for (const item of list) {
+            if (uniquePairs.includes(item.symbol)) {
+              bybitSpotMap[item.symbol] = {
+                price: parseFloat(item.lastPrice) || 0,
+                volume: parseFloat(item.turnover24h) || 0,
+              };
+            }
+          }
+        }
+        if (Object.keys(bybitSpotMap).length > 0) {
+          setCurrentPrices(bybitSpotMap);
+          if (onPricesUpdate) onPricesUpdate(bybitSpotMap);
+        }
+      } catch (err3) {
+        console.warn('[Prices] All providers failed:', err3.message);
       }
     };
 
-    fetchCurrentPrices();
+    // Initial fetch
+    setPricesLoading(true);
+    fetchCurrentPrices().finally(() => setPricesLoading(false));
+
+    // Interval — every 15 seconds
     const interval = setInterval(fetchCurrentPrices, 15000);
     return () => clearInterval(interval);
-  }, [signals]);
+  }, [signals?.length, signals?.map(s => s.pair).sort().join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Helpers ───
   const getPrice = (pair) => {
