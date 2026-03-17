@@ -1,6 +1,6 @@
 // src/App.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — URL-Based Routing v3
+// LuxQuant Terminal — URL-Based Routing v3 + Lazy Loading
 // ════════════════════════════════════════════════════════════════
 //
 //   /                    → Landing Page                 [PUBLIC]
@@ -23,27 +23,48 @@
 //
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import OverviewPage from "./components/OverviewPage";
-import SignalsPage from "./components/SignalsPage";
-import BitcoinPage from "./components/BitcoinPage";
-import MarketsPage from "./components/MarketsPage";
-import AnalyzePage from "./components/AnalyzePage";
-import WatchlistPage from "./components/WatchlistPage";
-import TipsPage from "./components/TipsPage";
-import UserManagementPage from "./components/UserManagementPage";
-import MacroCalendarPage from "./components/MacroCalendarPage";
-import WhaleAlertPage from "./components/WhaleAlertPage";
-import OrderBookPage from "./components/OrderBookPage";
-import AIArenaPage from "./components/AIArenaPage";
-import ReferralPage from "./components/ReferralPage";
-import { LoginPage, UserMenu } from "./components/auth";
-import GoogleCallback from "./components/auth/GoogleCallback";
-import { PricingPage, PaymentPage, PremiumModal } from "./components/subscription";
-import { LandingPage } from "./components/landing";
+
+// ════════════════════════════════════════
+// LAZY LOADED PAGES — each becomes its own chunk
+// ════════════════════════════════════════
+const OverviewPage = lazy(() => import("./components/OverviewPage"));
+const SignalsPage = lazy(() => import("./components/SignalsPage"));
+const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
+const MarketsPage = lazy(() => import("./components/MarketsPage"));
+const AnalyzePage = lazy(() => import("./components/AnalyzePage"));
+const WatchlistPage = lazy(() => import("./components/WatchlistPage"));
+const TipsPage = lazy(() => import("./components/TipsPage"));
+const UserManagementPage = lazy(() => import("./components/UserManagementPage"));
+const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
+const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
+const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
+const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
+const ReferralPage = lazy(() => import("./components/ReferralPage"));
+const LandingPage = lazy(() => import("./components/landing/LandingPage"));
+const LoginPage = lazy(() => import("./components/auth/LoginPage"));
+const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
+const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
+const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
+
+// Keep these eager — always visible in AppShell
+import { UserMenu } from "./components/auth";
+import { PremiumModal } from "./components/subscription";
+
+// ════════════════════════════════════════
+// PAGE LOADING FALLBACK
+// ════════════════════════════════════════
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+      <span className="text-text-muted text-xs font-mono">Loading...</span>
+    </div>
+  </div>
+);
 
 // ════════════════════════════════════════
 // ACCESS CONTROL
@@ -277,8 +298,12 @@ function AppShell({ children }) {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">{children}</main>
+      {/* MAIN CONTENT — wrapped in Suspense for lazy loaded pages */}
+      <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
+        <Suspense fallback={<PageLoader />}>
+          {children}
+        </Suspense>
+      </main>
 
       {/* MOBILE BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
@@ -322,7 +347,11 @@ function LoginPageWrapper() {
   const location = useLocation();
   const redirectTo = new URLSearchParams(location.search).get("redirect") || "/home";
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
-  return <LoginPage />;
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <LoginPage />
+    </Suspense>
+  );
 }
 
 // ════════════════════════════════════════
@@ -334,11 +363,11 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* Landing — everyone sees this first */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
 
           {/* Auth — only Google & Telegram */}
           <Route path="/login" element={<LoginPageWrapper />} />
-          <Route path="/auth/google/callback" element={<GoogleCallback />} />
+          <Route path="/auth/google/callback" element={<Suspense fallback={<PageLoader />}><GoogleCallback /></Suspense>} />
 
           {/* Redirect old /register to /login */}
           <Route path="/register" element={<Navigate to="/login" replace />} />

@@ -169,14 +169,14 @@ const PricingPage = () => {
         {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="animate-spin w-8 h-8 border-2 border-transparent rounded-full"
-                 style={{ borderTopColor: '#d4a853' }} />
+              style={{ borderTopColor: '#d4a853' }} />
           </div>
         ) : (
           <>
             {/* ─── Header ─── */}
             <div className="text-center mb-20">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
-                   style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
+                style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
                 <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#d4a853' }} />
                 <span style={{ color: '#d4a853' }} className="text-xs font-semibold tracking-widest uppercase">
                   {t('pricing.premium_access')}
@@ -184,12 +184,12 @@ const PricingPage = () => {
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight"
-                  style={{ fontFamily: 'Playfair Display, serif' }}>
+                style={{ fontFamily: 'Playfair Display, serif' }}>
                 {isPremium ? t('pricing.switch') : t('pricing.upgrade_to')}{' '}
                 <span className="relative">
                   <span style={{ color: '#d4a853' }}>{t('pricing.premium')}</span>
                   <div className="absolute -bottom-2 left-0 right-0 h-px"
-                       style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5), transparent)' }} />
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5), transparent)' }} />
                 </span>
               </h1>
 
@@ -212,9 +212,8 @@ const PricingPage = () => {
                 return (
                   <div
                     key={plan.id}
-                    className={`group relative rounded-2xl transition-all duration-500 ${
-                      isHighlighted ? 'md:-mt-3 md:mb-3' : ''
-                    }`}
+                    className={`group relative rounded-2xl transition-all duration-500 ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''
+                      }`}
                     style={{
                       background: isCurrent
                         ? 'linear-gradient(168deg, rgba(34,197,94,0.08) 0%, rgba(10,5,6,0.95) 40%)'
@@ -231,25 +230,25 @@ const PricingPage = () => {
                   >
                     {/* Hover glow */}
                     <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                         style={{
-                           boxShadow: isCurrent
-                             ? '0 0 40px rgba(34,197,94,0.08)'
-                             : '0 0 40px rgba(212,168,83,0.06)',
-                         }} />
+                      style={{
+                        boxShadow: isCurrent
+                          ? '0 0 40px rgba(34,197,94,0.08)'
+                          : '0 0 40px rgba(212,168,83,0.06)',
+                      }} />
 
                     {/* Badge */}
                     {(isCurrent || badge) && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                         <div className="px-4 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase"
-                             style={isCurrent ? {
-                               background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                               color: '#fff',
-                               boxShadow: '0 2px 12px rgba(34,197,94,0.3)',
-                             } : {
-                               background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
-                               color: '#0a0506',
-                               boxShadow: '0 2px 12px rgba(212,168,83,0.3)',
-                             }}>
+                          style={isCurrent ? {
+                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                            color: '#fff',
+                            boxShadow: '0 2px 12px rgba(34,197,94,0.3)',
+                          } : {
+                            background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
+                            color: '#0a0506',
+                            boxShadow: '0 2px 12px rgba(212,168,83,0.3)',
+                          }}>
                           {isCurrent ? t('pricing.current_plan') : badge}
                         </div>
                       </div>
@@ -258,7 +257,7 @@ const PricingPage = () => {
                     {/* Most Popular indicator line for highlighted */}
                     {isHighlighted && !isCurrent && (
                       <div className="absolute top-0 left-4 right-4 h-px"
-                           style={{ background: 'linear-gradient(90deg, transparent, #d4a853, transparent)' }} />
+                        style={{ background: 'linear-gradient(90deg, transparent, #d4a853, transparent)' }} />
                     )}
 
                     <div className="relative p-6 sm:p-7">
@@ -282,7 +281,7 @@ const PricingPage = () => {
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-sm" style={{ color: '#6b5c52' }}>$</span>
                           <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight"
-                                style={{ fontFamily: 'Playfair Display, serif' }}>
+                            style={{ fontFamily: 'Playfair Display, serif' }}>
                             {plan.price_usdt}
                           </span>
                           <span className="text-sm ml-0.5" style={{ color: '#6b5c52' }}>
@@ -296,21 +295,22 @@ const PricingPage = () => {
 
                       {/* Divider */}
                       <div className="h-px mb-6"
-                           style={{ background: isCurrent
-                             ? 'linear-gradient(90deg, rgba(34,197,94,0.15), transparent)'
-                             : 'linear-gradient(90deg, rgba(212,168,83,0.1), transparent)'
-                           }} />
+                        style={{
+                          background: isCurrent
+                            ? 'linear-gradient(90deg, rgba(34,197,94,0.15), transparent)'
+                            : 'linear-gradient(90deg, rgba(212,168,83,0.1), transparent)'
+                        }} />
 
                       {/* Features */}
                       <ul className="space-y-3.5 mb-8">
                         {features.map((feature, i) => (
                           <li key={i} className="flex items-center gap-3 text-sm" style={{ color: '#a09080' }}>
                             <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                                 style={{
-                                   background: isCurrent ? 'rgba(34,197,94,0.1)' : 'rgba(212,168,83,0.08)',
-                                 }}>
+                              style={{
+                                background: isCurrent ? 'rgba(34,197,94,0.1)' : 'rgba(212,168,83,0.08)',
+                              }}>
                               <svg className="w-2.5 h-2.5" style={{ color: isCurrent ? '#22c55e' : '#d4a853' }}
-                                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             </div>
@@ -342,7 +342,7 @@ const PricingPage = () => {
                         {/* Button hover shine effect */}
                         {!isCurrent && isHighlighted && (
                           <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"
-                               style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
+                            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
                         )}
                         <span className="relative">
                           {creating && selectedPlan === plan.id
@@ -360,14 +360,14 @@ const PricingPage = () => {
             {/* ─── Payment Info ─── */}
             <div className="max-w-3xl mx-auto">
               <div className="relative rounded-2xl overflow-hidden"
-                   style={{ background: 'rgba(12,7,8,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
+                style={{ background: 'rgba(12,7,8,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
                 <div className="absolute top-0 left-0 right-0 h-px"
-                     style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.15), transparent)' }} />
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.15), transparent)' }} />
                 <div className="px-8 py-8 text-center">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <svg className="w-4 h-4" style={{ color: '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                            d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
                     <h3 className="text-sm font-semibold text-white tracking-wide">
                       {t('pricing.payment_title')}

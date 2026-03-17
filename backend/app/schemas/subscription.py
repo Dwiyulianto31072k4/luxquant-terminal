@@ -34,6 +34,8 @@ class PlanUpdate(BaseModel):
 class PaymentCreate(BaseModel):
     plan_id: int
     is_upgrade: bool = False  # True when upgrading existing subscription
+    currency: str = "usdt"
+    network: str = "bsc"
 
 
 class PaymentVerify(BaseModel):

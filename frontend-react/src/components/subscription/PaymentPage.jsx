@@ -213,7 +213,7 @@ const PaymentPage = () => {
         {/* ─── Header ─── */}
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight"
-              style={{ fontFamily: 'Playfair Display, serif' }}>
+            style={{ fontFamily: 'Playfair Display, serif' }}>
             {t('payment.title')}
           </h1>
           <p className="text-sm" style={{ color: '#6b5c52' }}>
@@ -223,11 +223,11 @@ const PaymentPage = () => {
 
         {/* ─── Main Payment Card ─── */}
         <div className="rounded-2xl overflow-hidden mb-6"
-             style={{
-               background: 'rgba(15,8,10,0.85)',
-               border: '1px solid rgba(212,168,83,0.12)',
-               backdropFilter: 'blur(20px)',
-             }}>
+          style={{
+            background: 'rgba(15,8,10,0.85)',
+            border: '1px solid rgba(212,168,83,0.12)',
+            backdropFilter: 'blur(20px)',
+          }}>
 
           {/* Top accent */}
           <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.2), transparent)' }} />
@@ -235,10 +235,10 @@ const PaymentPage = () => {
           <div className="p-5 sm:p-7">
             {/* Timer bar */}
             <div className="flex items-center justify-between mb-7 pb-5"
-                 style={{ borderBottom: '1px solid rgba(212,168,83,0.06)' }}>
+              style={{ borderBottom: '1px solid rgba(212,168,83,0.06)' }}>
               <span className="text-xs" style={{ color: '#534a42' }}>{t('payment.expires_in')}</span>
               <span className={`text-sm font-mono font-bold tracking-wider ${timeLeft === t('payment.expired') ? 'text-red-400' : ''}`}
-                    style={timeLeft !== t('payment.expired') ? { color: '#d4a853' } : {}}>
+                style={timeLeft !== t('payment.expired') ? { color: '#d4a853' } : {}}>
                 {timeLeft || t('payment.calculating')}
               </span>
             </div>
@@ -247,7 +247,7 @@ const PaymentPage = () => {
             <div className="mb-7">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                     style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>1</div>
+                  style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>1</div>
                 <span className="text-sm font-medium text-white">{t('payment.step1')}</span>
               </div>
 
@@ -304,7 +304,7 @@ const PaymentPage = () => {
                         <div className="flex items-center gap-3">
                           {/* Radio dot */}
                           <div className="w-4 h-4 rounded-full flex items-center justify-center"
-                               style={{ border: `1.5px solid ${isActive ? '#d4a853' : 'rgba(212,168,83,0.15)'}` }}>
+                            style={{ border: `1.5px solid ${isActive ? '#d4a853' : 'rgba(212,168,83,0.15)'}` }}>
                             {isActive && (
                               <div className="w-2 h-2 rounded-full" style={{ background: '#d4a853' }} />
                             )}
@@ -315,11 +315,11 @@ const PaymentPage = () => {
                         </div>
                         {net.badge && (
                           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                                style={{
-                                  background: net.badge === 'recommended' ? 'rgba(212,168,83,0.1)' : 'rgba(34,197,94,0.1)',
-                                  color: net.badge === 'recommended' ? '#d4a853' : '#22c55e',
-                                  border: `1px solid ${net.badge === 'recommended' ? 'rgba(212,168,83,0.15)' : 'rgba(34,197,94,0.15)'}`,
-                                }}>
+                            style={{
+                              background: net.badge === 'recommended' ? 'rgba(212,168,83,0.1)' : 'rgba(34,197,94,0.1)',
+                              color: net.badge === 'recommended' ? '#d4a853' : '#22c55e',
+                              border: `1px solid ${net.badge === 'recommended' ? 'rgba(212,168,83,0.15)' : 'rgba(34,197,94,0.15)'}`,
+                            }}>
                             {t(`payment.${net.badge}`)}
                           </span>
                         )}
@@ -337,13 +337,13 @@ const PaymentPage = () => {
             <div className="mb-7">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                     style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>2</div>
+                  style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>2</div>
                 <span className="text-sm font-medium text-white">{t('payment.step2')}</span>
               </div>
 
               {/* Amount Box */}
               <div className="rounded-xl p-4 mb-3"
-                   style={{ background: 'rgba(10,5,6,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
+                style={{ background: 'rgba(10,5,6,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#534a42' }}>
@@ -372,7 +372,7 @@ const PaymentPage = () => {
 
               {/* Wallet Address Box */}
               <div className="rounded-xl p-4"
-                   style={{ background: 'rgba(10,5,6,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
+                style={{ background: 'rgba(10,5,6,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
                 <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: '#534a42' }}>
                   {t('payment.wallet_address')}
                 </p>
@@ -394,10 +394,10 @@ const PaymentPage = () => {
               {/* Network Warning */}
               {currentNetworkConfig && (
                 <div className="mt-3 flex items-start gap-2.5 p-3.5 rounded-xl"
-                     style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.1)' }}>
+                  style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.1)' }}>
                   <svg className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
                   <p className="text-[11px] leading-relaxed" style={{ color: '#a09080' }}>
                     {t(`payment.${currentNetworkConfig.warningKey}`)}
@@ -413,7 +413,7 @@ const PaymentPage = () => {
             <div>
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                     style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>3</div>
+                  style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>3</div>
                 <span className="text-sm font-medium text-white">{t('payment.step3')}</span>
               </div>
 
@@ -447,7 +447,7 @@ const PaymentPage = () => {
               >
                 {/* Hover shine */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                     style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
+                  style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
                 <span className="relative">
                   {verifying ? (
                     <span className="flex items-center justify-center gap-2">
@@ -467,19 +467,19 @@ const PaymentPage = () => {
         {/* ─── Result ─── */}
         {result && (
           <div className="rounded-2xl overflow-hidden mb-6"
-               style={{
-                 background: result.status === 'confirmed'
-                   ? 'rgba(34,197,94,0.04)' : result.status === 'failed' || result.status === 'error'
-                   ? 'rgba(239,68,68,0.04)' : 'rgba(234,179,8,0.04)',
-                 border: `1px solid ${result.status === 'confirmed'
-                   ? 'rgba(34,197,94,0.2)' : result.status === 'failed' || result.status === 'error'
-                   ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)'}`,
-               }}>
+            style={{
+              background: result.status === 'confirmed'
+                ? 'rgba(34,197,94,0.04)' : result.status === 'failed' || result.status === 'error'
+                  ? 'rgba(239,68,68,0.04)' : 'rgba(234,179,8,0.04)',
+              border: `1px solid ${result.status === 'confirmed'
+                ? 'rgba(34,197,94,0.2)' : result.status === 'failed' || result.status === 'error'
+                  ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)'}`,
+            }}>
             <div className="p-6 text-center">
               {result.status === 'confirmed' ? (
                 <>
                   <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
-                       style={{ background: 'rgba(34,197,94,0.1)' }}>
+                    style={{ background: 'rgba(34,197,94,0.1)' }}>
                     <svg className="w-6 h-6" style={{ color: '#22c55e' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -497,13 +497,13 @@ const PaymentPage = () => {
               ) : (
                 <>
                   <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
-                       style={{
-                         background: result.status === 'failed' || result.status === 'error'
-                           ? 'rgba(239,68,68,0.1)' : 'rgba(234,179,8,0.1)',
-                       }}>
+                    style={{
+                      background: result.status === 'failed' || result.status === 'error'
+                        ? 'rgba(239,68,68,0.1)' : 'rgba(234,179,8,0.1)',
+                    }}>
                     <svg className="w-6 h-6"
-                         style={{ color: result.status === 'failed' || result.status === 'error' ? '#f87171' : '#fbbf24' }}
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      style={{ color: result.status === 'failed' || result.status === 'error' ? '#f87171' : '#fbbf24' }}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {result.status === 'failed' || result.status === 'error' ? (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       ) : (
@@ -512,7 +512,7 @@ const PaymentPage = () => {
                     </svg>
                   </div>
                   <h3 className="text-base font-bold mb-1"
-                      style={{ color: result.status === 'failed' || result.status === 'error' ? '#f87171' : '#fbbf24' }}>
+                    style={{ color: result.status === 'failed' || result.status === 'error' ? '#f87171' : '#fbbf24' }}>
                     {result.status === 'failed' || result.status === 'error' ? t('payment.failed_title') : t('payment.pending_title')}
                   </h3>
                   <p className="text-xs" style={{ color: '#6b5c52' }}>{result.message}</p>

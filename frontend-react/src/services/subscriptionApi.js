@@ -3,14 +3,14 @@ import api from './authApi';
 
 const subscriptionApi = {
   // ============ Plans ============
-  
+
   getPlans: async () => {
     const response = await api.get('/api/v1/subscription/plans');
     return response.data;
   },
 
   // ============ Subscribe & Pay ============
-  
+
   createInvoice: async (planId, isUpgrade = false) => {
     const response = await api.post('/api/v1/subscription/subscribe', {
       plan_id: planId,
@@ -28,7 +28,7 @@ const subscriptionApi = {
   },
 
   // ============ Status ============
-  
+
   getMySubscription: async () => {
     const response = await api.get('/api/v1/subscription/me');
     return response.data;
@@ -40,7 +40,7 @@ const subscriptionApi = {
   },
 
   // ============ Admin ============
-  
+
   admin: {
     getPlans: async () => {
       const response = await api.get('/api/v1/admin/plans');
