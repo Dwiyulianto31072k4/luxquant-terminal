@@ -13,6 +13,7 @@ import { pricingEn, pricingZh } from './locales/pricing';
 import { paymentEn, paymentZh } from './locales/payment';
 import { referralEn, referralZh } from './locales/referral';
 import { authEn, authZh } from './locales/auth';
+import { profileEn, profileZh } from './locales/profile';
 
 const resources = {
   en: {
@@ -37,6 +38,7 @@ const resources = {
       payment: paymentEn,
       referral: referralEn,
       auth: authEn,
+      profile: profileEn,
     }
   },
   zh: {
@@ -61,6 +63,7 @@ const resources = {
       payment: paymentZh,
       referral: referralZh,
       auth: authZh,
+      profile: profileZh,
     }
   }
 };
