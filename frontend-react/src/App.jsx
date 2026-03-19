@@ -50,11 +50,14 @@ const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
 const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
 const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
+const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
+
 
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
+import NotificationBell from "./components/NotificationBell";
 
 // ════════════════════════════════════════
 // PAGE LOADING FALLBACK
@@ -264,9 +267,7 @@ function AppShell({ children }) {
                   </button>
                 ))}
               </div>
-              <button className="relative w-9 h-9 flex items-center justify-center rounded-full text-text-muted hover:text-white hover:bg-white/[0.06] transition-all" title="Notifications">
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
-              </button>
+              <NotificationBell />
               <UserMenu />
             </div>
           </div>

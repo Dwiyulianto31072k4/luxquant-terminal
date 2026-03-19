@@ -14,6 +14,7 @@ import { paymentEn, paymentZh } from './locales/payment';
 import { referralEn, referralZh } from './locales/referral';
 import { authEn, authZh } from './locales/auth';
 import { profileEn, profileZh } from './locales/profile';
+import { notificationsEn, notificationsZh } from './locales/notifications';
 
 const resources = {
   en: {
@@ -39,6 +40,7 @@ const resources = {
       referral: referralEn,
       auth: authEn,
       profile: profileEn,
+      notifications: notificationsEn,
     }
   },
   zh: {
@@ -64,6 +66,7 @@ const resources = {
       referral: referralZh,
       auth: authZh,
       profile: profileZh,
+      notifications: notificationsZh,
     }
   }
 };
