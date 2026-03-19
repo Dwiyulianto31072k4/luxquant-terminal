@@ -7,6 +7,7 @@
 //   /home                → Home / Dashboard             [PUBLIC]
 //   /analytics           → Performance (Proof of Calls) [FREE - login]
 //   /referral            → Referral Program             [FREE - login]
+//   /notifications       → Notifications                [FREE - login]
 //   /signals             → Potential Trades             [PREMIUM]
 //   /ai-arena            → AI Arena                     [PREMIUM]
 //   /bitcoin             → Bitcoin Dashboard            [PREMIUM]
@@ -52,8 +53,6 @@ const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
 const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
 
-
-
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
@@ -74,7 +73,7 @@ const PageLoader = () => (
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale"];
+const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications"];
 const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale"];
 
 // ════════════════════════════════════════
@@ -301,7 +300,7 @@ function AppShell({ children }) {
         </div>
       </div>
 
-      {/* MAIN CONTENT — wrapped in Suspense for lazy loaded pages */}
+      {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
         <Suspense fallback={<PageLoader />}>
           {children}
@@ -365,14 +364,12 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Landing — everyone sees this first */}
+          {/* Landing */}
           <Route path="/" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
 
-          {/* Auth — only Google & Telegram */}
+          {/* Auth */}
           <Route path="/login" element={<LoginPageWrapper />} />
           <Route path="/auth/google/callback" element={<Suspense fallback={<PageLoader />}><GoogleCallback /></Suspense>} />
-
-          {/* Redirect old /register to /login */}
           <Route path="/register" element={<Navigate to="/login" replace />} />
 
           {/* PUBLIC */}
@@ -384,6 +381,7 @@ function App() {
           <Route path="/analytics" element={<RequireAuth><AppShell><AnalyzePage /></AppShell></RequireAuth>} />
           <Route path="/referral" element={<RequireAuth><AppShell><ReferralPage /></AppShell></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><AppShell><ProfilePage /></AppShell></RequireAuth>} />
+          <Route path="/notifications" element={<RequireAuth><AppShell><NotificationsPage /></AppShell></RequireAuth>} />
 
           {/* PREMIUM */}
           <Route path="/signals" element={<RequireAuth><AppShell><PremiumGate><SignalsPage /></PremiumGate></AppShell></RequireAuth>} />
@@ -407,7 +405,7 @@ function App() {
           <Route path="/terminal/payment" element={<Navigate to="/payment" replace />} />
           <Route path="/terminal/*" element={<Navigate to="/home" replace />} />
 
-          {/* 404 → Landing */}
+          {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
