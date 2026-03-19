@@ -104,8 +104,8 @@ async def require_subscription(
     if current_user.is_admin or current_user.role == 'admin':
         return current_user
 
-    # Check premium role + expiry
-    if current_user.role == 'premium':
+    # Check subscriber/premium role + expiry
+    if current_user.role in ('premium', 'subscriber'):
         if current_user.subscription_expires_at is None:
             return current_user  # lifetime
         if current_user.subscription_expires_at > datetime.now(timezone.utc):

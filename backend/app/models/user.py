@@ -29,7 +29,7 @@ class User(Base):
     telegram_username = Column(String(100), nullable=True)
 
     # Subscription
-    role = Column(String(20), default="free", nullable=False)  # free, premium, admin
+    role = Column(String(20), default="free", nullable=False)  # free, subscriber, admin
     subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
     subscription_granted_by = Column(Integer, nullable=True)
     subscription_granted_at = Column(DateTime(timezone=True), nullable=True)
@@ -45,17 +45,15 @@ class User(Base):
 
     @property
     def is_premium(self) -> bool:
-        """Check if user has active premium subscription"""
+        """Check if user has active subscription"""
         if self.role == 'admin':
             return True
-        if self.role != 'premium':
+        if self.role not in ('premium', 'subscriber'):
             return False
         if self.subscription_expires_at is None:
             return True  # lifetime
         from datetime import datetime, timezone
         return self.subscription_expires_at > datetime.now(timezone.utc)
-
-
 
     def __repr__(self):
         return f"<User {self.username} role={self.role}>"

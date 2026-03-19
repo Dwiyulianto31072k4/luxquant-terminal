@@ -16,7 +16,7 @@ TX Hash Rules:
   - cancelled/expired invoice → create new one
 
 Upgrade:
-  - Already premium? Pass is_upgrade=true to /subscribe
+  - Already subscriber? Pass is_upgrade=true to /subscribe
   - New plan activates immediately from now
 """
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -81,7 +81,7 @@ async def create_subscription(
     if not plan:
         raise HTTPException(status_code=404, detail="Paket tidak ditemukan atau tidak aktif")
 
-    # If already premium and NOT upgrading, block
+    # If already subscribed and NOT upgrading, block
     if current_user.is_premium and not data.is_upgrade:
         raise HTTPException(
             status_code=400,
@@ -202,7 +202,7 @@ async def verify_payment(
 
         plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == payment.plan_id).first()
 
-        current_user.role = "premium"
+        current_user.role = "subscriber"
         current_user.subscription_granted_at = now
 
         if plan and plan.duration_days:
@@ -216,7 +216,7 @@ async def verify_payment(
         db.commit()
         db.refresh(current_user)
 
-        logger.info(f"✅ Payment #{payment.id} confirmed. User {current_user.id} → premium ({plan_label})")
+        logger.info(f"✅ Payment #{payment.id} confirmed. User {current_user.id} → subscriber ({plan_label})")
 
         return {
             "status": "confirmed",
@@ -274,7 +274,7 @@ async def get_my_subscription(
         base.update(is_subscribed=True, tier="admin", can_upgrade=False)
         return base
 
-    if current_user.role == 'premium':
+    if current_user.role in ('premium', 'subscriber'):
         now = datetime.now(timezone.utc)
         expires = current_user.subscription_expires_at
 
@@ -304,6 +304,10 @@ async def get_my_subscription(
             plan_name = latest_payment.plan.name
             current_plan_order = latest_payment.plan.sort_order
 
+        # Also check subscription_note for admin-granted subs
+        if not plan_label and current_user.subscription_note:
+            plan_label = current_user.subscription_note
+
         # Check upgrade availability
         max_order = db.query(SubscriptionPlan.sort_order)\
             .filter(SubscriptionPlan.is_active == True)\
@@ -313,7 +317,7 @@ async def get_my_subscription(
 
         base.update(
             is_subscribed=True,
-            tier="premium",
+            tier="subscriber",
             expires_at=expires.isoformat() if expires else None,
             days_remaining=days_remaining,
             plan_label=plan_label,

@@ -27,12 +27,12 @@ async def subscription_expiry_loop():
             try:
                 now = datetime.now(timezone.utc)
 
-                # 1. Expire premium users past their subscription_expires_at
+                # 1. Expire subscriber/premium users past their subscription_expires_at
                 result = db.execute(
                     text("""
                         UPDATE users
                         SET role = 'free', updated_at = NOW()
-                        WHERE role = 'premium'
+                        WHERE role IN ('premium', 'subscriber')
                         AND subscription_expires_at IS NOT NULL
                         AND subscription_expires_at < :now
                     """),
