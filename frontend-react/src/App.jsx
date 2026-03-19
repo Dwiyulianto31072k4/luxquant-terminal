@@ -49,6 +49,8 @@ const LoginPage = lazy(() => import("./components/auth/LoginPage"));
 const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
 const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
 const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
+const ProfilePage = lazy(() => import("./components/ProfilePage"));
+
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -380,6 +382,7 @@ function App() {
           {/* FREE (login required) */}
           <Route path="/analytics" element={<RequireAuth><AppShell><AnalyzePage /></AppShell></RequireAuth>} />
           <Route path="/referral" element={<RequireAuth><AppShell><ReferralPage /></AppShell></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><AppShell><ProfilePage /></AppShell></RequireAuth>} />
 
           {/* PREMIUM */}
           <Route path="/signals" element={<RequireAuth><AppShell><PremiumGate><SignalsPage /></PremiumGate></AppShell></RequireAuth>} />
