@@ -7,14 +7,14 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 // THEME CONSTANTS & MAPPERS
 // ═══════════════════════════════════════════
 
-// KONDISI MARKET (Good, Neutral, Bad)
+// MARKET CONDITIONS (Good, Neutral, Bad)
 const FC = {
   good:    { bg: 'rgba(34,197,94,0.10)', border: '#22c55e', text: '#22c55e', label: 'Good' },
   neutral: { bg: 'rgba(234,179,8,0.10)', border: '#eab308', text: '#eab308', label: 'Neutral' },
   bad:     { bg: 'rgba(239,68,68,0.10)', border: '#ef4444', text: '#ef4444', label: 'Bad' },
 };
 
-// Fungsi penerjemah dari API ('high' -> 'good', dll)
+// Map API flow to UI conditions
 const mapMarketCondition = (flow) => {
   return { high: 'good', mid: 'neutral', low: 'bad' }[flow] || 'neutral';
 };
@@ -247,7 +247,7 @@ const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
         <div className="relative w-full max-w-[960px] max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-white/10 z-10 overflow-hidden bg-gradient-to-b from-[#140a0c] to-[#0a0506] animate-in fade-in zoom-in-95 duration-200">
           <div className="absolute top-0 left-0 right-0 h-1 z-30" style={{ background: `linear-gradient(90deg, transparent 0%, ${vc} 50%, transparent 100%)`, opacity: 0.8 }} />
 
-          {/* 1. BAGIAN HEADER (DIAM/FIXED) */}
+          {/* 1. HEADER AREA */}
           <div className="flex-shrink-0 relative z-20 px-6 py-5 border-b border-white/[0.06] bg-[#0a0506]/95 backdrop-blur">
             <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors z-30">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 1l12 12m0-12L1 13"/></svg>
@@ -279,7 +279,7 @@ const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             </div>
           </div>
 
-          {/* 2. BAGIAN ISI (BISA DI-SCROLL) */}
+          {/* 2. BODY AREA (SCROLLABLE) */}
           <div className="flex-1 overflow-y-auto modal-body-scroll p-6 space-y-6">
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -467,7 +467,6 @@ const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead className="bg-[#0a0506] border-b border-white/[0.05]">
                         <tr>
-                          {/* MENGUBAH NAMA HEADER DI SINI */}
                           {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
                             <th key={h} className="px-4 py-3.5 text-[8px] uppercase tracking-widest text-[#d4a853] font-semibold">{h}</th>
                           ))}
@@ -507,10 +506,11 @@ const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
 
 // ═══════════════════════════════════════════
-// MAIN
+// MAIN COMPONENT
 // ═══════════════════════════════════════════
 
-const CoinIntelligence = ({ dateFilter = 'all' }) => {
+// Changed the prop from 'dateFilter' (string) to 'selectedDates' (array)
+const CoinIntelligence = ({ selectedDates = [] }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -530,19 +530,45 @@ const CoinIntelligence = ({ dateFilter = 'all' }) => {
   const { worthIt, avoid, dateLabel } = useMemo(() => {
     if (!data) return { worthIt:[], avoid:[], dateLabel:'' };
     const all = [...(data.top_coins||[]), ...(data.rest_coins||[])];
-    let filtered = dateFilter==='all' ? all : all.filter(c => c.active_days?.includes(dateFilter));
+    
+    // Check if the array has dates, otherwise show all
+    let filtered = all;
+    if (selectedDates && selectedDates.length > 0) {
+      filtered = all.filter(c => 
+        // If the coin has active_days, check if any of the selectedDates are in it
+        c.active_days?.some(day => selectedDates.includes(day))
+      );
+    }
+
     const w = [], a = [];
-    for (const c of filtered) { const v = classifyCoin(c); if (v==='avoid') a.push(c); else if (v==='worth_it') w.push(c); }
+    for (const c of filtered) { 
+      const v = classifyCoin(c); 
+      if (v==='avoid') a.push(c); 
+      else if (v==='worth_it') w.push(c); 
+    }
     w.sort((x,y) => (y.risk_score||0)-(x.risk_score||0));
     a.sort((x,y) => y.sl_rate-x.sl_rate);
+    
     let label = 'All 7 Days';
-    if (dateFilter!=='all') {
-      const today = new Date().toISOString().slice(0,10), yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-      if (dateFilter===today) label='Today'; else if (dateFilter===yesterday) label='Yesterday';
-      else { const d = new Date(dateFilter+'T00:00:00'); label = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+    if (selectedDates && selectedDates.length > 0) {
+      const today = new Date().toISOString().slice(0,10);
+      const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+      
+      // If only 1 day is selected, show its name
+      if (selectedDates.length === 1) {
+        if (selectedDates[0] === today) label = 'Today';
+        else if (selectedDates[0] === yesterday) label = 'Yesterday';
+        else { 
+          const d = new Date(selectedDates[0]+'T00:00:00'); 
+          label = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); 
+        }
+      } else {
+        // If multiple days are selected
+        label = `Selected: ${selectedDates.length} Days`;
+      }
     }
     return { worthIt:w.slice(0,10), avoid:a.slice(0,10), dateLabel:label };
-  }, [data, dateFilter]);
+  }, [data, selectedDates]);
 
   if (loading) return (
     <div className="glass-card rounded-xl p-4 border border-gold-primary/10 mb-4 animate-pulse">
