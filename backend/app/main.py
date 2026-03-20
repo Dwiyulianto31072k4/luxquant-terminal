@@ -13,7 +13,7 @@ from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
-from app.services.notification_worker import start_notification_worker    # ← NOTIFICATION WORKER
+from app.services.notification_worker import start_notification_worker
 
 # Import Router
 from app.api.routes.telegram_auth import router as telegram_auth_router
@@ -27,7 +27,8 @@ from app.api.routes import ai_arena
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
-from app.api.routes.notifications import router as notifications_router    # ← NOTIFICATIONS API
+from app.api.routes.notifications import router as notifications_router
+from app.api.routes.journal import router as journal_router
 
 # Import AI Worker
 from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline
@@ -56,7 +57,7 @@ async def lifespan(app: FastAPI):
         print(f"🟢 Redis connected ({settings.REDIS_HOST}:{settings.REDIS_PORT})")
         start_cache_workers()
         start_overview_workers()
-        start_notification_worker()    # ← START NOTIFICATION WORKER
+        start_notification_worker()
         
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
@@ -67,8 +68,7 @@ async def lifespan(app: FastAPI):
         
     else:
         print("🟡 Redis not available — running without cache (DB direct queries)")
-        # Still start notification worker even without Redis
-        start_notification_worker()    # ← ALSO START WITHOUT REDIS
+        start_notification_worker()
 
     yield
 
@@ -110,7 +110,8 @@ app.include_router(referral_router, prefix="/api/v1", tags=["referral"])
 app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"])
 app.include_router(coin_profile_router, prefix="/api/v1/coin-profile", tags=["coin-profile"])
 app.include_router(profile_router, prefix="/api/v1", tags=["profile"])
-app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])  # ← NOTIFICATIONS
+app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])
+app.include_router(journal_router, prefix="/api/v1")
 
 # ═══════════════════════════════════════════
 # Serve chart screenshots as static files
