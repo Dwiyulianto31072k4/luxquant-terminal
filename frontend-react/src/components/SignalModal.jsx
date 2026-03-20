@@ -1245,6 +1245,33 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                  
+                  {/* ═══ TOMBOL JOURNAL (HEADER) ═══ */}
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('journal_prefill', JSON.stringify({
+                        signal_id: signal.signal_id,
+                        pair: signal.pair,
+                        planned_entry: signal.entry,
+                        planned_tp1: signal.target1,
+                        planned_tp2: signal.target2,
+                        planned_tp3: signal.target3,
+                        planned_tp4: signal.target4,
+                        planned_sl: signal.stop1,
+                      }));
+                      handleCloseClick();
+                      setTimeout(() => { window.location.href = '/journal'; }, 300);
+                    }}
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all mr-0.5 sm:mr-1"
+                    title="Journal This Trade"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                    </svg>
+                    <span className="hidden sm:inline">Journal</span>
+                  </button>
+                  {/* END TOMBOL JOURNAL */}
+
                   <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
                     {["chart", "trade", "research", "history"].map((tab) => (
                       <button

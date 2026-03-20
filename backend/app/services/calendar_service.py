@@ -2,51 +2,114 @@
 """
 Macro Economic Calendar — ForexFactory data
 Free, no API key needed.
-Fetches weekly calendar, caches in memory for 1 hour.
-Automatically translates event titles to Chinese.
+Fetches weekly calendar, caches in Redis for 1 hour.
+Stale-while-revalidate: serves old data if fetch fails.
+NO deep_translator — translations handled on frontend.
 """
+import json
 import httpx
 import logging
-import asyncio
 from datetime import datetime, timezone
 from typing import Optional
-from deep_translator import GoogleTranslator
+
+from app.core.redis import cache_get, cache_set, cache_get_with_stale, is_redis_available
 
 logger = logging.getLogger(__name__)
 
-# ── Cache ──
-_cache: dict = {"data": None, "fetched_at": None}
+# ── Cache Config ──
 CACHE_TTL = 3600  # 1 hour
 
-# ── Translation Cache (Mencegah limit Google Translate) ──
-_translation_cache: dict = {}
+# ── In-memory fallback ──
+_mem_cache: dict = {}
 
-FF_URLS = [
-    "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-    "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
-]
+FF_URLS = {
+    "this": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+    "next": "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
+}
 
 
-async def translate_text(text: str) -> str:
-    """Menerjemahkan teks ke bahasa Mandarin secara asinkron dengan caching"""
-    if not text:
-        return text
-    
-    # Jika sudah pernah diterjemahkan, ambil dari cache
-    if text in _translation_cache:
-        return _translation_cache[text]
-    
-    try:
-        # Jalankan deep-translator di thread terpisah agar tidak memblokir async loop
-        translator = GoogleTranslator(source='en', target='zh-CN')
-        translated = await asyncio.to_thread(translator.translate, text)
-        
-        # Simpan ke cache
-        _translation_cache[text] = translated
-        return translated
-    except Exception as e:
-        logger.error(f"Translation failed for '{text}': {e}")
-        return text  # Fallback ke bahasa Inggris jika gagal
+async def _fetch_ff(url: str) -> list[dict]:
+    """Fetch from ForexFactory with timeout & retry."""
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                resp = await client.get(url, headers={
+                    "User-Agent": "Mozilla/5.0 (compatible; LuxQuant/1.0)"
+                })
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as e:
+            logger.warning(f"FF fetch attempt {attempt+1} failed for {url}: {e}")
+            if attempt == 0:
+                continue
+    return []
+
+
+def _get_cached_events(cache_key: str, ff_key: str) -> list[dict] | None:
+    """Try to get from Redis cache (fresh then stale)."""
+    # Fresh
+    cached = cache_get(cache_key)
+    if cached and isinstance(cached, list) and len(cached) > 0:
+        return cached
+
+    # Stale
+    stale, is_stale = cache_get_with_stale(cache_key)
+    if stale and isinstance(stale, list) and len(stale) > 0:
+        logger.info(f"📅 Serving stale cache for {cache_key}")
+        return stale
+
+    # Memory
+    if ff_key in _mem_cache:
+        logger.info(f"📅 Serving memory cache for {ff_key}")
+        return list(_mem_cache[ff_key])
+
+    return None
+
+
+async def _get_events(cache_key: str, ff_key: str) -> list[dict]:
+    """Get events: cache → fetch → stale → memory → empty."""
+    # 1. Try cache
+    cached = _get_cached_events(cache_key, ff_key)
+    if cached:
+        return cached
+
+    # 2. Fetch fresh
+    url = FF_URLS.get(ff_key)
+    if not url:
+        return []
+
+    events = await _fetch_ff(url)
+
+    if events:
+        # Store in Redis + memory
+        cache_set(cache_key, events, ttl=CACHE_TTL)
+        _mem_cache[ff_key] = events
+        logger.info(f"📅 Fetched {len(events)} events from {url}")
+        return events
+
+    # 3. All failed
+    logger.error(f"❌ Calendar: no data for {ff_key}")
+    return []
+
+
+def _enrich_events(events: list[dict]) -> list[dict]:
+    """Add computed fields: is_past, seconds_until."""
+    now = datetime.now(timezone.utc)
+    for event in events:
+        try:
+            date_str = event.get("date", "")
+            if date_str:
+                event_dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                diff = (event_dt - now).total_seconds()
+                event["is_past"] = diff < 0
+                event["seconds_until"] = max(0, int(diff))
+            else:
+                event["is_past"] = True
+                event["seconds_until"] = 0
+        except Exception:
+            event["is_past"] = True
+            event["seconds_until"] = 0
+    return events
 
 
 async def get_calendar(
@@ -54,15 +117,12 @@ async def get_calendar(
     country: Optional[str] = None,
     include_next_week: bool = False,
 ) -> list[dict]:
-    """
-    Get macro economic calendar events.
-    
-    Args:
-        impact: Filter by impact level ("High", "Medium", "Low", "Holiday")
-        country: Filter by country code ("USD", "EUR", "GBP", etc.)
-        include_next_week: Also fetch next week's data
-    """
-    events = await _fetch_cached(include_next_week)
+    """Get macro economic calendar events."""
+    events = await _get_events("lq:calendar:thisweek", "this")
+
+    if include_next_week:
+        next_events = await _get_events("lq:calendar:nextweek", "next")
+        events = events + next_events
 
     # Apply filters
     if impact:
@@ -77,62 +137,13 @@ async def get_calendar(
     events.sort(key=lambda e: e.get("date", ""))
 
     # Add computed fields
-    now = datetime.now(timezone.utc)
-    for event in events:
-        try:
-            event_dt = datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
-            diff = (event_dt - now).total_seconds()
-            event["is_past"] = diff < 0
-            event["seconds_until"] = max(0, int(diff))
-        except Exception:
-            event["is_past"] = True
-            event["seconds_until"] = 0
+    events = _enrich_events(events)
 
     return events
 
 
 async def get_upcoming_high_impact(limit: int = 5) -> list[dict]:
-    """Get next N high-impact events (for widget/overview)"""
+    """Get next N high-impact events."""
     events = await get_calendar(impact="High")
     upcoming = [e for e in events if not e.get("is_past")]
     return upcoming[:limit]
-
-
-async def _fetch_cached(include_next_week: bool = False) -> list[dict]:
-    """Fetch with simple in-memory cache and translate titles"""
-    now = datetime.now(timezone.utc)
-    cache_key = "with_next" if include_next_week else "this_week"
-
-    if (
-        _cache.get(cache_key)
-        and _cache.get(f"{cache_key}_at")
-        and (now - _cache[f"{cache_key}_at"]).total_seconds() < CACHE_TTL
-    ):
-        return list(_cache[cache_key])  # Return copy
-
-    # Fetch fresh data
-    urls = FF_URLS if include_next_week else [FF_URLS[0]]
-    all_events = []
-
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        for url in urls:
-            try:
-                resp = await client.get(url)
-                resp.raise_for_status()
-                data = resp.json()
-                
-                # TRANSLATE SETIAP JUDUL EVENT
-                for event in data:
-                    title = event.get("title", "")
-                    event["title_zh"] = await translate_text(title)
-                
-                all_events.extend(data)
-                logger.info(f"📅 Fetched and translated {len(data)} events from {url}")
-            except Exception as e:
-                logger.error(f"❌ Failed to fetch calendar from {url}: {e}")
-
-    # Cache it
-    _cache[cache_key] = all_events
-    _cache[f"{cache_key}_at"] = now
-
-    return list(all_events)

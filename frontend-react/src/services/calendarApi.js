@@ -11,6 +11,11 @@ const calendarApi = {
     const response = await api.get('/calendar/upcoming', { params: { limit } });
     return response.data;
   },
+
+  getNews: async (limit = 15) => {
+    const response = await api.get('/calendar/news', { params: { limit } });
+    return response.data;
+  },
 };
 
 export default calendarApi;

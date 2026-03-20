@@ -1,12 +1,13 @@
 # backend/app/api/routes/calendar.py
 """
-Macro Economic Calendar Routes
-Data source: ForexFactory (free, no API key)
+Macro Economic Calendar & News Routes
+Data source: ForexFactory (free, no API key) + RSS feeds
 """
 from fastapi import APIRouter, Query
 from typing import Optional
 
 from app.services.calendar_service import get_calendar, get_upcoming_high_impact
+from app.services.macro_news_service import get_macro_news
 
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
@@ -33,3 +34,11 @@ async def get_upcoming(
     """Get next upcoming high-impact events (for widgets)"""
     events = await get_upcoming_high_impact(limit=limit)
     return {"events": events, "total": len(events)}
+
+
+@router.get("/news")
+async def get_news(
+    limit: int = Query(15, ge=1, le=30),
+):
+    """Get macro & crypto news from RSS feeds"""
+    return await get_macro_news(limit=limit)

@@ -232,6 +232,31 @@ const JournalPage = () => {
   const [form, setForm] = useState({...EMPTY_FORM});
 
   useEffect(() => { if (location.state?.prefill) { const p = location.state.prefill; setForm(prev => ({...prev, signal_id: p.signal_id||null, pair: p.pair||'', planned_entry: p.planned_entry||'', planned_tp1: p.planned_tp1||'', planned_tp2: p.planned_tp2||'', planned_tp3: p.planned_tp3||'', planned_tp4: p.planned_tp4||'', planned_sl: p.planned_sl||'', actual_entry: p.planned_entry||'', strategy_tags: p.signal_id ? ['LuxQuant Signal'] : []})); setActiveTab('entry'); window.history.replaceState({}, document.title); } }, [location.state]);
+  
+  // Prefill from SignalModal via sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem('journal_prefill');
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        setForm(prev => ({
+          ...prev,
+          signal_id: p.signal_id || null,
+          pair: p.pair || '',
+          planned_entry: p.planned_entry || '',
+          planned_tp1: p.planned_tp1 || '',
+          planned_tp2: p.planned_tp2 || '',
+          planned_tp3: p.planned_tp3 || '',
+          planned_tp4: p.planned_tp4 || '',
+          planned_sl: p.planned_sl || '',
+          actual_entry: p.planned_entry || '',
+          strategy_tags: p.signal_id ? ['LuxQuant Signal'] : [],
+        }));
+        setActiveTab('entry');
+      } catch {}
+      sessionStorage.removeItem('journal_prefill');
+    }
+  }, []);
 
   const fetchEntries = useCallback(async () => { try { setLoading(true); const p = new URLSearchParams(); if (filterPair) p.append('pair', filterPair.toUpperCase()); if (filterStatus !== 'all') p.append('status', filterStatus); if (filterStrategy !== 'all') p.append('strategy', filterStrategy); p.append('sort_by', sortBy); p.append('sort_order', sortOrder); const { data } = await api.get(`/api/v1/journal/?${p}`); setEntries(data.items || []); } catch {} finally { setLoading(false); } }, [filterPair, filterStatus, filterStrategy, sortBy, sortOrder]);
   const fetchStats = useCallback(async () => { try { const { data } = await api.get('/api/v1/journal/stats/overview'); setStats(data); } catch {} }, []);
