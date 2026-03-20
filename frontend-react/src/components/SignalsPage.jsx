@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
+import CoinIntelligence from './CoinIntelligence';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -329,6 +330,8 @@ const SignalsPage = () => {
           <p className="text-text-muted text-xs mt-1">{t("signals.in_view")}</p>
         </div>
       </div>
+
+      <CoinIntelligence dateFilter={dateFilter} />
 
       <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
 

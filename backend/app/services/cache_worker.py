@@ -25,6 +25,7 @@ from app.core.redis import cache_set, cache_get, is_redis_available
 from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
 from app.config import settings
 from app.utils.chart_urls import chart_path_to_url # TAMBAHAN: Import converter URL
+from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
 
 
 # External API base URLs
@@ -879,8 +880,21 @@ async def signal_cache_loop():
                         cache_set(f"lq:signals:analyze:{tr}:daily", result_d, ttl=ttl)
                         cached += 1
 
+                # Step 6: Coin Intelligence
+                try:
+                    t_intel = time.time()
+                    compute_daily_regimes(db)
+                    coin_intel = compute_coin_intel(db)
+                    cache_set("lq:signals:coin-intel", coin_intel, ttl=ttl)
+                    cached += 1
+                    intel_ms = round((time.time() - t_intel) * 1000)
+                except Exception as e:
+                    intel_ms = -1
+                    print(f"   ⚠️ Coin Intel error: {type(e).__name__}: {e}")
+
                 elapsed = round((time.time() - start) * 1000)
-                print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms)")
+                intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
+                print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms{intel_info})")
 
             finally:
                 db.close()

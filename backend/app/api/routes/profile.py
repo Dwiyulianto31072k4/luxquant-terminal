@@ -37,7 +37,7 @@ GOOGLE_CLIENT_ID = os.getenv(
 )
 
 # Avatar upload config
-AVATAR_DIR = Path("/opt/luxquant/avatars")
+AVATAR_DIR = Path(os.getenv("AVATAR_DIR", "./avatars"))
 AVATAR_DIR.mkdir(parents=True, exist_ok=True)
 MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2MB
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}

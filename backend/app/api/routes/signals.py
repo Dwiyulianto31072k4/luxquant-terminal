@@ -34,6 +34,9 @@ from app.core.redis import (
     build_signals_page_key, is_redis_available
 )
 from app.utils.chart_urls import chart_path_to_url  # TAMBAHAN: Import untuk convert chart URL
+from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
+from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table
+from app.core.database import SessionLocal
 
 router = APIRouter()
 
@@ -1056,6 +1059,40 @@ async def get_top_performers(
         if stale:
             return stale
         raise HTTPException(status_code=500, detail=f"Query error: {str(e)}")
+    
+    
+# ============================================
+# GET /signals/coin-intel — Coin Intelligence
+# ============================================
+
+@router.get("/coin-intel")
+async def get_coin_intel():
+    """
+    Coin Intelligence — historical anomaly detection per coin.
+    Pre-computed by background worker, served from Redis cache.
+    """
+    cached = cache_get("lq:signals:coin-intel")
+    if cached:
+        return cached
+    
+    # Fallback: compute on-the-fly (first startup only)
+    try:
+        db = SessionLocal()
+        try:
+            if not ensure_outcomes_table(db):
+                precompute_outcomes(db)
+            compute_daily_regimes(db)
+            result = compute_coin_intel(db)
+            cache_set("lq:signals:coin-intel", result, ttl=120)
+            return result
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Coin intelligence not yet available. Ready after first cache cycle (~90s)."
+        )
+
 
 
 # ============================================
@@ -1114,6 +1151,8 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
         entry_chart_url=chart_path_to_url(entry_chart_path),   # TAMBAHAN
         latest_chart_url=chart_path_to_url(latest_chart_path), # TAMBAHAN
         updates=updates)
+
+
 
 
 # ============================================
