@@ -1,16 +1,29 @@
 # backend/app/api/routes/calendar.py
 """
-Macro Economic Calendar & News Routes
-Data source: ForexFactory (free, no API key) + RSS feeds
+Macro Economic Calendar & Crypto Calendar Routes
+Data sources:
+  - Macro: ForexFactory (free, no API key)
+  - Token Unlocks: DefiLlama (free, public endpoints)
+  - Crypto Events: CoinMarketCap (scrape)
+  - News: RSS feeds (CoinTelegraph, CoinDesk, Decrypt)
 """
 from fastapi import APIRouter, Query
 from typing import Optional
 
 from app.services.calendar_service import get_calendar, get_upcoming_high_impact
 from app.services.macro_news_service import get_macro_news
+from app.services.crypto_calendar_service import (
+    get_token_unlocks,
+    get_crypto_events,
+    get_unified_calendar,
+)
 
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
+
+# ════════════════════════════════════════════
+# EXISTING — Macro Economic Calendar
+# ════════════════════════════════════════════
 
 @router.get("/events")
 async def get_events(
@@ -42,3 +55,58 @@ async def get_news(
 ):
     """Get macro & crypto news from RSS feeds"""
     return await get_macro_news(limit=limit)
+
+
+# ════════════════════════════════════════════
+# NEW — Token Unlocks
+# ════════════════════════════════════════════
+
+@router.get("/unlocks")
+async def get_unlocks():
+    """Get upcoming token unlock events from DefiLlama"""
+    events = await get_token_unlocks()
+    return {
+        "events": events,
+        "total": len(events),
+        "source": "defillama",
+    }
+
+
+# ════════════════════════════════════════════
+# NEW — Crypto Events
+# ════════════════════════════════════════════
+
+@router.get("/crypto-events")
+async def get_crypto_events_endpoint():
+    """Get upcoming crypto events (airdrops, forks, listings, etc.)"""
+    events = await get_crypto_events()
+    return {
+        "events": events,
+        "total": len(events),
+        "source": "coinmarketcap",
+    }
+
+
+# ════════════════════════════════════════════
+# NEW — Unified Calendar (all sources merged)
+# ════════════════════════════════════════════
+
+@router.get("/unified")
+async def get_unified(
+    event_type: Optional[str] = Query(None, description="Filter: all, macro, unlock, crypto_event"),
+    impact: Optional[str] = Query(None, description="Filter: High, Medium, Low, Holiday"),
+    symbol: Optional[str] = Query(None, description="Filter by coin/country symbol"),
+):
+    """
+    Get unified calendar merging all sources:
+    - Macro economic events (ForexFactory)
+    - Token unlocks (DefiLlama)
+    - Crypto events (CoinMarketCap)
+    
+    Returns events sorted by date with stats.
+    """
+    return await get_unified_calendar(
+        event_type=event_type,
+        impact=impact,
+        symbol=symbol,
+    )

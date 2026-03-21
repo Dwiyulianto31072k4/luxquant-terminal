@@ -8,14 +8,27 @@ const FLAG = {
   USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CAD: '🇨🇦',
   AUD: '🇦🇺', NZD: '🇳🇿', CHF: '🇨🇭', CNY: '🇨🇳', ALL: '🌐',
 };
-const COUNTRIES = ['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNY'];
+
+const TABS = [
+  { key: 'all', label: 'All Events', labelZh: '全部事件' },
+  { key: 'macro', label: 'Macro', labelZh: '宏观经济' },
+  { key: 'unlock', label: 'Token Unlocks', labelZh: '代币解锁' },
+  { key: 'crypto_event', label: 'Crypto Events', labelZh: '加密事件' },
+];
+
 const IMPACTS = ['All', 'High', 'Medium', 'Low', 'Holiday'];
 
 const IMPACT_STYLE = {
-  High:    { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.25)', dot: '🔴', bar: '#ef4444' },
-  Medium:  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', dot: '🟡', bar: '#f59e0b' },
-  Low:     { color: '#6b7280', bg: 'rgba(107,114,128,0.10)', border: 'rgba(107,114,128,0.20)', dot: '⚪', bar: '#4b5563' },
-  Holiday: { color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)', dot: '🟣', bar: '#a78bfa' },
+  High:    { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444', bar: '#ef4444' },
+  Medium:  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b', bar: '#f59e0b' },
+  Low:     { color: '#6b7280', bg: 'rgba(107,114,128,0.10)', border: 'rgba(107,114,128,0.20)', dot: '#4b5563', bar: '#4b5563' },
+  Holiday: { color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)', dot: '#a78bfa', bar: '#a78bfa' },
+};
+
+const TYPE_STYLE = {
+  macro:        { color: '#f97316', bg: 'rgba(249,115,22,0.10)', border: 'rgba(249,115,22,0.20)', icon: '🏛️', label: 'Macro', labelZh: '宏观' },
+  unlock:       { color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.20)', icon: '🔓', label: 'Unlock', labelZh: '解锁' },
+  crypto_event: { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.20)', icon: '⚡', label: 'Event', labelZh: '事件' },
 };
 
 const SOURCE_STYLE = {
@@ -52,21 +65,30 @@ const EVENT_ZH = {
   "Industrial Production": "工业产出", "Employment Cost Index": "就业成本指数",
 };
 
+// ── Helpers ──
+const fmtUsd = (v) => {
+  if (!v || v <= 0) return null;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+};
+
 // ══════════════════════════════════════
 // Main Component
 // ══════════════════════════════════════
 const MacroCalendarPage = () => {
   const { t, i18n } = useTranslation();
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);  // ALL events from unified endpoint
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsLoading, setNewsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [includeNextWeek, setIncludeNextWeek] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedImpact, setSelectedImpact] = useState('All');
-  const [selectedCountry, setSelectedCountry] = useState('ALL');
   const [now, setNow] = useState(new Date());
   const [expandedDays, setExpandedDays] = useState({});
+  const [allStats, setAllStats] = useState(null);
 
   const isZh = useMemo(() => {
     const lang = i18n.resolvedLanguage || i18n.language || 'en';
@@ -78,17 +100,18 @@ const MacroCalendarPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // ── Fetch calendar ──
+  // ── Fetch ALL events once, filter client-side by tab ──
   const loadEvents = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const data = await calendarApi.getEvents({ include_next_week: includeNextWeek });
-      setEvents(data.events || []);
+      const data = await calendarApi.getUnified();  // no filter — get everything
+      setAllEvents(data.events || []);
+      setAllStats(data.stats || null);
     } catch (err) {
       console.error('Calendar fetch failed:', err);
       setError(t('calendar.load_error'));
     } finally { setLoading(false); }
-  }, [includeNextWeek, t]);
+  }, [t]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
@@ -104,13 +127,30 @@ const MacroCalendarPage = () => {
     })();
   }, []);
 
-  // ── Filters ──
+  // ── Client-side filtering: tab + impact ──
+  const events = useMemo(() => {
+    let result = allEvents;
+    if (activeTab !== 'all') result = result.filter(e => e.type === activeTab);
+    return result;
+  }, [allEvents, activeTab]);
+
+  const stats = useMemo(() => {
+    if (!allStats) return null;
+    // When filtered by tab, recompute counts from filtered events
+    if (activeTab === 'all') return allStats;
+    return {
+      ...allStats,
+      total: events.length,
+      high_impact: events.filter(e => e.impact === 'High').length,
+      upcoming: events.filter(e => !e.is_past).length,
+    };
+  }, [allStats, events, activeTab]);
+
   const filteredEvents = useMemo(() => {
     let result = events;
     if (selectedImpact !== 'All') result = result.filter(e => e.impact === selectedImpact);
-    if (selectedCountry !== 'ALL') result = result.filter(e => e.country === selectedCountry);
     return result;
-  }, [events, selectedImpact, selectedCountry]);
+  }, [events, selectedImpact]);
 
   // ── Group by date ──
   const groupedByDate = useMemo(() => {
@@ -125,7 +165,6 @@ const MacroCalendarPage = () => {
         const dateOnly = dt.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
         const weekday = dt.toLocaleDateString(locale, { weekday: 'short' });
         if (!map[dateOnly]) {
-          const allPast = true; // will compute below
           map[dateOnly] = { weekday, dateLabel: dateOnly, isToday: dateOnly === todayKey, events: [], sortKey: dt.getTime() };
           groups.push(map[dateOnly]);
         }
@@ -139,7 +178,6 @@ const MacroCalendarPage = () => {
       }
     });
 
-    // Compute allPast per group
     groups.forEach(g => { g.allPast = g.events.every(e => e.is_past); });
     groups.sort((a, b) => a.sortKey - b.sortKey);
     return groups;
@@ -164,19 +202,15 @@ const MacroCalendarPage = () => {
       .sort((a, b) => a.seconds_until - b.seconds_until)[0] || null
   , [events]);
 
-  // ── Stats ──
-  const stats = useMemo(() => ({
-    total: events.length,
-    high: events.filter(e => e.impact === 'High').length,
-    upcoming: events.filter(e => !e.is_past).length,
-    countries: new Set(events.map(e => e.country)).size,
-  }), [events]);
-
   // ── Helpers ──
-  const getTitle = (title) => {
-    if (!title || !isZh) return title || '';
-    for (const [en, zh] of Object.entries(EVENT_ZH)) {
-      if (title.includes(en)) return title.replace(en, zh);
+  const getTitle = (event) => {
+    const title = event.title || '';
+    if (!isZh) return title;
+    // Only translate macro events
+    if (event.type === 'macro') {
+      for (const [en, zh] of Object.entries(EVENT_ZH)) {
+        if (title.includes(en)) return title.replace(en, zh);
+      }
     }
     return title;
   };
@@ -217,29 +251,45 @@ const MacroCalendarPage = () => {
           <p className="text-xs mt-1" style={{ color: '#6b5c52' }}>{t('calendar.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setIncludeNextWeek(!includeNextWeek)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-            style={includeNextWeek
-              ? { background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)' }
-              : { background: 'rgba(255,255,255,0.03)', color: '#6b5c52', border: '1px solid rgba(255,255,255,0.06)' }}>
-            {includeNextWeek ? t('calendar.this_next_week') : t('calendar.this_week')}
-          </button>
           <button onClick={loadEvents}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-80"
             style={{ background: 'rgba(255,255,255,0.03)', color: '#6b5c52', border: '1px solid rgba(255,255,255,0.06)' }}>
-            {t('calendar.refresh')}
+            🔄 {t('calendar.refresh')}
           </button>
         </div>
       </div>
 
-      {/* ─── Stats + Next High Impact (compact row) ─── */}
-      {!loading && !error && events.length > 0 && (
+      {/* ─── Type Tabs ─── */}
+      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+        {TABS.map(tab => {
+          const active = activeTab === tab.key;
+          const ts = tab.key !== 'all' ? TYPE_STYLE[tab.key] : null;
+          return (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
+              style={active
+                ? { background: ts?.bg || 'rgba(212,168,83,0.12)', color: ts?.color || '#d4a853', border: `1px solid ${ts?.border || 'rgba(212,168,83,0.25)'}` }
+                : { background: 'transparent', color: '#5a4d42', border: '1px solid transparent' }}>
+              {ts?.icon || '🌐'} {isZh ? tab.labelZh : tab.label}
+              {/* Show count badge */}
+              {allStats && tab.key !== 'all' && (
+                <span className="text-[9px] px-1 py-0.5 rounded-full font-mono" style={{ background: 'rgba(255,255,255,0.05)', color: active ? (ts?.color || '#d4a853') : '#4a3f36' }}>
+                  {tab.key === 'macro' ? allStats.macro : tab.key === 'unlock' ? allStats.unlocks : allStats.crypto_events}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ─── Stats Row ─── */}
+      {!loading && !error && stats && (
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Mini stats */}
           <div className="flex gap-3 flex-1">
             {[
               { label: isZh ? '总计' : 'Total', value: stats.total, icon: '📊' },
-              { label: isZh ? '高影响' : 'High', value: stats.high, icon: '🔴', accent: '#ef4444' },
+              { label: isZh ? '高影响' : 'High Impact', value: stats.high_impact, icon: '🔴', accent: '#ef4444' },
+              { label: isZh ? '代币解锁' : 'Unlocks', value: stats.unlocks, icon: '🔓', accent: '#8b5cf6' },
               { label: isZh ? '即将' : 'Upcoming', value: stats.upcoming, icon: '⏳', accent: '#f59e0b' },
             ].map((s, i) => (
               <div key={i} className="rounded-lg px-3 py-2 flex items-center gap-2 flex-1"
@@ -253,15 +303,14 @@ const MacroCalendarPage = () => {
             ))}
           </div>
 
-          {/* Next high impact — compact */}
           {nextHighImpact && (
             <div className="rounded-lg px-3 py-2 flex items-center gap-3 sm:min-w-[280px]"
               style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.12)' }}>
               <span className="text-sm">🔴</span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-white truncate">{getTitle(nextHighImpact.title)}</p>
+                <p className="text-xs font-medium text-white truncate">{getTitle(nextHighImpact)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: '#7a6b5b' }}>
-                  {FLAG[nextHighImpact.country]} {nextHighImpact.country} · {fmtTime(nextHighImpact.date)}
+                  {nextHighImpact.type === 'macro' ? FLAG[nextHighImpact.country] : ''} {nextHighImpact.symbol || nextHighImpact.country} · {fmtTime(nextHighImpact.date)}
                 </p>
               </div>
               <p className="text-sm font-mono font-bold tabular-nums shrink-0" style={{ color: '#ef4444' }}>
@@ -272,39 +321,24 @@ const MacroCalendarPage = () => {
         </div>
       )}
 
-      {/* ─── Filters ─── */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: '#5a4d42' }}>{t('calendar.impact')}</span>
-          {IMPACTS.map(impact => {
-            const active = selectedImpact === impact;
-            const cfg = IMPACT_STYLE[impact];
-            return (
-              <button key={impact} onClick={() => setSelectedImpact(impact)}
-                className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-all duration-200"
-                style={active
-                  ? { background: cfg?.bg || 'rgba(212,168,83,0.12)', color: cfg?.color || '#d4a853', border: `1px solid ${cfg?.border || 'rgba(212,168,83,0.25)'}` }
-                  : { background: 'transparent', color: '#5a4d42', border: '1px solid rgba(255,255,255,0.04)' }}>
-                {cfg?.dot || '🌐'} {impact === 'All' ? t('calendar.all') : cfg?.label || impact}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: '#5a4d42' }}>{t('calendar.country')}</span>
-          {COUNTRIES.map(c => {
-            const active = selectedCountry === c;
-            return (
-              <button key={c} onClick={() => setSelectedCountry(c)}
-                className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-all duration-200"
-                style={active
-                  ? { background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)' }
-                  : { background: 'transparent', color: '#5a4d42', border: '1px solid rgba(255,255,255,0.04)' }}>
-                {FLAG[c] || '🌐'} {c === 'ALL' ? t('calendar.all') : c}
-              </button>
-            );
-          })}
-        </div>
+      {/* ─── Impact Filters ─── */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: '#5a4d42' }}>
+          {t('calendar.impact')}
+        </span>
+        {IMPACTS.map(impact => {
+          const active = selectedImpact === impact;
+          const cfg = IMPACT_STYLE[impact];
+          return (
+            <button key={impact} onClick={() => setSelectedImpact(impact)}
+              className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-all duration-200"
+              style={active
+                ? { background: cfg?.bg || 'rgba(212,168,83,0.12)', color: cfg?.color || '#d4a853', border: `1px solid ${cfg?.border || 'rgba(212,168,83,0.25)'}` }
+                : { background: 'transparent', color: '#5a4d42', border: '1px solid rgba(255,255,255,0.04)' }}>
+              {impact === 'All' ? (isZh ? '🌐 全部' : '🌐 All') : impact}
+            </button>
+          );
+        })}
       </div>
 
       {/* ─── Main Content: Calendar (left) + News (right) ─── */}
@@ -332,8 +366,8 @@ const MacroCalendarPage = () => {
           ) : (
             <div className="space-y-2">
               {groupedByDate.map((group) => (
-                <DaySection key={group.dateLabel} group={group} t={t} getTitle={getTitle}
-                  fmtTime={fmtTime} fmtCountdown={fmtCountdown} cdColor={cdColor}
+                <DaySection key={group.dateLabel} group={group} t={t} isZh={isZh}
+                  getTitle={getTitle} fmtTime={fmtTime} fmtCountdown={fmtCountdown} cdColor={cdColor}
                   expanded={!!expandedDays[group.dateLabel]} onToggle={() => toggleDay(group.dateLabel)} />
               ))}
             </div>
@@ -378,19 +412,19 @@ const MacroCalendarPage = () => {
 // ══════════════════════════════════════
 // Day Section (Collapsible)
 // ══════════════════════════════════════
-const DaySection = ({ group, t, getTitle, fmtTime, fmtCountdown, cdColor, expanded, onToggle }) => {
+const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, expanded, onToggle }) => {
   const { weekday, dateLabel, isToday, events, allPast } = group;
   const highCount = events.filter(e => e.impact === 'High').length;
+  const unlockCount = events.filter(e => e.type === 'unlock').length;
+  const cryptoCount = events.filter(e => e.type === 'crypto_event').length;
 
   return (
     <div className="rounded-xl overflow-hidden" style={{
       background: isToday ? 'rgba(212,168,83,0.02)' : 'rgba(255,255,255,0.01)',
       border: isToday ? '1px solid rgba(212,168,83,0.1)' : '1px solid rgba(255,255,255,0.03)',
     }}>
-      {/* Clickable header */}
       <button onClick={onToggle}
         className="w-full flex items-center gap-2 px-3 py-2 transition-colors hover:bg-white/[0.01]">
-        {/* Expand arrow */}
         <svg className={`w-3 h-3 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#5a4d42' }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -411,27 +445,35 @@ const DaySection = ({ group, t, getTitle, fmtTime, fmtCountdown, cdColor, expand
               {highCount}🔴
             </span>
           )}
+          {unlockCount > 0 && (
+            <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
+              {unlockCount}🔓
+            </span>
+          )}
+          {cryptoCount > 0 && (
+            <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+              {cryptoCount}⚡
+            </span>
+          )}
           <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.03)', color: '#5a4d42' }}>
             {events.length}
           </span>
         </div>
       </button>
 
-      {/* Expandable content */}
       {expanded && (
         <div>
           {/* Desktop header */}
-          <div className="hidden sm:grid grid-cols-[60px_32px_1fr_64px_64px_80px] gap-1.5 px-3 py-1 text-[9px] uppercase tracking-wider font-semibold"
+          <div className="hidden sm:grid grid-cols-[56px_28px_1fr_70px_80px] gap-1.5 px-3 py-1 text-[9px] uppercase tracking-wider font-semibold"
             style={{ color: '#4a3f36', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
             <span>{t('calendar.th_time')}</span><span></span>
             <span>{t('calendar.th_event')}</span>
-            <span className="text-right">{t('calendar.th_forecast')}</span>
-            <span className="text-right">{t('calendar.th_previous')}</span>
+            <span className="text-right">{isZh ? '详情' : 'Details'}</span>
             <span className="text-right">{t('calendar.th_status')}</span>
           </div>
 
           {events.map((event, i) => (
-            <EventRow key={`${event.title}-${event.date}-${i}`} event={event} index={i}
+            <EventRow key={`${event.title}-${event.date}-${i}`} event={event} index={i} isZh={isZh}
               t={t} getTitle={getTitle} fmtTime={fmtTime} fmtCountdown={fmtCountdown} cdColor={cdColor} />
           ))}
         </div>
@@ -442,24 +484,90 @@ const DaySection = ({ group, t, getTitle, fmtTime, fmtCountdown, cdColor, expand
 
 
 // ══════════════════════════════════════
-// Event Row
+// Event Row — unified for all event types
 // ══════════════════════════════════════
-const EventRow = ({ event, index, t, getTitle, fmtTime, fmtCountdown, cdColor }) => {
-  const cfg = IMPACT_STYLE[event.impact] || IMPACT_STYLE.Low;
+const EventRow = ({ event, index, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) => {
+  const impactCfg = IMPACT_STYLE[event.impact] || IMPACT_STYLE.Low;
+  const typeCfg = TYPE_STYLE[event.type] || TYPE_STYLE.macro;
   const isPast = event.is_past;
+
+  // Type-specific detail column
+  const detailContent = () => {
+    if (event.type === 'unlock') {
+      return (
+        <div className="flex flex-col items-end gap-0.5">
+          {event.usd_value ? (
+            <span className="text-[11px] font-mono font-semibold" style={{ color: '#8b5cf6' }}>
+              {fmtUsd(event.usd_value)}
+            </span>
+          ) : null}
+          {event.pct_circulating ? (
+            <span className="text-[9px] font-mono" style={{ color: '#6b5c52' }}>
+              {event.pct_circulating}% circ.
+            </span>
+          ) : null}
+        </div>
+      );
+    }
+    if (event.type === 'macro') {
+      return (
+        <div className="flex flex-col items-end gap-0.5">
+          {event.forecast && <span className="text-[10px] font-mono" style={{ color: '#d4a853' }}>{event.forecast}</span>}
+          {event.previous && <span className="text-[9px] font-mono" style={{ color: '#5a4d42' }}>P: {event.previous}</span>}
+        </div>
+      );
+    }
+    if (event.type === 'crypto_event' && event.category) {
+      return (
+        <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: typeCfg.bg, color: typeCfg.color, border: `1px solid ${typeCfg.border}` }}>
+          {event.category}
+        </span>
+      );
+    }
+    return null;
+  };
+
+  // Icon/flag for the event
+  const eventIcon = () => {
+    if (event.type === 'macro') return FLAG[event.country] || '🌐';
+    if (event.type === 'unlock') return '🔓';
+    if (event.type === 'crypto_event') return '⚡';
+    return '📌';
+  };
 
   return (
     <div className={`relative transition-colors duration-150 ${isPast ? 'opacity-30' : 'hover:bg-white/[0.015]'}`}
       style={{ borderTop: '1px solid rgba(255,255,255,0.02)' }}>
-      <div className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: isPast ? 'transparent' : cfg.bar, opacity: 0.5 }} />
+      {/* Left bar — color by type */}
+      <div className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: isPast ? 'transparent' : typeCfg.color, opacity: 0.5 }} />
 
       {/* Desktop */}
-      <div className="hidden sm:grid grid-cols-[60px_32px_1fr_64px_64px_80px] gap-1.5 items-center px-3 pl-4 py-2">
-        <span className="text-[11px] font-mono tabular-nums" style={{ color: isPast ? '#3a3030' : '#8a7b6b' }}>{fmtTime(event.date)}</span>
-        <span className="text-sm">{FLAG[event.country] || '🌐'}</span>
-        <p className="text-[13px] font-medium truncate" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>{getTitle(event.title)}</p>
-        <span className="text-[11px] text-right font-mono tabular-nums" style={{ color: event.forecast ? '#d4a853' : '#2a2424' }}>{event.forecast || '—'}</span>
-        <span className="text-[11px] text-right font-mono tabular-nums" style={{ color: '#5a4d42' }}>{event.previous || '—'}</span>
+      <div className="hidden sm:grid grid-cols-[56px_28px_1fr_70px_80px] gap-1.5 items-center px-3 pl-4 py-2">
+        <span className="text-[11px] font-mono tabular-nums" style={{ color: isPast ? '#3a3030' : '#8a7b6b' }}>
+          {fmtTime(event.date)}
+        </span>
+        <span className="text-sm">{eventIcon()}</span>
+        <div className="min-w-0 flex items-center gap-2">
+          {/* Type badge */}
+          <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0"
+            style={{ background: typeCfg.bg, color: typeCfg.color, border: `0.5px solid ${typeCfg.border}` }}>
+            {isZh ? typeCfg.labelZh : typeCfg.label}
+          </span>
+          {/* Impact dot */}
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: impactCfg.dot }} />
+          {/* Title */}
+          <p className="text-[13px] font-medium truncate" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>
+            {getTitle(event)}
+          </p>
+          {/* Symbol badge for crypto events */}
+          {event.type !== 'macro' && event.symbol && (
+            <span className="text-[9px] font-mono font-semibold px-1 py-0.5 rounded shrink-0"
+              style={{ background: 'rgba(255,255,255,0.04)', color: '#8a7b6b' }}>
+              {event.symbol}
+            </span>
+          )}
+        </div>
+        <div className="flex justify-end">{detailContent()}</div>
         <span className="text-[11px] text-right font-mono tabular-nums">
           {isPast
             ? <span style={{ color: '#3a3030' }}>{t('calendar.status_done')}</span>
@@ -473,16 +581,42 @@ const EventRow = ({ event, index, t, getTitle, fmtTime, fmtCountdown, cdColor })
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[11px] font-mono tabular-nums" style={{ color: '#8a7b6b' }}>{fmtTime(event.date)}</span>
-              <span className="text-xs">{FLAG[event.country] || '🌐'}</span>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.bar }} />
+              <span className="text-xs">{eventIcon()}</span>
+              <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded"
+                style={{ background: typeCfg.bg, color: typeCfg.color }}>
+                {isZh ? typeCfg.labelZh : typeCfg.label}
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: impactCfg.dot }} />
             </div>
-            <p className="text-[13px] font-medium leading-snug" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>{getTitle(event.title)}</p>
-            {(event.forecast || event.previous) && (
-              <div className="flex items-center gap-2 mt-1">
-                {event.forecast && <span className="text-[10px]" style={{ color: '#6b5c52' }}>F: <span className="font-mono" style={{ color: '#d4a853' }}>{event.forecast}</span></span>}
-                {event.previous && <span className="text-[10px]" style={{ color: '#5a4d42' }}>P: <span className="font-mono">{event.previous}</span></span>}
-              </div>
-            )}
+            <p className="text-[13px] font-medium leading-snug" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>
+              {getTitle(event)}
+            </p>
+            {/* Inline details for mobile */}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {event.type !== 'macro' && event.symbol && (
+                <span className="text-[9px] font-mono font-semibold px-1 py-0.5 rounded"
+                  style={{ background: 'rgba(255,255,255,0.04)', color: '#8a7b6b' }}>
+                  {event.symbol}
+                </span>
+              )}
+              {event.type === 'unlock' && event.usd_value ? (
+                <span className="text-[10px] font-mono" style={{ color: '#8b5cf6' }}>{fmtUsd(event.usd_value)}</span>
+              ) : null}
+              {event.type === 'unlock' && event.pct_circulating ? (
+                <span className="text-[9px] font-mono" style={{ color: '#6b5c52' }}>{event.pct_circulating}% circ.</span>
+              ) : null}
+              {event.type === 'macro' && event.forecast && (
+                <span className="text-[10px]" style={{ color: '#6b5c52' }}>F: <span className="font-mono" style={{ color: '#d4a853' }}>{event.forecast}</span></span>
+              )}
+              {event.type === 'macro' && event.previous && (
+                <span className="text-[10px]" style={{ color: '#5a4d42' }}>P: <span className="font-mono">{event.previous}</span></span>
+              )}
+              {event.type === 'crypto_event' && event.category && (
+                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: typeCfg.bg, color: typeCfg.color }}>
+                  {event.category}
+                </span>
+              )}
+            </div>
           </div>
           {!isPast && <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: cdColor(event.seconds_until) }}>{fmtCountdown(event.seconds_until)}</span>}
         </div>
@@ -493,7 +627,7 @@ const EventRow = ({ event, index, t, getTitle, fmtTime, fmtCountdown, cdColor })
 
 
 // ══════════════════════════════════════
-// News Item (compact list style for sidebar)
+// News Item
 // ══════════════════════════════════════
 const NewsItem = ({ article }) => {
   const srcStyle = SOURCE_STYLE[article.source] || { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.15)' };
@@ -502,8 +636,6 @@ const NewsItem = ({ article }) => {
     <a href={article.link} target="_blank" rel="noopener noreferrer"
       className="group flex gap-3 rounded-lg p-2 transition-all duration-200 hover:bg-white/[0.02]"
       style={{ border: '1px solid rgba(255,255,255,0.03)' }}>
-
-      {/* Thumbnail */}
       {article.image && (
         <div className="w-20 h-14 rounded-md overflow-hidden shrink-0">
           <img src={article.image} alt="" loading="lazy"
@@ -511,7 +643,6 @@ const NewsItem = ({ article }) => {
             onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
         </div>
       )}
-
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-[9px] font-semibold px-1 py-0.5 rounded"
