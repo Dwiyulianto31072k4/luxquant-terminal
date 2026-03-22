@@ -113,18 +113,7 @@ const FAQItem = ({ q, a, isOpen, onClick }) => (
 );
 
 // ════════════════════════════════════════
-// Feature Slider (Mac & Phone Mockup)
-// ════════════════════════════════════════
-
-{/* 👇 2. ELEMEN INI SEKARANG MENGAMBIL DARI FILE BARU 👇 */}
-      <FeatureSliderSection />
-
-
-// ════════════════════════════════════════
-// Promo Flying Coins (Untuk Mockup Telegram)
-// ════════════════════════════════════════
-// ════════════════════════════════════════
-// Promo Flying Coins (Untuk Mockup Telegram)
+// Promo Flying Coins (Untuk Mockup Telegram Bawah)
 // ════════════════════════════════════════
 const PromoFlyingCoins = ({ gainers }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -134,7 +123,7 @@ const PromoFlyingCoins = ({ gainers }) => {
     if (allCoins.length === 0) return;
     const iv = setInterval(() => {
       setCurrentIdx(prev => (prev + 1) % allCoins.length);
-    }, 3500); // Berganti setiap 3.5 detik
+    }, 3500); 
     return () => clearInterval(iv);
   }, [allCoins.length]);
 
@@ -142,16 +131,16 @@ const PromoFlyingCoins = ({ gainers }) => {
 
   const item = allCoins[currentIdx];
   const symbol = item?.pair?.replace(/USDT$/i, '').replace(/^3A/, '') || '???';
-  
-  // 👇 INI LOGIKA BARUNYA: Ambil tipe (Daily/Weekly) dari data 👇
   const labelText = item?.type ? `${item.type} Top Gainer` : 'Live Gainer Call';
 
   return (
     <div 
       key={currentIdx} 
-      className="absolute z-30 pointer-events-none -left-6 lg:-left-16 top-[35%] lg:top-[40%]"
+      className="absolute z-40 pointer-events-none"
       style={{ 
-        animation: 'sideFloat 3.5s ease-out both' 
+        top: '50%', 
+        left: '50%', 
+        animation: 'flyOutRightAnim 3.5s ease-out both' 
       }}
     >
       <div
@@ -169,8 +158,6 @@ const PromoFlyingCoins = ({ gainers }) => {
           </div>
           <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(2)}%</span>
         </div>
-        
-        {/* 👇 TAMPILKAN LABEL DINAMIS DI SINI 👇 */}
         <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left mt-1 block">
           {labelText}
         </span>
@@ -179,49 +166,31 @@ const PromoFlyingCoins = ({ gainers }) => {
   );
 };
 
-
 // ════════════════════════════════════════
 // Telegram Promo Component
 // ════════════════════════════════════════
 const TelegramPromo = ({ gainers }) => {
   return (
     <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-      
-      {/* 👇 UBAH NAMA DAN ANIMASI KEYFRAME DI SINI 👇 */}
-      <style>{`
-        @keyframes sideFloat {
-          0% { opacity: 0; transform: translateY(20px) scale(0.8); }
-          20% { opacity: 1; transform: translateY(-10px) scale(1.05); }
-          80% { opacity: 1; transform: translateY(-40px) scale(1); }
-          100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
-        }
-      `}</style>
-
-      {/* Dekorasi Cahaya Latar */}
       <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold-primary/5 blur-[100px] -z-10" />
       <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#229ED9]/5 blur-[80px] -z-10" />
 
       <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
-        
-        {/* Sisi Kiri: Konten Teks */}
         <div className="flex-1 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-6">
             <span className="w-2 h-2 bg-gold-primary rounded-full animate-pulse" />
             <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">100% Free Tier</span>
           </div>
-          
           <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
             Try Before You <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
               Subscribe.
             </span>
           </h2>
-          
-          <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl">
+          <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
             Want to test our accuracy before unlocking the full institutional terminal? Join <span className="text-white font-semibold">@LuxQuantSignal</span> for our free public channel. Experience our 24/7 non-stop quantitative edge with real-time algorithm previews and selected high-probability calls. Powerful intelligence directly to your pocket—completely free.
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
             <a 
               href="https://t.me/LuxQuantSignal" 
               target="_blank" 
@@ -235,42 +204,37 @@ const TelegramPromo = ({ gainers }) => {
               </svg>
               <span className="relative z-10 uppercase tracking-widest">Join Free Channel</span>
             </a>
-            
-            <div className="flex flex-col items-center sm:items-start">
+            <div className="flex flex-col items-center sm:items-start mt-4 sm:mt-0">
               <span className="text-white font-mono text-sm">Thousands of Traders</span>
-              {/* REVISI: Warna hijau diubah ke gold/muted */}
               <span className="text-gold-primary/70 text-[10px] uppercase tracking-tighter italic">Active Community</span>
             </div>
           </div>
         </div>
         
-        {/* Sisi Kanan: Mockup HP */}
-        <div className="flex-1 flex justify-center lg:justify-end relative">
+        <div className="flex-1 flex justify-center lg:justify-end relative mt-12 lg:mt-0">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gold-primary/20 blur-[80px] rounded-full animate-pulse"></div>
-          
-          <div className="relative w-[260px] lg:w-[280px] h-[520px] lg:h-[560px] bg-[#050302] border-[8px] border-[#1a1a1a] rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-10 group">
-            <div className="absolute top-0 inset-x-0 h-6 bg-[#1a1a1a] rounded-b-3xl w-1/3 mx-auto z-20"></div>
-            
-            {/* REVISI: Tambah ?v=2 di ujung src untuk memaksa browser download versi terbaru (bypass cache) */}
-            <img 
-              src="/telegram-ss.png?v=2" 
-              alt="LuxQuant Telegram Channel Content" 
-              className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
+          <div className="relative w-[240px] lg:w-[280px] aspect-[9/19.5] z-10 group">
+            <div className="absolute inset-0 bg-[#050302] border-[6px] lg:border-[8px] border-[#1a1a1a] rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+              <div className="absolute top-0 inset-x-0 z-30">
+                 <div className="w-[35%] h-[16px] lg:h-[20px] bg-[#1a1a1a] mx-auto rounded-b-xl lg:rounded-b-2xl" />
+              </div>
+              <div className="absolute inset-[2px] rounded-[2.2rem] lg:rounded-[2.8rem] overflow-hidden bg-[#050302]">
+                <img 
+                  src="/telegram-ss.png?v=2" 
+                  alt="LuxQuant Telegram Channel Content" 
+                  className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
+              </div>
+            </div>
+            <PromoFlyingCoins gainers={gainers} />
           </div>
-
-          {/* Lencana Terbang Dinamis (Sekarang terbang dari tengah) */}
-          <PromoFlyingCoins gainers={gainers} />
-
         </div>
       </div>
     </div>
   );
 };
-
 
 // ════════════════════════════════════════
 // Live Performance Stats
@@ -323,14 +287,12 @@ const RuntimeCounter = () => {
   );
 };
 
-// --- CHART WIN RATE TREND KHUSUS LANDING PAGE ---
 const LandingWinRateChart = ({ data }) => {
   if (!data || data.length === 0) return <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted">Loading trend data...</div>;
 
   const chartData = data.map((item) => {
     let shortLabel = item.period;
     let tooltipLabel = item.period;
-    
     try { 
       const dt = new Date(item.period); 
       if (!isNaN(dt)) {
@@ -368,16 +330,13 @@ const LandingWinRateChart = ({ data }) => {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,168,83,0.05)" vertical={false} />
-          
           <XAxis dataKey="period" stroke="#6b5c52" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-          
           <YAxis yAxisId="rate" stroke="#6b5c52" fontSize={10} domain={[0, 100]} tickFormatter={v => `${v}%`} tickLine={false} axisLine={false} />
           <YAxis yAxisId="vol" orientation="right" domain={[0, maxVol * 4]} hide />
           <ReferenceLine yAxisId="rate" y={avgWR} stroke="rgba(212,168,83,0.2)" strokeDasharray="4 4" />
           <Bar yAxisId="vol" dataKey="total" fill="url(#volBarGradLnd)" radius={[2, 2, 0, 0]} maxBarSize={12} />
           <Area yAxisId="rate" type="monotone" dataKey="winRate" stroke="none" fill="url(#winRateGlowLnd)" />
           <Line yAxisId="rate" type="monotone" dataKey="winRate" stroke="#d4a853" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#d4a853', stroke: '#0a0506', strokeWidth: 2 }} />
-          
           <Tooltip
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
@@ -437,7 +396,6 @@ const LivePerformanceStats = ({ data }) => {
           <span className="text-base">🇹🇼</span>
           <span className="text-gold-primary text-xs font-semibold tracking-wide">Built in Taiwan · Running Since 2023</span>
         </div>
-
         <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
           Transparent & <span className="text-gold-primary">Verified</span> Performance
         </h2>
@@ -451,7 +409,6 @@ const LivePerformanceStats = ({ data }) => {
         <RuntimeCounter />
       </div>
 
-      {/* KPI STRIP */}
       <div onClick={goPerf} className="cursor-pointer group">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
           <div className="rounded-xl p-3 lg:p-4 border bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20 group-hover:border-gold-primary/40 transition-all">
@@ -483,10 +440,7 @@ const LivePerformanceStats = ({ data }) => {
         </div>
       </div>
 
-      {/* ROW 1 BENTO: CHART TREN (2 KOLOM) + OUTCOME (1 KOLOM) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 mb-4">
-        
-        {/* CHART WINT RATE TREN */}
         <div onClick={goPerf} className="lg:col-span-2 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer">
           <div className="flex justify-between items-start">
             <div>
@@ -500,7 +454,6 @@ const LivePerformanceStats = ({ data }) => {
           <LandingWinRateChart data={trendData} />
         </div>
 
-        {/* OUTCOME DISTRIBUTION */}
         <div onClick={goPerf} className="lg:col-span-1 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer">
           <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Outcome Distribution</h3>
           <p className="text-text-muted text-[10px] lg:text-xs mb-6">{stats ? closedTrades.toLocaleString() : '—'} closed trades</p>
@@ -539,14 +492,12 @@ const LivePerformanceStats = ({ data }) => {
         </div>
       </div>
 
-      {/* ROW 2: RISK LEVEL ANALYSIS */}
       <div onClick={goPerf} className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all mb-4 cursor-pointer">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
           <div>
             <h3 className="text-white font-semibold text-base lg:text-lg mb-1">Risk Level Analysis</h3>
             <p className="text-text-muted text-[10px] lg:text-xs">Performance breakdown by signal risk level</p>
           </div>
-          
           {riskDist.length > 0 && (
             <div className="flex items-center gap-3 bg-bg-card/30 p-2 rounded-lg border border-white/5">
               {riskDist.map((rd) => (
@@ -574,7 +525,6 @@ const LivePerformanceStats = ({ data }) => {
                   </div>
                   <p className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none mb-1`}>{rd.win_rate.toFixed(1)}%</p>
                   <p className="text-text-muted text-[10px] mb-3">Win Rate</p>
-                  
                   <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
                     <div className="h-full bg-green-500/70 rounded-l-full" style={{ width: `${winPct}%` }} />
                     <div className="h-full bg-red-500/70 rounded-r-full" style={{ width: `${100 - winPct}%` }} />
@@ -594,7 +544,6 @@ const LivePerformanceStats = ({ data }) => {
         )}
       </div>
 
-      {/* BOTTOM BANNER */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex items-center gap-3">
           <span className="text-xl">🔒</span>
@@ -615,7 +564,7 @@ const LivePerformanceStats = ({ data }) => {
 };
 
 // ════════════════════════════════════════
-// Coins flying out from phone (Alternating Daily & Weekly)
+// Coins flying out from phone (Hero Section)
 // ════════════════════════════════════════
 const PhoneFlyingCoins = ({ gainers }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -638,11 +587,11 @@ const PhoneFlyingCoins = ({ gainers }) => {
   return (
     <div 
       key={currentIdx}
-      className="absolute z-30 pointer-events-none"
+      className="absolute z-40 pointer-events-none"
       style={{
-        top: '15%',
-        right: '-40%',
-        animation: 'coin-float-up-right 3.5s ease-out both',
+        top: '50%',     
+        left: '50%',    
+        animation: 'flyOutLeftAnim 3.5s ease-out both',
       }}
     >
       <div
@@ -659,45 +608,9 @@ const PhoneFlyingCoins = ({ gainers }) => {
           <span className="text-white text-sm font-bold">{symbol}</span>
           <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(1)}%</span>
         </div>
-        <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left">
+        <span className="text-gold-primary/70 text-[9px] font-mono tracking-widest uppercase text-left mt-1 block">
           {labelText}
         </span>
-      </div>
-    </div>
-  );
-};
-
-const MobileRotatingCoins = ({ gainers }) => {
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const allCoins = gainers.slice(0, 20);
-
-  useEffect(() => {
-    if (allCoins.length === 0) return;
-    const iv = setInterval(() => setCurrentIdx(prev => (prev + 1) % allCoins.length), 3500);
-    return () => clearInterval(iv);
-  }, [allCoins.length]);
-
-  if (allCoins.length === 0) return null;
-
-  const item = allCoins[currentIdx];
-  const symbol = item?.pair?.replace(/USDT$/i, '').replace(/^3A/, '') || '???';
-  const labelText = item?.type ? `${item.type} Gainer` : 'Top Gainer';
-
-  return (
-    <div className="flex justify-center w-full min-h-[60px]">
-      <div 
-        key={currentIdx}
-        className="flex items-center justify-between w-full max-w-[240px] px-4 py-2.5 rounded-2xl border border-gold-primary/30 bg-black/80 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
-        style={{ animation: 'heroCardFadeIn 0.5s ease-out both' }}
-      >
-        <div className="flex items-center gap-3">
-          <CoinLogo pair={item.pair} size={24} />
-          <div className="text-left">
-            <p className="text-white text-xs font-bold leading-none">{symbol}</p>
-            <p className="text-gold-primary/70 text-[8px] font-mono tracking-wider mt-1 uppercase">{labelText}</p>
-          </div>
-        </div>
-        <span className="text-green-400 text-sm font-bold font-mono">+{item.gain_pct?.toFixed(1)}%</span>
       </div>
     </div>
   );
@@ -778,19 +691,46 @@ const LandingPage = () => {
   const stats = performanceData?.stats;
 
   return (
-    <div className="min-h-screen bg-bg-primary text-white relative pb-20 lg:pb-0 overflow-x-hidden"> 
+    <div className="min-h-screen bg-bg-primary text-white relative pb-0 overflow-x-hidden"> 
+      
+      {/* GLOBAL ANIMATION STYLES */}
+      <style>{`
+        @keyframes flyOutRightAnim {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+          20% { opacity: 1; transform: translate(40px, -40px) scale(0.9); }
+          80% { opacity: 1; transform: translate(120px, -80px) scale(0.9); }
+          100% { opacity: 0; transform: translate(140px, -100px) scale(0.8); }
+        }
+        
+        @keyframes flyOutLeftAnim {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+          20% { opacity: 1; transform: translate(-60px, -40px) scale(0.9); }
+          80% { opacity: 1; transform: translate(-140px, -80px) scale(0.9); }
+          100% { opacity: 0; transform: translate(-160px, -100px) scale(0.8); }
+        }
+
+        @media (min-width: 640px) {
+          @keyframes flyOutRightAnim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+            20% { opacity: 1; transform: translate(60px, -60px) scale(1.05); }
+            80% { opacity: 1; transform: translate(160px, -100px) scale(1); }
+            100% { opacity: 0; transform: translate(190px, -120px) scale(0.9); }
+          }
+          @keyframes flyOutLeftAnim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+            20% { opacity: 1; transform: translate(-100px, -60px) scale(1.05); }
+            80% { opacity: 1; transform: translate(-200px, -100px) scale(1); }
+            100% { opacity: 0; transform: translate(-230px, -120px) scale(0.9); }
+          }
+        }
+      `}</style>
+
       <div className="luxury-bg" />
       <TickerBar />
 
-      {/* HEADER */}
-      {/* ════════════════════════════════════════
-          HEADER (Elegant & Symmetrical)
-      ════════════════════════════════════════ */}
       <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-[#0a0506]/85 backdrop-blur-xl border-b border-gold-primary/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
-            
-            {/* KIRI: Logo */}
             <div className="flex-1 flex items-center gap-2.5 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="relative overflow-hidden rounded-xl">
                  <img src="/logo.png" alt="LuxQuant" className="w-8 h-8 lg:w-10 lg:h-10 object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -799,7 +739,6 @@ const LandingPage = () => {
               <h1 className="font-display text-lg lg:text-xl font-bold text-white tracking-wide group-hover:text-gold-primary transition-colors duration-300">LuxQuant</h1>
             </div>
 
-            {/* TENGAH: Menu Navigasi Minimalis */}
             <nav className="hidden lg:flex flex-1 justify-center items-center gap-8">
               {[['Home', 'hero'], ['Terminal', 'features'], ['Architecture', 'how-it-works'], ['Performance', 'performance-top'], ['FAQ', 'faq']].map(([label, id]) => (
                 <button 
@@ -808,13 +747,11 @@ const LandingPage = () => {
                   className="text-white/60 hover:text-white text-sm font-medium tracking-wide transition-colors relative group py-2"
                 >
                   {label}
-                  {/* Efek hover: Underline emas menyebar dari tengah */}
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-gold-primary to-transparent transition-all duration-500 group-hover:w-[80%] opacity-0 group-hover:opacity-100"></span>
                 </button>
               ))}
             </nav>
 
-            {/* KANAN: Tombol Aksi "Open Platform" */}
             <div className="hidden lg:flex flex-1 justify-end items-center">
               <button 
                 onClick={isAuthenticated ? goTerminal : goLogin} 
@@ -825,12 +762,10 @@ const LandingPage = () => {
                 <svg className="w-3.5 h-3.5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-                {/* Efek kilap (shine) saat di hover */}
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </button>
             </div>
 
-            {/* Tombol Hamburger (Mobile) */}
             <div className="flex-1 flex justify-end lg:hidden">
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-white/70 hover:text-white focus:outline-none">
                 <div className="w-5 h-4 flex flex-col justify-between">
@@ -840,11 +775,9 @@ const LandingPage = () => {
                 </div>
               </button>
             </div>
-            
           </div>
         </div>
 
-        {/* Menu Dropdown Animasi Meluncur (Mobile) */}
         <div className={`lg:hidden absolute top-full left-0 w-full bg-[#0a0506]/95 backdrop-blur-3xl overflow-hidden transition-all duration-500 ease-in-out ${mobileMenuOpen ? 'max-h-[400px] opacity-100 border-b border-gold-primary/20 shadow-2xl' : 'max-h-0 opacity-0'}`}>
           <div className="px-6 py-6 space-y-2">
             {[['Home', 'hero'], ['Terminal', 'features'], ['Architecture', 'how-it-works'], ['Performance', 'performance-top'], ['FAQ', 'faq']].map(([label, id]) => (
@@ -856,7 +789,6 @@ const LandingPage = () => {
                 {label}
               </button>
             ))}
-            
             <div className="pt-4 mt-2 border-t border-white/5">
               <button 
                 onClick={isAuthenticated ? goTerminal : goLogin} 
@@ -876,42 +808,41 @@ const LandingPage = () => {
       {/* ════════════════════════════════════════
           HERO SECTION (Algorithmic Focus + Multi-Device)
       ════════════════════════════════════════ */}
-      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-20 pb-16 lg:pb-20 overflow-visible">
-        {/* Background Ambient Glows */}
+      <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-32 xl:pt-40 pb-16 lg:pb-20 overflow-visible">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] pointer-events-none -z-10">
           <div className="absolute inset-0 bg-gold-primary/[0.03] rounded-full blur-[150px]" style={{ animation: 'heroGlowPulse 6s ease-in-out infinite' }} />
           <div className="absolute top-20 -left-40 w-[400px] h-[400px] bg-[#8b1a1a]/[0.05] rounded-full blur-[120px]" />
           <div className="absolute -bottom-20 -right-20 w-[300px] h-[300px] bg-gold-primary/[0.04] rounded-full blur-[100px]" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center relative z-10">
+        {/* 👇 FIX: gap-12 diubah jadi gap-2 untuk mobile 👇 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-8 items-center relative z-10">
           
-          {/* LFT: Text Content */}
-          <div className="relative z-20">
+          <div className="relative z-20 flex flex-col items-center text-center lg:items-start lg:text-left">
             <h1 
-              className="font-display text-4xl sm:text-5xl lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.1] mb-6 tracking-tight"
+              className="font-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.15] lg:leading-[1.05] tracking-tight mb-5 px-2 sm:px-0"
               style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.2s both' }}
             >
-              An <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f0d890] via-[#d4a853] to-[#8b6914] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Algorithm</span> <br />
+              An <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">Algorithm</span> <br />
               Built to Outsmart <br />
               <span className="relative inline-block mt-1 lg:mt-2">
                 The Market.
-                <svg className="absolute w-[105%] h-2 lg:h-3 -bottom-1 -left-[2.5%] text-gold-primary/40" viewBox="0 0 100 10" preserveAspectRatio="none">
-                  <path d="M0 8 Q 25 2 50 6 T 100 4" fill="transparent" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <svg className="absolute w-[110%] h-3 lg:h-4 -bottom-1 lg:-bottom-1.5 -left-[5%] text-gold-primary/60" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <path d="M0 8 Q 25 2 50 6 T 100 4" fill="transparent" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </span>
             </h1>
 
+            {/* 👇 FIX: mb-8 diubah jadi mb-2 khusus mobile 👇 */}
             <p 
-              className="text-text-secondary text-sm sm:text-base lg:text-lg leading-relaxed mb-10 max-w-[540px]"
+              className="text-white/75 font-light text-[0.9rem] sm:text-base lg:text-[1.05rem] leading-relaxed mb-2 lg:mb-10 w-full max-w-[95%] sm:max-w-md lg:max-w-xl mx-auto lg:mx-0 px-2 lg:px-0"
               style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.35s both' }}
             >
-              Our algorithm runs <span className="text-white font-medium">24/7</span> — scanning price action, derivatives flow, on-chain whale movements, and order book liquidity to deliver precision projection and strict risk management on every call. 
+              Our algorithm runs <span className="text-white font-medium">24/7</span> — scanning price action, derivatives flow, on-chain whale movements, and order book liquidity to deliver precision projection and strict risk management. 
               <br/><br/>
-              Complemented by an <span className="text-white font-medium">AI market researcher</span> that synthesizes sentiment, macro events, and technical indicators into one clear market verdict — so every decision you make is backed by data, not emotion.
+              Complemented by an <span className="text-white font-medium">AI market researcher</span> that synthesizes sentiment and macro events into one clear verdict.
             </p>
 
-            {/* BUTTON: Sembunyi di Mobile (hidden), Muncul di Desktop (lg:block) */}
             <div className="hidden lg:block mb-12" style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.45s both' }}>
               <div className="inline-flex relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-gold-primary to-gold-dark rounded-xl blur opacity-30 group-hover:opacity-70 transition duration-500" />
@@ -929,87 +860,65 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* RGT: Multi-Device Mockup (Mac 3D + Phone + Flying Coins) */}
-          <div className="flex flex-col items-center justify-center relative w-full pt-8 lg:pt-0" style={{ minHeight: '480px' }}>
-            
-            {/* Ambient Backlight Aura for Devices */}
+          {/* 👇 FIX: pt-4 dihapus untuk mobile 👇 */}
+          <div className="flex flex-col items-center justify-center relative w-full pt-0 lg:pt-0" style={{ minHeight: '380px' }}>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-gold-primary/20 to-[#8b1a1a]/10 blur-[80px] rounded-full mix-blend-screen pointer-events-none z-0" />
 
-            {/* 1. THE MAC MOCKUP (Background, Angled 3D) */}
-            <div 
-              className="relative z-10 w-full max-w-[340px] sm:max-w-[450px] lg:max-w-[650px] mx-auto" 
-              style={{ perspective: '1200px' }}
-            >
+            <div className="relative w-full max-w-[320px] sm:max-w-[450px] lg:max-w-full xl:max-w-[650px] mx-auto mt-2 lg:mt-0">
+              
               <div 
                 style={{ 
                   animation: 'floatPhone 7s ease-in-out infinite', 
                   transform: 'rotateY(-12deg) rotateX(4deg)', 
                   transformStyle: 'preserve-3d' 
                 }} 
-                className="w-full relative"
+                className="w-full relative z-10"
               >
-                {/* Mac Screen */}
                 <div className="relative w-full aspect-[16/10] bg-[#0a0805] rounded-t-xl lg:rounded-t-[2rem] border-t-[4px] border-l-[4px] border-r-[4px] lg:border-t-[8px] lg:border-l-[8px] lg:border-r-[8px] border-[#2a2a2a] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(212,168,83,0.15)]">
                   <div className="absolute inset-0 border border-black rounded-t-lg lg:rounded-t-3xl overflow-hidden bg-bg-primary">
-                    {/* Camera Notch */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[12%] h-[10px] lg:h-[18px] bg-[#0a0805] rounded-b-sm lg:rounded-b-md z-30 flex justify-center items-center">
                        <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-black border border-white/10" />
                     </div>
-                    {/* Screen Image */}
                     <img 
                       src="/mockups/hero-mac-dashboard.png" 
                       alt="Dashboard Preview" 
                       className="w-full h-full object-cover object-top opacity-95" 
                       onError={(e) => { e.target.style.display = 'none'; }} 
                     />
-                    {/* Fallback Display */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
                       <img src="/logo.png" alt="" className="w-8 h-8 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl mb-2 lg:mb-3 opacity-30" onError={e => e.target.style.display = 'none'} />
                     </div>
                   </div>
                 </div>
-                {/* Mac Base */}
                 <div className="relative w-[104%] -left-[2%] h-1.5 lg:h-3 bg-gradient-to-b from-[#4a4a4a] to-[#0a0a0a] rounded-b-sm lg:rounded-b-lg border-b border-white/10 flex justify-center shadow-2xl z-20">
                   <div className="w-[15%] h-[1px] lg:h-1 bg-[#222] rounded-b-sm" />
                 </div>
               </div>
-            </div>
 
-            {/* 2. THE PHONE MOCKUP (Foreground, Overlapping Right) */}
-            <div 
-              className="relative sm:absolute -mt-16 sm:mt-0 sm:-bottom-8 lg:-bottom-12 sm:-right-4 lg:-right-8 z-30 flex-shrink-0"
-            >
-              {/* Animasi float untuk HP dibuat lebih cepat agar terlihat dinamis terhadap Mac */}
-              <div style={{ animation: 'floatPhone 5s ease-in-out infinite 1s' }}>
-                <div className="relative w-[140px] sm:w-[160px] lg:w-[200px] xl:w-[220px] aspect-[9/19.5] bg-black rounded-[2rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
-                  <div className="absolute top-0 inset-x-0 z-30">
-                    <div className="w-[35%] h-[12px] lg:h-[20px] bg-black mx-auto rounded-b-lg lg:rounded-b-2xl" />
-                  </div>
-                  <div className="absolute inset-[2px] rounded-[1.8rem] lg:rounded-[2.4rem] overflow-hidden bg-bg-primary">
-                    <img src="/mockup-hp.png" alt="LuxQuant Mobile" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
-                      <img src="/logo.png" alt="" className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
+              <div className="absolute -bottom-4 -right-2 sm:-bottom-8 lg:-bottom-12 sm:-right-4 lg:-right-8 z-30 flex-shrink-0 w-[120px] sm:w-[160px] lg:w-[200px] xl:w-[220px] aspect-[9/19.5]">
+                <div style={{ animation: 'floatPhone 5s ease-in-out infinite 1s' }} className="w-full h-full relative group">
+                  <div className="absolute inset-0 bg-black rounded-[1.8rem] lg:rounded-[2.8rem] border-[4px] lg:border-[6px] border-[#2a2a2a] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,168,83,0.3)]">
+                    <div className="absolute top-0 inset-x-0 z-30">
+                      <div className="w-[35%] h-[12px] lg:h-[20px] bg-black mx-auto rounded-b-lg lg:rounded-b-2xl" />
+                    </div>
+                    <div className="absolute inset-[2px] rounded-[1.5rem] lg:rounded-[2.4rem] overflow-hidden bg-bg-primary">
+                      <img src="/mockup-hp.png" alt="LuxQuant Mobile" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0506] -z-10">
+                        <img src="/logo.png" alt="" className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl mb-2 opacity-40" onError={e => e.target.style.display = 'none'} />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-[3px] lg:bottom-[5px] inset-x-0 z-30 flex justify-center">
+                      <div className="w-[35%] h-[3px] lg:h-[4px] bg-white/20 rounded-full" />
                     </div>
                   </div>
-                  <div className="absolute bottom-[3px] lg:bottom-[5px] inset-x-0 z-30 flex justify-center">
-                    <div className="w-[35%] h-[3px] lg:h-[4px] bg-white/20 rounded-full" />
+                  
+                  <div className="block">
+                    <PhoneFlyingCoins gainers={topGainers} />
                   </div>
                 </div>
               </div>
-              
-              {/* Flying Coins (Hanya tampil di layar Desktop/Tablet) */}
-              <div className="hidden sm:block">
-                <PhoneFlyingCoins gainers={topGainers} />
-              </div>
             </div>
-
-            {/* Mobile Rotating Coins (Hanya tampil di layar Mobile, di bawah HP) */}
-            <div className="sm:hidden w-full relative min-h-[40px] mt-6 z-40">
-              {topGainers.length > 0 && <MobileRotatingCoins gainers={topGainers} />}
-            </div>
-
           </div>
-
         </div>
       </section>
 
@@ -1019,7 +928,7 @@ const LandingPage = () => {
       <GlobalNetworkSection />
 
       {/* ════════════════════════════════════════
-          FITUR SLIDER BARU: MAC & iPHONE (Tarik dari Repo-mu)
+          FITUR SLIDER BARU: MAC & iPHONE
       ════════════════════════════════════════ */}
       <FeatureSliderSection />
 
@@ -1064,9 +973,7 @@ const LandingPage = () => {
           SYSTEM ARCHITECTURE (PCB / PIPELINE)
       ════════════════════════════════════════ */}
       <section id="how-it-works" className="relative z-10 w-full px-4 lg:px-8 pb-20 lg:pb-32 mt-12 lg:mt-20">
-        
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-gold-primary/[0.03] rounded-[100%] blur-[120px] pointer-events-none -z-10" />
-
         <div className="text-center mb-12 lg:mb-20 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gold-primary/20 bg-gold-primary/[0.03] rounded-full mb-5">
             <div className="w-1.5 h-1.5 bg-gold-primary rounded-full animate-pulse" />
@@ -1082,7 +989,6 @@ const LandingPage = () => {
 
         {/* DESKTOP LAYOUT */}
         <div className="hidden lg:flex items-center justify-center max-w-[1200px] mx-auto w-full relative z-10">
-          
           <div className="flex flex-col gap-3 w-[220px] xl:w-[260px] flex-shrink-0 z-20">
             {[
               { id: '0x1', title: 'ORDER BOOK DEPTH', desc: 'Bid/Ask liquidity tracking' },
@@ -1317,22 +1223,25 @@ const LandingPage = () => {
               <a href="https://x.com/luxquantcrypto" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-gold-primary transition-colors text-sm">Twitter</a>
             </div>
           </div>
-          <p className="text-text-muted text-xs text-center mt-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-text-muted text-xs text-center mt-8 mb-4 max-w-2xl mx-auto leading-relaxed">
             Disclaimer: Trading cryptocurrency involves significant risk. Past performance does not guarantee future results. LuxQuant provides tools and signals for informational purposes only.
           </p>
         </div>
       </footer>
+
+      {/* FIX: BALOK KOSONG KHUSUS MOBILE AGAR BISA SCROLL MENTOK KE BAWAH */}
+      <div className="h-[120px] w-full bg-bg-primary lg:hidden" />
 
       {/* ════════════════════════════════════════
           STICKY MOBILE CTA
       ════════════════════════════════════════ */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-bg-primary/95 backdrop-blur-xl border-t border-gold-primary/20 z-[100] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
         <button 
-          onClick={isAuthenticated ? goTerminal : goRegister} 
-          className="w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center uppercase tracking-wide transition-transform active:scale-95" 
+          onClick={isAuthenticated ? goTerminal : goLogin} 
+          className="w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center uppercase tracking-wide transition-transform active:scale-95 shadow-[0_0_15px_rgba(212,168,83,0.15)]" 
           style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}
         >
-          {isAuthenticated ? 'Open Terminal' : 'Start Free Trial'}
+          Open Terminal
         </button>
       </div>
 
