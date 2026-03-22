@@ -86,7 +86,6 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Initialize GSI with callback
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
@@ -106,12 +105,10 @@ export const AuthProvider = ({ children }) => {
         itp_support: true,
       });
 
-      // Trigger popup Google One Tap / account chooser
       window.google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
           console.log('One Tap not displayed:', notification.getNotDisplayedReason());
           
-          // Fallback: gunakan renderButton approach
           const tempDiv = document.createElement('div');
           tempDiv.style.position = 'fixed';
           tempDiv.style.top = '50%';
@@ -124,20 +121,17 @@ export const AuthProvider = ({ children }) => {
           tempDiv.style.border = '1px solid rgba(212,168,83,0.3)';
           tempDiv.id = 'google-fallback-container';
           
-          // Close button
           const closeBtn = document.createElement('button');
           closeBtn.innerHTML = '✕';
           closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;color:#8a7a6e;background:none;border:none;font-size:18px;cursor:pointer;';
           closeBtn.onclick = () => { document.body.removeChild(tempDiv); reject(new Error('Dibatalkan')); };
           tempDiv.appendChild(closeBtn);
           
-          // Title
           const title = document.createElement('p');
           title.textContent = 'Pilih akun Google';
           title.style.cssText = 'color:#b8a89a;margin-bottom:16px;text-align:center;font-size:14px;';
           tempDiv.appendChild(title);
           
-          // Google button container
           const btnDiv = document.createElement('div');
           btnDiv.id = 'google-fallback-btn';
           tempDiv.appendChild(btnDiv);
@@ -166,7 +160,6 @@ export const AuthProvider = ({ children }) => {
     return new Promise((resolve, reject) => {
       setError(null);
 
-      // Telegram Login Widget menggunakan callback approach
       window.onTelegramAuth = async (telegramUser) => {
         try {
           const result = await authApi.telegramLogin(telegramUser);
@@ -185,7 +178,6 @@ export const AuthProvider = ({ children }) => {
         }
       };
 
-      // Buat popup overlay dengan Telegram Login Widget
       const container = document.createElement('div');
       container.id = 'telegram-login-container';
       container.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);';
@@ -236,6 +228,20 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
+  // ─── Discord Login via OAuth2 Redirect ───
+  const loginWithDiscord = useCallback(async () => {
+    setError(null);
+    try {
+      const data = await authApi.discordGetUrl();
+      // Redirect to Discord OAuth2 page
+      window.location.href = data.url;
+    } catch (err) {
+      const message = err.response?.data?.detail || 'Discord login gagal';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   // ─── Refresh VIP Status (periodik) ───
   const refreshVipStatus = useCallback(async () => {
     try {
@@ -282,6 +288,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     loginWithGoogle,
     loginWithTelegram,
+    loginWithDiscord,
     refreshVipStatus,
     setUser,
     setError

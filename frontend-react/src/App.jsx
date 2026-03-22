@@ -21,7 +21,7 @@
 //   /admin               → User Management              [ADMIN]
 //   /pricing             → Pricing                      [PUBLIC]
 //   /payment             → Payment                      [PUBLIC]
-//   /login               → Login (Google/Telegram)      [PUBLIC]
+//   /login               → Login (Google/Telegram/Discord) [PUBLIC]
 //
 // ════════════════════════════════════════════════════════════════
 
@@ -31,7 +31,7 @@ import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // ════════════════════════════════════════
-// LAZY LOADED PAGES — each becomes its own chunk
+// LAZY LOADED PAGES
 // ════════════════════════════════════════
 const OverviewPage = lazy(() => import("./components/OverviewPage"));
 const SignalsPage = lazy(() => import("./components/SignalsPage"));
@@ -49,6 +49,7 @@ const ReferralPage = lazy(() => import("./components/ReferralPage"));
 const LandingPage = lazy(() => import("./components/landing/LandingPage"));
 const LoginPage = lazy(() => import("./components/auth/LoginPage"));
 const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
+const DiscordCallback = lazy(() => import("./components/auth/DiscordCallback"));
 const PricingPage = lazy(() => import("./components/subscription/PricingPage"));
 const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
@@ -374,6 +375,7 @@ function App() {
           {/* Auth */}
           <Route path="/login" element={<LoginPageWrapper />} />
           <Route path="/auth/google/callback" element={<Suspense fallback={<PageLoader />}><GoogleCallback /></Suspense>} />
+          <Route path="/auth/discord/callback" element={<Suspense fallback={<PageLoader />}><DiscordCallback /></Suspense>} />
           <Route path="/register" element={<Navigate to="/login" replace />} />
 
           {/* PUBLIC */}

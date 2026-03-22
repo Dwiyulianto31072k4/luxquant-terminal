@@ -67,6 +67,12 @@ export const authApi = {
     return response.data;
   },
 
+  // Discord OAuth2 — get authorization URL
+  discordGetUrl: async () => {
+    const response = await api.get('/api/v1/auth/discord/url');
+    return response.data;
+  },
+
   // Check VIP status
   checkVipStatus: async () => {
     const response = await api.get('/api/v1/auth/telegram/check-vip');

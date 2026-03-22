@@ -21,12 +21,16 @@ class User(Base):
     avatar_url = Column(Text, nullable=True)
     
     # Auth provider
-    auth_provider = Column(String(50), default='local')  # local, google, telegram
+    auth_provider = Column(String(50), default='local')  # local, google, telegram, discord
     is_admin = Column(Boolean, default=False)
     
     # Telegram fields
     telegram_id = Column(BigInteger, unique=True, nullable=True)
     telegram_username = Column(String(100), nullable=True)
+
+    # Discord fields
+    discord_id = Column(BigInteger, unique=True, nullable=True)
+    discord_username = Column(String(100), nullable=True)
 
     # Subscription
     role = Column(String(20), default="free", nullable=False)  # free, subscriber, admin

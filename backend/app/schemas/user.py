@@ -109,6 +109,8 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     telegram_id: Optional[int] = None
     telegram_username: Optional[str] = None
+    discord_id: Optional[int] = None
+    discord_username: Optional[str] = None
     subscription_expires_at: Optional[datetime] = None
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
@@ -130,6 +132,8 @@ class AdminUserResponse(BaseModel):
     avatar_url: Optional[str] = None
     telegram_id: Optional[int] = None
     telegram_username: Optional[str] = None
+    discord_id: Optional[int] = None
+    discord_username: Optional[str] = None
     subscription_expires_at: Optional[datetime] = None
     subscription_granted_by: Optional[int] = None
     subscription_granted_at: Optional[datetime] = None

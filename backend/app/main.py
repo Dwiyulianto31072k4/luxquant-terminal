@@ -17,6 +17,7 @@ from app.services.notification_worker import start_notification_worker
 
 # Import Router
 from app.api.routes.telegram_auth import router as telegram_auth_router
+from app.api.routes.discord_auth import router as discord_auth_router
 from app.api.routes.admin import router as admin_router
 from app.api.routes.subscription import router as subscription_router
 from app.api.routes.calendar import router as calendar_router
@@ -101,6 +102,7 @@ app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
+app.include_router(discord_auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
 app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
