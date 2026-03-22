@@ -12,6 +12,7 @@ export const authEn = {
   // Social Login
   continue_google: "Continue with Google",
   continue_telegram: "Continue with Telegram",
+  continue_discord: "Continue with Discord",
   secure_login: "Secure login — no password needed",
 
   // LeftBrandPanel / Typewriter
@@ -52,6 +53,7 @@ export const authZh = {
   // Social Login
   continue_google: "使用 Google 登录",
   continue_telegram: "使用 Telegram 登录",
+  continue_discord: "使用 Discord 登录",
   secure_login: "安全登录 — 无需密码",
 
   // LeftBrandPanel / Typewriter
