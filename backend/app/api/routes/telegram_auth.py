@@ -8,6 +8,8 @@ Flow:
 3. Backend verify hash (keamanan dari Telegram)
 4. Backend cek membership di VIP group via Bot API getChatMember
 5. Set role berdasarkan membership: subscriber / free
+   ⚠️  PENTING: Jangan override role jika user punya active subscription
+       (lifetime atau belum expired) yang di-set via admin/payment.
 6. Return JWT tokens
 """
 import hashlib
@@ -16,6 +18,7 @@ import time
 import os
 import re
 import secrets
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -41,6 +44,55 @@ TELEGRAM_BOT_TOKEN = os.getenv(
 )
 VIP_GROUP_CHAT_ID = int(os.getenv("VIP_GROUP_CHAT_ID", "-1002670915863"))
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+
+
+# ════════════════════════════════════════════
+# Helper: Check if user has active subscription
+# ════════════════════════════════════════════
+
+def _has_active_subscription(user: User) -> bool:
+    """
+    Check if user has an active subscription that should NOT be overridden.
+    This covers:
+    - Lifetime subscribers (role=subscriber, expires_at=None)
+    - Active time-based subscribers (role=subscriber, expires_at > now)
+    - Admin-granted access
+    
+    Returns True if the user's role should be preserved.
+    """
+    if user.role == 'admin':
+        return True
+    
+    if user.role in ('subscriber', 'premium'):
+        # Lifetime subscription (expires_at is NULL)
+        if user.subscription_expires_at is None:
+            return True
+        # Time-based subscription not yet expired
+        if user.subscription_expires_at > datetime.now(timezone.utc):
+            return True
+    
+    return False
+
+
+def _resolve_role(user: User, is_vip_member: bool) -> str:
+    """
+    Determine the correct role for a user, respecting active subscriptions.
+    
+    Rules:
+    - Admin → never touch
+    - Has active subscription (lifetime or not expired) → keep current role
+    - VIP group member but no active sub → upgrade to subscriber
+    - Not VIP and no active sub → free
+    """
+    if user.role == 'admin':
+        return user.role
+    
+    # If user has active subscription, NEVER downgrade
+    if _has_active_subscription(user):
+        return user.role
+    
+    # No active subscription → VIP check determines role
+    return 'subscriber' if is_vip_member else 'free'
 
 
 # ════════════════════════════════════════════
@@ -70,7 +122,6 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     
     # Step 3: Cek VIP membership
     is_vip_member = await _check_vip_membership(data.id)
-    target_role = 'subscriber' if is_vip_member else 'free'
     
     # Step 4: Find or create user
     user = db.query(User).filter(User.telegram_id == data.id).first()
@@ -80,9 +131,10 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
         user.telegram_username = data.username
         if data.photo_url:
             user.avatar_url = data.photo_url
-        # Update role berdasarkan VIP membership
-        if user.role != 'admin':  # Jangan override admin
-            user.role = target_role
+        
+        # ✅ FIX: Resolve role with subscription protection
+        user.role = _resolve_role(user, is_vip_member)
+        
         db.commit()
         db.refresh(user)
     else:
@@ -93,6 +145,9 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
         # Email placeholder untuk Telegram users (email required di schema)
         email = f"tg_{data.id}@telegram.luxquant.tw"
         
+        # For new users, VIP check determines initial role
+        target_role = 'subscriber' if is_vip_member else 'free'
+        
         # Cek email collision (harusnya tidak terjadi)
         existing_email = db.query(User).filter(User.email == email).first()
         if existing_email:
@@ -100,8 +155,10 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             existing_email.telegram_id = data.id
             existing_email.telegram_username = data.username
             existing_email.avatar_url = data.photo_url or existing_email.avatar_url
-            if existing_email.role != 'admin':
-                existing_email.role = target_role
+            
+            # ✅ FIX: Resolve role with subscription protection
+            existing_email.role = _resolve_role(existing_email, is_vip_member)
+            
             db.commit()
             db.refresh(existing_email)
             user = existing_email
@@ -176,6 +233,8 @@ async def refresh_vip_status(
     """
     Cek ulang VIP membership dan update role di database.
     Dipanggil periodik oleh frontend atau background worker.
+    
+    ⚠️ Tidak akan downgrade user yang punya active subscription.
     """
     if not current_user.telegram_id:
         return {
@@ -185,11 +244,12 @@ async def refresh_vip_status(
         }
     
     is_vip = await _check_vip_membership(current_user.telegram_id)
-    new_role = 'subscriber' if is_vip else 'free'
     
-    # Update role (jangan override admin)
+    # ✅ FIX: Resolve role with subscription protection
     old_role = current_user.role
-    if current_user.role != 'admin':
+    new_role = _resolve_role(current_user, is_vip)
+    
+    if current_user.role != new_role:
         current_user.role = new_role
         db.commit()
         db.refresh(current_user)
@@ -199,6 +259,7 @@ async def refresh_vip_status(
         "old_role": old_role,
         "new_role": current_user.role,
         "is_vip": is_vip,
+        "has_active_subscription": _has_active_subscription(current_user),
         "telegram_id": current_user.telegram_id
     }
 
@@ -238,10 +299,11 @@ async def link_telegram(
     if data.photo_url and not current_user.avatar_url:
         current_user.avatar_url = data.photo_url
     
-    # Check VIP
+    # Check VIP — only upgrade, never downgrade
     is_vip = await _check_vip_membership(data.id)
     if current_user.role != 'admin':
-        current_user.role = 'subscriber' if is_vip else current_user.role
+        # ✅ FIX: Use _resolve_role instead of blind overwrite
+        current_user.role = _resolve_role(current_user, is_vip)
     
     db.commit()
     db.refresh(current_user)

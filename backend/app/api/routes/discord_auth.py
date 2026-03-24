@@ -8,11 +8,14 @@ Flow:
 3. Backend exchanges code for access_token
 4. Backend fetches user info + checks Premium+ role via Bot API
 5. Set role based on role membership: subscriber / free
+   ⚠️  PENTING: Jangan override role jika user punya active subscription
+       (lifetime atau belum expired) yang di-set via admin/payment.
 6. Redirect to frontend with JWT tokens
 """
 import os
 import re
 import secrets
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import httpx
@@ -24,6 +27,7 @@ from app.core.database import get_db
 from app.core.security import create_tokens
 from app.models.user import User
 from app.schemas.user import UserResponse, TokenResponse
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Discord Auth"])
 
@@ -41,6 +45,53 @@ DISCORD_OAUTH_URL = "https://discord.com/api/oauth2"
 
 # Scopes: identify (user info) + guilds.members.read (role check)
 SCOPES = "identify guilds.members.read"
+
+
+# ════════════════════════════════════════════
+# Helper: Check if user has active subscription
+# ════════════════════════════════════════════
+
+def _has_active_subscription(user: User) -> bool:
+    """
+    Check if user has an active subscription that should NOT be overridden.
+    Covers:
+    - Lifetime subscribers (role=subscriber, expires_at=None)
+    - Active time-based subscribers (role=subscriber, expires_at > now)
+    - Admin-granted access
+    """
+    if user.role == 'admin':
+        return True
+
+    if user.role in ('subscriber', 'premium'):
+        # Lifetime subscription (expires_at is NULL)
+        if user.subscription_expires_at is None:
+            return True
+        # Time-based subscription not yet expired
+        if user.subscription_expires_at > datetime.now(timezone.utc):
+            return True
+
+    return False
+
+
+def _resolve_role(user: User, has_premium_role: bool) -> str:
+    """
+    Determine the correct role for a user, respecting active subscriptions.
+
+    Rules:
+    - Admin → never touch
+    - Has active subscription (lifetime or not expired) → keep current role
+    - Discord Premium+ role but no active sub → upgrade to subscriber
+    - No role and no active sub → free
+    """
+    if user.role == 'admin':
+        return user.role
+
+    # If user has active subscription, NEVER downgrade
+    if _has_active_subscription(user):
+        return user.role
+
+    # No active subscription → Discord role check determines role
+    return 'subscriber' if has_premium_role else 'free'
 
 
 # ════════════════════════════════════════════
@@ -92,7 +143,6 @@ async def discord_callback(code: str, db: Session = Depends(get_db)):
 
     # Step 3: Check Premium+ role via Bot API
     has_premium_role = await _check_guild_role(discord_id)
-    target_role = "subscriber" if has_premium_role else "free"
 
     # Step 4: Find or create user
     user = db.query(User).filter(User.discord_id == discord_id).first()
@@ -103,8 +153,10 @@ async def discord_callback(code: str, db: Session = Depends(get_db)):
         if discord_avatar:
             avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png?size=256"
             user.avatar_url = avatar_url
-        if user.role != "admin":
-            user.role = target_role
+
+        # ✅ FIX: Resolve role with subscription protection
+        user.role = _resolve_role(user, has_premium_role)
+
         db.commit()
         db.refresh(user)
     else:
@@ -114,6 +166,9 @@ async def discord_callback(code: str, db: Session = Depends(get_db)):
         # Email: use Discord email or placeholder
         email = discord_email or f"dc_{discord_id}@discord.luxquant.tw"
 
+        # For new users, role check determines initial role
+        target_role = "subscriber" if has_premium_role else "free"
+
         # Check email collision
         existing_email = db.query(User).filter(User.email == email).first()
         if existing_email:
@@ -122,8 +177,10 @@ async def discord_callback(code: str, db: Session = Depends(get_db)):
             existing_email.discord_username = discord_username
             if discord_avatar and not existing_email.avatar_url:
                 existing_email.avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png?size=256"
-            if existing_email.role != "admin":
-                existing_email.role = target_role
+
+            # ✅ FIX: Resolve role with subscription protection
+            existing_email.role = _resolve_role(existing_email, has_premium_role)
+
             db.commit()
             db.refresh(existing_email)
             user = existing_email
@@ -175,7 +232,7 @@ async def discord_callback(code: str, db: Session = Depends(get_db)):
 # ════════════════════════════════════════════
 
 @router.get("/discord/check-role")
-async def check_discord_role(current_user: User = Depends(__import__('app.api.deps', fromlist=['get_current_user']).get_current_user)):
+async def check_discord_role(current_user: User = Depends(get_current_user)):
     """Check Premium+ role for current user's linked Discord account."""
     if not current_user.discord_id:
         return {
@@ -198,10 +255,13 @@ async def check_discord_role(current_user: User = Depends(__import__('app.api.de
 
 @router.post("/discord/refresh-role")
 async def refresh_discord_role(
-    current_user: User = Depends(__import__('app.api.deps', fromlist=['get_current_user']).get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Re-check Premium+ role and update role in DB."""
+    """
+    Re-check Premium+ role and update role in DB.
+    ⚠️ Tidak akan downgrade user yang punya active subscription.
+    """
     if not current_user.discord_id:
         return {
             "updated": False,
@@ -210,10 +270,12 @@ async def refresh_discord_role(
         }
 
     has_role = await _check_guild_role(current_user.discord_id)
-    new_role = "subscriber" if has_role else "free"
 
+    # ✅ FIX: Resolve role with subscription protection
     old_role = current_user.role
-    if current_user.role != "admin":
+    new_role = _resolve_role(current_user, has_role)
+
+    if current_user.role != new_role:
         current_user.role = new_role
         db.commit()
         db.refresh(current_user)
@@ -223,6 +285,7 @@ async def refresh_discord_role(
         "old_role": old_role,
         "new_role": current_user.role,
         "has_role": has_role,
+        "has_active_subscription": _has_active_subscription(current_user),
         "discord_id": current_user.discord_id,
     }
 
@@ -232,7 +295,7 @@ async def refresh_discord_role(
 # ════════════════════════════════════════════
 
 @router.get("/discord/link")
-async def link_discord_start(current_user: User = Depends(__import__('app.api.deps', fromlist=['get_current_user']).get_current_user)):
+async def link_discord_start(current_user: User = Depends(get_current_user)):
     """Get OAuth2 URL to link Discord to existing account."""
     params = {
         "client_id": DISCORD_CLIENT_ID,
