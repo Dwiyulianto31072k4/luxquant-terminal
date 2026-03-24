@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
+import EnrichmentBadge from './EnrichmentBadge';
 
 const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const { t } = useTranslation();
@@ -1537,6 +1538,16 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             {peakPricePct}%
                           </span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Enrichment / Confidence Score */}
+                    {signalDetail?.enrichment && (
+                      <div>
+                        <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
+                          🧠 Signal Confidence
+                        </h4>
+                        <EnrichmentBadge enrichment={signalDetail.enrichment} />
                       </div>
                     )}
 
