@@ -762,6 +762,11 @@ async def fetch_global_coingecko():
                     "lastWeek": int(fg["data"][6]["value"]) if len(fg["data"])>6 else 50,
                 }
 
+        # ✅ FIX: Don't return/cache empty data — use stale fallback instead
+        if global_data is None and len(coins_data) == 0:
+            _tracker.record_failure("coingecko_global", Exception("Both global and coins empty (likely 429)"), base_interval=120)
+            return None
+
         _tracker.record_success("coingecko_global")
         return {"global": global_data, "coins": coins_data, "fearGreed": fear_greed}
     except Exception as e:

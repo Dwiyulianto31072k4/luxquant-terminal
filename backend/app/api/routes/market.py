@@ -202,6 +202,8 @@ async def get_global_data():
             stale, _ = cache_get_with_stale("lq:market:global")
             if stale:
                 return stale
+            # ✅ FIX: No stale data available — return error instead of caching empty data
+            raise HTTPException(status_code=502, detail="Global market data temporarily unavailable (API Limit)")
 
         fear_greed = {"value":50,"label":"Neutral","yesterday":50,"lastWeek":50}
         if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
