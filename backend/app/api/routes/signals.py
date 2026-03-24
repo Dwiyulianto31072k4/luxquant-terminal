@@ -151,6 +151,7 @@ class SignalDetailResponse(BaseModel):
     entry_chart_url: Optional[str] = None   # TAMBAHAN
     latest_chart_url: Optional[str] = None  # TAMBAHAN
     updates: List[SignalUpdateItem] = []
+    enrichment: Optional[dict] = None
 
 
 # ============================================
@@ -1139,6 +1140,38 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
+    # --- ENRICHMENT DATA ---
+    enrichment_data = None
+    try:
+        enr = db.execute(text("""
+            SELECT confidence_score, rating, regime, score_breakdown,
+                   mtf_h4_trend, mtf_h1_trend, mtf_m15_trend, signal_direction,
+                   btc_trend, btc_dom_trend, fear_greed, atr_percentile,
+                   confluence_notes, warnings, analyzed_at, enrichment_version
+            FROM signal_enrichment WHERE signal_id = :sid
+        """), {"sid": signal_id}).fetchone()
+        if enr:
+            enrichment_data = {
+                "confidence_score": enr[0],
+                "rating": enr[1],
+                "regime": enr[2],
+                "score_breakdown": enr[3] if isinstance(enr[3], dict) else {},
+                "mtf_h4_trend": enr[4],
+                "mtf_h1_trend": enr[5],
+                "mtf_m15_trend": enr[6],
+                "signal_direction": enr[7],
+                "btc_trend": enr[8],
+                "btc_dom_trend": enr[9],
+                "fear_greed": enr[10],
+                "atr_percentile": enr[11],
+                "confluence_notes": enr[12],
+                "warnings": enr[13] if isinstance(enr[13], list) else [],
+                "analyzed_at": str(enr[14]) if enr[14] else None,
+                "enrichment_version": enr[15],
+            }
+    except Exception:
+        pass
+    
     return SignalDetailResponse(
         signal_id=signal.signal_id, channel_id=signal.channel_id,
         call_message_id=signal.call_message_id, message_link=signal.message_link,
@@ -1150,7 +1183,9 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
         market_cap=market_cap, risk_reasons=risk_reasons, 
         entry_chart_url=chart_path_to_url(entry_chart_path),   # TAMBAHAN
         latest_chart_url=chart_path_to_url(latest_chart_path), # TAMBAHAN
-        updates=updates)
+        updates=updates,
+        enrichment=enrichment_data)
+    
 
 
 
