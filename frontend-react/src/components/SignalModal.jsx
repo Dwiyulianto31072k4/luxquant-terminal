@@ -285,76 +285,18 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   };
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      !signal ||
-      !chartContainerRef.current ||
-      activeTab !== "chart"
-    )
-      return;
-
-    chartContainerRef.current.innerHTML = "";
+    if (!isOpen || !signal || !chartContainerRef.current || activeTab !== "chart") return;
+    const container = chartContainerRef.current;
+    container.innerHTML = "";
     const symbol = `BINANCE:${signal.pair || ""}.P`;
     const timezone = getUserTimezone();
-
-    const createWidget = (sym, tz) => {
-      if (!chartContainerRef.current) return;
-      try {
-        widgetRef.current = new window.TradingView.widget({
-          container_id: "tv_chart_modal_main",
-          autosize: true,
-          symbol: sym,
-          interval: "60",
-          timezone: tz,
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          toolbar_bg: "#0d0d0d",
-          enable_publishing: false,
-          backgroundColor: "#0d0d0d",
-          gridColor: "rgba(212, 168, 83, 0.06)",
-          hide_top_toolbar: false,
-          hide_legend: false,
-          hide_side_toolbar: false,
-          allow_symbol_change: true,
-          save_image: true,
-          calendar: false,
-          hide_volume: false,
-          withdateranges: true,
-          details: true,
-          hotlist: false,
-          studies: ["STD;SMA"],
-          support_host: "https://www.tradingview.com",
-          overrides: {
-            "mainSeriesProperties.candleStyle.upColor": "#22c55e",
-            "mainSeriesProperties.candleStyle.downColor": "#ef4444",
-            "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
-            "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
-            "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
-            "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
-          },
-        });
-      } catch (e) {
-        console.error("TradingView widget error:", e);
-      }
-    };
-
-    const loadTV = () => {
-      if (window.TradingView) createWidget(symbol, timezone);
-      else {
-        const s = document.createElement("script");
-        s.src = "https://s3.tradingview.com/tv.js";
-        s.async = true;
-        s.onload = () => createWidget(symbol, timezone);
-        document.head.appendChild(s);
-      }
-    };
-
-    const timer = setTimeout(loadTV, 100);
-    return () => {
-      clearTimeout(timer);
-      widgetRef.current = null;
-    };
+    const iframe = document.createElement("iframe");
+    iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart_modal_main&symbol=${encodeURIComponent(symbol)}&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0d0d0d&studies=STD%3BSMA&theme=dark&style=1&timezone=${encodeURIComponent(timezone)}&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%22mainSeriesProperties.candleStyle.upColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.borderUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.borderDownColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.wickUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.wickDownColor%22%3A%22%23ef4444%22%7D&utm_source=luxquant.tw&utm_medium=widget_new&utm_campaign=chart`;
+    iframe.style.cssText = "width:100%;height:100%;border:none;background:#0d0d0d;";
+    iframe.allowFullscreen = true;
+    iframe.setAttribute("frameborder", "0");
+    container.appendChild(iframe);
+    return () => { container.innerHTML = ""; };
   }, [isOpen, signal, activeTab]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
@@ -364,64 +306,29 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
   useEffect(() => {
-    let widget = null;
     const shouldMountTV =
       isOpen &&
       activeTab === "trade" &&
       ((!entryImg && !afterImg) || (entryImg && showInteractiveRight));
 
-    const initTV = () => {
-      if (!document.getElementById("tv_chart_modal_side")) return;
-      widget = new window.TradingView.widget({
-        container_id: "tv_chart_modal_side",
-        autosize: true,
-        symbol: `BINANCE:${signal?.pair || ""}.P`,
-        interval: "60",
-        timezone: getUserTimezone(),
-        theme: "dark",
-        style: "1",
-        locale: "en",
-        toolbar_bg: "#0a0a0f",
-        enable_publishing: false,
-        backgroundColor: "#0d0d0d",
-        gridColor: "rgba(212, 168, 83, 0.05)",
-        hide_top_toolbar: false,
-        hide_legend: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: true,
-        save_image: false,
-        studies: ["STD;SMA"],
-      });
-    };
+    if (!shouldMountTV) return;
 
-    if (shouldMountTV) {
-      const timer = setTimeout(() => {
-        if (window.TradingView) initTV();
-        else {
-          const s = document.createElement("script");
-          s.src = "https://s3.tradingview.com/tv.js";
-          s.async = true;
-          s.onload = initTV;
-          document.head.appendChild(s);
-        }
-      }, 100);
-      return () => {
-        clearTimeout(timer);
-        if (widget) {
-          try {
-            widget.remove();
-          } catch (e) {}
-        }
-      };
-    }
-  }, [
-    isOpen,
-    activeTab,
-    signal?.pair,
-    entryImg,
-    afterImg,
-    showInteractiveRight,
-  ]);
+    const timer = setTimeout(() => {
+      const container = document.getElementById("tv_chart_modal_side");
+      if (!container) return;
+      container.innerHTML = "";
+      const symbol = `BINANCE:${signal?.pair || ""}.P`;
+      const timezone = getUserTimezone();
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart_modal_side&symbol=${encodeURIComponent(symbol)}&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=0d0d0d&studies=STD%3BSMA&theme=dark&style=1&timezone=${encodeURIComponent(timezone)}&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%22mainSeriesProperties.candleStyle.upColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.borderUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.borderDownColor%22%3A%22%23ef4444%22%7D&utm_source=luxquant.tw&utm_medium=widget_new&utm_campaign=chart`;
+      iframe.style.cssText = "width:100%;height:100%;border:none;background:#0d0d0d;";
+      iframe.allowFullscreen = true;
+      iframe.setAttribute("frameborder", "0");
+      container.appendChild(iframe);
+    }, 100);
+
+    return () => { clearTimeout(timer); };
+  }, [isOpen, activeTab, signal?.pair, entryImg, afterImg, showInteractiveRight]);
 
   // === RETURN NULL HARUS DITARUH SETELAH SEMUA USE-EFFECT ===
   if (!isOpen || !signal) return null;
