@@ -288,14 +288,48 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
     if (!isOpen || !signal || !chartContainerRef.current || activeTab !== "chart") return;
     const container = chartContainerRef.current;
     container.innerHTML = "";
+
     const symbol = `BINANCE:${signal.pair || ""}.P`;
     const timezone = getUserTimezone();
-    const iframe = document.createElement("iframe");
-    iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart_modal_main&symbol=${encodeURIComponent(symbol)}&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=0d0d0d&studies=STD%3BSMA&theme=dark&style=1&timezone=${encodeURIComponent(timezone)}&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%22mainSeriesProperties.candleStyle.upColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.borderUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.borderDownColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.wickUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.wickDownColor%22%3A%22%23ef4444%22%7D&utm_source=luxquant.tw&utm_medium=widget_new&utm_campaign=chart`;
-    iframe.style.cssText = "width:100%;height:100%;border:none;background:#0d0d0d;";
-    iframe.allowFullscreen = true;
-    iframe.setAttribute("frameborder", "0");
-    container.appendChild(iframe);
+
+    const widgetContainer = document.createElement("div");
+    widgetContainer.className = "tradingview-widget-container";
+    widgetContainer.style.cssText = "height:100%;width:100%";
+
+    const widgetInner = document.createElement("div");
+    widgetInner.className = "tradingview-widget-container__widget";
+    widgetInner.style.cssText = "height:100%;width:100%";
+    widgetContainer.appendChild(widgetInner);
+
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: symbol,
+      interval: "60",
+      timezone: timezone,
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      backgroundColor: "rgba(13, 13, 13, 1)",
+      gridColor: "rgba(212, 168, 83, 0.06)",
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      save_image: true,
+      calendar: false,
+      hide_volume: false,
+      withdateranges: true,
+      studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
+      support_host: "https://www.tradingview.com"
+    });
+
+    widgetContainer.appendChild(script);
+    container.appendChild(widgetContainer);
+
     return () => { container.innerHTML = ""; };
   }, [isOpen, signal, activeTab]);
 
@@ -317,14 +351,44 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
       const container = document.getElementById("tv_chart_modal_side");
       if (!container) return;
       container.innerHTML = "";
+
       const symbol = `BINANCE:${signal?.pair || ""}.P`;
       const timezone = getUserTimezone();
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart_modal_side&symbol=${encodeURIComponent(symbol)}&interval=60&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=0d0d0d&studies=STD%3BSMA&theme=dark&style=1&timezone=${encodeURIComponent(timezone)}&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%22mainSeriesProperties.candleStyle.upColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%23ef4444%22%2C%22mainSeriesProperties.candleStyle.borderUpColor%22%3A%22%2322c55e%22%2C%22mainSeriesProperties.candleStyle.borderDownColor%22%3A%22%23ef4444%22%7D&utm_source=luxquant.tw&utm_medium=widget_new&utm_campaign=chart`;
-      iframe.style.cssText = "width:100%;height:100%;border:none;background:#0d0d0d;";
-      iframe.allowFullscreen = true;
-      iframe.setAttribute("frameborder", "0");
-      container.appendChild(iframe);
+
+      const widgetContainer = document.createElement("div");
+      widgetContainer.className = "tradingview-widget-container";
+      widgetContainer.style.cssText = "height:100%;width:100%";
+
+      const widgetInner = document.createElement("div");
+      widgetInner.className = "tradingview-widget-container__widget";
+      widgetInner.style.cssText = "height:100%;width:100%";
+      widgetContainer.appendChild(widgetInner);
+
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        autosize: true,
+        symbol: symbol,
+        interval: "60",
+        timezone: timezone,
+        theme: "dark",
+        style: "1",
+        locale: "en",
+        backgroundColor: "rgba(13, 13, 13, 1)",
+        gridColor: "rgba(212, 168, 83, 0.05)",
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: true,
+        save_image: false,
+        studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
+        support_host: "https://www.tradingview.com"
+      });
+
+      widgetContainer.appendChild(script);
+      container.appendChild(widgetContainer);
     }, 100);
 
     return () => { clearTimeout(timer); };
