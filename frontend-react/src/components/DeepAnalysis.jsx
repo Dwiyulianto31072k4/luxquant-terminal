@@ -95,7 +95,7 @@ const DeepAnalysis = ({ enrichment, isOpen, onClose, pair }) => {
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[150000] flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <div
         className="relative z-10 w-full max-w-lg max-h-[85vh] mx-3 bg-[#0a0a0a] border border-gold-primary/30 rounded-xl overflow-hidden flex flex-col animate-[fadeIn_0.2s_ease-out]"
