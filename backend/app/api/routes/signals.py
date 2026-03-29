@@ -1140,12 +1140,14 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
-    # --- ENRICHMENT DATA ---
+    # --- ENRICHMENT DATA (v2.3.1 — all fields for Deep Analysis) ---
     enrichment_data = None
     try:
         enr = db.execute(text("""
-            SELECT confidence_score, rating, regime, score_breakdown,
-                   mtf_h4_trend, mtf_h1_trend, mtf_m15_trend, signal_direction,
+            SELECT confidence_score, rating, regime, score_breakdown, weights_used,
+                   mtf_h4_trend, mtf_h1_trend, mtf_m15_trend, signal_direction, mtf_detail,
+                   patterns_detected,
+                   smc_fvg_count, smc_ob_count, smc_sweep_count, smc_golden_setup, smc_detail,
                    btc_trend, btc_dom_trend, fear_greed, atr_percentile,
                    confluence_notes, warnings, analyzed_at, enrichment_version
             FROM signal_enrichment WHERE signal_id = :sid
@@ -1156,18 +1158,26 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
                 "rating": enr[1],
                 "regime": enr[2],
                 "score_breakdown": enr[3] if isinstance(enr[3], dict) else {},
-                "mtf_h4_trend": enr[4],
-                "mtf_h1_trend": enr[5],
-                "mtf_m15_trend": enr[6],
-                "signal_direction": enr[7],
-                "btc_trend": enr[8],
-                "btc_dom_trend": enr[9],
-                "fear_greed": enr[10],
-                "atr_percentile": enr[11],
-                "confluence_notes": enr[12],
-                "warnings": enr[13] if isinstance(enr[13], list) else [],
-                "analyzed_at": str(enr[14]) if enr[14] else None,
-                "enrichment_version": enr[15],
+                "weights_used": enr[4] if isinstance(enr[4], dict) else {},
+                "mtf_h4_trend": enr[5],
+                "mtf_h1_trend": enr[6],
+                "mtf_m15_trend": enr[7],
+                "signal_direction": enr[8],
+                "mtf_detail": enr[9] if isinstance(enr[9], dict) else {},
+                "patterns_detected": enr[10] if isinstance(enr[10], list) else [],
+                "smc_fvg_count": enr[11],
+                "smc_ob_count": enr[12],
+                "smc_sweep_count": enr[13],
+                "smc_golden_setup": enr[14],
+                "smc_detail": enr[15] if isinstance(enr[15], dict) else {},
+                "btc_trend": enr[16],
+                "btc_dom_trend": enr[17],
+                "fear_greed": enr[18],
+                "atr_percentile": enr[19],
+                "confluence_notes": enr[20],
+                "warnings": enr[21] if isinstance(enr[21], list) else [],
+                "analyzed_at": str(enr[22]) if enr[22] else None,
+                "enrichment_version": enr[23],
             }
     except Exception:
         pass
