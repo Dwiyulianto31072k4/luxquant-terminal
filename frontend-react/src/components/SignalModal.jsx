@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
 import EnrichmentBadge from './EnrichmentBadge';
+import DeepAnalysis from './DeepAnalysis';
 
 const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const { t } = useTranslation();
@@ -27,6 +28,7 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const [promptCopied, setPromptCopied] = useState(false);
 
   const [overrideSignal, setOverrideSignal] = useState(null);
+  const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
 
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
@@ -51,6 +53,7 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
     setPeakPrice(null);
     setShowTV(false);
     setPromptCopied(false);
+    setShowDeepAnalysis(false);
 
     const fetchDetail = async () => {
       try {
@@ -956,6 +959,26 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </p>
           </div>
         </div>
+
+        {/* Deep Analysis Button */}
+        {signalDetail?.enrichment && (
+          <button
+            onClick={() => setShowDeepAnalysis(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500/20 hover:border-purple-500/40 transition-all active:scale-[0.98]"
+          >
+            <span>🧠</span>
+            <span>Deep Analysis</span>
+            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+              signalDetail.enrichment.rating === 'STRONG' ? 'bg-green-500/20 text-green-400' :
+              signalDetail.enrichment.rating === 'MODERATE' ? 'bg-blue-500/20 text-blue-400' :
+              signalDetail.enrichment.rating === 'WEAK' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-red-500/20 text-red-400'
+            }`}>
+              {signalDetail.enrichment.confidence_score} {signalDetail.enrichment.rating}
+            </span>
+          </button>
+        )}
+
         {isCompact ? (
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((t, i) => (
@@ -2022,6 +2045,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </div>
         </div>
       </div>
+
+      {/* Deep Analysis Overlay */}
+        <DeepAnalysis
+          enrichment={signalDetail?.enrichment}
+          isOpen={showDeepAnalysis}
+          onClose={() => setShowDeepAnalysis(false)}
+          pair={signal?.pair}
+        />
 
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
