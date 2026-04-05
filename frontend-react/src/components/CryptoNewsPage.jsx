@@ -30,6 +30,7 @@ const timeAgo = (dateStr) => {
 
 const getDomainColor = (domain) => {
   const colors = {
+    "tradingview.com": "#2962FF",
     "cointelegraph.com": "#2563eb",
     "coindesk.com": "#6366f1",
     "decrypt.co": "#10b981",
@@ -37,8 +38,62 @@ const getDomainColor = (domain) => {
     "bitcoinmagazine.com": "#ef4444",
     "theblock.co": "#8b5cf6",
     "cryptoslate.com": "#06b6d4",
+    "newsbtc.com": "#F7931A",
+    "beincrypto.com": "#22c55e",
+    "cryptobriefing.com": "#3b82f6",
+    "coinpedia.org": "#14b8a6",
+    "u.today": "#f97316",
   };
   return colors[domain] || "#d4a24e";
+};
+
+// Domain-based fallback for articles without images
+const DOMAIN_FALLBACKS = {
+  "tradingview.com": { emoji: "📊", label: "TradingView" },
+  "cointelegraph.com": { emoji: "📰", label: "CoinTelegraph" },
+  "coindesk.com": { emoji: "📰", label: "CoinDesk" },
+  "decrypt.co": { emoji: "🔓", label: "Decrypt" },
+  "theblock.co": { emoji: "🧱", label: "The Block" },
+  "bitcoinworld.co.in": { emoji: "🌐", label: "BitcoinWorld" },
+  "beincrypto.com": { emoji: "🐝", label: "BeInCrypto" },
+  "newsbtc.com": { emoji: "₿", label: "NewsBTC" },
+  "cryptobriefing.com": { emoji: "📋", label: "CryptoBriefing" },
+  "coinpedia.org": { emoji: "📖", label: "CoinPedia" },
+  "u.today": { emoji: "📰", label: "U.Today" },
+  "cryptoslate.com": { emoji: "🔷", label: "CryptoSlate" },
+  "bitcoinist.com": { emoji: "₿", label: "Bitcoinist" },
+  "ambcrypto.com": { emoji: "📊", label: "AMBCrypto" },
+  "cryptonews.com": { emoji: "📰", label: "CryptoNews" },
+};
+
+const getDomainFallback = (domain) => {
+  if (!domain) return { emoji: "📰", label: "News" };
+  const key = Object.keys(DOMAIN_FALLBACKS).find((d) => domain.includes(d));
+  return key ? DOMAIN_FALLBACKS[key] : { emoji: "📰", label: domain };
+};
+
+// Fallback placeholder component
+const DomainPlaceholder = ({ domain, size = "lg" }) => {
+  const fb = getDomainFallback(domain);
+  const color = getDomainColor(domain);
+  const isLg = size === "lg";
+  return (
+    <div
+      className={`${isLg ? "w-full h-full" : "w-full h-full"} flex flex-col items-center justify-center gap-1`}
+      style={{ background: `linear-gradient(135deg, ${color}15, ${color}05)` }}
+    >
+      <span className={isLg ? "text-3xl" : "text-xl"}>{fb.emoji}</span>
+      <span
+        className="font-semibold tracking-wider uppercase"
+        style={{
+          color: `${color}80`,
+          fontSize: isLg ? "9px" : "7px",
+        }}
+      >
+        {fb.label}
+      </span>
+    </div>
+  );
 };
 
 // ════════════════════════════════════════════
@@ -129,6 +184,8 @@ const ArticleCard = ({ item, featured = false }) => {
     if (item.url) window.open(item.url, "_blank", "noopener,noreferrer");
   };
 
+  const hasImage = item.image_url && item.image_url !== "webpage_photo";
+
   if (featured) {
     return (
       <div
@@ -136,20 +193,22 @@ const ArticleCard = ({ item, featured = false }) => {
         className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,.3)]"
       >
         {/* Image area */}
-        <div className="relative w-full h-48 sm:h-56 overflow-hidden bg-gradient-to-br from-gold-primary/5 to-transparent">
-          {item.image_url && item.image_url !== 'webpage_photo' ? (
+        <div className="relative w-full h-48 sm:h-56 overflow-hidden">
+          {hasImage ? (
             <img
               src={item.image_url}
               alt=""
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                e.target.style.display = "none";
+                if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
               }}
             />
           ) : null}
-          <div className={`w-full h-full flex items-center justify-center ${item.image_url && item.image_url !== 'webpage_photo' ? 'hidden' : ''}`}>
-            <span className="text-5xl opacity-10">📰</span>
+          <div
+            className={`absolute inset-0 flex flex-col items-center justify-center ${hasImage ? "hidden" : ""}`}
+          >
+            <DomainPlaceholder domain={item.domain} size="lg" />
           </div>
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -193,17 +252,23 @@ const ArticleCard = ({ item, featured = false }) => {
       className="group cursor-pointer flex gap-3 p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-gold-primary/20 transition-all duration-300"
     >
       {/* Thumbnail */}
-      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.03] flex items-center justify-center">
-        {item.image_url && item.image_url !== 'webpage_photo' ? (
+      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-lg overflow-hidden bg-white/[0.03]">
+        {hasImage ? (
           <img
             src={item.image_url}
             alt=""
             className="w-full h-full object-cover"
-            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span class="text-lg opacity-20">📰</span>'; }}
+            onError={(e) => {
+              e.target.style.display = "none";
+              if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+            }}
           />
-        ) : (
-          <span className="text-lg opacity-20">📰</span>
-        )}
+        ) : null}
+        <div
+          className={`w-full h-full ${hasImage ? "hidden" : "flex"} items-center justify-center`}
+        >
+          <DomainPlaceholder domain={item.domain} size="sm" />
+        </div>
       </div>
       {/* Content */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -225,20 +290,32 @@ const ArticleCard = ({ item, featured = false }) => {
 // Photo Card — for content_type="photo"
 // ════════════════════════════════════════════
 const PhotoCard = ({ item }) => (
-  <div className="group flex gap-3 p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-gold-primary/20 transition-all duration-300 cursor-pointer"
-    onClick={() => { if (item.url) window.open(item.url, "_blank", "noopener,noreferrer"); }}
+  <div
+    className="group flex gap-3 p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-gold-primary/20 transition-all duration-300 cursor-pointer"
+    onClick={() => {
+      if (item.url) window.open(item.url, "_blank", "noopener,noreferrer");
+    }}
   >
     {/* Photo thumbnail */}
     <div className="w-[72px] h-[72px] flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border border-white/5">
-      {item.image_url && item.image_url !== 'webpage_photo' ? (
+      {item.image_url && item.image_url !== "webpage_photo" ? (
         <img
           src={item.image_url}
           alt=""
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" /></svg>'; }}
+          onError={(e) => {
+            e.target.style.display = "none";
+            e.target.parentElement.innerHTML =
+              '<svg class="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" /></svg>';
+          }}
         />
       ) : (
-        <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className="w-6 h-6 text-white/20"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -271,8 +348,10 @@ const PhotoCard = ({ item }) => (
 // ════════════════════════════════════════════
 const HeadlineCard = ({ item }) => (
   <div
-    className={`group p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-gold-primary/20 transition-all duration-300 border-l-2 border-l-gold-primary/40 ${item.url ? 'cursor-pointer' : ''}`}
-    onClick={() => { if (item.url) window.open(item.url, "_blank", "noopener,noreferrer"); }}
+    className={`group p-3 rounded-xl bg-white/[0.015] border border-white/5 hover:border-gold-primary/20 transition-all duration-300 border-l-2 border-l-gold-primary/40 ${item.url ? "cursor-pointer" : ""}`}
+    onClick={() => {
+      if (item.url) window.open(item.url, "_blank", "noopener,noreferrer");
+    }}
   >
     <h4 className="text-white text-[12px] sm:text-[13px] font-semibold line-clamp-2 leading-snug">
       {item.title}
@@ -370,15 +449,21 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
           <div className="space-y-2">
             <div className="flex justify-between text-[11px]">
               <span className="text-text-muted">Last hour</span>
-              <span className="text-white font-bold">{stats.last_hour} articles</span>
+              <span className="text-white font-bold">
+                {stats.last_hour} articles
+              </span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-text-muted">Last 6 hours</span>
-              <span className="text-white font-bold">{stats.last_6h} articles</span>
+              <span className="text-white font-bold">
+                {stats.last_6h} articles
+              </span>
             </div>
             <div className="flex justify-between text-[11px]">
               <span className="text-text-muted">3-day total</span>
-              <span className="text-white font-bold">{stats.total} articles</span>
+              <span className="text-white font-bold">
+                {stats.total} articles
+              </span>
             </div>
           </div>
           {/* Mini hourly chart */}
@@ -597,8 +682,18 @@ const CryptoNewsPage = () => {
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
