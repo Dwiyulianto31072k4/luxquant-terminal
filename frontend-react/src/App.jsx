@@ -6,6 +6,7 @@
 //   /                    → Landing Page                 [PUBLIC]
 //   /home                → Home / Dashboard             [PUBLIC]
 //   /market-pulse        → Market Pulse                 [PUBLIC]
+//   /crypto-news         → Crypto News Feed             [PUBLIC]
 //   /analytics           → Performance (Proof of Calls) [FREE - login]
 //   /journal             → Trade Journal & Analytics    [FREE - login]
 //   /referral            → Referral Program             [FREE - login]
@@ -57,6 +58,7 @@ const ProfilePage = lazy(() => import("./components/ProfilePage"));
 const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
 const JournalPage = lazy(() => import("./components/JournalPage"));
 const MarketPulsePage = lazy(() => import("./components/MarketPulsePage"));
+const CryptoNewsPage = lazy(() => import("./components/CryptoNewsPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -198,6 +200,7 @@ function AppShell({ children }) {
     { path: "/signals", label: t("nav.signals") },
     { path: "/ai-arena", label: "AI Arena" },
     { path: "/market-pulse", label: "Pulse" },
+    { path: "/crypto-news", label: "News" },
     { path: "/bitcoin", label: t("nav.bitcoin") },
     { path: "/markets", label: t("nav.markets") },
     { path: "/journal", label: "Journal" },
@@ -319,6 +322,9 @@ function AppShell({ children }) {
             />
             <SidebarItem active={isActive("/market-pulse")} onClick={() => handleNav("/market-pulse")} label="Market Pulse" isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />}
+            />
+            <SidebarItem active={isActive("/crypto-news")} onClick={() => handleNav("/crypto-news")} label="Crypto News" isFreeBadge
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />}
             />
             <SidebarItem active={isActive("/signals")} onClick={() => handleNav("/signals")} label={t("nav.signals")} isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
@@ -475,6 +481,7 @@ function App() {
           {/* PUBLIC */}
           <Route path="/home" element={<AppShell><OverviewPage /></AppShell>} />
           <Route path="/market-pulse" element={<AppShell><MarketPulsePage /></AppShell>} />
+          <Route path="/crypto-news" element={<AppShell><CryptoNewsPage /></AppShell>} />
           <Route path="/pricing" element={<AppShell><PricingPage /></AppShell>} />
           <Route path="/payment" element={<AppShell><PaymentPage /></AppShell>} />
 
