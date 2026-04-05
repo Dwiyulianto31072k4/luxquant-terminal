@@ -30,6 +30,7 @@ from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.journal import router as journal_router
+from app.api.routes.market_pulse import router as market_pulse_router
 
 # Import AI Worker
 from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline
@@ -114,6 +115,7 @@ app.include_router(coin_profile_router, prefix="/api/v1/coin-profile", tags=["co
 app.include_router(profile_router, prefix="/api/v1", tags=["profile"])
 app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])
 app.include_router(journal_router, prefix="/api/v1")
+app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["market-pulse"])
 
 # ═══════════════════════════════════════════
 # Serve chart screenshots as static files

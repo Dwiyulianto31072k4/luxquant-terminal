@@ -5,6 +5,7 @@
 //
 //   /                    → Landing Page                 [PUBLIC]
 //   /home                → Home / Dashboard             [PUBLIC]
+//   /market-pulse        → Market Pulse                 [PUBLIC]
 //   /analytics           → Performance (Proof of Calls) [FREE - login]
 //   /journal             → Trade Journal & Analytics    [FREE - login]
 //   /referral            → Referral Program             [FREE - login]
@@ -55,6 +56,7 @@ const PaymentPage = lazy(() => import("./components/subscription/PaymentPage"));
 const ProfilePage = lazy(() => import("./components/ProfilePage"));
 const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
 const JournalPage = lazy(() => import("./components/JournalPage"));
+const MarketPulsePage = lazy(() => import("./components/MarketPulsePage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -157,15 +159,37 @@ function AppShell({ children }) {
   const isPremiumUser = () => user && (user.role === "admin" || user.role === "premium" || user.role === "subscriber" || user.is_admin);
   const isActive = (path) => location.pathname === path;
 
-  useEffect(() => { const h = () => setScrolled(window.scrollY > 8); window.addEventListener("scroll", h, { passive: true }); return () => window.removeEventListener("scroll", h); }, []);
-  useEffect(() => { const h = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false); }; window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  useEffect(() => { document.body.style.overflow = mobileMenuOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [mobileMenuOpen]);
-  useEffect(() => { const h = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false); }; if (moreMenuOpen) document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, [moreMenuOpen]);
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", h, { passive: true });
+    return () => window.removeEventListener("scroll", h);
+  }, []);
+  useEffect(() => {
+    const h = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false); };
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+  useEffect(() => {
+    const h = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false); };
+    if (moreMenuOpen) document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [moreMenuOpen]);
 
   const handleNav = (path) => {
-    setMobileMenuOpen(false); setMoreMenuOpen(false);
-    if (LOGIN_REQUIRED.includes(path) && !isAuthenticated) { navigate(`/login?redirect=${encodeURIComponent(path)}`); return; }
-    if (PREMIUM_REQUIRED.includes(path) && isAuthenticated && !isPremiumUser()) { setShowPremiumModal(true); return; }
+    setMobileMenuOpen(false);
+    setMoreMenuOpen(false);
+    if (LOGIN_REQUIRED.includes(path) && !isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent(path)}`);
+      return;
+    }
+    if (PREMIUM_REQUIRED.includes(path) && isAuthenticated && !isPremiumUser()) {
+      setShowPremiumModal(true);
+      return;
+    }
     navigate(path);
   };
 
@@ -173,6 +197,7 @@ function AppShell({ children }) {
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
     { path: "/ai-arena", label: "AI Arena" },
+    { path: "/market-pulse", label: "Pulse" },
     { path: "/bitcoin", label: t("nav.bitcoin") },
     { path: "/markets", label: t("nav.markets") },
     { path: "/journal", label: "Journal" },
@@ -216,7 +241,9 @@ function AppShell({ children }) {
                 </div>
               </button>
               <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleNav("/home")}>
-                <div className="w-9 h-9 lg:w-10 lg:h-10 relative"><img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105" /></div>
+                <div className="w-9 h-9 lg:w-10 lg:h-10 relative">
+                  <img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105" />
+                </div>
                 <h1 className="font-display text-sm lg:text-lg font-semibold text-white tracking-wide leading-tight group-hover:text-gold-primary transition-colors">LuxQuant</h1>
               </div>
               <nav className="hidden lg:flex items-center gap-0.5">
@@ -229,7 +256,9 @@ function AppShell({ children }) {
                 <div className="relative" ref={moreMenuRef}>
                   <button onClick={() => setMoreMenuOpen(!moreMenuOpen)} className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${moreHasActive ? "text-gold-primary" : "text-text-secondary hover:text-white"}`}>
                     <span>{t("nav.more")}</span>
-                    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                     {moreHasActive && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gold-primary rounded-full" />}
                   </button>
                   {moreMenuOpen && (
@@ -260,7 +289,9 @@ function AppShell({ children }) {
             <div className="flex items-center gap-1.5 lg:gap-2">
               <div className="flex items-center bg-bg-primary/80 backdrop-blur-md border border-gold-primary/20 rounded-xl p-0.5 mr-1 lg:mr-2 shadow-sm shadow-black/20">
                 <div className="flex items-center justify-center px-2 text-gold-primary/70">
-                  <svg className="w-3.5 h-3.5 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <svg className="w-3.5 h-3.5 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
                 <div className="w-px h-3.5 bg-gold-primary/20 mx-0.5"></div>
                 {["en", "zh"].map((lang) => (
@@ -283,24 +314,61 @@ function AppShell({ children }) {
         <div className="flex flex-col h-full">
           <nav className="flex-1 py-6 px-3 space-y-0.5 overflow-y-auto">
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Navigation</p>
-            <SidebarItem active={isActive("/home")} onClick={() => handleNav("/home")} label={t("nav.home")} isFreeBadge icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />} />
-            <SidebarItem active={isActive("/signals")} onClick={() => handleNav("/signals")} label={t("nav.signals")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />} />
-            <SidebarItem active={isActive("/ai-arena")} onClick={() => handleNav("/ai-arena")} label="AI Arena" isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />} />
-            <SidebarItem active={isActive("/analytics")} onClick={() => handleNav("/analytics")} label={t("nav.analytics")} isFreeBadge icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />} />
-            <SidebarItem active={isActive("/journal")} onClick={() => handleNav("/journal")} label="Journal" isFreeBadge icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />} />
-            <SidebarItem active={isActive("/bitcoin")} onClick={() => handleNav("/bitcoin")} label={t("nav.bitcoin")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />} />
-            <SidebarItem active={isActive("/markets")} onClick={() => handleNav("/markets")} label={t("nav.markets")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />} />
+            <SidebarItem active={isActive("/home")} onClick={() => handleNav("/home")} label={t("nav.home")} isFreeBadge
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />}
+            />
+            <SidebarItem active={isActive("/market-pulse")} onClick={() => handleNav("/market-pulse")} label="Market Pulse" isFreeBadge
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />}
+            />
+            <SidebarItem active={isActive("/signals")} onClick={() => handleNav("/signals")} label={t("nav.signals")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
+            />
+            <SidebarItem active={isActive("/ai-arena")} onClick={() => handleNav("/ai-arena")} label="AI Arena" isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
+            />
+            <SidebarItem active={isActive("/analytics")} onClick={() => handleNav("/analytics")} label={t("nav.analytics")} isFreeBadge
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />}
+            />
+            <SidebarItem active={isActive("/journal")} onClick={() => handleNav("/journal")} label="Journal" isFreeBadge
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />}
+            />
+            <SidebarItem active={isActive("/bitcoin")} onClick={() => handleNav("/bitcoin")} label={t("nav.bitcoin")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+            />
+            <SidebarItem active={isActive("/markets")} onClick={() => handleNav("/markets")} label={t("nav.markets")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />}
+            />
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
-            <SidebarItem active={isActive("/orderbook")} onClick={() => handleNav("/orderbook")} label={t("nav.orderbook")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />} />
-            <SidebarItem active={isActive("/calendar")} onClick={() => handleNav("/calendar")} label={t("nav.calendar")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />} />
-            <SidebarItem active={isActive("/whale")} onClick={() => handleNav("/whale")} label={t("nav.whale")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738.145l-1.093.819a.89.89 0 00-.284.97l.448 1.345a1.336 1.336 0 01-.06.885l-1.334 2.668a.75.75 0 00.34 1.006l2.053.684a.75.75 0 00.588-.012l1.527-.763a.75.75 0 00.294-.235l1.092-1.638a.252.252 0 01.428.032l.603 1.072a.662.662 0 001.106.07l.926-1.159a.753.753 0 00.132-.795z" />} />
-            <SidebarItem active={isActive("/tips")} onClick={() => handleNav("/tips")} label={t("nav.tips")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />} />
+            <SidebarItem active={isActive("/orderbook")} onClick={() => handleNav("/orderbook")} label={t("nav.orderbook")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
+            />
+            <SidebarItem active={isActive("/calendar")} onClick={() => handleNav("/calendar")} label={t("nav.calendar")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />}
+            />
+            <SidebarItem active={isActive("/whale")} onClick={() => handleNav("/whale")} label={t("nav.whale")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738.145l-1.093.819a.89.89 0 00-.284.97l.448 1.345a1.336 1.336 0 01-.06.885l-1.334 2.668a.75.75 0 00.34 1.006l2.053.684a.75.75 0 00.588-.012l1.527-.763a.75.75 0 00.294-.235l1.092-1.638a.252.252 0 01.428.032l.603 1.072a.662.662 0 001.106.07l.926-1.159a.753.753 0 00.132-.795z" />}
+            />
+            <SidebarItem active={isActive("/tips")} onClick={() => handleNav("/tips")} label={t("nav.tips")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />}
+            />
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Personal</p>
-            <SidebarItem active={isActive("/watchlist")} onClick={() => handleNav("/watchlist")} label={t("nav.watchlist")} isPremium={!isPremiumUser()} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />} />
-            <SidebarItem active={isActive("/referral")} onClick={() => handleNav("/referral")} label="Referral" icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />} />
-            {user?.role === "admin" && (<><div className="my-4 mx-3 h-px bg-white/[0.05]" /><p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Admin</p><SidebarItem active={isActive("/admin")} onClick={() => handleNav("/admin")} label={t("nav.admin")} icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />} /></>)}
+            <SidebarItem active={isActive("/watchlist")} onClick={() => handleNav("/watchlist")} label={t("nav.watchlist")} isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />}
+            />
+            <SidebarItem active={isActive("/referral")} onClick={() => handleNav("/referral")} label="Referral"
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />}
+            />
+            {user?.role === "admin" && (
+              <>
+                <div className="my-4 mx-3 h-px bg-white/[0.05]" />
+                <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Admin</p>
+                <SidebarItem active={isActive("/admin")} onClick={() => handleNav("/admin")} label={t("nav.admin")}
+                  icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
+                />
+              </>
+            )}
           </nav>
         </div>
       </div>
@@ -319,20 +387,46 @@ function AppShell({ children }) {
           <div className="flex items-end justify-around h-16 px-2 max-w-lg mx-auto relative">
             {bottomNavItems.map((item) => {
               const active = isActive(item.path);
-              if (item.isCenter) return (
-                <button key={item.path} onClick={() => handleNav(item.path)} className="relative -mt-5 flex flex-col items-center">
-                  {active && <div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />}
-                  <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${active ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105" : "bg-bg-card border-2 border-gold-primary/30 hover:border-gold-primary/50 hover:shadow-gold-primary/10"}`}>
-                    <span className={active ? "text-bg-primary" : "text-gold-primary"}>{item.icon}</span>
-                  </div>
-                  <span className={`text-[10px] font-semibold mt-1 transition-colors ${active ? "text-gold-primary" : "text-text-muted"}`}>{item.label}</span>
-                </button>
-              );
+
+              if (item.isCenter) {
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNav(item.path)}
+                    className="relative -mt-5 flex flex-col items-center"
+                  >
+                    {active && (
+                      <div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />
+                    )}
+                    <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${
+                      active
+                        ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105'
+                        : 'bg-bg-card border-2 border-gold-primary/30 hover:border-gold-primary/50 hover:shadow-gold-primary/10'
+                    }`}>
+                      <span className={active ? 'text-bg-primary' : 'text-gold-primary'}>{item.icon}</span>
+                    </div>
+                    <span className={`text-[10px] font-semibold mt-1 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted'}`}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              }
+
               return (
-                <button key={item.path} onClick={() => handleNav(item.path)} className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group">
-                  <span className={`transition-all duration-200 ${active ? "text-gold-primary scale-110" : "text-text-muted group-hover:text-text-secondary"}`}>{item.icon}</span>
-                  <span className={`text-[10px] font-medium transition-colors ${active ? "text-gold-primary" : "text-text-muted group-hover:text-text-secondary"}`}>{item.label}</span>
-                  {active && <span className="absolute bottom-1 w-4 h-0.5 bg-gold-primary rounded-full" />}
+                <button
+                  key={item.path}
+                  onClick={() => handleNav(item.path)}
+                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group"
+                >
+                  <span className={`transition-all duration-200 ${active ? 'text-gold-primary scale-110' : 'text-text-muted group-hover:text-text-secondary'}`}>
+                    {item.icon}
+                  </span>
+                  <span className={`text-[10px] font-medium transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-secondary'}`}>
+                    {item.label}
+                  </span>
+                  {active && (
+                    <span className="absolute bottom-1 w-4 h-0.5 bg-gold-primary rounded-full" />
+                  )}
                 </button>
               );
             })}
@@ -380,6 +474,7 @@ function App() {
 
           {/* PUBLIC */}
           <Route path="/home" element={<AppShell><OverviewPage /></AppShell>} />
+          <Route path="/market-pulse" element={<AppShell><MarketPulsePage /></AppShell>} />
           <Route path="/pricing" element={<AppShell><PricingPage /></AppShell>} />
           <Route path="/payment" element={<AppShell><PaymentPage /></AppShell>} />
 
