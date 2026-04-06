@@ -7,7 +7,7 @@ Redis cached: feed 60s, stats 120s, trending 120s
 
 from fastapi import APIRouter, Query, HTTPException
 from sqlalchemy import text
-from app.core.database import get_db_session
+from app.core.database import get_db as get_db_session
 from app.core.redis import cache_get, cache_set
 from typing import Optional
 import hashlib
