@@ -20,6 +20,7 @@
 //   /orderbook           → Order Book                   [PREMIUM]
 //   /calendar            → Macro Calendar               [PREMIUM]
 //   /whale               → Whale Alert                  [PREMIUM]
+//   /onchain             → On-Chain Intelligence        [PREMIUM]
 //   /admin               → User Management              [ADMIN]
 //   /pricing             → Pricing                      [PUBLIC]
 //   /payment             → Payment                      [PUBLIC]
@@ -59,6 +60,7 @@ const NotificationsPage = lazy(() => import("./components/NotificationsPage"));
 const JournalPage = lazy(() => import("./components/JournalPage"));
 const MarketPulsePage = lazy(() => import("./components/MarketPulsePage"));
 const CryptoNewsPage = lazy(() => import("./components/CryptoNewsPage"));
+const OnchainPage = lazy(() => import("./components/OnchainPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -80,8 +82,8 @@ const PageLoader = () => (
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications","/journal"];
-const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale"];
+const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain"];
+const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale","/onchain"];
 
 // ════════════════════════════════════════
 // ROUTE GUARDS
@@ -201,6 +203,7 @@ function AppShell({ children }) {
     { path: "/ai-arena", label: "AI Arena" },
     { path: "/market-pulse", label: "Pulse" },
     { path: "/crypto-news", label: "News" },
+    { path: "/onchain", label: "On-Chain" },
     { path: "/bitcoin", label: t("nav.bitcoin") },
     { path: "/markets", label: t("nav.markets") },
     { path: "/journal", label: "Journal" },
@@ -325,6 +328,9 @@ function AppShell({ children }) {
             />
             <SidebarItem active={isActive("/crypto-news")} onClick={() => handleNav("/crypto-news")} label="Crypto News" isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />}
+            />
+            <SidebarItem active={isActive("/onchain")} onClick={() => handleNav("/onchain")} label="On-Chain" isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.193-9.193a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244" />}
             />
             <SidebarItem active={isActive("/signals")} onClick={() => handleNav("/signals")} label={t("nav.signals")} isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
@@ -502,6 +508,7 @@ function App() {
           <Route path="/orderbook" element={<RequireAuth><AppShell><PremiumGate><OrderBookPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/calendar" element={<RequireAuth><AppShell><PremiumGate><MacroCalendarPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/whale" element={<RequireAuth><AppShell><PremiumGate><WhaleAlertPage /></PremiumGate></AppShell></RequireAuth>} />
+          <Route path="/onchain" element={<RequireAuth><AppShell><PremiumGate><OnchainPage /></PremiumGate></AppShell></RequireAuth>} />
 
           {/* ADMIN */}
           <Route path="/admin" element={<RequireAuth><RequireAdmin><AppShell><UserManagementPage /></AppShell></RequireAdmin></RequireAuth>} />

@@ -32,6 +32,7 @@ from app.api.routes.notifications import router as notifications_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
+from app.api.routes.onchain_endpoint import router as onchain_router
 
 # Import AI Worker
 from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline
@@ -118,6 +119,7 @@ app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"
 app.include_router(journal_router, prefix="/api/v1")
 app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["market-pulse"])
 app.include_router(crypto_news_feed_router, prefix="/api/v1/crypto-news-feed", tags=["crypto-news-feed"])
+app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
 
 # ═══════════════════════════════════════════
 # Serve chart screenshots as static files
@@ -137,6 +139,16 @@ if os.path.exists(NEWS_IMAGES_DIR):
     print(f"📷 News images directory mounted: {NEWS_IMAGES_DIR}")
 else:
     print(f"⚠️ News images directory not found: {NEWS_IMAGES_DIR}")
+
+# ═══════════════════════════════════════════
+# Serve onchain images as static files
+# ═══════════════════════════════════════════
+ONCHAIN_IMAGES_DIR = os.environ.get("ONCHAIN_IMAGES_DIR", "/opt/luxquant/onchain-images")
+if os.path.exists(ONCHAIN_IMAGES_DIR):
+    app.mount("/api/v1/onchain-images", StaticFiles(directory=ONCHAIN_IMAGES_DIR), name="onchain-images")
+    print(f"🔗 Onchain images directory mounted: {ONCHAIN_IMAGES_DIR}")
+else:
+    print(f"⚠️ Onchain images directory not found: {ONCHAIN_IMAGES_DIR}")
 
 
 @app.get("/")
