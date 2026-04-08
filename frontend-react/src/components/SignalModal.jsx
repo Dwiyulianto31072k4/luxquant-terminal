@@ -987,19 +987,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           >
             <span>🧠</span>
             <span>Deep Analysis</span>
-            <span
-              className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                signalDetail.enrichment.rating === "STRONG"
-                  ? "bg-green-500/20 text-green-400"
-                  : signalDetail.enrichment.rating === "MODERATE"
-                    ? "bg-blue-500/20 text-blue-400"
-                    : signalDetail.enrichment.rating === "WEAK"
-                      ? "bg-yellow-500/20 text-yellow-400"
-                      : "bg-red-500/20 text-red-400"
-              }`}
-            >
-              {signalDetail.enrichment.confidence_score}{" "}
-              {signalDetail.enrichment.rating}
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/20 text-purple-300">
+              v3
             </span>
           </button>
         )}
