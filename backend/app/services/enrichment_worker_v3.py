@@ -162,6 +162,9 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
     Save entry snapshot (frozen forever).
     Also initializes live_snapshot with the same value.
     Preserves legacy columns with default values for backward compat.
+    
+    NOTE: Uses CAST(:param AS jsonb) instead of :param::jsonb because
+    SQLAlchemy's text() interprets :: as a nested bind-parameter delimiter.
     """
     snapshot_json = json.dumps(snapshot)
     now = datetime.now(timezone.utc)
@@ -177,10 +180,10 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
                 analyzed_at, enrichment_version
             ) VALUES (
                 :signal_id, :pair,
-                :entry_snapshot::jsonb, :live_snapshot::jsonb, :live_updated_at,
+                CAST(:entry_snapshot AS jsonb), CAST(:live_snapshot AS jsonb), :live_updated_at,
                 0, 'N/A', 'normal',
-                '{}'::jsonb, '{}'::jsonb,
-                :signal_direction, '{}'::jsonb, '[]'::jsonb, '{}'::jsonb,
+                CAST('{}' AS jsonb), CAST('{}' AS jsonb),
+                :signal_direction, CAST('{}' AS jsonb), CAST('[]' AS jsonb), CAST('{}' AS jsonb),
                 :analyzed_at, :version
             )
             ON CONFLICT (signal_id) DO UPDATE SET
@@ -213,7 +216,7 @@ def update_live_snapshot(signal_id: str, snapshot: dict):
     with engine.begin() as conn:
         conn.execute(text("""
             UPDATE signal_enrichment
-            SET live_snapshot = :snapshot::jsonb,
+            SET live_snapshot = CAST(:snapshot AS jsonb),
                 live_updated_at = :now
             WHERE signal_id = :sid
         """), {
@@ -224,7 +227,7 @@ def update_live_snapshot(signal_id: str, snapshot: dict):
 
         conn.execute(text("""
             INSERT INTO signal_enrichment_history (signal_id, snapshot, recorded_at)
-            VALUES (:sid, :snapshot::jsonb, :now)
+            VALUES (:sid, CAST(:snapshot AS jsonb), :now)
         """), {
             "sid": signal_id,
             "snapshot": snapshot_json,
