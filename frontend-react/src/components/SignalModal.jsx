@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
-import EnrichmentBadge from './EnrichmentBadge';
-import DeepAnalysis from './DeepAnalysis';
+import EnrichmentBadge from "./EnrichmentBadge";
+import DeepAnalysis from "./DeepAnalysis";
 
 const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const { t } = useTranslation();
@@ -288,7 +288,13 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   };
 
   useEffect(() => {
-    if (!isOpen || !signal || !chartContainerRef.current || activeTab !== "chart") return;
+    if (
+      !isOpen ||
+      !signal ||
+      !chartContainerRef.current ||
+      activeTab !== "chart"
+    )
+      return;
     const container = chartContainerRef.current;
     container.innerHTML = "";
 
@@ -306,7 +312,8 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
 
     const script = document.createElement("script");
     script.type = "text/javascript";
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.async = true;
     script.innerHTML = JSON.stringify({
       autosize: true,
@@ -327,13 +334,15 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
       hide_volume: false,
       withdateranges: true,
       studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
-      support_host: "https://www.tradingview.com"
+      support_host: "https://www.tradingview.com",
     });
 
     widgetContainer.appendChild(script);
     container.appendChild(widgetContainer);
 
-    return () => { container.innerHTML = ""; };
+    return () => {
+      container.innerHTML = "";
+    };
   }, [isOpen, signal, activeTab]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
@@ -369,7 +378,8 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
 
       const script = document.createElement("script");
       script.type = "text/javascript";
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+      script.src =
+        "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
       script.async = true;
       script.innerHTML = JSON.stringify({
         autosize: true,
@@ -387,15 +397,24 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
         allow_symbol_change: true,
         save_image: false,
         studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
-        support_host: "https://www.tradingview.com"
+        support_host: "https://www.tradingview.com",
       });
 
       widgetContainer.appendChild(script);
       container.appendChild(widgetContainer);
     }, 100);
 
-    return () => { clearTimeout(timer); };
-  }, [isOpen, activeTab, signal?.pair, entryImg, afterImg, showInteractiveRight]);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    isOpen,
+    activeTab,
+    signal?.pair,
+    entryImg,
+    afterImg,
+    showInteractiveRight,
+  ]);
 
   // === RETURN NULL HARUS DITARUH SETELAH SEMUA USE-EFFECT ===
   if (!isOpen || !signal) return null;
@@ -968,13 +987,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           >
             <span>🧠</span>
             <span>Deep Analysis</span>
-            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-              signalDetail.enrichment.rating === 'STRONG' ? 'bg-green-500/20 text-green-400' :
-              signalDetail.enrichment.rating === 'MODERATE' ? 'bg-blue-500/20 text-blue-400' :
-              signalDetail.enrichment.rating === 'WEAK' ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-red-500/20 text-red-400'
-            }`}>
-              {signalDetail.enrichment.confidence_score} {signalDetail.enrichment.rating}
+            <span
+              className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                signalDetail.enrichment.rating === "STRONG"
+                  ? "bg-green-500/20 text-green-400"
+                  : signalDetail.enrichment.rating === "MODERATE"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : signalDetail.enrichment.rating === "WEAK"
+                      ? "bg-yellow-500/20 text-yellow-400"
+                      : "bg-red-500/20 text-red-400"
+              }`}
+            >
+              {signalDetail.enrichment.confidence_score}{" "}
+              {signalDetail.enrichment.rating}
             </span>
           </button>
         )}
@@ -1240,28 +1265,42 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                  
                   {/* ═══ TOMBOL JOURNAL (HEADER) ═══ */}
                   <button
                     onClick={() => {
-                      sessionStorage.setItem('journal_prefill', JSON.stringify({
-                        signal_id: signal.signal_id,
-                        pair: signal.pair,
-                        planned_entry: signal.entry,
-                        planned_tp1: signal.target1,
-                        planned_tp2: signal.target2,
-                        planned_tp3: signal.target3,
-                        planned_tp4: signal.target4,
-                        planned_sl: signal.stop1,
-                      }));
+                      sessionStorage.setItem(
+                        "journal_prefill",
+                        JSON.stringify({
+                          signal_id: signal.signal_id,
+                          pair: signal.pair,
+                          planned_entry: signal.entry,
+                          planned_tp1: signal.target1,
+                          planned_tp2: signal.target2,
+                          planned_tp3: signal.target3,
+                          planned_tp4: signal.target4,
+                          planned_sl: signal.stop1,
+                        }),
+                      );
                       handleCloseClick();
-                      setTimeout(() => { window.location.href = '/journal'; }, 300);
+                      setTimeout(() => {
+                        window.location.href = "/journal";
+                      }, 300);
                     }}
                     className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all mr-0.5 sm:mr-1"
                     title="Journal This Trade"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
+                      />
                     </svg>
                     <span className="hidden sm:inline">Journal</span>
                   </button>
@@ -2047,12 +2086,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       </div>
 
       {/* Deep Analysis Overlay */}
-        <DeepAnalysis
-          enrichment={signalDetail?.enrichment}
-          isOpen={showDeepAnalysis}
-          onClose={() => setShowDeepAnalysis(false)}
-          pair={signal?.pair}
-        />
+      <DeepAnalysis
+        signalId={signal?.signal_id}
+        enrichment={signalDetail?.enrichment}
+        isOpen={showDeepAnalysis}
+        onClose={() => setShowDeepAnalysis(false)}
+        pair={signal?.pair}
+      />
 
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
