@@ -1157,7 +1157,7 @@ def tag_levels(facts: dict) -> list:
 
 
 def tag_structure(facts: dict, signal_dir: str) -> list:
-    """Generate SMC + pattern + Fibonacci tags (filtered by signal direction)."""
+    """Generate SMC + pattern + Fibonacci tags (mutual exclusive by direction)."""
     tags = []
     structure = facts.get("structure", {})
     smc = structure.get("smc", {})
@@ -1171,36 +1171,42 @@ def tag_structure(facts: dict, signal_dir: str) -> list:
     if smc.get("sweep_recent"):
         tags.append("LIQ_SWEEP_RECENT")
 
-    # Patterns — filter by signal direction
+    # Patterns — mutual exclusive: if conflicting exists, only show CONFLICTING
     patterns = structure.get("patterns", [])
     bull_patterns = [p for p in patterns if p.get("direction") == "BULLISH"]
     bear_patterns = [p for p in patterns if p.get("direction") == "BEARISH"]
 
-    # Pattern alignment with signal direction
-    if signal_dir == "BULLISH":
-        if bull_patterns:
-            tags.append("PATTERN_BULLISH")
-        if bear_patterns:
-            tags.append("PATTERN_CONFLICTING")
-    else:  # BEARISH signal
-        if bear_patterns:
-            tags.append("PATTERN_BEARISH")
-        if bull_patterns:
-            tags.append("PATTERN_CONFLICTING")
+    has_aligned_pattern = (
+        (signal_dir == "BULLISH" and bool(bull_patterns)) or
+        (signal_dir == "BEARISH" and bool(bear_patterns))
+    )
+    has_conflicting_pattern = (
+        (signal_dir == "BULLISH" and bool(bear_patterns)) or
+        (signal_dir == "BEARISH" and bool(bull_patterns))
+    )
 
-    # Harmonic pattern — also filter by direction
-    harmonic_aligned = any(
+    if has_conflicting_pattern:
+        # Mutual exclusive: conflicting overrides aligned
+        tags.append("PATTERN_CONFLICTING")
+    elif has_aligned_pattern:
+        if signal_dir == "BULLISH":
+            tags.append("PATTERN_BULLISH")
+        else:
+            tags.append("PATTERN_BEARISH")
+
+    # Harmonic pattern — also mutual exclusive
+    harmonic_aligned_exists = any(
         "harmonic" in str(p.get("type", "")) and p.get("direction") == signal_dir
         for p in patterns
     )
-    harmonic_conflicting = any(
+    harmonic_conflicting_exists = any(
         "harmonic" in str(p.get("type", "")) and p.get("direction") not in (signal_dir, None)
         for p in patterns
     )
-    if harmonic_aligned:
-        tags.append("HARMONIC_ALIGNED")
-    if harmonic_conflicting:
+    if harmonic_conflicting_exists:
         tags.append("HARMONIC_CONFLICTING")
+    elif harmonic_aligned_exists:
+        tags.append("HARMONIC_ALIGNED")
 
     # Fibonacci
     fib = structure.get("fib", {})
