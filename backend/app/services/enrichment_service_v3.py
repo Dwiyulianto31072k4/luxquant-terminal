@@ -77,7 +77,8 @@ IMPORTANT_TAGS = {
     "FRESH_BREAKOUT", "DEEP_PULLBACK",
     # Structure (high value)
     "SMC_GOLDEN_SETUP", "FVG_NEAR_ENTRY", "OB_NEAR_ENTRY",
-    "PATTERN_BULLISH", "PATTERN_BEARISH", "HARMONIC_DETECTED",
+    "PATTERN_BULLISH", "PATTERN_BEARISH", "PATTERN_CONFLICTING",
+    "HARMONIC_ALIGNED", "HARMONIC_CONFLICTING",
     # Levels
     "BROKE_RESISTANCE_RECENT", "BROKE_SUPPORT_RECENT",
     "AT_FIB_GOLDEN_ZONE",
@@ -697,7 +698,10 @@ def build_entry_quality_facts(h1_df: pd.DataFrame, signal_dir: str, entry_price:
         # Candle age (relative to H1 = 60 min)
         last_ts = pd.to_datetime(h1_df["open_time"].iloc[-1]) if "open_time" in h1_df.columns else None
         if last_ts is not None:
-            now_ts = pd.Timestamp.utcnow().tz_localize(None) if last_ts.tzinfo is None else pd.Timestamp.now(tz="UTC")
+            if last_ts.tzinfo is None:
+                now_ts = pd.Timestamp.now(tz="UTC").tz_localize(None)
+            else:
+                now_ts = pd.Timestamp.now(tz="UTC")
             age_min = (now_ts - last_ts).total_seconds() / 60
             age_pct = min(100, max(0, age_min / 60 * 100))
             result["candle_age_pct"] = _safe_float(age_pct)
@@ -1153,7 +1157,7 @@ def tag_levels(facts: dict) -> list:
 
 
 def tag_structure(facts: dict, signal_dir: str) -> list:
-    """Generate SMC + pattern + Fibonacci tags."""
+    """Generate SMC + pattern + Fibonacci tags (filtered by signal direction)."""
     tags = []
     structure = facts.get("structure", {})
     smc = structure.get("smc", {})
@@ -1167,18 +1171,36 @@ def tag_structure(facts: dict, signal_dir: str) -> list:
     if smc.get("sweep_recent"):
         tags.append("LIQ_SWEEP_RECENT")
 
-    # Patterns
+    # Patterns — filter by signal direction
     patterns = structure.get("patterns", [])
-    aligned_bull = any(p.get("direction") == "BULLISH" for p in patterns)
-    aligned_bear = any(p.get("direction") == "BEARISH" for p in patterns)
-    has_harmonic = any("harmonic" in str(p.get("type", "")) for p in patterns)
+    bull_patterns = [p for p in patterns if p.get("direction") == "BULLISH"]
+    bear_patterns = [p for p in patterns if p.get("direction") == "BEARISH"]
 
-    if aligned_bull:
-        tags.append("PATTERN_BULLISH")
-    if aligned_bear:
-        tags.append("PATTERN_BEARISH")
-    if has_harmonic:
-        tags.append("HARMONIC_DETECTED")
+    # Pattern alignment with signal direction
+    if signal_dir == "BULLISH":
+        if bull_patterns:
+            tags.append("PATTERN_BULLISH")
+        if bear_patterns:
+            tags.append("PATTERN_CONFLICTING")
+    else:  # BEARISH signal
+        if bear_patterns:
+            tags.append("PATTERN_BEARISH")
+        if bull_patterns:
+            tags.append("PATTERN_CONFLICTING")
+
+    # Harmonic pattern — also filter by direction
+    harmonic_aligned = any(
+        "harmonic" in str(p.get("type", "")) and p.get("direction") == signal_dir
+        for p in patterns
+    )
+    harmonic_conflicting = any(
+        "harmonic" in str(p.get("type", "")) and p.get("direction") not in (signal_dir, None)
+        for p in patterns
+    )
+    if harmonic_aligned:
+        tags.append("HARMONIC_ALIGNED")
+    if harmonic_conflicting:
+        tags.append("HARMONIC_CONFLICTING")
 
     # Fibonacci
     fib = structure.get("fib", {})
