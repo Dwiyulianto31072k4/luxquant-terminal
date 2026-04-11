@@ -121,12 +121,13 @@ def get_pending_signals(limit: int = 50) -> list:
     return [dict(r._mapping) for r in rows]
 
 
-def get_active_signals_for_refresh() -> list:
+def get_signals_needing_live_refresh() -> list:
     """
     Get signals that need live refresh:
-    - status IN ('open', 'tp1', 'tp2', 'tp3')
+    - status IN ('open', 'tp1', 'tp2', 'tp3')  [not closed]
     - created_at within last 7 days
     - already has entry_snapshot (enriched before)
+    - live_updated_at > 1 hour ago (or never refreshed)
     """
     with engine.connect() as conn:
         rows = conn.execute(text("""
@@ -141,6 +142,37 @@ def get_active_signals_for_refresh() -> list:
               AND s.entry IS NOT NULL
               AND e.entry_snapshot IS NOT NULL
               AND e.entry_snapshot::text != '{}'
+              AND (
+                  e.live_updated_at IS NULL
+                  OR e.live_updated_at < NOW() - INTERVAL '1 hour'
+              )
+            ORDER BY e.live_updated_at ASC NULLS FIRST
+            LIMIT 50
+        """)).fetchall()
+    return [dict(r._mapping) for r in rows]
+
+
+def get_signals_needing_backfill() -> list:
+    """
+    Get active signals that DON'T have v3 entry_snapshot yet.
+    Used for one-time backfill after deploying v3.
+    Scope: status IN ('open', 'tp1', 'tp2', 'tp3') AND created_at within 7 days.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT s.signal_id, s.pair, s.entry, s.target1, s.target2,
+                   s.target3, s.target4, s.stop1, s.stop2, s.status,
+                   s.risk_level, s.created_at
+            FROM signals s
+            LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
+            WHERE s.status IN ('open', 'tp1', 'tp2', 'tp3')
+              AND s.created_at::timestamptz >= NOW() - INTERVAL '7 days'
+              AND s.pair IS NOT NULL
+              AND s.entry IS NOT NULL
+              AND (
+                  e.entry_snapshot IS NULL
+                  OR e.entry_snapshot::text = '{}'
+              )
             ORDER BY s.created_at DESC
         """)).fetchall()
     return [dict(r._mapping) for r in rows]
@@ -162,9 +194,6 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
     Save entry snapshot (frozen forever).
     Also initializes live_snapshot with the same value.
     Preserves legacy columns with default values for backward compat.
-    
-    NOTE: Uses CAST(:param AS jsonb) instead of :param::jsonb because
-    SQLAlchemy's text() interprets :: as a nested bind-parameter delimiter.
     """
     snapshot_json = json.dumps(snapshot)
     now = datetime.now(timezone.utc)
@@ -180,10 +209,10 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
                 analyzed_at, enrichment_version
             ) VALUES (
                 :signal_id, :pair,
-                CAST(:entry_snapshot AS jsonb), CAST(:live_snapshot AS jsonb), :live_updated_at,
+                :entry_snapshot::jsonb, :live_snapshot::jsonb, :live_updated_at,
                 0, 'N/A', 'normal',
-                CAST('{}' AS jsonb), CAST('{}' AS jsonb),
-                :signal_direction, CAST('{}' AS jsonb), CAST('[]' AS jsonb), CAST('{}' AS jsonb),
+                '{}'::jsonb, '{}'::jsonb,
+                :signal_direction, '{}'::jsonb, '[]'::jsonb, '{}'::jsonb,
                 :analyzed_at, :version
             )
             ON CONFLICT (signal_id) DO UPDATE SET
@@ -216,7 +245,7 @@ def update_live_snapshot(signal_id: str, snapshot: dict):
     with engine.begin() as conn:
         conn.execute(text("""
             UPDATE signal_enrichment
-            SET live_snapshot = CAST(:snapshot AS jsonb),
+            SET live_snapshot = :snapshot::jsonb,
                 live_updated_at = :now
             WHERE signal_id = :sid
         """), {
@@ -227,7 +256,7 @@ def update_live_snapshot(signal_id: str, snapshot: dict):
 
         conn.execute(text("""
             INSERT INTO signal_enrichment_history (signal_id, snapshot, recorded_at)
-            VALUES (:sid, CAST(:snapshot AS jsonb), :now)
+            VALUES (:sid, :snapshot::jsonb, :now)
         """), {
             "sid": signal_id,
             "snapshot": snapshot_json,
@@ -390,14 +419,13 @@ async def process_signal_live(signal: dict, dry_run: bool = False) -> dict:
 # BATCH PROCESSORS
 # ============================================================
 
-async def run_pending_batch(dry_run: bool = False):
-    """Process all pending signals (entry mode)."""
+async def run_pending_batch(dry_run: bool = False) -> int:
+    """Process all pending signals (entry mode). Returns count processed."""
     signals = get_pending_signals(limit=50)
     if not signals:
-        logger.info("No pending signals")
-        return
+        return 0
 
-    logger.info(f"Processing {len(signals)} pending signals")
+    logger.info(f"Processing {len(signals)} pending signals (entry mode)")
 
     stats = {"success": 0, "failed": 0}
     for sig in signals:
@@ -417,17 +445,86 @@ async def run_pending_batch(dry_run: bool = False):
 
         await asyncio.sleep(1)
 
-    logger.info(f"Batch done — {stats['success']} success, {stats['failed']} failed")
+    logger.info(f"Pending batch done — {stats['success']} success, {stats['failed']} failed")
+    return stats["success"] + stats["failed"]
+
+
+async def run_backfill(dry_run: bool = False) -> int:
+    """
+    One-shot backfill: re-enrich active signals that don't have v3 entry_snapshot.
+    Used after first deploy to catch up on existing signals.
+    """
+    signals = get_signals_needing_backfill()
+    if not signals:
+        logger.info("Backfill: no signals need v3 enrichment")
+        return 0
+
+    logger.info(f"Backfill: {len(signals)} active signals need v3 entry_snapshot")
+
+    stats = {"success": 0, "failed": 0}
+    for i, sig in enumerate(signals, 1):
+        sid = sig["signal_id"]
+        logger.info(f"Backfill {i}/{len(signals)}: {sig['pair']} ({sid[:8]})")
+
+        result = await process_signal_entry(sig, dry_run=dry_run)
+
+        if result["success"]:
+            stats["success"] += 1
+        else:
+            stats["failed"] += 1
+            logger.error(f"Backfill FAILED {sid[:8]}: {result['error']}")
+
+        await asyncio.sleep(1)
+
+    logger.info(f"Backfill complete — {stats['success']} success, {stats['failed']} failed")
+    return stats["success"] + stats["failed"]
+
+
+async def run_loop(poll_interval: int = 30, dry_run: bool = False):
+    """
+    Main daemon loop. Polls for pending entries AND signals needing live refresh.
+
+    Each cycle:
+    1. Process pending signals (entry mode) - new signals just scraped
+    2. Process signals needing live refresh (live_updated_at > 1h ago)
+    3. Sleep poll_interval seconds
+
+    Replaces v2.3.1 enrichment_worker.py loop.
+    """
+    logger.info("=" * 60)
+    logger.info(f"LuxQuant Enrichment Worker v3 — daemon mode")
+    logger.info(f"Poll interval: {poll_interval}s")
+    logger.info(f"Live refresh threshold: 1 hour")
+    logger.info("=" * 60)
+
+    while True:
+        try:
+            # Step 1: process new pending signals
+            entry_count = await run_pending_batch(dry_run=dry_run)
+
+            # Step 2: process signals needing live refresh
+            live_count = await run_live_refresh_all(dry_run=dry_run)
+
+            if entry_count == 0 and live_count == 0:
+                # No activity this cycle, log only at info level occasionally
+                pass
+            else:
+                logger.info(f"Cycle done: {entry_count} entries + {live_count} live refreshes")
+
+        except Exception as e:
+            logger.error(f"Loop iteration error: {e}")
+            traceback.print_exc()
+
+        await asyncio.sleep(poll_interval)
 
 
 async def run_live_refresh_all(dry_run: bool = False):
-    """Refresh all active signals (live mode). Called by cron."""
-    signals = get_active_signals_for_refresh()
+    """Refresh signals that need live update (live_updated_at > 1h ago). Called by loop."""
+    signals = get_signals_needing_live_refresh()
     if not signals:
-        logger.info("No active signals to refresh")
-        return
+        return 0
 
-    logger.info(f"Live refresh: {len(signals)} active signals")
+    logger.info(f"Live refresh: {len(signals)} signals due (>1h since last update)")
 
     stats = {"success": 0, "failed": 0}
     for sig in signals:
@@ -450,7 +547,8 @@ async def run_live_refresh_all(dry_run: bool = False):
         except Exception as e:
             logger.warning(f"History cleanup failed: {e}")
 
-    logger.info(f"Live refresh done — {stats['success']} success, {stats['failed']} failed")
+    logger.info(f"Live refresh batch done — {stats['success']} success, {stats['failed']} failed")
+    return stats["success"] + stats["failed"]
 
 
 async def run_single(signal_id: str, mode: str = "entry", dry_run: bool = False):
@@ -542,9 +640,15 @@ def main():
     parser = argparse.ArgumentParser(description="LuxQuant Enrichment Worker v3")
     parser.add_argument("--signal-id", type=str, help="Process specific signal by ID")
     parser.add_argument("--pending", action="store_true",
-                        help="Process all pending signals (entry mode)")
+                        help="Process all pending signals once (entry mode)")
     parser.add_argument("--live-all", action="store_true",
-                        help="Refresh all active signals (live mode)")
+                        help="Refresh all signals due for live update")
+    parser.add_argument("--loop", action="store_true",
+                        help="Run as daemon: poll pending + live refresh continuously")
+    parser.add_argument("--backfill", action="store_true",
+                        help="One-shot: enrich active signals missing v3 entry_snapshot")
+    parser.add_argument("--poll-interval", type=int, default=30,
+                        help="Poll interval in seconds for --loop mode (default: 30)")
     parser.add_argument("--mode", type=str, default="entry",
                         choices=["entry", "live"],
                         help="Mode when using --signal-id (default: entry)")
@@ -558,6 +662,10 @@ def main():
         asyncio.run(run_pending_batch(dry_run=args.dry_run))
     elif args.live_all:
         asyncio.run(run_live_refresh_all(dry_run=args.dry_run))
+    elif args.backfill:
+        asyncio.run(run_backfill(dry_run=args.dry_run))
+    elif args.loop:
+        asyncio.run(run_loop(poll_interval=args.poll_interval, dry_run=args.dry_run))
     else:
         parser.print_help()
         sys.exit(1)
