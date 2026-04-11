@@ -1,5 +1,6 @@
 // src/components/AIArenaPage.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// AI Arena v3 — Multi-TF, Chart Image, Anomaly Badges, Contextual
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/authApi';
 
 // ════════════════════════════════════════
@@ -32,296 +33,200 @@ const SOURCE_LINKS = {
   'X (Twitter)': 'https://x.com/search?q=bitcoin',
 };
 
+const TF_ALIGNMENT_COLORS = {
+  all_bullish: { color: '#4ade80', label: 'All Bullish', icon: '🟢' },
+  all_bearish: { color: '#f87171', label: 'All Bearish', icon: '🔴' },
+  mixed:       { color: '#fbbf24', label: 'Mixed',       icon: '🟡' },
+  divergent:   { color: '#f97316', label: 'Divergent',    icon: '🟠' },
+};
+
+const BASE_URL = import.meta.env.VITE_API_URL || '';
+
 // ════════════════════════════════════════
-// CHART — Lightweight Charts (TradingView)
+// CHART IMAGE COMPONENT
 // ════════════════════════════════════════
 
-function PriceChart({ chartData }) {
-  const containerRef = useRef(null);
+function ChartImage({ reportId }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const imgUrl = `${BASE_URL}/api/v1/ai-arena/chart-image/${reportId}`;
 
-  useEffect(() => {
-    if (!chartData?.candles?.length || !containerRef.current) return;
-    let disposed = false;
-
-    const initChart = async () => {
-      try {
-        const { createChart, LineSeries, CandlestickSeries, HistogramSeries } = await import('lightweight-charts');
-        if (disposed || !containerRef.current) return;
-
-        containerRef.current.innerHTML = '';
-        const chart = createChart(containerRef.current, {
-          width: containerRef.current.clientWidth,
-          height: 420,
-          layout: {
-            background: { color: 'transparent' },
-            textColor: '#6b5c52',
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-          },
-          grid: {
-            vertLines: { color: 'rgba(212,168,83,0.04)' },
-            horzLines: { color: 'rgba(212,168,83,0.04)' },
-          },
-          crosshair: {
-            mode: 0,
-            vertLine: { color: 'rgba(212,168,83,0.3)', width: 1, style: 2 },
-            horzLine: { color: 'rgba(212,168,83,0.3)', width: 1, style: 2 },
-          },
-          rightPriceScale: {
-            borderColor: 'rgba(212,168,83,0.1)',
-            scaleMargins: { top: 0.1, bottom: 0.2 },
-          },
-          timeScale: {
-            borderColor: 'rgba(212,168,83,0.1)',
-            timeVisible: true,
-            secondsVisible: false,
-          },
-        });
-
-        // Candlestick
-        const candleSeries = chart.addSeries(CandlestickSeries, {
-          upColor: '#4ade80',
-          downColor: '#f87171',
-          borderUpColor: '#4ade80',
-          borderDownColor: '#f87171',
-          wickUpColor: '#4ade80',
-          wickDownColor: '#f87171',
-        });
-        candleSeries.setData(chartData.candles);
-
-        // Volume
-        const volSeries = chart.addSeries(HistogramSeries, {
-          priceFormat: { type: 'volume' },
-          priceScaleId: 'vol',
-        });
-        chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-        volSeries.setData(chartData.volumes);
-
-        const tech = chartData.technicals || {};
-
-        // EMA 20 — solid gold (short-term signal)
-        if (tech.ema_20 && chartData.candles.length > 20) {
-          const ema20Series = chart.addSeries(LineSeries, {
-            color: '#d4a853',
-            lineWidth: 1.5,
-            lineStyle: 0,
-            title: 'EMA 20',
-          });
-          // Approximate: use last N candle closes to compute EMA line
-          ema20Series.setData(computeEMALine(chartData.candles, 20));
-        }
-
-        // EMA 50 — solid blue (medium-term signal)
-        if (tech.ema_50 && chartData.candles.length > 50) {
-          const ema50Series = chart.addSeries(LineSeries, {
-            color: '#60a5fa',
-            lineWidth: 1.5,
-            lineStyle: 0,
-            title: 'EMA 50',
-          });
-          ema50Series.setData(computeEMALine(chartData.candles, 50));
-        }
-
-        // SMA 100 — dashed teal (long-term reference)
-        if (tech.sma_100 && chartData.candles.length > 100) {
-          const sma100Series = chart.addSeries(LineSeries, {
-            color: '#2dd4bf',
-            lineWidth: 1,
-            lineStyle: 2,
-            title: 'SMA 100',
-          });
-          sma100Series.setData(computeSMALine(chartData.candles, 100));
-        }
-
-        // SMA 200 — dashed purple (institutional reference)
-        if (tech.sma_200 && chartData.candles.length > 200) {
-          const sma200Series = chart.addSeries(LineSeries, {
-            color: '#a78bfa',
-            lineWidth: 1,
-            lineStyle: 2,
-            title: 'SMA 200',
-          });
-          sma200Series.setData(computeSMALine(chartData.candles, 200));
-        }
-
-        // Liquidation level lines
-        const liq = chartData.liquidation_levels || {};
-        if (liq.peak_long_liq && liq.peak_long_liq > 0) {
-          candleSeries.createPriceLine({
-            price: liq.peak_long_liq,
-            color: 'rgba(248,113,113,0.5)',
-            lineWidth: 1,
-            lineStyle: 1,
-            axisLabelVisible: true,
-            title: `Long Liq ≈$${(liq.peak_long_liq/1000).toFixed(1)}k`,
-          });
-        }
-        if (liq.peak_short_liq && liq.peak_short_liq > 0) {
-          candleSeries.createPriceLine({
-            price: liq.peak_short_liq,
-            color: 'rgba(74,222,128,0.5)',
-            lineWidth: 1,
-            lineStyle: 1,
-            axisLabelVisible: true,
-            title: `Short Liq ≈$${(liq.peak_short_liq/1000).toFixed(1)}k`,
-          });
-        }
-
-        chart.timeScale().fitContent();
-
-        const handleResize = () => chart.applyOptions({ width: containerRef.current?.clientWidth || 600 });
-        window.addEventListener('resize', handleResize);
-
-        return () => {
-          disposed = true;
-          window.removeEventListener('resize', handleResize);
-          chart.remove();
-        };
-      } catch (err) {
-        console.error('Chart init failed:', err);
-      }
-    };
-
-    initChart();
-    return () => { disposed = true; };
-  }, [chartData]);
+  if (error) {
+    return (
+      <div className="glass-card rounded-2xl p-8 border border-gold-primary/10 flex items-center justify-center min-h-[200px]">
+        <p className="text-text-muted text-sm">Chart image not available for this report</p>
+      </div>
+    );
+  }
 
   return (
-    <div ref={containerRef} style={{
-      width: '100%', height: 420, borderRadius: 12,
-      border: '1px solid rgba(212,168,83,0.08)',
-      background: 'rgba(15,12,8,0.4)',
-    }} />
-  );
-}
-
-// ════════════════════════════════════════
-// MA LINE COMPUTATION (for chart overlay)
-// ════════════════════════════════════════
-
-function computeEMALine(candles, period) {
-  if (candles.length < period) return [];
-  const closes = candles.map(c => c.close);
-  const multiplier = 2 / (period + 1);
-  let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  const result = [];
-  for (let i = period; i < closes.length; i++) {
-    ema = (closes[i] - ema) * multiplier + ema;
-    result.push({ time: candles[i].time, value: Math.round(ema * 10) / 10 });
-  }
-  return result;
-}
-
-function computeSMALine(candles, period) {
-  if (candles.length < period) return [];
-  const closes = candles.map(c => c.close);
-  const result = [];
-  for (let i = period - 1; i < closes.length; i++) {
-    const sum = closes.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
-    result.push({ time: candles[i].time, value: Math.round((sum / period) * 10) / 10 });
-  }
-  return result;
-}
-
-// ════════════════════════════════════════
-// SMART TAG PARSER
-// ════════════════════════════════════════
-
-function parseSmartTags(text) {
-  if (!text) return null;
-  const parts = [];
-  let lastIndex = 0;
-  const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
-    }
-    const value = match[1];
-    const ref = match[2];
-    if (ref.startsWith('http')) {
-      parts.push(
-        <a key={`l${match.index}`} href={ref} target="_blank" rel="noopener noreferrer"
-           style={{ color: '#d4a853', textDecoration: 'underline', textDecorationColor: 'rgba(212,168,83,0.3)' }}>
-          {value}
-        </a>
-      );
-    } else {
-      parts.push(
-        <span key={`m${match.index}`} style={{
-          color: '#d4a853', fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '0.9em', fontWeight: 600,
-          background: 'rgba(212,168,83,0.08)', padding: '1px 5px', borderRadius: 4,
-        }}>{value}</span>
-      );
-    }
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) parts.push(<span key="end">{text.slice(lastIndex)}</span>);
-  return parts.length > 0 ? parts : text;
-}
-
-// ════════════════════════════════════════
-// SOURCE BADGE
-// ════════════════════════════════════════
-
-function SourceBadges({ sources }) {
-  if (!sources?.length) return null;
-  return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingTop: 8,
-                  borderTop: '1px solid rgba(212,168,83,0.06)' }}>
-      <span style={{ fontSize: 10, color: '#6b5c52', marginRight: 2 }}>📡</span>
-      {sources.map(s => (
-        <a key={s} href={SOURCE_LINKS[s] || '#'} target="_blank" rel="noopener noreferrer"
-           style={{
-             fontSize: 10, color: '#8a7c6e', textDecoration: 'none',
-             background: 'rgba(212,168,83,0.04)', padding: '2px 7px', borderRadius: 10,
-             border: '1px solid rgba(212,168,83,0.08)',
-             transition: 'all 0.2s',
-           }}
-           onMouseEnter={e => { e.target.style.color = '#d4a853'; e.target.style.borderColor = 'rgba(212,168,83,0.2)'; }}
-           onMouseLeave={e => { e.target.style.color = '#8a7c6e'; e.target.style.borderColor = 'rgba(212,168,83,0.08)'; }}
-        >{s}</a>
-      ))}
+    <div className="glass-card rounded-2xl border border-gold-primary/10 overflow-hidden relative">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-bg-card/80 z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-gold-primary/40 border-t-gold-primary rounded-full animate-spin" />
+            <span className="text-text-muted text-sm">Loading chart...</span>
+          </div>
+        </div>
+      )}
+      <img
+        src={imgUrl}
+        alt="BTC Multi-Timeframe Analysis"
+        className="w-full h-auto"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        style={{ minHeight: loaded ? 'auto' : '400px' }}
+      />
     </div>
   );
 }
 
 // ════════════════════════════════════════
-// REPORT SECTION (Expandable)
+// TIMEFRAME ALIGNMENT BADGE
 // ════════════════════════════════════════
 
-function ReportSection({ sectionKey, content, isOpen, onToggle }) {
-  const cfg = SECTIONS[sectionKey];
-  if (!cfg || !content) return null;
+function TFAlignmentBadge({ alignment }) {
+  if (!alignment) return null;
+  const overall = alignment.alignment || 'mixed';
+  const cfg = TF_ALIGNMENT_COLORS[overall] || TF_ALIGNMENT_COLORS.mixed;
 
   return (
-    <div style={{
-      background: isOpen ? 'rgba(212,168,83,0.03)' : 'transparent',
-      borderRadius: 12, border: '1px solid rgba(212,168,83,0.08)',
-      transition: 'all 0.3s ease', marginBottom: 8,
-    }}>
-      <button onClick={onToggle} style={{
-        width: '100%', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10,
-        background: 'none', border: 'none', cursor: 'pointer', color: '#c4b8a8',
-        fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 600,
-        textAlign: 'left',
-      }}>
-        <span style={{ fontSize: 16 }}>{cfg.emoji}</span>
-        <span style={{ flex: 1 }}>{cfg.title}</span>
-        <span style={{
-          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s', fontSize: 12, opacity: 0.5,
-        }}>▼</span>
+    <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-gold-primary">Triple Screen</span>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${cfg.color}15`, color: cfg.color, border: `1px solid ${cfg.color}33` }}>
+          {cfg.icon} {cfg.label}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { tf: '1D', label: 'Tide', value: alignment['1D_trend'] },
+          { tf: '4H', label: 'Wave', value: alignment['4H_setup'] },
+          { tf: '1H', label: 'Ripple', value: alignment['1H_momentum'] },
+        ].map(({ tf, label, value }) => {
+          const isBull = value?.toLowerCase()?.includes('bull') || value?.toLowerCase()?.includes('up');
+          const isBear = value?.toLowerCase()?.includes('bear') || value?.toLowerCase()?.includes('down');
+          const color = isBull ? '#4ade80' : isBear ? '#f87171' : '#fbbf24';
+          return (
+            <div key={tf} className="text-center p-2 rounded-lg" style={{ background: `${color}08`, border: `1px solid ${color}20` }}>
+              <div className="text-[10px] text-text-muted font-medium">{tf} ({label})</div>
+              <div className="text-xs font-bold mt-0.5" style={{ color }}>{value || '—'}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
+// METRIC CARDS
+// ════════════════════════════════════════
+
+function MetricCard({ label, value, subValue, color = '#d4a853' }) {
+  return (
+    <div className="glass-card rounded-xl p-3 border border-gold-primary/10">
+      <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-lg font-bold font-mono" style={{ color }}>{value}</div>
+      {subValue && <div className="text-[10px] text-text-muted mt-0.5">{subValue}</div>}
+    </div>
+  );
+}
+
+function FearGreedGauge({ value }) {
+  if (value == null) return null;
+  const pct = value / 100;
+  const color = value <= 25 ? '#f87171' : value <= 45 ? '#f97316' : value <= 55 ? '#fbbf24' : value <= 75 ? '#a3e635' : '#4ade80';
+  const label = value <= 25 ? 'Extreme Fear' : value <= 45 ? 'Fear' : value <= 55 ? 'Neutral' : value <= 75 ? 'Greed' : 'Extreme Greed';
+
+  return (
+    <div className="glass-card rounded-xl p-3 border border-gold-primary/10">
+      <div className="text-[10px] text-text-muted uppercase tracking-wider mb-2">Fear & Greed</div>
+      <div className="flex items-center gap-3">
+        <div className="text-2xl font-bold font-mono" style={{ color }}>{value}</div>
+        <div className="flex-1">
+          <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full rounded-full transition-all" style={{ width: `${pct * 100}%`, background: color }} />
+          </div>
+          <div className="text-[10px] font-semibold mt-1" style={{ color }}>{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
+// KEY LEVELS BAR
+// ════════════════════════════════════════
+
+function KeyLevelsBar({ levels, currentPrice }) {
+  if (!levels || !currentPrice) return null;
+  const { strong_support, support, resistance, strong_resistance } = levels;
+  const allLevels = [strong_support, support, currentPrice, resistance, strong_resistance].filter(Boolean);
+  const min = Math.min(...allLevels) * 0.998;
+  const max = Math.max(...allLevels) * 1.002;
+  const range = max - min || 1;
+  const pos = (v) => ((v - min) / range * 100);
+
+  return (
+    <div className="glass-card rounded-xl p-4 border border-gold-primary/10">
+      <div className="text-[10px] text-text-muted uppercase tracking-wider mb-3">Key Levels</div>
+      <div className="relative h-8 rounded-full bg-white/[0.03] border border-white/5">
+        {strong_support > 0 && <LevelDot pos={pos(strong_support)} color="#22c55e" label={`$${(strong_support/1000).toFixed(1)}k`} />}
+        {support > 0 && <LevelDot pos={pos(support)} color="#86efac" label={`$${(support/1000).toFixed(1)}k`} />}
+        {resistance > 0 && <LevelDot pos={pos(resistance)} color="#fca5a5" label={`$${(resistance/1000).toFixed(1)}k`} />}
+        {strong_resistance > 0 && <LevelDot pos={pos(strong_resistance)} color="#ef4444" label={`$${(strong_resistance/1000).toFixed(1)}k`} />}
+        <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-gold-primary border-2 border-bg-card z-10" style={{ left: `${pos(currentPrice)}%` }}>
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-gold-primary whitespace-nowrap">${(currentPrice/1000).toFixed(1)}k</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LevelDot({ pos, color, label }) {
+  return (
+    <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ left: `${pos}%`, background: color }}>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[8px] whitespace-nowrap" style={{ color }}>{label}</div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════
+// SECTION ACCORDION
+// ════════════════════════════════════════
+
+function SectionCard({ sectionKey, content, isOpen, onToggle }) {
+  const config = SECTIONS[sectionKey];
+  if (!config || !content) return null;
+
+  // Parse smart tags: [value](tab_name) → clickable styled text
+  const parseContent = (text) => {
+    if (!text) return '';
+    return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="text-gold-primary font-mono text-sm font-semibold">$1</span>');
+  };
+
+  return (
+    <div className="glass-card rounded-2xl border border-gold-primary/10 overflow-hidden">
+      <button onClick={onToggle} className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
+        <div className="flex items-center gap-3">
+          <span className="text-lg">{config.emoji}</span>
+          <span className="text-white font-semibold text-sm">{config.title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {config.sources.map(src => (
+            <a key={src} href={SOURCE_LINKS[src]} target="_blank" rel="noopener noreferrer"
+               className="px-1.5 py-0.5 rounded text-[8px] font-medium bg-white/[0.04] text-text-muted hover:text-gold-primary hover:bg-gold-primary/10 transition-colors"
+               onClick={e => e.stopPropagation()}>
+              {src}
+            </a>
+          ))}
+          <svg className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </div>
       </button>
       {isOpen && (
-        <div style={{
-          padding: '0 18px 16px 18px',
-          lineHeight: 1.8, color: '#a89b8c',
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13.5,
-        }}>
-          {parseSmartTags(content)}
-          <SourceBadges sources={cfg.sources} />
+        <div className="px-4 pb-4 border-t border-white/5">
+          <div className="pt-3 text-text-secondary text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: parseContent(content) }} />
         </div>
       )}
     </div>
@@ -329,83 +234,31 @@ function ReportSection({ sectionKey, content, isOpen, onToggle }) {
 }
 
 // ════════════════════════════════════════
-// METRIC CARD
+// REPORT TIMELINE
 // ════════════════════════════════════════
 
-function MetricCard({ label, value, sub, color, estimated }) {
-  return (
-    <div style={{
-      background: 'rgba(212,168,83,0.03)', borderRadius: 10,
-      border: '1px solid rgba(212,168,83,0.08)', padding: '12px 14px',
-      minWidth: 130, flex: '1 1 130px',
-    }}>
-      <div style={{ fontSize: 10, color: '#6b5c52', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-        {label}
-        {estimated && <span style={{ color: '#fbbf24', marginLeft: 4, fontSize: 9 }}>⚠ EST</span>}
-      </div>
-      <div style={{
-        fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-        color: color || '#d4a853',
-      }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: '#6b5c52', marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-}
-
-// ════════════════════════════════════════
-// FEAR & GREED GAUGE (SVG)
-// ════════════════════════════════════════
-
-function FearGreedGauge({ value, classification }) {
-  const v = Math.max(0, Math.min(100, value || 0));
-  const angle = -90 + (v / 100) * 180;
-  const color = v <= 25 ? '#f87171' : v <= 45 ? '#fb923c' : v <= 55 ? '#fbbf24' : v <= 75 ? '#a3e635' : '#4ade80';
+function ReportTimeline({ reports, currentId, onSelect }) {
+  if (!reports || reports.length <= 1) return null;
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <svg viewBox="0 0 200 120" style={{ width: 160, height: 100 }}>
-        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(212,168,83,0.1)" strokeWidth="12" strokeLinecap="round" />
-        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
-              strokeDasharray={`${v * 2.51} 251`} />
-        <line x1="100" y1="100" x2={100 + 60 * Math.cos((angle * Math.PI) / 180)}
-              y2={100 + 60 * Math.sin((angle * Math.PI) / 180)}
-              stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="100" cy="100" r="4" fill={color} />
-        <text x="100" y="88" textAnchor="middle" fill={color} fontSize="22" fontWeight="700"
-              fontFamily="'JetBrains Mono', monospace">{v}</text>
-      </svg>
-      <div style={{ fontSize: 11, color: color, fontWeight: 600, marginTop: -8 }}>
-        {classification || (v <= 25 ? 'Extreme Fear' : v <= 45 ? 'Fear' : v <= 55 ? 'Neutral' : v <= 75 ? 'Greed' : 'Extreme Greed')}
-      </div>
-    </div>
-  );
-}
+    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+      {reports.map((r) => {
+        const isCurrent = r.id === currentId;
+        const isAnomaly = r.is_anomaly_triggered;
+        const s = SENTIMENT_CONFIG[r.sentiment] || SENTIMENT_CONFIG.neutral;
+        const time = new Date(r.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-// ════════════════════════════════════════
-// CHART LEGEND
-// ════════════════════════════════════════
-
-function ChartLegend() {
-  const items = [
-    { label: 'EMA 20', color: '#d4a853', style: 'solid' },
-    { label: 'EMA 50', color: '#60a5fa', style: 'solid' },
-    { label: 'SMA 100', color: '#2dd4bf', style: 'dashed' },
-    { label: 'SMA 200', color: '#a78bfa', style: 'dashed' },
-  ];
-  return (
-    <div style={{ display: 'flex', gap: 14, padding: '8px 0', flexWrap: 'wrap' }}>
-      {items.map(i => (
-        <div key={i.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <div style={{
-            width: 18, height: 0, borderTop: `2px ${i.style} ${i.color}`,
-          }} />
-          <span style={{ fontSize: 10, color: '#6b5c52' }}>{i.label}</span>
-        </div>
-      ))}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <div style={{ width: 18, height: 0, borderTop: '2px dashed rgba(248,113,113,0.5)' }} />
-        <span style={{ fontSize: 10, color: '#6b5c52' }}>Liq levels (est.)</span>
-      </div>
+        return (
+          <button key={r.id} onClick={() => onSelect(r)}
+            className={`flex-shrink-0 px-3 py-2 rounded-lg text-[10px] font-medium transition-all ${isCurrent ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/30' : 'bg-white/[0.03] text-text-muted hover:bg-white/[0.06] border border-transparent'}`}>
+            <div className="flex items-center gap-1">
+              {isAnomaly && <span className="text-[8px]">⚡</span>}
+              <span style={{ color: isCurrent ? s.color : undefined }}>{s.icon}</span>
+              <span>{time}</span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -416,23 +269,26 @@ function ChartLegend() {
 
 export default function AIArenaPage() {
   const [report, setReport] = useState(null);
-  const [chartData, setChartData] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openSections, setOpenSections] = useState({ market_overview: true });
-  const [generating, setGenerating] = useState(false);
 
-  // Fetch report
-  const fetchReport = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/v1/ai-arena/latest');
-      setReport(res.data);
       setError(null);
+
+      const [latestRes, historyRes] = await Promise.all([
+        api.get('/api/v1/ai-arena/latest'),
+        api.get('/api/v1/ai-arena/history?limit=20'),
+      ]);
+
+      setReport(latestRes.data);
+      setHistory(historyRes.data?.reports || []);
     } catch (err) {
       if (err.response?.status === 404) {
-        setError('first_run');
+        setError('first_report');
       } else {
         setError(err.message);
       }
@@ -441,382 +297,154 @@ export default function AIArenaPage() {
     }
   }, []);
 
-  // Fetch chart data
-  const fetchChartData = useCallback(async () => {
-    try {
-      setChartLoading(true);
-      const res = await api.get('/api/v1/ai-arena/chart-data');
-      setChartData(res.data);
-    } catch (err) {
-      console.error('Chart data fetch failed:', err);
-    } finally {
-      setChartLoading(false);
-    }
-  }, []);
-
-  // Trigger report generation
-  const triggerGeneration = useCallback(async () => {
-    try {
-      setGenerating(true);
-      await api.post('/api/v1/ai-arena/run');
-      await fetchReport();
-    } catch (err) {
-      console.error('Report generation failed:', err);
-    } finally {
-      setGenerating(false);
-    }
-  }, [fetchReport]);
-
-  useEffect(() => {
-    fetchReport();
-    fetchChartData();
-    // Refresh chart every 5 min
-    const interval = setInterval(fetchChartData, 300000);
-    return () => clearInterval(interval);
-  }, [fetchReport, fetchChartData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const toggleSection = (key) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // ── Loading state ──
+  // Loading
   if (loading) {
     return (
-      <div style={styles.page}>
-        <div style={{ textAlign: 'center', padding: '80px 20px', color: '#6b5c52' }}>
-          <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18 }}>Loading AI Arena...</div>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <h2 className="font-display text-2xl font-semibold text-white">AI Arena</h2>
         </div>
-      </div>
-    );
-  }
-
-  // ── First run / no report ──
-  if (error === 'first_run' || (!report && !error)) {
-    return (
-      <div style={styles.page}>
-        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>🧠</div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#c4b8a8', marginBottom: 8 }}>
-            AI Arena — First Report
-          </h2>
-          <p style={{ color: '#6b5c52', fontSize: 13, marginBottom: 24 }}>
-            No report generated yet. Click below to trigger the first analysis.
-            <br/>This takes ~2 minutes (gather data → compress → DeepSeek analysis).
-          </p>
-          <button onClick={triggerGeneration} disabled={generating} style={{
-            background: generating ? 'rgba(212,168,83,0.1)' : 'rgba(212,168,83,0.15)',
-            color: '#d4a853', border: '1px solid rgba(212,168,83,0.3)',
-            padding: '10px 28px', borderRadius: 8, cursor: generating ? 'wait' : 'pointer',
-            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600,
-          }}>
-            {generating ? '⏳ Generating...' : '🚀 Generate First Report'}
-          </button>
-        </div>
-        {/* Still show chart even without report */}
-        {chartData && (
-          <div style={{ marginTop: 20 }}>
-            <ChartLegend />
-            <PriceChart chartData={chartData} />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="glass-card rounded-2xl p-6 animate-pulse border border-gold-primary/10">
+            <div className="h-4 bg-gold-primary/20 rounded w-40 mb-3" />
+            <div className="h-20 bg-gold-primary/10 rounded" />
           </div>
-        )}
+        ))}
       </div>
     );
   }
 
-  // ── Error state ──
+  // First report
+  if (error === 'first_report') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="text-5xl mb-4">🧠</div>
+        <h2 className="text-2xl font-display font-bold text-white mb-2">AI Arena</h2>
+        <p className="text-text-muted max-w-md mb-6">First report is being generated. Multi-timeframe BTC analysis with DeepSeek R1 — this takes about 3 minutes.</p>
+        <button onClick={fetchData} className="px-6 py-3 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium">Refresh</button>
+      </div>
+    );
+  }
+
+  // Error
   if (error) {
     return (
-      <div style={styles.page}>
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#f87171' }}>
-          <div style={{ fontSize: 32, marginBottom: 16 }}>⚠️</div>
-          <div>Error: {error}</div>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button onClick={fetchData} className="px-5 py-2.5 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium">Retry</button>
       </div>
     );
   }
 
-  // ── Main report view ──
-  const sent = SENTIMENT_CONFIG[report.sentiment] || SENTIMENT_CONFIG.neutral;
-  const tech = chartData?.technicals || {};
-  const fg = report.fear_greed || chartData?.fear_greed?.value;
-  const fgClass = chartData?.fear_greed?.classification || '';
-  const liq = chartData?.liquidation_levels || {};
-  const oiData = chartData?.oi || {};
+  if (!report) return null;
+
+  const sentimentCfg = SENTIMENT_CONFIG[report.sentiment] || SENTIMENT_CONFIG.neutral;
+  const sections = report.sections || {};
+  const keyLevels = report.key_levels || {};
+  const liqHotspots = report.liquidation_hotspots || {};
+  const alignment = report.timeframe_alignment;
+  const tfSummary = report.timeframes_summary || {};
 
   return (
-    <div style={styles.page}>
+    <div className="space-y-4 lg:space-y-5">
 
-      {/* ══ HEADER: Sentiment + Confidence ══ */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: 12, marginBottom: 20,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: sent.bg, color: sent.color, border: `1px solid ${sent.border}`,
-            padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>
-            {sent.icon} {sent.label}
-          </span>
-          {report.bias_direction && (
-            <span style={{
-              fontSize: 11, fontWeight: 600, color: '#8a7c6e',
-              fontFamily: "'JetBrains Mono', monospace",
-            }}>
-              BIAS: {report.bias_direction}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, color: '#6b5c52' }}>Confidence</span>
-          <div style={{
-            width: 80, height: 6, borderRadius: 3,
-            background: 'rgba(212,168,83,0.1)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              width: `${report.confidence || 0}%`, height: '100%',
-              background: sent.color, borderRadius: 3, transition: 'width 0.5s ease',
-            }} />
+      {/* ═══ Header ═══ */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
+          <div>
+            <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">AI Arena</h2>
+            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
+              Multi-TF BTC Intelligence · DeepSeek R1
+              {report.is_anomaly_triggered && <span className="ml-2 px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-[9px] font-bold">⚡ ANOMALY TRIGGERED</span>}
+            </p>
           </div>
-          <span style={{
-            fontSize: 12, fontWeight: 700, color: sent.color,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>{report.confidence}%</span>
+        </div>
+
+        {/* Sentiment badge */}
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 rounded-xl text-sm font-bold" style={{ background: sentimentCfg.bg, color: sentimentCfg.color, border: `1px solid ${sentimentCfg.border}` }}>
+            {sentimentCfg.icon} {sentimentCfg.label} · {report.confidence}%
+          </div>
+          <div className="px-3 py-2 rounded-xl text-xs font-bold bg-white/[0.04] text-text-muted border border-white/5">
+            {report.bias_direction || 'NEUTRAL'}
+          </div>
         </div>
       </div>
 
-      {/* ══ CHART ══ */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <h3 style={{
-            fontFamily: "'Playfair Display', serif", fontSize: 16, color: '#c4b8a8',
-            margin: 0,
-          }}>BTC/USDT · 4H</h3>
-          <ChartLegend />
-        </div>
-        {chartLoading ? (
-          <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5c52' }}>
-            Loading chart...
-          </div>
-        ) : chartData ? (
-          <PriceChart chartData={chartData} />
-        ) : (
-          <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b5c52' }}>
-            Chart data unavailable
-          </div>
-        )}
+      {/* ═══ Timeline ═══ */}
+      <ReportTimeline reports={history} currentId={report.id} onSelect={(r) => setReport(r)} />
+
+      {/* ═══ Metric Cards Row ═══ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <MetricCard label="BTC Price" value={`$${(report.btc_price || 0).toLocaleString()}`} color="#d4a853" />
+        <FearGreedGauge value={report.fear_greed} />
+        <MetricCard label="RSI (4H)" value={tfSummary?.['4H']?.rsi_14 || '—'} subValue={tfSummary?.['4H']?.rsi_14 >= 70 ? 'Overbought' : tfSummary?.['4H']?.rsi_14 <= 30 ? 'Oversold' : 'Neutral'} color={tfSummary?.['4H']?.rsi_14 >= 70 ? '#f87171' : tfSummary?.['4H']?.rsi_14 <= 30 ? '#4ade80' : '#d4a853'} />
+        <MetricCard label="Daily Trend" value={tfSummary?.['1D']?.trend || '—'} color={tfSummary?.['1D']?.trend?.includes('UP') ? '#4ade80' : tfSummary?.['1D']?.trend?.includes('DOWN') ? '#f87171' : '#fbbf24'} />
+        <MetricCard label="Cascade Risk" value={liqHotspots.cascade_risk?.toUpperCase() || '—'} color={liqHotspots.cascade_risk === 'high' ? '#f87171' : liqHotspots.cascade_risk === 'medium' ? '#fbbf24' : '#4ade80'} />
+        <MetricCard label="Generated" value={`${report.generated_in_seconds?.toFixed(0) || '?'}s`} subValue={new Date(report.timestamp).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' })} />
       </div>
 
-      {/* ══ METRIC CARDS ══ */}
-      <div style={{
-        display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20,
-      }}>
-        <MetricCard
-          label="Price"
-          value={`$${(report.btc_price || chartData?.current_price || 0).toLocaleString()}`}
-          sub={`24h: $${tech.high_24h?.toLocaleString() || '?'} — $${tech.low_24h?.toLocaleString() || '?'}`}
-        />
-        <MetricCard
-          label="Fear & Greed"
-          value={fg || '—'}
-          sub={fgClass}
-          color={fg <= 25 ? '#f87171' : fg <= 45 ? '#fb923c' : fg <= 55 ? '#fbbf24' : fg <= 75 ? '#a3e635' : '#4ade80'}
-        />
-        <MetricCard
-          label="RSI (14)"
-          value={tech.rsi_14 || '—'}
-          sub={tech.rsi_14 > 70 ? 'Overbought' : tech.rsi_14 < 30 ? 'Oversold' : 'Neutral zone'}
-          color={tech.rsi_14 > 70 ? '#f87171' : tech.rsi_14 < 30 ? '#4ade80' : '#d4a853'}
-        />
-        <MetricCard
-          label="EMA Spread"
-          value={tech.ema_spread_pct ? `${tech.ema_spread_pct > 0 ? '+' : ''}${tech.ema_spread_pct}%` : '—'}
-          sub={tech.ema_bullish_cross ? '🟢 EMA20 > EMA50' : '🔴 EMA20 < EMA50'}
-          color={tech.ema_bullish_cross ? '#4ade80' : '#f87171'}
-        />
-        <MetricCard
-          label="Volume Ratio"
-          value={tech.volume_ratio ? `${tech.volume_ratio}x` : '—'}
-          sub="vs 20d avg"
-          color={tech.volume_ratio > 1.5 ? '#4ade80' : tech.volume_ratio < 0.5 ? '#f87171' : '#d4a853'}
-        />
-        <MetricCard
-          label="Aggregated OI"
-          value={oiData.coinglass?.total_oi_usd
-            ? `$${(oiData.coinglass.total_oi_usd / 1e9).toFixed(1)}B`
-            : '—'}
-          sub={oiData.coinglass?.exchange_count
-            ? `${oiData.coinglass.exchange_count} exchanges`
-            : oiData.best_source || ''}
-          color="#d4a853"
-        />
+      {/* ═══ TF Alignment + Key Levels ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <TFAlignmentBadge alignment={alignment} />
+        <KeyLevelsBar levels={keyLevels} currentPrice={report.btc_price} />
       </div>
 
-      {/* ══ KEY LEVELS BAR ══ */}
-      {report.key_levels && <KeyLevelsBar levels={report.key_levels} price={report.btc_price || chartData?.current_price} />}
+      {/* ═══ Chart Image ═══ */}
+      {report.id && <ChartImage reportId={report.id} />}
 
-      {/* ══ LIQUIDATION HOTSPOTS ══ */}
-      {(liq.peak_long_liq || report.liquidation_hotspots) && (
-        <div style={{
-          background: 'rgba(212,168,83,0.03)', borderRadius: 12,
-          border: '1px solid rgba(212,168,83,0.08)', padding: '14px 18px',
-          marginBottom: 16,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <span style={{ fontSize: 14 }}>💥</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#c4b8a8' }}>Liquidation Hotspots</span>
-            <span style={{
-              fontSize: 9, color: '#fbbf24', background: 'rgba(251,191,36,0.1)',
-              padding: '1px 6px', borderRadius: 8, marginLeft: 4,
-            }}>ESTIMATED</span>
-          </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <div>
-              <span style={{ fontSize: 10, color: '#f87171' }}>▼ Nearest Long Liq</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#f87171', fontFamily: "'JetBrains Mono'" }}>
-                ${(liq.peak_long_liq || report.liquidation_hotspots?.nearest_long_cluster || 0).toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: '#4ade80' }}>▲ Nearest Short Liq</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#4ade80', fontFamily: "'JetBrains Mono'" }}>
-                ${(liq.peak_short_liq || report.liquidation_hotspots?.nearest_short_cluster || 0).toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: '#6b5c52' }}>Cascade Risk</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fbbf24', fontFamily: "'JetBrains Mono'" }}>
-                {report.liquidation_hotspots?.cascade_risk?.toUpperCase() || 'N/A'}
-              </div>
-            </div>
-          </div>
-          <SourceBadges sources={['Coinglass', 'Coinalyze']} />
-        </div>
-      )}
-
-      {/* ══ FEAR & GREED GAUGE ══ */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{
-          background: 'rgba(212,168,83,0.03)', borderRadius: 12,
-          border: '1px solid rgba(212,168,83,0.08)', padding: '14px 20px',
-          flex: '0 0 200px', textAlign: 'center',
-        }}>
-          <FearGreedGauge value={fg} classification={fgClass} />
-          <SourceBadges sources={['Alternative.me']} />
-        </div>
-
-        {/* Risk Factors */}
-        {report.risk_factors?.length > 0 && (
-          <div style={{
-            background: 'rgba(212,168,83,0.03)', borderRadius: 12,
-            border: '1px solid rgba(212,168,83,0.08)', padding: '14px 18px',
-            flex: 1, minWidth: 200,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#c4b8a8', marginBottom: 8 }}>⚠️ Risk Factors</div>
-            {report.risk_factors.map((r, i) => (
-              <div key={i} style={{ fontSize: 12, color: '#8a7c6e', padding: '3px 0', lineHeight: 1.5 }}>
-                <span style={{ color: '#f87171', marginRight: 6 }}>•</span>{r}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ══ REPORT SECTIONS (4 sections) ══ */}
-      <div style={{ marginBottom: 20 }}>
-        <h3 style={{
-          fontFamily: "'Playfair Display', serif", fontSize: 16, color: '#c4b8a8',
-          margin: '0 0 12px 0',
-        }}>Analysis Report</h3>
+      {/* ═══ Analysis Sections ═══ */}
+      <div className="space-y-3">
         {SECTION_ORDER.map(key => (
-          <ReportSection
+          <SectionCard
             key={key}
             sectionKey={key}
-            content={report.sections?.[key]}
+            content={sections[key]}
             isOpen={!!openSections[key]}
             onToggle={() => toggleSection(key)}
           />
         ))}
       </div>
 
-      {/* ══ FOOTER — Report metadata ══ */}
-      <div style={{
-        borderTop: '1px solid rgba(212,168,83,0.08)', paddingTop: 12,
-        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
-      }}>
-        <span style={{ fontSize: 10, color: '#4a4039' }}>
-          Report {report.id} · Generated in {report.generated_in_seconds}s · {report.data_sources} sources
-        </span>
-        <span style={{ fontSize: 10, color: '#4a4039' }}>
-          {new Date(report.timestamp).toLocaleString()}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ════════════════════════════════════════
-// KEY LEVELS BAR
-// ════════════════════════════════════════
-
-function KeyLevelsBar({ levels, price }) {
-  if (!levels || !price) return null;
-  const { strong_support, support, resistance, strong_resistance } = levels;
-  const allLevels = [strong_support, support, price, resistance, strong_resistance].filter(Boolean);
-  if (allLevels.length < 3) return null;
-
-  const min = Math.min(...allLevels) * 0.998;
-  const max = Math.max(...allLevels) * 1.002;
-  const range = max - min;
-  const pos = (v) => ((v - min) / range) * 100;
-
-  return (
-    <div style={{
-      background: 'rgba(212,168,83,0.03)', borderRadius: 12,
-      border: '1px solid rgba(212,168,83,0.08)', padding: '14px 18px',
-      marginBottom: 16,
-    }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#c4b8a8', marginBottom: 10 }}>📐 Key Levels</div>
-      <div style={{ position: 'relative', height: 32, background: 'rgba(212,168,83,0.04)', borderRadius: 6 }}>
-        {/* Price marker */}
-        <div style={{
-          position: 'absolute', left: `${pos(price)}%`, top: -2, transform: 'translateX(-50%)',
-          background: '#d4a853', color: '#0f0c08', fontSize: 9, fontWeight: 700,
-          padding: '2px 6px', borderRadius: 4, fontFamily: "'JetBrains Mono'",
-          zIndex: 5,
-        }}>${price.toLocaleString()}</div>
-        {/* Level markers */}
-        {[
-          { v: strong_support, label: 'S2', color: '#4ade80' },
-          { v: support, label: 'S1', color: '#86efac' },
-          { v: resistance, label: 'R1', color: '#fca5a5' },
-          { v: strong_resistance, label: 'R2', color: '#f87171' },
-        ].map(({ v, label, color }) => v && (
-          <div key={label} style={{
-            position: 'absolute', left: `${pos(v)}%`, bottom: -2, transform: 'translateX(-50%)',
-            fontSize: 9, color, fontWeight: 600, fontFamily: "'JetBrains Mono'",
-          }}>
-            <div style={{ textAlign: 'center' }}>{label}</div>
-            <div style={{ fontSize: 8 }}>${(v/1000).toFixed(1)}k</div>
+      {/* ═══ Risk Factors ═══ */}
+      {report.risk_factors && report.risk_factors.length > 0 && (
+        <div className="glass-card rounded-2xl p-4 border border-red-500/10">
+          <div className="text-[10px] text-red-400 uppercase tracking-wider font-bold mb-2">Risk Factors</div>
+          <div className="space-y-1.5">
+            {report.risk_factors.map((rf, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                <span className="text-red-400/60 mt-0.5">⚠</span>
+                <span>{rf}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* ═══ Anomaly Info ═══ */}
+      {report.is_anomaly_triggered && report.anomaly_reason && (
+        <div className="glass-card rounded-2xl p-4 border border-orange-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-orange-400">⚡</span>
+            <span className="text-[10px] text-orange-400 uppercase tracking-wider font-bold">Anomaly Triggered Report</span>
+          </div>
+          <p className="text-sm text-text-secondary">{report.anomaly_reason}</p>
+        </div>
+      )}
+
+      {/* ═══ Footer ═══ */}
+      <div className="text-center text-text-muted text-[10px] py-2">
+        {report.id} · {report.data_sources} data sources · {report.data_errors?.length > 0 ? `${report.data_errors.length} errors` : 'no errors'}
+        {report.is_anomaly_triggered ? ' · ⚡ anomaly trigger' : ' · scheduled'}
       </div>
     </div>
   );
 }
-
-// ════════════════════════════════════════
-// STYLES
-// ════════════════════════════════════════
-
-const styles = {
-  page: {
-    maxWidth: 900,
-    margin: '0 auto',
-    padding: '20px 16px',
-  },
-};

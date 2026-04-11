@@ -1,26 +1,45 @@
 # backend/app/api/routes/ai_arena.py
 """
-AI Arena — API Routes
-- /latest     → most recent AI report
-- /history    → last N reports for timeline feed
-- /chart-data → klines + technicals + liquidation levels for frontend chart
-- /run        → manually trigger report generation (admin only)
+AI Arena v3 API Routes
+=======================
+- /latest        → latest report (Redis → DB fallback)
+- /history       → report history (Redis → DB fallback)
+- /chart-data    → klines + technicals for frontend chart (legacy)
+- /chart-image   → serve chart PNG image (v3)
+- /run           → manually trigger report generation (admin only)
+- /anomaly-log   → recent anomaly checks
 """
+
 from fastapi import APIRouter, HTTPException, Query
-from app.core.redis import cache_get, cache_set, get_redis
+from starlette.responses import FileResponse
 import json
+import os
+
+from app.core.redis import cache_get, cache_set, get_redis
 
 router = APIRouter()
 
+
+def _fix_data_sources(report: dict) -> dict:
+    """Safety: ensure data_sources is always an integer, not a dict from DeepSeek."""
+    if isinstance(report.get("data_sources"), dict):
+        report["source_metrics"] = report.pop("data_sources")
+        report["data_sources"] = 18
+    return report
+
+
+# ══════════════════════════════════════
+# GET /latest — Latest AI report
+# ══════════════════════════════════════
 
 @router.get("/latest")
 async def get_latest_ai_report():
     """Get the latest AI market intelligence report. Redis first, DB fallback."""
     try:
-        # Try Redis cache first (fast)
+        # Try Redis cache first
         report = cache_get("lq:ai-report:latest")
         if report:
-            return report
+            return _fix_data_sources(report)
 
         # Fallback: read from PostgreSQL
         from app.core.database import SessionLocal
@@ -30,9 +49,9 @@ async def get_latest_ai_report():
         db.close()
 
         if db_report:
-            # Re-cache to Redis for next request
-            cache_set("lq:ai-report:latest", db_report.report_json, ttl=86400)
-            return db_report.report_json
+            report = _fix_data_sources(db_report.report_json)
+            cache_set("lq:ai-report:latest", report, ttl=86400)
+            return report
 
         raise HTTPException(status_code=404, detail="No report available yet.")
     except HTTPException:
@@ -41,30 +60,37 @@ async def get_latest_ai_report():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ══════════════════════════════════════
+# GET /history — Report history
+# ══════════════════════════════════════
+
 @router.get("/history")
 async def get_report_history(limit: int = Query(10, ge=1, le=50)):
-    """Get recent report history for timeline feed."""
+    """Get recent report history. Redis first, DB fallback."""
     try:
-        redis = get_redis()
-        if not redis:
-            latest = cache_get("lq:ai-report:latest")
-            return {"reports": [latest] if latest else [], "total": 1 if latest else 0}
-
-        raw_items = redis.lrange("lq:ai-report:history", 0, limit - 1)
-
         reports = []
-        for raw in raw_items:
-            try:
-                if isinstance(raw, bytes):
-                    raw = raw.decode("utf-8")
-                reports.append(json.loads(raw))
-            except:
-                continue
 
+        # Try Redis first
+        redis = get_redis()
+        if redis:
+            raw_items = redis.lrange("lq:ai-report:history", 0, limit - 1)
+            for raw in raw_items:
+                try:
+                    if isinstance(raw, bytes):
+                        raw = raw.decode("utf-8")
+                    r = json.loads(raw)
+                    reports.append(_fix_data_sources(r))
+                except:
+                    continue
+
+        # Fallback: PostgreSQL
         if not reports:
-            latest = cache_get("lq:ai-report:latest")
-            if latest:
-                reports = [latest]
+            from app.core.database import SessionLocal
+            from app.models.ai_arena import AIArenaReport
+            db = SessionLocal()
+            db_reports = db.query(AIArenaReport).order_by(AIArenaReport.id.desc()).limit(limit).all()
+            db.close()
+            reports = [_fix_data_sources(r.report_json) for r in db_reports]
 
         return {"reports": reports, "total": len(reports)}
     except HTTPException:
@@ -73,154 +99,158 @@ async def get_report_history(limit: int = Query(10, ge=1, le=50)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ══════════════════════════════════════
+# GET /chart-data — Klines + Technicals (legacy for lightweight-charts)
+# ══════════════════════════════════════
+
 @router.get("/chart-data")
 async def get_chart_data():
-    """
-    Get BTC chart data for frontend rendering.
-    Returns klines (OHLCV), technicals (SMA, RSI), and liquidation levels.
-    Cached separately with 5-min TTL (lighter than full report).
-    """
+    """Get BTC klines + technicals for frontend chart rendering."""
     try:
-        # Try cache first
-        cached = cache_get("lq:ai-arena:chart-data")
-        if cached:
-            return cached
+        from app.services.ai_arena_data import fetch_bybit_klines, compute_technicals_for_tf
 
-        # Fetch fresh from data layer
-        from app.services.ai_arena_data import (
-            fetch_bybit_ticker,
-            fetch_bybit_klines,
-            compute_technicals,
-            fetch_coinalyze_liquidation_history,
-            estimate_liquidation_levels,
-            fetch_fear_greed,
-            fetch_coinalyze_oi,
-            fetch_coinglass_oi,
-        )
+        klines = fetch_bybit_klines(interval="240", limit=200)
+        if not klines:
+            raise HTTPException(status_code=503, detail="Could not fetch kline data")
 
-        # Gather chart-relevant data
-        ticker = fetch_bybit_ticker()
-        current_price = float(ticker.get("price", 0)) if ticker else 0
-        raw_klines = fetch_bybit_klines(limit=200)
-        technicals = compute_technicals(raw_klines) if raw_klines else {}
-        liq_history = fetch_coinalyze_liquidation_history()
-        fear_greed = fetch_fear_greed()
-        coinalyze = fetch_coinalyze_oi(current_price=current_price)
-        cg_oi = fetch_coinglass_oi()
-
-        # Use best OI for liquidation estimation: Coinglass > Coinalyze > Bybit
-        best_oi_usd = 0
-        oi_source = "none"
-        if cg_oi and cg_oi.get("total_oi_usd", 0) > 1_000_000_000:
-            best_oi_usd = cg_oi["total_oi_usd"]
-            oi_source = "coinglass"
-        elif coinalyze and coinalyze.get("oi_usd", 0) > 1_000_000_000:
-            best_oi_usd = coinalyze["oi_usd"]
-            oi_source = "coinalyze"
-        elif ticker:
-            best_oi_usd = ticker.get("open_interest_usd", 0)
-            oi_source = "bybit"
-
-        liq_levels = {}
-        if current_price and best_oi_usd:
-            liq_levels = estimate_liquidation_levels(current_price, best_oi_usd)
-
-        # Format klines for lightweight-charts
         candles = []
         volumes = []
-        if raw_klines:
-            for k in raw_klines:
-                ts = k.get("timestamp", k.get("t", 0))
-                if hasattr(ts, 'timestamp'):  # datetime object
-                    time_val = int(ts.timestamp())
-                elif isinstance(ts, str):
-                    time_val = int(ts)
-                elif isinstance(ts, (int, float)):
-                    time_val = int(ts / 1000) if ts > 1e12 else int(ts)
-                else:
-                    time_val = 0
-                o = float(k.get("open", k.get("o", 0)))
-                h = float(k.get("high", k.get("h", 0)))
-                l = float(k.get("low", k.get("l", 0)))
-                c = float(k.get("close", k.get("c", 0)))
-                v = float(k.get("volume", k.get("v", 0)))
-                candles.append({"time": time_val, "open": o, "high": h, "low": l, "close": c})
-                volumes.append({
-                    "time": time_val,
-                    "value": v,
-                    "color": "rgba(74,222,128,0.3)" if c >= o else "rgba(248,113,113,0.3)",
-                })
-        ma_data = {}
-        # EMA 20/50 (short-term, responsive)
-        for period in [20, 50]:
-            val = technicals.get(f"ema{period}")
-            if val is not None:
-                ma_data[f"ema_{period}"] = val
-        # SMA 100/200 (long-term, institutional)
-        for period in [100, 200]:
-            val = technicals.get(f"sma{period}")
-            if val is not None:
-                ma_data[f"sma_{period}"] = val
+        for k in klines:
+            ts = int(k["timestamp"].timestamp())
+            candles.append({"time": ts, "open": k["open"], "high": k["high"], "low": k["low"], "close": k["close"]})
+            color = "rgba(74,222,128,0.3)" if k["close"] >= k["open"] else "rgba(248,113,113,0.3)"
+            volumes.append({"time": ts, "value": k["volume"], "color": color})
 
-        # Simplify liquidation levels (only peaks + top clusters, not full map)
-        liq_simple = {}
-        if liq_levels:
-            liq_simple = {
-                "peak_long_liq": float(liq_levels.get("peak_long_price", 0)),
-                "peak_long_amount": float(liq_levels.get("peak_long_amount", 0)),
-                "peak_short_liq": float(liq_levels.get("peak_short_price", 0)),
-                "peak_short_amount": float(liq_levels.get("peak_short_amount", 0)),
-                "total_long_estimated": float(liq_levels.get("total_long_estimated", 0)),
-                "total_short_estimated": float(liq_levels.get("total_short_estimated", 0)),
-            }
+        tech = compute_technicals_for_tf(klines, "4H")
 
-        result = {
+        return {
             "candles": candles,
             "volumes": volumes,
-            "current_price": current_price,
             "technicals": {
-                "rsi_14": technicals.get("rsi_14"),
-                "volume_ratio": technicals.get("volume_ratio"),
-                "ema_spread_pct": technicals.get("ema_spread_pct"),
-                "ema_bullish_cross": technicals.get("ema_bullish_cross"),
-                "golden_cross": technicals.get("golden_cross"),
-                **ma_data,
+                "rsi_14": tech.get("rsi_14"),
+                "volume_ratio": tech.get("volume_ratio"),
+                "ema_spread_pct": tech.get("ema_spread_pct"),
+                "ema_bullish_cross": tech.get("ema_bullish_cross"),
+                "golden_cross": tech.get("golden_cross"),
+                "ema_20": tech.get("ema20"),
+                "ema_50": tech.get("ema50"),
+                "sma_100": tech.get("sma100"),
+                "sma_200": tech.get("sma200"),
             },
-            "liquidation_levels": liq_simple,
-            "fear_greed": fear_greed,
-            "oi": {
-                "bybit_usd": ticker.get("open_interest_usd", 0) if ticker else 0,
-                "coinalyze": coinalyze,
-                "coinglass": {
-                    "total_oi_usd": cg_oi.get("total_oi_usd", 0),
-                    "exchange_count": cg_oi.get("exchange_count", 0),
-                } if cg_oi else None,
-                "best_source": oi_source,
-            },
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
         }
-
-        # Cache 5 min
-        cache_set("lq:ai-arena:chart-data", result, ttl=300)
-
-        return result
-
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ══════════════════════════════════════
+# GET /chart-image/{report_id} — Serve chart PNG
+# ══════════════════════════════════════
+
+CHART_DIR = os.getenv("AI_ARENA_CHART_DIR", "/opt/luxquant/ai-arena-charts")
+
+
+@router.get("/chart-image/{report_id}")
+async def get_chart_image(report_id: str):
+    """Serve the chart PNG image for a specific report."""
+    filepath = os.path.join(CHART_DIR, f"{report_id}.png")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail=f"Chart image not found for {report_id}")
+    return FileResponse(filepath, media_type="image/png")
+
+
+@router.get("/chart-image-latest")
+async def get_latest_chart_image():
+    """Serve the chart PNG for the latest report."""
+    try:
+        report = cache_get("lq:ai-report:latest")
+        if not report:
+            from app.core.database import SessionLocal
+            from app.models.ai_arena import AIArenaReport
+            db = SessionLocal()
+            db_report = db.query(AIArenaReport).order_by(AIArenaReport.id.desc()).first()
+            db.close()
+            if db_report:
+                report = db_report.report_json
+
+        if not report:
+            raise HTTPException(status_code=404, detail="No report available")
+
+        report_id = report.get("id", "")
+        filepath = os.path.join(CHART_DIR, f"{report_id}.png")
+        if os.path.exists(filepath):
+            return FileResponse(filepath, media_type="image/png")
+
+        # Try chart_image_path from report
+        alt_path = report.get("chart_image_path", "")
+        if alt_path and os.path.exists(alt_path):
+            return FileResponse(alt_path, media_type="image/png")
+
+        raise HTTPException(status_code=404, detail="Chart image not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════
+# GET /anomaly-log — Recent anomaly checks
+# ══════════════════════════════════════
+
+@router.get("/anomaly-log")
+async def get_anomaly_log(limit: int = Query(20, ge=1, le=100)):
+    """Get recent anomaly check logs."""
+    try:
+        from app.core.database import SessionLocal
+        from app.models.ai_arena import AIArenaAnomalyCheck
+        db = SessionLocal()
+        checks = db.query(AIArenaAnomalyCheck).order_by(AIArenaAnomalyCheck.id.desc()).limit(limit).all()
+        db.close()
+
+        return {
+            "checks": [
+                {
+                    "checked_at": c.checked_at.isoformat() if c.checked_at else None,
+                    "btc_price": c.btc_price,
+                    "trigger_hit": c.trigger_hit,
+                    "anomaly_type": c.anomaly_type,
+                    "anomaly_detail": c.anomaly_detail,
+                    "report_triggered_id": c.report_triggered_id,
+                }
+                for c in checks
+            ],
+            "total": len(checks),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════
+# POST /run — Manual trigger
+# ══════════════════════════════════════
+
 @router.post("/run")
 async def trigger_report():
     """Manually trigger AI report generation."""
-    try:
-        from app.services.ai_arena_worker import run_ai_report_pipeline
-        import asyncio
+    import asyncio
+    from app.services.ai_arena_worker import run_ai_report_pipeline
 
+    try:
         result = await run_ai_report_pipeline()
         if result:
-            return {"status": "ok", "report_id": result.get("id"), "generated_in": result.get("generated_in_seconds")}
+            return {
+                "status": "success",
+                "report_id": result.get("id"),
+                "sentiment": result.get("sentiment"),
+                "confidence": result.get("confidence"),
+                "bias": result.get("bias_direction"),
+                "alignment": result.get("timeframe_alignment", {}).get("alignment"),
+                "chart_image": result.get("chart_image_path"),
+                "generated_in": result.get("generated_in_seconds"),
+            }
         else:
-            raise HTTPException(status_code=500, detail="Report generation failed — check logs")
+            raise HTTPException(status_code=500, detail="Report generation failed — check server logs")
     except HTTPException:
         raise
     except Exception as e:
