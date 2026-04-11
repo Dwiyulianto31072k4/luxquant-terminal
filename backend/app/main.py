@@ -153,6 +153,15 @@ else:
     print(f"⚠️ Onchain images directory not found: {ONCHAIN_IMAGES_DIR}")
 
 
+
+# ═══════════════════════════════════════════
+# Serve AI Arena chart images
+# ═══════════════════════════════════════════
+AI_ARENA_CHART_DIR = "/opt/luxquant/ai-arena-charts"
+if os.path.exists(AI_ARENA_CHART_DIR):
+    app.mount("/api/v1/ai-arena-charts", StaticFiles(directory=AI_ARENA_CHART_DIR), name="ai-arena-charts")
+    print(f"🧠 AI Arena charts mounted: {AI_ARENA_CHART_DIR}")
+
 @app.get("/")
 async def root():
     return {

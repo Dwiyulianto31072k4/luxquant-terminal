@@ -34,7 +34,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.redis import cache_get, cache_set, get_redis
 from app.services.ai_arena_data import (
-    gather_all_data, check_anomaly, generate_chart_image,
+    gather_all_data, check_anomaly,
     fetch_bybit_ticker, fetch_coinglass_oi, fetch_fear_greed,
 )
 from app.core.database import SessionLocal
@@ -148,7 +148,17 @@ OUTPUT SECTIONS (3-5 sentences each, dense with numbers):
 
 3. SENTIMENT & ON-CHAIN: Fear & Greed index + classification. NUPL, MVRV, SOPR, STH-SOPR, exchange net flow, realized price. BTC dominance.
 
-4. NEWS & ANALYST VIEWS: Top 5 headlines with [source]. Top 5-8 analyst tweets with @username and core message.
+4. NEWS & ANALYST VIEWS: Top 5 headlines with [source] and brief impact assessment.
+
+5. ANALYST TWEET BREAKDOWN (CRITICAL — this section must be detailed):
+   For EACH analyst tweet, provide:
+   - @username: [exact quote or paraphrase of their key claim]
+   - Their stance: bullish/bearish/neutral
+   - Why it matters: what data/logic supports their view
+   Group analysts by stance: bulls vs bears vs neutral.
+   Note consensus: are most analysts aligned or split?
+   Highlight any contrarian views that go against the crowd.
+   If no tweets available, explicitly state "No analyst tweets in this cycle."
 
 {context_block}
 
@@ -209,7 +219,7 @@ async def compress_data(raw: Dict, previous_summary: Optional[str] = None) -> st
         res = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2200,
+            max_tokens=2800,
             temperature=0.1,
         )
         brief = res.choices[0].message.content
@@ -272,7 +282,7 @@ REQUIRED JSON OUTPUT:
     "market_overview": "COMPREHENSIVE (10-14 sentences). Start with 1D trend context (EMA 21/55/200 alignment, trend classification). Then 4H setup: price vs EMA 20/50, SMA 100/200, RSI zone, golden cross status, EMA spread. Then 1H precision: momentum, divergence, range. EXPLICITLY state: 'The triple screen shows [alignment/conflict] — 1D says X, 4H says Y, 1H says Z.' Realized price comparison. End with directional bias backed by multi-TF reasoning.",
     "derivatives_liquidity": "COMPREHENSIVE (10-14 sentences). Coinglass aggregated OI ($X from Y exchanges). OI-weighted funding rate — who pays whom? Compare Bybit vs aggregated. Coinalyze L/S ratio. 24h liquidations. Estimated liquidation clusters: nearest long at $X, nearest short at $Y. Cascade risk. What happens if price hits these levels? How does OI positioning align with the multi-TF technical picture?",
     "sentiment_onchain": "COMPREHENSIVE (10-14 sentences). Fear & Greed value + interpretation. BTC dominance. NUPL cycle position. MVRV Z-Score. SOPR and STH-SOPR. Exchange net flow. Realized price as cycle floor. Cross-reference: does sentiment align with technicals and on-chain?",
-    "catalysts_stance": "COMPREHENSIVE (10-14 sentences). Top 3-5 news catalysts with impact. Analyst tweet synthesis — aligned or split? Market stance: current regime (trending/ranging/volatile), who has edge, key levels to watch, what flips the bias. If previous report context available: what changed since then and does it shift the thesis?"
+    "catalysts_stance": "COMPREHENSIVE (14-20 sentences). PART 1 — NEWS: Top 3-5 news catalysts with specific impact assessment on price/sentiment. PART 2 — ANALYST INTELLIGENCE (MOST IMPORTANT): For each analyst tweet, break down: (a) @username and their exact claim, (b) their track record context if known (e.g. @52kskew is a derivatives specialist, @LynAldenContact is macro-focused), (c) whether their view aligns with or contradicts the data. Group analysts into BULLS vs BEARS. Count: X out of Y analysts are bullish. Highlight the STRONGEST contrarian argument. If analysts are split, explain WHY — what data are the bulls seeing that bears are ignoring, and vice versa? PART 3 — STANCE: Current market regime, who has edge, key levels, what flips the bias. Compare with previous report stance if context available."
   }},
   "key_levels": {{
     "strong_support": <number>,
@@ -402,23 +412,9 @@ async def run_ai_report_pipeline(
         # Safety: pop data_sources from LLM output (collision prevention)
         report_content.pop("data_sources", None)
 
-        # ── Stage 3: Generate chart image ──
-        _log("Stage 3: Generating chart image...")
+        # ── Stage 3: Report ID (chart is interactive in frontend) ──
         report_id = f"rpt_{uuid.uuid4().hex[:8]}"
-
-        klines_1d = raw_data.get("timeframes", {}).get("1D", {}).get("klines")
-        klines_4h = raw_data.get("timeframes", {}).get("4H", {}).get("klines") or raw_data.get("klines")
-        klines_1h = raw_data.get("timeframes", {}).get("1H", {}).get("klines")
-
-        chart_path = generate_chart_image(
-            klines_1d=klines_1d,
-            klines_4h=klines_4h,
-            klines_1h=klines_1h,
-            technicals=raw_data.get("technicals", {}),
-            liquidation_levels=raw_data.get("liquidation_levels"),
-            key_levels=report_content.get("key_levels"),
-            report_id=report_id,
-        )
+        chart_path = None  # Interactive chart in frontend, no server-side image
 
         # ── Stage 4: Assemble & Cache ──
         elapsed = (datetime.utcnow() - start).total_seconds()
