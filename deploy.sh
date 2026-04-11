@@ -19,14 +19,8 @@ cp -r dist/* $NGINX_WWW_PATH/
 chown -R www-data:www-data $NGINX_WWW_PATH
 # 3. UPDATE BACKEND
 echo "⚙️  [3/4] Me-restart Backend Python (FastAPI)..."
-pkill -f "uvicorn app.main:app" || true
-sleep 2
 # Force kill kalau masih hidup
-pkill -9 -f "uvicorn app.main:app" || true
-sleep 1
 cd $BACKEND_PATH
-nohup venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 > backend.log 2>&1 &
-sleep 3
 # Verifikasi backend jalan
 if pgrep -f "uvicorn app.main:app" > /dev/null; then
     echo "✅ Backend berhasil start"

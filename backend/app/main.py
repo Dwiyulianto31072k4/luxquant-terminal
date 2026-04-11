@@ -36,7 +36,7 @@ from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_route
 from app.api.routes.onchain_endpoint import router as onchain_router
 
 # Import AI Worker
-from app.services.ai_worker import start_ai_worker, run_ai_report_pipeline
+from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
         # ═══════════════════════════════════════════
-        # start_ai_worker()
+        start_ai_arena_worker()
         # asyncio.create_task(run_ai_report_pipeline())
         # ═══════════════════════════════════════════
         
