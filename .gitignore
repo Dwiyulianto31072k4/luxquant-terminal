@@ -14,3 +14,10 @@ build/
 *.log
 *.db
 nohup.out
+
+# Backup files
+*.bak
+*.bak2
+*.bak_*
+_*_backup_*/
+_v*_emergency_fix_*

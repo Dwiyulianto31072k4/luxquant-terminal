@@ -1,9 +1,15 @@
 # backend/app/models/ai_arena.py
 """
-AI Arena v3 Database Models
+AI Arena v4 Database Models
 ============================
-- AIArenaReport: Full reports with multi-TF, chart images, anomaly tracking
+- AIArenaReport: Full reports with multi-TF, BLUF, zones, analyst tape
 - AIArenaAnomalyCheck: Lightweight anomaly check logs
+
+v4 Changes:
+  - report_json now stores: bluf, primary_bias, zones_to_watch, three_pillars,
+    analyst_tape (with raw tweets), what_changed, deep_analysis (5 sections)
+  - No new columns needed — report_json (JSON) already flexible
+  - Added bluf_text column for quick DB queries without parsing JSON
 """
 
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, DateTime, JSON, ForeignKey
@@ -24,15 +30,18 @@ class AIArenaReport(Base):
     sentiment = Column(String(20))       # bullish/bearish/cautious/neutral
     confidence = Column(Integer)
     bias_direction = Column(String(10))  # LONG/SHORT/NEUTRAL
-    report_json = Column(JSON, nullable=False)  # full report content
+    report_json = Column(JSON, nullable=False)  # full report content (v4 structure)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # ═══ v3 NEW COLUMNS ═══
+    # ═══ v3 COLUMNS ═══
     timeframes_analyzed = Column(JSON)          # {"1D": {rsi, ema...}, "4H": {...}, "1H": {...}}
     chart_image_path = Column(String(255))      # /opt/luxquant/ai-arena-charts/rpt_xxx.png
     is_anomaly_triggered = Column(Boolean, default=False)
     anomaly_reason = Column(Text)               # "price_dump_2.3%_15min"
     previous_report_id = Column(Integer, ForeignKey("ai_arena_reports.id"), nullable=True)
+
+    # ═══ v4 NEW COLUMNS ═══
+    bluf_text = Column(Text)                    # Quick-access BLUF summary text
 
 
 class AIArenaAnomalyCheck(Base):

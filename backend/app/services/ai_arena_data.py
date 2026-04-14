@@ -30,6 +30,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 from dotenv import load_dotenv
+from app.services.arena_tweets_v6 import fetch_contextual_tweets_v6
+from app.services.arena_tweets_v5 import fetch_analyst_tweets_v5
 
 load_dotenv()
 
@@ -591,18 +593,42 @@ def estimate_liquidation_levels(current_price: float, total_oi_usd: float) -> Di
 
 
 # ═══════════════════════════════════════════
-# 7. X (TWITTER) — Curated Analyst Tweets
+# 7. X (TWITTER) — Curated BTC Analyst Tweets
 # ═══════════════════════════════════════════
 
-ANALYST_ACCOUNTS = [
-    "52kskew", "HsakaTrades", "LynAldenContact",
-    "ki_young_ju", "Lookonchain",
-    "WatcherGuru", "whale_alert", "BTC_Archive",
-]
+# Curated BTC-focused analysts by expertise area
+# Each analyst is selected for BTC-specific signal quality, not generic crypto news
+ANALYST_ACCOUNTS = {
+    # ── Optimized Trading Focused (12 Best) ──
+    "52kskew": "derivatives",
+    "Maaborz": "derivatives",
+    "HsakaTrades": "derivatives",
+
+    "CryptoCred": "technical",
+    "DonAlt": "technical",
+    "Pentosh1": "technical",
+
+    "ki_young_ju": "onchain",
+    "woaborz": "onchain",
+
+    "LynAldenContact": "macro",
+    "RaoulGMI": "macro",
+
+    "BTC_Archive": "btc_news",
+    "CryptoCapo_": "technical",
+}
 
 
-def fetch_analyst_tweets(limit_per_account=3) -> List[Dict]:
-    """Fetch recent tweets from curated BTC analysts via X API OAuth 1.0a."""
+def fetch_analyst_tweets(limit_per_account: int = 2) -> List[Dict]:
+    """
+    Fetch recent BTC-focused tweets from curated analysts via X API v2.
+
+    Optimizations vs v3:
+    - Tight BTC filter: (BTC OR bitcoin OR #BTC) — no altcoin leakage
+    - Exclude retweets and replies: original content only
+    - Dedup by author: keep highest-engagement tweet per author
+    - Enrich with expertise tag from ANALYST_ACCOUNTS dict
+    """
     try:
         from requests_oauthlib import OAuth1
     except ImportError:
@@ -619,21 +645,60 @@ def fetch_analyst_tweets(limit_per_account=3) -> List[Dict]:
         return []
 
     auth = OAuth1(consumer_key, consumer_secret, access_token, access_secret)
-    accounts_query = " OR ".join([f"from:{a}" for a in ANALYST_ACCOUNTS])
-    query = f"({accounts_query}) (BTC OR bitcoin OR liquidation OR funding OR ETF OR onchain OR structure OR whale)"
+    account_handles = list(ANALYST_ACCOUNTS.keys())
+
+    # Build query: accounts + BTC filter + exclude noise
+    accounts_query = " OR ".join([f"from:{a}" for a in account_handles])
+    query = f"({accounts_query}) (BTC OR bitcoin OR #BTC) -is:retweet -is:reply"
+
+    # X API v2 query max length is 512 chars for Basic tier
+    if len(query) > 512:
+        # Split into two batches if too many accounts
+        mid = len(account_handles) // 2
+        batch1 = account_handles[:mid]
+        batch2 = account_handles[mid:]
+        _log(f"  Query too long ({len(query)} chars), splitting into 2 batches")
+        tweets1 = _fetch_tweet_batch(auth, batch1, limit_per_account)
+        tweets2 = _fetch_tweet_batch(auth, batch2, limit_per_account)
+        all_tweets = tweets1 + tweets2
+    else:
+        all_tweets = _fetch_tweet_batch(auth, account_handles, limit_per_account)
+
+    # ── Dedup: keep top tweet per author (by engagement score) ──
+    best_by_author = {}
+    for t in all_tweets:
+        author = t["author"].lower()
+        score = t.get("likes", 0) + t.get("retweets", 0) * 2  # Retweets weighted 2x
+        if author not in best_by_author or score > best_by_author[author]["_score"]:
+            t["_score"] = score
+            best_by_author[author] = t
+
+    # Sort by engagement, remove internal score
+    deduped = sorted(best_by_author.values(), key=lambda x: x.get("_score", 0), reverse=True)
+    for t in deduped:
+        t.pop("_score", None)
+
+    _log(f"  Got {len(all_tweets)} raw tweets → {len(deduped)} after dedup (from {len(account_handles)} accounts)")
+    return deduped
+
+
+def _fetch_tweet_batch(auth, accounts: list, limit_per_account: int) -> List[Dict]:
+    """Fetch a batch of tweets for a list of accounts."""
+    accounts_query = " OR ".join([f"from:{a}" for a in accounts])
+    query = f"({accounts_query}) (BTC OR bitcoin OR #BTC) -is:retweet -is:reply"
 
     try:
         r = requests.get("https://api.twitter.com/2/tweets/search/recent", auth=auth,
             params={
                 "query": query,
-                "max_results": min(limit_per_account * len(ANALYST_ACCOUNTS), 100),
+                "max_results": min(limit_per_account * len(accounts), 100),
                 "tweet.fields": "created_at,author_id,public_metrics",
                 "expansions": "author_id",
                 "user.fields": "username,name",
             }, timeout=15)
 
         if r.status_code != 200:
-            _log(f"  X API error: HTTP {r.status_code}")
+            _log(f"  X API error: HTTP {r.status_code} — {r.text[:200]}")
             return []
 
         data = r.json()
@@ -642,18 +707,24 @@ def fetch_analyst_tweets(limit_per_account=3) -> List[Dict]:
 
         tweets = []
         for t in tweets_raw:
+            author = users.get(t.get("author_id", ""), "unknown")
+            metrics = t.get("public_metrics", {})
+            expertise = ANALYST_ACCOUNTS.get(author, "unknown")
+
             tweets.append({
                 "text": t.get("text", ""),
-                "author": users.get(t.get("author_id", ""), "unknown"),
+                "author": author,
+                "expertise": expertise,
                 "created_at": t.get("created_at", ""),
-                "likes": t.get("public_metrics", {}).get("like_count", 0),
-                "retweets": t.get("public_metrics", {}).get("retweet_count", 0),
+                "likes": metrics.get("like_count", 0),
+                "retweets": metrics.get("retweet_count", 0),
+                "replies": metrics.get("reply_count", 0),
+                "quotes": metrics.get("quote_count", 0),
             })
 
-        _log(f"  Got {len(tweets)} analyst tweets from X")
         return tweets
     except Exception as e:
-        _log(f"  X fetch failed: {e}")
+        _log(f"  X batch fetch failed: {e}")
         return []
 
 
@@ -1065,7 +1136,7 @@ def generate_chart_image(
 # 11. MULTI-TIMEFRAME GATHER
 # ═══════════════════════════════════════════
 
-def gather_all_data() -> Dict:
+def gather_all_data(is_anomaly: bool = False) -> Dict:
     """
     Fetch ALL data needed for AI Arena report.
     v3: Multi-timeframe klines + anomaly-ready structure.
@@ -1202,9 +1273,24 @@ def gather_all_data() -> Dict:
         result["news"] = news
         _log(f"  Got {len(news)} articles")
 
-    # 11. Analyst tweets
-    _log("Fetching analyst tweets...")
-    tweets = fetch_analyst_tweets()
+    # 11. Analyst tweets — v6 context-aware
+    _log("Fetching contextual tweets (v6)...")
+    _bitcoin = result.get("bitcoin", {}) or {}
+    _technicals = result.get("technicals", {}) or {}
+    _fg = result.get("fear_greed", {}) or {}
+    _price = _bitcoin.get("current_price") or _bitcoin.get("price") or 70000
+    _snapshot = {
+        "price": _price,
+        "rsi_1d": (_technicals.get("1D", {}) or {}).get("rsi", 50),
+        "fear_greed": _fg.get("value", 50),
+        "key_level_above": _price * 1.03,
+        "key_level_below": _price * 0.97,
+    }
+    try:
+        tweets = fetch_contextual_tweets_v6(_snapshot, force_refresh=is_anomaly)
+    except Exception as _e:
+        _log(f"  v6 fetch failed: {_e}")
+        tweets = []
     result["analyst_tweets"] = tweets or []
 
     _log(f"Data gather complete. Errors: {result['errors'] or 'none'}")

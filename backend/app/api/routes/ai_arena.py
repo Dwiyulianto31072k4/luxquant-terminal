@@ -1,6 +1,6 @@
 # backend/app/api/routes/ai_arena.py
 """
-AI Arena v3 API Routes
+AI Arena v4 API Routes
 =======================
 - /latest        → latest report (Redis → DB fallback)
 - /history       → report history (Redis → DB fallback)
@@ -100,6 +100,7 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
     """
     Get BTC klines + technicals for interactive chart.
     Supports multi-timeframe: 1D (90 candles), 4H (200 candles), 1H (168 candles).
+    Includes zones_to_watch from latest report for chart overlay.
     """
     try:
         from app.services.ai_arena_data import fetch_bybit_klines, compute_technicals_for_tf, TIMEFRAME_CONFIG
@@ -165,13 +166,28 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
                 rsi_val = 100 - (100 / (1 + rs))
             rsi_series.append({"time": int(klines[i]["timestamp"].timestamp()), "value": round(rsi_val, 1)})
 
-        # Get latest report for liquidation + key levels overlay
+        # ── Get latest report for overlays (Redis → DB fallback) ──
         report = cache_get("lq:ai-report:latest")
+        if not report:
+            try:
+                from app.core.database import SessionLocal
+                from app.models.ai_arena import AIArenaReport
+                db = SessionLocal()
+                db_report = db.query(AIArenaReport).order_by(AIArenaReport.id.desc()).first()
+                db.close()
+                if db_report:
+                    report = db_report.report_json
+            except Exception:
+                pass
+
         liq_levels = None
         key_levels = None
+        zones_to_watch = None
+
         if report:
             liq_levels = report.get("liquidation_hotspots")
             key_levels = report.get("key_levels")
+            zones_to_watch = report.get("zones_to_watch")
 
         return {
             "timeframe": tf,
@@ -183,6 +199,7 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
             "rsi_series": rsi_series,
             "liquidation_levels": liq_levels,
             "key_levels": key_levels,
+            "zones_to_watch": zones_to_watch,
         }
     except HTTPException:
         raise
@@ -240,7 +257,8 @@ async def trigger_report():
                 "sentiment": result.get("sentiment"),
                 "confidence": result.get("confidence"),
                 "bias": result.get("bias_direction"),
-                "alignment": result.get("timeframe_alignment", {}).get("alignment"),
+                "alignment": result.get("timeframe_alignment", {}).get("overall"),
+                "bluf": result.get("bluf", "")[:200],
                 "generated_in": result.get("generated_in_seconds"),
             }
         else:

@@ -67,7 +67,12 @@ async def lifespan(app: FastAPI):
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
         # ═══════════════════════════════════════════
-        start_ai_arena_worker()
+        try:
+            start_ai_arena_worker()
+        except Exception as e:
+            print(f'>>> AI Arena worker FAILED: {e}')
+            import traceback
+            traceback.print_exc()
         # asyncio.create_task(run_ai_report_pipeline())
         # ═══════════════════════════════════════════
         
