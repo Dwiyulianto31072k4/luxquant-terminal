@@ -11,6 +11,7 @@ UPDATED:
 - NEW: last_update_at + last_update_type fields for "Recently Updated" filter/sort
 - FIXED: LAST_UPDATE_CTE now returns highest level hit + its timestamp (synced with status)
 - CHART UPDATES: Added entry and latest chart URLs to all endpoints
+- TOP GAINERS v6: peak-based logic using peak_price column (filter by created_at)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -33,7 +34,7 @@ from app.core.redis import (
     cache_get, cache_set, cache_get_with_stale,
     build_signals_page_key, is_redis_available
 )
-from app.utils.chart_urls import chart_path_to_url  # TAMBAHAN: Import untuk convert chart URL
+from app.utils.chart_urls import chart_path_to_url
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
 from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table
 from app.core.database import SessionLocal
@@ -148,8 +149,8 @@ class SignalDetailResponse(BaseModel):
     created_at: Optional[str] = None
     market_cap: Optional[str] = None
     risk_reasons: Optional[str] = None
-    entry_chart_url: Optional[str] = None   # TAMBAHAN
-    latest_chart_url: Optional[str] = None  # TAMBAHAN
+    entry_chart_url: Optional[str] = None
+    latest_chart_url: Optional[str] = None
     updates: List[SignalUpdateItem] = []
     enrichment: Optional[dict] = None
 
@@ -190,8 +191,6 @@ SIGNAL_OUTCOMES_CTE = """
 
 # ============================================
 # Helper: CTE for last update per signal
-# FIXED: Now returns HIGHEST LEVEL hit + its timestamp
-# This syncs with status column (TP4 > TP3 > TP2 > TP1 > SL)
 # ============================================
 LAST_UPDATE_CTE = """
     last_updates AS (
@@ -251,13 +250,11 @@ async def get_analyze_data(
     trend_mode: str = Query("weekly", description="Trend grouping: daily, weekly"),
     db: Session = Depends(get_db)
 ):
-    # === TRY CACHE FIRST ===
     cache_key = f"lq:signals:analyze:{time_range}:{trend_mode}"
     cached = cache_get(cache_key)
     if cached:
         return AnalyzeResponse(**cached)
     
-    # === FALLBACK TO DB ===
     try:
         date_filter = ""
         if time_range != 'all':
@@ -270,7 +267,6 @@ async def get_analyze_data(
             if start_date:
                 date_filter = f"AND s.created_at >= '{start_date.strftime('%Y-%m-%d')}'"
         
-        # Pair metrics query
         analyze_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE},
             pair_stats AS (
@@ -322,7 +318,6 @@ async def get_analyze_data(
         total_winners = total_tp1 + total_tp2 + total_tp3 + total_tp4
         overall_win_rate = (total_winners / total_closed * 100) if total_closed > 0 else 0
 
-        # Win Rate Trend
         dt = "DATE(s.created_at)" if trend_mode == 'daily' else "DATE(DATE_TRUNC('week', s.created_at::timestamp))"
         trend_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}
@@ -337,7 +332,6 @@ async def get_analyze_data(
         
         win_rate_trend = [WinRateTrendItem(period=str(r[0]), total_closed=int(r[1]), winners=int(r[2]), losers=int(r[3]), win_rate=float(r[4]) if r[4] else 0) for r in db.execute(trend_query).fetchall()]
 
-        # Risk:Reward
         rr_query = text(f"""
             SELECT level, COUNT(*) as cnt, AVG(avg_rr) as avg_rr
             FROM (
@@ -404,7 +398,6 @@ async def get_analyze_data(
                 pair_metrics=[], win_rate_trend=[], risk_reward=[], avg_risk_reward=0,
                 risk_distribution=[], risk_trend=[], time_range=time_range)
 
-        # === RISK DISTRIBUTION ===
         risk_dist_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}
             SELECT 
@@ -442,7 +435,6 @@ async def get_analyze_data(
         risk_order = {'Low': 0, 'Normal': 1, 'High': 2}
         risk_distribution.sort(key=lambda x: risk_order.get(x.risk_level, 9))
 
-        # === RISK TREND ===
         risk_trend_dt = "DATE(DATE_TRUNC('week', s.created_at::timestamp))" if trend_mode == 'weekly' else "DATE(s.created_at)"
         risk_trend_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}
@@ -495,7 +487,6 @@ async def get_analyze_data(
             risk_distribution=risk_distribution, risk_trend=risk_trend,
             time_range=time_range)
 
-        # Cache the DB result for next time
         cache_set(cache_key, response.model_dump(), ttl=60)
         return response
 
@@ -507,29 +498,19 @@ async def get_analyze_data(
 
 
 # ============================================
-# GET /signals/bulk-7d — ALL signals last 7 days (for client-side pagination)
-# NOW INCLUDES: last_update_at, last_update_type per signal + CHART URLs
+# GET /signals/bulk-7d
 # ============================================
 
 @router.get("/bulk-7d")
 async def get_signals_bulk_7d(db: Session = Depends(get_db)):
-    """
-    Return ALL signals from last 7 days in one response.
-    Includes last_update_at and last_update_type for "Recently Updated" sort/filter.
-    Frontend handles sorting/filtering/pagination client-side = zero delay.
-    Pre-computed every 90s by cache worker.
-    """
-    # Try cache first
     cached = cache_get("lq:signals:bulk-7d")
     if cached:
         return cached
     
-    # Fallback: stale cache
     stale, _ = cache_get_with_stale("lq:signals:bulk-7d")
     if stale:
         return stale
     
-    # Last resort: query DB directly
     try:
         from datetime import datetime, timedelta
         date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -546,7 +527,7 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 s.market_cap,
                 lu.last_update_at,
                 lu.last_update_type,
-                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
+                s.entry_chart_path, s.latest_chart_path
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -564,8 +545,8 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
                 "last_update_at": str(r[18]) if r[18] else None,
                 "last_update_type": r[19],
-                "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
-                "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
+                "entry_chart_url": chart_path_to_url(r[20]),
+                "latest_chart_url": chart_path_to_url(r[21]),
             })
         
         result = {"items": items, "total": len(items), "date_from": date_7d}
@@ -576,8 +557,7 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
 
 
 # ============================================
-# GET /signals/ — with date-aware cache key
-# NOW INCLUDES: last_update_at, last_update_type + sort_by=last_update + CHART URLs
+# GET /signals/
 # ============================================
 
 @router.get("/")
@@ -593,9 +573,6 @@ async def get_signals(
     sort_order: str = Query("desc"),
     db: Session = Depends(get_db)
 ):
-    """Get paginated signals with DERIVED status from signal_updates"""
-    
-    # ✨ PERBAIKAN 1: Buat Cache Key secara MANUAL agar date_from & date_to pasti terdeteksi
     cache_key = f"lq:signals:page={page}:size={page_size}:st={status or 'all'}:pair={pair or 'all'}:risk={risk_level or 'all'}:sb={sort_by}:so={sort_order}:df={date_from or 'none'}:dt={date_to or 'none'}"
     
     cached = cache_get(cache_key)
@@ -603,7 +580,6 @@ async def get_signals(
         cached.pop("_cached_at", None)
         return cached
     
-    # === FALLBACK TO DB ===
     try:
         conditions = []
         params = {}
@@ -619,7 +595,6 @@ async def get_signals(
                 conditions.append("LOWER(s.risk_level) LIKE :risk")
                 params["risk"] = f"{risk_lower}%"
                 
-        # ✨ PERBAIKAN 2: Pastikan format waktu dari 00:00:00 sampai 23:59:59 ter-apply
         if date_from:
             conditions.append("s.created_at >= :date_from")
             params["date_from"] = f"{date_from} 00:00:00"
@@ -627,7 +602,6 @@ async def get_signals(
             conditions.append("s.created_at <= :date_to")
             params["date_to"] = f"{date_to} 23:59:59"
             
-        # ✨ PERBAIKAN 3: Jika status="all", abaikan filter (tampilkan semua open/closed)
         if status and status.lower() != 'all':
             mapped = status_to_filter(status)
             if mapped == 'open':
@@ -657,7 +631,6 @@ async def get_signals(
         sort_col = valid_sorts.get(sort_by, 's.call_message_id')
         sort_dir = 'DESC' if sort_order == 'desc' else 'ASC'
         
-        # For last_update sort, push NULLs to the end
         null_handling = ""
         if sort_by == 'last_update':
             null_handling = " NULLS LAST"
@@ -687,7 +660,7 @@ async def get_signals(
                 s.market_cap,
                 lu.last_update_at,
                 lu.last_update_type,
-                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
+                s.entry_chart_path, s.latest_chart_path
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
@@ -710,8 +683,8 @@ async def get_signals(
                 "created_at": r[15], "status": r[16], "market_cap": r[17],
                 "last_update_at": str(r[18]) if r[18] else None,
                 "last_update_type": r[19],
-                "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
-                "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
+                "entry_chart_url": chart_path_to_url(r[20]),
+                "latest_chart_url": chart_path_to_url(r[21]),
             })
         
         result = {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
@@ -745,7 +718,7 @@ async def get_active_signals(
             SELECT s.signal_id, s.channel_id, s.call_message_id, s.message_link,
                 s.pair, s.entry, s.target1, s.target2, s.target3, s.target4,
                 s.stop1, s.stop2, s.risk_level, s.volume_rank_num, s.volume_rank_den, s.created_at,
-                s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
+                s.entry_chart_path, s.latest_chart_path
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             WHERE so.outcome IS NULL
@@ -758,8 +731,8 @@ async def get_active_signals(
             "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7], "target3": r[8], "target4": r[9],
             "stop1": r[10], "stop2": r[11], "risk_level": r[12], "volume_rank_num": r[13],
             "volume_rank_den": r[14], "created_at": r[15], "status": "open",
-            "entry_chart_url": chart_path_to_url(r[16]),   # TAMBAHAN
-            "latest_chart_url": chart_path_to_url(r[17])   # TAMBAHAN
+            "entry_chart_url": chart_path_to_url(r[16]),
+            "latest_chart_url": chart_path_to_url(r[17])
         } for r in rows]
 
     except Exception as e:
@@ -834,6 +807,9 @@ async def sync_signal_status(db: Session = Depends(get_db)):
 
 # ============================================
 # GET /signals/top-performers
+# UPDATED v7: peak-based logic + Union OR window (created_at OR update_at)
+# Signal qualified if: created_at in window OR has TP hit in window
+# Gain calculated from first_entry → max(peak_price)
 # ============================================
 
 @router.get("/top-performers")
@@ -845,85 +821,97 @@ async def get_top_performers(
     db: Session = Depends(get_db),
 ):
     """
-    Top Gainers & Fastest Hits — deduplicated per pair.
+    Top Gainers (peak-based) & Fastest Hits — deduplicated per pair.
+    
+    Top gainers logic (v7):
+    - Window filter: signal qualified if created_at in window OR has TP hit in window (Union OR)
+    - Per pair: take MAX(peak_price) as best peak, and entry from earliest signal
+    - Gain = (peak - first_entry) / first_entry * 100
+    - signal_count = number of qualified signals for the pair
     """
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v5:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v7:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v5:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v7:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v5:{days}:{limit}"
+        cache_key = f"lq:signals:top-performers:v7:{days}:{limit}"
 
     cached = cache_get(cache_key)
     if cached:
         return cached
 
+    # Fastest hits filter (TP-based, by update_at) — UNCHANGED
     date_conditions_hit = "AND su.update_at >= :date_from"
     params = {"date_from": actual_from, "limit": limit}
     if actual_to:
         date_conditions_hit += " AND su.update_at <= :date_to"
         params["date_to"] = f"{actual_to}T23:59:59"
 
+    # Gainers query: Union OR filter (created_at OR update_at in window)
+    # Each signal individually qualified — Interpretasi A
+    date_to_clause_gainers = "AND CAST(s.created_at AS timestamptz) <= CAST(:date_to AS timestamptz)" if actual_to else ""
+    date_to_clause_tp = "AND CAST(su.update_at AS timestamptz) <= CAST(:date_to AS timestamptz)" if actual_to else ""
+
     gainers_sql = text(f"""
-        WITH all_tp_hits AS (
-            SELECT
+        WITH qualified_signals AS (
+            SELECT DISTINCT
                 s.signal_id,
                 UPPER(s.pair) as pair,
                 s.entry,
-                su.update_type as tp_level,
-                CASE su.update_type
-                    WHEN 'tp1' THEN s.target1
-                    WHEN 'tp2' THEN s.target2
-                    WHEN 'tp3' THEN s.target3
-                    WHEN 'tp4' THEN s.target4
-                END as tp_price,
-                CASE su.update_type
-                    WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
-                    WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1
-                END as tp_rank,
-                s.created_at as signal_time,
-                su.update_at as hit_time
+                s.peak_price,
+                s.peak_at,
+                s.created_at as signal_time
             FROM signals s
-            INNER JOIN signal_updates su ON s.signal_id = su.signal_id
-                AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
-            WHERE 1=1 {date_conditions_hit} AND s.entry > 0
+            WHERE s.entry > 0
+              AND s.pair IS NOT NULL
+              AND s.peak_price IS NOT NULL
+              AND (
+                  CAST(s.created_at AS timestamptz) >= CAST(:date_from AS timestamptz)
+                  OR EXISTS (
+                      SELECT 1 FROM signal_updates su
+                      WHERE su.signal_id = s.signal_id
+                        AND su.update_type IN ('tp1','tp2','tp3','tp4')
+                        AND CAST(su.update_at AS timestamptz) >= CAST(:date_from AS timestamptz)
+                        {date_to_clause_tp}
+                  )
+              )
+              {date_to_clause_gainers}
         ),
         pair_agg AS (
             SELECT
                 pair,
+                MIN(signal_time) as first_signal_time,
                 (ARRAY_AGG(signal_id ORDER BY signal_time ASC))[1] as first_signal_id,
                 (ARRAY_AGG(entry ORDER BY signal_time ASC))[1] as first_entry,
-                MAX(tp_price) as best_tp_price,
-                (ARRAY_AGG(tp_level ORDER BY tp_rank DESC, tp_price DESC))[1] as best_tp_level,
-                MIN(signal_time) as first_signal_time,
-                MAX(hit_time) as last_hit_time,
-                EXTRACT(EPOCH FROM (MAX(hit_time::timestamptz) - MIN(signal_time::timestamptz))) as duration_seconds,
-                ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids,
-                COUNT(DISTINCT signal_id) as signal_count
-            FROM all_tp_hits
-            WHERE tp_price IS NOT NULL AND tp_price > 0
+                MAX(peak_price) as best_peak_price,
+                (ARRAY_AGG(peak_at ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_at,
+                (ARRAY_AGG(signal_id ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_signal_id,
+                COUNT(DISTINCT signal_id) as signal_count,
+                ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids
+            FROM qualified_signals
             GROUP BY pair
         )
         SELECT
-            first_signal_id as signal_id,
+            best_peak_signal_id as signal_id,
             pair,
             first_entry as entry,
-            best_tp_price as tp_price,
-            best_tp_level as tp_level,
-            ROUND((ABS(best_tp_price - first_entry) / NULLIF(first_entry, 0) * 100)::numeric, 2) as gain_pct,
-            duration_seconds,
+            best_peak_price as tp_price,
+            'PEAK' as tp_level,
+            ROUND(((best_peak_price - first_entry) / NULLIF(first_entry, 0) * 100)::numeric, 2) as gain_pct,
+            EXTRACT(EPOCH FROM (best_peak_at - first_signal_time::timestamptz)) as duration_seconds,
             first_signal_time as signal_time,
-            last_hit_time as hit_time,
+            best_peak_at as hit_time,
             signal_count,
             all_signal_ids
         FROM pair_agg
-        WHERE best_tp_price > 0 AND first_entry > 0
+        WHERE best_peak_price > first_entry
+          AND first_entry > 0
         ORDER BY gain_pct DESC
         LIMIT :limit
     """)
@@ -1063,20 +1051,15 @@ async def get_top_performers(
     
     
 # ============================================
-# GET /signals/coin-intel — Coin Intelligence
+# GET /signals/coin-intel
 # ============================================
 
 @router.get("/coin-intel")
 async def get_coin_intel():
-    """
-    Coin Intelligence — historical anomaly detection per coin.
-    Pre-computed by background worker, served from Redis cache.
-    """
     cached = cache_get("lq:signals:coin-intel")
     if cached:
         return cached
     
-    # Fallback: compute on-the-fly (first startup only)
     try:
         db = SessionLocal()
         try:
@@ -1093,7 +1076,6 @@ async def get_coin_intel():
             status_code=503,
             detail="Coin intelligence not yet available. Ready after first cache cycle (~90s)."
         )
-
 
 
 # ============================================
@@ -1134,13 +1116,11 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
     
     market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
     try:
-        # TAMBAHAN: Select path chart
         extra = db.execute(text("SELECT market_cap, risk_reasons, entry_chart_path, latest_chart_path FROM signals WHERE signal_id = :sid"), {"sid": signal_id}).fetchone()
         if extra: 
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
-    # --- ENRICHMENT DATA (v2.3.1 — all fields for Deep Analysis) ---
     enrichment_data = None
     try:
         enr = db.execute(text("""
@@ -1191,13 +1171,10 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
         risk_level=signal.risk_level, volume_rank_num=signal.volume_rank_num, volume_rank_den=signal.volume_rank_den,
         status=signal.status, created_at=signal.created_at,
         market_cap=market_cap, risk_reasons=risk_reasons, 
-        entry_chart_url=chart_path_to_url(entry_chart_path),   # TAMBAHAN
-        latest_chart_url=chart_path_to_url(latest_chart_path), # TAMBAHAN
+        entry_chart_url=chart_path_to_url(entry_chart_path),
+        latest_chart_url=chart_path_to_url(latest_chart_path),
         updates=updates,
         enrichment=enrichment_data)
-    
-
-
 
 
 # ============================================
@@ -1236,7 +1213,7 @@ async def get_signal_detail(signal_id: str, db: Session = Depends(get_db)):
         "stop1": signal.stop1, "stop2": signal.stop2,
         "risk_level": signal.risk_level, "volume_rank_num": signal.volume_rank_num, "volume_rank_den": signal.volume_rank_den,
         "status": derived_status, "created_at": signal.created_at,
-        "entry_chart_url": chart_path_to_url(signal.entry_chart_path),   # TAMBAHAN
-        "latest_chart_url": chart_path_to_url(signal.latest_chart_path), # TAMBAHAN
+        "entry_chart_url": chart_path_to_url(signal.entry_chart_path),
+        "latest_chart_url": chart_path_to_url(signal.latest_chart_path),
         "updates": [{"update_type": u.update_type, "price": u.price, "update_at": u.update_at, "message_link": u.message_link} for u in updates]
     }
