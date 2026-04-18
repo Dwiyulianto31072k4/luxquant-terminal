@@ -13,6 +13,8 @@
 //   /notifications       → Notifications                [FREE - login]
 //   /signals             → Potential Trades             [PREMIUM]
 //   /ai-arena            → AI Arena                     [PREMIUM]
+//   /autotrade           → AutoTrade (exchange exec)    [PREMIUM]
+//   /portfolio           → Portfolio Dashboard          [PREMIUM]
 //   /bitcoin             → Bitcoin Dashboard            [PREMIUM]
 //   /markets             → Markets                      [PREMIUM]
 //   /watchlist            → Watchlist                    [PREMIUM]
@@ -24,7 +26,7 @@
 //   /admin               → User Management              [ADMIN]
 //   /pricing             → Pricing                      [PUBLIC]
 //   /payment             → Payment                      [PUBLIC]
-//   /login               → Login (Google/Telegram/Discord) [PUBLIC]
+//   /login               → Login                        [PUBLIC]
 //
 // ════════════════════════════════════════════════════════════════
 
@@ -61,6 +63,8 @@ const JournalPage = lazy(() => import("./components/JournalPage"));
 const MarketPulsePage = lazy(() => import("./components/MarketPulsePage"));
 const CryptoNewsPage = lazy(() => import("./components/CryptoNewsPage"));
 const OnchainPage = lazy(() => import("./components/OnchainPage"));
+const AutoTradePage = lazy(() => import("./components/AutoTradePage"));
+const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -82,8 +86,8 @@ const PageLoader = () => (
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain"];
-const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale","/onchain"];
+const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain","/autotrade","/portfolio"];
+const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale","/onchain","/autotrade","/portfolio"];
 
 // ════════════════════════════════════════
 // ROUTE GUARDS
@@ -200,6 +204,7 @@ function AppShell({ children }) {
   const navItems = [
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
+    { path: "/autotrade", label: "AutoTrade" },
     { path: "/ai-arena", label: "AI Arena" },
     { path: "/market-pulse", label: "Pulse" },
     { path: "/crypto-news", label: "News" },
@@ -210,6 +215,7 @@ function AppShell({ children }) {
   ];
 
   const moreMenuItems = [
+    { path: "/portfolio", label: "Portfolio", icon: "💼", description: "Track PnL, equity curve & trade history" },
     { path: "/analytics", label: t("nav.analytics"), icon: "📈", description: "Performance analytics & win rate" },
     { path: "/orderbook", label: t("nav.orderbook"), icon: "📊", description: t("desc.orderbook") },
     { path: "/calendar", label: t("nav.calendar"), icon: "📅", description: t("desc.calendar") },
@@ -224,7 +230,7 @@ function AppShell({ children }) {
 
   const bottomNavItems = [
     { path: "/home", label: t("nav.home"), icon: <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg> },
-    { path: "/journal", label: "Journal", icon: <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg> },
+    { path: "/autotrade", label: "Trade", icon: <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg> },
     { path: "/signals", label: t("nav.trades"), isCenter: true, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg> },
     { path: "/bitcoin", label: t("nav.btc"), icon: <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
     { path: "/markets", label: t("nav.markets"), icon: <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> },
@@ -335,6 +341,9 @@ function AppShell({ children }) {
             <SidebarItem active={isActive("/signals")} onClick={() => handleNav("/signals")} label={t("nav.signals")} isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />}
             />
+            <SidebarItem active={isActive("/autotrade")} onClick={() => handleNav("/autotrade")} label="AutoTrade" isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />}
+            />
             <SidebarItem active={isActive("/ai-arena")} onClick={() => handleNav("/ai-arena")} label="AI Arena" isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
             />
@@ -352,6 +361,9 @@ function AppShell({ children }) {
             />
             <div className="my-4 mx-3 h-px bg-white/[0.05]" />
             <p className="text-text-muted text-[10px] uppercase tracking-[0.2em] font-semibold px-3 mb-3">Tools</p>
+            <SidebarItem active={isActive("/portfolio")} onClick={() => handleNav("/portfolio")} label="Portfolio" isPremium={!isPremiumUser()}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />}
+            />
             <SidebarItem active={isActive("/orderbook")} onClick={() => handleNav("/orderbook")} label={t("nav.orderbook")} isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />}
             />
@@ -402,43 +414,21 @@ function AppShell({ children }) {
 
               if (item.isCenter) {
                 return (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNav(item.path)}
-                    className="relative -mt-5 flex flex-col items-center"
-                  >
-                    {active && (
-                      <div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />
-                    )}
-                    <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${
-                      active
-                        ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105'
-                        : 'bg-bg-card border-2 border-gold-primary/30 hover:border-gold-primary/50 hover:shadow-gold-primary/10'
-                    }`}>
+                  <button key={item.path} onClick={() => handleNav(item.path)} className="relative -mt-5 flex flex-col items-center">
+                    {active && (<div className="absolute -inset-1.5 rounded-[20px] bg-gold-primary/15 blur-md animate-pulse" />)}
+                    <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ${active ? 'bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark shadow-gold-primary/40 scale-105' : 'bg-bg-card border-2 border-gold-primary/30 hover:border-gold-primary/50 hover:shadow-gold-primary/10'}`}>
                       <span className={active ? 'text-bg-primary' : 'text-gold-primary'}>{item.icon}</span>
                     </div>
-                    <span className={`text-[10px] font-semibold mt-1 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted'}`}>
-                      {item.label}
-                    </span>
+                    <span className={`text-[10px] font-semibold mt-1 transition-colors ${active ? 'text-gold-primary' : 'text-text-muted'}`}>{item.label}</span>
                   </button>
                 );
               }
 
               return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNav(item.path)}
-                  className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group"
-                >
-                  <span className={`transition-all duration-200 ${active ? 'text-gold-primary scale-110' : 'text-text-muted group-hover:text-text-secondary'}`}>
-                    {item.icon}
-                  </span>
-                  <span className={`text-[10px] font-medium transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-secondary'}`}>
-                    {item.label}
-                  </span>
-                  {active && (
-                    <span className="absolute bottom-1 w-4 h-0.5 bg-gold-primary rounded-full" />
-                  )}
+                <button key={item.path} onClick={() => handleNav(item.path)} className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-w-[52px] relative group">
+                  <span className={`transition-all duration-200 ${active ? 'text-gold-primary scale-110' : 'text-text-muted group-hover:text-text-secondary'}`}>{item.icon}</span>
+                  <span className={`text-[10px] font-medium transition-colors ${active ? 'text-gold-primary' : 'text-text-muted group-hover:text-text-secondary'}`}>{item.label}</span>
+                  {active && (<span className="absolute bottom-1 w-4 h-0.5 bg-gold-primary rounded-full" />)}
                 </button>
               );
             })}
@@ -500,6 +490,8 @@ function App() {
 
           {/* PREMIUM */}
           <Route path="/signals" element={<RequireAuth><AppShell><PremiumGate><SignalsPage /></PremiumGate></AppShell></RequireAuth>} />
+          <Route path="/autotrade" element={<RequireAuth><AppShell><PremiumGate><AutoTradePage /></PremiumGate></AppShell></RequireAuth>} />
+          <Route path="/portfolio" element={<RequireAuth><AppShell><PremiumGate><PortfolioPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/ai-arena" element={<RequireAuth><AppShell><PremiumGate><AIArenaPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/bitcoin" element={<RequireAuth><AppShell><PremiumGate><BitcoinPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/markets" element={<RequireAuth><AppShell><PremiumGate><MarketsPage /></PremiumGate></AppShell></RequireAuth>} />

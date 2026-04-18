@@ -1,7 +1,12 @@
 """
 LuxQuant Terminal - Order Builder
-Builds exchange orders from processed signals with TP/SL strategy.
-Handles: partial close, trailing stop setup, market/limit selection.
+Builds complete execution plans from processed signals + user config.
+
+Responsibilities:
+    - Determine side (buy/sell) from entry vs TP
+    - Build TP plan with partial-close percentages (strategy-based)
+    - Attach trailing stop config
+    - Set leverage, margin_mode correctly for market_type
 """
 import logging
 from typing import Optional, Dict, List
@@ -15,10 +20,10 @@ logger = logging.getLogger("autotrade.order_builder")
 
 # Pre-defined TP split strategies
 TP_STRATEGIES = {
-    "equal_split": [25, 25, 25, 25],     # 25% at each TP
-    "front_loaded": [40, 30, 20, 10],    # bigger close early
-    "back_loaded": [10, 20, 30, 40],     # bigger close late (let it run)
-    "tp1_only": [100, 0, 0, 0],          # close all at TP1
+    "equal_split":  [25, 25, 25, 25],   # 25% at each TP
+    "front_loaded": [40, 30, 20, 10],   # close more early
+    "back_loaded":  [10, 20, 30, 40],   # let winners run
+    "tp1_only":     [100, 0, 0, 0],     # exit all at TP1
 }
 
 
@@ -26,21 +31,22 @@ TP_STRATEGIES = {
 class OrderPlan:
     """Complete plan for executing a signal."""
     pair: str
-    side: str                    # buy or sell
-    order_type: str              # market or limit
+    side: str                  # buy | sell
+    order_type: str            # market | limit
     qty: float
-    entry_price: float
+    entry_price: float         # intended price (signal.entry)
     leverage: int
     margin_mode: str
-    market_type: str             # spot or futures
+    market_type: str           # spot | futures
 
     # Initial SL
     sl_price: float
 
     # TP plan (partial close levels)
-    tp_plan: List[Dict]          # [{level: "tp1", price: X, qty_pct: 25}, ...]
+    tp_plan: List[Dict]
+    # [{level:"tp1", price:X, qty_pct:25, filled:false, order_id:null}, ...]
 
-    # Trailing stop config (if enabled)
+    # Trailing stop
     trailing_enabled: bool = False
     trailing_type: str = ""
     trailing_value: float = 0
@@ -55,9 +61,7 @@ class OrderPlan:
 
 
 class OrderBuilder:
-    """
-    Builds a complete OrderPlan from a processed signal + config.
-    """
+    """Builds OrderPlan from processed signal + user config."""
 
     def build_order_plan(
         self,
@@ -71,33 +75,38 @@ class OrderBuilder:
     ) -> OrderPlan:
         """Build complete order execution plan."""
 
+        # Direction
         side = "buy" if signal.tp_levels[0] > signal.entry_price else "sell"
+
+        # Market type from config
         market_type = config.default_market_type
 
-        # Build TP plan
+        # TP plan
         tp_plan = self._build_tp_plan(
             tp_levels=signal.tp_levels,
             strategy=config.tp_strategy,
             custom_splits=config.tp_custom_splits,
         )
 
-        # Order type: market for now (limit can be added later)
-        order_type = "market"
-
-        # Trailing stop config
-        trailing_enabled = config.trailing_stop_enabled
+        # Trailing config
+        trailing_enabled = bool(config.trailing_stop_enabled)
         trailing_type = config.trailing_stop_type if trailing_enabled else ""
         trailing_value = float(config.trailing_stop_value) if trailing_enabled else 0
         trailing_activation = config.trailing_activation if trailing_enabled else ""
 
+        # Normalize leverage + margin_mode based on market
+        if market_type != "futures":
+            leverage = 1
+            margin_mode = "none"
+
         return OrderPlan(
             pair=signal.pair,
             side=side,
-            order_type=order_type,
+            order_type="market",
             qty=qty,
             entry_price=signal.entry_price,
-            leverage=leverage if market_type == "futures" else 1,
-            margin_mode=margin_mode if market_type == "futures" else "none",
+            leverage=leverage,
+            margin_mode=margin_mode,
             market_type=market_type,
             sl_price=signal.sl_price,
             tp_plan=tp_plan,
@@ -110,6 +119,10 @@ class OrderBuilder:
             signal_id=signal.signal_id,
         )
 
+    # ========================================
+    # Internal helpers
+    # ========================================
+
     def _build_tp_plan(
         self,
         tp_levels: List[float],
@@ -117,33 +130,35 @@ class OrderBuilder:
         custom_splits: Optional[List] = None,
     ) -> List[Dict]:
         """
-        Build TP execution plan with partial close percentages.
+        Build TP execution plan with partial-close percentages.
+        Ensures total qty_pct = 100%.
         """
+        # Resolve splits
         if strategy == "custom" and custom_splits:
-            splits = custom_splits
+            splits = list(custom_splits)
         elif strategy in TP_STRATEGIES:
-            splits = TP_STRATEGIES[strategy]
+            splits = list(TP_STRATEGIES[strategy])
         else:
-            splits = TP_STRATEGIES["equal_split"]
+            splits = list(TP_STRATEGIES["equal_split"])
 
+        # Build plan entries
         plan = []
         for i, tp_price in enumerate(tp_levels):
             if i < len(splits) and splits[i] > 0:
                 plan.append({
                     "level": f"tp{i+1}",
-                    "price": tp_price,
-                    "qty_pct": splits[i],
+                    "price": float(tp_price),
+                    "qty_pct": float(splits[i]),
                     "filled": False,
                     "order_id": None,
                 })
 
-        # If fewer TP levels than splits, redistribute remaining % to last level
-        if len(tp_levels) < len(splits):
+        # Redistribute unused splits (fewer TPs than splits)
+        if len(tp_levels) < len(splits) and plan:
             remaining = sum(splits[len(tp_levels):])
-            if plan:
-                plan[-1]["qty_pct"] += remaining
+            plan[-1]["qty_pct"] += remaining
 
-        # Normalize to ensure total = 100%
+        # Normalize to 100%
         total = sum(p["qty_pct"] for p in plan)
         if total > 0 and abs(total - 100) > 0.1:
             factor = 100.0 / total

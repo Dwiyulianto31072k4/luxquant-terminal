@@ -1,21 +1,31 @@
 """
-LuxQuant Terminal - Autotrade Engine
-Main worker loop that orchestrates signal processing and position monitoring.
-Listens for new signals via PostgreSQL LISTEN/NOTIFY and runs periodic cycles.
+LuxQuant Terminal - AutoTrade Engine
+Main orchestrator. Two concurrent loops:
+
+    1. Signal Listener (async LISTEN/NOTIFY)
+       - Subscribes to Postgres 'new_signal' channel
+       - On each new signal: validates → risk-check → executes for all enabled configs
+
+    2. Position Monitor (periodic)
+       - Every `POSITION_MONITOR_INTERVAL` seconds
+       - Runs PositionTracker cycle for trailing SL, anti-liquid, TP detection
+
+Deployed as a standalone systemd service (not embedded in uvicorn backend).
 """
-import logging
-import asyncio
+import os
 import json
-from datetime import datetime, timezone
+import asyncio
+import logging
 from typing import Optional
 
 import asyncpg
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.config import settings
 from app.models.autotrade import (
-    ExchangeAccount, AutotradeConfig, TradeOrder, TradeLog
+    ExchangeAccount, AutotradeConfig, TradeOrder, TradeLog,
 )
 from app.services.autotrade.signal_processor import SignalProcessor
 from app.services.autotrade.risk_manager import RiskManager
@@ -26,46 +36,46 @@ from app.services.autotrade.notifier import Notifier
 
 logger = logging.getLogger("autotrade.engine")
 
+POSITION_MONITOR_INTERVAL = int(os.getenv("AUTOTRADE_MONITOR_INTERVAL", "12"))
+
 
 class AutotradeEngine:
-    """
-    Main autotrade worker. Runs two loops:
-    1. Signal listener — picks up new signals and executes trades
-    2. Position monitor — trailing stop, anti-liquid, TP/SL management
-    """
+    """Main autotrade worker with dual-loop architecture."""
 
     def __init__(self):
         self.running = False
-        self.position_monitor_interval = 12  # seconds
         self.notifier = Notifier()
 
-    async def start(self):
-        """Start the autotrade engine."""
-        self.running = True
-        logger.info("Autotrade engine starting...")
+    # ========================================
+    # Lifecycle
+    # ========================================
 
-        # Run both loops concurrently
+    async def start(self):
+        """Start both loops concurrently."""
+        self.running = True
+        logger.info("AutotradeEngine starting…")
+
         await asyncio.gather(
             self._signal_listener_loop(),
             self._position_monitor_loop(),
         )
 
     async def stop(self):
-        """Gracefully stop the engine."""
         self.running = False
-        logger.info("Autotrade engine stopping...")
+        logger.info("AutotradeEngine stopping…")
 
     # ========================================
-    # Signal Listener (DB LISTEN/NOTIFY)
+    # Signal listener (LISTEN/NOTIFY)
     # ========================================
 
     async def _signal_listener_loop(self):
-        """Listen for new signals via PostgreSQL NOTIFY."""
+        """Listen on 'new_signal' Postgres channel. Auto-reconnect on failure."""
         while self.running:
+            conn = None
             try:
                 conn = await asyncpg.connect(settings.DATABASE_URL)
                 await conn.add_listener("new_signal", self._on_new_signal)
-                logger.info("Listening for new signals on 'new_signal' channel...")
+                logger.info("Listening for new signals on 'new_signal' channel")
 
                 # Keep connection alive
                 while self.running:
@@ -73,10 +83,17 @@ class AutotradeEngine:
 
             except Exception as e:
                 logger.error(f"Signal listener error: {e}")
-                await asyncio.sleep(5)  # retry after 5s
+                await asyncio.sleep(5)
+
+            finally:
+                if conn:
+                    try:
+                        await conn.close()
+                    except Exception:
+                        pass
 
     def _on_new_signal(self, conn, pid, channel, payload):
-        """Callback when new signal is inserted."""
+        """Callback fired when Postgres NOTIFY arrives."""
         try:
             data = json.loads(payload)
             logger.info(f"New signal received: {data.get('pair')} ({data.get('signal_id')})")
@@ -85,26 +102,26 @@ class AutotradeEngine:
             logger.error(f"Error parsing signal notification: {e}")
 
     async def _process_new_signal(self, signal_data: dict):
-        """Process a new signal: validate → risk check → execute on all enabled accounts."""
+        """Process a new signal: fetch full row → validate → execute for all enabled configs."""
         db = SessionLocal()
         try:
             signal_id = signal_data.get("signal_id")
             if not signal_id:
                 return
 
-            # Fetch full signal from DB
-            result = db.execute(
-                "SELECT * FROM signals WHERE signal_id = :sid",
-                {"sid": signal_id}
-            )
-            row = result.fetchone()
+            # Fetch full signal row
+            row = db.execute(
+                text("SELECT * FROM signals WHERE signal_id = :sid"),
+                {"sid": signal_id},
+            ).fetchone()
+
             if not row:
-                logger.warning(f"Signal {signal_id} not found in DB")
+                logger.warning(f"Signal {signal_id} not found")
                 return
 
             signal_dict = dict(row._mapping)
 
-            # Process signal
+            # Validate
             processor = SignalProcessor(db)
             processed = processor.process_signal(signal_dict)
 
@@ -114,16 +131,22 @@ class AutotradeEngine:
 
             side = processor.determine_side(processed.entry_price, processed.tp_levels[0])
 
-            # Find all enabled autotrade configs
+            # Find all enabled configs (every user with autotrade ON)
             configs = db.query(AutotradeConfig).filter(
                 AutotradeConfig.enabled == True,
             ).all()
 
+            logger.info(f"Executing signal {signal_id} for {len(configs)} enabled configs")
+
             for config in configs:
+                # Skip if already traded this signal for this account
+                if processor.is_already_traded_by_account(
+                    signal_id, config.user_id, config.exchange_account_id
+                ):
+                    continue
+
                 try:
-                    await self._execute_signal_for_config(
-                        db, config, processed, side
-                    )
+                    await self._execute_signal_for_config(db, config, processed, side)
                 except Exception as e:
                     logger.error(
                         f"Error executing signal {signal_id} for config {config.id}: {e}"
@@ -136,6 +159,10 @@ class AutotradeEngine:
             db.rollback()
         finally:
             db.close()
+
+    # ========================================
+    # Signal execution
+    # ========================================
 
     async def _execute_signal_for_config(
         self,
@@ -156,8 +183,10 @@ class AutotradeEngine:
         # Check market type compatibility
         market_type = config.default_market_type
         if market_type == "futures" and account.trading_mode == "spot":
+            logger.info(f"Skip: account {account.id} is spot-only, config wants futures")
             return
         if market_type == "spot" and account.trading_mode == "futures":
+            logger.info(f"Skip: account {account.id} is futures-only, config wants spot")
             return
 
         adapter = create_adapter_from_db(account)
@@ -171,6 +200,9 @@ class AutotradeEngine:
 
             # Fetch balance
             balance = await adapter.fetch_balance(market_type)
+            if balance.free_usd <= 0:
+                logger.info(f"Zero balance on {account.exchange_id} ({market_type})")
+                return
 
             # Risk assessment
             risk_mgr = RiskManager(db)
@@ -186,7 +218,7 @@ class AutotradeEngine:
 
             if not assessment.approved:
                 logger.info(
-                    f"Trade rejected for {account.exchange_id}: {assessment.rejection_reason}"
+                    f"Trade rejected on {account.exchange_id}: {assessment.rejection_reason}"
                 )
                 return
 
@@ -202,13 +234,7 @@ class AutotradeEngine:
                 margin_to_allocate=assessment.margin_to_allocate,
             )
 
-            # Semi-auto mode: wait for user confirmation
-            if config.mode == "semi":
-                # TODO: send Telegram message and wait for confirmation
-                logger.info(f"Semi-auto mode: awaiting confirmation for {plan.pair}")
-                return
-
-            # Execute order
+            # Execute at exchange
             result = await adapter.place_order(
                 symbol=plan.pair,
                 side=plan.side,
@@ -221,7 +247,7 @@ class AutotradeEngine:
                 stop_loss=plan.sl_price,
             )
 
-            # Save trade order to DB
+            # Persist trade_order
             trade = TradeOrder(
                 signal_id=plan.signal_id,
                 user_id=config.user_id,
@@ -238,8 +264,11 @@ class AutotradeEngine:
                 qty_filled=result.filled_qty if result.success else 0,
                 leverage=plan.leverage,
                 margin_mode=plan.margin_mode,
-                status="filled" if result.success and result.status == "closed" else
-                       "placed" if result.success else "error",
+                status=(
+                    "filled" if result.success and result.status == "closed"
+                    else "placed" if result.success
+                    else "error"
+                ),
                 error_message=result.error if not result.success else None,
                 sl_price=plan.sl_price,
                 sl_current=plan.sl_price,
@@ -257,7 +286,7 @@ class AutotradeEngine:
             db.add(trade)
             db.flush()
 
-            # Log
+            # Audit log
             log = TradeLog(
                 trade_order_id=trade.id,
                 user_id=config.user_id,
@@ -284,49 +313,52 @@ class AutotradeEngine:
             if result.success:
                 logger.info(
                     f"Trade executed: {plan.pair} {plan.side} {plan.qty} @ {result.avg_price} "
-                    f"on {account.exchange_id} (leverage: {plan.leverage}x)"
+                    f"on {account.exchange_id} (lev: {plan.leverage}x)"
                 )
-                await self.notifier.send_trade_notification(
-                    config.user_id, trade, "opened"
-                )
+                await self.notifier.send_trade_notification(config.user_id, trade, "opened")
             else:
-                logger.error(f"Trade failed: {plan.pair} on {account.exchange_id}: {result.error}")
+                logger.error(
+                    f"Trade failed on {account.exchange_id} ({plan.pair}): {result.error}"
+                )
 
         finally:
             await adapter.close()
 
     # ========================================
-    # Position Monitor Loop
+    # Position monitor loop
     # ========================================
 
     async def _position_monitor_loop(self):
-        """Periodically check all open positions."""
-        # Wait a bit before starting
-        await asyncio.sleep(5)
+        """Periodic cycle over open positions."""
+        await asyncio.sleep(5)  # small delay before first pass
 
         while self.running:
+            db = None
+            tracker = None
             try:
                 db = SessionLocal()
                 tracker = PositionTracker(db)
-
                 await tracker.run_cycle()
-
                 db.commit()
-                await tracker.close_all_adapters()
-                db.close()
-
             except Exception as e:
-                logger.error(f"Position monitor error: {e}")
+                logger.error(f"Position monitor cycle error: {e}")
+                if db:
+                    db.rollback()
+            finally:
+                if tracker:
+                    await tracker.close_all_adapters()
+                if db:
+                    db.close()
 
-            await asyncio.sleep(self.position_monitor_interval)
+            await asyncio.sleep(POSITION_MONITOR_INTERVAL)
 
 
 # ========================================
-# Entry point (run as standalone worker)
+# Standalone entry point
 # ========================================
 
 async def run_engine():
-    """Entry point for running the autotrade engine."""
+    """Run the engine as a standalone worker (systemd service target)."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",

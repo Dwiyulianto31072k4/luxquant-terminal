@@ -1,12 +1,18 @@
 """
 LuxQuant Terminal - Notifier
 Sends Telegram notifications for trade events.
-Uses existing Telegram bot (@LuxQuantTerminalBot).
+
+Reuses existing Telegram bot config from .env:
+    TELEGRAM_BOT_TOKEN
+    TELEGRAM_NOTIFY_CHAT_ID  (admin chat, can be per-user later)
+
+Future: look up per-user telegram_id from users table → DM direct.
 """
 import os
 import logging
-import httpx
 from typing import Optional
+
+import httpx
 
 logger = logging.getLogger("autotrade.notifier")
 
@@ -17,27 +23,22 @@ TELEGRAM_NOTIFY_CHAT_ID = os.getenv("TELEGRAM_NOTIFY_CHAT_ID", "")
 class Notifier:
     """Send notifications via Telegram bot."""
 
-    async def send_trade_notification(
-        self,
-        user_id: int,
-        trade,
-        event: str,
-    ):
+    async def send_trade_notification(self, user_id: int, trade, event: str):
         """Send trade event notification."""
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_NOTIFY_CHAT_ID:
             return
 
         emoji = {
-            "opened": "\u2705",
-            "closed_win": "\U0001f4b0",
-            "closed_loss": "\u274c",
-            "trailing_sl": "\U0001f4c8",
-            "emergency": "\U0001f6a8",
-            "breakeven": "\U0001f6e1",
-            "tp_hit": "\U0001f3af",
-        }.get(event, "\U0001f514")
+            "opened":       "✅",
+            "closed_win":   "💰",
+            "closed_loss":  "❌",
+            "trailing_sl":  "📈",
+            "emergency":    "🚨",
+            "breakeven":    "🛡️",
+            "tp_hit":       "🎯",
+        }.get(event, "🔔")
 
-        side_emoji = "\U0001f7e2" if trade.side == "buy" else "\U0001f534"
+        side_emoji = "🟢" if trade.side == "buy" else "🔴"
 
         text = (
             f"{emoji} <b>AutoTrade {event.upper()}</b>\n"
@@ -62,15 +63,17 @@ class Notifier:
             text += f"New SL: ${trade.sl_current}\n"
         elif event == "emergency":
             text += f"Action: {trade.close_reason}\n"
+        elif event == "breakeven":
+            text += f"SL moved to entry: ${trade.sl_current}\n"
 
         await self._send_telegram(text)
 
     async def send_alert(self, message: str):
-        """Send generic alert."""
-        await self._send_telegram(f"\U0001f6a8 <b>Alert</b>\n{message}")
+        """Send a generic alert message."""
+        await self._send_telegram(f"🚨 <b>Alert</b>\n{message}")
 
     async def _send_telegram(self, text: str):
-        """Send message via Telegram Bot API."""
+        """Send raw text via Telegram Bot API."""
         if not TELEGRAM_BOT_TOKEN or not TELEGRAM_NOTIFY_CHAT_ID:
             logger.debug("Telegram not configured, skipping notification")
             return

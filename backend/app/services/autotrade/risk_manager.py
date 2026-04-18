@@ -1,11 +1,24 @@
 """
 LuxQuant Terminal - Risk Manager
-Position sizing, anti-liquidation, hard loss cap, leverage control.
-Based on historical signal data: avg SL distance ~3.9%, high risk ~3.14%.
+Handles position sizing, leverage decisions, hard loss cap, and margin monitoring.
+
+Pre-trade checks (assess_trade):
+    1. Autotrade enabled
+    2. Risk level filter (all / low_only / low_medium)
+    3. Pair whitelist/blacklist
+    4. Volume rank filter
+    5. Max concurrent trades
+    6. Daily loss limit
+    7. Calculate qty + leverage based on SL distance & max_position_pct
+    8. Apply max_loss_protection if enabled (tightens qty)
+
+Monitor (margin_alert):
+    - For futures: checks margin_ratio vs thresholds
+    - Returns MarginAlert with recommended action
 """
 import logging
+from typing import Optional, Dict
 from dataclasses import dataclass
-from typing import Optional, Dict, List
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -17,34 +30,33 @@ logger = logging.getLogger("autotrade.risk")
 
 @dataclass
 class RiskAssessment:
+    """Result of pre-trade risk check."""
     approved: bool
     qty: float = 0
     leverage: int = 1
     margin_mode: str = "isolated"
-    max_loss_amount: float = 0
-    margin_to_allocate: float = 0
+    max_loss_amount: float = 0     # USD hard cap
+    margin_to_allocate: float = 0  # USD initial margin
     rejection_reason: Optional[str] = None
 
 
 @dataclass
 class MarginAlert:
-    level: str  # "safe", "warning", "danger", "critical"
+    """Runtime margin status for a futures position."""
+    level: str  # safe | warning | danger | critical
     margin_ratio: float
-    action_required: Optional[str] = None  # "notify", "partial_close", "tighten_sl", "full_close", "add_margin"
+    action_required: Optional[str] = None  # notify | partial_close | tighten_sl | full_close | add_margin
     close_pct: float = 0
 
 
 class RiskManager:
-    """
-    Central risk management for all autotrade operations.
-    Runs checks before opening positions and during monitoring.
-    """
+    """Central risk management for autotrade."""
 
     def __init__(self, db: Session):
         self.db = db
 
     # ========================================
-    # Pre-Trade Risk Assessment
+    # Pre-trade assessment
     # ========================================
 
     def assess_trade(
@@ -57,10 +69,9 @@ class RiskManager:
         signal_pair: str,
         signal_volume_rank: Optional[int] = None,
     ) -> RiskAssessment:
-        """
-        Full pre-trade risk check. Returns approved/rejected with calculated qty.
-        """
-        # 1. Check if autotrade enabled
+        """Full pre-trade risk check."""
+
+        # 1. Autotrade enabled
         if not config.enabled:
             return RiskAssessment(approved=False, rejection_reason="Autotrade disabled")
 
@@ -68,14 +79,14 @@ class RiskManager:
         if not self._passes_risk_filter(config.risk_filter, signal_risk_level):
             return RiskAssessment(
                 approved=False,
-                rejection_reason=f"Signal risk '{signal_risk_level}' filtered out by '{config.risk_filter}'"
+                rejection_reason=f"Signal risk '{signal_risk_level}' filtered out by '{config.risk_filter}'",
             )
 
-        # 3. Pair blacklist/whitelist
+        # 3. Pair whitelist/blacklist
         if not self._passes_pair_filter(config, signal_pair):
             return RiskAssessment(
                 approved=False,
-                rejection_reason=f"Pair {signal_pair} filtered out"
+                rejection_reason=f"Pair {signal_pair} filtered out",
             )
 
         # 4. Volume rank filter
@@ -83,7 +94,7 @@ class RiskManager:
             if signal_volume_rank < config.min_volume_rank:
                 return RiskAssessment(
                     approved=False,
-                    rejection_reason=f"Volume rank {signal_volume_rank} below minimum {config.min_volume_rank}"
+                    rejection_reason=f"Volume rank {signal_volume_rank} below minimum {config.min_volume_rank}",
                 )
 
         # 5. Max concurrent trades
@@ -96,261 +107,232 @@ class RiskManager:
         if open_count >= config.max_concurrent_trades:
             return RiskAssessment(
                 approved=False,
-                rejection_reason=f"Max concurrent trades reached ({open_count}/{config.max_concurrent_trades})"
+                rejection_reason=f"Max concurrent trades reached ({open_count}/{config.max_concurrent_trades})",
             )
 
         # 6. Daily loss limit
-        if self._daily_loss_exceeded(config):
+        if self._exceeded_daily_loss_limit(config, balance_free):
             return RiskAssessment(
                 approved=False,
-                rejection_reason=f"Daily loss limit exceeded ({config.daily_loss_limit_pct}%)"
+                rejection_reason=f"Daily loss limit reached ({config.daily_loss_limit_pct}%)",
             )
 
-        # 7. Calculate position size
-        stop_distance_pct = abs((entry_price - stop_price) / entry_price)
-        if stop_distance_pct < 0.001:
-            return RiskAssessment(approved=False, rejection_reason="SL too close to entry (<0.1%)")
-        if stop_distance_pct > 0.20:
-            return RiskAssessment(approved=False, rejection_reason="SL too far from entry (>20%)")
-
-        # Determine leverage
-        leverage = self._calculate_leverage(config, stop_distance_pct, signal_risk_level)
-
-        # Calculate qty based on risk
-        qty, max_loss = self._calculate_position_size(
-            config=config,
-            balance=balance_free,
-            entry_price=entry_price,
-            stop_distance_pct=stop_distance_pct,
-            leverage=leverage,
-        )
-
-        if qty <= 0:
-            return RiskAssessment(approved=False, rejection_reason="Calculated qty too small")
-
-        # Margin needed (isolated)
-        margin_to_allocate = (entry_price * qty) / leverage
-
-        if margin_to_allocate > balance_free:
+        # 7. Insufficient balance
+        if balance_free <= 10:
             return RiskAssessment(
                 approved=False,
-                rejection_reason=f"Insufficient margin: need ${margin_to_allocate:.2f}, have ${balance_free:.2f}"
+                rejection_reason=f"Insufficient free balance: ${balance_free:.2f}",
+            )
+
+        # 8. Calculate position size & leverage
+        sizing = self._calculate_position_size(
+            config=config,
+            balance_free=balance_free,
+            entry_price=entry_price,
+            stop_price=stop_price,
+        )
+
+        if sizing["qty"] <= 0:
+            return RiskAssessment(
+                approved=False,
+                rejection_reason="Calculated qty is zero (check balance or SL distance)",
             )
 
         return RiskAssessment(
             approved=True,
-            qty=qty,
-            leverage=leverage,
-            margin_mode=config.margin_mode or "isolated",
-            max_loss_amount=max_loss,
-            margin_to_allocate=margin_to_allocate,
+            qty=sizing["qty"],
+            leverage=sizing["leverage"],
+            margin_mode=config.margin_mode,
+            max_loss_amount=sizing["max_loss_amount"],
+            margin_to_allocate=sizing["margin_to_allocate"],
         )
 
     # ========================================
-    # Position Sizing
+    # Position sizing logic
     # ========================================
 
     def _calculate_position_size(
         self,
         config: AutotradeConfig,
-        balance: float,
+        balance_free: float,
         entry_price: float,
-        stop_distance_pct: float,
-        leverage: int,
-    ) -> tuple:
+        stop_price: float,
+    ) -> Dict:
         """
-        Calculate qty and max loss.
-        Uses max_position_pct for standard sizing.
-        If max_loss_protection_enabled, also caps by max_loss_per_trade_pct.
+        Calculate qty + leverage.
+
+        Two modes:
+          - max_loss_protection ON: qty sized such that loss at SL = max_loss_per_trade_pct of balance
+          - max_loss_protection OFF: qty sized to use max_position_pct of balance as margin
         """
-        # Standard sizing: % of balance
-        position_value = balance * (config.max_position_pct / 100.0)
-        qty_standard = position_value / entry_price
+        sl_distance_pct = abs((entry_price - stop_price) / entry_price * 100)
+        sl_distance = abs(entry_price - stop_price)
 
-        # Max loss if SL hits
-        max_loss_standard = position_value * stop_distance_pct * leverage
-
-        # If hard loss cap enabled, potentially reduce qty
+        # --- Mode A: Hard loss cap ---
         if config.max_loss_protection_enabled:
-            max_allowed_loss = balance * (float(config.max_loss_per_trade_pct) / 100.0)
+            max_loss_usd = balance_free * (float(config.max_loss_per_trade_pct) / 100.0)
+            # qty * sl_distance = max_loss_usd → qty = max_loss_usd / sl_distance
+            qty = max_loss_usd / sl_distance if sl_distance > 0 else 0
 
-            if max_loss_standard > max_allowed_loss:
-                # Reduce qty to fit within hard loss cap
-                qty_capped = max_allowed_loss / (entry_price * stop_distance_pct * leverage)
-                logger.info(
-                    f"Hard loss cap: reduced qty from {qty_standard:.6f} to {qty_capped:.6f} "
-                    f"(max loss ${max_allowed_loss:.2f})"
-                )
-                return qty_capped, max_allowed_loss
+            # Auto-adjust leverage based on SL distance
+            if sl_distance_pct < 2.0:
+                leverage = min(config.max_leverage, 15)
+            elif sl_distance_pct < 3.5:
+                leverage = min(config.max_leverage, 12)
+            elif sl_distance_pct < 5.0:
+                leverage = min(config.max_leverage, 10)
+            else:
+                leverage = min(config.max_leverage, 8)
 
-        return qty_standard, max_loss_standard
+            margin = (entry_price * qty) / leverage if leverage > 0 else 0
 
-    def _calculate_leverage(
-        self,
-        config: AutotradeConfig,
-        stop_distance_pct: float,
-        risk_level: str,
-    ) -> int:
-        """
-        Dynamic leverage based on SL distance and risk level.
-        Tighter SL → can use higher leverage.
-        Higher risk → lower leverage.
-        """
-        max_lev = config.max_leverage
+            return {
+                "qty": qty,
+                "leverage": leverage,
+                "max_loss_amount": max_loss_usd,
+                "margin_to_allocate": margin,
+            }
 
-        # Auto-adjust based on SL distance
-        # Target: leverage * stop_distance < 50% (so position survives a full SL hit)
-        safe_leverage = int(0.4 / stop_distance_pct)  # 40% max draw on margin
-        auto_leverage = min(max_lev, safe_leverage)
+        # --- Mode B: Position percent ---
+        max_position_usd = balance_free * (config.max_position_pct / 100.0)
+        leverage = min(config.max_leverage, 10)  # default conservative leverage
+        notional = max_position_usd * leverage
+        qty = notional / entry_price if entry_price > 0 else 0
 
-        # Risk level adjustment
-        risk_normalized = risk_level.lower().strip() if risk_level else "medium"
-        if risk_normalized in ("high",):
-            auto_leverage = min(auto_leverage, int(max_lev * 0.6))  # 60% of max
-        elif risk_normalized in ("low",):
-            auto_leverage = auto_leverage  # full allowed
-        else:
-            auto_leverage = min(auto_leverage, int(max_lev * 0.8))  # 80% of max
-
-        # Minimum leverage = 1
-        return max(1, auto_leverage)
+        estimated_loss = qty * sl_distance
+        return {
+            "qty": qty,
+            "leverage": leverage,
+            "max_loss_amount": estimated_loss,
+            "margin_to_allocate": max_position_usd,
+        }
 
     # ========================================
-    # Anti-Liquidation Monitoring
+    # Runtime margin monitoring (futures only)
     # ========================================
 
-    def assess_margin_health(
+    def check_margin_health(
         self,
         config: AutotradeConfig,
-        position: "PositionInfo",
+        margin_ratio_pct: float,
     ) -> MarginAlert:
         """
-        Assess margin health for an open position.
-        Returns alert level and recommended action.
-        Called by position_tracker every N seconds.
+        Evaluate margin_ratio against buffer thresholds.
+        margin_ratio_pct is position_value / maintenance_margin × 100.
         """
-        if not config.max_loss_protection_enabled:
-            return MarginAlert(level="safe", margin_ratio=999)
-
-        # Calculate effective margin ratio
-        # margin_ratio from exchange (if available)
-        if position.margin_ratio is not None and position.margin_ratio > 0:
-            ratio = position.margin_ratio * 100  # convert to percentage
-        elif position.isolated_margin and position.maintenance_margin:
-            ratio = (position.isolated_margin / position.maintenance_margin) * 100
-        else:
-            # Estimate from PnL
-            if position.isolated_margin and position.isolated_margin > 0:
-                ratio = ((position.isolated_margin + position.unrealized_pnl)
-                         / position.isolated_margin) * 100
-            else:
-                return MarginAlert(level="unknown", margin_ratio=0)
-
-        buffer = float(config.liquidation_buffer_pct)
         warning = float(config.liquidation_warning_pct)
+        buffer = float(config.liquidation_buffer_pct)
 
-        # Critical: below buffer
-        if ratio < buffer * 0.8:
-            return MarginAlert(
-                level="critical",
-                margin_ratio=ratio,
-                action_required="full_close",
-            )
-        elif ratio < buffer:
-            action = config.emergency_action or "partial_close"
-            close_pct = 50 if action == "partial_close" else 0
-            return MarginAlert(
-                level="danger",
-                margin_ratio=ratio,
-                action_required=action,
-                close_pct=close_pct,
-            )
-        elif ratio < warning:
+        if margin_ratio_pct >= warning:
+            return MarginAlert(level="safe", margin_ratio=margin_ratio_pct)
+
+        if margin_ratio_pct >= buffer:
             return MarginAlert(
                 level="warning",
-                margin_ratio=ratio,
+                margin_ratio=margin_ratio_pct,
                 action_required="notify",
             )
-        else:
-            return MarginAlert(level="safe", margin_ratio=ratio)
 
-    def check_emergency_loss(
+        # Below buffer — decide action based on config
+        action = config.emergency_action
+        if action == "partial_close":
+            return MarginAlert(
+                level="danger",
+                margin_ratio=margin_ratio_pct,
+                action_required="partial_close",
+                close_pct=40.0,
+            )
+        if action == "tighten_sl":
+            return MarginAlert(
+                level="danger",
+                margin_ratio=margin_ratio_pct,
+                action_required="tighten_sl",
+            )
+        if action == "add_margin" and config.auto_topup_margin:
+            return MarginAlert(
+                level="danger",
+                margin_ratio=margin_ratio_pct,
+                action_required="add_margin",
+            )
+        # Default = full close
+        return MarginAlert(
+            level="critical",
+            margin_ratio=margin_ratio_pct,
+            action_required="full_close",
+        )
+
+    # ========================================
+    # Max-loss protection (hard cap)
+    # ========================================
+
+    def should_emergency_close(
         self,
         config: AutotradeConfig,
-        trade: TradeOrder,
-        current_price: float,
-    ) -> Optional[str]:
-        """
-        Check if unrealized loss exceeds emergency_close_trigger_pct.
-        Returns action string or None.
-        """
+        unrealized_pnl: float,
+        balance_free: float,
+    ) -> bool:
+        """Check if unrealized loss exceeds emergency_close_trigger_pct."""
         if not config.max_loss_protection_enabled:
-            return None
-        if not trade.max_loss_amount or trade.max_loss_amount <= 0:
-            return None
-
-        # Calculate current unrealized loss
-        if trade.side == "buy":
-            pnl = (current_price - (trade.entry_price or trade.target_entry)) * trade.qty_filled
-        else:
-            pnl = ((trade.entry_price or trade.target_entry) - current_price) * trade.qty_filled
-
-        if trade.leverage and trade.leverage > 1:
-            pnl *= trade.leverage
-
-        # Check against emergency trigger
-        emergency_max = trade.max_loss_amount * (float(config.emergency_close_trigger_pct) /
-                                                  float(config.max_loss_per_trade_pct))
-
-        if pnl < 0 and abs(pnl) > emergency_max:
-            return "emergency_close"
-
-        return None
+            return False
+        trigger_pct = float(config.emergency_close_trigger_pct)
+        loss_pct = abs(unrealized_pnl) / balance_free * 100 if balance_free > 0 else 0
+        return unrealized_pnl < 0 and loss_pct >= trigger_pct
 
     # ========================================
-    # Filters
+    # Daily loss limit
     # ========================================
 
-    def _passes_risk_filter(self, filter_setting: str, signal_risk: str) -> bool:
-        risk = signal_risk.lower().strip() if signal_risk else "medium"
-        if filter_setting == "all":
-            return True
-        elif filter_setting == "low_med":
-            return risk in ("low", "medium", "med", "normal")
-        elif filter_setting == "low_only":
-            return risk in ("low",)
-        return True
-
-    def _passes_pair_filter(self, config: AutotradeConfig, pair: str) -> bool:
-        pair_upper = pair.upper()
-
-        # Blacklist
-        if config.pair_blacklist:
-            if pair_upper in [p.upper() for p in config.pair_blacklist]:
-                return False
-
-        # Whitelist (if set, only allow listed pairs)
-        if config.pair_whitelist:
-            if pair_upper not in [p.upper() for p in config.pair_whitelist]:
-                return False
-
-        return True
-
-    def _daily_loss_exceeded(self, config: AutotradeConfig) -> bool:
-        """Check if today's cumulative loss exceeds limit."""
-        today_pnl = self.db.query(DailyPnl).filter(
+    def _exceeded_daily_loss_limit(self, config: AutotradeConfig, balance_free: float) -> bool:
+        """Check if today's realized losses exceed daily_loss_limit_pct."""
+        today = date.today()
+        pnl_row = self.db.query(DailyPnl).filter(
             DailyPnl.user_id == config.user_id,
             DailyPnl.exchange_account_id == config.exchange_account_id,
-            DailyPnl.date == date.today(),
+            DailyPnl.date == today,
         ).first()
 
-        if not today_pnl:
+        if not pnl_row or not pnl_row.net_pnl or pnl_row.net_pnl >= 0:
             return False
 
-        # Need balance to calculate percentage — use a conservative estimate
-        if today_pnl.net_pnl < 0:
-            # We'd need balance here; for now check absolute
-            # This gets refined when we have cached balance
-            return abs(today_pnl.net_pnl) > 1000  # placeholder, real logic uses %
+        loss_pct = abs(pnl_row.net_pnl) / balance_free * 100 if balance_free > 0 else 0
+        return loss_pct >= config.daily_loss_limit_pct
 
-        return False
+    # ========================================
+    # Filter helpers
+    # ========================================
+
+    def _passes_risk_filter(self, risk_filter: str, signal_risk: str) -> bool:
+        """
+        risk_filter:
+            all        → accept anything
+            low_only   → only 'low' / 'normal'
+            low_medium → low / medium / normal (exclude high)
+        """
+        normalized = (signal_risk or "").lower().strip()
+
+        if risk_filter == "all":
+            return True
+
+        if risk_filter == "low_only":
+            return normalized in ("low", "normal")
+
+        if risk_filter == "low_medium":
+            return normalized not in ("high",)
+
+        return True  # unknown filter → allow
+
+    def _passes_pair_filter(self, config: AutotradeConfig, pair: str) -> bool:
+        """Check whitelist/blacklist."""
+        pair_upper = pair.upper()
+
+        # Blacklist check
+        blacklist = config.pair_blacklist or []
+        if any(p.upper() == pair_upper for p in blacklist):
+            return False
+
+        # Whitelist check (None means allow all)
+        whitelist = config.pair_whitelist
+        if whitelist is not None and len(whitelist) > 0:
+            return any(p.upper() == pair_upper for p in whitelist)
+
+        return True

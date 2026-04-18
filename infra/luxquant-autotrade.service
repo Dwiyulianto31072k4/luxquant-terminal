@@ -1,0 +1,42 @@
+[Unit]
+Description=LuxQuant AutoTrade Engine
+Documentation=https://github.com/Dwiyulianto31072k4/luxquant-terminal
+After=network.target postgresql.service redis-server.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+
+# Load environment from backend/.env
+EnvironmentFile=/root/luxquant-terminal/backend/.env
+
+# Python path so app.* imports work
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+Environment=PYTHONUNBUFFERED=1
+
+# Run the engine as standalone worker
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.autotrade.engine
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+# Graceful shutdown — engine has its own signal handler
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=append:/var/log/luxquant-autotrade.log
+StandardError=append:/var/log/luxquant-autotrade.log
+SyslogIdentifier=luxquant-autotrade
+
+# Resource limits (adjust as needed)
+LimitNOFILE=65536
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target

@@ -26,6 +26,7 @@ from app.api.routes.orderbook import router as orderbook_router
 from app.api.routes.referral import router as referral_router
 from app.api.routes import ai_arena
 from app.api.routes import enrichment_v3
+from app.api.routes.autotrade import router as autotrade_router
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
@@ -80,6 +81,9 @@ async def lifespan(app: FastAPI):
         print("🟡 Redis not available — running without cache (DB direct queries)")
         start_notification_worker()
 
+    # NOTE: AutoTrade engine runs as a separate systemd service
+    # (luxquant-autotrade.service), not embedded in this uvicorn process.
+
     yield
 
     # === Cleanup ===
@@ -120,6 +124,7 @@ app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])
 app.include_router(referral_router, prefix="/api/v1", tags=["referral"])
 app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"])
 app.include_router(enrichment_v3.router, tags=["enrichment-v3"])
+app.include_router(autotrade_router, prefix="/api/v1", tags=["autotrade"])
 app.include_router(coin_profile_router, prefix="/api/v1/coin-profile", tags=["coin-profile"])
 app.include_router(profile_router, prefix="/api/v1", tags=["profile"])
 app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])

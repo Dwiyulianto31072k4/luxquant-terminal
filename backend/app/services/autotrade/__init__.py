@@ -1,1 +1,1 @@
-"""LuxQuant Terminal - Autotrade Services"""
+"""LuxQuant Terminal - AutoTrade v3 Services"""
