@@ -7,7 +7,7 @@
 const BASE = "/api/v1/autotrade";
 
 function getToken() {
-  return localStorage.getItem("token") || "";
+  return localStorage.getItem("access_token") || "";
 }
 
 async function request(path, { method = "GET", body, params } = {}) {
