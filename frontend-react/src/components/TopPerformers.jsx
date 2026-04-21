@@ -188,7 +188,7 @@ const TopPerformers = () => {
                       <span className={`text-green-400 font-mono font-black ${gainSize} tracking-tight`}>
                         +{formatGainDisplay(item.gain_pct)}
                       </span>
-                      {isFirst && item.tp_price > 0 && (
+                      {item.tp_price > 0 && (
                         <p className="text-green-500/30 text-[9px] font-mono mt-0.5">peak ${formatPrice(item.tp_price)}</p>
                       )}
                     </div>
