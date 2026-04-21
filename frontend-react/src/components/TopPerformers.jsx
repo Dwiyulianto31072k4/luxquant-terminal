@@ -111,7 +111,7 @@ const TopPerformers = () => {
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <StatCard label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')} />
-          <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '—'} sub={t('top.pairs_sub')} valueClass="text-gold-primary" />
+          <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} valueClass="text-gold-primary" />
           <StatCard label={t('top.avg_gain')} value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`} sub={t('top.gain_sub')} valueClass="text-green-400" borderClass="border-green-500/10" />
           <StatCard label={t('top.avg_dur')} value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'} sub={t('top.dur_sub')} />
         </div>
@@ -242,22 +242,43 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
       try {
         const entryVal = Number(detail.entry);
         const symbol = pair.replace('USDT', '') + 'USDT';
-        const tpUpdates = detail.updates?.filter(u => u.update_type?.toLowerCase()?.startsWith('tp')) || [];
-        if (tpUpdates.length === 0) return;
-        const isShort = Number(tpUpdates[0].price) < entryVal;
-        const lastTpUpdate = tpUpdates[tpUpdates.length - 1];
-        const startTime = new Date(lastTpUpdate.update_at).getTime();
-        let highestTpPrice = Number(lastTpUpdate.price);
-        tpUpdates.forEach(u => { const p = Number(u.price); if (isShort) { if (p > 0 && p < highestTpPrice) highestTpPrice = p; } else { if (p > highestTpPrice) highestTpPrice = p; } });
-        const extractPeak = (candles, gH, gL) => { if (!Array.isArray(candles) || candles.length === 0) return null; let best = highestTpPrice; candles.forEach(c => { const h = gH(c); const l = gL(c); if (isShort) { if (l > 0 && l < best) best = l; } else { if (h > best) best = h; } }); if (isShort) return best < highestTpPrice ? best : null; return best > highestTpPrice ? best : null; };
-        const bH = c => parseFloat(c[2]); const bL = c => parseFloat(c[3]);
-        const yH = c => parseFloat(c.high); const yL = c => parseFloat(c.low);
+
+        // Start from signal created_at — consistent with worker logic
+        const startTime = new Date(created).getTime();
+        if (isNaN(startTime)) return;
+
+        // Find peak above entry (all signals are LONG)
+        const extractPeak = (candles, gH) => {
+          if (!Array.isArray(candles) || candles.length === 0) return null;
+          let best = entryVal;
+          let bestTs = null;
+          candles.forEach(c => {
+            const h = gH(c);
+            if (h > best) { best = h; bestTs = c; }
+          });
+          return best > entryVal ? best : null;
+        };
+
+        const bH = c => parseFloat(c[2]);
+        const yH = c => parseFloat(c.high || c[2]);
+
         let peak = null;
-        try { const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH, bL); } } catch {}
-        if (!peak) { try { const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH, bL); } } catch {} }
-        if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=200`); if (r.ok) { const j = await r.json(); peak = extractPeak((j?.result?.list||[]).map(k=>({high:k[2],low:k[3]})), yH, yL); } } catch {} }
-        if (!peak) { try { const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=200`); if (r.ok) { const j = await r.json(); peak = extractPeak((j?.result?.list||[]).map(k=>({high:k[2],low:k[3]})), yH, yL); } } catch {} }
-        if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=200`); if (r.ok) { const j = await r.json(); peak = extractPeak((j?.result?.list||[]).map(k=>({high:k[2],low:k[3]})), yH, yL); } } catch {} }
+
+        // 1. Binance Futures
+        try { const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH); } } catch {}
+
+        // 2. Binance Spot
+        if (!peak) { try { const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH); } } catch {} }
+
+        // 3. Bybit Linear
+        if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
+
+        // 4. Bybit Linear (global)
+        if (!peak) { try { const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
+
+        // 5. Bybit Spot
+        if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
+
         if (peak) setPeakPrice(peak);
       } catch (e) { console.error("[PeakPrice] failed:", e); }
     };
