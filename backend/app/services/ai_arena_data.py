@@ -115,16 +115,16 @@ def fetch_bybit_ticker(symbol="BTCUSDT") -> Optional[Dict]:
         if data.get("retCode") == 0 and data["result"]["list"]:
             t = data["result"]["list"][0]
             return {
-                "price": float(t.get("lastPrice", 0)),
-                "open_interest_usd": float(t.get("openInterestValue", 0)),
-                "open_interest_btc": float(t.get("openInterest", 0)),
-                "funding_rate": float(t.get("fundingRate", 0)),
-                "volume_24h": float(t.get("volume24h", 0)),
-                "turnover_24h": float(t.get("turnover24h", 0)),
-                "high_24h": float(t.get("highPrice24h", 0)),
-                "low_24h": float(t.get("lowPrice24h", 0)),
-                "prev_price_24h": float(t.get("prevPrice24h", 0)),
-                "price_change_pct": float(t.get("price24hPcnt", 0)) * 100,
+                "price": float(t.get("lastPrice") or 0),
+                "open_interest_usd": float(t.get("openInterestValue") or 0),
+                "open_interest_btc": float(t.get("openInterest") or 0),
+                "funding_rate": float(t.get("fundingRate") or 0),
+                "volume_24h": float(t.get("volume24h") or 0),
+                "turnover_24h": float(t.get("turnover24h") or 0),
+                "high_24h": float(t.get("highPrice24h") or 0),
+                "low_24h": float(t.get("lowPrice24h") or 0),
+                "prev_price_24h": float(t.get("prevPrice24h") or 0),
+                "price_change_pct": float(t.get("price24hPcnt") or 0) * 100,
             }
     except Exception as e:
         _log(f"Bybit ticker failed: {e}")
@@ -241,7 +241,7 @@ def fetch_onchain_nupl() -> Optional[Dict]:
     data = _bgeometrics_get("nupl")
     if data and len(data) > 0:
         latest = data[-1]
-        return {"date": latest.get("d"), "nupl": float(latest.get("nupl", 0))}
+        return {"date": latest.get("d"), "nupl": float(latest.get("nupl") or 0)}
     return None
 
 
@@ -249,7 +249,7 @@ def fetch_onchain_mvrv() -> Optional[Dict]:
     data = _bgeometrics_get("mvrv-z-score")
     if data and len(data) > 0:
         latest = data[-1]
-        return {"date": latest.get("d"), "mvrv_z": float(latest.get("mvrvZScore", 0))}
+        return {"date": latest.get("d"), "mvrv_z": float(latest.get("mvrvZScore") or 0)}
     return None
 
 
@@ -257,7 +257,7 @@ def fetch_onchain_sopr() -> Optional[Dict]:
     data = _bgeometrics_get("sopr")
     if data and len(data) > 0:
         latest = data[-1]
-        return {"date": latest.get("d"), "sopr": float(latest.get("sopr", 0))}
+        return {"date": latest.get("d"), "sopr": float(latest.get("sopr") or 0)}
     return None
 
 
@@ -275,9 +275,9 @@ def fetch_onchain_exchange_flow() -> Optional[Dict]:
         latest = data[-1]
         return {
             "date": latest.get("d"),
-            "inflow": float(latest.get("inflow", 0)),
-            "outflow": float(latest.get("outflow", 0)),
-            "netflow": float(latest.get("netflow", 0)),
+            "inflow": float(latest.get("inflow") or 0),
+            "outflow": float(latest.get("outflow") or 0),
+            "netflow": float(latest.get("netflow") or 0),
         }
     return None
 
@@ -286,7 +286,7 @@ def fetch_onchain_realized_price() -> Optional[Dict]:
     data = _bgeometrics_get("realized-price")
     if data and len(data) > 0:
         latest = data[-1]
-        return {"date": latest.get("d"), "realized_price": float(latest.get("realizedPrice", 0))}
+        return {"date": latest.get("d"), "realized_price": float(latest.get("realizedPrice") or 0)}
     return None
 
 
