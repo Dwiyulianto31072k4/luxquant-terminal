@@ -883,18 +883,30 @@ async def get_top_performers(
               )
               {date_to_clause_gainers}
         ),
+        signal_gains AS (
+            SELECT
+                pair,
+                signal_id,
+                entry,
+                peak_price,
+                peak_at,
+                signal_time,
+                (peak_price - entry) / NULLIF(entry, 0) as gain_ratio
+            FROM qualified_signals
+            WHERE entry > 0 AND peak_price > entry
+        ),
         pair_agg AS (
             SELECT
                 pair,
-                MIN(signal_time) as first_signal_time,
-                (ARRAY_AGG(signal_id ORDER BY signal_time ASC))[1] as first_signal_id,
-                (ARRAY_AGG(entry ORDER BY signal_time ASC))[1] as first_entry,
-                MAX(peak_price) as best_peak_price,
-                (ARRAY_AGG(peak_at ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_at,
-                (ARRAY_AGG(signal_id ORDER BY peak_price DESC NULLS LAST))[1] as best_peak_signal_id,
+                (ARRAY_AGG(signal_time ORDER BY gain_ratio DESC NULLS LAST))[1] as first_signal_time,
+                (ARRAY_AGG(signal_id ORDER BY gain_ratio DESC NULLS LAST))[1] as first_signal_id,
+                (ARRAY_AGG(entry ORDER BY gain_ratio DESC NULLS LAST))[1] as first_entry,
+                (ARRAY_AGG(peak_price ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_price,
+                (ARRAY_AGG(peak_at ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_at,
+                (ARRAY_AGG(signal_id ORDER BY gain_ratio DESC NULLS LAST))[1] as best_peak_signal_id,
                 COUNT(DISTINCT signal_id) as signal_count,
                 ARRAY_AGG(DISTINCT signal_id ORDER BY signal_id) as all_signal_ids
-            FROM qualified_signals
+            FROM signal_gains
             GROUP BY pair
         )
         SELECT
