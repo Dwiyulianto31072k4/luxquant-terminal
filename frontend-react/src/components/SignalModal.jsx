@@ -56,8 +56,12 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
 
     const fetchDetail = async () => {
       try {
+        // Attach Authorization header if user is logged in
+        const token = localStorage.getItem("access_token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const r = await fetch(
           `/api/v1/signals/detail/${currentSignal.signal_id}`,
+          { headers },
         );
         if (r.ok) setSignalDetail(await r.json());
       } catch (e) {
@@ -346,8 +350,13 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
 
   // 7. Handle Render TradingView Mini di Tab Trade
   // Definisikan variabel URL gambar lebih awal untuk digunakan di useEffect ini
-  const entryImg = signalDetail?.entry_chart_url || signal?.entry_chart_url;
-  const afterImg = signalDetail?.latest_chart_url || signal?.latest_chart_url;
+  // OPSI B: hide charts for redacted (non-subscriber on open signal)
+  const entryImg = signalDetail?.is_redacted
+    ? null
+    : signalDetail?.entry_chart_url || signal?.entry_chart_url;
+  const afterImg = signalDetail?.is_redacted
+    ? null
+    : signalDetail?.latest_chart_url || signal?.latest_chart_url;
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
   useEffect(() => {
@@ -433,6 +442,11 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
     pair?.replace(/USDT$/i, "").toUpperCase() || "";
   const coinSymbol = getCoinSymbol(signal?.pair);
   const coinSymbolLower = coinSymbol.toLowerCase();
+
+  // === REDACTED FLAG ===
+  // Backend marks signalDetail.is_redacted=true when user is non-subscriber
+  // viewing an OPEN signal. In that case entry/TP/SL/charts are null in the response.
+  const isRedacted = signalDetail?.is_redacted === true;
 
   const calcPct = (target, entry) => {
     const tNum = Number(target);
@@ -958,6 +972,53 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
+
+    // OPSI B: If signal is redacted (open signal + non-subscriber),
+    // show paywall overlay instead of entry/TP/SL details
+    if (isRedacted) {
+      return (
+        <div className={isCompact ? "p-2.5 space-y-1.5" : "p-2.5 space-y-2"}>
+          <div className="relative bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-lg p-6 border border-gold-primary/30 min-h-[280px] flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gold-primary"
+              >
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <h3 className="text-white font-bold text-base mb-2">
+              Premium Live Signal
+            </h3>
+            <p className="text-white/60 text-xs leading-relaxed max-w-[260px] mb-4">
+              This signal is still <span className="text-gold-primary font-semibold">open and running</span>.
+              Subscribe to view live entry, take-profits, stop-loss, and charts.
+            </p>
+            <button
+              onClick={() => {
+                window.location.href = "/pricing";
+              }}
+              className="px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]"
+            >
+              🔒 Subscribe to Unlock
+            </button>
+            <p className="text-[10px] text-white/40 mt-3">
+              Closed signals are visible for free as track record proof.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className={isCompact ? "p-2.5 space-y-1.5" : "p-2.5 space-y-2"}>
         <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">

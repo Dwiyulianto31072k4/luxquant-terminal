@@ -45,7 +45,12 @@ const TopPerformers = () => {
 
   const fetchDetail = useCallback(async (sid) => {
     setDetailLoading(true); setSignalDetail(null);
-    try { const r = await fetch(`${API_BASE}/signals/detail/${sid}`); if (r.ok) setSignalDetail(await r.json()); }
+    try {
+      const token = localStorage.getItem('access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`${API_BASE}/signals/detail/${sid}`, { headers });
+      if (r.ok) setSignalDetail(await r.json());
+    }
     catch (e) { console.error(e); } finally { setDetailLoading(false); }
   }, []);
 
@@ -319,6 +324,35 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0a0a] px-4 py-4 sm:px-6">
           {loading ? (<div className="flex items-center justify-center py-20"><div className="text-center"><div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4" /><p className="text-gold-primary font-mono text-sm">{t('top.loading')}</p></div></div>
+          ) : detail?.is_redacted ? (
+            <div className="flex items-center justify-center py-12 px-4">
+              <div className="max-w-md text-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <h3 className="text-white font-display font-bold text-xl mb-3">Premium Live Signal</h3>
+                <p className="text-white/60 text-sm leading-relaxed mb-2">
+                  This signal is still <span className="text-gold-primary font-semibold">open and running</span>.
+                </p>
+                <p className="text-white/50 text-xs leading-relaxed mb-6">
+                  Subscribe to view live entry, take-profits, stop-loss, charts, and full trade journey.
+                </p>
+                <button onClick={() => { window.location.href = '/pricing'; }} className="px-6 py-3 rounded-lg bg-gold-primary text-black font-bold text-sm hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
+                  🔒 Subscribe to Unlock
+                </button>
+                <p className="text-[11px] text-white/40 mt-4">
+                  Closed signals are visible for free as track record proof.
+                </p>
+                {detail.pair && (
+                  <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+                    <span className="text-text-muted text-xs">Pair:</span>
+                    <span className="text-white font-mono font-semibold text-sm">{detail.pair}</span>
+                    <span className="text-text-muted text-xs">·</span>
+                    <span className="text-cyan-400 text-xs font-bold uppercase">OPEN</span>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : detail ? (
             <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
               <div className="w-full">

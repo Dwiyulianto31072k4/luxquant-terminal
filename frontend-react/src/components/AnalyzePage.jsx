@@ -62,7 +62,9 @@ const AnalyzePage = () => {
       const params = new URLSearchParams();
       if (timeRange !== "all") params.append("time_range", timeRange);
       params.append("trend_mode", trendMode);
-      const response = await fetch(`${API_BASE}/signals/analyze?${params}`);
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await fetch(`${API_BASE}/signals/analyze?${params}`, { headers });
       if (!response.ok) throw new Error("Failed to fetch");
       setData(await response.json());
     } catch (err) {
@@ -89,7 +91,9 @@ const AnalyzePage = () => {
       if (sigSearch) params.append("pair", sigSearch.toUpperCase());
       if (sigStatus !== "all") params.append("status", sigStatus);
       if (sigRisk !== "all") params.append("risk_level", sigRisk);
-      const res = await fetch(`${API_BASE}/signals/?${params}`);
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/signals/?${params}`, { headers });
       if (!res.ok) throw new Error("Failed");
       const d = await res.json();
       setSignals(d.items || []);

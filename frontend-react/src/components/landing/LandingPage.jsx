@@ -640,7 +640,9 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/v1/signals/analyze?time_range=all&trend_mode=weekly');
+        const token = localStorage.getItem('access_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch('/api/v1/signals/analyze?time_range=all&trend_mode=weekly', { headers });
         if (res.ok) setPerformanceData(await res.json());
       } catch (e) { console.warn('Stats fetch failed:', e); }
     };

@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.signal import Signal, SignalUpdate
 from app.models.user import User
-from app.api.deps import require_subscription, get_admin_user
+from app.api.deps import require_subscription, get_admin_user, get_current_user_optional
 from app.schemas.signal import (
     SignalResponse, 
     SignalListResponse,
@@ -42,6 +42,43 @@ from app.services.cache_worker import precompute_outcomes, ensure_outcomes_table
 from app.core.database import SessionLocal
 
 router = APIRouter()
+
+
+# ============================================
+# Helper: Check if user is active subscriber
+# Used for conditional public/private endpoints (Opsi B)
+# ============================================
+
+def _user_is_active_subscriber(user: Optional[User]) -> bool:
+    """
+    Check if user is active subscriber/premium/admin (no exception thrown).
+    Returns False if user is None (anonymous) or not an active subscriber.
+    Logic mirrors require_subscription dependency in deps.py.
+    """
+    if not user:
+        return False
+    
+    # Admin bypass
+    if getattr(user, 'is_admin', False) or getattr(user, 'role', None) == 'admin':
+        return True
+    
+    # Premium/subscriber role check
+    role = getattr(user, 'role', None)
+    if role not in ('premium', 'subscriber'):
+        return False
+    
+    # Check subscription expiry
+    expires_at = getattr(user, 'subscription_expires_at', None)
+    if expires_at:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        # Handle naive datetime
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < now:
+            return False
+    
+    return True
 
 
 # ============================================
@@ -155,6 +192,12 @@ class SignalDetailResponse(BaseModel):
     latest_chart_url: Optional[str] = None
     updates: List[SignalUpdateItem] = []
     enrichment: Optional[dict] = None
+    # NEW: redact flag for non-subscriber accessing open signals (Opsi B)
+    is_redacted: Optional[bool] = False
+
+    class Config:
+        # Allow extra fields for forward compatibility
+        extra = "allow"
 
 
 # ============================================
@@ -244,6 +287,7 @@ def status_to_filter(status_input: str) -> str:
 
 # ============================================
 # OPTIMIZED Analyze Endpoint
+# OPSI B: Fully public (data agregat saja, no actionable info)
 # ============================================
 
 @router.get("/analyze", response_model=AnalyzeResponse)
@@ -251,7 +295,6 @@ async def get_analyze_data(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     trend_mode: str = Query("weekly", description="Trend grouping: daily, weekly"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_subscription),
 ):
     cache_key = f"lq:signals:analyze:{time_range}:{trend_mode}"
     cached = cache_get(cache_key)
@@ -501,7 +544,7 @@ async def get_analyze_data(
 
 
 # ============================================
-# GET /signals/bulk-7d
+# GET /signals/bulk-7d (PUBLIC)
 # ============================================
 
 @router.get("/bulk-7d")
@@ -561,6 +604,7 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
 
 # ============================================
 # GET /signals/
+# OPSI B: Conditional - non-subscriber force filter to closed signals only
 # ============================================
 
 @router.get("/")
@@ -575,9 +619,19 @@ async def get_signals(
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    cache_key = f"lq:signals:page={page}:size={page_size}:st={status or 'all'}:pair={pair or 'all'}:risk={risk_level or 'all'}:sb={sort_by}:so={sort_order}:df={date_from or 'none'}:dt={date_to or 'none'}"
+    is_subscriber = _user_is_active_subscriber(current_user)
+    
+    # OPSI B: Non-subscriber force filter — only closed signals (status != 'open')
+    # If they specifically request open signals, return empty (graceful, no crash)
+    if not is_subscriber:
+        if status and status.lower() == 'open':
+            return {"items": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 1}
+    
+    # Cache key includes subscriber flag so anonymous & subscriber don't share cache
+    sub_flag = "sub" if is_subscriber else "pub"
+    cache_key = f"lq:signals:{sub_flag}:page={page}:size={page_size}:st={status or 'all'}:pair={pair or 'all'}:risk={risk_level or 'all'}:sb={sort_by}:so={sort_order}:df={date_from or 'none'}:dt={date_to or 'none'}"
     
     cached = cache_get(cache_key)
     if cached:
@@ -609,10 +663,16 @@ async def get_signals(
         if status and status.lower() != 'all':
             mapped = status_to_filter(status)
             if mapped == 'open':
+                # subscriber only path (already returned for non-sub above)
                 conditions.append("so.outcome IS NULL")
             else:
                 conditions.append("so.outcome = :status_filter")
                 params["status_filter"] = mapped
+        
+        # OPSI B: Non-subscriber force filter to non-open signals
+        if not is_subscriber and not (status and status.lower() != 'all'):
+            # If no specific status filter requested, force only closed signals
+            conditions.append("so.outcome IS NOT NULL")
         
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         
@@ -704,7 +764,7 @@ async def get_signals(
 
 
 # ============================================
-# GET /signals/active
+# GET /signals/active (SUBSCRIBER ONLY)
 # ============================================
 
 @router.get("/active")
@@ -748,7 +808,7 @@ async def get_active_signals(
 
 
 # ============================================
-# GET /signals/stats
+# GET /signals/stats (PUBLIC)
 # ============================================
 
 @router.get("/stats", response_model=SignalStats)
@@ -788,7 +848,7 @@ async def get_signal_stats(db: Session = Depends(get_db)):
 
 
 # ============================================
-# POST /signals/sync-status
+# POST /signals/sync-status (ADMIN ONLY)
 # ============================================
 
 @router.post("/sync-status")
@@ -814,10 +874,8 @@ async def sync_signal_status(
 
 
 # ============================================
-# GET /signals/top-performers
+# GET /signals/top-performers (PUBLIC)
 # UPDATED v7: peak-based logic + Union OR window (created_at OR update_at)
-# Signal qualified if: created_at in window OR has TP hit in window
-# Gain calculated from first_entry → max(peak_price)
 # ============================================
 
 @router.get("/top-performers")
@@ -828,15 +886,7 @@ async def get_top_performers(
     date_to: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """
-    Top Gainers (peak-based) & Fastest Hits — deduplicated per pair.
-    
-    Top gainers logic (v7):
-    - Window filter: signal qualified if created_at in window OR has TP hit in window (Union OR)
-    - Per pair: take MAX(peak_price) as best peak, and entry from earliest signal
-    - Gain = (peak - first_entry) / first_entry * 100
-    - signal_count = number of qualified signals for the pair
-    """
+    """Top Gainers (peak-based) & Fastest Hits — deduplicated per pair."""
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
@@ -854,15 +904,12 @@ async def get_top_performers(
     if cached:
         return cached
 
-    # Fastest hits filter (TP-based, by update_at) — UNCHANGED
     date_conditions_hit = "AND su.update_at >= :date_from"
     params = {"date_from": actual_from, "limit": limit}
     if actual_to:
         date_conditions_hit += " AND su.update_at <= :date_to"
         params["date_to"] = f"{actual_to}T23:59:59"
 
-    # Gainers query: Union OR filter (created_at OR update_at in window)
-    # Each signal individually qualified — Interpretasi A
     date_to_clause_gainers = "AND CAST(s.created_at AS timestamptz) <= CAST(:date_to AS timestamptz)" if actual_to else ""
     date_to_clause_tp = "AND CAST(su.update_at AS timestamptz) <= CAST(:date_to AS timestamptz)" if actual_to else ""
 
@@ -1071,7 +1118,7 @@ async def get_top_performers(
     
     
 # ============================================
-# GET /signals/coin-intel
+# GET /signals/coin-intel (SUBSCRIBER ONLY)
 # ============================================
 
 @router.get("/coin-intel")
@@ -1101,19 +1148,57 @@ async def get_coin_intel(
 
 
 # ============================================
+# Helper: Redact sensitive fields for non-subscriber on open signals
+# ============================================
+def _build_redacted_detail_response(
+    signal: Signal,
+    market_cap: Optional[str],
+    risk_reasons: Optional[str],
+    updates: List[SignalUpdateItem],
+) -> SignalDetailResponse:
+    """Build response with entry/TP/SL/charts redacted for non-subscriber on open signal."""
+    return SignalDetailResponse(
+        signal_id=signal.signal_id,
+        channel_id=signal.channel_id,
+        call_message_id=signal.call_message_id,
+        message_link=None,  # hide telegram link too
+        pair=signal.pair,
+        entry=None,  # redacted
+        target1=None, target2=None, target3=None, target4=None,  # redacted
+        stop1=None, stop2=None,  # redacted
+        risk_level=signal.risk_level,
+        volume_rank_num=signal.volume_rank_num,
+        volume_rank_den=signal.volume_rank_den,
+        status=signal.status,
+        created_at=signal.created_at,
+        market_cap=market_cap,
+        risk_reasons=risk_reasons,
+        entry_chart_url=None,  # redacted
+        latest_chart_url=None,  # redacted
+        updates=updates,  # safe, just shows what TP got hit (history)
+        enrichment=None,  # redacted (deep analysis is paid)
+        is_redacted=True,
+    )
+
+
+# ============================================
 # GET /signals/detail/{signal_id}
+# OPSI B: Conditional - redact entry/TP/SL for non-subscriber on open signals
 # ============================================
 
 @router.get("/detail/{signal_id}", response_model=SignalDetailResponse)
 async def get_signal_detail_v2(
     signal_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
     
+    is_subscriber = _user_is_active_subscriber(current_user)
+    
+    # Get updates (history) - always returned, no redact
     updates_result = db.execute(
         text("""
             SELECT update_type, price, MIN(update_at) as update_at
@@ -1138,7 +1223,9 @@ async def get_signal_detail_v2(
         
         if normalized_type and normalized_type not in seen_types:
             seen_types.add(normalized_type)
-            updates.append(SignalUpdateItem(update_type=normalized_type, price=row[1], update_at=row[2]))
+            # For non-subscriber on open signal, also redact update prices
+            price = row[1] if (is_subscriber or signal.status != 'open') else None
+            updates.append(SignalUpdateItem(update_type=normalized_type, price=price, update_at=row[2]))
     
     market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
     try:
@@ -1147,46 +1234,53 @@ async def get_signal_detail_v2(
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
+    # OPSI B: If signal is open and user is not subscriber, return redacted response
+    if signal.status == 'open' and not is_subscriber:
+        return _build_redacted_detail_response(signal, market_cap, risk_reasons, updates)
+    
+    # Full response (closed signal OR subscriber)
     enrichment_data = None
-    try:
-        enr = db.execute(text("""
-            SELECT confidence_score, rating, regime, score_breakdown, weights_used,
-                   mtf_h4_trend, mtf_h1_trend, mtf_m15_trend, signal_direction, mtf_detail,
-                   patterns_detected,
-                   smc_fvg_count, smc_ob_count, smc_sweep_count, smc_golden_setup, smc_detail,
-                   btc_trend, btc_dom_trend, fear_greed, atr_percentile,
-                   confluence_notes, warnings, analyzed_at, enrichment_version
-            FROM signal_enrichment WHERE signal_id = :sid
-        """), {"sid": signal_id}).fetchone()
-        if enr:
-            enrichment_data = {
-                "confidence_score": enr[0],
-                "rating": enr[1],
-                "regime": enr[2],
-                "score_breakdown": enr[3] if isinstance(enr[3], dict) else {},
-                "weights_used": enr[4] if isinstance(enr[4], dict) else {},
-                "mtf_h4_trend": enr[5],
-                "mtf_h1_trend": enr[6],
-                "mtf_m15_trend": enr[7],
-                "signal_direction": enr[8],
-                "mtf_detail": enr[9] if isinstance(enr[9], dict) else {},
-                "patterns_detected": enr[10] if isinstance(enr[10], list) else [],
-                "smc_fvg_count": enr[11],
-                "smc_ob_count": enr[12],
-                "smc_sweep_count": enr[13],
-                "smc_golden_setup": enr[14],
-                "smc_detail": enr[15] if isinstance(enr[15], dict) else {},
-                "btc_trend": enr[16],
-                "btc_dom_trend": enr[17],
-                "fear_greed": enr[18],
-                "atr_percentile": enr[19],
-                "confluence_notes": enr[20],
-                "warnings": enr[21] if isinstance(enr[21], list) else [],
-                "analyzed_at": str(enr[22]) if enr[22] else None,
-                "enrichment_version": enr[23],
-            }
-    except Exception:
-        pass
+    # Only attach enrichment for subscribers (Deep Analysis is paid)
+    if is_subscriber:
+        try:
+            enr = db.execute(text("""
+                SELECT confidence_score, rating, regime, score_breakdown, weights_used,
+                       mtf_h4_trend, mtf_h1_trend, mtf_m15_trend, signal_direction, mtf_detail,
+                       patterns_detected,
+                       smc_fvg_count, smc_ob_count, smc_sweep_count, smc_golden_setup, smc_detail,
+                       btc_trend, btc_dom_trend, fear_greed, atr_percentile,
+                       confluence_notes, warnings, analyzed_at, enrichment_version
+                FROM signal_enrichment WHERE signal_id = :sid
+            """), {"sid": signal_id}).fetchone()
+            if enr:
+                enrichment_data = {
+                    "confidence_score": enr[0],
+                    "rating": enr[1],
+                    "regime": enr[2],
+                    "score_breakdown": enr[3] if isinstance(enr[3], dict) else {},
+                    "weights_used": enr[4] if isinstance(enr[4], dict) else {},
+                    "mtf_h4_trend": enr[5],
+                    "mtf_h1_trend": enr[6],
+                    "mtf_m15_trend": enr[7],
+                    "signal_direction": enr[8],
+                    "mtf_detail": enr[9] if isinstance(enr[9], dict) else {},
+                    "patterns_detected": enr[10] if isinstance(enr[10], list) else [],
+                    "smc_fvg_count": enr[11],
+                    "smc_ob_count": enr[12],
+                    "smc_sweep_count": enr[13],
+                    "smc_golden_setup": enr[14],
+                    "smc_detail": enr[15] if isinstance(enr[15], dict) else {},
+                    "btc_trend": enr[16],
+                    "btc_dom_trend": enr[17],
+                    "fear_greed": enr[18],
+                    "atr_percentile": enr[19],
+                    "confluence_notes": enr[20],
+                    "warnings": enr[21] if isinstance(enr[21], list) else [],
+                    "analyzed_at": str(enr[22]) if enr[22] else None,
+                    "enrichment_version": enr[23],
+                }
+        except Exception:
+            pass
     
     return SignalDetailResponse(
         signal_id=signal.signal_id, channel_id=signal.channel_id,
@@ -1200,22 +1294,27 @@ async def get_signal_detail_v2(
         entry_chart_url=chart_path_to_url(entry_chart_path),
         latest_chart_url=chart_path_to_url(latest_chart_path),
         updates=updates,
-        enrichment=enrichment_data)
+        enrichment=enrichment_data,
+        is_redacted=False,
+    )
 
 
 # ============================================
 # GET /signals/{signal_id} — Legacy
+# OPSI B: Conditional same as /detail/{id}
 # ============================================
 
 @router.get("/{signal_id}")
 async def get_signal_detail(
     signal_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
+    
+    is_subscriber = _user_is_active_subscriber(current_user)
     
     updates = db.query(SignalUpdate).filter(SignalUpdate.signal_id == signal_id).order_by(asc(SignalUpdate.update_at)).all()
     
@@ -1235,6 +1334,25 @@ async def get_signal_detail(
             elif 'sl' in ut or 'stop' in ut:
                 if 0 > best_level: best_level = 0; derived_status = "closed_loss"
     
+    # OPSI B: If signal is open and user is not subscriber, redact sensitive fields
+    if derived_status == 'open' and not is_subscriber:
+        return {
+            "signal_id": signal.signal_id, "channel_id": signal.channel_id,
+            "call_message_id": signal.call_message_id, "message_link": None,
+            "pair": signal.pair,
+            "entry": None,  # redacted
+            "target1": None, "target2": None, "target3": None, "target4": None,  # redacted
+            "stop1": None, "stop2": None,  # redacted
+            "risk_level": signal.risk_level,
+            "volume_rank_num": signal.volume_rank_num, "volume_rank_den": signal.volume_rank_den,
+            "status": derived_status, "created_at": signal.created_at,
+            "entry_chart_url": None,  # redacted
+            "latest_chart_url": None,  # redacted
+            "updates": [{"update_type": u.update_type, "price": None, "update_at": u.update_at, "message_link": None} for u in updates],
+            "is_redacted": True,
+        }
+    
+    # Full response
     return {
         "signal_id": signal.signal_id, "channel_id": signal.channel_id,
         "call_message_id": signal.call_message_id, "message_link": signal.message_link,
@@ -1245,5 +1363,6 @@ async def get_signal_detail(
         "status": derived_status, "created_at": signal.created_at,
         "entry_chart_url": chart_path_to_url(signal.entry_chart_path),
         "latest_chart_url": chart_path_to_url(signal.latest_chart_path),
-        "updates": [{"update_type": u.update_type, "price": u.price, "update_at": u.update_at, "message_link": u.message_link} for u in updates]
+        "updates": [{"update_type": u.update_type, "price": u.price, "update_at": u.update_at, "message_link": u.message_link} for u in updates],
+        "is_redacted": False,
     }

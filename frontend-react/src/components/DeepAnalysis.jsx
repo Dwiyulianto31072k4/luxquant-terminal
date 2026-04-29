@@ -406,7 +406,12 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
     setLoading(true);
     setError(null);
 
-    fetch(`/api/v1/enrichment/v3/${signalId}`)
+    fetch(`/api/v1/enrichment/v3/${signalId}`, {
+      headers: (() => {
+        const token = localStorage.getItem('access_token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      })(),
+    })
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
@@ -447,10 +452,14 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
       if (format === 'json') {
         content = JSON.stringify(v3Data, null, 2);
       } else if (format === 'markdown') {
-        const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/export/md`);
+        const token = localStorage.getItem('access_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/export/md`, { headers });
         content = await resp.text();
       } else if (format === 'prompt') {
-        const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/export/prompt`);
+        const token = localStorage.getItem('access_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/export/prompt`, { headers });
         content = await resp.text();
       }
       await navigator.clipboard.writeText(content);
@@ -469,7 +478,9 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
       return;
     }
     try {
-      const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/history?limit=50`);
+      const token = localStorage.getItem('access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const resp = await fetch(`/api/v1/enrichment/v3/${signalId}/history?limit=50`, { headers });
       const data = await resp.json();
       setHistory(data.history || []);
       setShowHistory(true);

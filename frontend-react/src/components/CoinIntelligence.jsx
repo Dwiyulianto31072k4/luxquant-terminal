@@ -519,7 +519,9 @@ const CoinIntelligence = ({ selectedDates = [] }) => {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/signals/coin-intel`);
+      const token = localStorage.getItem('access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData(await res.json()); setError(null);
     } catch (err) { setError(err.message); } finally { setLoading(false); }
