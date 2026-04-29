@@ -23,6 +23,8 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.models.signal import Signal, SignalUpdate
+from app.models.user import User
+from app.api.deps import require_subscription, get_admin_user
 from app.schemas.signal import (
     SignalResponse, 
     SignalListResponse,
@@ -248,7 +250,8 @@ def status_to_filter(status_input: str) -> str:
 async def get_analyze_data(
     time_range: str = Query("all", description="Time range: all, ytd, mtd, 30d, 7d"),
     trend_mode: str = Query("weekly", description="Trend grouping: daily, weekly"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_subscription),
 ):
     cache_key = f"lq:signals:analyze:{time_range}:{trend_mode}"
     cached = cache_get(cache_key)
@@ -571,7 +574,8 @@ async def get_signals(
     date_to: Optional[str] = None,
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_subscription),
 ):
     cache_key = f"lq:signals:page={page}:size={page_size}:st={status or 'all'}:pair={pair or 'all'}:risk={risk_level or 'all'}:sb={sort_by}:so={sort_order}:df={date_from or 'none'}:dt={date_to or 'none'}"
     
@@ -706,7 +710,8 @@ async def get_signals(
 @router.get("/active")
 async def get_active_signals(
     limit: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_subscription),
 ):
     cached = cache_get(f"lq:signals:active:{limit}")
     if cached and "items" in cached:
@@ -787,7 +792,10 @@ async def get_signal_stats(db: Session = Depends(get_db)):
 # ============================================
 
 @router.post("/sync-status")
-async def sync_signal_status(db: Session = Depends(get_db)):
+async def sync_signal_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
+):
     sync_query = text(f"""
         WITH {SIGNAL_OUTCOMES_CTE}
         UPDATE signals s
@@ -1067,7 +1075,9 @@ async def get_top_performers(
 # ============================================
 
 @router.get("/coin-intel")
-async def get_coin_intel():
+async def get_coin_intel(
+    current_user: User = Depends(require_subscription),
+):
     cached = cache_get("lq:signals:coin-intel")
     if cached:
         return cached
@@ -1095,7 +1105,11 @@ async def get_coin_intel():
 # ============================================
 
 @router.get("/detail/{signal_id}", response_model=SignalDetailResponse)
-async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
+async def get_signal_detail_v2(
+    signal_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_subscription),
+):
     signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
@@ -1194,7 +1208,11 @@ async def get_signal_detail_v2(signal_id: str, db: Session = Depends(get_db)):
 # ============================================
 
 @router.get("/{signal_id}")
-async def get_signal_detail(signal_id: str, db: Session = Depends(get_db)):
+async def get_signal_detail(
+    signal_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_subscription),
+):
     signal = db.query(Signal).filter(Signal.signal_id == signal_id).first()
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
