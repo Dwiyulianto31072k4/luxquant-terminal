@@ -9,10 +9,12 @@ AI Arena v4 API Routes
 - /anomaly-log   → recent anomaly checks
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 import json
 
 from app.core.redis import cache_get, cache_set, get_redis
+from app.api.deps import get_admin_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -244,8 +246,10 @@ async def get_anomaly_log(limit: int = Query(20, ge=1, le=100)):
 # ══════════════════════════════════════
 
 @router.post("/run")
-async def trigger_report():
-    """Manually trigger AI report generation."""
+async def trigger_report(
+    current_user: User = Depends(get_admin_user),
+):
+    """Manually trigger AI report generation. Admin only."""
     from app.services.ai_arena_worker import run_ai_report_pipeline
 
     try:

@@ -23,9 +23,12 @@ import logging
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import create_engine, text
+
+from app.api.deps import require_subscription
+from app.models.user import User
 
 logger = logging.getLogger("enrichment-v3-api")
 
@@ -121,7 +124,10 @@ def fetch_enrichment_history(signal_id: str, limit: int = 100) -> list:
 # ============================================================
 
 @router.get("/{signal_id}")
-def get_enrichment_v3(signal_id: str):
+def get_enrichment_v3(
+    signal_id: str,
+    current_user: User = Depends(require_subscription),
+):
     """
     Get v3 enrichment data for a signal.
     Returns entry_snapshot (frozen) + live_snapshot (latest) + metadata.
@@ -181,6 +187,7 @@ def get_enrichment_v3(signal_id: str):
 def get_enrichment_history(
     signal_id: str,
     limit: int = Query(default=50, le=200, ge=1),
+    current_user: User = Depends(require_subscription),
 ):
     """
     Get history of live snapshots (progressive disclosure).
@@ -371,9 +378,8 @@ def format_snapshot_as_markdown(signal: dict, snapshot: dict, label: str = "Entr
     return "\n".join(md)
 
 
-@router.get("/{signal_id}/export/md", response_class=PlainTextResponse)
-def export_as_markdown(signal_id: str):
-    """Export enrichment data as markdown (for copy-paste to AI)."""
+def _build_markdown_for_signal(signal_id: str) -> str:
+    """Internal helper: build markdown content for a signal (no auth check, called by authenticated endpoints)."""
     signal = fetch_signal_basic(signal_id)
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
@@ -407,11 +413,22 @@ def export_as_markdown(signal_id: str):
     return "\n".join(md)
 
 
+@router.get("/{signal_id}/export/md", response_class=PlainTextResponse)
+def export_as_markdown(
+    signal_id: str,
+    current_user: User = Depends(require_subscription),
+):
+    """Export enrichment data as markdown (for copy-paste to AI)."""
+    return _build_markdown_for_signal(signal_id)
+
+
 @router.get("/{signal_id}/export/prompt", response_class=PlainTextResponse)
-def export_as_ai_prompt(signal_id: str):
+def export_as_ai_prompt(
+    signal_id: str,
+    current_user: User = Depends(require_subscription),
+):
     """Export as markdown + pre-built AI prompt for copy-paste."""
-    md_response = export_as_markdown(signal_id)
-    md_content = md_response.body.decode() if hasattr(md_response, "body") else str(md_response)
+    md_content = _build_markdown_for_signal(signal_id)
 
     prompt = md_content + "\n\n---\n\n"
     prompt += "Based on the data above, please analyze this trading signal:\n\n"

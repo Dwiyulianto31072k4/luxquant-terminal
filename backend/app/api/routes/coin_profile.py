@@ -13,6 +13,8 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set, cache_get_with_stale
 from app.utils.chart_urls import chart_path_to_url
+from app.api.deps import get_current_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -129,7 +131,8 @@ async def get_coin_profile(
     pair: str,
     limit: int = Query(5, ge=1, le=10000, description="Number of past calls to return"),
     exclude: Optional[str] = Query(None, description="Signal ID to exclude (current signal)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get coin profile for SignalModal History tab.
