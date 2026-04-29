@@ -82,6 +82,26 @@ def _user_is_active_subscriber(user: Optional[User]) -> bool:
 
 
 # ============================================
+# Helper: Strict public-viewability check for signal status
+# Returns True if status is "fully closed" (TP4 hit OR SL hit)
+# Partial running statuses (open, tp1, tp2, tp3) are NOT public.
+# ============================================
+
+def _status_is_publicly_viewable(status: Optional[str]) -> bool:
+    """
+    Strict policy: only signals that have reached final outcome are public.
+    - closed_win / tp4 = fully won, all targets hit
+    - closed_loss / sl = fully lost, stop hit
+    
+    Anything else (open, tp1, tp2, tp3) is still actionable and protected.
+    """
+    if not status:
+        return False
+    s = status.lower()
+    return s in ('closed_win', 'tp4', 'closed_loss', 'sl')
+
+
+# ============================================
 # Pydantic Models for Analyze
 # ============================================
 
@@ -623,11 +643,16 @@ async def get_signals(
 ):
     is_subscriber = _user_is_active_subscriber(current_user)
     
-    # OPSI B: Non-subscriber force filter — only closed signals (status != 'open')
-    # If they specifically request open signals, return empty (graceful, no crash)
+    # OPSI B (STRICT): Non-subscriber can only see fully-closed signals
+    # (closed_win = tp4 hit, closed_loss = sl hit)
+    # Partial running signals (open, tp1, tp2, tp3) are subscriber-only
+    PUBLIC_VIEWABLE_STATUSES = {'closed_win', 'tp4', 'closed_loss', 'sl'}
+    
     if not is_subscriber:
-        if status and status.lower() == 'open':
-            return {"items": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 1}
+        if status and status.lower() != 'all':
+            # If they request a non-public status, return empty
+            if status.lower() not in PUBLIC_VIEWABLE_STATUSES:
+                return {"items": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 1}
     
     # Cache key includes subscriber flag so anonymous & subscriber don't share cache
     sub_flag = "sub" if is_subscriber else "pub"
@@ -669,10 +694,10 @@ async def get_signals(
                 conditions.append("so.outcome = :status_filter")
                 params["status_filter"] = mapped
         
-        # OPSI B: Non-subscriber force filter to non-open signals
+        # OPSI B (STRICT): Non-subscriber force filter — only fully-closed signals
+        # (tp4 = closed_win, sl = closed_loss). Partial running (tp1/tp2/tp3) hidden.
         if not is_subscriber and not (status and status.lower() != 'all'):
-            # If no specific status filter requested, force only closed signals
-            conditions.append("so.outcome IS NOT NULL")
+            conditions.append("so.outcome IN ('tp4', 'sl')")
         
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         
@@ -1223,8 +1248,8 @@ async def get_signal_detail_v2(
         
         if normalized_type and normalized_type not in seen_types:
             seen_types.add(normalized_type)
-            # For non-subscriber on open signal, also redact update prices
-            price = row[1] if (is_subscriber or signal.status != 'open') else None
+            # STRICT: only show update prices to subscribers OR when signal is fully closed
+            price = row[1] if (is_subscriber or _status_is_publicly_viewable(signal.status)) else None
             updates.append(SignalUpdateItem(update_type=normalized_type, price=price, update_at=row[2]))
     
     market_cap = risk_reasons = entry_chart_path = latest_chart_path = None
@@ -1234,8 +1259,9 @@ async def get_signal_detail_v2(
             market_cap = extra[0]; risk_reasons = extra[1]; entry_chart_path = extra[2]; latest_chart_path = extra[3]
     except: pass
     
-    # OPSI B: If signal is open and user is not subscriber, return redacted response
-    if signal.status == 'open' and not is_subscriber:
+    # OPSI B (STRICT): Redact unless user is subscriber OR signal is fully closed
+    # (closed_win = tp4 hit, closed_loss = sl hit). Partial running (tp1/tp2/tp3) hidden.
+    if not is_subscriber and not _status_is_publicly_viewable(signal.status):
         return _build_redacted_detail_response(signal, market_cap, risk_reasons, updates)
     
     # Full response (closed signal OR subscriber)
@@ -1334,8 +1360,9 @@ async def get_signal_detail(
             elif 'sl' in ut or 'stop' in ut:
                 if 0 > best_level: best_level = 0; derived_status = "closed_loss"
     
-    # OPSI B: If signal is open and user is not subscriber, redact sensitive fields
-    if derived_status == 'open' and not is_subscriber:
+    # OPSI B (STRICT): Redact unless user is subscriber OR signal is fully closed
+    # (closed_win = tp4 hit, closed_loss = sl hit). Partial running (tp1/tp2/tp3) hidden.
+    if not is_subscriber and not _status_is_publicly_viewable(derived_status):
         return {
             "signal_id": signal.signal_id, "channel_id": signal.channel_id,
             "call_message_id": signal.call_message_id, "message_link": None,
