@@ -309,8 +309,12 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
       setError(null);
       try {
         const exclude = signal?.signal_id || "";
+        // Attach Authorization header (coin-profile endpoint requires login)
+        const token = localStorage.getItem("access_token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch(
           `${API_BASE}/api/v1/coin-profile/${pair}?limit=${lim}&exclude=${exclude}`,
+          { headers },
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
