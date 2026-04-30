@@ -9,17 +9,25 @@ Supplements existing BGeometrics on-chain data with:
   - Exchange Reserve trend: Structural supply change over 30 days
 
 All sourced from BGeometrics (free public API, no key).
-Complements fetch_onchain_nupl, fetch_onchain_mvrv in ai_arena_data.py.
+
+Rate-limit notes:
+  bitcoin-data.com aggressively returns HTTP 429 if multiple endpoints
+  are hit in quick succession. We add a small inter-request sleep, and
+  treat 429 as a graceful skip (returning None for that one metric)
+  instead of failing the whole module. The first metric usually
+  succeeds, the rest may be 429 — the AI report still benefits from
+  whatever subset comes back.
 
 All functions return None on failure — never raise.
 """
 
+import time
 import requests
-from datetime import datetime
 from typing import Optional, Dict, List
 
 BGEOMETRICS_BASE = "https://bitcoin-data.com/v1"
 TIMEOUT = 15
+INTER_REQUEST_SLEEP = 1.5  # seconds between BGeometrics requests
 
 
 def _log(msg):
@@ -27,10 +35,13 @@ def _log(msg):
 
 
 def _bg_get(metric: str) -> Optional[List]:
+    """Single GET with graceful 429 handling."""
     try:
         r = requests.get(f"{BGEOMETRICS_BASE}/{metric}", timeout=TIMEOUT)
         if r.status_code == 200:
             return r.json()
+        elif r.status_code == 429:
+            _log(f"{metric} rate limited (429), skipping")
         else:
             _log(f"{metric} HTTP {r.status_code}")
     except Exception as e:
@@ -38,76 +49,91 @@ def _bg_get(metric: str) -> Optional[List]:
     return None
 
 
+def _bg_first_match(candidates: List[str]) -> Optional[List]:
+    """Try a list of slug candidates, return first that works.
+    Sleep briefly between attempts to avoid 429."""
+    for i, ep in enumerate(candidates):
+        if i > 0:
+            time.sleep(0.6)  # short pause between candidate attempts
+        data = _bg_get(ep)
+        if data is not None:
+            return data
+    return None
+
+
 # ═══════════════════════════════════════════
 # 1. STH-MVRV (Short-Term Holder MVRV)
 # ═══════════════════════════════════════════
 # Zones:
-#  < 1.0  = STH in aggregate loss (historically near local bottoms)
-#  ~ 1.0  = break-even (pivot zone)
-#  > 1.2  = STH in strong profit (froth / local top zone)
+#  < 0.95 = capitulation (strong buy zone)
+#  < 1.0  = loss (bottom zone)
+#  ~1.0   = pivot (break-even)
+#  < 1.2  = profit (healthy)
+#  >= 1.2 = euphoria (top zone)
 
 def fetch_sth_mvrv() -> Optional[Dict]:
-    """
-    STH-MVRV from BGeometrics. Try several endpoint names in case of naming variance.
-    """
-    candidates = ["sth-mvrv", "short-term-holder-mvrv", "sth_mvrv"]
-    for ep in candidates:
-        data = _bg_get(ep)
-        if data and len(data) > 0:
-            latest = data[-1]
-            v = latest.get("sthMvrv", latest.get("mvrv", latest.get("value")))
-            if v is None:
-                continue
-            v = float(v or 0)
-            zone = _classify_sth_mvrv(v)
-            return {
-                "date": latest.get("d"),
-                "sth_mvrv": round(v, 3),
-                "zone": zone,
-            }
-    return None
+    data = _bg_first_match(["sth-mvrv", "short-term-holder-mvrv", "sth_mvrv"])
+    if not data:
+        return None
+    latest = data[-1] if data else None
+    if not latest:
+        return None
+    v = latest.get("sthMvrv", latest.get("mvrv", latest.get("value")))
+    if v is None:
+        return None
+    try:
+        v = float(v)
+    except (ValueError, TypeError):
+        return None
+    return {
+        "date": latest.get("d"),
+        "sth_mvrv": round(v, 3),
+        "zone": _classify_sth_mvrv(v),
+    }
 
 
 def _classify_sth_mvrv(v: float) -> str:
     if v < 0.95:
-        return "capitulation"      # Strong buy signal
+        return "capitulation"
     elif v < 1.0:
-        return "loss"              # Bottom zone
+        return "loss"
     elif v < 1.08:
-        return "pivot"             # Break-even, neutral
+        return "pivot"
     elif v < 1.2:
-        return "profit"            # Healthy profit
+        return "profit"
     else:
-        return "euphoria"          # Froth / top zone
+        return "euphoria"
 
 
 # ═══════════════════════════════════════════
 # 2. Puell Multiple
 # ═══════════════════════════════════════════
 # Zones:
-#  < 0.5  = miner capitulation (historical cycle bottoms)
-#  0.5-1  = undervalued
-#  1-2    = normal
-#  2-4    = euphoria / caution
-#  > 4    = cycle top risk
+#  < 0.5  = miner_capitulation (cycle-bottom signal)
+#  < 1    = undervalued
+#  < 2    = normal
+#  < 4    = caution
+#  >= 4   = cycle_top_risk
 
 def fetch_puell_multiple() -> Optional[Dict]:
-    candidates = ["puell-multiple", "puell_multiple", "puell"]
-    for ep in candidates:
-        data = _bg_get(ep)
-        if data and len(data) > 0:
-            latest = data[-1]
-            v = latest.get("puellMultiple", latest.get("puell", latest.get("value")))
-            if v is None:
-                continue
-            v = float(v or 0)
-            zone = _classify_puell(v)
-            return {
-                "date": latest.get("d"),
-                "puell": round(v, 3),
-                "zone": zone,
-            }
-    return None
+    data = _bg_first_match(["puell-multiple", "puell_multiple", "puell"])
+    if not data:
+        return None
+    latest = data[-1] if data else None
+    if not latest:
+        return None
+    v = latest.get("puellMultiple", latest.get("puell", latest.get("value")))
+    if v is None:
+        return None
+    try:
+        v = float(v)
+    except (ValueError, TypeError):
+        return None
+    return {
+        "date": latest.get("d"),
+        "puell": round(v, 3),
+        "zone": _classify_puell(v),
+    }
 
 
 def _classify_puell(v: float) -> str:
@@ -126,85 +152,80 @@ def _classify_puell(v: float) -> str:
 # ═══════════════════════════════════════════
 # 3. Exchange Reserve Trend (30-day)
 # ═══════════════════════════════════════════
-# Detects structural supply flowing OUT of exchanges (bullish)
-# or INTO exchanges (bearish / distribution).
 
 def fetch_exchange_reserve_trend() -> Optional[Dict]:
-    """
-    Fetch exchange reserve data, compute 30-day delta.
-    Uses 'exchange-reserve' metric from BGeometrics.
-    """
-    candidates = ["exchange-reserve", "exchange_reserve"]
-    for ep in candidates:
-        data = _bg_get(ep)
-        if not data or len(data) < 2:
+    data = _bg_first_match([
+        "exchange-reserve",
+        "exchange_reserve",
+        "exchange-balance",
+        "exchanges-net-position-change",
+    ])
+    if not data or len(data) < 30:
+        return None
+
+    series = []
+    for row in data:
+        v = row.get("exchangeReserve", row.get("reserve", row.get("value")))
+        d = row.get("d", row.get("date"))
+        if v is None or d is None:
+            continue
+        try:
+            series.append({"date": d, "reserve": float(v)})
+        except (ValueError, TypeError):
             continue
 
-        # Extract daily values
-        series = []
-        for row in data:
-            # Try common field names
-            v = row.get("exchangeReserve", row.get("reserve", row.get("value")))
-            d = row.get("d", row.get("date"))
-            if v is None or d is None:
-                continue
-            try:
-                series.append({"date": d, "reserve": float(v)})
-            except (ValueError, TypeError):
-                continue
+    if len(series) < 30:
+        return None
 
-        if len(series) < 30:
-            continue
+    series.sort(key=lambda r: r["date"])
+    latest = series[-1]
+    ref = series[-30]
+    if ref["reserve"] == 0:
+        return None
 
-        # Sort ascending by date
-        series.sort(key=lambda r: r["date"])
-        latest = series[-1]
-        ref_30d = series[-30]
+    delta_pct = (latest["reserve"] - ref["reserve"]) / ref["reserve"] * 100
+    if delta_pct < -3.0:
+        trend = "strong_outflow"
+    elif delta_pct < -1.0:
+        trend = "outflow"
+    elif delta_pct > 3.0:
+        trend = "strong_inflow"
+    elif delta_pct > 1.0:
+        trend = "inflow"
+    else:
+        trend = "stable"
 
-        current = latest["reserve"]
-        before = ref_30d["reserve"]
-        if before == 0:
-            continue
-
-        delta_pct = (current - before) / before * 100
-        # Classify: significant outflow is bullish (supply shock potential)
-        if delta_pct < -3.0:
-            trend = "strong_outflow"
-        elif delta_pct < -1.0:
-            trend = "outflow"
-        elif delta_pct > 3.0:
-            trend = "strong_inflow"
-        elif delta_pct > 1.0:
-            trend = "inflow"
-        else:
-            trend = "stable"
-
-        return {
-            "date": latest["date"],
-            "current_reserve_btc": round(current, 0),
-            "reserve_30d_ago_btc": round(before, 0),
-            "change_30d_pct": round(delta_pct, 2),
-            "trend": trend,
-        }
-
-    return None
+    return {
+        "date": latest["date"],
+        "current_reserve_btc": round(latest["reserve"], 0),
+        "reserve_30d_ago_btc": round(ref["reserve"], 0),
+        "change_30d_pct": round(delta_pct, 2),
+        "trend": trend,
+    }
 
 
 # ═══════════════════════════════════════════
-# 4. Top-level bundle
+# 4. Top-level bundle (with rate-limit-friendly pacing)
 # ═══════════════════════════════════════════
 
 def fetch_onchain_extras() -> Dict:
-    """Fetch all extra on-chain metrics. Never raises, returns empty dict on total failure."""
+    """
+    Fetch all extras with sleep between calls to avoid BGeometrics 429.
+    Returns whatever subset succeeded.
+    """
     result = {}
 
     sth = fetch_sth_mvrv()
     if sth:
         result["sth_mvrv"] = sth
 
+    time.sleep(INTER_REQUEST_SLEEP)
+
     puell = fetch_puell_multiple()
     if puell:
         result["puell"] = puell
+
+    time.sleep(INTER_REQUEST_SLEEP)
 
     er = fetch_exchange_reserve_trend()
     if er:

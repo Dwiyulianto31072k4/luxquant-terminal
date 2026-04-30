@@ -1,28 +1,28 @@
 # backend/app/services/macro_data.py
 """
-LuxQuant AI Arena v5 — Macro Data Layer (Stooq-backed)
-========================================================
+LuxQuant AI Arena v5 — Macro Data Layer (FRED + Binance)
+==========================================================
 Tracks macro assets that correlate with BTC price action.
 
-Source: stooq.com (free CSV downloads, no API key, no aggressive rate limits)
-  - Direct CSV endpoints: /q/d/l/?s=<symbol>&i=d
-  - Reliable from datacenter IPs (unlike Yahoo Finance which 429s)
+Sources:
+  - FRED (St. Louis Fed): DXY-proxy, SPX, US10Y    — official, free, no key
+  - Binance: BTC and PAXG (Pax Gold, tokenized 1:1) — already in our stack
 
-Why not Yahoo Finance (the original plan):
-  query1.finance.yahoo.com aggressively rate-limits scraper traffic.
-  Returns HTTP 429 from typical VPS IPs even with browser headers.
-  Stooq has no such issue and same data shape.
+Why this combination:
+  Earlier attempts:
+    1. Yahoo Finance — HTTP 429 from datacenter IPs (rate limited)
+    2. Stooq.com    — switched to API key gating recently
+  FRED is the US government's economic data service: never rate-limits
+  serious users, and the Trade-Weighted Dollar Index (DTWEXBGS) is
+  arguably a better USD proxy than the legacy futures-based DXY.
+  Binance gives us BTC + PAXG (gold spot via tokenized ETF), reliable
+  and consistent with the rest of the AI Arena stack.
 
 Assets tracked:
-  - DXY  (^dxy)   : US Dollar Index — typically inverse to BTC
-  - SPX  (^spx)   : S&P 500 — post-ETF era, positive correlation
-  - Gold (gc.f)   : Gold futures — diversification gauge
-  - US10Y (10usy.b): 10-year yield — risk-on/risk-off
-
-Computed metrics:
-  - Current price + 1D / 7D / 30D change
-  - 30D rolling Pearson correlation vs BTC
-  - Macro regime classification (risk_on / risk_off / mixed)
+  - DXY  (DTWEXBGS via FRED): Trade-Weighted USD Index — typically inverse to BTC
+  - SPX  (SP500    via FRED): S&P 500 — post-ETF era, positive correlation
+  - Gold (PAXGUSDT via Binance): Tokenized gold spot
+  - US10Y (DGS10   via FRED): 10Y Treasury yield — risk-on/risk-off
 
 All functions return None on failure — never raise.
 """
@@ -31,22 +31,23 @@ import csv
 import io
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, List, Tuple
 
 TIMEOUT = 15
-STOOQ_BASE = "https://stooq.com/q/d/l/"
 
-# Stooq symbol mapping. `i=d` = daily candles.
+FRED_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv"
+BINANCE_KLINES = "https://api.binance.com/api/v3/klines"
+
+# Symbol map. Each entry tells us which fetcher to call.
 MACRO_SYMBOLS = {
-    "dxy":   {"symbol": "^dxy",     "label": "US Dollar Index"},
-    "spx":   {"symbol": "^spx",     "label": "S&P 500"},
-    "gold":  {"symbol": "gc.f",     "label": "Gold"},
-    "us10y": {"symbol": "10usy.b",  "label": "US 10Y Yield"},
+    "dxy":   {"source": "fred",    "id": "DTWEXBGS", "label": "USD Index (Trade-Weighted)"},
+    "spx":   {"source": "fred",    "id": "SP500",    "label": "S&P 500"},
+    "gold":  {"source": "binance", "id": "PAXGUSDT", "label": "Gold (PAXG spot)"},
+    "us10y": {"source": "fred",    "id": "DGS10",    "label": "US 10Y Yield"},
 }
 
-# Use Stooq's BTC. .v = market series. Format same CSV.
-BTC_SYMBOL = "btc.v"
+BTC_BINANCE_SYMBOL = "BTCUSDT"
 
 CACHE_TTL = 1800  # 30 min
 _cache = {"data": None, "fetched_at": 0}
@@ -57,59 +58,92 @@ def _log(msg):
 
 
 # ═══════════════════════════════════════════
-# Stooq CSV fetcher
+# FRED CSV fetcher
 # ═══════════════════════════════════════════
 
-def fetch_stooq_history(symbol: str, days: int = 60) -> Optional[List[Dict]]:
+def fetch_fred_history(series_id: str, days: int = 60) -> Optional[List[Dict]]:
     """
-    Fetch daily closes for a Stooq symbol.
+    Fetch daily CSV from FRED for a given series.
 
-    Stooq returns CSV with columns: Date,Open,High,Low,Close,Volume
-    Most recent rows at the bottom (chronological ascending).
-
-    Returns list of {date, close} dicts, last `days` entries, or None on failure.
+    Returns list of {date, close} sorted ascending, last `days` entries
+    (skipping rows where the value is missing — FRED uses '.' for holidays).
     """
     try:
-        r = requests.get(
-            STOOQ_BASE,
-            params={"s": symbol, "i": "d"},
-            timeout=TIMEOUT,
-        )
+        r = requests.get(FRED_BASE, params={"id": series_id}, timeout=TIMEOUT)
         if r.status_code != 200:
-            _log(f"{symbol} HTTP {r.status_code}")
+            _log(f"FRED {series_id} HTTP {r.status_code}")
             return None
         text = r.text
-        # Stooq returns "No data" or empty CSV when symbol invalid
-        if "no data" in text[:50].lower() or len(text) < 50:
-            _log(f"{symbol} empty response")
+        if "<!DOCTYPE" in text[:50] or "DOCTYPE html" in text[:50]:
+            _log(f"FRED {series_id} returned HTML (series likely missing)")
             return None
     except Exception as e:
-        _log(f"{symbol} fetch failed: {e}")
+        _log(f"FRED {series_id} fetch failed: {e}")
         return None
 
-    # Parse CSV
     history = []
     try:
         reader = csv.DictReader(io.StringIO(text))
         for row in reader:
-            d = row.get("Date") or ""
-            c = row.get("Close")
-            if not d or c is None:
+            d = (row.get("observation_date") or row.get("DATE") or "").strip()
+            v = row.get(series_id)
+            if not d or v is None:
+                continue
+            v = v.strip()
+            if not v or v == ".":
                 continue
             try:
-                close = float(c)
+                close = float(v)
             except (ValueError, TypeError):
                 continue
             history.append({"date": d, "close": close})
     except Exception as e:
-        _log(f"{symbol} CSV parse failed: {e}")
+        _log(f"FRED {series_id} CSV parse failed: {e}")
         return None
 
     if not history:
         return None
 
-    # Stooq is already chronological ascending. Take tail.
     return history[-days:]
+
+
+# ═══════════════════════════════════════════
+# Binance daily klines
+# ═══════════════════════════════════════════
+
+def fetch_binance_daily(symbol: str, days: int = 60) -> Optional[List[Dict]]:
+    """
+    Fetch daily candles from Binance public REST API.
+    Returns list of {date, close} ascending, last `days` entries.
+    """
+    try:
+        r = requests.get(
+            BINANCE_KLINES,
+            params={"symbol": symbol, "interval": "1d", "limit": days},
+            timeout=TIMEOUT,
+        )
+        if r.status_code != 200:
+            _log(f"Binance {symbol} HTTP {r.status_code}")
+            return None
+        rows = r.json()
+        if not isinstance(rows, list) or not rows:
+            _log(f"Binance {symbol} empty response")
+            return None
+    except Exception as e:
+        _log(f"Binance {symbol} fetch failed: {e}")
+        return None
+
+    history = []
+    for k in rows:
+        try:
+            ts_ms = int(k[0])
+            close = float(k[4])
+            date_str = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+            history.append({"date": date_str, "close": close})
+        except (ValueError, TypeError, IndexError):
+            continue
+
+    return history if history else None
 
 
 # ═══════════════════════════════════════════
@@ -117,7 +151,6 @@ def fetch_stooq_history(symbol: str, days: int = 60) -> Optional[List[Dict]]:
 # ═══════════════════════════════════════════
 
 def pearson_correlation(xs: List[float], ys: List[float]) -> Optional[float]:
-    """Simple Pearson correlation."""
     if len(xs) != len(ys) or len(xs) < 3:
         return None
 
@@ -136,7 +169,6 @@ def pearson_correlation(xs: List[float], ys: List[float]) -> Optional[float]:
 
 
 def align_by_date(series_a: List[Dict], series_b: List[Dict]) -> Tuple[List[float], List[float]]:
-    """Align two date-close series on matching dates."""
     b_map = {r["date"]: r["close"] for r in series_b}
     xs, ys = [], []
     for ra in series_a:
@@ -151,7 +183,6 @@ def align_by_date(series_a: List[Dict], series_b: List[Dict]) -> Tuple[List[floa
 # ═══════════════════════════════════════════
 
 def build_asset_snapshot(history: List[Dict]) -> Optional[Dict]:
-    """From daily history, compute current + 1D / 7D / 30D change %."""
     if not history or len(history) < 2:
         return None
 
@@ -174,23 +205,31 @@ def build_asset_snapshot(history: List[Dict]) -> Optional[Dict]:
 
 
 # ═══════════════════════════════════════════
+# Source dispatcher
+# ═══════════════════════════════════════════
+
+def fetch_history_for(cfg: Dict, days: int = 60) -> Optional[List[Dict]]:
+    src = cfg.get("source")
+    sid = cfg.get("id")
+    if src == "fred":
+        return fetch_fred_history(sid, days=days)
+    if src == "binance":
+        return fetch_binance_daily(sid, days=days)
+    _log(f"unknown source {src}")
+    return None
+
+
+# ═══════════════════════════════════════════
 # Top-level Macro Pulse
 # ═══════════════════════════════════════════
 
 def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
-    """
-    Main entry point. Fetches BTC + 4 macro assets from Stooq,
-    builds snapshots, computes 30-day rolling correlations vs BTC,
-    classifies regime.
-
-    Returns a dict the same shape as the previous Yahoo-backed module.
-    """
     global _cache
     now = time.time()
     if not force_refresh and _cache["data"] and (now - _cache["fetched_at"] < CACHE_TTL):
         return _cache["data"]
 
-    btc_history = fetch_stooq_history(BTC_SYMBOL, days=60)
+    btc_history = fetch_binance_daily(BTC_BINANCE_SYMBOL, days=60)
     if not btc_history or len(btc_history) < 10:
         _log("BTC history insufficient, aborting")
         return None
@@ -201,18 +240,17 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
 
     assets_out = {}
     for key, cfg in MACRO_SYMBOLS.items():
-        history = fetch_stooq_history(cfg["symbol"], days=60)
+        history = fetch_history_for(cfg, days=60)
         if not history:
             continue
         snap = build_asset_snapshot(history)
         if not snap:
             continue
-        # Correlation vs BTC, last 30 aligned points
         xs, ys = align_by_date(btc_history[-30:], history[-30:])
         corr = pearson_correlation(xs, ys)
         assets_out[key] = {
             **snap,
-            "symbol": cfg["symbol"],
+            "symbol": cfg["id"],
             "label": cfg["label"],
             "correlation_30d": round(corr, 3) if corr is not None else None,
         }
@@ -229,7 +267,7 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
         "regime": regime,
         "regime_detail": detail,
         "updated_at": datetime.utcnow().isoformat() + "Z",
-        "source": "stooq",
+        "source": "fred+binance",
     }
 
     _cache = {"data": data, "fetched_at": now}
@@ -239,13 +277,6 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
 
 
 def classify_regime(assets: Dict, btc: Dict) -> Tuple[str, str]:
-    """
-    Classify macro regime based on 1D moves of key assets.
-
-    risk_on:  equities up, dollar down, yields up moderately
-    risk_off: equities down, dollar up, gold up, yields down (flight to safety)
-    mixed:    conflicting signals
-    """
     spx = assets.get("spx", {})
     dxy = assets.get("dxy", {})
     gold = assets.get("gold", {})
