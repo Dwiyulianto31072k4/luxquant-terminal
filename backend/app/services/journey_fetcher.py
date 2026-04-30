@@ -54,6 +54,30 @@ BYBIT_INTERVAL_MAP = {
     '12h': '720', '1d': 'D',
 }
 
+# Interval duration in seconds — buat align start_time ke kline boundary
+INTERVAL_SECONDS = {
+    '1m': 60, '5m': 300, '15m': 900, '30m': 1800,
+    '1h': 3600, '2h': 7200, '4h': 14400, '6h': 21600,
+    '12h': 43200, '1d': 86400,
+}
+
+
+def _floor_to_interval(dt: datetime, interval: str) -> datetime:
+    """
+    Floor datetime to interval boundary (UTC).
+
+    Example: dt=2026-04-30T09:50:05Z, interval='1h' -> 2026-04-30T09:00:00Z
+    Important: exchange API endTime/startTime expects kline open_time;
+    if start_time falls mid-candle, kline containing it must be included.
+    """
+    seconds = INTERVAL_SECONDS.get(interval)
+    if not seconds:
+        return dt
+    # Use UTC epoch seconds and floor
+    epoch = int(dt.timestamp())
+    floored = (epoch // seconds) * seconds
+    return datetime.fromtimestamp(floored, tz=timezone.utc)
+
 
 # ============================================================
 # PER-EXCHANGE FETCHERS
@@ -257,8 +281,13 @@ def fetch_klines_with_fallback(
     if interval not in BINANCE_INTERVAL_MAP:
         raise ValueError(f"Unsupported interval: {interval}")
 
+    # Round start_time down to interval boundary so the kline containing
+    # entry timestamp is included (e.g. entry at 09:50 with 1h interval,
+    # we need kline at 09:00 not 10:00)
+    start_time_aligned = _floor_to_interval(start_time, interval)
+
     # Convert to ms timestamps
-    start_ms = int(start_time.timestamp() * 1000)
+    start_ms = int(start_time_aligned.timestamp() * 1000)
     end_ms = int(end_time.timestamp() * 1000)
 
     last_error: Optional[str] = None

@@ -128,7 +128,11 @@ def fetch_signal_for_journey(session: Session, signal_id: str) -> Optional[Signa
 def fetch_telegram_events(session: Session, signal_id: str) -> List[TelegramEvent]:
     """
     Fetch all signal_updates rows for a signal, parse timestamps,
-    return chronologically sorted TelegramEvent list.
+    return DEDUPED & chronologically sorted TelegramEvent list.
+
+    Dedupe rule: untuk pair (signal_id, update_type) yang muncul lebih dari sekali
+    (e.g. kalau Telegram bot duplicate-broadcast atau retry insert dengan timestamp beda),
+    keep yang paling AWAL — itu first announcement asli.
 
     Skip rows dengan unparseable update_at atau invalid update_type.
     """
@@ -139,8 +143,9 @@ def fetch_telegram_events(session: Session, signal_id: str) -> List[TelegramEven
         ORDER BY update_at
     """), {"sid": signal_id}).mappings().all()
 
-    events: List[TelegramEvent] = []
     valid_types = {'tp1', 'tp2', 'tp3', 'tp4', 'sl'}
+    # Dedupe: dict keyed by update_type, keep earliest only
+    earliest_by_type: Dict[str, TelegramEvent] = {}
 
     for row in rows:
         update_type = (row["update_type"] or "").strip().lower()
@@ -158,14 +163,21 @@ def fetch_telegram_events(session: Session, signal_id: str) -> List[TelegramEven
             log.debug(f"Skip {update_type} for {signal_id}: unparseable update_at: {e}")
             continue
 
-        events.append(TelegramEvent(
+        candidate = TelegramEvent(
             type=update_type,
             at=ts,
             price=float(row["price"]),
-        ))
+        )
 
-    # parse_update_at may yield order different from string sort if mixed timezones
-    events.sort(key=lambda e: e.at)
+        existing = earliest_by_type.get(update_type)
+        if existing is None or candidate.at < existing.at:
+            earliest_by_type[update_type] = candidate
+        # else: keep existing (it's earlier)
+
+    if len(earliest_by_type) < sum(1 for r in rows if (r["update_type"] or "").strip().lower() in valid_types):
+        log.info(f"Deduped telegram events for {signal_id}: kept {len(earliest_by_type)} unique types")
+
+    events = sorted(earliest_by_type.values(), key=lambda e: e.at)
     return events
 
 
