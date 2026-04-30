@@ -1,48 +1,54 @@
 # backend/app/services/macro_data.py
 """
-LuxQuant AI Arena v5 — Macro Data Layer
-=========================================
+LuxQuant AI Arena v5 — Macro Data Layer (Stooq-backed)
+========================================================
 Tracks macro assets that correlate with BTC price action.
 
-Source: Yahoo Finance (free, no API key needed)
-  - yfinance Python lib wraps the Yahoo endpoints
-  - Fallback: direct Yahoo chart API if yfinance fails
+Source: stooq.com (free CSV downloads, no API key, no aggressive rate limits)
+  - Direct CSV endpoints: /q/d/l/?s=<symbol>&i=d
+  - Reliable from datacenter IPs (unlike Yahoo Finance which 429s)
+
+Why not Yahoo Finance (the original plan):
+  query1.finance.yahoo.com aggressively rate-limits scraper traffic.
+  Returns HTTP 429 from typical VPS IPs even with browser headers.
+  Stooq has no such issue and same data shape.
 
 Assets tracked:
-  - DXY (^DXY): US Dollar Index — typically inverse to BTC
-  - SPX (^GSPC): S&P 500 — post-ETF era, positive correlation
-  - Gold (GC=F): Gold futures — diversification gauge
-  - 10Y Treasury (^TNX): 10-year yield — risk-on/risk-off
+  - DXY  (^dxy)   : US Dollar Index — typically inverse to BTC
+  - SPX  (^spx)   : S&P 500 — post-ETF era, positive correlation
+  - Gold (gc.f)   : Gold futures — diversification gauge
+  - US10Y (10usy.b): 10-year yield — risk-on/risk-off
 
 Computed metrics:
-  - Current price + 1D/7D/30D change
+  - Current price + 1D / 7D / 30D change
   - 30D rolling Pearson correlation vs BTC
   - Macro regime classification (risk_on / risk_off / mixed)
 
 All functions return None on failure — never raise.
 """
 
+import csv
+import io
 import time
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 
 TIMEOUT = 15
-YAHOO_CHART_API = "https://query1.finance.yahoo.com/v8/finance/chart"
-UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0"
+STOOQ_BASE = "https://stooq.com/q/d/l/"
 
-# Yahoo symbols — keep list small & curated
+# Stooq symbol mapping. `i=d` = daily candles.
 MACRO_SYMBOLS = {
-    "dxy":    {"symbol": "DX-Y.NYB",   "label": "US Dollar Index"},
-    "spx":    {"symbol": "^GSPC",      "label": "S&P 500"},
-    "gold":   {"symbol": "GC=F",       "label": "Gold"},
-    "us10y":  {"symbol": "^TNX",       "label": "US 10Y Yield"},
+    "dxy":   {"symbol": "^dxy",     "label": "US Dollar Index"},
+    "spx":   {"symbol": "^spx",     "label": "S&P 500"},
+    "gold":  {"symbol": "gc.f",     "label": "Gold"},
+    "us10y": {"symbol": "10usy.b",  "label": "US 10Y Yield"},
 }
 
-BTC_SYMBOL = "BTC-USD"
+# Use Stooq's BTC. .v = market series. Format same CSV.
+BTC_SYMBOL = "btc.v"
 
-# Cache: Yahoo rate-limits aggressive polling; 30 min is safe.
-CACHE_TTL = 1800
+CACHE_TTL = 1800  # 30 min
 _cache = {"data": None, "fetched_at": 0}
 
 
@@ -51,58 +57,59 @@ def _log(msg):
 
 
 # ═══════════════════════════════════════════
-# Yahoo Finance chart API (daily candles)
+# Stooq CSV fetcher
 # ═══════════════════════════════════════════
 
-def fetch_yahoo_history(symbol: str, days: int = 45) -> Optional[List[Dict]]:
+def fetch_stooq_history(symbol: str, days: int = 60) -> Optional[List[Dict]]:
     """
-    Fetch daily closes for `days` days back.
-    Returns list of {date, close} sorted ascending, or None on failure.
+    Fetch daily closes for a Stooq symbol.
+
+    Stooq returns CSV with columns: Date,Open,High,Low,Close,Volume
+    Most recent rows at the bottom (chronological ascending).
+
+    Returns list of {date, close} dicts, last `days` entries, or None on failure.
     """
-    # Use period1/period2 (unix seconds)
-    period2 = int(time.time())
-    period1 = period2 - (days * 86400)
-
-    params = {
-        "period1": period1,
-        "period2": period2,
-        "interval": "1d",
-        "events": "history",
-    }
-
     try:
         r = requests.get(
-            f"{YAHOO_CHART_API}/{symbol}",
-            params=params,
-            headers={"User-Agent": UA},
+            STOOQ_BASE,
+            params={"s": symbol, "i": "d"},
             timeout=TIMEOUT,
         )
         if r.status_code != 200:
             _log(f"{symbol} HTTP {r.status_code}")
             return None
-
-        j = r.json()
-        result = j.get("chart", {}).get("result")
-        if not result:
-            _log(f"{symbol} empty chart result")
+        text = r.text
+        # Stooq returns "No data" or empty CSV when symbol invalid
+        if "no data" in text[:50].lower() or len(text) < 50:
+            _log(f"{symbol} empty response")
             return None
-
-        res = result[0]
-        timestamps = res.get("timestamp", []) or []
-        closes = (res.get("indicators", {}).get("quote", [{}])[0] or {}).get("close", []) or []
-
-        history = []
-        for ts, close in zip(timestamps, closes):
-            if close is None:
-                continue
-            history.append({
-                "date": datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d"),
-                "close": float(close),
-            })
-        return history
     except Exception as e:
-        _log(f"{symbol} failed: {e}")
+        _log(f"{symbol} fetch failed: {e}")
         return None
+
+    # Parse CSV
+    history = []
+    try:
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            d = row.get("Date") or ""
+            c = row.get("Close")
+            if not d or c is None:
+                continue
+            try:
+                close = float(c)
+            except (ValueError, TypeError):
+                continue
+            history.append({"date": d, "close": close})
+    except Exception as e:
+        _log(f"{symbol} CSV parse failed: {e}")
+        return None
+
+    if not history:
+        return None
+
+    # Stooq is already chronological ascending. Take tail.
+    return history[-days:]
 
 
 # ═══════════════════════════════════════════
@@ -110,7 +117,7 @@ def fetch_yahoo_history(symbol: str, days: int = 45) -> Optional[List[Dict]]:
 # ═══════════════════════════════════════════
 
 def pearson_correlation(xs: List[float], ys: List[float]) -> Optional[float]:
-    """Simple Pearson correlation implementation."""
+    """Simple Pearson correlation."""
     if len(xs) != len(ys) or len(xs) < 3:
         return None
 
@@ -129,7 +136,7 @@ def pearson_correlation(xs: List[float], ys: List[float]) -> Optional[float]:
 
 
 def align_by_date(series_a: List[Dict], series_b: List[Dict]) -> Tuple[List[float], List[float]]:
-    """Align two date-close series on matching dates. Returns (xs, ys)."""
+    """Align two date-close series on matching dates."""
     b_map = {r["date"]: r["close"] for r in series_b}
     xs, ys = [], []
     for ra in series_a:
@@ -140,11 +147,11 @@ def align_by_date(series_a: List[Dict], series_b: List[Dict]) -> Tuple[List[floa
 
 
 # ═══════════════════════════════════════════
-# Asset snapshot builder
+# Snapshot builder
 # ═══════════════════════════════════════════
 
 def build_asset_snapshot(history: List[Dict]) -> Optional[Dict]:
-    """From daily history, compute current price + 1D / 7D / 30D change."""
+    """From daily history, compute current + 1D / 7D / 30D change %."""
     if not history or len(history) < 2:
         return None
 
@@ -172,31 +179,18 @@ def build_asset_snapshot(history: List[Dict]) -> Optional[Dict]:
 
 def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
     """
-    Main entry point. Fetches all macro assets + BTC history,
-    computes snapshots + 30D rolling correlations.
+    Main entry point. Fetches BTC + 4 macro assets from Stooq,
+    builds snapshots, computes 30-day rolling correlations vs BTC,
+    classifies regime.
 
-    Returns:
-        {
-          "btc": {"current": 75000, "change_1d_pct": 1.2, ...},
-          "assets": {
-            "dxy":   {"current": ..., "correlation_30d": -0.65, "label": "..."},
-            "spx":   {"current": ..., "correlation_30d":  0.54, "label": "..."},
-            "gold":  {...},
-            "us10y": {...},
-          },
-          "regime": "risk_on" | "risk_off" | "mixed",
-          "regime_detail": "SPX strong, DXY weakening, Gold flat",
-          "updated_at": "2026-04-23T03:20:00Z",
-        }
-        or None on failure.
+    Returns a dict the same shape as the previous Yahoo-backed module.
     """
     global _cache
     now = time.time()
     if not force_refresh and _cache["data"] and (now - _cache["fetched_at"] < CACHE_TTL):
         return _cache["data"]
 
-    # Fetch BTC baseline (Yahoo)
-    btc_history = fetch_yahoo_history(BTC_SYMBOL, days=45)
+    btc_history = fetch_stooq_history(BTC_SYMBOL, days=60)
     if not btc_history or len(btc_history) < 10:
         _log("BTC history insufficient, aborting")
         return None
@@ -205,19 +199,17 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
     if not btc_snapshot:
         return None
 
-    # Fetch each macro asset
     assets_out = {}
     for key, cfg in MACRO_SYMBOLS.items():
-        history = fetch_yahoo_history(cfg["symbol"], days=45)
+        history = fetch_stooq_history(cfg["symbol"], days=60)
         if not history:
             continue
         snap = build_asset_snapshot(history)
         if not snap:
             continue
-        # Correlation vs BTC (30D window)
+        # Correlation vs BTC, last 30 aligned points
         xs, ys = align_by_date(btc_history[-30:], history[-30:])
         corr = pearson_correlation(xs, ys)
-
         assets_out[key] = {
             **snap,
             "symbol": cfg["symbol"],
@@ -229,7 +221,6 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
         _log("no assets fetched")
         return None
 
-    # Regime classification: simple heuristic
     regime, detail = classify_regime(assets_out, btc_snapshot)
 
     data = {
@@ -238,7 +229,7 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
         "regime": regime,
         "regime_detail": detail,
         "updated_at": datetime.utcnow().isoformat() + "Z",
-        "source": "yahoo_finance",
+        "source": "stooq",
     }
 
     _cache = {"data": data, "fetched_at": now}
@@ -249,11 +240,11 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
 
 def classify_regime(assets: Dict, btc: Dict) -> Tuple[str, str]:
     """
-    Classify macro regime based on asset movements.
+    Classify macro regime based on 1D moves of key assets.
 
-    risk_on: equities up, dollar down, yields stable/up moderately
+    risk_on:  equities up, dollar down, yields up moderately
     risk_off: equities down, dollar up, gold up, yields down (flight to safety)
-    mixed: conflicting signals
+    mixed:    conflicting signals
     """
     spx = assets.get("spx", {})
     dxy = assets.get("dxy", {})
@@ -265,27 +256,22 @@ def classify_regime(assets: Dict, btc: Dict) -> Tuple[str, str]:
     gold_1d = gold.get("change_1d_pct") or 0
     y10_1d = us10y.get("change_1d_pct") or 0
 
-    # Scoring
     risk_on_score = 0
     risk_off_score = 0
 
-    # SPX up => risk on
     if spx_1d > 0.3:
         risk_on_score += 2
     elif spx_1d < -0.3:
         risk_off_score += 2
 
-    # DXY up => risk off (USD strength)
     if dxy_1d > 0.3:
         risk_off_score += 1
     elif dxy_1d < -0.3:
         risk_on_score += 1
 
-    # Gold up + SPX down => risk off (flight to safety)
     if gold_1d > 0.5 and spx_1d < 0:
         risk_off_score += 1
 
-    # 10Y dropping hard => risk off (flight to bonds)
     if y10_1d < -1.0:
         risk_off_score += 1
     elif y10_1d > 1.0:
@@ -298,7 +284,6 @@ def classify_regime(assets: Dict, btc: Dict) -> Tuple[str, str]:
     else:
         regime = "mixed"
 
-    # Build human-readable detail
     pieces = []
     if spx_1d:
         pieces.append(f"SPX {spx_1d:+.2f}%")
