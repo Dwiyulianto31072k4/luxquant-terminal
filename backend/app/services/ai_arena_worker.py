@@ -130,6 +130,22 @@ def get_previous_report_context() -> tuple[Optional[str], Optional[Dict]]:
             supply = zones.get("supply", {})
             lines.append(f"  Zones: demand={demand.get('low','?')}-{demand.get('high','?')}, supply={supply.get('low','?')}-{supply.get('high','?')}")
 
+        # v5: Previous institutional flow + macro regime (so AI can track shifts)
+        inst = r.get("institutional_flow") or {}
+        if inst:
+            etf_today = inst.get("etf_flow_today_usd_m")
+            streak_dir = inst.get("streak_direction")
+            streak_days = inst.get("streak_days")
+            cb_signal = inst.get("coinbase_premium_signal")
+            etf_part = f"ETF=${etf_today}M" if etf_today is not None else "ETF=?"
+            streak_part = f"streak={streak_dir} {streak_days}d" if streak_dir else "streak=?"
+            cb_part = f"CBpremium={cb_signal}" if cb_signal else ""
+            lines.append(f"  Institutional: {etf_part}, {streak_part}, {cb_part}".rstrip(", "))
+
+        macro = r.get("macro_pulse") or {}
+        if macro:
+            lines.append(f"  Macro regime: {macro.get('regime', '?')}")
+
         summary = "\n".join([l for l in lines if l])
         return summary, r
 
@@ -194,6 +210,35 @@ def compute_what_changed(current_data: Dict, previous_json: Optional[Dict]) -> O
             "unchanged": False,
         })
 
+        # v5: ETF flow streak
+        prev_streak = (previous_json.get("institutional_flow") or {}).get("streak_days")
+        prev_streak_dir = (previous_json.get("institutional_flow") or {}).get("streak_direction")
+        curr_etf_flows = (current_data.get("etf") or {}).get("flows") or {}
+        curr_streak = (curr_etf_flows.get("streak") or {}).get("days")
+        curr_streak_dir = (curr_etf_flows.get("streak") or {}).get("direction")
+        if prev_streak is not None and curr_streak is not None:
+            diffs.append({
+                "metric": "ETF Streak",
+                "from": f"{prev_streak_dir} {prev_streak}d" if prev_streak_dir else f"{prev_streak}d",
+                "to": f"{curr_streak_dir} {curr_streak}d" if curr_streak_dir else f"{curr_streak}d",
+                "from_fmt": f"{prev_streak_dir} {prev_streak}d" if prev_streak_dir else f"{prev_streak}d",
+                "to_fmt": f"{curr_streak_dir} {curr_streak}d" if curr_streak_dir else f"{curr_streak}d",
+                "unchanged": (prev_streak == curr_streak and prev_streak_dir == curr_streak_dir),
+            })
+
+        # v5: Macro regime
+        prev_regime = (previous_json.get("macro_pulse") or {}).get("regime")
+        curr_regime = (current_data.get("macro") or {}).get("regime")
+        if prev_regime and curr_regime:
+            diffs.append({
+                "metric": "Macro Regime",
+                "from": prev_regime,
+                "to": curr_regime,
+                "from_fmt": prev_regime,
+                "to_fmt": curr_regime,
+                "unchanged": prev_regime == curr_regime,
+            })
+
         return {
             "vs_previous_id": previous_json.get("id", "?"),
             "hours_ago": 12,  # Will be refined
@@ -214,13 +259,13 @@ COMPRESS_PROMPT = """You are a quantitative crypto data analyst. Compress this r
 RULES:
 - Include ALL exact numbers, percentages, dollar values. Do NOT round aggressively.
 - Do NOT add opinions, predictions, or adjectives — just state the data.
-- For tweets: include @username, exact tweet text, and engagement metrics (likes/retweets).
 - For news: include headline and source.
 - If a data point is None/null/missing, say "N/A" — do NOT fabricate.
 - We have TWO OI sources: Coinglass (30+ exchanges, most accurate) and Coinalyze (fewer exchanges but has L/S ratio + liquidation).
 - We have THREE timeframes: 1D (Tide/trend), 4H (Wave/setup), 1H (Ripple/precision).
 
 OUTPUT SECTIONS (3-5 sentences each, dense with numbers):
+
 1. MULTI-TF PRICE ACTION:
    - 1D: Price vs EMA 21/55/200, trend classification (UPTREND/DOWNTREND/SIDEWAYS), RSI
    - 4H: Price vs EMA 20/50 + SMA 100/200, RSI, EMA spread, volume ratio, golden cross status
@@ -229,49 +274,31 @@ OUTPUT SECTIONS (3-5 sentences each, dense with numbers):
 
 2. DERIVATIVES & LIQUIDITY: Coinglass aggregated OI (30+ exchanges) + OI-weighted funding rate. Bybit OI separately. Coinalyze L/S ratio + 24h liquidations (long vs short). Estimated peak liquidation levels. Top 3 exchange OI breakdown.
 
-3. SENTIMENT & ON-CHAIN: Fear & Greed index + classification. NUPL, MVRV, SOPR, STH-SOPR, exchange net flow, realized price. BTC dominance.
+3. ON-CHAIN & SENTIMENT: Fear & Greed index + classification. NUPL, MVRV Z-Score, SOPR, STH-SOPR, exchange net flow, realized price. BTC dominance.
+   v5 NEW — include these if present under "onchain_extras":
+   - STH-MVRV value + zone (capitulation/loss/pivot/profit/euphoria)
+   - Puell Multiple value + zone (miner_capitulation/undervalued/normal/caution/cycle_top_risk)
+   - Exchange Reserve 30D trend (strong_outflow/outflow/stable/inflow/strong_inflow)
 
-4. NEWS & MACRO: Top 5 headlines with [source] and brief impact assessment.
+4. ETF & INSTITUTIONAL FLOWS (v5 — replaces analyst tweets):
+   Include under "etf" key:
+   - Last reporting date + total net flow ($M)
+   - Top contributing funds (e.g., IBIT +$X, FBTC +$Y, ARKB -$Z)
+   - Streak direction + consecutive days (e.g., "inflow streak: 5 days")
+   - 7-day cumulative + 30-day cumulative
+   - Coinbase Premium Index: current pct + signal (strong_buying/mild_buying/neutral/mild_selling/strong_selling)
+   Interpretation: sustained inflows = institutional accumulation; outflow streaks = distribution.
 
-5. ANALYST TWEET BREAKDOWN (v6 — context-aware, pre-classified):
-   Each tweet arrives with these fields from Pass-1 classifier:
-   - pre_stance: "bullish" | "bearish" | "neutral"
-   - relevance: 0-1 (already gated >= 0.5)
-   - topic: "price_level" | "sentiment" | "technical" | "derivatives" | "macro"
-   - pre_reason: short justification
+5. MACRO PULSE (v5 NEW — critical context):
+   Include under "macro" key:
+   - Current regime: risk_on / risk_off / mixed + detail
+   - DXY (Dollar Index): current, 1D/7D/30D change, 30D correlation vs BTC
+   - SPX (S&P 500): current, 1D/7D/30D change, 30D correlation vs BTC
+   - Gold: current, 1D/7D/30D change
+   - US 10Y Yield: current, 1D/7D/30D change
+   Post-ETF era: BTC positively correlated with SPX, negatively with DXY. Note any break from these norms.
 
-   STRICT RULES (ANTI-DRIFT):
-   1. **PRESERVE pre_stance** — Place each tweet in analyst_tape.bulls/bears/neutrals
-      based on pre_stance EXACTLY. Do NOT reclassify.
-      - pre_stance="bullish" → bulls array
-      - pre_stance="bearish" → bears array
-      - pre_stance="neutral" → neutrals array
-   2. The ONLY exception: if tweet text contains words that DIRECTLY contradict
-      pre_stance (e.g., pre="bullish" but tweet says "this is bearish"), you may flip.
-      Otherwise: pre_stance is final.
-   3. Your analyst_tape COUNT distribution must match pre_stance distribution exactly.
-      If Pass-1 says 7B/4B/4N, your tape MUST be 7 bulls / 4 bears / 4 neutrals.
-
-   In analyst_intelligence narrative:
-   - Group by topic (price_level, technical, derivatives, macro, sentiment)
-   - Quote specific handles + their pre_reason
-   - Highlight consensus vs divergence within each topic
-   - Cross-reference with quantitative data (RSI, funding, OI)
-
-   Example narrative:
-   "Price level: @cryptofy01 warns $71k midline at risk if $70k breaks (bearish);
-   @NexusLab101 sees breakout setup above $70k (bullish). Technical: 4/6 traders
-   call distribution. Derivatives: funding reset = clean slate (bullish bias).
-   Macro: split — Fed pivot rumors mixed."
-
-   (original instruction below, preserved for compatibility)
-5. ANALYST TWEET BREAKDOWN (CRITICAL — preserve FULL tweet text):
-   For EACH analyst tweet, provide:
-   - @username: [FULL EXACT TWEET TEXT — do not summarize or truncate]
-   - Engagement: X likes, Y retweets
-   - Stance classification: bullish/bearish/neutral
-   Group analysts by stance: bulls vs bears vs neutral.
-   If no tweets available, explicitly state "No analyst tweets in this cycle."
+6. NEWS: Top 5 headlines with [source] and brief impact assessment.
 
 {context_block}
 
@@ -309,17 +336,22 @@ async def compress_data(raw: Dict, previous_summary: Optional[str] = None) -> st
         filtered["coinglass_funding"]["top_exchanges"] = filtered["coinglass_funding"]["top_exchanges"][:5]
 
     # Keep FULL tweets (v4: preserve exact text for analyst tape)
-    if "analyst_tweets" in filtered:
-        filtered["analyst_tweets"] = [
-            {
-                "author": t.get("author"),
-                "text": t.get("text", ""),  # Full text, no truncation
-                "likes": t.get("likes", 0),
-                "retweets": t.get("retweets", 0),
-                "created_at": t.get("created_at", ""),
-            }
-            for t in filtered["analyst_tweets"][:20]
-        ]
+    # v5: tweets removed — ETF/Macro/On-chain extras take their place.
+    # Trim ETF history to only last 7 days for compression (full history stored in DB)
+    if "etf" in filtered:
+        etf = filtered["etf"]
+        flows = etf.get("flows") or {}
+        if "history_30d" in flows:
+            # Keep only the last 7 rows for the brief
+            flows["history_30d"] = flows["history_30d"][-7:]
+
+    # Macro: drop 45-day raw close series if ever attached (we only care about snapshot + correlation)
+    if "macro" in filtered:
+        macro = filtered["macro"]
+        # No heavy raw series stored here by design — but safety strip any "history" keys
+        for k in list((macro.get("assets") or {}).keys()):
+            asset = macro["assets"][k]
+            asset.pop("history", None)
 
     if "news" in filtered:
         filtered["news"] = filtered["news"][:8]
@@ -365,10 +397,12 @@ DATA SOURCES:
 - Bybit: klines (1D/4H/1H), ticker, OI (single exchange)
 - Coinglass: aggregated OI from 30+ exchanges, OI-weighted funding rate (most accurate total)
 - Coinalyze: L/S ratio, liquidation history (complementary)
-- BGeometrics: on-chain (NUPL, MVRV, SOPR)
+- BGeometrics: on-chain (NUPL, MVRV, SOPR, STH-MVRV, Puell, Exchange Reserve trend)
 - Alternative.me: Fear & Greed
 - Google News RSS: headlines
-- X (Twitter) OAuth: curated analyst tweets
+- v5 NEW: Farside Investors — spot BTC ETF daily flows + streak
+- v5 NEW: Coinbase Premium Index — US institutional buying pressure
+- v5 NEW: Yahoo Finance — DXY, SPX, Gold, US10Y + 30D rolling correlations vs BTC
 
 {context_instruction}
 
@@ -377,13 +411,14 @@ STRICT RULES:
 2. CROSS-TF NARRATIVE: Each section must reference how different timeframes align or conflict.
 3. DIRECTIONAL BIAS: State a clear market direction with multi-TF reasoning.
 4. LIQUIDATION THESIS: Use liquidation cluster data to identify where price is likely drawn toward.
-5. ON-CHAIN CONTEXT: Interpret NUPL/MVRV/SOPR in terms of cycle positioning.
-6. TWEET SYNTHESIS: Weave analyst tweets into the narrative with @attribution.
-7. SMART TAGS: Wrap metric values in [value](tab_name) where tab_name is one of: bitcoin, markets, analytics, orderbook, signals.
-8. NEWS CITATIONS: Cite relevant news as [headline](source).
-9. Write each section as a flowing narrative paragraph (4-5 sentences). NOT bullet points.
-10. COMPARE WITH PREVIOUS REPORT when context is provided — note what changed and why it matters.
-11. ZONES TO WATCH must use legal-safe language: "demand zone", "fair value", "supply zone" — NEVER "entry", "buy", "sell", "target", "stop loss".
+5. ON-CHAIN CONTEXT: Interpret NUPL/MVRV/SOPR + STH-MVRV + Puell in terms of cycle positioning.
+6. INSTITUTIONAL SYNTHESIS (v5): Weave ETF flow direction, streak, top contributing funds, and Coinbase Premium into the narrative. Note alignment or divergence with price.
+7. MACRO CONTEXT (v5): State current regime (risk_on/risk_off/mixed). Reference DXY, SPX, Gold moves. Call out if BTC is decoupling from its typical post-ETF correlations.
+8. SMART TAGS: Wrap metric values in [value](tab_name) where tab_name is one of: bitcoin, markets, analytics, orderbook, signals.
+9. NEWS CITATIONS: Cite relevant news as [headline](source).
+10. Write each section as a flowing narrative paragraph (4-5 sentences). NOT bullet points.
+11. COMPARE WITH PREVIOUS REPORT when context is provided — note what changed and why it matters.
+12. ZONES TO WATCH must use legal-safe language: "demand zone", "fair value", "supply zone" — NEVER "entry", "buy", "sell", "target", "stop loss".
 
 REQUIRED JSON OUTPUT:
 {{
@@ -442,25 +477,33 @@ REQUIRED JSON OUTPUT:
   "deep_analysis": {{
     "price_structure": "<4-5 sentence narrative: Detailed multi-TF price action. 1D sitting at what EMA levels, RSI value, trend classification. 4H setup — EMA cross status, golden cross, SMA positions. 1H momentum and divergence state. How all three TFs confirm or conflict.>",
     "derivatives_liquidity": "<4-5 sentence narrative: Coinglass aggregated OI with exact $ figure and change. OI-weighted funding rate interpretation. Liquidation clusters — nearest long at $X, nearest short at $Y, cascade risk assessment. How derivatives positioning aligns with the technical picture.>",
-    "onchain_sentiment": "<4-5 sentence narrative: Fear & Greed value and what it means. NUPL cycle position. MVRV Z-Score interpretation. SOPR and STH-SOPR. Exchange net flow direction. Does on-chain data confirm or diverge from price and derivatives?>",
-    "macro_catalysts": "<4-5 sentence narrative: Top 3-5 news catalysts with specific impact assessment. Macro backdrop (rates, dollar, regulation). Any scheduled events that could move price. What is the market not pricing in?>",
-    "analyst_intelligence": "<4-5 sentence narrative: Synthesize analyst tweets into a coherent picture. How many bulls vs bears? What is the consensus view? Highlight the strongest contrarian argument. Who has the most compelling thesis and why?>"
+    "onchain_sentiment": "<4-5 sentence narrative: Fear & Greed value and what it means. NUPL cycle position. MVRV Z-Score interpretation. SOPR and STH-SOPR. STH-MVRV zone. Puell Multiple zone. Exchange Reserve 30D trend direction. Does on-chain data confirm or diverge from price and derivatives?>",
+    "institutional_macro": "<4-5 sentence narrative (v5 replacement for analyst_intelligence): Today's spot ETF net flow in $M, streak direction + days, top contributing fund. Coinbase Premium signal interpretation (US institutional buying/selling pressure). Macro regime classification (risk_on/risk_off/mixed). DXY / SPX / Gold / 10Y moves. Does institutional + macro picture confirm or diverge from on-chain and technical?>",
+    "macro_catalysts": "<4-5 sentence narrative: Top 3-5 news catalysts with specific impact assessment. Scheduled macro events (FOMC, CPI, jobs data) that could move price. What is the market not pricing in?>"
   }},
 
-  "analyst_tape": {{
-    "total_analyzed": <number>,
-    "bulls": [
-      {{
-        "handle": "<twitter handle without @>",
-        "tweet_text": "<EXACT full tweet text as received>",
-        "stance_tag": "bullish",
-        "why_it_matters": "<1 sentence: why this view is significant>",
-        "likes": <number>,
-        "retweets": <number>
-      }}
+  "institutional_flow": {{
+    "etf_flow_today_usd_m": <number or null>,
+    "streak_direction": "inflow" | "outflow" | "none",
+    "streak_days": <number>,
+    "cumulative_7d_usd_m": <number or null>,
+    "top_contributors": [
+      {{"fund": "<ticker>", "flow_usd_m": <number>}}
     ],
-    "bears": [<same structure>],
-    "neutrals": [<same structure>]
+    "coinbase_premium_pct": <number or null>,
+    "coinbase_premium_signal": "strong_buying" | "mild_buying" | "neutral" | "mild_selling" | "strong_selling",
+    "interpretation": "<1-2 sentences: what institutional flows tell us right now>"
+  }},
+
+  "macro_pulse": {{
+    "regime": "risk_on" | "risk_off" | "mixed",
+    "dxy_change_1d_pct": <number or null>,
+    "spx_change_1d_pct": <number or null>,
+    "gold_change_1d_pct": <number or null>,
+    "us10y_change_1d_pct": <number or null>,
+    "btc_spx_correlation_30d": <number or null>,
+    "btc_dxy_correlation_30d": <number or null>,
+    "interpretation": "<1-2 sentences: macro setup for BTC right now, note any decoupling from typical post-ETF correlations>"
   }},
 
   "key_levels": {{
@@ -482,7 +525,7 @@ REQUIRED JSON OUTPUT:
     "market_overview": "<Legacy: combine price_structure narrative here for backward compat>",
     "derivatives_liquidity": "<Legacy: derivatives narrative>",
     "sentiment_onchain": "<Legacy: onchain narrative>",
-    "catalysts_stance": "<Legacy: macro + analyst intelligence combined>"
+    "catalysts_stance": "<Legacy: macro_catalysts + institutional_macro combined>"
   }}
 }}
 

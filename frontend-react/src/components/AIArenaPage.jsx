@@ -40,7 +40,8 @@ const SOURCE_LINKS = {
   'BGeometrics': 'https://www.bgeometrics.com',
   'Alternative.me': 'https://alternative.me/crypto/fear-and-greed-index/',
   'Google News': 'https://news.google.com/search?q=bitcoin',
-  'X (Twitter)': 'https://x.com/search?q=bitcoin',
+  'Farside': 'https://farside.co.uk/btc/',
+  'Yahoo Finance': 'https://finance.yahoo.com/quote/BTC-USD',
 };
 
 const ALL_SOURCES = Object.keys(SOURCE_LINKS);
@@ -532,8 +533,8 @@ function DeepAnalysis({ analysis, sections }) {
     { key: 'price_structure',       fallbackKey: 'market_overview',       icon: '📊', label: 'Price Structure' },
     { key: 'derivatives_liquidity', fallbackKey: 'derivatives_liquidity', icon: '⚡', label: 'Derivatives & Liquidity' },
     { key: 'onchain_sentiment',     fallbackKey: 'sentiment_onchain',     icon: '🔗', label: 'On-Chain & Sentiment' },
-    { key: 'macro_catalysts',       fallbackKey: 'catalysts_stance',      icon: '🌍', label: 'Macro & Catalysts' },
-    { key: 'analyst_intelligence',  fallbackKey: null,                    icon: '🎯', label: 'Analyst Intelligence' },
+    { key: 'institutional_macro',   fallbackKey: null,                    icon: '🏦', label: 'Institutional & Macro' },
+    { key: 'macro_catalysts',       fallbackKey: 'catalysts_stance',      icon: '🌍', label: 'News Catalysts' },
   ];
 
   const hasContent = items.some(i => content[i.key] || fallback[i.fallbackKey]);
@@ -563,66 +564,223 @@ function DeepAnalysis({ analysis, sections }) {
 
 
 // ════════════════════════════════════════
-// [8] ANALYST TAPE
+// [8] INSTITUTIONAL FLOW RADAR (v5)
 // ════════════════════════════════════════
 
-function AnalystTape({ tape }) {
-  if (!tape || (!tape.bulls?.length && !tape.bears?.length && !tape.neutrals?.length)) return null;
+function InstitutionalFlowRadar({ flow, etfLive }) {
+  // `flow` is the AI-analyzed snapshot from report.institutional_flow
+  // `etfLive` is the live data from /etf-flows endpoint (optional - for fresh chart data)
+  if (!flow) return null;
 
-  const total = tape.total_analyzed || (tape.bulls?.length || 0) + (tape.bears?.length || 0) + (tape.neutrals?.length || 0);
+  const total = flow.etf_flow_today_usd_m;
+  const isInflow = flow.streak_direction === 'inflow';
+  const streakDays = flow.streak_days || 0;
+  const cum7d = flow.cumulative_7d_usd_m;
+  const cbPct = flow.coinbase_premium_pct;
+  const cbSig = flow.coinbase_premium_signal;
 
-  const TweetCard = ({ item, stance }) => {
-    const colors = { bullish: '#4ade80', bearish: '#f87171', neutral: '#94a3b8' };
-    const color = colors[stance] || '#94a3b8';
-    return (
-      <div className="rounded-lg p-3 bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors">
-        <div className="flex items-center justify-between mb-1.5">
-          <a href={`https://x.com/${item.handle}`} target="_blank" rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 font-semibold text-xs">
-            @{item.handle}
-          </a>
-          <div className="flex items-center gap-2 text-[9px] text-text-muted">
-            {item.likes > 0 && <span>❤️ {item.likes}</span>}
-            {item.retweets > 0 && <span>🔁 {item.retweets}</span>}
-          </div>
-        </div>
-        {/* Full tweet text */}
-        <p className="text-[11px] text-text-secondary leading-snug mb-1.5">{item.tweet_text || item.text || ''}</p>
-        {item.why_it_matters && (
-          <p className="text-[10px] italic mt-1" style={{ color }}>→ {item.why_it_matters}</p>
-        )}
-      </div>
-    );
-  };
+  // Color map for premium signal
+  const cbSignalColor = {
+    'strong_buying': '#22c55e',
+    'mild_buying': '#86efac',
+    'neutral': '#94a3b8',
+    'mild_selling': '#fca5a5',
+    'strong_selling': '#ef4444',
+  }[cbSig] || '#94a3b8';
 
-  const CategorySection = ({ items, label, color, emoji }) => {
-    if (!items?.length) return null;
-    return (
-      <div>
-        <div className="text-[10px] uppercase tracking-wider font-bold mb-2 flex items-center gap-1.5" style={{ color }}>
-          {emoji} {label} ({items.length})
-        </div>
-        <div className="space-y-2">
-          {items.map((item, i) => <TweetCard key={i} item={item} stance={label.toLowerCase()} />)}
-        </div>
-      </div>
-    );
-  };
+  const cbSignalLabel = (cbSig || 'neutral').replace(/_/g, ' ');
+
+  // Mini chart bars from etfLive history (last 7 days), fallback to top_contributors visual
+  const history7d = etfLive?.flows?.history_7d || [];
+  const maxAbs = history7d.length
+    ? Math.max(...history7d.map(d => Math.abs(d.total || 0)))
+    : 0;
 
   return (
     <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">Analyst Tape</div>
-        <div className="text-[10px] text-text-muted">
-          {total} tweets · {tape.bulls?.length || 0} bulls · {tape.bears?.length || 0} bears · {tape.neutrals?.length || 0} neutral
+        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
+          🏦 Institutional Flow Radar
+        </div>
+        <div className="text-[10px] text-text-muted">Spot BTC ETFs · Coinbase Premium</div>
+      </div>
+
+      {/* Top metrics row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Today's Net Flow</div>
+          <div className={`text-lg font-bold ${total >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {total !== null && total !== undefined ? `${total >= 0 ? '+' : ''}$${total.toFixed(1)}M` : 'N/A'}
+          </div>
+        </div>
+        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Streak</div>
+          <div className={`text-lg font-bold ${isInflow ? 'text-green-400' : 'text-red-400'}`}>
+            {streakDays > 0 ? `${streakDays}d ${isInflow ? '↑' : '↓'}` : '—'}
+          </div>
+          <div className="text-[9px] text-text-muted">{flow.streak_direction || 'none'}</div>
+        </div>
+        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">7d Cumulative</div>
+          <div className={`text-lg font-bold ${cum7d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {cum7d !== null && cum7d !== undefined ? `${cum7d >= 0 ? '+' : ''}$${cum7d.toFixed(0)}M` : 'N/A'}
+          </div>
+        </div>
+        <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Coinbase Premium</div>
+          <div className="text-lg font-bold" style={{ color: cbSignalColor }}>
+            {cbPct !== null && cbPct !== undefined ? `${cbPct >= 0 ? '+' : ''}${cbPct.toFixed(3)}%` : 'N/A'}
+          </div>
+          <div className="text-[9px] capitalize" style={{ color: cbSignalColor }}>{cbSignalLabel}</div>
         </div>
       </div>
-      {/* Scrollable container (option C) */}
-      <div className="max-h-[500px] overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-gold-primary/20 scrollbar-track-transparent">
-        <CategorySection items={tape.bulls} label="Bulls" color="#4ade80" emoji="🟢" />
-        <CategorySection items={tape.bears} label="Bears" color="#f87171" emoji="🔴" />
-        <CategorySection items={tape.neutrals} label="Neutrals" color="#94a3b8" emoji="⚪" />
+
+      {/* 7-day mini chart */}
+      {history7d.length > 0 && maxAbs > 0 && (
+        <div>
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-2">Last 7 Days</div>
+          <div className="flex items-end justify-between gap-1 h-20">
+            {history7d.map((d, i) => {
+              const v = d.total || 0;
+              const heightPct = (Math.abs(v) / maxAbs) * 90;
+              const isPos = v >= 0;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex flex-col justify-end" style={{ height: '60px' }}>
+                    {isPos && (
+                      <div
+                        className="w-full rounded-t-sm bg-gradient-to-t from-green-500 to-green-400"
+                        style={{ height: `${heightPct}%` }}
+                        title={`${d.date}: +$${v.toFixed(1)}M`}
+                      />
+                    )}
+                    {!isPos && (
+                      <div
+                        className="w-full rounded-b-sm bg-gradient-to-b from-red-500 to-red-400"
+                        style={{ height: `${heightPct}%` }}
+                        title={`${d.date}: -$${Math.abs(v).toFixed(1)}M`}
+                      />
+                    )}
+                  </div>
+                  <div className="text-[8px] text-text-muted">{(d.date || '').slice(5)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Top contributors */}
+      {flow.top_contributors?.length > 0 && (
+        <div className="mt-4">
+          <div className="text-[9px] text-text-muted uppercase tracking-wider mb-2">Top Contributors</div>
+          <div className="flex flex-wrap gap-2">
+            {flow.top_contributors.map((tc, i) => {
+              const v = tc.flow_usd_m;
+              const isPos = v >= 0;
+              return (
+                <div key={i} className="px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                  <span className="text-xs font-bold text-white">{tc.fund}</span>
+                  <span className={`text-[11px] font-medium ${isPos ? 'text-green-400' : 'text-red-400'}`}>
+                    {isPos ? '+' : ''}${v.toFixed(1)}M
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Interpretation */}
+      {flow.interpretation && (
+        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-gold-primary/30 pl-3">
+          {flow.interpretation}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════
+// [9] MACRO PULSE (v5)
+// ════════════════════════════════════════
+
+function MacroPulse({ macro, macroLive }) {
+  if (!macro) return null;
+
+  const regime = macro.regime || 'unknown';
+  const regimeColor = {
+    'risk_on':  '#4ade80',
+    'risk_off': '#f87171',
+    'mixed':    '#fbbf24',
+  }[regime] || '#94a3b8';
+
+  const regimeLabel = regime.replace(/_/g, ' ');
+
+  // Build asset rows from macro snapshot + live data if available
+  const assetsLive = macroLive?.assets || {};
+
+  const rows = [
+    { key: 'spx',   label: 'S&P 500',     deltaKey: 'spx_change_1d_pct',    corrKey: 'btc_spx_correlation_30d' },
+    { key: 'dxy',   label: 'Dollar (DXY)', deltaKey: 'dxy_change_1d_pct',    corrKey: 'btc_dxy_correlation_30d' },
+    { key: 'gold',  label: 'Gold',        deltaKey: 'gold_change_1d_pct',   corrKey: null },
+    { key: 'us10y', label: 'US 10Y Yield', deltaKey: 'us10y_change_1d_pct', corrKey: null },
+  ];
+
+  return (
+    <div className="glass-card rounded-2xl p-4 lg:p-5 border border-gold-primary/10">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-gold-primary">
+          🌐 Macro Pulse
+        </div>
+        <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider" style={{
+          color: regimeColor,
+          backgroundColor: `${regimeColor}15`,
+          border: `1px solid ${regimeColor}40`,
+        }}>
+          {regimeLabel}
+        </div>
       </div>
+
+      {/* Macro asset grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {rows.map(row => {
+          const delta = macro[row.deltaKey];
+          const corr = row.corrKey ? macro[row.corrKey] : null;
+          const live = assetsLive[row.key] || {};
+          const current = live.current;
+          const isUp = (delta || 0) > 0;
+          return (
+            <div key={row.key} className="rounded-xl p-3 bg-white/[0.02] border border-white/5">
+              <div className="text-[9px] text-text-muted uppercase tracking-wider mb-1">{row.label}</div>
+              {current && (
+                <div className="text-sm text-white font-medium">
+                  {row.key === 'us10y' ? `${current.toFixed(2)}%` : current.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </div>
+              )}
+              <div className={`text-base font-bold ${isUp ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-text-muted'}`}>
+                {delta !== null && delta !== undefined ? `${isUp ? '+' : ''}${delta.toFixed(2)}%` : '—'}
+                <span className="text-[9px] text-text-muted font-normal ml-1">1D</span>
+              </div>
+              {corr !== null && corr !== undefined && (
+                <div className="text-[10px] text-text-muted mt-1">
+                  Corr 30D: <span className={Math.abs(corr) >= 0.4 ? (corr > 0 ? 'text-green-400/80' : 'text-red-400/80') : 'text-text-muted'}>
+                    {corr >= 0 ? '+' : ''}{corr.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Interpretation */}
+      {macro.interpretation && (
+        <p className="text-[12px] text-text-secondary leading-relaxed mt-4 italic border-l-2 border-gold-primary/30 pl-3">
+          {macro.interpretation}
+        </p>
+      )}
     </div>
   );
 }
@@ -750,16 +908,24 @@ export default function AIArenaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTF, setActiveTF] = useState('4H');
+  // v5: live ETF + macro data (fresh from public sources, not just AI snapshot)
+  const [etfLive, setEtfLive] = useState(null);
+  const [macroLive, setMacroLive] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true); setError(null);
+      // Core report fetch (must succeed)
       const [latestRes, historyRes] = await Promise.all([
         api.get('/api/v1/ai-arena/latest'),
         api.get('/api/v1/ai-arena/history?limit=20'),
       ]);
       setReport(latestRes.data);
       setHistory(historyRes.data?.reports || []);
+
+      // v5: Fetch live ETF + macro in background, non-blocking. Failure = silent.
+      api.get('/api/v1/ai-arena/etf-flows').then(r => setEtfLive(r.data)).catch(() => {});
+      api.get('/api/v1/ai-arena/macro-pulse').then(r => setMacroLive(r.data)).catch(() => {});
     } catch (err) {
       if (err.response?.status === 404) setError('first_report');
       else setError(err.message);
@@ -831,8 +997,11 @@ export default function AIArenaPage() {
       {/* [7] Deep Analysis */}
       <DeepAnalysis analysis={report.deep_analysis} sections={report.sections} />
 
-      {/* [8] Analyst Tape */}
-      <AnalystTape tape={report.analyst_tape} />
+      {/* [8] Institutional Flow Radar (v5 — replaces Analyst Tape) */}
+      <InstitutionalFlowRadar flow={report.institutional_flow} etfLive={etfLive} />
+
+      {/* [8b] Macro Pulse (v5 NEW) */}
+      <MacroPulse macro={report.macro_pulse} macroLive={macroLive} />
 
       {/* [9] What Changed */}
       <WhatChanged data={report.what_changed} />

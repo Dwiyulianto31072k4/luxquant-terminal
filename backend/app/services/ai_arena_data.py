@@ -30,8 +30,13 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 from dotenv import load_dotenv
-from app.services.arena_tweets_v6 import fetch_contextual_tweets_v6
-from app.services.arena_tweets_v5 import fetch_analyst_tweets_v5
+# v5: X/Twitter integration removed. Replaced by:
+#   - etf_flows.py (ETF + Coinbase Premium)
+#   - macro_data.py (DXY, SPX, Gold, US10Y)
+#   - onchain_extra.py (STH-MVRV, Puell, Exchange Reserve trend)
+from app.services.etf_flows import fetch_etf_summary
+from app.services.macro_data import fetch_macro_pulse
+from app.services.onchain_extra import fetch_onchain_extras
 
 load_dotenv()
 
@@ -593,142 +598,6 @@ def estimate_liquidation_levels(current_price: float, total_oi_usd: float) -> Di
 
 
 # ═══════════════════════════════════════════
-# 7. X (TWITTER) — Curated BTC Analyst Tweets
-# ═══════════════════════════════════════════
-
-# Curated BTC-focused analysts by expertise area
-# Each analyst is selected for BTC-specific signal quality, not generic crypto news
-ANALYST_ACCOUNTS = {
-    # ── Optimized Trading Focused (12 Best) ──
-    "52kskew": "derivatives",
-    "Maaborz": "derivatives",
-    "HsakaTrades": "derivatives",
-
-    "CryptoCred": "technical",
-    "DonAlt": "technical",
-    "Pentosh1": "technical",
-
-    "ki_young_ju": "onchain",
-    "woaborz": "onchain",
-
-    "LynAldenContact": "macro",
-    "RaoulGMI": "macro",
-
-    "BTC_Archive": "btc_news",
-    "CryptoCapo_": "technical",
-}
-
-
-def fetch_analyst_tweets(limit_per_account: int = 2) -> List[Dict]:
-    """
-    Fetch recent BTC-focused tweets from curated analysts via X API v2.
-
-    Optimizations vs v3:
-    - Tight BTC filter: (BTC OR bitcoin OR #BTC) — no altcoin leakage
-    - Exclude retweets and replies: original content only
-    - Dedup by author: keep highest-engagement tweet per author
-    - Enrich with expertise tag from ANALYST_ACCOUNTS dict
-    """
-    try:
-        from requests_oauthlib import OAuth1
-    except ImportError:
-        _log("  requests_oauthlib not installed, skipping X")
-        return []
-
-    consumer_key = os.getenv("X_CONSUMER_KEY", "")
-    consumer_secret = os.getenv("X_CONSUMER_SECRET", "")
-    access_token = os.getenv("X_ACCESS_TOKEN", "")
-    access_secret = os.getenv("X_ACCESS_TOKEN_SECRET", "")
-
-    if not all([consumer_key, consumer_secret, access_token, access_secret]):
-        _log("  X API keys not configured, skipping")
-        return []
-
-    auth = OAuth1(consumer_key, consumer_secret, access_token, access_secret)
-    account_handles = list(ANALYST_ACCOUNTS.keys())
-
-    # Build query: accounts + BTC filter + exclude noise
-    accounts_query = " OR ".join([f"from:{a}" for a in account_handles])
-    query = f"({accounts_query}) (BTC OR bitcoin OR #BTC) -is:retweet -is:reply"
-
-    # X API v2 query max length is 512 chars for Basic tier
-    if len(query) > 512:
-        # Split into two batches if too many accounts
-        mid = len(account_handles) // 2
-        batch1 = account_handles[:mid]
-        batch2 = account_handles[mid:]
-        _log(f"  Query too long ({len(query)} chars), splitting into 2 batches")
-        tweets1 = _fetch_tweet_batch(auth, batch1, limit_per_account)
-        tweets2 = _fetch_tweet_batch(auth, batch2, limit_per_account)
-        all_tweets = tweets1 + tweets2
-    else:
-        all_tweets = _fetch_tweet_batch(auth, account_handles, limit_per_account)
-
-    # ── Dedup: keep top tweet per author (by engagement score) ──
-    best_by_author = {}
-    for t in all_tweets:
-        author = t["author"].lower()
-        score = t.get("likes", 0) + t.get("retweets", 0) * 2  # Retweets weighted 2x
-        if author not in best_by_author or score > best_by_author[author]["_score"]:
-            t["_score"] = score
-            best_by_author[author] = t
-
-    # Sort by engagement, remove internal score
-    deduped = sorted(best_by_author.values(), key=lambda x: x.get("_score", 0), reverse=True)
-    for t in deduped:
-        t.pop("_score", None)
-
-    _log(f"  Got {len(all_tweets)} raw tweets → {len(deduped)} after dedup (from {len(account_handles)} accounts)")
-    return deduped
-
-
-def _fetch_tweet_batch(auth, accounts: list, limit_per_account: int) -> List[Dict]:
-    """Fetch a batch of tweets for a list of accounts."""
-    accounts_query = " OR ".join([f"from:{a}" for a in accounts])
-    query = f"({accounts_query}) (BTC OR bitcoin OR #BTC) -is:retweet -is:reply"
-
-    try:
-        r = requests.get("https://api.twitter.com/2/tweets/search/recent", auth=auth,
-            params={
-                "query": query,
-                "max_results": min(limit_per_account * len(accounts), 100),
-                "tweet.fields": "created_at,author_id,public_metrics",
-                "expansions": "author_id",
-                "user.fields": "username,name",
-            }, timeout=15)
-
-        if r.status_code != 200:
-            _log(f"  X API error: HTTP {r.status_code} — {r.text[:200]}")
-            return []
-
-        data = r.json()
-        tweets_raw = data.get("data", [])
-        users = {u["id"]: u.get("username", "unknown") for u in data.get("includes", {}).get("users", [])}
-
-        tweets = []
-        for t in tweets_raw:
-            author = users.get(t.get("author_id", ""), "unknown")
-            metrics = t.get("public_metrics", {})
-            expertise = ANALYST_ACCOUNTS.get(author, "unknown")
-
-            tweets.append({
-                "text": t.get("text", ""),
-                "author": author,
-                "expertise": expertise,
-                "created_at": t.get("created_at", ""),
-                "likes": metrics.get("like_count", 0),
-                "retweets": metrics.get("retweet_count", 0),
-                "replies": metrics.get("reply_count", 0),
-                "quotes": metrics.get("quote_count", 0),
-            })
-
-        return tweets
-    except Exception as e:
-        _log(f"  X batch fetch failed: {e}")
-        return []
-
-
-# ═══════════════════════════════════════════
 # 8. COINGLASS DATA
 # ═══════════════════════════════════════════
 
@@ -1273,25 +1142,54 @@ def gather_all_data(is_anomaly: bool = False) -> Dict:
         result["news"] = news
         _log(f"  Got {len(news)} articles")
 
-    # 11. Analyst tweets — v6 context-aware
-    _log("Fetching contextual tweets (v6)...")
-    _bitcoin = result.get("bitcoin", {}) or {}
-    _technicals = result.get("technicals", {}) or {}
-    _fg = result.get("fear_greed", {}) or {}
-    _price = _bitcoin.get("current_price") or _bitcoin.get("price") or 70000
-    _snapshot = {
-        "price": _price,
-        "rsi_1d": (_technicals.get("1D", {}) or {}).get("rsi", 50),
-        "fear_greed": _fg.get("value", 50),
-        "key_level_above": _price * 1.03,
-        "key_level_below": _price * 0.97,
-    }
+    # 11. ETF Flows (v5 — replaces analyst tweets)
+    _log("Fetching ETF flows (Farside) + Coinbase Premium...")
     try:
-        tweets = fetch_contextual_tweets_v6(_snapshot, force_refresh=is_anomaly)
-    except Exception as _e:
-        _log(f"  v6 fetch failed: {_e}")
-        tweets = []
-    result["analyst_tweets"] = tweets or []
+        etf_data = fetch_etf_summary()
+        if etf_data:
+            result["etf"] = etf_data
+            flows = etf_data.get("flows") or {}
+            premium = etf_data.get("coinbase_premium") or {}
+            if flows:
+                _log(f"  ETF last: ${flows.get('last_total')}M "
+                     f"streak={flows.get('streak', {}).get('direction')} "
+                     f"{flows.get('streak', {}).get('days')}d")
+            if premium:
+                _log(f"  Coinbase premium: {premium.get('premium_pct')}% ({premium.get('signal')})")
+        else:
+            result["errors"].append("etf_flows")
+    except Exception as e:
+        _log(f"  ETF fetch failed: {e}")
+        result["errors"].append("etf_flows_exception")
+
+    # 12. Macro Pulse (v5 new — DXY, SPX, Gold, US10Y + correlations)
+    _log("Fetching macro pulse (DXY/SPX/Gold/US10Y)...")
+    try:
+        macro = fetch_macro_pulse()
+        if macro:
+            result["macro"] = macro
+            _log(f"  Regime: {macro.get('regime')} — {macro.get('regime_detail')}")
+        else:
+            result["errors"].append("macro_pulse")
+    except Exception as e:
+        _log(f"  Macro fetch failed: {e}")
+        result["errors"].append("macro_pulse_exception")
+
+    # 13. On-chain extras (v5 new — STH-MVRV, Puell, Exchange Reserve trend)
+    _log("Fetching on-chain extras (STH-MVRV, Puell, Reserve trend)...")
+    try:
+        extras = fetch_onchain_extras()
+        if extras:
+            result["onchain_extras"] = extras
+            if "sth_mvrv" in extras:
+                _log(f"  STH-MVRV: {extras['sth_mvrv'].get('sth_mvrv')} ({extras['sth_mvrv'].get('zone')})")
+            if "puell" in extras:
+                _log(f"  Puell: {extras['puell'].get('puell')} ({extras['puell'].get('zone')})")
+            if "exchange_reserve_trend" in extras:
+                _log(f"  Reserve 30D: {extras['exchange_reserve_trend'].get('change_30d_pct')}% "
+                     f"({extras['exchange_reserve_trend'].get('trend')})")
+    except Exception as e:
+        _log(f"  On-chain extras failed: {e}")
 
     _log(f"Data gather complete. Errors: {result['errors'] or 'none'}")
     return result

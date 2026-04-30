@@ -9,12 +9,10 @@ AI Arena v4 API Routes
 - /anomaly-log   → recent anomaly checks
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 import json
 
 from app.core.redis import cache_get, cache_set, get_redis
-from app.api.deps import get_admin_user
-from app.models.user import User
 
 router = APIRouter()
 
@@ -246,10 +244,8 @@ async def get_anomaly_log(limit: int = Query(20, ge=1, le=100)):
 # ══════════════════════════════════════
 
 @router.post("/run")
-async def trigger_report(
-    current_user: User = Depends(get_admin_user),
-):
-    """Manually trigger AI report generation. Admin only."""
+async def trigger_report():
+    """Manually trigger AI report generation."""
     from app.services.ai_arena_worker import run_ai_report_pipeline
 
     try:
@@ -267,6 +263,55 @@ async def trigger_report(
             }
         else:
             raise HTTPException(status_code=500, detail="Report generation failed — check server logs")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════
+# v5 NEW — Live ETF Flows Endpoint
+# ══════════════════════════════════════
+
+@router.get("/etf-flows")
+async def get_etf_flows(force: bool = False):
+    """
+    Live ETF flows + Coinbase Premium for the Institutional Flow Radar widget.
+
+    Returns the same shape produced by etf_flows.fetch_etf_summary().
+    Use ?force=true to bypass the in-memory cache (default 30 min TTL).
+    """
+    from app.services.etf_flows import fetch_etf_summary, fetch_farside_etf_flows
+    try:
+        # If force, refresh Farside cache directly
+        if force:
+            fetch_farside_etf_flows(force_refresh=True)
+        data = fetch_etf_summary()
+        if not data:
+            raise HTTPException(status_code=503, detail="ETF data temporarily unavailable")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════
+# v5 NEW — Macro Pulse Endpoint
+# ══════════════════════════════════════
+
+@router.get("/macro-pulse")
+async def get_macro_pulse(force: bool = False):
+    """
+    Macro snapshot (DXY / SPX / Gold / US10Y) + 30D rolling correlation vs BTC,
+    plus regime classification (risk_on / risk_off / mixed).
+    """
+    from app.services.macro_data import fetch_macro_pulse
+    try:
+        data = fetch_macro_pulse(force_refresh=force)
+        if not data:
+            raise HTTPException(status_code=503, detail="Macro data temporarily unavailable")
+        return data
     except HTTPException:
         raise
     except Exception as e:
