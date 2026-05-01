@@ -1260,23 +1260,54 @@ const FlashMovesPanel = ({ moves, onSelect }) => (
 );
 
 // ── 24h Summary (stretches to fill remaining space) ─────
-const SummaryPanel = ({ daily, className = "" }) => (
-  <div className={`bg-[#0a0506] rounded-xl border border-white/10 p-3 flex flex-col ${className}`}>
-    <div className="flex items-center justify-between mb-2.5">
-      <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
-        24h Summary
-      </h3>
-      <span className="text-[9px] text-text-muted/50 font-mono">Rolling</span>
-    </div>
-    <div className="grid grid-cols-2 gap-1.5 flex-1 content-start">
-      <SummaryCell label="Events" value={daily?.total_events} accent="white" />
-      <SummaryCell label="Coins" value={daily?.unique_coins} accent="white" />
-      <SummaryCell label="Bullish" value={daily?.bullish} accent="emerald" />
-      <SummaryCell label="Bearish" value={daily?.bearish} accent="red" />
-      <div className="col-span-2 bg-amber-500/[0.06] rounded-md p-2.5 flex items-center justify-between">
+const SummaryPanel = ({ daily, className = "" }) => {
+  const total = daily?.total_events || 0;
+  const bull = daily?.bullish || 0;
+  const bear = daily?.bearish || 0;
+  const flash = daily?.flash_moves || 0;
+  const bullPct = total > 0 ? Math.round((bull / (bull + bear || 1)) * 100) : 50;
+  return (
+    <div className={`bg-[#0a0506] rounded-xl border border-white/10 p-3 flex flex-col ${className}`}>
+      <div className="flex items-center justify-between mb-2.5 flex-shrink-0">
+        <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
+          24h Summary
+        </h3>
+        <span className="text-[9px] text-text-muted/50 font-mono">Rolling</span>
+      </div>
+
+      {/* Stat grid: 2x2, cells fill vertical space */}
+      <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0">
+        <SummaryCell label="Events" value={daily?.total_events} accent="white" />
+        <SummaryCell label="Coins" value={daily?.unique_coins} accent="white" />
+        <SummaryCell label="Bullish" value={daily?.bullish} accent="emerald" />
+        <SummaryCell label="Bearish" value={daily?.bearish} accent="red" />
+      </div>
+
+      {/* Bull/Bear distribution bar — shows only when there's data */}
+      {bull + bear > 0 && (
+        <div className="mt-2 flex-shrink-0">
+          <div className="h-1 rounded-full overflow-hidden bg-white/5 flex">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-emerald-400"
+              style={{ width: `${bullPct}%` }}
+            />
+            <div
+              className="bg-gradient-to-l from-red-500 to-red-400"
+              style={{ width: `${100 - bullPct}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[9px] font-mono text-emerald-400">{bullPct}% bull</span>
+            <span className="text-[9px] font-mono text-red-400">{100 - bullPct}% bear</span>
+          </div>
+        </div>
+      )}
+
+      {/* Flash moves footer */}
+      <div className="mt-2 bg-amber-500/[0.06] rounded-md p-2.5 flex items-center justify-between flex-shrink-0">
         <div>
           <div className="font-mono text-[15px] text-amber-400 font-semibold leading-none">
-            {(daily?.flash_moves || 0).toLocaleString()}
+            {flash.toLocaleString()}
           </div>
           <div className="text-[9px] text-text-muted/60 mt-1.5 uppercase tracking-wider">
             Flash Moves
@@ -1285,8 +1316,8 @@ const SummaryPanel = ({ daily, className = "" }) => (
         <span className="text-amber-400 text-base">⚡</span>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SummaryCell = ({ label, value, accent }) => {
   const colorMap = {
@@ -1295,7 +1326,7 @@ const SummaryCell = ({ label, value, accent }) => {
     red: "text-red-400 bg-red-500/[0.06]",
   };
   return (
-    <div className={`rounded-md p-2.5 ${colorMap[accent]}`}>
+    <div className={`rounded-md p-2.5 ${colorMap[accent]} flex flex-col justify-center min-h-[44px]`}>
       <div className="font-mono text-[15px] font-semibold leading-none">
         {(value || 0).toLocaleString()}
       </div>
@@ -1344,44 +1375,46 @@ const PulseStyles = () => (
     .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgba(212, 168, 83, 0.15); border-radius: 3px; }
     .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 83, 0.3); }
 
-    /* Equal-height grid: feed + sidebar match heights, no bottom gap */
+    /* Both columns stretch to height = max(feed, sidebar). Last sidebar panel
+       fills any remaining space. Feed scrolls when content exceeds height. */
     .mp-main-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
-      align-items: stretch;
     }
     @media (min-width: 1024px) {
       .mp-main-grid {
         grid-template-columns: 1.7fr 1fr;
-        height: 720px;
+        align-items: stretch;
+      }
+      .mp-feed-col, .mp-sidebar-col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .mp-sidebar-col { gap: 10px; }
+      .mp-feed-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+      }
+      .mp-feed-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+      }
+      .mp-sidebar-stretch {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
     }
-    .mp-feed-col, .mp-sidebar-col {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-    .mp-sidebar-col { gap: 10px; }
-    .mp-feed-card {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-height: 0;
-    }
-    .mp-feed-list {
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
-    }
-    .mp-sidebar-stretch {
-      flex: 1;
-      min-height: 0;
-    }
     @media (max-width: 1023px) {
-      .mp-main-grid { height: auto; }
-      .mp-feed-list { max-height: 500px; }
-      .mp-sidebar-stretch { flex: 0 0 auto; }
+      .mp-feed-col, .mp-sidebar-col { display: block; }
+      .mp-sidebar-col > * + * { margin-top: 10px; }
+      .mp-feed-list { max-height: 500px; overflow-y: auto; }
     }
   `}</style>
 );
