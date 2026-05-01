@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Treemap, ResponsiveContainer } from "recharts";
 import CoinLogo from "./CoinLogo";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -1077,76 +1078,161 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
   );
 };
 
-// ── Heatmap Panel ───────────────────────────────────────
-const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => (
-  <div className="bg-[#0a0506] rounded-xl border border-white/10 p-3">
-    <div className="flex items-center justify-between mb-2.5">
-      <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
-        Heatmap · 1h
-      </h3>
-      <span className="text-[9px] text-text-muted/50 font-mono">Top {heatmap.length}</span>
-    </div>
-    <div className="grid grid-cols-3 gap-1.5">
-      {heatmap.map((coin) => {
-        const symbol = stripQuote(coin.pair);
-        const strongestMove =
-          coin.max_up && (!coin.max_down || coin.max_up >= Math.abs(coin.max_down))
-            ? coin.max_up
-            : coin.max_down
-            ? coin.max_down
-            : 0;
-        const isBull = strongestMove >= 0;
-        const intensity = Math.min(Math.abs(strongestMove) / 10, 1);
-        const isSelected = selectedCoin === coin.pair;
-        return (
-          <button
-            key={coin.pair}
-            onClick={() => onSelect(coin.pair)}
-            className={`relative rounded-md p-1.5 transition-all hover:scale-[1.04] hover:z-10 cursor-pointer overflow-hidden ${
-              isSelected
-                ? "border border-gold-primary"
-                : "border border-transparent"
-            }`}
-            style={{
-              backgroundColor: isBull
-                ? `rgba(16, 185, 129, ${0.08 + intensity * 0.28})`
-                : `rgba(239, 68, 68, ${0.08 + intensity * 0.28})`,
-            }}
-          >
-            <div className="flex flex-col items-center gap-1">
-              <CoinLogo pair={coin.pair} size={20} />
-              <p
-                className={`text-[10px] font-bold leading-tight truncate max-w-full ${
-                  isBull ? "text-emerald-300" : "text-red-300"
-                }`}
-              >
-                {symbol}
-              </p>
-              <p
-                className={`text-[9px] font-mono font-semibold leading-none ${
-                  isBull ? "text-emerald-400" : "text-red-400"
-                }`}
-              >
-                {strongestMove >= 0 ? "+" : ""}
-                {strongestMove.toFixed(1)}%
-              </p>
-            </div>
-            {coin.event_count > 1 && (
-              <span className="absolute top-0.5 right-1 text-[8px] font-mono text-white/60 leading-tight">
-                {coin.event_count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-      {heatmap.length === 0 && (
-        <div className="col-span-3 text-center py-4 text-text-muted/50 text-xs">
-          No activity yet
+// ── Heatmap Panel (Treemap — size by event_count) ──────
+const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => {
+  const data = useMemo(() => {
+    return heatmap.map((coin) => {
+      const strongestMove =
+        coin.max_up && (!coin.max_down || coin.max_up >= Math.abs(coin.max_down))
+          ? coin.max_up
+          : coin.max_down
+          ? coin.max_down
+          : 0;
+      return {
+        pair: coin.pair,
+        symbol: stripQuote(coin.pair),
+        size: Math.max(1, coin.event_count || 1),
+        pct: strongestMove,
+        isBull: strongestMove >= 0,
+        eventCount: coin.event_count || 1,
+      };
+    });
+  }, [heatmap]);
+
+  return (
+    <div className="bg-[#0a0506] rounded-xl border border-white/10 p-3">
+      <div className="flex items-center justify-between mb-2.5">
+        <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
+          Heatmap · 1h
+        </h3>
+        <span className="text-[9px] text-text-muted/50 font-mono">
+          Size = events · Top {data.length}
+        </span>
+      </div>
+      {data.length === 0 ? (
+        <div className="text-center py-8 text-text-muted/50 text-xs">No activity yet</div>
+      ) : (
+        <div className="w-full" style={{ height: 220 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <Treemap
+              data={data}
+              dataKey="size"
+              aspectRatio={1.5}
+              stroke="rgba(0,0,0,0.4)"
+              isAnimationActive={false}
+              content={
+                <TreemapTile
+                  selectedCoin={selectedCoin}
+                  onSelect={onSelect}
+                />
+              }
+            />
+          </ResponsiveContainer>
         </div>
       )}
     </div>
-  </div>
-);
+  );
+};
+
+// Custom tile renderer for Treemap
+const TreemapTile = (props) => {
+  const { x, y, width, height, payload, selectedCoin, onSelect } = props;
+  if (!payload || width < 1 || height < 1) return null;
+
+  const { pair, symbol, pct, isBull, eventCount } = payload;
+  const intensity = Math.min(Math.abs(pct) / 10, 1);
+  const isSelected = selectedCoin === pair;
+
+  const bg = isBull
+    ? `rgba(16, 185, 129, ${0.1 + intensity * 0.4})`
+    : `rgba(239, 68, 68, ${0.1 + intensity * 0.4})`;
+
+  // Show content based on tile size
+  const showLogo = width >= 44 && height >= 44;
+  const showSymbol = width >= 36 && height >= 26;
+  const showPct = width >= 40 && height >= 40;
+  const showCount = width >= 30 && height >= 22;
+
+  // Logo size scales with tile
+  const logoSize = Math.min(Math.max(14, Math.floor(Math.min(width, height) * 0.32)), 28);
+
+  // Font sizes scale with tile
+  const symbolFontSize = Math.min(Math.max(8, Math.floor(Math.min(width, height) * 0.16)), 13);
+  const pctFontSize = Math.min(Math.max(8, Math.floor(Math.min(width, height) * 0.13)), 11);
+
+  return (
+    <g style={{ cursor: "pointer" }} onClick={() => onSelect && onSelect(pair)}>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={bg}
+        stroke={isSelected ? "#d4a853" : "rgba(0,0,0,0.5)"}
+        strokeWidth={isSelected ? 2 : 1}
+        rx={4}
+      />
+      {showLogo && (
+        <foreignObject
+          x={x + width / 2 - logoSize / 2}
+          y={y + 6}
+          width={logoSize}
+          height={logoSize}
+          style={{ pointerEvents: "none" }}
+        >
+          <div xmlns="http://www.w3.org/1999/xhtml">
+            <CoinLogo pair={pair} size={logoSize} />
+          </div>
+        </foreignObject>
+      )}
+      {showSymbol && (
+        <text
+          x={x + width / 2}
+          y={showLogo ? y + 6 + logoSize + symbolFontSize + 2 : y + height / 2 - 2}
+          textAnchor="middle"
+          fontSize={symbolFontSize}
+          fontWeight={600}
+          fill={isBull ? "#a7f3d0" : "#fecaca"}
+          style={{ pointerEvents: "none" }}
+        >
+          {symbol}
+        </text>
+      )}
+      {showPct && (
+        <text
+          x={x + width / 2}
+          y={
+            showLogo
+              ? y + 6 + logoSize + symbolFontSize + pctFontSize + 6
+              : y + height / 2 + symbolFontSize / 2 + 4
+          }
+          textAnchor="middle"
+          fontSize={pctFontSize}
+          fontFamily="monospace"
+          fontWeight={600}
+          fill={isBull ? "#34d399" : "#f87171"}
+          style={{ pointerEvents: "none" }}
+        >
+          {pct >= 0 ? "+" : ""}
+          {pct.toFixed(1)}%
+        </text>
+      )}
+      {showCount && eventCount > 1 && (
+        <text
+          x={x + width - 4}
+          y={y + 10}
+          textAnchor="end"
+          fontSize={9}
+          fontFamily="monospace"
+          fill="rgba(255,255,255,0.55)"
+          style={{ pointerEvents: "none" }}
+        >
+          {eventCount}
+        </text>
+      )}
+    </g>
+  );
+};
 
 // ── Most Active Panel ───────────────────────────────────
 const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) => (
@@ -1275,8 +1361,8 @@ const SummaryPanel = ({ daily, className = "" }) => {
         <span className="text-[9px] text-text-muted/50 font-mono">Rolling</span>
       </div>
 
-      {/* Stat grid: 2x2, cells fill vertical space */}
-      <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0">
+      {/* Stat grid: 2x2 natural height */}
+      <div className="grid grid-cols-2 gap-1.5">
         <SummaryCell label="Events" value={daily?.total_events} accent="white" />
         <SummaryCell label="Coins" value={daily?.unique_coins} accent="white" />
         <SummaryCell label="Bullish" value={daily?.bullish} accent="emerald" />
@@ -1285,7 +1371,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
 
       {/* Bull/Bear distribution bar — shows only when there's data */}
       {bull + bear > 0 && (
-        <div className="mt-2 flex-shrink-0">
+        <div className="mt-2">
           <div className="h-1 rounded-full overflow-hidden bg-white/5 flex">
             <div
               className="bg-gradient-to-r from-emerald-500 to-emerald-400"
@@ -1304,7 +1390,7 @@ const SummaryPanel = ({ daily, className = "" }) => {
       )}
 
       {/* Flash moves footer */}
-      <div className="mt-2 bg-amber-500/[0.06] rounded-md p-2.5 flex items-center justify-between flex-shrink-0">
+      <div className="mt-2 bg-amber-500/[0.06] rounded-md p-2.5 flex items-center justify-between">
         <div>
           <div className="font-mono text-[15px] text-amber-400 font-semibold leading-none">
             {flash.toLocaleString()}
@@ -1326,7 +1412,7 @@ const SummaryCell = ({ label, value, accent }) => {
     red: "text-red-400 bg-red-500/[0.06]",
   };
   return (
-    <div className={`rounded-md p-2.5 ${colorMap[accent]} flex flex-col justify-center min-h-[44px]`}>
+    <div className={`rounded-md p-2.5 ${colorMap[accent]}`}>
       <div className="font-mono text-[15px] font-semibold leading-none">
         {(value || 0).toLocaleString()}
       </div>
@@ -1375,8 +1461,9 @@ const PulseStyles = () => (
     .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgba(212, 168, 83, 0.15); border-radius: 3px; }
     .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 83, 0.3); }
 
-    /* Fixed 720px height grid: feed scrollable, sidebar panels match column height.
-       24h Summary (last panel) stretches to fill remaining space. */
+    /* Sidebar dictates height. Feed matches sidebar's natural height,
+       and its internal list area scrolls. No fixed height — adapts to sidebar content.
+       This means: when sidebar has 4 panels, feed = same height, scrollable. */
     .mp-main-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -1385,19 +1472,18 @@ const PulseStyles = () => (
     @media (min-width: 1024px) {
       .mp-main-grid {
         grid-template-columns: 1.7fr 1fr;
-        height: 720px;
+        align-items: stretch;
+        min-height: 600px;
       }
-      .mp-feed-col, .mp-sidebar-col {
-        display: flex;
-        flex-direction: column;
+      .mp-feed-col {
+        position: relative;
         min-height: 0;
-        height: 100%;
       }
-      .mp-sidebar-col { gap: 10px; }
       .mp-feed-card {
+        position: absolute;
+        inset: 0;
         display: flex;
         flex-direction: column;
-        flex: 1;
         min-height: 0;
       }
       .mp-feed-list {
@@ -1405,9 +1491,14 @@ const PulseStyles = () => (
         overflow-y: auto;
         min-height: 0;
       }
+      .mp-sidebar-col {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      /* 24h Summary is the last panel — render natural, no stretch */
       .mp-sidebar-stretch {
-        flex: 1;
-        min-height: 0;
+        flex: 0 0 auto;
         display: flex;
         flex-direction: column;
       }
