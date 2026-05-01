@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Treemap, ResponsiveContainer } from "recharts";
 import CoinLogo from "./CoinLogo";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -827,7 +826,7 @@ const CoinDetailBanner = ({ pair, coinDetail, histogram, timeAgo, onClose }) => 
             </div>
           </div>
         </div>
-        {histogram && histogram.length > 1 && (
+        {histogram && histogram.length >= 1 && (
           <div className="hidden md:flex items-end gap-[2px] h-8">
             {histogram.map((h, i) => {
               const mag = Math.min(Math.abs(h.pct) / 10, 1);
@@ -886,7 +885,24 @@ const DetailStat = ({ label, value, accent }) => {
 
 // ── Mini sparkbar (event histogram fallback) ────────────
 const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
-  if (!histogram || histogram.length < 2) return null;
+  if (!histogram || histogram.length === 0) return null;
+
+  // Single event: render compact dot indicator
+  if (histogram.length === 1) {
+    const h = histogram[0];
+    return (
+      <div className="flex items-center justify-end" style={{ height }}>
+        <div
+          className={`rounded-full ${h.bull ? "bg-emerald-500" : "bg-red-500"} opacity-80`}
+          style={{
+            width: Math.max(4, height * 0.4),
+            height: Math.max(4, height * 0.4),
+          }}
+        />
+      </div>
+    );
+  }
+
   const max = Math.max(0.01, ...histogram.map((h) => Math.abs(h.pct)));
   return (
     <div className="flex items-end" style={{ height, gap: `${gap}px` }}>
@@ -961,7 +977,7 @@ const FeedRow = ({
       </div>
 
       <div className="hidden md:flex items-center justify-end opacity-80">
-        {histogram && histogram.length > 1 ? (
+        {histogram && histogram.length >= 1 ? (
           <MiniSparkbar histogram={histogram} height={18} />
         ) : (
           <div style={{ width: 60, height: 18 }} />
@@ -1078,10 +1094,15 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
   );
 };
 
-// ── Heatmap Panel (Treemap — size by event_count) ──────
+// ── Heatmap Panel — Pure CSS Grid, no library, guaranteed render ──
+// Uses fixed grid template (4 cols × 3 rows = 12 cells, 220px tall).
+// Top 1 spans 2x2 (4 cells), top 2-3 span 2x1 (2 cells each), rest 1x1.
+// All sizing via inline styles + static Tailwind classes — no dynamic class
+// concatenation that could be tree-shaken in production.
 const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => {
-  const data = useMemo(() => {
-    return heatmap.map((coin) => {
+  const tiles = useMemo(() => {
+    if (!heatmap || heatmap.length === 0) return [];
+    const items = heatmap.map((coin) => {
       const strongestMove =
         coin.max_up && (!coin.max_down || coin.max_up >= Math.abs(coin.max_down))
           ? coin.max_up
@@ -1091,13 +1112,30 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => {
       return {
         pair: coin.pair,
         symbol: stripQuote(coin.pair),
-        size: Math.max(1, coin.event_count || 1),
+        eventCount: Math.max(1, coin.event_count || 1),
         pct: strongestMove,
         isBull: strongestMove >= 0,
-        eventCount: coin.event_count || 1,
       };
     });
+    items.sort((a, b) => b.eventCount - a.eventCount);
+    return items.slice(0, 9);
   }, [heatmap]);
+
+  // Pre-defined grid layout: explicit grid-area for each tile by rank.
+  // Grid: 4 columns × 3 rows = 12 cells. Tile placements:
+  //   rank 1: 2x2 (cells 1-2, rows 1-2)
+  //   rank 2: 2x1 (cells 3-4, row 1)
+  //   rank 3: 2x1 (cells 3-4, row 2)
+  //   rank 4-9: 1x1 (row 3, fills remaining)
+  const gridAreas = [
+    { gridColumn: "1 / 3", gridRow: "1 / 3" }, // rank 1: 2x2
+    { gridColumn: "3 / 5", gridRow: "1 / 2" }, // rank 2: 2x1
+    { gridColumn: "3 / 5", gridRow: "2 / 3" }, // rank 3: 2x1
+    { gridColumn: "1 / 2", gridRow: "3 / 4" }, // rank 4
+    { gridColumn: "2 / 3", gridRow: "3 / 4" },
+    { gridColumn: "3 / 4", gridRow: "3 / 4" },
+    { gridColumn: "4 / 5", gridRow: "3 / 4" },
+  ];
 
   return (
     <div className="bg-[#0a0506] rounded-xl border border-white/10 p-3">
@@ -1106,131 +1144,123 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => {
           Heatmap · 1h
         </h3>
         <span className="text-[9px] text-text-muted/50 font-mono">
-          Size = events · Top {data.length}
+          Size = events · Top {tiles.length}
         </span>
       </div>
-      {data.length === 0 ? (
-        <div className="text-center py-8 text-text-muted/50 text-xs">No activity yet</div>
+
+      {tiles.length === 0 ? (
+        <div className="text-center py-12 text-text-muted/50 text-xs">No activity yet</div>
       ) : (
-        <div className="w-full" style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <Treemap
-              data={data}
-              dataKey="size"
-              aspectRatio={1.5}
-              stroke="rgba(0,0,0,0.4)"
-              isAnimationActive={false}
-              content={
-                <TreemapTile
-                  selectedCoin={selectedCoin}
-                  onSelect={onSelect}
-                />
-              }
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gridTemplateRows: "repeat(3, 60px)",
+            gap: "6px",
+            width: "100%",
+            height: "192px",
+          }}
+        >
+          {tiles.slice(0, 7).map((tile, i) => (
+            <HeatmapTile
+              key={tile.pair}
+              tile={tile}
+              isSelected={selectedCoin === tile.pair}
+              onSelect={onSelect}
+              areaStyle={gridAreas[i] || {}}
+              isLarge={i === 0}
+              isMedium={i === 1 || i === 2}
             />
-          </ResponsiveContainer>
+          ))}
         </div>
       )}
     </div>
   );
 };
 
-// Custom tile renderer for Treemap
-const TreemapTile = (props) => {
-  const { x, y, width, height, payload, selectedCoin, onSelect } = props;
-  if (!payload || width < 1 || height < 1) return null;
-
-  const { pair, symbol, pct, isBull, eventCount } = payload;
+// Single heatmap tile — takes its grid area style + size variant
+const HeatmapTile = ({ tile, isSelected, onSelect, areaStyle, isLarge, isMedium }) => {
+  const { pair, symbol, pct, isBull, eventCount } = tile;
   const intensity = Math.min(Math.abs(pct) / 10, 1);
-  const isSelected = selectedCoin === pair;
+  const bgColor = isBull
+    ? `rgba(16, 185, 129, ${0.12 + intensity * 0.4})`
+    : `rgba(239, 68, 68, ${0.12 + intensity * 0.4})`;
 
-  const bg = isBull
-    ? `rgba(16, 185, 129, ${0.1 + intensity * 0.4})`
-    : `rgba(239, 68, 68, ${0.1 + intensity * 0.4})`;
-
-  // Show content based on tile size
-  const showLogo = width >= 44 && height >= 44;
-  const showSymbol = width >= 36 && height >= 26;
-  const showPct = width >= 40 && height >= 40;
-  const showCount = width >= 30 && height >= 22;
-
-  // Logo size scales with tile
-  const logoSize = Math.min(Math.max(14, Math.floor(Math.min(width, height) * 0.32)), 28);
-
-  // Font sizes scale with tile
-  const symbolFontSize = Math.min(Math.max(8, Math.floor(Math.min(width, height) * 0.16)), 13);
-  const pctFontSize = Math.min(Math.max(8, Math.floor(Math.min(width, height) * 0.13)), 11);
+  const logoSize = isLarge ? 28 : isMedium ? 22 : 18;
+  const symbolFontSize = isLarge ? 13 : isMedium ? 12 : 11;
+  const pctFontSize = isLarge ? 12 : isMedium ? 11 : 10;
 
   return (
-    <g style={{ cursor: "pointer" }} onClick={() => onSelect && onSelect(pair)}>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={bg}
-        stroke={isSelected ? "#d4a853" : "rgba(0,0,0,0.5)"}
-        strokeWidth={isSelected ? 2 : 1}
-        rx={4}
-      />
-      {showLogo && (
-        <foreignObject
-          x={x + width / 2 - logoSize / 2}
-          y={y + 6}
-          width={logoSize}
-          height={logoSize}
-          style={{ pointerEvents: "none" }}
-        >
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            <CoinLogo pair={pair} size={logoSize} />
-          </div>
-        </foreignObject>
-      )}
-      {showSymbol && (
-        <text
-          x={x + width / 2}
-          y={showLogo ? y + 6 + logoSize + symbolFontSize + 2 : y + height / 2 - 2}
-          textAnchor="middle"
-          fontSize={symbolFontSize}
-          fontWeight={600}
-          fill={isBull ? "#a7f3d0" : "#fecaca"}
-          style={{ pointerEvents: "none" }}
-        >
-          {symbol}
-        </text>
-      )}
-      {showPct && (
-        <text
-          x={x + width / 2}
-          y={
-            showLogo
-              ? y + 6 + logoSize + symbolFontSize + pctFontSize + 6
-              : y + height / 2 + symbolFontSize / 2 + 4
-          }
-          textAnchor="middle"
-          fontSize={pctFontSize}
-          fontFamily="monospace"
-          fontWeight={600}
-          fill={isBull ? "#34d399" : "#f87171"}
-          style={{ pointerEvents: "none" }}
-        >
-          {pct >= 0 ? "+" : ""}
-          {pct.toFixed(1)}%
-        </text>
-      )}
-      {showCount && eventCount > 1 && (
-        <text
-          x={x + width - 4}
-          y={y + 10}
-          textAnchor="end"
-          fontSize={9}
-          fontFamily="monospace"
-          fill="rgba(255,255,255,0.55)"
-          style={{ pointerEvents: "none" }}
+    <button
+      onClick={() => onSelect(pair)}
+      style={{
+        ...areaStyle,
+        backgroundColor: bgColor,
+        border: isSelected ? "2px solid #d4a853" : "1px solid rgba(0,0,0,0.4)",
+        borderRadius: "6px",
+        cursor: "pointer",
+        position: "relative",
+        overflow: "hidden",
+        transition: "transform 0.15s ease, border-color 0.15s ease",
+        padding: "6px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "4px",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "scale(1.03)";
+        e.currentTarget.style.zIndex = "10";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.zIndex = "1";
+      }}
+    >
+      <CoinLogo pair={pair} size={logoSize} />
+      <span
+        style={{
+          fontSize: `${symbolFontSize}px`,
+          fontWeight: 600,
+          color: isBull ? "#a7f3d0" : "#fecaca",
+          lineHeight: 1,
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {symbol}
+      </span>
+      <span
+        style={{
+          fontSize: `${pctFontSize}px`,
+          fontFamily: "ui-monospace, monospace",
+          fontWeight: 600,
+          color: isBull ? "#34d399" : "#f87171",
+          lineHeight: 1,
+        }}
+      >
+        {pct >= 0 ? "+" : ""}
+        {pct.toFixed(1)}%
+      </span>
+      {eventCount > 1 && (
+        <span
+          style={{
+            position: "absolute",
+            top: "4px",
+            right: "6px",
+            fontSize: "9px",
+            fontFamily: "ui-monospace, monospace",
+            color: "rgba(255,255,255,0.55)",
+            lineHeight: 1,
+          }}
         >
           {eventCount}
-        </text>
+        </span>
       )}
-    </g>
+    </button>
   );
 };
 
@@ -1277,7 +1307,7 @@ const MostActivePanel = ({ movers, period, setPeriod, histograms, onSelect }) =>
                   {coin.event_count} ev
                 </span>
               </p>
-              {hist && hist.length > 1 && (
+              {hist && hist.length >= 1 && (
                 <div className="mt-1">
                   <MiniSparkbar histogram={hist} height={7} gap={1.5} />
                 </div>
