@@ -1375,8 +1375,8 @@ const PulseStyles = () => (
     .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgba(212, 168, 83, 0.15); border-radius: 3px; }
     .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 83, 0.3); }
 
-    /* Both columns stretch to height = max(feed, sidebar). Last sidebar panel
-       fills any remaining space. Feed scrolls when content exceeds height. */
+    /* Fixed 720px height grid: feed scrollable, sidebar panels match column height.
+       24h Summary (last panel) stretches to fill remaining space. */
     .mp-main-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -1385,12 +1385,13 @@ const PulseStyles = () => (
     @media (min-width: 1024px) {
       .mp-main-grid {
         grid-template-columns: 1.7fr 1fr;
-        align-items: stretch;
+        height: 720px;
       }
       .mp-feed-col, .mp-sidebar-col {
         display: flex;
         flex-direction: column;
         min-height: 0;
+        height: 100%;
       }
       .mp-sidebar-col { gap: 10px; }
       .mp-feed-card {
