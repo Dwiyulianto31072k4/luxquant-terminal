@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxQuant Signal Journey Refresh (one-shot via timer)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/luxquant-terminal/backend
+ExecStart=/usr/bin/python3 -m app.workers.journey_worker --refresh-live
+StandardOutput=append:/var/log/luxquant-sync/journey-refresh.log
+StandardError=append:/var/log/luxquant-sync/journey-refresh.log
+
+MemoryMax=2G

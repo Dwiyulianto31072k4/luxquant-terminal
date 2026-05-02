@@ -1,0 +1,18 @@
+[Unit]
+Description=LuxQuant Signal Journey Refresh Timer (every 6 hours)
+Requires=luxquant-journey-refresh.service
+
+[Timer]
+# First run 5 minutes after boot
+OnBootSec=5min
+
+# Then every 6 hours since last run
+OnUnitActiveSec=6h
+
+# Persistent: kalau VPS down, run as soon as up
+Persistent=true
+
+Unit=luxquant-journey-refresh.service
+
+[Install]
+WantedBy=timers.target
