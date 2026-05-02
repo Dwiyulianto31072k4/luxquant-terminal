@@ -8,12 +8,14 @@ import asyncio
 
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
+from app.api.routes import signal_journey
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
+
 
 # Import Router
 from app.api.routes.telegram_auth import router as telegram_auth_router
@@ -108,6 +110,7 @@ app.add_middleware(
 
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
+app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(market_overview.router, prefix="/api/v1/market", tags=["market-overview"])
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
