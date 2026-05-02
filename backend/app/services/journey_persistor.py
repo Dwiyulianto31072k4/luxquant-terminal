@@ -324,7 +324,7 @@ def list_signals_for_backfill(
     limit_clause = f"LIMIT {int(limit)}" if limit else ""
 
     sql = text(f"""
-        SELECT DISTINCT s.signal_id, s.created_at
+        SELECT s.signal_id
         FROM signals s
         INNER JOIN signal_updates u ON u.signal_id = s.signal_id
         WHERE s.pair IS NOT NULL
@@ -332,6 +332,7 @@ def list_signals_for_backfill(
           AND s.target1 IS NOT NULL AND s.target1 > 0
           AND s.created_at IS NOT NULL
           {skip_clause}
+        GROUP BY s.signal_id, s.created_at
         ORDER BY s.created_at DESC
         {limit_clause}
     """)

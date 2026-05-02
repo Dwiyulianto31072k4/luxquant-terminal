@@ -238,10 +238,11 @@ def _list_signals_with_filters(
     limit_clause = f"LIMIT {int(limit)}" if limit else ""
 
     sql = text(f"""
-        SELECT DISTINCT s.signal_id
+        SELECT s.signal_id
         FROM signals s
         INNER JOIN signal_updates u ON u.signal_id = s.signal_id
         WHERE {' AND '.join(where_parts)}
+        GROUP BY s.signal_id, s.created_at
         ORDER BY s.created_at DESC NULLS LAST
         {limit_clause}
     """)
