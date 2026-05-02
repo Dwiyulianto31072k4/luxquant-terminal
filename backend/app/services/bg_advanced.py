@@ -1,12 +1,15 @@
 """
 BGeometrics Advanced API client for AI Arena v6.
 
-Wraps all 24 endpoints across 5 tiers used by the AI Arena worker:
+Wraps 23 endpoints across 5 tiers used by the AI Arena worker:
 - Tier 1 Cycle Position (5)        : MVRV-Z, Puell, Mayer, Pi-Cycle, Reserve Risk
 - Tier 2 Macro Liquidity (4)       : M2 Global, M2 YoY, SSR, SSR Oscillator
 - Tier 3 Smart Money (5)           : Top traders L/S, Funding, Basis, Taker volume
 - Tier 4 On-chain Behavior (6)     : NUPL, SOPR, STH-MVRV, Miner flow, Exchange netflow, Hashribbons
-- Tier 5 Volatility & Risk (4)     : Volatility, Open Interest, Liquidations, Fear & Greed
+- Tier 5 Volatility & Risk (3)     : Volatility, Open Interest, Fear & Greed
+
+Note: 'liquidations' endpoint dropped — returns 404 on BGeometrics API.
+Liquidations data should be sourced from CoinGlass externally if needed.
 
 Quota: 200 req/h, 400 req/day (Advanced tier).
 Cache strategy: 6h fresh + 24h stale fallback (Redis).
@@ -15,7 +18,7 @@ Usage:
     from app.services.bg_advanced import BGClient
 
     bg = BGClient()
-    snapshot = await bg.fetch_all()  # returns dict with 24 metrics
+    snapshot = await bg.fetch_all()  # returns dict with 23 metrics
     cycle = await bg.fetch_tier("cycle")  # specific tier only
 """
 
@@ -28,6 +31,9 @@ import os
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import httpx
 
@@ -58,7 +64,7 @@ TIER_MACRO = ("m2global", "m2yoy-change", "ssr", "ssr-oscillator")
 TIER_SMART = ("top-trader-position-1h", "top-trader-account-1h", "funding-rate",
               "btc-derivatives-basis-1h", "taker-vol-1h")
 TIER_ONCHAIN = ("nupl", "sopr", "sth-mvrv", "miner-net-flow", "exchange-netflow-btc", "hashribbons")
-TIER_RISK = ("volatility", "open-interest", "liquidations", "fear-greed")
+TIER_RISK = ("volatility", "open-interest", "fear-greed")  # 'liquidations' dropped — 404
 
 TIERS: dict[str, tuple[str, ...]] = {
     "cycle": TIER_CYCLE,
@@ -68,7 +74,41 @@ TIERS: dict[str, tuple[str, ...]] = {
     "risk": TIER_RISK,
 }
 
-ALL_ENDPOINTS = TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK  # 24 total
+ALL_ENDPOINTS = TIER_CYCLE + TIER_MACRO + TIER_SMART + TIER_ONCHAIN + TIER_RISK  # 23 total
+
+# ─── Field mapping (endpoint → response field name) ─────────────────
+# BGeometrics returns {"d": date, "unixTs": ts, "<fieldName>": value}.
+# Field name is camelCase derived from endpoint, but with quirks. Map explicitly.
+ENDPOINT_FIELD_MAP: dict[str, str | tuple[str, ...]] = {
+    # Cycle
+    "mvrv-zscore": "mvrvZscore",
+    "puell-multiple": "puellMultiple",
+    "mayer-multiple": "mayerMultiple",
+    "pi-cycle": ("piSignal", "piCycle"),
+    "reserve-risk": "reserveRisk",
+    # Macro
+    "m2global": "m2global",
+    "m2yoy-change": ("m2yoyChange", "m2YoYChange", "m2yoy"),
+    "ssr": "ssr",
+    "ssr-oscillator": ("ssrOscillator", "ssrOsc"),
+    # Smart Money
+    "top-trader-position-1h": "topTraderLongShortRatioPosition",
+    "top-trader-account-1h": ("topTraderLongShortRatioAccount", "topTraderLongShortRatio"),
+    "funding-rate": "fundingRate",
+    "btc-derivatives-basis-1h": ("basis", "derivativesBasis", "btcBasis"),
+    "taker-vol-1h": ("takerBuyRatio", "takerVol", "takerVolume"),
+    # On-chain
+    "nupl": "nupl",
+    "sopr": "sopr",
+    "sth-mvrv": ("sthMvrv", "sthMVRV"),
+    "miner-net-flow": ("minerNetFlow", "minerNetflow"),
+    "exchange-netflow-btc": ("exchangeNetflow", "exchangeNetFlow", "exchangeNetflowBtc"),
+    "hashribbons": "hashribbons",
+    # Risk
+    "volatility": "volatility",
+    "open-interest": ("openInterest", "oi"),
+    "fear-greed": "fearGreed",
+}
 
 
 # ─── Data structures ──────────────────────────────────────────────────
@@ -77,7 +117,7 @@ class BGMetric:
     """Normalized BGeometrics metric response."""
     key: str
     value: Any = None
-    timestamp: int | None = None     # source data timestamp (unix ms)
+    timestamp: int | None = None     # source data timestamp (unix s or ms)
     fetched_at: float = field(default_factory=lambda: time.time())
     is_stale: bool = False
     error: str | None = None
@@ -132,64 +172,93 @@ async def _cache_set(metric: BGMetric) -> None:
 
 
 # ─── Response normalization ───────────────────────────────────────────
+_META_FIELDS = {"d", "date", "unixTs", "unix_ts", "timestamp", "t", "x"}
+
+
+def _coerce_value(value: Any) -> Any:
+    """Try to coerce string numerics to float. Leave strings ('Up'/'Down') as-is."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        try:
+            if "." in value or "e" in value.lower():
+                return float(value)
+            return int(value)
+        except (ValueError, TypeError):
+            return value
+    return value
+
+
+def _extract_timestamp(raw: dict) -> int | None:
+    """Pull timestamp from common metadata fields."""
+    for k in ("unixTs", "unix_ts", "timestamp", "t"):
+        if k in raw:
+            try:
+                ts = raw[k]
+                if isinstance(ts, str):
+                    ts = float(ts)
+                return int(ts)
+            except (ValueError, TypeError):
+                continue
+    return None
+
+
 def _normalize(endpoint: str, raw: Any) -> tuple[Any, int | None]:
     """
-    BGeometrics endpoints return varied shapes. Normalize to (value, timestamp).
+    Extract value + timestamp from BGeometrics response.
 
-    Common shapes:
-    - {"value": 0.76, "t": 1714502400000}
-    - [{"x": 1714502400000, "y": 0.76}]
-    - {"data": {...}}
-    - bare number / string
+    BG returns {"d": "2026-05-01", "unixTs": 1777593600, "<field>": <value>}.
+    Field name is mapped per endpoint via ENDPOINT_FIELD_MAP.
 
     Returns (None, None) if cannot extract.
     """
     if raw is None:
         return None, None
 
-    # Bare scalar
-    if isinstance(raw, (int, float, str, bool)):
+    # Bare scalar — defensive
+    if isinstance(raw, (int, float, bool)):
         return raw, None
+    if isinstance(raw, str):
+        return _coerce_value(raw), None
 
-    # List of points — take last
+    # List of points — take last entry, recurse
     if isinstance(raw, list):
         if not raw:
             return None, None
-        last = raw[-1]
-        if isinstance(last, dict):
-            value = last.get("y") or last.get("value") or last.get("v")
-            ts = last.get("x") or last.get("t") or last.get("timestamp")
-            return value, ts
-        return last, None
+        return _normalize(endpoint, raw[-1])
 
-    # Dict — try common keys
-    if isinstance(raw, dict):
-        # Direct value
-        for k in ("value", "v", "y", "data"):
-            if k in raw and not isinstance(raw[k], (dict, list)):
-                ts = raw.get("t") or raw.get("timestamp") or raw.get("x")
-                return raw[k], ts
+    if not isinstance(raw, dict):
+        return None, None
 
-        # Nested data
-        if "data" in raw and isinstance(raw["data"], (list, dict)):
-            return _normalize(endpoint, raw["data"])
+    # Dict path — use field map
+    timestamp = _extract_timestamp(raw)
+    field_spec = ENDPOINT_FIELD_MAP.get(endpoint)
 
-        # Endpoint-specific shapes
-        if endpoint == "hashribbons":
-            return raw.get("status") or raw.get("signal") or raw.get("trend"), raw.get("t")
+    candidates: tuple[str, ...]
+    if field_spec is None:
+        candidates = ("value", "v", "y")
+    elif isinstance(field_spec, str):
+        candidates = (field_spec,)
+    else:
+        candidates = field_spec
 
-        if endpoint == "fear-greed":
-            return raw.get("score") or raw.get("value") or raw.get("fgi"), raw.get("t")
+    for field_name in candidates:
+        if field_name in raw and raw[field_name] is not None:
+            return _coerce_value(raw[field_name]), timestamp
 
-        # Last resort: first non-meta numeric
-        for k, v in raw.items():
-            if k in ("t", "timestamp", "date") or v is None:
-                continue
-            if isinstance(v, (int, float, str)):
-                ts = raw.get("t") or raw.get("timestamp")
-                return v, ts
+    # Last resort: take first non-meta field
+    for k, v in raw.items():
+        if k in _META_FIELDS or v is None:
+            continue
+        if isinstance(v, (dict, list)):
+            continue
+        return _coerce_value(v), timestamp
 
-    return None, None
+    return None, timestamp
 
 
 # ─── HTTP fetch ───────────────────────────────────────────────────────
@@ -211,7 +280,6 @@ async def _http_fetch(client: httpx.AsyncClient, endpoint: str) -> BGMetric:
                     return BGMetric(key=endpoint, error=f"normalize_failed: {resp.text[:100]}")
                 return BGMetric(key=endpoint, value=value, timestamp=ts)
             if resp.status_code in (429, 503):
-                # rate limit / temporarily unavailable — back off
                 await asyncio.sleep(1.0 * (attempt + 1))
                 last_err = f"http_{resp.status_code}"
                 continue
@@ -232,7 +300,7 @@ class BGClient:
     Methods:
         fetch(endpoint)         → single endpoint with cache
         fetch_tier(name)        → all endpoints in a tier
-        fetch_all()             → all 24 endpoints (parallel)
+        fetch_all()             → all 23 endpoints (parallel)
         health_check()          → quick liveness check
     """
 
@@ -276,7 +344,7 @@ class BGClient:
         return {m.key: m for m in results}
 
     async def fetch_all(self) -> dict[str, BGMetric]:
-        """Fetch all 24 endpoints in parallel. Used by AI Arena worker per report."""
+        """Fetch all 23 endpoints in parallel. Used by AI Arena worker per report."""
         results = await asyncio.gather(*(self.fetch(ep) for ep in ALL_ENDPOINTS))
         snapshot = {m.key: m for m in results}
 
