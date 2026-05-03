@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import SignalHistoryTab from "./SignalHistoryTab";
 import DeepAnalysis from "./DeepAnalysis";
+import SignalJourneyExtended from "./SignalJourneyExtended";
 
 const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const { t } = useTranslation();
@@ -1676,6 +1677,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         </div>
                       </div>
                     </div>
+
+
+                    <SignalJourneyExtended signalId={signal?.signal_id} />
 
                     {/* Data / Exchanges Grid — CENTERED */}
                     <div>
