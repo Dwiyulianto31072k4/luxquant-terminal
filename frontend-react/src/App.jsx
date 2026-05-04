@@ -70,6 +70,7 @@ const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
 import NotificationBell from "./components/NotificationBell";
+import MoreFeaturesModal from "./components/MoreFeaturesModal";
 
 // ════════════════════════════════════════
 // PAGE LOADING FALLBACK
@@ -156,7 +157,7 @@ const SidebarItem = ({ active, onClick, label, icon, isPremium, isFreeBadge }) =
 function AppShell({ children }) {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [showMoreFeatures, setShowMoreFeatures] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isAuthenticated, user } = useAuth();
@@ -181,15 +182,10 @@ function AppShell({ children }) {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
-  useEffect(() => {
-    const h = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false); };
-    if (moreMenuOpen) document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [moreMenuOpen]);
+
 
   const handleNav = (path) => {
     setMobileMenuOpen(false);
-    setMoreMenuOpen(false);
     if (LOGIN_REQUIRED.includes(path) && !isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(path)}`);
       return;
@@ -265,37 +261,16 @@ function AppShell({ children }) {
                     {isActive(item.path) && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gold-primary rounded-full" />}
                   </button>
                 ))}
-                <div className="relative" ref={moreMenuRef}>
-                  <button onClick={() => setMoreMenuOpen(!moreMenuOpen)} className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${moreHasActive ? "text-gold-primary" : "text-text-secondary hover:text-white"}`}>
-                    <span>{t("nav.more")}</span>
-                    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    {moreHasActive && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gold-primary rounded-full" />}
-                  </button>
-                  {moreMenuOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl shadow-black/60" style={{ background: "#0d0a10", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div className="py-1.5">
-                        {moreMenuItems.map((item) => {
-                          const isPro = PREMIUM_REQUIRED.includes(item.path);
-                          return (
-                            <button key={item.path} onClick={() => handleNav(item.path)} className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all ${isActive(item.path) ? "bg-gold-primary/10 text-gold-primary" : "text-text-secondary hover:text-white hover:bg-white/5"}`}>
-                              <span className="text-base w-6 text-center flex-shrink-0">{item.icon}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-sm font-medium">{item.label}</p>
-                                  {isPro && !isPremiumUser() && <span className="text-[7px] font-bold px-1 py-0.5 rounded bg-gold-primary/15 text-gold-primary/70">PRO</span>}
-                                </div>
-                                {item.description && <p className="text-[11px] text-text-muted mt-0.5 truncate">{item.description}</p>}
-                              </div>
-                              {isActive(item.path) && <span className="ml-auto w-1.5 h-1.5 bg-gold-primary rounded-full flex-shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => setShowMoreFeatures(true)}
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${moreHasActive ? "text-gold-primary" : "text-text-secondary hover:text-white"}`}
+                >
+                  <span>{t("nav.more")}</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  {moreHasActive && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gold-primary rounded-full" />}
+                </button>
               </nav>
             </div>
             <div className="flex items-center gap-1.5 lg:gap-2">
@@ -438,6 +413,16 @@ function AppShell({ children }) {
       </nav>
 
       <PremiumModal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
+
+      <MoreFeaturesModal
+        isOpen={showMoreFeatures}
+        onClose={() => setShowMoreFeatures(false)}
+        onNavigate={handleNav}
+        isActive={isActive}
+        isPremium={isPremiumUser()}
+        isAdmin={user?.role === "admin"}
+        premiumPaths={PREMIUM_REQUIRED}
+      />
     </div>
   );
 }

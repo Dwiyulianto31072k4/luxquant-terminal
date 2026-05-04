@@ -15,6 +15,8 @@ import { referralEn, referralZh } from './locales/referral';
 import { authEn, authZh } from './locales/auth';
 import { profileEn, profileZh } from './locales/profile';
 import { notificationsEn, notificationsZh } from './locales/notifications';
+import { helpModalEn, helpModalZh } from './locales/helpModal';
+import { moreFeaturesEn, moreFeaturesZh } from './locales/moreFeatures';
 
 const resources = {
   en: {
@@ -41,6 +43,8 @@ const resources = {
       auth: authEn,
       profile: profileEn,
       notifications: notificationsEn,
+      helpModal: helpModalEn,
+      mfm: moreFeaturesEn,
     }
   },
   zh: {
@@ -67,6 +71,8 @@ const resources = {
       auth: authZh,
       profile: profileZh,
       notifications: notificationsZh,
+      helpModal: helpModalZh,
+      mfm: moreFeaturesZh,
     }
   }
 };
