@@ -5,29 +5,26 @@ Layer 5 endpoint:
   GET /api/v1/signals/journey/{signal_id}
 
 Access control:
-  - Signal age < 7 days (from created_at): subscriber-only via require_subscription
+  - Signal age < 7 days (from created_at): subscriber-only
   - Signal age >= 7 days: public (no auth required)
 
 Returns:
   - 200 SignalJourneyResponse — full data ready for frontend rendering
   - 200 JourneyNotAvailableResponse — when journey row gak ada / pair unavailable / requires sub
   - 404 — signal_id tidak ditemukan
-
-Mounting (di main.py atau routes/__init__.py):
-    from app.api.routes.signal_journey import router as journey_router
-    app.include_router(journey_router, prefix='/api/v1')
 """
 
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.deps import require_subscription
+from app.api.deps import get_current_user_optional
+from app.models.user import User
 from app.services.journey_view_builder import build_journey_view
 from app.services.journey_fetcher import parse_created_at
 from app.schemas.journey import (
@@ -39,7 +36,7 @@ from app.schemas.journey import (
 log = logging.getLogger(__name__)
 
 router = APIRouter(tags=['signals-journey'])
-# Note: prefix added by main.py mounting (/api/v1/signals)
+# prefix added by main.py mounting (/api/v1/signals)
 # Final endpoint: GET /api/v1/signals/journey/{signal_id}
 
 
@@ -48,7 +45,7 @@ router = APIRouter(tags=['signals-journey'])
 # ============================================================
 
 PUBLIC_AFTER_DAYS = 7
-"""Signal yang lebih tua dari N hari = public access (no subscription needed)."""
+"""Signal yang lebih tua dari N hari = public access."""
 
 
 # ============================================================
@@ -59,6 +56,29 @@ def _is_recent(created_at: datetime) -> bool:
     """True kalau signal belum lewat PUBLIC_AFTER_DAYS dari sekarang."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=PUBLIC_AFTER_DAYS)
     return created_at >= cutoff
+
+
+def _has_active_subscription(user: Optional[User]) -> bool:
+    """
+    Mirror logic dari deps.py require_subscription, but as a pure check
+    (returns bool instead of raising HTTPException).
+    Accepts both 'subscriber' and 'premium' roles for compat.
+    """
+    if user is None:
+        return False
+
+    # Admin bypass
+    if user.is_admin or user.role == 'admin':
+        return True
+
+    # Active subscriber/premium
+    if user.role in ('subscriber', 'premium'):
+        if user.subscription_expires_at is None:
+            return True  # lifetime
+        if user.subscription_expires_at > datetime.now(timezone.utc):
+            return True  # not expired
+
+    return False
 
 
 # ============================================================
@@ -73,21 +93,18 @@ def _is_recent(created_at: datetime) -> bool:
 )
 async def get_signal_journey(
     signal_id: str,
-    request: Request,
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
-    Returns 3-section journey breakdown:
-      - entry_stats: pre-TP1 stats (drawdown, time-to-TP1)
-      - events: timeline (entry + TP/SL hits + detected swings)
-      - outcome: realized pct, peak excursion, time in profit, summary sentence
+    Returns 3-section journey breakdown.
 
     Access control:
-      - Signal age < 7 days: subscriber-only
+      - Signal age < 7 days: subscriber-only (subscriber/premium/admin)
       - Signal age >= 7 days: public
 
-    For unsubscribed users on recent signals, returns JourneyNotAvailableResponse
-    with reason='requires_subscription' (200 OK, frontend can render gate).
+    Uses get_current_user_optional so the endpoint accepts both authenticated
+    and anonymous requests, then gates based on signal age + user.role.
     """
 
     # ============================================================
@@ -120,27 +137,12 @@ async def get_signal_journey(
     # 2. Subscription gating (recent signals = subscriber-only)
     # ============================================================
     if _is_recent(created_at_dt):
-        # Manual run dependency. require_subscription is a regular function
-        # that takes (request, db) and returns the user, or raises HTTPException.
-        # We catch HTTPException to return graceful JourneyNotAvailableResponse
-        # instead (better UX — frontend renders paywall card).
-        try:
-            require_subscription(request=request, db=db)
-        except HTTPException:
+        if not _has_active_subscription(current_user):
             return JourneyNotAvailableResponse(
                 signal_id=signal_id,
                 available=False,
                 reason='requires_subscription',
                 message='Recent signals (< 7 days old) require active subscription',
-            )
-        except Exception as e:
-            # Unexpected error during auth — log & treat as gated
-            log.warning(f"Subscription check failed unexpectedly: {type(e).__name__}: {e}")
-            return JourneyNotAvailableResponse(
-                signal_id=signal_id,
-                available=False,
-                reason='requires_subscription',
-                message='Recent signals require active subscription',
             )
 
     # ============================================================
@@ -165,8 +167,6 @@ async def get_signal_journey(
     """), {"sid": signal_id}).mappings().fetchone()
 
     if not journey_row:
-        # Signal exists but no journey row — open signal (no events yet)
-        # OR pair was unavailable & worker hasn't computed.
         return JourneyNotAvailableResponse(
             signal_id=signal_id,
             available=False,
