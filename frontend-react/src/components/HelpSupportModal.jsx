@@ -1,10 +1,12 @@
 // src/components/HelpSupportModal.jsx
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 /**
  * HelpSupportModal — centered modal with admin profile + Telegram CTA
- * Matches NewsPreviewModal style (overlay blur, fade animation, gold accents)
+ * Uses React Portal to render directly to document.body, ensuring
+ * proper viewport-centered positioning regardless of parent transforms.
  */
 const HelpSupportModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -35,9 +37,9 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center px-4 hs-overlay ${isClosing ? 'hs-overlay-out' : ''}`}
+      className={`fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6 hs-overlay ${isClosing ? 'hs-overlay-out' : ''}`}
       onClick={handleClose}
     >
       <style>{`
@@ -55,7 +57,12 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
           from { background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
           to { background: rgba(0,0,0,0); backdrop-filter: blur(0px); }
         }
-        .hs-card { animation: hsCardIn .3s cubic-bezier(.16,1,.3,1) forwards; }
+        .hs-card {
+          animation: hsCardIn .35s cubic-bezier(.16,1,.3,1) forwards;
+          background:
+            radial-gradient(ellipse at top, rgba(212,168,83,0.06), transparent 60%),
+            #0c0a0f;
+        }
         @keyframes hsCardIn {
           from { opacity: 0; transform: scale(.95) translateY(12px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
@@ -70,11 +77,11 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
       `}</style>
 
       <div
-        className="hs-card relative w-full max-w-md bg-[#0c0a0f] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-hidden"
+        className="hs-card relative w-full max-w-md max-h-[90vh] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top accent */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         {/* Close button */}
         <button
@@ -179,6 +186,11 @@ const HelpSupportModal = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+
+  // ─── Render via React Portal to document.body ───
+  // This ensures the modal escapes any parent transforms/filters
+  // that could break `position: fixed` viewport-relative positioning.
+  return createPortal(modalContent, document.body);
 };
 
 export default HelpSupportModal;

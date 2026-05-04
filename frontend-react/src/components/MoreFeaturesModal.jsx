@@ -1,5 +1,6 @@
 // src/components/MoreFeaturesModal.jsx
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -280,7 +281,7 @@ const MoreFeaturesModal = ({
     }] : []),
   ];
 
-  return (
+  const modalContent = (
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6 mfm-overlay ${isClosing ? 'mfm-overlay-out' : ''}`}
       onClick={handleClose}
@@ -554,6 +555,8 @@ const MoreFeaturesModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default MoreFeaturesModal;
