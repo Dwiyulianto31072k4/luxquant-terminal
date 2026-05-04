@@ -307,16 +307,25 @@ const JourneyInsightsSection = ({ pair }) => {
             <tbody>
               {hit_rate_per_tp?.map((row) => {
                 const rate = row.hit_rate_pct;
-                const rateColor =
-                  rate >= 70
+                const isSL = row.tp === "SL";
+                const rateColor = isSL
+                  ? "text-red-400"
+                  : rate >= 70
                     ? "text-emerald-400"
                     : rate >= 40
                       ? "text-yellow-400"
                       : "text-red-400";
+                const barColor = isSL
+                  ? "bg-red-500"
+                  : rate >= 70
+                    ? "bg-emerald-500"
+                    : rate >= 40
+                      ? "bg-yellow-500"
+                      : "bg-red-500";
                 return (
                   <tr key={row.tp} className="border-b border-white/[0.03] last:border-0">
                     <Cell>
-                      <span className="text-[11px] font-bold text-white">{row.tp}</span>
+                      <span className={`text-[11px] font-bold ${isSL ? "text-red-300" : "text-white"}`}>{row.tp}</span>
                     </Cell>
                     <Cell>
                       <div className="flex items-center gap-2">
@@ -325,7 +334,7 @@ const JourneyInsightsSection = ({ pair }) => {
                         </span>
                         <div className="flex-1 max-w-[60px] h-1 rounded-full bg-white/5 overflow-hidden">
                           <div
-                            className={`h-full ${rate >= 70 ? "bg-emerald-500" : rate >= 40 ? "bg-yellow-500" : "bg-red-500"}`}
+                            className={`h-full ${barColor}`}
                             style={{ width: `${Math.min(100, rate || 0)}%` }}
                           />
                         </div>
@@ -337,7 +346,7 @@ const JourneyInsightsSection = ({ pair }) => {
                       </span>
                     </Cell>
                     <Cell>
-                      <span className="text-[11px] font-mono text-emerald-400">
+                      <span className={`text-[11px] font-mono ${isSL ? "text-red-400" : "text-emerald-400"}`}>
                         {row.avg_exit_gain_pct !== null ? formatPct(row.avg_exit_gain_pct) : "—"}
                       </span>
                     </Cell>

@@ -166,6 +166,16 @@ def _compute_in_trade_excursions(row: Dict[str, Any]) -> Dict[str, Optional[floa
                     trade_end_at = ev_at
                     break
 
+    elif status in ("tp1", "tp2", "tp3"):
+        # Per user spec: status tpN means stopped progressing at TP_N = final outcome
+        # Trade end = timestamp of that TP event in events array
+        for ev in events:
+            if ev.get("type") == status:
+                ev_at = _parse_iso(ev.get("at"))
+                if ev_at is not None:
+                    trade_end_at = ev_at
+                    break
+
     # Intermediate status (tp1/tp2/tp3 still active) or no terminal found
     # → don't truncate, use overall values
     if trade_end_at is None:
@@ -387,37 +397,119 @@ def _compute_drawdown_before_each_tp(rows: List[Dict[str, Any]]) -> List[Dict[st
 
 def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Section 4: Hit rate per TP
+    Section 4: Hit rate per TP — MUTUALLY EXCLUSIVE FINAL OUTCOMES
 
-    Denominator = all signals with journey row (each represents a "trade taken").
-    Numerator   = signals that reached this TP at any point during their lifecycle.
+    Each signal counts in EXACTLY ONE bucket (its final outcome):
+      - TP4: status closed_win + reached TP4 in events
+      - TP3: status closed_win without TP4 + reached TP3, OR status='tp3'
+      - TP2: status closed_win without TP3/4 + reached TP2, OR status='tp2'
+      - TP1: status closed_win without TP2/3/4 + reached TP1, OR status='tp1'
+      - SL:  status closed_loss OR status='sl'
+      - (excluded: status='open' — no outcome yet)
 
-    Note: signals with status tp1/tp2/tp3 (intermediate) DO count toward hit rate
-    of those TPs even though they're not "closed" yet. That's the correct semantic
-    — TP1 was hit, regardless of whether trade later closed.
+    Denominator = total non-open signals (signals that have a final outcome).
+    Sum of all bucket pcts = 100% by construction.
+
+    Note: avg_exit_gain_pct shown per TP is the avg pct AT THAT TP EVENT for
+    signals that ended at that bucket (not all signals that ever touched it).
     """
-    base_count = len(rows)
+    # Bucket signals by final outcome
+    buckets = {"tp1": [], "tp2": [], "tp3": [], "tp4": [], "sl": []}
+
+    for r in rows:
+        status = (r.get("status") or "").lower()
+        events = r.get("events") or []
+
+        if status in ("open",):
+            # No final outcome yet
+            continue
+
+        if status in ("closed_loss", "sl"):
+            buckets["sl"].append(r)
+            continue
+
+        # Find highest TP reached in events (TP4 > TP3 > TP2 > TP1)
+        highest_tp = None
+        for tp in ("tp4", "tp3", "tp2", "tp1"):
+            if _find_event(events, tp):
+                highest_tp = tp
+                break
+
+        if status in ("closed_win", "tp4"):
+            # Closed at highest TP reached (might not be TP4)
+            if highest_tp:
+                buckets[highest_tp].append(r)
+            # If somehow closed_win without any TP event, skip (data integrity issue)
+            continue
+
+        if status in ("tp1", "tp2", "tp3"):
+            # Status itself is the final TP (per user spec: stopped progressing here)
+            buckets[status].append(r)
+            continue
+
+        # Unknown status — skip silently (defensive)
+
+    total_with_outcome = sum(len(b) for b in buckets.values())
+    if total_with_outcome == 0:
+        # No signals have outcomes yet
+        return [
+            {
+                "tp": tp.upper(),
+                "hit_count": 0,
+                "total_count": 0,
+                "hit_rate_pct": None,
+                "avg_exit_gain_pct": None,
+            }
+            for tp in TP_TYPES
+        ] + [{
+            "tp": "SL",
+            "hit_count": 0,
+            "total_count": 0,
+            "hit_rate_pct": None,
+            "avg_exit_gain_pct": None,
+        }]
 
     out = []
     for tp in TP_TYPES:
-        hit_signals = []
-        for r in rows:
-            events = r.get("events") or []
-            tp_ev = _find_event(events, tp)
-            if tp_ev and tp_ev.get("pct") is not None:
-                hit_signals.append(tp_ev["pct"])
+        bucket_rows = buckets[tp]
+        hit_count = len(bucket_rows)
+        hit_rate = (hit_count / total_with_outcome * 100) if total_with_outcome else None
 
-        hit_count = len(hit_signals)
-        hit_rate = (hit_count / base_count * 100) if base_count > 0 else None
-        avg_exit = _avg(hit_signals)
+        # Avg exit gain = avg pct AT THAT TP for signals that ENDED at this bucket
+        exit_pcts = []
+        for r in bucket_rows:
+            ev = _find_event(r.get("events") or [], tp)
+            if ev and ev.get("pct") is not None:
+                exit_pcts.append(ev["pct"])
+        avg_exit = _avg(exit_pcts)
 
         out.append({
             "tp": tp.upper(),
             "hit_count": hit_count,
-            "total_count": base_count,
+            "total_count": total_with_outcome,
             "hit_rate_pct": _round_or_none(hit_rate, 1),
             "avg_exit_gain_pct": _round_or_none(avg_exit),
         })
+
+    # SL bucket
+    sl_rows = buckets["sl"]
+    sl_count = len(sl_rows)
+    sl_rate = (sl_count / total_with_outcome * 100) if total_with_outcome else None
+    sl_exit_pcts = []
+    for r in sl_rows:
+        ev = _find_event(r.get("events") or [], "sl")
+        if ev and ev.get("pct") is not None:
+            sl_exit_pcts.append(ev["pct"])
+    sl_avg_exit = _avg(sl_exit_pcts)
+
+    out.append({
+        "tp": "SL",
+        "hit_count": sl_count,
+        "total_count": total_with_outcome,
+        "hit_rate_pct": _round_or_none(sl_rate, 1),
+        "avg_exit_gain_pct": _round_or_none(sl_avg_exit),
+    })
+
     return out
 
 
@@ -426,22 +518,31 @@ def _compute_peak_potential(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     Section 5: Peak Potential
 
     Uses IN-TRADE MFE (capped at outcome time) instead of overall_mfe_pct
-    to avoid post-trade noise where coin pumped far after TP4 hit.
+    to avoid post-trade noise where coin pumped far after trade ended.
+
+    Includes all signals with a final outcome (excludes only status='open').
+    Per user spec: tp1/tp2/tp3 means "stopped progressing at that TP" = effectively
+    final outcome.
     """
-    in_trade = [_compute_in_trade_excursions(r) for r in rows]
+    final_rows = [
+        r for r in rows
+        if (r.get("status") or "").lower() != "open"
+    ]
+
+    in_trade = [_compute_in_trade_excursions(r) for r in final_rows]
     mfes_with_idx = [
         (i, ex["in_trade_mfe_pct"])
         for i, ex in enumerate(in_trade)
         if ex["in_trade_mfe_pct"] is not None
     ]
-    missed = [r["missed_potential_pct"] for r in rows if r.get("missed_potential_pct") is not None]
+    missed = [r["missed_potential_pct"] for r in final_rows if r.get("missed_potential_pct") is not None]
 
     best_peak = None
     best_peak_signal_id = None
     if mfes_with_idx:
         best_idx, best_val = max(mfes_with_idx, key=lambda t: t[1])
         best_peak = best_val
-        best_peak_signal_id = rows[best_idx].get("signal_id")
+        best_peak_signal_id = final_rows[best_idx].get("signal_id")
 
     mfe_values = [v for _, v in mfes_with_idx]
 
@@ -452,6 +553,7 @@ def _compute_peak_potential(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "best_peak_signal_id": best_peak_signal_id,
         "avg_max_gain_pct": _round_or_none(_avg(mfe_values)),
         "avg_max_gain_sample": len(mfe_values),
+        "closed_sample_size": len(final_rows),
     }
 
 
@@ -460,11 +562,14 @@ def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     Section 6: Risk Profile
 
     Uses IN-TRADE MAE (capped at outcome time) to avoid post-trade noise.
-    Without this fix: NAORIS shows worst_dd -91% from coin dumping AFTER TP4
-    hit, which is misleading — trader already exited at TP4, didn't experience
-    that drawdown.
+    Includes all signals with a final outcome (excludes only status='open').
     """
-    in_trade = [_compute_in_trade_excursions(r) for r in rows]
+    final_rows = [
+        r for r in rows
+        if (r.get("status") or "").lower() != "open"
+    ]
+
+    in_trade = [_compute_in_trade_excursions(r) for r in final_rows]
     maes_with_idx = [
         (i, ex["in_trade_mae_pct"])
         for i, ex in enumerate(in_trade)
@@ -472,7 +577,7 @@ def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     ]
     times_above = [
         r["pct_time_above_entry"]
-        for r in rows
+        for r in final_rows
         if r.get("pct_time_above_entry") is not None
     ]
 
@@ -481,10 +586,11 @@ def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     if maes_with_idx:
         worst_idx, worst_val = min(maes_with_idx, key=lambda t: t[1])
         worst_dd = worst_val
-        worst_dd_signal_id = rows[worst_idx].get("signal_id")
+        worst_dd_signal_id = final_rows[worst_idx].get("signal_id")
 
     mae_values = [v for _, v in maes_with_idx]
 
+    # tp_then_sl: discrete event count across ALL signals
     tp_then_sl_count = sum(1 for r in rows if r.get("tp_then_sl") is True)
     base = len(rows)
     tp_then_sl_pct = (tp_then_sl_count / base * 100) if base > 0 else None
@@ -497,6 +603,7 @@ def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "tp_then_sl_count": tp_then_sl_count,
         "tp_then_sl_total": base,
         "tp_then_sl_pct": _round_or_none(tp_then_sl_pct, 1),
+        "closed_sample_size": len(final_rows),
     }
 
 
