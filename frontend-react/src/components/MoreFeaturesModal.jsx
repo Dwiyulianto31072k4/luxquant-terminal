@@ -3,17 +3,9 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * MoreFeaturesModal — App-launcher style grid showing ALL platform features.
- * Replaces the dropdown "More" in header with a fullscreen grid modal.
- *
- * Props:
- *   isOpen      — boolean
- *   onClose     — fn() to close modal
- *   onNavigate  — fn(path) handler from AppShell (preserves PremiumGate logic)
- *   isActive    — fn(path) → boolean (current route check)
- *   isPremium   — boolean (current user premium status)
- *   isAdmin     — boolean (current user admin)
- *   premiumPaths — array of paths that require premium
+ * MoreFeaturesModal v2 — Premium gold-standardized aesthetic
+ * Icons are crafted with proper visual weight, fill+stroke combos,
+ * and consistent gold/amber tones matching landing page brand.
  */
 const MoreFeaturesModal = ({
   isOpen,
@@ -48,169 +40,243 @@ const MoreFeaturesModal = ({
 
   const handleItemClick = (path) => {
     handleClose();
-    // Slight delay so close animation can begin before navigation
     setTimeout(() => onNavigate(path), 80);
   };
 
   if (!isOpen) return null;
 
-  // ─── Feature catalog ───────────────────────────────────────────
-  // Icons inline as SVG strings — no external dependencies.
+  // ─── Three tonal tiers within gold family ──────────────────────
+  // tier 1: bright gold (primary features)
+  // tier 2: amber (secondary features)
+  // tier 3: bronze/copper (utility features)
+  const TIER = {
+    primary:   { from: '#fde6a8', via: '#d4a853', to: '#8b6914' },  // bright gold
+    secondary: { from: '#f5d088', via: '#c89143', to: '#7a5610' },  // amber
+    utility:   { from: '#e8b87a', via: '#a87938', to: '#5e3d09' },  // bronze
+    danger:    { from: '#f5d088', via: '#c89143', to: '#7a5610' },  // amber-tinted (admin)
+  };
+
+  // ─── Custom-crafted SVG icons ───────────────────────────────────
+  // Each icon uses fill+stroke composition for visual weight,
+  // not flat single-stroke outlines.
+
+  const Icon = {
+    home: (
+      <g>
+        <path d="M3 11.5 L12 4 L21 11.5 V20 a1 1 0 01-1 1h-5v-7h-4v7H4 a1 1 0 01-1-1z" fill="currentColor" opacity="0.15" />
+        <path d="M3 11.5 L12 4 L21 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <path d="M5 11 V20 a1 1 0 001 1h4v-6h4v6h4 a1 1 0 001-1V11" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+      </g>
+    ),
+    signals: (
+      <g>
+        <path d="M4 17 L9 12 L13 15 L20 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M16 7 L20 7 L20 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="13" cy="15" r="1.5" fill="currentColor" />
+        <circle cx="20" cy="7" r="1.5" fill="currentColor" />
+      </g>
+    ),
+    autotrade: (
+      <g>
+        <rect x="3" y="13" width="4" height="8" rx="1" fill="currentColor" opacity="0.2" />
+        <rect x="3" y="13" width="4" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <rect x="10" y="9" width="4" height="12" rx="1" fill="currentColor" opacity="0.35" />
+        <rect x="10" y="9" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <rect x="17" y="4" width="4" height="17" rx="1" fill="currentColor" opacity="0.5" />
+        <rect x="17" y="4" width="4" height="17" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      </g>
+    ),
+    aiArena: (
+      <g>
+        <path d="M12 3 L13.5 9 L19.5 10.5 L13.5 12 L12 18 L10.5 12 L4.5 10.5 L10.5 9 Z" fill="currentColor" opacity="0.2" />
+        <path d="M12 3 L13.5 9 L19.5 10.5 L13.5 12 L12 18 L10.5 12 L4.5 10.5 L10.5 9 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <circle cx="18" cy="5" r="1.2" fill="currentColor" />
+        <circle cx="6" cy="18" r="1" fill="currentColor" opacity="0.7" />
+        <circle cx="19" cy="19" r="0.8" fill="currentColor" opacity="0.5" />
+      </g>
+    ),
+    pulse: (
+      <g>
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.2" opacity="0.25" fill="none" />
+        <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.2" opacity="0.5" fill="none" />
+        <circle cx="12" cy="12" r="3" fill="currentColor" />
+        <path d="M3 12 L8 12 L10 7 L13 17 L15 12 L21 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </g>
+    ),
+    news: (
+      <g>
+        <rect x="3" y="5" width="14" height="15" rx="1.5" fill="currentColor" opacity="0.15" />
+        <rect x="3" y="5" width="14" height="15" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M17 8 H20 a1 1 0 011 1 V18 a2 2 0 01-2 2 H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <line x1="6" y1="9" x2="14" y2="9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="6" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="6" y1="15" x2="11" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </g>
+    ),
+    onchain: (
+      <g>
+        <circle cx="6" cy="6" r="2.5" fill="currentColor" opacity="0.3" />
+        <circle cx="6" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <circle cx="18" cy="6" r="2.5" fill="currentColor" opacity="0.3" />
+        <circle cx="18" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <circle cx="12" cy="14" r="2.5" fill="currentColor" opacity="0.5" />
+        <circle cx="12" cy="14" r="2.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <circle cx="6" cy="20" r="1.8" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.3" />
+        <circle cx="18" cy="20" r="1.8" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.3" />
+        <line x1="7.5" y1="7.5" x2="10.5" y2="12.5" stroke="currentColor" strokeWidth="1.3" />
+        <line x1="16.5" y1="7.5" x2="13.5" y2="12.5" stroke="currentColor" strokeWidth="1.3" />
+        <line x1="11" y1="16" x2="7" y2="18.5" stroke="currentColor" strokeWidth="1.3" />
+        <line x1="13" y1="16" x2="17" y2="18.5" stroke="currentColor" strokeWidth="1.3" />
+      </g>
+    ),
+    bitcoin: (
+      <g>
+        <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" />
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M10 7 V17 M14 7 V17 M9 9 H14.5 a1.8 1.8 0 010 3.5 H9 M9 12.5 H15 a1.8 1.8 0 010 3.5 H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </g>
+    ),
+    markets: (
+      <g>
+        <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.12" />
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <ellipse cx="12" cy="12" rx="4" ry="9" stroke="currentColor" strokeWidth="1.3" fill="none" opacity="0.7" />
+        <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.3" />
+      </g>
+    ),
+    journal: (
+      <g>
+        <rect x="4" y="3" width="14" height="18" rx="1.5" fill="currentColor" opacity="0.15" />
+        <rect x="4" y="3" width="14" height="18" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <line x1="7" y1="3" x2="7" y2="21" stroke="currentColor" strokeWidth="1.2" opacity="0.5" />
+        <path d="M14 8 L17 5 L19 7 L16 10 Z" fill="currentColor" opacity="0.4" />
+        <path d="M14 8 L17 5 L19 7 L16 10 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
+        <line x1="9" y1="13" x2="14" y2="13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="9" y1="16" x2="13" y2="16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </g>
+    ),
+    portfolio: (
+      <g>
+        <rect x="3" y="7" width="18" height="13" rx="1.5" fill="currentColor" opacity="0.18" />
+        <rect x="3" y="7" width="18" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M9 7 V5.5 a1 1 0 011-1 H14 a1 1 0 011 1 V7" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <line x1="3" y1="13" x2="21" y2="13" stroke="currentColor" strokeWidth="1.3" />
+        <circle cx="12" cy="13" r="1.4" fill="currentColor" />
+      </g>
+    ),
+    analytics: (
+      <g>
+        <path d="M3 20 H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <rect x="5" y="13" width="3" height="6" rx="0.5" fill="currentColor" opacity="0.4" />
+        <rect x="5" y="13" width="3" height="6" rx="0.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <rect x="10.5" y="9" width="3" height="10" rx="0.5" fill="currentColor" opacity="0.55" />
+        <rect x="10.5" y="9" width="3" height="10" rx="0.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <rect x="16" y="5" width="3" height="14" rx="0.5" fill="currentColor" opacity="0.7" />
+        <rect x="16" y="5" width="3" height="14" rx="0.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+      </g>
+    ),
+    orderbook: (
+      <g>
+        <rect x="3" y="4" width="8" height="16" rx="1" fill="currentColor" opacity="0.15" />
+        <rect x="3" y="4" width="8" height="16" rx="1" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <rect x="13" y="4" width="8" height="16" rx="1" fill="currentColor" opacity="0.3" />
+        <rect x="13" y="4" width="8" height="16" rx="1" stroke="currentColor" strokeWidth="1.4" fill="none" />
+        <line x1="5" y1="8" x2="9" y2="8" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="5" y1="11" x2="8" y2="11" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="5" y1="14" x2="9" y2="14" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="5" y1="17" x2="7" y2="17" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="15" y1="8" x2="19" y2="8" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="15" y1="11" x2="18" y2="11" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="15" y1="14" x2="19" y2="14" stroke="currentColor" strokeWidth="1.2" />
+        <line x1="15" y1="17" x2="17" y2="17" stroke="currentColor" strokeWidth="1.2" />
+      </g>
+    ),
+    calendar: (
+      <g>
+        <rect x="3" y="5" width="18" height="16" rx="1.5" fill="currentColor" opacity="0.15" />
+        <rect x="3" y="5" width="18" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="1.4" />
+        <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="8" cy="14" r="1" fill="currentColor" />
+        <circle cx="12" cy="14" r="1" fill="currentColor" opacity="0.5" />
+        <circle cx="16" cy="14" r="1" fill="currentColor" />
+        <circle cx="8" cy="17.5" r="1" fill="currentColor" opacity="0.5" />
+        <circle cx="12" cy="17.5" r="1" fill="currentColor" />
+      </g>
+    ),
+    whale: (
+      <g>
+        <path d="M3 13 c2-5 6-7 10-6 c3 1 5 3 6 5 c1 2 2 4 2 4 l-2-1 c-1 2-3 3-5 3 c-3 0-6-1-8-2 c-2-1-3-2-3-3z" fill="currentColor" opacity="0.25" />
+        <path d="M3 13 c2-5 6-7 10-6 c3 1 5 3 6 5 c1 2 2 4 2 4 l-2-1 c-1 2-3 3-5 3 c-3 0-6-1-8-2 c-2-1-3-2-3-3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <circle cx="15" cy="10" r="0.9" fill="currentColor" />
+        <path d="M19 12 c0-1 1-2 2-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      </g>
+    ),
+    tips: (
+      <g>
+        <path d="M4 5 a1 1 0 011-1 h7 v15 H5 a1 1 0 01-1-1 z" fill="currentColor" opacity="0.18" />
+        <path d="M12 4 h7 a1 1 0 011 1 v13 a1 1 0 01-1 1 h-7" fill="currentColor" opacity="0.28" />
+        <path d="M4 5 a1 1 0 011-1 h7 v15 H5 a1 1 0 01-1-1 z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <path d="M12 4 h7 a1 1 0 011 1 v13 a1 1 0 01-1 1 h-7" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <line x1="12" y1="4" x2="12" y2="19" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M12 19 c-1.5-1-3.5-1.5-7-1.5 M12 19 c1.5-1 3.5-1.5 7-1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      </g>
+    ),
+    watchlist: (
+      <g>
+        <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" fill="currentColor" opacity="0.3" />
+        <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+      </g>
+    ),
+    referral: (
+      <g>
+        <rect x="3" y="9" width="18" height="11" rx="1.5" fill="currentColor" opacity="0.18" />
+        <rect x="3" y="9" width="18" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M9 9 V6.5 a2 2 0 014 0 V9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M11 9 V6.5 a2 2 0 014 0 V9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <line x1="3" y1="13.5" x2="21" y2="13.5" stroke="currentColor" strokeWidth="1.3" opacity="0.5" />
+        <line x1="12" y1="9" x2="12" y2="20" stroke="currentColor" strokeWidth="1.3" opacity="0.5" />
+      </g>
+    ),
+    admin: (
+      <g>
+        <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" fill="currentColor" opacity="0.2" />
+        <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+        <path d="M9 12 L11 14 L15 9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </g>
+    ),
+  };
+
+  // ─── Feature catalog with tier mapping ─────────────────────────
   const features = [
-    // ── Main / Header items ──
-    {
-      path: '/home',
-      label: t('mfm.home'),
-      desc: t('mfm.home_desc'),
-      gradient: 'from-emerald-500/20 to-emerald-600/5',
-      iconColor: 'text-emerald-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />,
-    },
-    {
-      path: '/signals',
-      label: t('mfm.signals'),
-      desc: t('mfm.signals_desc'),
-      gradient: 'from-gold-primary/25 to-gold-dark/5',
-      iconColor: 'text-gold-primary',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />,
-    },
-    {
-      path: '/autotrade',
-      label: t('mfm.autotrade'),
-      desc: t('mfm.autotrade_desc'),
-      gradient: 'from-blue-500/20 to-blue-600/5',
-      iconColor: 'text-blue-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />,
-    },
-    {
-      path: '/ai-arena',
-      label: t('mfm.ai_arena'),
-      desc: t('mfm.ai_arena_desc'),
-      gradient: 'from-purple-500/25 to-purple-600/5',
-      iconColor: 'text-purple-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />,
-    },
-    {
-      path: '/market-pulse',
-      label: t('mfm.pulse'),
-      desc: t('mfm.pulse_desc'),
-      gradient: 'from-pink-500/20 to-pink-600/5',
-      iconColor: 'text-pink-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />,
-    },
-    {
-      path: '/crypto-news',
-      label: t('mfm.news'),
-      desc: t('mfm.news_desc'),
-      gradient: 'from-cyan-500/20 to-cyan-600/5',
-      iconColor: 'text-cyan-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />,
-    },
-    {
-      path: '/onchain',
-      label: t('mfm.onchain'),
-      desc: t('mfm.onchain_desc'),
-      gradient: 'from-indigo-500/20 to-indigo-600/5',
-      iconColor: 'text-indigo-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />,
-    },
-    {
-      path: '/bitcoin',
-      label: t('mfm.bitcoin'),
-      desc: t('mfm.bitcoin_desc'),
-      gradient: 'from-orange-500/25 to-amber-600/5',
-      iconColor: 'text-orange-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
-    },
-    {
-      path: '/markets',
-      label: t('mfm.markets'),
-      desc: t('mfm.markets_desc'),
-      gradient: 'from-teal-500/20 to-teal-600/5',
-      iconColor: 'text-teal-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />,
-    },
-    {
-      path: '/journal',
-      label: t('mfm.journal'),
-      desc: t('mfm.journal_desc'),
-      gradient: 'from-rose-500/20 to-rose-600/5',
-      iconColor: 'text-rose-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />,
-    },
-    // ── Tools ──
-    {
-      path: '/portfolio',
-      label: t('mfm.portfolio'),
-      desc: t('mfm.portfolio_desc'),
-      gradient: 'from-yellow-500/20 to-yellow-600/5',
-      iconColor: 'text-yellow-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />,
-    },
-    {
-      path: '/analytics',
-      label: t('mfm.analytics'),
-      desc: t('mfm.analytics_desc'),
-      gradient: 'from-green-500/20 to-green-600/5',
-      iconColor: 'text-green-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />,
-    },
-    {
-      path: '/orderbook',
-      label: t('mfm.orderbook'),
-      desc: t('mfm.orderbook_desc'),
-      gradient: 'from-sky-500/20 to-sky-600/5',
-      iconColor: 'text-sky-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h12M3 16h8M3 20h4" />,
-    },
-    {
-      path: '/calendar',
-      label: t('mfm.calendar'),
-      desc: t('mfm.calendar_desc'),
-      gradient: 'from-red-500/20 to-red-600/5',
-      iconColor: 'text-red-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />,
-    },
-    {
-      path: '/whale',
-      label: t('mfm.whale'),
-      desc: t('mfm.whale_desc'),
-      gradient: 'from-blue-400/25 to-blue-600/5',
-      iconColor: 'text-blue-300',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7zm10-3a3 3 0 100 6 3 3 0 000-6z" />,
-    },
-    {
-      path: '/tips',
-      label: t('mfm.tips'),
-      desc: t('mfm.tips_desc'),
-      gradient: 'from-amber-500/20 to-amber-600/5',
-      iconColor: 'text-amber-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />,
-    },
-    {
-      path: '/watchlist',
-      label: t('mfm.watchlist'),
-      desc: t('mfm.watchlist_desc'),
-      gradient: 'from-yellow-400/25 to-amber-600/5',
-      iconColor: 'text-yellow-300',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />,
-    },
-    {
-      path: '/referral',
-      label: t('mfm.referral'),
-      desc: t('mfm.referral_desc'),
-      gradient: 'from-fuchsia-500/20 to-fuchsia-600/5',
-      iconColor: 'text-fuchsia-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />,
-    },
-    // ── Admin (conditional) ──
+    // Tier 1 — primary (bright gold)
+    { path: '/home',         icon: Icon.home,       tier: 'primary',   label: t('mfm.home'),       desc: t('mfm.home_desc') },
+    { path: '/signals',      icon: Icon.signals,    tier: 'primary',   label: t('mfm.signals'),    desc: t('mfm.signals_desc') },
+    { path: '/autotrade',    icon: Icon.autotrade,  tier: 'primary',   label: t('mfm.autotrade'),  desc: t('mfm.autotrade_desc') },
+    { path: '/ai-arena',     icon: Icon.aiArena,    tier: 'primary',   label: t('mfm.ai_arena'),   desc: t('mfm.ai_arena_desc') },
+    { path: '/bitcoin',      icon: Icon.bitcoin,    tier: 'primary',   label: t('mfm.bitcoin'),    desc: t('mfm.bitcoin_desc') },
+
+    // Tier 2 — secondary (amber)
+    { path: '/market-pulse', icon: Icon.pulse,      tier: 'secondary', label: t('mfm.pulse'),      desc: t('mfm.pulse_desc') },
+    { path: '/crypto-news',  icon: Icon.news,       tier: 'secondary', label: t('mfm.news'),       desc: t('mfm.news_desc') },
+    { path: '/onchain',      icon: Icon.onchain,    tier: 'secondary', label: t('mfm.onchain'),    desc: t('mfm.onchain_desc') },
+    { path: '/markets',      icon: Icon.markets,    tier: 'secondary', label: t('mfm.markets'),    desc: t('mfm.markets_desc') },
+    { path: '/journal',      icon: Icon.journal,    tier: 'secondary', label: t('mfm.journal'),    desc: t('mfm.journal_desc') },
+
+    // Tier 3 — utility (bronze)
+    { path: '/portfolio',    icon: Icon.portfolio,  tier: 'utility',   label: t('mfm.portfolio'),  desc: t('mfm.portfolio_desc') },
+    { path: '/analytics',    icon: Icon.analytics,  tier: 'utility',   label: t('mfm.analytics'),  desc: t('mfm.analytics_desc') },
+    { path: '/orderbook',    icon: Icon.orderbook,  tier: 'utility',   label: t('mfm.orderbook'),  desc: t('mfm.orderbook_desc') },
+    { path: '/calendar',     icon: Icon.calendar,   tier: 'utility',   label: t('mfm.calendar'),   desc: t('mfm.calendar_desc') },
+    { path: '/whale',        icon: Icon.whale,      tier: 'utility',   label: t('mfm.whale'),      desc: t('mfm.whale_desc') },
+    { path: '/tips',         icon: Icon.tips,       tier: 'utility',   label: t('mfm.tips'),       desc: t('mfm.tips_desc') },
+    { path: '/watchlist',    icon: Icon.watchlist,  tier: 'utility',   label: t('mfm.watchlist'),  desc: t('mfm.watchlist_desc') },
+    { path: '/referral',     icon: Icon.referral,   tier: 'utility',   label: t('mfm.referral'),   desc: t('mfm.referral_desc') },
+
     ...(isAdmin ? [{
-      path: '/admin',
-      label: t('mfm.admin'),
-      desc: t('mfm.admin_desc'),
-      gradient: 'from-red-500/25 to-red-700/5',
-      iconColor: 'text-red-400',
-      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />,
+      path: '/admin', icon: Icon.admin, tier: 'danger', label: t('mfm.admin'), desc: t('mfm.admin_desc'),
     }] : []),
   ];
 
@@ -234,7 +300,12 @@ const MoreFeaturesModal = ({
           from { background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
           to { background: rgba(0,0,0,0); backdrop-filter: blur(0px); }
         }
-        .mfm-card { animation: mfmCardIn .3s cubic-bezier(.16,1,.3,1) forwards; }
+        .mfm-card {
+          animation: mfmCardIn .35s cubic-bezier(.16,1,.3,1) forwards;
+          background:
+            radial-gradient(ellipse at top, rgba(212,168,83,0.06), transparent 60%),
+            #0c0a0f;
+        }
         @keyframes mfmCardIn {
           from { opacity: 0; transform: scale(.96) translateY(12px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
@@ -243,30 +314,153 @@ const MoreFeaturesModal = ({
           from { opacity: 1; transform: scale(1); }
           to { opacity: 0; transform: scale(.96) translateY(12px); }
         }
+
+        /* ─── Tile base ─── */
         .mfm-tile {
-          transition: transform .2s ease, background .2s ease, border-color .2s ease;
+          position: relative;
+          border: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.015);
+          transition: transform .25s cubic-bezier(.16,1,.3,1),
+                      border-color .25s ease,
+                      background .25s ease,
+                      box-shadow .25s ease;
+        }
+        .mfm-tile::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          background: linear-gradient(135deg, transparent, transparent);
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          opacity: 0;
+          transition: opacity .25s ease, background .25s ease;
+          pointer-events: none;
         }
         .mfm-tile:hover {
-          transform: translateY(-2px);
+          transform: translateY(-3px);
+          border-color: rgba(212,168,83,0.25);
+          background: rgba(212,168,83,0.04);
+          box-shadow:
+            0 8px 24px -8px rgba(212,168,83,0.25),
+            0 0 0 1px rgba(212,168,83,0.08);
+        }
+        .mfm-tile:hover::before {
+          opacity: 1;
+          background: linear-gradient(135deg, rgba(253,230,168,0.6), rgba(212,168,83,0.2), rgba(139,105,20,0.4));
+        }
+        .mfm-tile.active {
+          border-color: rgba(212,168,83,0.45);
+          background: rgba(212,168,83,0.06);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.25), 0 4px 16px -4px rgba(212,168,83,0.3);
+        }
+
+        /* ─── Icon container ─── */
+        .mfm-icon-wrap {
+          position: relative;
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+          transition: transform .3s cubic-bezier(.16,1,.3,1);
+        }
+        .mfm-icon-wrap::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+        }
+        .mfm-tile:hover .mfm-icon-wrap {
+          transform: scale(1.06);
+        }
+
+        /* Tier — primary (bright gold) */
+        .mfm-icon-wrap.t-primary {
+          background:
+            radial-gradient(circle at 30% 25%, rgba(253,230,168,0.18), transparent 65%),
+            rgba(212,168,83,0.10);
+          color: #f5d088;
+        }
+        .mfm-icon-wrap.t-primary::after {
+          background: linear-gradient(135deg, rgba(253,230,168,0.5), rgba(212,168,83,0.2), rgba(139,105,20,0.35));
+        }
+
+        /* Tier — secondary (amber) */
+        .mfm-icon-wrap.t-secondary {
+          background:
+            radial-gradient(circle at 30% 25%, rgba(245,208,136,0.14), transparent 65%),
+            rgba(200,145,67,0.08);
+          color: #d4a853;
+        }
+        .mfm-icon-wrap.t-secondary::after {
+          background: linear-gradient(135deg, rgba(245,208,136,0.4), rgba(200,145,67,0.18), rgba(122,86,16,0.3));
+        }
+
+        /* Tier — utility (bronze) */
+        .mfm-icon-wrap.t-utility {
+          background:
+            radial-gradient(circle at 30% 25%, rgba(232,184,122,0.12), transparent 65%),
+            rgba(168,121,56,0.07);
+          color: #c89143;
+        }
+        .mfm-icon-wrap.t-utility::after {
+          background: linear-gradient(135deg, rgba(232,184,122,0.35), rgba(168,121,56,0.15), rgba(94,61,9,0.25));
+        }
+
+        /* Tier — danger (admin, slightly warm-red tinted) */
+        .mfm-icon-wrap.t-danger {
+          background:
+            radial-gradient(circle at 30% 25%, rgba(245,180,120,0.18), transparent 65%),
+            rgba(200,100,60,0.08);
+          color: #e8a878;
+        }
+        .mfm-icon-wrap.t-danger::after {
+          background: linear-gradient(135deg, rgba(245,180,120,0.45), rgba(200,100,60,0.18), rgba(120,50,20,0.3));
         }
       `}</style>
 
       <div
-        className="mfm-card relative w-full max-w-5xl max-h-[88vh] bg-[#0c0a0f] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-hidden flex flex-col"
+        className="mfm-card relative w-full max-w-5xl max-h-[88vh] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top accent */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.05] flex-shrink-0">
-          <div>
-            <h2 className="text-white font-bold text-lg sm:text-xl">
-              {t('mfm.title')}
-            </h2>
-            <p className="text-text-muted text-xs mt-0.5">
-              {t('mfm.subtitle')}
-            </p>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{
+                background: 'radial-gradient(circle at 30% 25%, rgba(253,230,168,0.2), transparent 60%), rgba(212,168,83,0.1)',
+                border: '1px solid rgba(212,168,83,0.25)',
+              }}
+            >
+              <svg className="w-4 h-4 text-gold-primary" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2" />
+                <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-white font-bold text-lg sm:text-xl tracking-tight">
+                {t('mfm.title')}
+              </h2>
+              <p className="text-text-muted text-xs mt-0.5">
+                {t('mfm.subtitle')}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleClose}
@@ -278,7 +472,7 @@ const MoreFeaturesModal = ({
           </button>
         </div>
 
-        {/* Grid body — scrollable */}
+        {/* Grid body */}
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5">
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
             {features.map((item) => {
@@ -289,38 +483,46 @@ const MoreFeaturesModal = ({
                 <button
                   key={item.path}
                   onClick={() => handleItemClick(item.path)}
-                  className={`mfm-tile relative group flex flex-col items-center text-center p-3 sm:p-4 rounded-xl border ${
-                    active
-                      ? 'bg-gold-primary/10 border-gold-primary/30'
-                      : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]'
-                  }`}
+                  className={`mfm-tile group flex flex-col items-center text-center p-3 sm:p-4 rounded-2xl ${active ? 'active' : ''}`}
                 >
                   {/* PRO badge */}
                   {isPro && (
-                    <span className="absolute top-1.5 right-1.5 text-[8px] font-bold px-1 py-0.5 rounded bg-gold-primary/15 text-gold-primary/80 border border-gold-primary/20 leading-none">
+                    <span
+                      className="absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 rounded leading-none"
+                      style={{
+                        background: 'rgba(212,168,83,0.15)',
+                        color: '#d4a853',
+                        border: '1px solid rgba(212,168,83,0.3)',
+                      }}
+                    >
                       PRO
                     </span>
                   )}
 
-                  {/* Active dot */}
+                  {/* Active indicator */}
                   {active && (
-                    <span className="absolute top-2 left-2 w-1.5 h-1.5 bg-gold-primary rounded-full" />
+                    <span
+                      className="absolute top-2 left-2 w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: '#d4a853',
+                        boxShadow: '0 0 8px rgba(212,168,83,0.6)',
+                      }}
+                    />
                   )}
 
-                  {/* Icon container with gradient bg */}
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${item.gradient} border border-white/[0.06] flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform`}>
+                  {/* Icon container */}
+                  <div className={`mfm-icon-wrap t-${item.tier}`}>
                     <svg
-                      className={`w-6 h-6 sm:w-7 sm:h-7 ${item.iconColor}`}
-                      fill="none"
-                      stroke="currentColor"
+                      className="w-6 h-6 sm:w-7 sm:h-7"
                       viewBox="0 0 24 24"
+                      fill="none"
                     >
                       {item.icon}
                     </svg>
                   </div>
 
                   {/* Label */}
-                  <span className={`text-[12px] sm:text-[13px] font-semibold leading-tight ${
+                  <span className={`text-[12px] sm:text-[13px] font-semibold leading-tight tracking-tight ${
                     active ? 'text-gold-primary' : 'text-white'
                   }`}>
                     {item.label}
@@ -328,7 +530,7 @@ const MoreFeaturesModal = ({
 
                   {/* Description */}
                   {item.desc && (
-                    <span className="text-[10px] text-text-muted mt-1 leading-snug line-clamp-2 hidden sm:block">
+                    <span className="text-[10px] text-text-muted mt-1.5 leading-snug line-clamp-2 hidden sm:block">
                       {item.desc}
                     </span>
                   )}
@@ -338,9 +540,15 @@ const MoreFeaturesModal = ({
           </div>
         </div>
 
-        {/* Footer hint */}
+        {/* Footer */}
         <div className="px-5 sm:px-6 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-text-muted flex-shrink-0">
-          <span>{t('mfm.footer_count', { count: features.length })}</span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="w-1 h-1 rounded-full"
+              style={{ background: '#d4a853', boxShadow: '0 0 6px rgba(212,168,83,0.5)' }}
+            />
+            {t('mfm.footer_count', { count: features.length })}
+          </span>
           <span className="hidden sm:inline">{t('mfm.footer_hint')}</span>
         </div>
       </div>
