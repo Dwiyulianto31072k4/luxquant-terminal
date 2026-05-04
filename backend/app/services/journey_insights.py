@@ -119,37 +119,56 @@ def _compute_in_trade_excursions(row: Dict[str, Any]) -> Dict[str, Optional[floa
     Compute MAE/MFE limited to "in-trade" window only.
 
     Why: signal_journey.overall_mae_pct includes price action up to coverage_until,
-    which can be many days after TP4/SL (especially for `frozen` status with 14-day
-    post-TP4 buffer). For closed_win signals where coin later dumped, this produces
-    misleading "Worst Drawdown -91%" that's not actually a drawdown the trader
-    experienced.
+    which can be many days after the trade was effectively done. For closed signals
+    with `frozen` coverage status (14-day post-TP4 buffer), this produces misleading
+    "Worst Drawdown -91%" stats that don't reflect what trader actually experienced.
 
-    Fix: truncate events at the first terminal event (tp4 or sl), then recompute
-    MAE/MFE from those events only. For non-terminal signals (still open or
-    intermediate TP1/2/3), keep using overall_mae/mfe since trade is still active.
+    Fix strategy — find "trade end timestamp":
+      1. Check events array for SL or TP4 (most common terminal events).
+      2. If status is closed_loss but no SL event → use coverage_until (no choice).
+      3. If status is closed_win but no TP4 event → fallback to highest TP found
+         in events. E.g. if events has TP3 but not TP4, use TP3 timestamp
+         (trader exited at TP3 in practice).
+      4. For intermediate (tp1/tp2/tp3 status): keep using overall_mae/mfe since
+         trade is still active and coverage_until = NOW.
 
-    Returns:
-        dict with in_trade_mae_pct, in_trade_mae_at, in_trade_mfe_pct, in_trade_mfe_at
-        Falls back to overall_* values if no terminal event found.
+    Then truncate events to ≤ trade_end_at and recompute MAE/MFE from those.
+    Falls back gracefully to overall_* if no usable terminal can be determined.
     """
     events = row.get("events") or []
+    status = (row.get("status") or "").lower()
     overall_mae = row.get("overall_mae_pct")
     overall_mae_at = row.get("overall_mae_at")
     overall_mfe = row.get("overall_mfe_pct")
     overall_mfe_at = row.get("overall_mfe_at")
 
-    # Find earliest terminal event
-    terminal_at = None
-    for ev in events:
-        if ev.get("type") in TERMINAL_EVENT_TYPES:
-            ev_at = _parse_iso(ev.get("at"))
-            if ev_at is None:
-                continue
-            if terminal_at is None or ev_at < terminal_at:
-                terminal_at = ev_at
+    # Determine trade end timestamp based on status + events
+    trade_end_at = None
 
-    # No terminal event — trade still active, overall_mae/mfe is valid
-    if terminal_at is None:
+    if status in ("closed_win", "tp4"):
+        # Look for tp4 first, then chain down to highest TP found
+        for tp_type in ("tp4", "tp3", "tp2", "tp1"):
+            for ev in events:
+                if ev.get("type") == tp_type:
+                    ev_at = _parse_iso(ev.get("at"))
+                    if ev_at is not None:
+                        trade_end_at = ev_at
+                        break
+            if trade_end_at is not None:
+                break
+
+    elif status in ("closed_loss", "sl"):
+        # Look for SL event
+        for ev in events:
+            if ev.get("type") == "sl":
+                ev_at = _parse_iso(ev.get("at"))
+                if ev_at is not None:
+                    trade_end_at = ev_at
+                    break
+
+    # Intermediate status (tp1/tp2/tp3 still active) or no terminal found
+    # → don't truncate, use overall values
+    if trade_end_at is None:
         return {
             "in_trade_mae_pct": overall_mae,
             "in_trade_mae_at": overall_mae_at,
@@ -157,17 +176,16 @@ def _compute_in_trade_excursions(row: Dict[str, Any]) -> Dict[str, Optional[floa
             "in_trade_mfe_at": overall_mfe_at,
         }
 
-    # Has terminal event — recompute MAE/MFE only from events at/before terminal
+    # Truncate events to ≤ trade_end_at
     in_trade_events = []
     for ev in events:
         ev_at = _parse_iso(ev.get("at"))
         if ev_at is None:
             continue
-        if ev_at <= terminal_at:
+        if ev_at <= trade_end_at:
             in_trade_events.append(ev)
 
     if not in_trade_events:
-        # Defensive fallback
         return {
             "in_trade_mae_pct": overall_mae,
             "in_trade_mae_at": overall_mae_at,
@@ -175,7 +193,6 @@ def _compute_in_trade_excursions(row: Dict[str, Any]) -> Dict[str, Optional[floa
             "in_trade_mfe_at": overall_mfe_at,
         }
 
-    # MAE = min pct in window, MFE = max pct in window
     pcts = [(ev.get("pct"), ev.get("at"))
             for ev in in_trade_events
             if ev.get("pct") is not None]
