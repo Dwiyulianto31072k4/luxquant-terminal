@@ -107,6 +107,99 @@ def _min_pct_in_events(events: List[Dict[str, Any]]) -> Optional[float]:
 
 
 # ════════════════════════════════════════════════════════════
+# In-trade MAE/MFE — fix for "post-outcome leakage" issue
+# ════════════════════════════════════════════════════════════
+
+# Outcome event types that mark "trade is done" for the trader
+TERMINAL_EVENT_TYPES = {"sl", "tp4"}
+
+
+def _compute_in_trade_excursions(row: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    """
+    Compute MAE/MFE limited to "in-trade" window only.
+
+    Why: signal_journey.overall_mae_pct includes price action up to coverage_until,
+    which can be many days after TP4/SL (especially for `frozen` status with 14-day
+    post-TP4 buffer). For closed_win signals where coin later dumped, this produces
+    misleading "Worst Drawdown -91%" that's not actually a drawdown the trader
+    experienced.
+
+    Fix: truncate events at the first terminal event (tp4 or sl), then recompute
+    MAE/MFE from those events only. For non-terminal signals (still open or
+    intermediate TP1/2/3), keep using overall_mae/mfe since trade is still active.
+
+    Returns:
+        dict with in_trade_mae_pct, in_trade_mae_at, in_trade_mfe_pct, in_trade_mfe_at
+        Falls back to overall_* values if no terminal event found.
+    """
+    events = row.get("events") or []
+    overall_mae = row.get("overall_mae_pct")
+    overall_mae_at = row.get("overall_mae_at")
+    overall_mfe = row.get("overall_mfe_pct")
+    overall_mfe_at = row.get("overall_mfe_at")
+
+    # Find earliest terminal event
+    terminal_at = None
+    for ev in events:
+        if ev.get("type") in TERMINAL_EVENT_TYPES:
+            ev_at = _parse_iso(ev.get("at"))
+            if ev_at is None:
+                continue
+            if terminal_at is None or ev_at < terminal_at:
+                terminal_at = ev_at
+
+    # No terminal event — trade still active, overall_mae/mfe is valid
+    if terminal_at is None:
+        return {
+            "in_trade_mae_pct": overall_mae,
+            "in_trade_mae_at": overall_mae_at,
+            "in_trade_mfe_pct": overall_mfe,
+            "in_trade_mfe_at": overall_mfe_at,
+        }
+
+    # Has terminal event — recompute MAE/MFE only from events at/before terminal
+    in_trade_events = []
+    for ev in events:
+        ev_at = _parse_iso(ev.get("at"))
+        if ev_at is None:
+            continue
+        if ev_at <= terminal_at:
+            in_trade_events.append(ev)
+
+    if not in_trade_events:
+        # Defensive fallback
+        return {
+            "in_trade_mae_pct": overall_mae,
+            "in_trade_mae_at": overall_mae_at,
+            "in_trade_mfe_pct": overall_mfe,
+            "in_trade_mfe_at": overall_mfe_at,
+        }
+
+    # MAE = min pct in window, MFE = max pct in window
+    pcts = [(ev.get("pct"), ev.get("at"))
+            for ev in in_trade_events
+            if ev.get("pct") is not None]
+    if not pcts:
+        return {
+            "in_trade_mae_pct": overall_mae,
+            "in_trade_mae_at": overall_mae_at,
+            "in_trade_mfe_pct": overall_mfe,
+            "in_trade_mfe_at": overall_mfe_at,
+        }
+
+    mae_pct, mae_at = min(pcts, key=lambda t: t[0])
+    mfe_pct, mfe_at = max(pcts, key=lambda t: t[0])
+
+    return {
+        "in_trade_mae_pct": mae_pct,
+        "in_trade_mae_at": mae_at,
+        "in_trade_mfe_pct": mfe_pct,
+        "in_trade_mfe_at": mfe_at,
+    }
+    return min(pcts)
+
+
+# ════════════════════════════════════════════════════════════
 # Section computers
 # ════════════════════════════════════════════════════════════
 
@@ -278,16 +371,15 @@ def _compute_drawdown_before_each_tp(rows: List[Dict[str, Any]]) -> List[Dict[st
 def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Section 4: Hit rate per TP
-    - hit_count: signals where TP_N exists in events
-    - hit_rate_pct: hit_count / total closed signals × 100
-    - avg_exit_gain_pct: avg pct at TP_N event for signals that hit TP_N
-    """
-    # Count closed signals (status terminal: closed_win, closed_loss, tp4, sl)
-    closed_rows = [r for r in rows if r.get("status") in ("closed_win", "closed_loss", "tp4", "sl")]
-    closed_count = len(closed_rows)
 
-    # Use closed_count if > 0, else fall back to total rows (for ongoing signals count)
-    base_count = closed_count if closed_count > 0 else len(rows)
+    Denominator = all signals with journey row (each represents a "trade taken").
+    Numerator   = signals that reached this TP at any point during their lifecycle.
+
+    Note: signals with status tp1/tp2/tp3 (intermediate) DO count toward hit rate
+    of those TPs even though they're not "closed" yet. That's the correct semantic
+    — TP1 was hit, regardless of whether trade later closed.
+    """
+    base_count = len(rows)
 
     out = []
     for tp in TP_TYPES:
@@ -315,40 +407,52 @@ def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 def _compute_peak_potential(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Section 5: Peak Potential
-    - avg_peak_excursion = avg(missed_potential_pct) where not null
-    - best_peak_pct = MAX(overall_mfe_pct)
-    - avg_max_gain_pct = AVG(overall_mfe_pct)
+
+    Uses IN-TRADE MFE (capped at outcome time) instead of overall_mfe_pct
+    to avoid post-trade noise where coin pumped far after TP4 hit.
     """
+    in_trade = [_compute_in_trade_excursions(r) for r in rows]
+    mfes_with_idx = [
+        (i, ex["in_trade_mfe_pct"])
+        for i, ex in enumerate(in_trade)
+        if ex["in_trade_mfe_pct"] is not None
+    ]
     missed = [r["missed_potential_pct"] for r in rows if r.get("missed_potential_pct") is not None]
-    mfes = [r["overall_mfe_pct"] for r in rows if r.get("overall_mfe_pct") is not None]
 
     best_peak = None
     best_peak_signal_id = None
-    if mfes:
-        best_idx = max(range(len(rows)), key=lambda i: rows[i].get("overall_mfe_pct") or float("-inf"))
-        if rows[best_idx].get("overall_mfe_pct") is not None:
-            best_peak = rows[best_idx]["overall_mfe_pct"]
-            best_peak_signal_id = rows[best_idx].get("signal_id")
+    if mfes_with_idx:
+        best_idx, best_val = max(mfes_with_idx, key=lambda t: t[1])
+        best_peak = best_val
+        best_peak_signal_id = rows[best_idx].get("signal_id")
+
+    mfe_values = [v for _, v in mfes_with_idx]
 
     return {
         "avg_peak_excursion_pct": _round_or_none(_avg(missed)),
         "avg_peak_excursion_sample": len(missed),
         "best_peak_pct": _round_or_none(best_peak),
         "best_peak_signal_id": best_peak_signal_id,
-        "avg_max_gain_pct": _round_or_none(_avg(mfes)),
-        "avg_max_gain_sample": len(mfes),
+        "avg_max_gain_pct": _round_or_none(_avg(mfe_values)),
+        "avg_max_gain_sample": len(mfe_values),
     }
 
 
 def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Section 6: Risk Profile
-    - avg_worst_drawdown_pct = AVG(overall_mae_pct)
-    - worst_drawdown_pct = MIN(overall_mae_pct)
-    - avg_time_in_profit_pct = AVG(pct_time_above_entry)
-    - tp_then_sl_count + pct
+
+    Uses IN-TRADE MAE (capped at outcome time) to avoid post-trade noise.
+    Without this fix: NAORIS shows worst_dd -91% from coin dumping AFTER TP4
+    hit, which is misleading — trader already exited at TP4, didn't experience
+    that drawdown.
     """
-    maes = [r["overall_mae_pct"] for r in rows if r.get("overall_mae_pct") is not None]
+    in_trade = [_compute_in_trade_excursions(r) for r in rows]
+    maes_with_idx = [
+        (i, ex["in_trade_mae_pct"])
+        for i, ex in enumerate(in_trade)
+        if ex["in_trade_mae_pct"] is not None
+    ]
     times_above = [
         r["pct_time_above_entry"]
         for r in rows
@@ -357,21 +461,19 @@ def _compute_risk_profile(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     worst_dd = None
     worst_dd_signal_id = None
-    if maes:
-        worst_idx = min(range(len(rows)), key=lambda i: rows[i].get("overall_mae_pct") or float("inf"))
-        if rows[worst_idx].get("overall_mae_pct") is not None:
-            worst_dd = rows[worst_idx]["overall_mae_pct"]
-            worst_dd_signal_id = rows[worst_idx].get("signal_id")
+    if maes_with_idx:
+        worst_idx, worst_val = min(maes_with_idx, key=lambda t: t[1])
+        worst_dd = worst_val
+        worst_dd_signal_id = rows[worst_idx].get("signal_id")
+
+    mae_values = [v for _, v in maes_with_idx]
 
     tp_then_sl_count = sum(1 for r in rows if r.get("tp_then_sl") is True)
-    closed_count = sum(
-        1 for r in rows if r.get("status") in ("closed_win", "closed_loss", "tp4", "sl")
-    )
-    base = closed_count if closed_count > 0 else len(rows)
+    base = len(rows)
     tp_then_sl_pct = (tp_then_sl_count / base * 100) if base > 0 else None
 
     return {
-        "avg_worst_drawdown_pct": _round_or_none(_avg(maes)),
+        "avg_worst_drawdown_pct": _round_or_none(_avg(mae_values)),
         "worst_drawdown_pct": _round_or_none(worst_dd),
         "worst_drawdown_signal_id": worst_dd_signal_id,
         "avg_time_in_profit_pct": _round_or_none(_avg(times_above), 1),
