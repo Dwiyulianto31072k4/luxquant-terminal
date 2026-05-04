@@ -23,10 +23,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.redis import cache_get, cache_set
 from app.api.deps import get_current_user_optional
 from app.models.user import User
 from app.services.journey_view_builder import build_journey_view
 from app.services.journey_fetcher import parse_created_at
+from app.services.journey_insights import compute_insights
 from app.schemas.journey import (
     SignalJourneyResponse,
     JourneyNotAvailableResponse,
@@ -197,3 +199,61 @@ async def get_signal_journey(
         )
 
     return SignalJourneyResponse(**view)
+
+
+# ============================================================
+# ENDPOINT 2: Journey Insights per Pair (for History tab)
+# ============================================================
+
+INSIGHTS_CACHE_TTL = 3600  # 1 hour
+"""Cache TTL for aggregated insights — recomputed every hour."""
+
+
+@router.get(
+    '/journey-insights/{pair}',
+    summary='Get aggregated journey insights for a trading pair',
+)
+async def get_journey_insights(
+    pair: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Aggregate journey data across all signals for a given pair.
+
+    Returns insights for History tab:
+      - entry_behavior: avg drawdown before TP1, smooth entry rate, time to TP1
+      - time_to_each_tp: avg/fastest/slowest per TP level
+      - drawdown_before_each_tp: avg + worst per TP transition
+      - hit_rate_per_tp: hit count, rate %, avg exit gain
+      - peak_potential: avg peak excursion, best peak ever, avg max gain
+      - risk_profile: avg/worst drawdown, time in profit, TP-then-SL warning
+
+    Cached in Redis for 1 hour per pair.
+
+    Response shape:
+      - {available: true, ...sections...} — when sample size >= MIN_SAMPLE_SIZE
+      - {available: false, reason: 'insufficient_data'|'no_data'} — otherwise
+    """
+    pair_upper = pair.upper()
+    cache_key = f"lq:journey-insights:{pair_upper}"
+
+    # Try cache first
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    # Compute fresh
+    try:
+        result = compute_insights(db, pair_upper)
+    except Exception as e:
+        log.exception(f"compute_insights failed for {pair_upper}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to compute journey insights",
+        )
+
+    # Cache only successful aggregations (not insufficient_data — re-check next request)
+    if result.get('available') is True:
+        cache_set(cache_key, result, ttl=INSIGHTS_CACHE_TTL)
+
+    return result

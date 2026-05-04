@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
+import JourneyInsightsSection from "./JourneyInsightsSection";  // ← ADD
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -493,6 +494,8 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             closedTrades={stats.closed_trades}
           />
         </div>
+
+        <JourneyInsightsSection pair={pair} />
 
         {/* ── Past Calls Header + Toggle ── */}
         <div className="flex items-center justify-between">
