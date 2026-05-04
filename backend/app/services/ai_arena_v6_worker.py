@@ -48,6 +48,19 @@ from app.services.verdict_schema import (
     SelfCritique,
 )
 
+# Phase 3 — DB persistence helpers
+try:
+    from app.services.ai_arena_v6_persist import (
+        get_previous_verdict_context,
+        persist_report_to_db,
+    )
+    _PERSIST_AVAILABLE = True
+except ImportError:
+    # Allow worker to run without DB persistence (smoke test mode)
+    _PERSIST_AVAILABLE = False
+    get_previous_verdict_context = lambda: None  # noqa: E731
+    persist_report_to_db = lambda b: None  # noqa: E731
+
 load_dotenv()
 
 
@@ -533,6 +546,19 @@ async def generate_v6_report(
     pipeline_start = time.monotonic()
     price_context = price_context or {}
 
+    # Auto-fetch previous verdict if not provided (Phase 3)
+    if previous_verdict is None and _PERSIST_AVAILABLE:
+        try:
+            previous_verdict = get_previous_verdict_context()
+            if previous_verdict:
+                _log(
+                    f"Loaded previous verdict {previous_verdict['report_id']} "
+                    f"({previous_verdict['age_hours']}h ago)"
+                )
+        except Exception as e:
+            _log(f"Could not load previous verdict: {e}", level="WARN")
+            previous_verdict = None
+
     # ─────────────────────────────────────
     # Phase 1: Fetch + analyze (rule-based)
     # ─────────────────────────────────────
@@ -613,6 +639,14 @@ async def generate_v6_report(
         is_anomaly_triggered=is_anomaly,
         anomaly_reason=anomaly_reason,
     )
+
+    # Persist to DB + create pending outcome rows (Phase 3)
+    if _PERSIST_AVAILABLE:
+        try:
+            report_pk = persist_report_to_db(bundle_v6)
+            _log(f"Report persisted to DB (pk={report_pk})")
+        except Exception as e:
+            _log(f"DB persist failed (report still returned): {e}", level="ERROR")
 
     _log(
         f"Pipeline complete in {elapsed_total:.1f}s | "
