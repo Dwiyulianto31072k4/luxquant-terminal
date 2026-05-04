@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxQuant AI Arena v6 — Verdict Outcome Evaluator
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.verdict_outcome_evaluator
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=120

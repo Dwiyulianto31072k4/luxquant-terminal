@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxQuant AI Arena v6 — Scheduled Report Generator
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.ai_arena_v6_scheduled_run
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300

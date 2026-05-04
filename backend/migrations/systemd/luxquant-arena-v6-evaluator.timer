@@ -1,0 +1,13 @@
+[Unit]
+Description=LuxQuant AI Arena v6 — Hourly Outcome Evaluator Timer
+Requires=luxquant-arena-v6-evaluator.service
+
+[Timer]
+# Run hourly at minute 5 (offset from worker schedule to avoid DB contention)
+OnCalendar=*-*-* *:05:00 UTC
+Persistent=true
+RandomizedDelaySec=60
+Unit=luxquant-arena-v6-evaluator.service
+
+[Install]
+WantedBy=timers.target
