@@ -38,6 +38,10 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
+# Import existing AIArenaReport so SQLAlchemy registers both tables
+# (required for ForeignKey resolution at flush time)
+from app.models.ai_arena import AIArenaReport  # noqa: F401
+
 
 class AIArenaVerdictOutcome(Base):
     __tablename__ = "ai_arena_verdict_outcomes"
