@@ -4,7 +4,7 @@
 
 import api from './authApi';
 
-const V6_BASE = '/ai-arena/v6';
+const V6_BASE = '/api/v1/ai-arena/v6';
 
 /**
  * Fetch the most recent v6 report (full report_json).
@@ -44,7 +44,7 @@ export async function getTrackRecord({ days = 30 } = {}) {
  * @param {string} tf - '1D' | '4H' | '1H'
  */
 export async function getChartData(tf = '4H') {
-  const { data } = await api.get('/ai-arena/chart-data', { params: { tf } });
+  const { data } = await api.get('/api/v1/ai-arena/chart-data', { params: { tf } });
   return data;
 }
 
