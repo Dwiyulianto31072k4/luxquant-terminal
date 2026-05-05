@@ -2,21 +2,20 @@
 /**
  * AI Arena v6 — Main Page
  * =======================
- * Wires together all v6 components. Uses existing API service contract:
- *   - getLatestReport()           → /v6/latest
- *   - getLedger({ days })         → /v6/ledger
- *   - getTrackRecord({ days })    → /v6/track-record
+ * Wires together all v6 components.
  *
- * Component contract:
- *   - VerdictHero({ report, btcPrice })           — receives whole report
- *   - CycleCompass({ report })                    — receives whole report
- *   - ThreeLayerConfluence({ layerBriefs, overallSetup, confluenceVerdict })
- *   - AIReasoningWalkthrough({ reasoningChain, critique })
- *   - VerdictLedger({ trackRecord, ledger })
+ * BATCH 2 TURN 1: 4 placeholders replaced with real components
+ *   - Triple Screen   ✓
+ *   - Zones to Watch  ✓
+ *   - What Changed    ✓
+ *   - Risk Watch      ✓
  *
- * Layout: Hero → Cycle → [chart placeholder] → [triple-screen placeholder]
- *      → [zones placeholder] → Confluence → Reasoning → [what-changed placeholder]
- *      → Ledger → [risk placeholder]
+ * Still placeholder (Batch 2 Turn 2):
+ *   - Price Chart (uses lightweight-charts)
+ *
+ * Layout: Hero → Cycle → [Price Chart placeholder] → Triple Screen
+ *      → Zones → Confluence → Reasoning → What Changed
+ *      → Ledger → Risk Watch
  */
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -26,15 +25,21 @@ import {
   getTrackRecord,
 } from "../services/aiArenaV6Api";
 
-// V6 components (Batch 1)
+// V6 components — Batch 1
 import VerdictHero from "./aiArenaV6/VerdictHero";
 import CycleCompass from "./aiArenaV6/CycleCompass";
 import ThreeLayerConfluence from "./aiArenaV6/ThreeLayerConfluence";
 import AIReasoningWalkthrough from "./aiArenaV6/AIReasoningWalkthrough";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 
+// V6 components — Batch 2 Turn 1 (NEW)
+import TripleScreen from "./aiArenaV6/TripleScreen";
+import ZonesToWatch from "./aiArenaV6/ZonesToWatch";
+import WhatChanged from "./aiArenaV6/WhatChanged";
+import RiskWatch from "./aiArenaV6/RiskWatch";
+
 // ─────────────────────────────────────────────────────────────────────
-// Placeholder for Batch 2 components (will be replaced)
+// Placeholder for Price Chart (Batch 2 Turn 2)
 // ─────────────────────────────────────────────────────────────────────
 function PlaceholderSection({ title, note }) {
   return (
@@ -51,12 +56,12 @@ function PlaceholderSection({ title, note }) {
           {title}
         </h2>
         <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-white/40">
-          Batch 2
+          Coming next
         </span>
       </div>
       <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-8 text-center">
         <p className="text-white/40 text-sm italic mb-1">
-          {note || "Component pending Batch 2 generation"}
+          {note || "Component pending generation"}
         </p>
         <p className="text-[11px] font-mono text-white/25">
           Backend data is ready, UI scaffold incoming
@@ -75,7 +80,6 @@ function PageHeader({ report, onRefresh, refreshing }) {
     ? Math.round((Date.now() - lastUpdate.getTime()) / 60000)
     : null;
 
-  // /v6/latest returns cost_usd at top level
   const cost = report?.cost_usd;
 
   return (
@@ -279,16 +283,18 @@ export default function AIArenaPageV6() {
   }
 
   // ───── Pull v6 fields from response ─────
-  // /v6/latest returns:
-  //   { id, report_id, timestamp, btc_price, cycle, verdict_summary,
-  //     critique_decision, cost_usd, report: { layer_briefs, verdict,
-  //     critique, ... } }
   const innerReport = report?.report || {};
   const layerBriefs = innerReport?.layer_briefs || {};
   const overallSetup = layerBriefs?.overall_setup;
   const verdict = innerReport?.verdict || {};
   const reasoningChain = verdict?.reasoning_chain || [];
   const critique = innerReport?.critique || null;
+
+  // Batch 2 fields
+  const tripleScreen = verdict?.triple_screen || [];
+  const zonesToWatch = verdict?.zones_to_watch || [];
+  const whatChanged = verdict?.what_changed || null;
+  const riskScenarios = verdict?.risk_scenarios || [];
 
   return (
     <div
@@ -305,28 +311,25 @@ export default function AIArenaPageV6() {
           refreshing={refreshing}
         />
 
-        {/* 1. Verdict Hero — receives whole report (existing contract) */}
+        {/* 1. Verdict Hero */}
         <VerdictHero report={report} btcPrice={report?.btc_price} />
 
-        {/* 2. Cycle Compass — receives whole report (existing contract) */}
+        {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
 
-        {/* 3. Price Chart — Batch 2 */}
+        {/* 3. Price Chart — last placeholder, Batch 2 Turn 2 */}
         <PlaceholderSection
           title="Price Chart"
-          note="BTC chart with EMA/VWAP, zone overlays, and triple-screen markers"
+          note="BTC chart with EMA/VWAP, zone overlays, and liquidation lines"
         />
 
-        {/* 4. Triple Screen — Batch 2 */}
-        <PlaceholderSection
-          title="Triple Screen"
-          note="1D / 4H / 1H trend states for multi-timeframe alignment"
-        />
+        {/* 4. Triple Screen — NEW Batch 2 Turn 1 */}
+        <TripleScreen tripleScreen={tripleScreen} />
 
-        {/* 5. Zones to Watch — Batch 2 */}
-        <PlaceholderSection
-          title="Zones to Watch"
-          note="Demand · Fair · Supply zones derived from the verdict"
+        {/* 5. Zones to Watch — NEW Batch 2 Turn 1 */}
+        <ZonesToWatch
+          zones={zonesToWatch}
+          currentPrice={report?.btc_price}
         />
 
         {/* 6. Three-Layer Confluence */}
@@ -341,20 +344,17 @@ export default function AIArenaPageV6() {
           critique={critique}
         />
 
-        {/* 8. What Changed — Batch 2 */}
-        <PlaceholderSection
-          title="What Changed"
-          note="Diff vs previous report: shifts in confluence, cycle, and verdict"
+        {/* 8. What Changed — NEW Batch 2 Turn 1 */}
+        <WhatChanged
+          whatChanged={whatChanged}
+          timestamp={report?.timestamp}
         />
 
-        {/* 9. Verdict Ledger — KILLER FEATURE */}
+        {/* 9. Verdict Ledger */}
         <VerdictLedger trackRecord={trackRecord} ledger={ledger} />
 
-        {/* 10. Risk Watch — Batch 2 */}
-        <PlaceholderSection
-          title="Risk Watch"
-          note="Specific scenarios that would invalidate the current verdict"
-        />
+        {/* 10. Risk Watch — NEW Batch 2 Turn 1 */}
+        <RiskWatch riskScenarios={riskScenarios} />
 
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-white/5 text-center">

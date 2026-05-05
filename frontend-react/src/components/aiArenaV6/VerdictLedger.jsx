@@ -208,7 +208,7 @@ function HistoryRow({ item }) {
 
       {/* BTC price */}
       <td className="py-2.5 px-3 text-xs font-mono text-white/80 tabular-nums whitespace-nowrap">
-        ${formatPrice(item.btc_price)}
+        {formatPrice(item.btc_price)}
       </td>
 
       {/* 30d primary verdict */}
