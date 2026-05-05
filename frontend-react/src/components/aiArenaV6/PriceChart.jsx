@@ -1,10 +1,18 @@
 // frontend-react/src/components/aiArenaV6/PriceChart.jsx
 // ════════════════════════════════════════════════════════════
-// PRICE CHART — Lightweight Charts v5 wrapper
+// PRICE CHART — Lightweight Charts v5 wrapper (v2 — fix-pass)
 // ────────────────────────────────────────────────────────────
 // Renders BTC OHLC + 4 MA overlays + volume subpane +
 // liquidation/key-level price lines + zone bands.
-// Data source: GET /api/v1/ai-arena/chart-data?tf={1D|4H|1H}
+//
+// FIX vs v1:
+// • Single consolidated useEffect for chart updates — eliminates
+//   race between data setData and createPriceLine calls.
+// • Price lines created in same effect as setData, after MA series
+//   have data, guaranteeing series state is settled.
+// • Strong support / strong resistance now rendered (deduped vs cluster).
+// • try/catch removed around createPriceLine so errors surface.
+// • Defensive null check on createPriceLine return.
 // ════════════════════════════════════════════════════════════
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
@@ -20,26 +28,29 @@ import { formatPrice, formatPct } from "./constants";
 import Tooltip from "./Tooltip";
 
 // ────────────────────────────────────────────────────────────
-// Visual tokens — kept inline to avoid coupling to global CSS
+// Visual tokens
 // ────────────────────────────────────────────────────────────
 const COLORS = {
   bgTransparent: "rgba(0,0,0,0)",
   text: "#b8a89a",
-  textDim: "#6b5c52",
   grid: "rgba(212, 168, 83, 0.04)",
   border: "rgba(212, 168, 83, 0.15)",
   gold: "#d4a853",
-  goldGlow: "rgba(212, 168, 83, 0.4)",
   candleUp: "#4ade80",
   candleDown: "#f87171",
-  ema20: "#60a5fa",   // blue
-  ema50: "#a78bfa",   // violet
-  sma100: "#fbbf24",  // amber
-  sma200: "#f472b6",  // pink
-  liqLong: "rgba(74, 222, 128, 0.85)",
-  liqShort: "rgba(248, 113, 113, 0.85)",
-  support: "rgba(74, 222, 128, 0.55)",
-  resistance: "rgba(248, 113, 113, 0.55)",
+  ema20: "#60a5fa",
+  ema50: "#a78bfa",
+  sma100: "#fbbf24",
+  sma200: "#f472b6",
+  liqLong: "#4ade80",
+  liqShort: "#f87171",
+  support: "rgba(74, 222, 128, 0.7)",
+  resistance: "rgba(248, 113, 113, 0.7)",
+  strongSupport: "rgba(74, 222, 128, 1)",
+  strongResistance: "rgba(248, 113, 113, 1)",
+  zoneDemandLine: "#4ade80",
+  zoneFairLine: "#d4a853",
+  zoneSupplyLine: "#f87171",
   zoneDemand: "rgba(74, 222, 128, 0.10)",
   zoneFair: "rgba(212, 168, 83, 0.10)",
   zoneSupply: "rgba(248, 113, 113, 0.10)",
@@ -58,6 +69,24 @@ const MA_CONFIG = [
   { key: "sma200", label: "SMA 200", color: COLORS.sma200, width: 1 },
 ];
 
+const sortByTime = (arr) =>
+  Array.isArray(arr) ? [...arr].sort((a, b) => (a.time || 0) - (b.time || 0)) : [];
+
+// Dedup price lines that are within 0.05% — merge title
+const dedupPriceLines = (lines) => {
+  const sorted = [...lines].sort((a, b) => a.price - b.price);
+  const out = [];
+  for (const line of sorted) {
+    const last = out[out.length - 1];
+    if (last && Math.abs(line.price - last.price) / Math.max(last.price, 1) < 0.0005) {
+      last.title = `${last.title} · ${line.title}`;
+      continue;
+    }
+    out.push({ ...line });
+  }
+  return out;
+};
+
 // ════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════
@@ -67,9 +96,7 @@ export default function PriceChart() {
   const candleSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
   const maSeriesRef = useRef({});
-  const zoneSeriesRef = useRef([]);
-  const priceLinesRef = useRef([]);
-  const resizeObsRef = useRef(null);
+  const allPriceLinesRef = useRef([]);
 
   const [tf, setTf] = useState("4H");
   const [data, setData] = useState(null);
@@ -82,9 +109,7 @@ export default function PriceChart() {
   const [showZones, setShowZones] = useState(true);
   const [crosshair, setCrosshair] = useState(null);
 
-  // ────────────────────────────────────────────────────────────
-  // Data fetching
-  // ────────────────────────────────────────────────────────────
+  // Fetch
   const fetchData = useCallback(async (timeframe) => {
     setLoading(true);
     setError(null);
@@ -103,7 +128,7 @@ export default function PriceChart() {
   useEffect(() => { fetchData(tf); }, [tf, fetchData]);
 
   // ────────────────────────────────────────────────────────────
-  // Chart lifecycle — create once on mount, destroy on unmount
+  // Chart lifecycle
   // ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
@@ -141,7 +166,6 @@ export default function PriceChart() {
     });
     chartRef.current = chart;
 
-    // Candle series
     const candles = chart.addSeries(CandlestickSeries, {
       upColor: COLORS.candleUp,
       downColor: COLORS.candleDown,
@@ -152,7 +176,6 @@ export default function PriceChart() {
     });
     candleSeriesRef.current = candles;
 
-    // Volume series — overlaid on its own price scale at bottom 18%
     const volume = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
       priceScaleId: "",
@@ -164,7 +187,6 @@ export default function PriceChart() {
     });
     volumeSeriesRef.current = volume;
 
-    // 4 MA line series — created once, data set later
     MA_CONFIG.forEach(({ key, color, width }) => {
       const line = chart.addSeries(LineSeries, {
         color,
@@ -177,28 +199,17 @@ export default function PriceChart() {
       maSeriesRef.current[key] = line;
     });
 
-    // Crosshair tooltip subscription
     chart.subscribeCrosshairMove((param) => {
       if (!param.time || !param.seriesData || param.seriesData.size === 0) {
         setCrosshair(null);
         return;
       }
-      const candleData = param.seriesData.get(candles);
-      if (!candleData) {
-        setCrosshair(null);
-        return;
-      }
-      setCrosshair({
-        time: param.time,
-        open: candleData.open,
-        high: candleData.high,
-        low: candleData.low,
-        close: candleData.close,
-      });
+      const cd = param.seriesData.get(candles);
+      if (!cd) { setCrosshair(null); return; }
+      setCrosshair({ time: param.time, open: cd.open, high: cd.high, low: cd.low, close: cd.close });
     });
 
-    // Resize observer for container width changes
-    const resizeObs = new ResizeObserver(() => {
+    const ro = new ResizeObserver(() => {
       if (chartRef.current && containerRef.current) {
         chartRef.current.applyOptions({
           width: containerRef.current.clientWidth,
@@ -206,38 +217,36 @@ export default function PriceChart() {
         });
       }
     });
-    resizeObs.observe(containerRef.current);
-    resizeObsRef.current = resizeObs;
+    ro.observe(containerRef.current);
 
     return () => {
-      try { resizeObs.disconnect(); } catch {}
+      try { ro.disconnect(); } catch {}
       try { chart.remove(); } catch {}
       chartRef.current = null;
       candleSeriesRef.current = null;
       volumeSeriesRef.current = null;
       maSeriesRef.current = {};
-      zoneSeriesRef.current = [];
-      priceLinesRef.current = [];
+      allPriceLinesRef.current = [];
     };
   }, []);
 
   // ────────────────────────────────────────────────────────────
-  // Push data into series whenever `data` changes
+  // CONSOLIDATED data → chart sync
+  // Single effect, runs in correct order, no race conditions.
   // ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!data || !chartRef.current || !candleSeriesRef.current) return;
+    const chart = chartRef.current;
+    const candles = candleSeriesRef.current;
+    const volume = volumeSeriesRef.current;
+    if (!chart || !candles || !data) return;
 
-    // Defensive sort — Lightweight Charts requires ascending time
-    const sortByTime = (arr) =>
-      Array.isArray(arr) ? [...arr].sort((a, b) => (a.time || 0) - (b.time || 0)) : [];
+    // 1. Set candle data first
+    candles.setData(sortByTime(data.candles));
 
-    // Candles + Volume
-    candleSeriesRef.current.setData(sortByTime(data.candles));
-    if (volumeSeriesRef.current) {
-      volumeSeriesRef.current.setData(sortByTime(data.volumes));
-    }
+    // 2. Volume
+    if (volume) volume.setData(sortByTime(data.volumes));
 
-    // MA series
+    // 3. MA lines
     const ms = data.ma_series || {};
     MA_CONFIG.forEach(({ key }) => {
       const line = maSeriesRef.current[key];
@@ -246,13 +255,88 @@ export default function PriceChart() {
       line.applyOptions({ visible: !!maVisible[key] });
     });
 
-    // Fit content on initial / TF-change load
-    chartRef.current.timeScale().fitContent();
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+    // 4. Clear old price lines BEFORE creating new
+    allPriceLinesRef.current.forEach((pl) => {
+      try { candles.removePriceLine(pl); } catch {}
+    });
+    allPriceLinesRef.current = [];
 
-  // ────────────────────────────────────────────────────────────
-  // Toggle MA visibility without reloading data
-  // ────────────────────────────────────────────────────────────
+    // 5. Build new price lines list
+    const newLines = [];
+
+    if (showLiq) {
+      const liq = data.liquidation_levels || {};
+      const kl = data.key_levels || {};
+
+      if (liq.nearest_long_cluster) newLines.push({
+        price: liq.nearest_long_cluster, color: COLORS.liqLong,
+        lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
+        title: `Liq Long`,
+      });
+      if (liq.nearest_short_cluster) newLines.push({
+        price: liq.nearest_short_cluster, color: COLORS.liqShort,
+        lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
+        title: `Liq Short`,
+      });
+      if (kl.support) newLines.push({
+        price: kl.support, color: COLORS.support,
+        lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
+        title: `Support`,
+      });
+      if (kl.resistance) newLines.push({
+        price: kl.resistance, color: COLORS.resistance,
+        lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
+        title: `Resistance`,
+      });
+      if (kl.strong_support) newLines.push({
+        price: kl.strong_support, color: COLORS.strongSupport,
+        lineStyle: LineStyle.Solid, lineWidth: 1, axisLabelVisible: true,
+        title: `Strong Sup`,
+      });
+      if (kl.strong_resistance) newLines.push({
+        price: kl.strong_resistance, color: COLORS.strongResistance,
+        lineStyle: LineStyle.Solid, lineWidth: 1, axisLabelVisible: true,
+        title: `Strong Res`,
+      });
+    }
+
+    if (showZones) {
+      const zones = data.zones_to_watch || {};
+      const zoneDefs = [
+        { key: "demand", color: COLORS.zoneDemandLine, label: "Demand" },
+        { key: "fair_value", color: COLORS.zoneFairLine, label: "Fair" },
+        { key: "supply", color: COLORS.zoneSupplyLine, label: "Supply" },
+      ];
+      zoneDefs.forEach(({ key, color, label }) => {
+        const z = zones[key];
+        if (!z || z.low == null || z.high == null) return;
+        newLines.push({
+          price: z.high, color,
+          lineStyle: LineStyle.SparseDotted, lineWidth: 1, axisLabelVisible: false,
+          title: `${label} ↑`,
+        });
+        newLines.push({
+          price: z.low, color,
+          lineStyle: LineStyle.SparseDotted, lineWidth: 1, axisLabelVisible: false,
+          title: `${label} ↓`,
+        });
+      });
+    }
+
+    // 6. Dedup overlapping lines (e.g., long_cluster == strong_support at $76,200)
+    const deduped = dedupPriceLines(newLines);
+
+    // 7. Attach price lines (no try/catch — surface real errors)
+    deduped.forEach((opts) => {
+      const pl = candles.createPriceLine(opts);
+      if (pl) allPriceLinesRef.current.push(pl);
+    });
+
+    // 8. Fit
+    chart.timeScale().fitContent();
+  }, [data, showLiq, showZones]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // MA visibility toggle (no data reload)
   useEffect(() => {
     MA_CONFIG.forEach(({ key }) => {
       const line = maSeriesRef.current[key];
@@ -260,101 +344,7 @@ export default function PriceChart() {
     });
   }, [maVisible]);
 
-  // ────────────────────────────────────────────────────────────
-  // Liquidation + Key Level price lines
-  // ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const candles = candleSeriesRef.current;
-    if (!candles || !data) return;
-
-    // Clear existing
-    priceLinesRef.current.forEach((pl) => {
-      try { candles.removePriceLine(pl); } catch {}
-    });
-    priceLinesRef.current = [];
-
-    if (!showLiq) return;
-
-    const liq = data.liquidation_levels || {};
-    const kl = data.key_levels || {};
-
-    const lines = [
-      liq.nearest_long_cluster && {
-        price: liq.nearest_long_cluster, color: COLORS.liqLong,
-        lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
-        title: `Liq Long ${formatPrice(liq.nearest_long_cluster)}`,
-      },
-      liq.nearest_short_cluster && {
-        price: liq.nearest_short_cluster, color: COLORS.liqShort,
-        lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
-        title: `Liq Short ${formatPrice(liq.nearest_short_cluster)}`,
-      },
-      kl.support && kl.support !== liq.nearest_long_cluster && {
-        price: kl.support, color: COLORS.support,
-        lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
-        title: `Support`,
-      },
-      kl.resistance && kl.resistance !== liq.nearest_short_cluster && {
-        price: kl.resistance, color: COLORS.resistance,
-        lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
-        title: `Resistance`,
-      },
-    ].filter(Boolean);
-
-    lines.forEach((opts) => {
-      try { priceLinesRef.current.push(candles.createPriceLine(opts)); } catch {}
-    });
-  }, [data, showLiq]);
-
-  // ────────────────────────────────────────────────────────────
-  // Zone bands — pair of price lines per zone (cleanest approach
-  // without custom plugins). Visual band effect comes from soft
-  // background tints in the chips below the chart.
-  // ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const candles = candleSeriesRef.current;
-    if (!candles || !data) return;
-
-    // Clear existing zone lines
-    zoneSeriesRef.current.forEach((pl) => {
-      try { candles.removePriceLine(pl); } catch {}
-    });
-    zoneSeriesRef.current = [];
-
-    if (!showZones) return;
-
-    const zones = data.zones_to_watch || {};
-    const zoneDefs = [
-      { key: "demand", color: COLORS.candleUp, label: "Demand" },
-      { key: "fair_value", color: COLORS.gold, label: "Fair" },
-      { key: "supply", color: COLORS.candleDown, label: "Supply" },
-    ];
-
-    zoneDefs.forEach(({ key, color, label }) => {
-      const z = zones[key];
-      if (!z || z.low == null || z.high == null) return;
-      try {
-        zoneSeriesRef.current.push(
-          candles.createPriceLine({
-            price: z.high, color, lineStyle: LineStyle.SparseDotted,
-            lineWidth: 1, axisLabelVisible: false,
-            title: `${label} ↑`,
-          })
-        );
-        zoneSeriesRef.current.push(
-          candles.createPriceLine({
-            price: z.low, color, lineStyle: LineStyle.SparseDotted,
-            lineWidth: 1, axisLabelVisible: false,
-            title: `${label} ↓`,
-          })
-        );
-      } catch {}
-    });
-  }, [data, showZones]);
-
-  // ────────────────────────────────────────────────────────────
-  // Derived view models
-  // ────────────────────────────────────────────────────────────
+  // Derived
   const tech = data?.technicals || {};
   const lastPrice = tech.price ?? data?.candles?.[data.candles.length - 1]?.close;
   const firstClose = data?.candles?.[0]?.close;
@@ -368,7 +358,6 @@ export default function PriceChart() {
     <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-      {/* ─── HEADER ─────────────────────────────────────────── */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
@@ -387,7 +376,6 @@ export default function PriceChart() {
           </div>
         </div>
 
-        {/* Last price + % move + TF selector */}
         <div className="flex items-center gap-3 flex-wrap">
           {lastPrice != null && (
             <div className="text-right">
@@ -421,7 +409,6 @@ export default function PriceChart() {
         </div>
       </div>
 
-      {/* ─── MA TOGGLES + LAYER TOGGLES ─────────────────────── */}
       <div className="flex items-center gap-2 lg:gap-3 flex-wrap mb-3">
         {MA_CONFIG.map(({ key, label, color }) => (
           <button
@@ -463,9 +450,7 @@ export default function PriceChart() {
         </button>
       </div>
 
-      {/* ─── CHART CANVAS ────────────────────────────────────── */}
       <div className="relative">
-        {/* OHLC tooltip overlay */}
         {crosshair && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-primary/85 backdrop-blur-md border border-gold-primary/20 text-[10px] font-mono">
             <span className="text-text-muted">O <span className="text-white">{formatPrice(crosshair.open)}</span></span>
@@ -475,14 +460,12 @@ export default function PriceChart() {
           </div>
         )}
 
-        {/* Chart container */}
         <div
           ref={containerRef}
           className="w-full rounded-xl overflow-hidden bg-bg-primary/30 border border-white/5"
           style={{ height: 460 }}
         />
 
-        {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/50 backdrop-blur-sm rounded-xl">
             <div className="flex flex-col items-center gap-3">
@@ -494,7 +477,6 @@ export default function PriceChart() {
           </div>
         )}
 
-        {/* Error overlay */}
         {error && !loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/70 backdrop-blur-sm rounded-xl">
             <div className="flex flex-col items-center gap-3 px-4 text-center">
@@ -510,7 +492,6 @@ export default function PriceChart() {
         )}
       </div>
 
-      {/* ─── STATS + ZONE CHIPS ─────────────────────────────── */}
       {data && !loading && (
         <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
           <StatPill label="RSI 14" value={tech.rsi_14?.toFixed(1)} hint={rsiHint(tech.rsi_14)} />
@@ -522,34 +503,12 @@ export default function PriceChart() {
 
       {data?.zones_to_watch && !loading && showZones && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <ZoneChip
-            label="Demand"
-            zone={data.zones_to_watch.demand}
-            tint={COLORS.zoneDemand}
-            accent={COLORS.candleUp}
-            arrow="↓"
-            currentPrice={lastPrice}
-          />
-          <ZoneChip
-            label="Fair Value"
-            zone={data.zones_to_watch.fair_value}
-            tint={COLORS.zoneFair}
-            accent={COLORS.gold}
-            arrow="→"
-            currentPrice={lastPrice}
-          />
-          <ZoneChip
-            label="Supply"
-            zone={data.zones_to_watch.supply}
-            tint={COLORS.zoneSupply}
-            accent={COLORS.candleDown}
-            arrow="↑"
-            currentPrice={lastPrice}
-          />
+          <ZoneChip label="Demand" zone={data.zones_to_watch.demand} tint={COLORS.zoneDemand} accent={COLORS.candleUp} arrow="↓" currentPrice={lastPrice} />
+          <ZoneChip label="Fair Value" zone={data.zones_to_watch.fair_value} tint={COLORS.zoneFair} accent={COLORS.gold} arrow="→" currentPrice={lastPrice} />
+          <ZoneChip label="Supply" zone={data.zones_to_watch.supply} tint={COLORS.zoneSupply} accent={COLORS.candleDown} arrow="↑" currentPrice={lastPrice} />
         </div>
       )}
 
-      {/* Attribution (TradingView Lightweight Charts requirement) */}
       <div className="mt-3 flex items-center justify-end">
         <a
           href="https://www.tradingview.com/lightweight-charts/"
@@ -564,9 +523,6 @@ export default function PriceChart() {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// SUB-COMPONENTS
-// ════════════════════════════════════════════════════════════
 function StatPill({ label, value, hint }) {
   return (
     <div className="bg-bg-card/40 rounded-lg px-3 py-2 border border-white/5">
@@ -616,9 +572,6 @@ function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════════════════════
 function rsiHint(rsi) {
   if (rsi == null) return null;
   if (rsi >= 70) return "overbought";
