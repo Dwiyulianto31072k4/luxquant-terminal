@@ -50,6 +50,7 @@ const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
 const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
+const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
 const ReferralPage = lazy(() => import("./components/ReferralPage"));
 const LandingPage = lazy(() => import("./components/landing/LandingPage"));
 const LoginPage = lazy(() => import("./components/auth/LoginPage"));
@@ -87,8 +88,8 @@ const PageLoader = () => (
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain","/autotrade","/portfolio"];
-const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/orderbook","/calendar","/whale","/onchain","/autotrade","/portfolio"];
+const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/ai-arena/v6","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain","/autotrade","/portfolio"];
+const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/ai-arena/v6","/orderbook","/calendar","/whale","/onchain","/autotrade","/portfolio"];
 
 // ════════════════════════════════════════
 // ROUTE GUARDS
@@ -478,6 +479,7 @@ function App() {
           <Route path="/autotrade" element={<RequireAuth><AppShell><PremiumGate><AutoTradePage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/portfolio" element={<RequireAuth><AppShell><PremiumGate><PortfolioPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/ai-arena" element={<RequireAuth><AppShell><PremiumGate><AIArenaPage /></PremiumGate></AppShell></RequireAuth>} />
+          <Route path="/ai-arena/v6" element={<RequireAuth><AppShell><PremiumGate><AIArenaPageV6 /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/bitcoin" element={<RequireAuth><AppShell><PremiumGate><BitcoinPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/markets" element={<RequireAuth><AppShell><PremiumGate><MarketsPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/watchlist" element={<RequireAuth><AppShell><PremiumGate><WatchlistPage /></PremiumGate></AppShell></RequireAuth>} />
