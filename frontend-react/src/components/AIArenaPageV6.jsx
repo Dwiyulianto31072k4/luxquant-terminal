@@ -41,6 +41,11 @@ import RiskWatch from "./aiArenaV6/RiskWatch";
 // V6 components — Batch 2 Turn 2 (NEW — final)
 import PriceChart from "./aiArenaV6/PriceChart";
 
+// V6 components — v6.2 (NEW — adopted from v4)
+import HeaderStatStrip from "./aiArenaV6/HeaderStatStrip";
+import InstitutionalFlowRadar from "./aiArenaV6/InstitutionalFlowRadar";
+import MacroPulse from "./aiArenaV6/MacroPulse";
+
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
 // ─────────────────────────────────────────────────────────────────────
@@ -317,6 +322,14 @@ export default function AIArenaPageV6() {
         {/* 1. Verdict Hero */}
         <VerdictHero report={report} btcPrice={report?.btc_price} />
 
+        {/* 1b. Header Stat Strip — v6.2 (NEW) */}
+        <div className="mt-4">
+          <HeaderStatStrip
+            report={report}
+            btcPrice={report?.btc_price}
+            generatedInSeconds={report?.generated_in_seconds}
+          />
+        </div>
         {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
 
@@ -326,6 +339,10 @@ export default function AIArenaPageV6() {
         {/* 4. Triple Screen — NEW Batch 2 Turn 1 */}
         <TripleScreen tripleScreen={tripleScreen} />
 
+        {/* 4b. Institutional Flow Radar — v6.2 (NEW) */}
+        <div className="mt-6">
+          <InstitutionalFlowRadar />
+        </div>
         {/* 5. Zones to Watch — NEW Batch 2 Turn 1 */}
         <ZonesToWatch
           zones={zonesToWatch}
@@ -338,6 +355,10 @@ export default function AIArenaPageV6() {
           overallSetup={overallSetup}
         />
 
+        {/* 6b. Macro Pulse — v6.2 (NEW) */}
+        <div className="mt-6">
+          <MacroPulse />
+        </div>
         {/* 7. AI Reasoning Walkthrough */}
         <AIReasoningWalkthrough
           reasoningChain={reasoningChain}
