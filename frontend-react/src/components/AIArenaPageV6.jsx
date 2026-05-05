@@ -38,6 +38,9 @@ import ZonesToWatch from "./aiArenaV6/ZonesToWatch";
 import WhatChanged from "./aiArenaV6/WhatChanged";
 import RiskWatch from "./aiArenaV6/RiskWatch";
 
+// V6 components — Batch 2 Turn 2 (NEW — final)
+import PriceChart from "./aiArenaV6/PriceChart";
+
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
 // ─────────────────────────────────────────────────────────────────────
@@ -317,11 +320,8 @@ export default function AIArenaPageV6() {
         {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
 
-        {/* 3. Price Chart — last placeholder, Batch 2 Turn 2 */}
-        <PlaceholderSection
-          title="Price Chart"
-          note="BTC chart with EMA/VWAP, zone overlays, and liquidation lines"
-        />
+        {/* 3. Price Chart — Batch 2 Turn 2 — Lightweight Charts v5 */}
+        <PriceChart />
 
         {/* 4. Triple Screen — NEW Batch 2 Turn 1 */}
         <TripleScreen tripleScreen={tripleScreen} />
