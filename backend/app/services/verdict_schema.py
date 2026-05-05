@@ -142,7 +142,7 @@ class CompleteVerdict(BaseModel):
     # What changed (vs previous verdict)
     what_changed: Optional[str] = Field(
         default=None,
-        max_length=320,
+        max_length=600,
         description="Why this verdict differs from previous",
     )
 
