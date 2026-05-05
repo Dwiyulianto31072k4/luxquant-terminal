@@ -2,31 +2,28 @@
 /**
  * AI Arena v6 — Main Page
  * =======================
- * Wires together all v6 components into a single page.
- * Fetches: latest report, ledger (14d), track-record (30d).
+ * Wires together all v6 components. Uses existing API service contract:
+ *   - getLatestReport()           → /v6/latest
+ *   - getLedger({ days })         → /v6/ledger
+ *   - getTrackRecord({ days })    → /v6/track-record
  *
- * Layout (top to bottom):
- *   1. Header (title + last updated + cost badge)
- *   2. VerdictHero       — dual-horizon BLUF + invalidation
- *   3. CycleCompass      — visual gauge 0-100
- *   4. PriceChart        — [BATCH 2 placeholder]
- *   5. TripleScreen      — [BATCH 2 placeholder]
- *   6. ZonesToWatch      — [BATCH 2 placeholder]
- *   7. ThreeLayerConfluence — Macro / Smart / On-chain
- *   8. AIReasoningWalkthrough — 5-step CoT
- *   9. WhatChanged       — [BATCH 2 placeholder]
- *  10. VerdictLedger     — track record + history
- *  11. RiskWatch         — [BATCH 2 placeholder]
+ * Component contract:
+ *   - VerdictHero({ report, btcPrice })           — receives whole report
+ *   - CycleCompass({ report })                    — receives whole report
+ *   - ThreeLayerConfluence({ layerBriefs, overallSetup, confluenceVerdict })
+ *   - AIReasoningWalkthrough({ reasoningChain, critique })
+ *   - VerdictLedger({ trackRecord, ledger })
  *
- * v4 page (AIArenaPage.jsx) is left untouched. This page is wired
- * to a separate route /ai-arena/v6 so we can A/B during transition.
+ * Layout: Hero → Cycle → [chart placeholder] → [triple-screen placeholder]
+ *      → [zones placeholder] → Confluence → Reasoning → [what-changed placeholder]
+ *      → Ledger → [risk placeholder]
  */
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  fetchV6Latest,
-  fetchV6Ledger,
-  fetchV6TrackRecord,
+  getLatestReport,
+  getLedger,
+  getTrackRecord,
 } from "../services/aiArenaV6Api";
 
 // V6 components (Batch 1)
@@ -73,14 +70,13 @@ function PlaceholderSection({ title, note }) {
 // Header
 // ─────────────────────────────────────────────────────────────────────
 function PageHeader({ report, onRefresh, refreshing }) {
-  const lastUpdate = report?.timestamp
-    ? new Date(report.timestamp)
-    : null;
+  const lastUpdate = report?.timestamp ? new Date(report.timestamp) : null;
   const ageMin = lastUpdate
     ? Math.round((Date.now() - lastUpdate.getTime()) / 60000)
     : null;
 
-  const cost = report?.cost_breakdown?.total_usd;
+  // /v6/latest returns cost_usd at top level
+  const cost = report?.cost_usd;
 
   return (
     <header className="mb-6 pb-4 border-b border-white/5">
@@ -136,7 +132,7 @@ function PageHeader({ report, onRefresh, refreshing }) {
               <div className="text-white/40 uppercase tracking-wider text-[10px]">
                 Cost
               </div>
-              <div className="text-white/70">${cost.toFixed(4)}</div>
+              <div className="text-white/70">${Number(cost).toFixed(4)}</div>
             </div>
           )}
           <button
@@ -161,8 +157,11 @@ function LoadingState() {
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="text-center">
         <div
-          className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-white/10 border-t-gold-primary animate-spin"
-          style={{ borderTopColor: "#f5c451" }}
+          className="w-12 h-12 mx-auto mb-4 rounded-full border-2 animate-spin"
+          style={{
+            borderColor: "rgba(255,255,255,0.1)",
+            borderTopColor: "#f5c451",
+          }}
         />
         <p className="text-sm text-white/50 font-mono">
           Loading AI Arena v6...
@@ -216,33 +215,34 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      // Fetch in parallel
       const [latestRes, ledgerRes, trackRes] = await Promise.allSettled([
-        fetchV6Latest(),
-        fetchV6Ledger(14),
-        fetchV6TrackRecord(30),
+        getLatestReport(),
+        getLedger({ days: 14 }),
+        getTrackRecord({ days: 30 }),
       ]);
 
       if (latestRes.status === "fulfilled") {
         setReport(latestRes.value);
       } else {
-        // Latest is critical — surface error if it fails
         throw latestRes.reason || new Error("Failed to load latest report");
       }
 
-      // Ledger and track-record are non-critical; degrade gracefully
       if (ledgerRes.status === "fulfilled") {
         setLedger(ledgerRes.value);
       } else {
         console.warn("[v6] ledger fetch failed:", ledgerRes.reason);
-        setLedger({ reports: [] });
+        setLedger({ items: [], count: 0 });
       }
 
       if (trackRes.status === "fulfilled") {
         setTrackRecord(trackRes.value);
       } else {
         console.warn("[v6] track-record fetch failed:", trackRes.reason);
-        setTrackRecord({ window_days: 30, by_horizon: {}, total_evaluated: 0 });
+        setTrackRecord({
+          window_days: 30,
+          horizons: {},
+          overall: { total: 0, hit: 0, miss: 0, hit_rate: null },
+        });
       }
     } catch (e) {
       console.error("[v6] load error:", e);
@@ -278,18 +278,17 @@ export default function AIArenaPageV6() {
     );
   }
 
-  // ───── Pull v6 fields from report ─────
-  // The /v6/latest endpoint returns the full report bundle.
-  const verdict = report?.verdict || {};
-  const layerBriefs = report?.layer_briefs || {};
+  // ───── Pull v6 fields from response ─────
+  // /v6/latest returns:
+  //   { id, report_id, timestamp, btc_price, cycle, verdict_summary,
+  //     critique_decision, cost_usd, report: { layer_briefs, verdict,
+  //     critique, ... } }
+  const innerReport = report?.report || {};
+  const layerBriefs = innerReport?.layer_briefs || {};
+  const overallSetup = layerBriefs?.overall_setup;
+  const verdict = innerReport?.verdict || {};
   const reasoningChain = verdict?.reasoning_chain || [];
-  const critique = report?.critique || null;
-  const cycle = report?.cycle || {};
-  const confluence = report?.confluence || {};
-  const horizons = verdict?.horizons || {};
-  const invalidation = verdict?.invalidation_levels || null;
-  const headline = verdict?.headline || report?.headline || null;
-  const narrative = verdict?.narrative || report?.narrative || null;
+  const critique = innerReport?.critique || null;
 
   return (
     <div
@@ -300,30 +299,17 @@ export default function AIArenaPageV6() {
       }}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
-        {/* Header */}
         <PageHeader
           report={report}
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
         />
 
-        {/* 1. Verdict Hero — BLUF + dual horizon + invalidation */}
-        <VerdictHero
-          headline={headline}
-          narrative={narrative}
-          horizons={horizons}
-          invalidation={invalidation}
-          btcPrice={report?.btc_price}
-          priceChange24h={report?.btc_change_24h}
-        />
+        {/* 1. Verdict Hero — receives whole report (existing contract) */}
+        <VerdictHero report={report} btcPrice={report?.btc_price} />
 
-        {/* 2. Cycle Compass */}
-        <CycleCompass
-          score={cycle?.score}
-          phase={cycle?.phase}
-          confidence={cycle?.confidence}
-          rationale={cycle?.rationale}
-        />
+        {/* 2. Cycle Compass — receives whole report (existing contract) */}
+        <CycleCompass report={report} />
 
         {/* 3. Price Chart — Batch 2 */}
         <PlaceholderSection
@@ -346,7 +332,7 @@ export default function AIArenaPageV6() {
         {/* 6. Three-Layer Confluence */}
         <ThreeLayerConfluence
           layerBriefs={layerBriefs}
-          confluenceVerdict={confluence?.verdict}
+          overallSetup={overallSetup}
         />
 
         {/* 7. AI Reasoning Walkthrough */}

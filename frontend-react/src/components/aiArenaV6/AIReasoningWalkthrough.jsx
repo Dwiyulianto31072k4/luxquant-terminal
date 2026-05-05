@@ -2,28 +2,80 @@
 /**
  * AIReasoningWalkthrough — 5-step Chain-of-Thought from DeepSeek R1
  * =================================================================
- * Renders the reasoning_chain array from Stage 2 (DeepSeek R1).
- * Each step is expandable; first step expanded by default.
+ * Renders verdict.reasoning_chain from /v6/latest. Each step is
+ * expandable; first step expanded by default.
  *
- * Step structure (from verdict_schema.py):
+ * Reasoning chain step shape (from verdict_schema.py):
  *   {
  *     step: 1-7,
- *     title: short label
- *     observation: what AI saw in the data
- *     interpretation: what it means
- *     evidence: [list of metric refs that support this]
+ *     title: short label,
+ *     observation: what AI saw in the data,
+ *     interpretation: what it means,
+ *     evidence: ["metric ref 1", "metric ref 2"]
  *   }
  *
- * Plus optional self-critique badge from Stage 3 if it flagged a concern
- * for this step.
+ * Plus optional self-critique badge from Stage 3.
  *
  * Props:
- *   reasoningChain — array of step objects
- *   critique — { decision, concerns: [string], suggested_caveat } | null
+ *   reasoningChain — array of step objects (may be empty if Stage 2 schema lite)
+ *   critique — { decision, concerns: [...], suggested_caveat } | null
  */
 
 import React, { useState } from "react";
 import Tooltip from "./Tooltip";
+
+// ─────────────────────────────────────────────────────────────────────
+// Map evidence strings to GLOSSARY termKeys (best-effort)
+// Many evidence strings reference metrics that have a GLOSSARY entry.
+// ─────────────────────────────────────────────────────────────────────
+const EVIDENCE_TO_TERM = {
+  "mvrv-z": "mvrv-z",
+  "mvrv": "mvrv-z",
+  "puell": "puell",
+  "mayer": "mayer",
+  "pi-cycle": "pi-cycle",
+  "reserve-risk": "reserve-risk",
+  "reserve risk": "reserve-risk",
+  "m2": "m2-global",
+  "m2 global": "m2-global",
+  "m2 yoy": "m2-yoy",
+  "ssr": "ssr",
+  "ssr-osc": "ssr-osc",
+  "top traders": "top-traders",
+  "top trader": "top-traders",
+  "funding": "funding-rate",
+  "funding rate": "funding-rate",
+  "basis": "basis",
+  "taker": "taker-vol",
+  "nupl": "nupl",
+  "sopr": "sopr",
+  "sth-mvrv": "sth-mvrv",
+  "sth mvrv": "sth-mvrv",
+  "miner flow": "miner-flow",
+  "miner": "miner-flow",
+  "exchange netflow": "exchange-netflow",
+  "netflow": "exchange-netflow",
+  "hashribbons": "hashribbons",
+  "hash ribbons": "hashribbons",
+  "volatility": "volatility",
+  "open interest": "oi",
+  "fear greed": "fear-greed",
+  "fear & greed": "fear-greed",
+  "cycle score": "cycle-score",
+  "confluence": "confluence",
+};
+
+function lookupTermKey(evidence) {
+  if (!evidence) return null;
+  const lower = evidence.toLowerCase();
+  // Try direct match first
+  if (EVIDENCE_TO_TERM[lower]) return EVIDENCE_TO_TERM[lower];
+  // Then partial match
+  for (const key of Object.keys(EVIDENCE_TO_TERM)) {
+    if (lower.includes(key)) return EVIDENCE_TO_TERM[key];
+  }
+  return null;
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Sub-component: single reasoning step
@@ -47,15 +99,15 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
 
       {/* Step circle marker */}
       <div
-        className={`absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center font-mono text-sm font-semibold transition-all ${
-          isOpen
-            ? "bg-gold-primary text-black"
-            : "bg-white/5 text-white/60 border border-white/10"
-        }`}
+        className="absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center font-mono text-sm font-semibold transition-all"
         style={
           isOpen
             ? { backgroundColor: "#f5c451", color: "#0a0a0a" }
-            : undefined
+            : {
+                backgroundColor: "rgba(255,255,255,0.05)",
+                color: "rgba(255,255,255,0.6)",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }
         }
       >
         {stepNum}
@@ -96,6 +148,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
               className="text-white/40 font-mono text-xs transition-transform"
               style={{
                 transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                display: "inline-block",
               }}
             >
               ▾
@@ -131,22 +184,34 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
             </div>
           )}
 
-          {/* Evidence chips */}
+          {/* Evidence chips with optional tooltip */}
           {step.evidence && step.evidence.length > 0 && (
             <div>
               <div className="text-[10px] font-mono uppercase tracking-wider text-white/40 mb-1.5">
                 Evidence
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {step.evidence.map((ev, idx) => (
-                  <Tooltip key={idx} term={ev}>
+                {step.evidence.map((ev, idx) => {
+                  const termKey = lookupTermKey(ev);
+                  const chip = (
                     <span
-                      className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/70 cursor-help hover:bg-white/10 transition-colors"
+                      className={`text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/70 transition-colors ${
+                        termKey
+                          ? "cursor-help hover:bg-white/10 border-b border-dotted border-white/30"
+                          : ""
+                      }`}
                     >
                       {ev}
                     </span>
-                  </Tooltip>
-                ))}
+                  );
+                  return termKey ? (
+                    <Tooltip key={idx} termKey={termKey}>
+                      {chip}
+                    </Tooltip>
+                  ) : (
+                    <React.Fragment key={idx}>{chip}</React.Fragment>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -211,11 +276,6 @@ function CritiqueBanner({ critique }) {
             >
               Self-critique: {decisionStyle.label}
             </span>
-            <Tooltip term="self-critique">
-              <span className="text-[10px] text-white/30 font-mono cursor-help border-b border-dotted border-white/20">
-                ?
-              </span>
-            </Tooltip>
           </div>
           {critique.suggested_caveat && (
             <p className="text-sm text-white/75 leading-relaxed">
@@ -248,14 +308,14 @@ function CritiqueBanner({ critique }) {
 // Main component
 // ─────────────────────────────────────────────────────────────────────
 export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
-  // Default: first step open, others closed
   const [openSteps, setOpenSteps] = useState({ 0: true });
 
+  // Empty state — but still show critique if present
   if (!reasoningChain || reasoningChain.length === 0) {
     return (
       <section className="mb-8">
         <h2
-          className="text-2xl text-white/90 mb-3"
+          className="text-2xl text-white/90 mb-4"
           style={{
             fontFamily: "Fraunces, serif",
             fontWeight: 500,
@@ -264,23 +324,24 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
         >
           AI Reasoning
         </h2>
+        <CritiqueBanner critique={critique} />
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center">
           <p className="text-white/40 text-sm italic">
-            No reasoning chain available
+            Reasoning chain not available in this report
           </p>
         </div>
       </section>
     );
   }
 
-  // Map flagged concerns to step numbers (heuristic: search step title in concerns)
+  // Map flagged concerns to step indices (heuristic: title substring match)
   const flaggedSteps = new Set();
   if (critique?.concerns) {
     critique.concerns.forEach((c) => {
       const lower = c.toLowerCase();
       reasoningChain.forEach((step, idx) => {
         const title = (step.title || "").toLowerCase();
-        if (title && lower.includes(title.substring(0, 10))) {
+        if (title && title.length >= 5 && lower.includes(title.substring(0, 8))) {
           flaggedSteps.add(idx);
         }
       });
