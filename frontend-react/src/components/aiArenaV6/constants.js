@@ -194,3 +194,179 @@ export function formatRelativeTime(iso) {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// v6 Phase 4 Batch 1 — additional exports
+// ═══════════════════════════════════════════════════════════════════════
+// These are convenience wrappers + new helpers required by:
+//   - ThreeLayerConfluence.jsx
+//   - VerdictLedger.jsx
+//   - AIReasoningWalkthrough.jsx
+// All existing exports above are preserved unchanged.
+
+// ─────────────────────────────────────────────────────────────────────
+// directionStyle — consolidated direction styling
+// Wraps the existing directionColor / directionBg / directionBorder / directionArrow
+// into a single object for ergonomic destructuring in JSX.
+//
+// Usage:
+//   const dir = directionStyle(brief.direction);
+//   <span style={{ backgroundColor: dir.bg, color: dir.fg }}>{dir.arrow}</span>
+// ─────────────────────────────────────────────────────────────────────
+export function directionStyle(direction) {
+  return {
+    fg: directionColor(direction),
+    bg: directionBg(direction),
+    border: directionBorder(direction),
+    arrow: directionArrow(direction),
+    label: directionLabel(direction),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// confidenceTier — bucket confidence percentage into tiers with color
+// Tiers:
+//   >= 70  → STRONG (emerald)
+//   50-69  → MODERATE (gold)
+//   < 50   → LOW (gray)
+//   null   → UNKNOWN (gray)
+// ─────────────────────────────────────────────────────────────────────
+export function confidenceTier(confidence) {
+  if (confidence == null || isNaN(confidence)) {
+    return { label: "UNKNOWN", color: "rgba(255,255,255,0.4)" };
+  }
+  if (confidence >= 70) {
+    return { label: "STRONG", color: "#22c55e" };
+  }
+  if (confidence >= 50) {
+    return { label: "MODERATE", color: "#f5c451" };
+  }
+  return { label: "LOW", color: "#94a3b8" };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// outcomeStyle — consolidated outcome badge styling
+// Wraps existing outcomeColor / outcomeIcon plus adds bg/border/label
+// for compact badge rendering in the ledger table.
+// ─────────────────────────────────────────────────────────────────────
+export function outcomeStyle(outcome) {
+  const fg = outcomeColor(outcome);
+  const lower = String(outcome || "").toLowerCase();
+  switch (lower) {
+    case "hit":
+      return {
+        fg,
+        bg: "rgba(34, 197, 94, 0.12)",
+        border: "rgba(34, 197, 94, 0.3)",
+        label: "HIT",
+      };
+    case "miss":
+      return {
+        fg,
+        bg: "rgba(239, 68, 68, 0.12)",
+        border: "rgba(239, 68, 68, 0.3)",
+        label: "MISS",
+      };
+    case "pending":
+      return {
+        fg,
+        bg: "rgba(148, 163, 184, 0.1)",
+        border: "rgba(148, 163, 184, 0.25)",
+        label: "PEND",
+      };
+    case "expired":
+      return {
+        fg,
+        bg: "rgba(115, 115, 115, 0.1)",
+        border: "rgba(115, 115, 115, 0.25)",
+        label: "EXP",
+      };
+    default:
+      return {
+        fg: "rgba(255,255,255,0.5)",
+        bg: "rgba(255,255,255,0.05)",
+        border: "rgba(255,255,255,0.1)",
+        label: "—",
+      };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// formatNumber — generic compact number formatter
+// Use for non-price metrics (volumes, counts, ratios, etc.).
+// For prices, use the existing formatPrice() instead.
+//
+// Examples:
+//   formatNumber(1234)      → "1.2K"
+//   formatNumber(1500000)   → "1.5M"
+//   formatNumber(0.0042)    → "0.0042"
+//   formatNumber(0.5)       → "0.50"
+//   formatNumber(null)      → "—"
+// ─────────────────────────────────────────────────────────────────────
+export function formatNumber(n) {
+  if (n == null || isNaN(n)) return "—";
+  const num = Number(n);
+  const abs = Math.abs(num);
+
+  if (abs >= 1e12) return (num / 1e12).toFixed(1) + "T";
+  if (abs >= 1e9) return (num / 1e9).toFixed(2) + "B";
+  if (abs >= 1e6) return (num / 1e6).toFixed(2) + "M";
+  if (abs >= 1e3) return (num / 1e3).toFixed(1) + "K";
+  if (abs >= 1) return num.toFixed(2);
+  if (abs >= 0.01) return num.toFixed(3);
+  if (abs >= 0.0001) return num.toFixed(4);
+  return num.toExponential(2);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// formatTimestamp — short relative-or-absolute timestamp for tables
+// Returns relative when fresh (< 24h), absolute date when older.
+// Used in VerdictLedger history table where compactness matters.
+//
+// Examples:
+//   formatTimestamp(now - 5min)   → "5m ago"
+//   formatTimestamp(now - 3h)     → "3h ago"
+//   formatTimestamp(now - 2d)     → "May 03, 14:22"
+// ─────────────────────────────────────────────────────────────────────
+export function formatTimestamp(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+
+    const ageMs = Date.now() - d.getTime();
+    const ageMin = Math.round(ageMs / 60000);
+
+    // Within last 24h: relative
+    if (ageMin < 60) return `${Math.max(1, ageMin)}m ago`;
+    if (ageMin < 60 * 24) return `${Math.round(ageMin / 60)}h ago`;
+
+    // Older: absolute
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return "—";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// HORIZON_ORDER — canonical ordering of verdict horizons
+// Used by VerdictLedger to render stat cards and outcome badges
+// in a consistent left-to-right order.
+// ─────────────────────────────────────────────────────────────────────
+export const HORIZON_ORDER = ["24h", "72h", "7d", "30d"];
+
+// ─────────────────────────────────────────────────────────────────────
+// HORIZON_LABEL — human-friendly horizon labels
+// ─────────────────────────────────────────────────────────────────────
+export const HORIZON_LABEL = {
+  "24h": "24 hours",
+  "72h": "72 hours",
+  "7d": "7 days",
+  "30d": "30 days",
+};
