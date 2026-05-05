@@ -140,8 +140,8 @@ function ZoneCard({ zone, currentPrice }) {
             color: "rgba(255,255,255,0.9)",
           }}
         >
-          ${formatPrice(low)} <span className="text-white/40">–</span>{" "}
-          ${formatPrice(high)}
+          {formatPrice(low)} <span className="text-white/40">–</span>{" "}
+          {formatPrice(high)}
         </div>
         {distanceLabel && (
           <div className="text-[11px] font-mono text-white/40 mt-1">
@@ -231,7 +231,7 @@ function PriceLadder({ zones, currentPrice }) {
               opacity: 0.5,
               boxShadow: `0 0 4px ${style.color}80`,
             }}
-            title={`${style.label}: $${formatPrice(zone.price_low)} – $${formatPrice(
+            title={`${style.label}: ${formatPrice(zone.price_low)} – ${formatPrice(
               zone.price_high
             )}`}
           />
@@ -256,7 +256,7 @@ function PriceLadder({ zones, currentPrice }) {
               boxShadow: "0 0 8px rgba(245,196,81,0.4)",
             }}
           >
-            ◆ ${formatPrice(currentPrice)}
+            ◆ {formatPrice(currentPrice)}
           </div>
         </div>
       )}
