@@ -81,29 +81,37 @@ const FlowHistoryBars = ({ history }) => {
   }
 
   return (
-    <div className="flex items-end justify-between gap-1.5 h-20">
-      {data.map((d, i) => {
-        const isPositive = d.total >= 0;
-        const heightPct = Math.max(Math.abs(d.pct), 4); // min 4% so even zero shows
-        return (
-          <div key={`${d.date}-${i}`} className="flex flex-col items-center gap-1 flex-1 min-w-0">
-            <div className="flex-1 w-full flex flex-col justify-end relative h-14">
-              <div
-                className={`w-full rounded-sm transition-all ${
-                  isPositive
-                    ? "bg-gradient-to-t from-green-600/70 to-green-400/90"
-                    : "bg-gradient-to-t from-red-600/70 to-red-400/90"
-                }`}
-                style={{ height: `${heightPct}%` }}
-                title={`${d.date}: ${fmtMoney(d.total)}`}
-              />
-            </div>
-            <span className="text-[8px] font-mono text-text-muted truncate w-full text-center">
-              {fmtDate(d.date).split(" ")[1]}
-            </span>
-          </div>
-        );
-      })}
+    <div className="flex flex-col gap-2">
+      {/* Bar row — fixed height, bars sit at bottom, label below */}
+      <div className="flex items-end justify-between gap-1.5" style={{ height: 64 }}>
+        {data.map((d, i) => {
+          const isPositive = d.total >= 0;
+          const heightPx = Math.max((Math.abs(d.pct) / 100) * 64, 3); // bar fills 0-64px, min 3px so even zero shows
+          return (
+            <div
+              key={`${d.date}-bar-${i}`}
+              className={`flex-1 min-w-0 rounded-sm transition-all ${
+                isPositive
+                  ? "bg-gradient-to-t from-green-600/70 to-green-400/90"
+                  : "bg-gradient-to-t from-red-600/70 to-red-400/90"
+              }`}
+              style={{ height: `${heightPx}px` }}
+              title={`${d.date}: ${fmtMoney(d.total)}`}
+            />
+          );
+        })}
+      </div>
+      {/* Label row — same flex layout to align with bars above */}
+      <div className="flex items-start justify-between gap-1.5">
+        {data.map((d, i) => (
+          <span
+            key={`${d.date}-label-${i}`}
+            className="flex-1 min-w-0 text-[9px] font-mono text-text-muted text-center truncate"
+          >
+            {fmtDate(d.date).split(" ")[1]}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
