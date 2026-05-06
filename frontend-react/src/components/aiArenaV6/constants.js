@@ -6,10 +6,11 @@
 // ════════════════════════════════════════
 
 export const COLORS = {
-  bgPrimary: '#0a0d12',
-  bgSecondary: 'rgba(15, 18, 24, 0.7)',
-  bgCard: 'rgba(20, 23, 30, 0.8)',
-  bgElevated: 'rgba(28, 32, 40, 0.6)',
+  // v6.3: lowered opacity — theme gradient passes through
+  bgPrimary: 'transparent',
+  bgSecondary: 'rgba(20, 23, 30, 0.30)',
+  bgCard: 'rgba(20, 23, 30, 0.40)',
+  bgElevated: 'rgba(28, 32, 40, 0.55)',
 
   border: 'rgba(212, 168, 83, 0.12)',
   borderSubtle: 'rgba(255, 255, 255, 0.06)',
