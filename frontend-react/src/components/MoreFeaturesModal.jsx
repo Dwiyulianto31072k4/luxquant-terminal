@@ -4,9 +4,17 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 /**
- * MoreFeaturesModal v2 — Premium gold-standardized aesthetic
- * Icons are crafted with proper visual weight, fill+stroke combos,
- * and consistent gold/amber tones matching landing page brand.
+ * MoreFeaturesModal v3 — "Quantitative Pipeline" aesthetic
+ *
+ * Design language inspired by LuxQuant landing page:
+ *   • Serif headline with dual-tone gold gradient
+ *   • Mono breadcrumb readout (// PATH → PATH → ...)
+ *   • Hex addressing per tile (0x01..0x12)
+ *   • L-shaped corner brackets on tiles
+ *   • Technical status pills ([ PRO ], ● ACTIVE)
+ *   • Radial ambient glow (warm red/gold) bleeding from corners
+ *   • Section dividers (// PRIMARY, // SECONDARY, // UTILITY)
+ *   • Terminal-style footer readout
  */
 const MoreFeaturesModal = ({
   isOpen,
@@ -36,7 +44,7 @@ const MoreFeaturesModal = ({
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-    }, 200);
+    }, 220);
   };
 
   const handleItemClick = (path) => {
@@ -46,21 +54,7 @@ const MoreFeaturesModal = ({
 
   if (!isOpen) return null;
 
-  // ─── Three tonal tiers within gold family ──────────────────────
-  // tier 1: bright gold (primary features)
-  // tier 2: amber (secondary features)
-  // tier 3: bronze/copper (utility features)
-  const TIER = {
-    primary:   { from: '#fde6a8', via: '#d4a853', to: '#8b6914' },  // bright gold
-    secondary: { from: '#f5d088', via: '#c89143', to: '#7a5610' },  // amber
-    utility:   { from: '#e8b87a', via: '#a87938', to: '#5e3d09' },  // bronze
-    danger:    { from: '#f5d088', via: '#c89143', to: '#7a5610' },  // amber-tinted (admin)
-  };
-
-  // ─── Custom-crafted SVG icons ───────────────────────────────────
-  // Each icon uses fill+stroke composition for visual weight,
-  // not flat single-stroke outlines.
-
+  // ─── Custom-crafted SVG icons (carried over from v2) ──────────
   const Icon = {
     home: (
       <g>
@@ -250,36 +244,72 @@ const MoreFeaturesModal = ({
     ),
   };
 
-  // ─── Feature catalog with tier mapping ─────────────────────────
-  const features = [
-    // Tier 1 — primary (bright gold)
-    { path: '/home',         icon: Icon.home,       tier: 'primary',   label: t('mfm.home'),       desc: t('mfm.home_desc') },
-    { path: '/signals',      icon: Icon.signals,    tier: 'primary',   label: t('mfm.signals'),    desc: t('mfm.signals_desc') },
-    { path: '/autotrade',    icon: Icon.autotrade,  tier: 'primary',   label: t('mfm.autotrade'),  desc: t('mfm.autotrade_desc') },
-    { path: '/ai-arena',     icon: Icon.aiArena,    tier: 'primary',   label: t('mfm.ai_arena'),   desc: t('mfm.ai_arena_desc') },
-    { path: '/bitcoin',      icon: Icon.bitcoin,    tier: 'primary',   label: t('mfm.bitcoin'),    desc: t('mfm.bitcoin_desc') },
-
-    // Tier 2 — secondary (amber)
-    { path: '/market-pulse', icon: Icon.pulse,      tier: 'secondary', label: t('mfm.pulse'),      desc: t('mfm.pulse_desc') },
-    { path: '/crypto-news',  icon: Icon.news,       tier: 'secondary', label: t('mfm.news'),       desc: t('mfm.news_desc') },
-    { path: '/onchain',      icon: Icon.onchain,    tier: 'secondary', label: t('mfm.onchain'),    desc: t('mfm.onchain_desc') },
-    { path: '/markets',      icon: Icon.markets,    tier: 'secondary', label: t('mfm.markets'),    desc: t('mfm.markets_desc') },
-    { path: '/journal',      icon: Icon.journal,    tier: 'secondary', label: t('mfm.journal'),    desc: t('mfm.journal_desc') },
-
-    // Tier 3 — utility (bronze)
-    { path: '/portfolio',    icon: Icon.portfolio,  tier: 'utility',   label: t('mfm.portfolio'),  desc: t('mfm.portfolio_desc') },
-    { path: '/analytics',    icon: Icon.analytics,  tier: 'utility',   label: t('mfm.analytics'),  desc: t('mfm.analytics_desc') },
-    { path: '/orderbook',    icon: Icon.orderbook,  tier: 'utility',   label: t('mfm.orderbook'),  desc: t('mfm.orderbook_desc') },
-    { path: '/calendar',     icon: Icon.calendar,   tier: 'utility',   label: t('mfm.calendar'),   desc: t('mfm.calendar_desc') },
-    { path: '/whale',        icon: Icon.whale,      tier: 'utility',   label: t('mfm.whale'),      desc: t('mfm.whale_desc') },
-    { path: '/tips',         icon: Icon.tips,       tier: 'utility',   label: t('mfm.tips'),       desc: t('mfm.tips_desc') },
-    { path: '/watchlist',    icon: Icon.watchlist,  tier: 'utility',   label: t('mfm.watchlist'),  desc: t('mfm.watchlist_desc') },
-    { path: '/referral',     icon: Icon.referral,   tier: 'utility',   label: t('mfm.referral'),   desc: t('mfm.referral_desc') },
-
+  // ─── Feature catalog grouped by tier ───────────────────────────
+  const groups = [
+    {
+      key: 'primary',
+      label: 'PRIMARY',
+      sub: 'core_modules',
+      items: [
+        { path: '/home',      icon: Icon.home,      label: t('mfm.home'),      desc: t('mfm.home_desc') },
+        { path: '/signals',   icon: Icon.signals,   label: t('mfm.signals'),   desc: t('mfm.signals_desc') },
+        { path: '/autotrade', icon: Icon.autotrade, label: t('mfm.autotrade'), desc: t('mfm.autotrade_desc') },
+        { path: '/ai-arena',  icon: Icon.aiArena,   label: t('mfm.ai_arena'),  desc: t('mfm.ai_arena_desc') },
+        { path: '/bitcoin',   icon: Icon.bitcoin,   label: t('mfm.bitcoin'),   desc: t('mfm.bitcoin_desc') },
+      ],
+    },
+    {
+      key: 'secondary',
+      label: 'SECONDARY',
+      sub: 'analytics_layer',
+      items: [
+        { path: '/market-pulse', icon: Icon.pulse,    label: t('mfm.pulse'),    desc: t('mfm.pulse_desc') },
+        { path: '/crypto-news',  icon: Icon.news,     label: t('mfm.news'),     desc: t('mfm.news_desc') },
+        { path: '/onchain',      icon: Icon.onchain,  label: t('mfm.onchain'),  desc: t('mfm.onchain_desc') },
+        { path: '/markets',      icon: Icon.markets,  label: t('mfm.markets'),  desc: t('mfm.markets_desc') },
+        { path: '/journal',      icon: Icon.journal,  label: t('mfm.journal'),  desc: t('mfm.journal_desc') },
+      ],
+    },
+    {
+      key: 'utility',
+      label: 'UTILITY',
+      sub: 'support_modules',
+      items: [
+        { path: '/portfolio', icon: Icon.portfolio, label: t('mfm.portfolio'), desc: t('mfm.portfolio_desc') },
+        { path: '/analytics', icon: Icon.analytics, label: t('mfm.analytics'), desc: t('mfm.analytics_desc') },
+        { path: '/orderbook', icon: Icon.orderbook, label: t('mfm.orderbook'), desc: t('mfm.orderbook_desc') },
+        { path: '/calendar',  icon: Icon.calendar,  label: t('mfm.calendar'),  desc: t('mfm.calendar_desc') },
+        { path: '/whale',     icon: Icon.whale,     label: t('mfm.whale'),     desc: t('mfm.whale_desc') },
+        { path: '/tips',      icon: Icon.tips,      label: t('mfm.tips'),      desc: t('mfm.tips_desc') },
+        { path: '/watchlist', icon: Icon.watchlist, label: t('mfm.watchlist'), desc: t('mfm.watchlist_desc') },
+        { path: '/referral',  icon: Icon.referral,  label: t('mfm.referral'),  desc: t('mfm.referral_desc') },
+      ],
+    },
     ...(isAdmin ? [{
-      path: '/admin', icon: Icon.admin, tier: 'danger', label: t('mfm.admin'), desc: t('mfm.admin_desc'),
+      key: 'admin',
+      label: 'ADMIN',
+      sub: 'restricted_access',
+      items: [
+        { path: '/admin', icon: Icon.admin, label: t('mfm.admin'), desc: t('mfm.admin_desc') },
+      ],
     }] : []),
   ];
+
+  // Flat list with global hex addressing
+  let hexCounter = 0;
+  const flatItems = groups.flatMap(g =>
+    g.items.map(it => {
+      hexCounter += 1;
+      return { ...it, tier: g.key, hex: `0x${hexCounter.toString(16).toUpperCase().padStart(2, '0')}` };
+    })
+  );
+  const totalCount = flatItems.length;
+
+  // Build breadcrumb readout from primary tier paths
+  const breadcrumb = groups[0].items
+    .slice(0, 4)
+    .map(i => i.path.replace('/', '').replace('-', '_').toUpperCase())
+    .join('  →  ');
 
   const modalContent = (
     <div
@@ -287,87 +317,205 @@ const MoreFeaturesModal = ({
       onClick={handleClose}
     >
       <style>{`
+        /* ─── Overlay ─── */
         .mfm-overlay {
           background: rgba(0,0,0,0);
           backdrop-filter: blur(0px);
-          animation: mfmOverlayIn .3s ease forwards;
+          animation: mfmOverlayIn .35s ease forwards;
         }
-        .mfm-overlay-out { animation: mfmOverlayOut .2s ease forwards; }
-        .mfm-overlay-out .mfm-card { animation: mfmCardOut .2s ease forwards; }
+        .mfm-overlay-out { animation: mfmOverlayOut .22s ease forwards; }
+        .mfm-overlay-out .mfm-card { animation: mfmCardOut .22s ease forwards; }
         @keyframes mfmOverlayIn {
-          to { background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
+          to { background: rgba(0,0,0,.88); backdrop-filter: blur(10px); }
         }
         @keyframes mfmOverlayOut {
-          from { background: rgba(0,0,0,.85); backdrop-filter: blur(8px); }
-          to { background: rgba(0,0,0,0); backdrop-filter: blur(0px); }
+          from { background: rgba(0,0,0,.88); backdrop-filter: blur(10px); }
+          to   { background: rgba(0,0,0,0);   backdrop-filter: blur(0px); }
         }
+
+        /* ─── Card with warm radial ambient ─── */
         .mfm-card {
-          animation: mfmCardIn .35s cubic-bezier(.16,1,.3,1) forwards;
+          animation: mfmCardIn .4s cubic-bezier(.16,1,.3,1) forwards;
           background:
-            radial-gradient(ellipse at top, rgba(212,168,83,0.06), transparent 60%),
-            #0c0a0f;
+            radial-gradient(ellipse 80% 50% at 15% 0%, rgba(180,40,30,0.16), transparent 55%),
+            radial-gradient(ellipse 70% 60% at 90% 110%, rgba(212,168,83,0.10), transparent 55%),
+            radial-gradient(ellipse 100% 60% at 50% 50%, rgba(40,20,15,0.4), transparent 70%),
+            #0a0708;
         }
         @keyframes mfmCardIn {
-          from { opacity: 0; transform: scale(.96) translateY(12px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
+          from { opacity: 0; transform: scale(.97) translateY(14px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes mfmCardOut {
           from { opacity: 1; transform: scale(1); }
-          to { opacity: 0; transform: scale(.96) translateY(12px); }
+          to   { opacity: 0; transform: scale(.97) translateY(14px); }
         }
 
-        /* ─── Tile base ─── */
+        /* ─── Typography ─── */
+        .mfm-serif {
+          font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+          font-feature-settings: 'liga' 1, 'kern' 1;
+          letter-spacing: -0.02em;
+        }
+        .mfm-mono {
+          font-family: 'JetBrains Mono', 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
+          font-feature-settings: 'liga' 0;
+        }
+        .mfm-gold-grad {
+          background: linear-gradient(135deg, #f5d088 0%, #d4a853 40%, #a87938 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+        }
+
+        /* ─── Pill (• SYSTEM ARCHITECTURE style) ─── */
+        .mfm-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 5px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(212,168,83,0.25);
+          background: rgba(212,168,83,0.04);
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          color: #c89143;
+        }
+        .mfm-pill-dot {
+          width: 5px; height: 5px; border-radius: 999px;
+          background: #d4a853;
+          box-shadow: 0 0 8px rgba(212,168,83,0.7);
+        }
+
+        /* ─── Breadcrumb readout ─── */
+        .mfm-breadcrumb {
+          display: inline-block;
+          padding: 7px 16px;
+          border: 1px solid rgba(212,168,83,0.18);
+          background: rgba(20,12,8,0.5);
+          border-radius: 6px;
+          font-size: 11px;
+          color: rgba(245,208,136,0.65);
+          letter-spacing: 0.08em;
+        }
+        .mfm-breadcrumb .arrow { color: rgba(212,168,83,0.5); margin: 0 2px; }
+        .mfm-breadcrumb .slash { color: rgba(168,121,56,0.7); margin-right: 6px; }
+
+        /* ─── Section divider ─── */
+        .mfm-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 18px 0 14px;
+        }
+        .mfm-divider-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10px;
+          letter-spacing: 0.22em;
+          color: rgba(212,168,83,0.7);
+          white-space: nowrap;
+        }
+        .mfm-divider-label .num {
+          color: rgba(168,121,56,0.55);
+        }
+        .mfm-divider-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, rgba(212,168,83,0.25), transparent);
+        }
+        .mfm-divider-count {
+          font-size: 10px;
+          letter-spacing: 0.15em;
+          color: rgba(168,121,56,0.55);
+          white-space: nowrap;
+        }
+
+        /* ─── Tile ─── */
         .mfm-tile {
           position: relative;
-          border: 1px solid rgba(255,255,255,0.06);
-          background: rgba(255,255,255,0.015);
-          transition: transform .25s cubic-bezier(.16,1,.3,1),
+          padding: 14px 12px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.05);
+          background: linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.002));
+          transition: transform .28s cubic-bezier(.16,1,.3,1),
                       border-color .25s ease,
                       background .25s ease,
                       box-shadow .25s ease;
+          overflow: hidden;
         }
         .mfm-tile::before {
+          /* warm ambient inner glow */
           content: '';
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          padding: 1px;
-          background: linear-gradient(135deg, transparent, transparent);
-          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          opacity: 0;
-          transition: opacity .25s ease, background .25s ease;
+          background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(212,168,83,0.0), transparent 60%);
+          transition: background .3s ease;
           pointer-events: none;
         }
         .mfm-tile:hover {
           transform: translateY(-3px);
-          border-color: rgba(212,168,83,0.25);
-          background: rgba(212,168,83,0.04);
+          border-color: rgba(212,168,83,0.3);
+          background: linear-gradient(180deg, rgba(212,168,83,0.05), rgba(212,168,83,0.01));
           box-shadow:
-            0 8px 24px -8px rgba(212,168,83,0.25),
-            0 0 0 1px rgba(212,168,83,0.08);
+            0 10px 28px -10px rgba(212,168,83,0.28),
+            0 0 0 1px rgba(212,168,83,0.06),
+            inset 0 1px 0 rgba(255,255,255,0.04);
         }
         .mfm-tile:hover::before {
-          opacity: 1;
-          background: linear-gradient(135deg, rgba(253,230,168,0.6), rgba(212,168,83,0.2), rgba(139,105,20,0.4));
+          background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(212,168,83,0.18), transparent 60%);
         }
+        .mfm-tile:hover .mfm-corner { opacity: 1; }
+        .mfm-tile:hover .mfm-icon-wrap { transform: scale(1.05); }
+        .mfm-tile:hover .mfm-hex { color: rgba(212,168,83,0.85); }
+
         .mfm-tile.active {
-          border-color: rgba(212,168,83,0.45);
-          background: rgba(212,168,83,0.06);
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.25), 0 4px 16px -4px rgba(212,168,83,0.3);
+          border-color: rgba(212,168,83,0.5);
+          background: linear-gradient(180deg, rgba(212,168,83,0.07), rgba(212,168,83,0.015));
+          box-shadow:
+            0 0 0 1px rgba(212,168,83,0.25),
+            0 4px 18px -4px rgba(212,168,83,0.32),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .mfm-tile.active .mfm-corner { opacity: 1; }
+        .mfm-tile.active .mfm-hex { color: rgba(212,168,83,0.9); }
+
+        /* ─── L-shaped corner brackets ─── */
+        .mfm-corner {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-color: rgba(212,168,83,0.6);
+          opacity: 0.25;
+          transition: opacity .25s ease;
+          pointer-events: none;
+        }
+        .mfm-corner.tl { top: 6px; left: 6px;  border-top: 1px solid; border-left: 1px solid; }
+        .mfm-corner.tr { top: 6px; right: 6px; border-top: 1px solid; border-right: 1px solid; }
+        .mfm-corner.bl { bottom: 6px; left: 6px;  border-bottom: 1px solid; border-left: 1px solid; }
+        .mfm-corner.br { bottom: 6px; right: 6px; border-bottom: 1px solid; border-right: 1px solid; }
+
+        /* ─── Hex address ─── */
+        .mfm-hex {
+          font-size: 9px;
+          letter-spacing: 0.1em;
+          color: rgba(168,121,56,0.55);
+          transition: color .25s ease;
         }
 
         /* ─── Icon container ─── */
         .mfm-icon-wrap {
           position: relative;
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+          width: 46px;
+          height: 46px;
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 12px;
+          margin: 6px auto 12px;
           transition: transform .3s cubic-bezier(.16,1,.3,1);
         }
         .mfm-icon-wrap::after {
@@ -381,11 +529,6 @@ const MoreFeaturesModal = ({
           mask-composite: exclude;
           pointer-events: none;
         }
-        .mfm-tile:hover .mfm-icon-wrap {
-          transform: scale(1.06);
-        }
-
-        /* Tier — primary (bright gold) */
         .mfm-icon-wrap.t-primary {
           background:
             radial-gradient(circle at 30% 25%, rgba(253,230,168,0.18), transparent 65%),
@@ -395,8 +538,6 @@ const MoreFeaturesModal = ({
         .mfm-icon-wrap.t-primary::after {
           background: linear-gradient(135deg, rgba(253,230,168,0.5), rgba(212,168,83,0.2), rgba(139,105,20,0.35));
         }
-
-        /* Tier — secondary (amber) */
         .mfm-icon-wrap.t-secondary {
           background:
             radial-gradient(circle at 30% 25%, rgba(245,208,136,0.14), transparent 65%),
@@ -406,8 +547,6 @@ const MoreFeaturesModal = ({
         .mfm-icon-wrap.t-secondary::after {
           background: linear-gradient(135deg, rgba(245,208,136,0.4), rgba(200,145,67,0.18), rgba(122,86,16,0.3));
         }
-
-        /* Tier — utility (bronze) */
         .mfm-icon-wrap.t-utility {
           background:
             radial-gradient(circle at 30% 25%, rgba(232,184,122,0.12), transparent 65%),
@@ -417,140 +556,229 @@ const MoreFeaturesModal = ({
         .mfm-icon-wrap.t-utility::after {
           background: linear-gradient(135deg, rgba(232,184,122,0.35), rgba(168,121,56,0.15), rgba(94,61,9,0.25));
         }
-
-        /* Tier — danger (admin, slightly warm-red tinted) */
-        .mfm-icon-wrap.t-danger {
+        .mfm-icon-wrap.t-admin {
           background:
             radial-gradient(circle at 30% 25%, rgba(245,180,120,0.18), transparent 65%),
             rgba(200,100,60,0.08);
           color: #e8a878;
         }
-        .mfm-icon-wrap.t-danger::after {
+        .mfm-icon-wrap.t-admin::after {
           background: linear-gradient(135deg, rgba(245,180,120,0.45), rgba(200,100,60,0.18), rgba(120,50,20,0.3));
         }
+
+        /* ─── Status pills (technical) ─── */
+        .mfm-status {
+          position: absolute;
+          top: 6px;
+          right: 22px;
+          font-size: 8.5px;
+          letter-spacing: 0.12em;
+          padding: 2px 6px;
+          border-radius: 3px;
+          background: rgba(212,168,83,0.12);
+          color: #d4a853;
+          border: 1px solid rgba(212,168,83,0.28);
+        }
+        .mfm-status-active {
+          position: absolute;
+          top: 6px;
+          right: 22px;
+          font-size: 8.5px;
+          letter-spacing: 0.14em;
+          color: #6ee7a8;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .mfm-status-active::before {
+          content: '';
+          width: 5px; height: 5px;
+          border-radius: 999px;
+          background: #6ee7a8;
+          box-shadow: 0 0 6px rgba(110,231,168,0.7);
+        }
+
+        /* ─── Footer terminal readout ─── */
+        .mfm-footer-readout {
+          font-size: 10px;
+          letter-spacing: 0.15em;
+          color: rgba(168,121,56,0.7);
+        }
+        .mfm-footer-readout .bracket { color: rgba(168,121,56,0.45); }
+        .mfm-footer-readout .num { color: #d4a853; }
+
+        .mfm-kbd {
+          display: inline-block;
+          padding: 2px 6px;
+          font-size: 9.5px;
+          letter-spacing: 0.08em;
+          border: 1px solid rgba(212,168,83,0.25);
+          border-radius: 4px;
+          background: rgba(20,12,8,0.5);
+          color: rgba(245,208,136,0.7);
+          margin: 0 2px;
+        }
+
+        /* ─── Scrollbar ─── */
+        .mfm-body::-webkit-scrollbar { width: 6px; }
+        .mfm-body::-webkit-scrollbar-track { background: transparent; }
+        .mfm-body::-webkit-scrollbar-thumb {
+          background: rgba(212,168,83,0.18);
+          border-radius: 3px;
+        }
+        .mfm-body::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,0.32); }
       `}</style>
 
       <div
-        className="mfm-card relative w-full max-w-5xl max-h-[88vh] rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/80 overflow-hidden flex flex-col"
+        className="mfm-card relative w-full max-w-6xl max-h-[90vh] rounded-2xl border border-white/[0.06] shadow-2xl shadow-black/90 overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
+        {/* Top accent line — gold gradient */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px z-10"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5), rgba(245,208,136,0.7), rgba(212,168,83,0.5), transparent)' }}
+        />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.05] flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{
-                background: 'radial-gradient(circle at 30% 25%, rgba(253,230,168,0.2), transparent 60%), rgba(212,168,83,0.1)',
-                border: '1px solid rgba(212,168,83,0.25)',
-              }}
-            >
-              <svg className="w-4 h-4 text-gold-primary" viewBox="0 0 24 24" fill="none">
-                <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2" />
-                <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-                <rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-white font-bold text-lg sm:text-xl tracking-tight">
-                {t('mfm.title')}
-              </h2>
-              <p className="text-text-muted text-xs mt-0.5">
-                {t('mfm.subtitle')}
-              </p>
-            </div>
-          </div>
+        {/* ────────── HEADER ────────── */}
+        <div className="relative px-6 sm:px-9 pt-7 pb-5 border-b border-white/[0.05] flex-shrink-0">
+          {/* Close button */}
           <button
             onClick={handleClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-text-muted hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Close"
+            className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/[0.06] transition-all"
+            style={{ border: '1px solid rgba(212,168,83,0.15)' }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        </div>
 
-        {/* Grid body */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5">
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            {features.map((item) => {
-              const active = isActive(item.path);
-              const isPro = premiumPaths.includes(item.path) && !isPremium;
+          {/* Section pill */}
+          <div className="flex items-center mb-4">
+            <span className="mfm-pill mfm-mono">
+              <span className="mfm-pill-dot" />
+              <span>{t('mfm.section_label', { defaultValue: 'FEATURE INDEX' })}</span>
+            </span>
+          </div>
 
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleItemClick(item.path)}
-                  className={`mfm-tile group flex flex-col items-center text-center p-3 sm:p-4 rounded-2xl ${active ? 'active' : ''}`}
-                >
-                  {/* PRO badge */}
-                  {isPro && (
-                    <span
-                      className="absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 rounded leading-none"
-                      style={{
-                        background: 'rgba(212,168,83,0.15)',
-                        color: '#d4a853',
-                        border: '1px solid rgba(212,168,83,0.3)',
-                      }}
-                    >
-                      PRO
-                    </span>
-                  )}
+          {/* Serif headline */}
+          <h2 className="mfm-serif text-white text-3xl sm:text-4xl lg:text-[44px] font-bold leading-[1.05] mb-3">
+            {t('mfm.title_lead', { defaultValue: 'More' })}{' '}
+            <span className="mfm-gold-grad italic">
+              {t('mfm.title_accent', { defaultValue: 'Features' })}
+            </span>
+          </h2>
 
-                  {/* Active indicator */}
-                  {active && (
-                    <span
-                      className="absolute top-2 left-2 w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background: '#d4a853',
-                        boxShadow: '0 0 8px rgba(212,168,83,0.6)',
-                      }}
-                    />
-                  )}
-
-                  {/* Icon container */}
-                  <div className={`mfm-icon-wrap t-${item.tier}`}>
-                    <svg
-                      className="w-6 h-6 sm:w-7 sm:h-7"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      {item.icon}
-                    </svg>
-                  </div>
-
-                  {/* Label */}
-                  <span className={`text-[12px] sm:text-[13px] font-semibold leading-tight tracking-tight ${
-                    active ? 'text-gold-primary' : 'text-white'
-                  }`}>
-                    {item.label}
-                  </span>
-
-                  {/* Description */}
-                  {item.desc && (
-                    <span className="text-[10px] text-text-muted mt-1.5 leading-snug line-clamp-2 hidden sm:block">
-                      {item.desc}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Mono breadcrumb */}
+          <div className="mfm-breadcrumb mfm-mono mt-1">
+            <span className="slash">//</span>
+            {breadcrumb.split('  →  ').map((seg, i, arr) => (
+              <span key={i}>
+                {seg}
+                {i < arr.length - 1 && <span className="arrow">  →  </span>}
+              </span>
+            ))}
+            <span className="arrow">  →  </span>
+            <span style={{ color: 'rgba(168,121,56,0.6)' }}>...</span>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-5 sm:px-6 py-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-text-muted flex-shrink-0">
-          <span className="flex items-center gap-1.5">
-            <span
-              className="w-1 h-1 rounded-full"
-              style={{ background: '#d4a853', boxShadow: '0 0 6px rgba(212,168,83,0.5)' }}
-            />
-            {t('mfm.footer_count', { count: features.length })}
+        {/* ────────── BODY ────────── */}
+        <div className="mfm-body flex-1 overflow-y-auto px-6 sm:px-9 py-5">
+          {groups.map((group, gIdx) => {
+            const groupNumber = `0${gIdx + 1}`.slice(-2);
+            return (
+              <div key={group.key} className={gIdx > 0 ? 'mt-2' : ''}>
+                {/* Section divider */}
+                <div className="mfm-divider">
+                  <span className="mfm-divider-label mfm-mono">
+                    <span className="num">{groupNumber}</span>
+                    <span style={{ color: 'rgba(168,121,56,0.5)' }}>//</span>
+                    <span>{group.label}</span>
+                    <span style={{ color: 'rgba(168,121,56,0.4)', marginLeft: 4 }}>· {group.sub}</span>
+                  </span>
+                  <span className="mfm-divider-line" />
+                  <span className="mfm-divider-count mfm-mono">
+                    [ {group.items.length.toString().padStart(2, '0')} ]
+                  </span>
+                </div>
+
+                {/* Tile grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {group.items.map((item) => {
+                    const meta = flatItems.find(f => f.path === item.path);
+                    const active = isActive(item.path);
+                    const isPro = premiumPaths.includes(item.path) && !isPremium;
+
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleItemClick(item.path)}
+                        className={`mfm-tile group flex flex-col items-center text-center ${active ? 'active' : ''}`}
+                      >
+                        {/* L-shaped corner brackets */}
+                        <span className="mfm-corner tl" />
+                        <span className="mfm-corner tr" />
+                        <span className="mfm-corner bl" />
+                        <span className="mfm-corner br" />
+
+                        {/* Hex address */}
+                        <div className="absolute top-2 left-2.5 mfm-hex mfm-mono">
+                          {meta?.hex}
+                        </div>
+
+                        {/* Status pill */}
+                        {active ? (
+                          <span className="mfm-status-active mfm-mono">ACTIVE</span>
+                        ) : isPro ? (
+                          <span className="mfm-status mfm-mono">PRO</span>
+                        ) : null}
+
+                        {/* Icon container */}
+                        <div className={`mfm-icon-wrap t-${group.key}`}>
+                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                            {item.icon}
+                          </svg>
+                        </div>
+
+                        {/* Label */}
+                        <span
+                          className={`text-[12.5px] sm:text-[13px] font-semibold leading-tight tracking-tight px-1 ${
+                            active ? 'text-[#f5d088]' : 'text-white'
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+
+                        {/* Description */}
+                        {item.desc && (
+                          <span className="text-[10px] text-white/40 mt-1.5 leading-snug line-clamp-2 hidden sm:block px-1">
+                            {item.desc}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ────────── FOOTER ────────── */}
+        <div className="relative px-6 sm:px-9 py-3.5 border-t border-white/[0.05] flex items-center justify-between flex-shrink-0">
+          <span className="mfm-footer-readout mfm-mono">
+            <span className="bracket">[</span>{' '}
+            <span className="num">{totalCount.toString().padStart(2, '0')}</span>{' '}
+            MODULES LOADED{' '}
+            <span className="bracket">]</span>
+            <span style={{ color: 'rgba(110,231,168,0.7)', marginLeft: 12 }}>● SYNCED</span>
           </span>
-          <span className="hidden sm:inline">{t('mfm.footer_hint')}</span>
+          <span className="mfm-footer-readout mfm-mono hidden sm:flex items-center">
+            <span>PRESS</span>
+            <span className="mfm-kbd">ESC</span>
+            <span>TO CLOSE</span>
+          </span>
         </div>
       </div>
     </div>
