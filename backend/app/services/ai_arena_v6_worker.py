@@ -372,6 +372,27 @@ PRICE_DATA:
 Now produce the verdict JSON. Specific. Evidence-based. No fluff."""
 
 
+def _repair_json(raw: str) -> str:
+    """Best-effort JSON repair for truncated LLM output (v6.3)."""
+    import re
+    s = raw.strip()
+    if not s:
+        return "{}"
+    # Strip trailing comma before missing closing brace
+    s = re.sub(r',\s*$', '', s)
+    # Count unclosed braces/brackets and append closures
+    open_braces = s.count('{') - s.count('}')
+    open_brackets = s.count('[') - s.count(']')
+    # Close any unterminated string (odd quote count not preceded by escape)
+    quotes = re.findall(r'(?<!\\)"', s)
+    if len(quotes) % 2 == 1:
+        s += '"'
+    # Append missing closing tokens
+    s += ']' * max(open_brackets, 0)
+    s += '}' * max(open_braces, 0)
+    return s
+
+
 async def stage2_reason(
     bundle: LayerBriefBundle,
     btc_price: float,
@@ -391,11 +412,36 @@ async def stage2_reason(
             {"role": "user", "content": user_prompt},
         ],
         response_format={"type": "json_object"},
-        max_tokens=4000,
+        max_tokens=8000,
     )
 
+    # ── v6.3: detect truncation + retry + JSON repair ──
+    finish_reason = resp.choices[0].finish_reason
     raw_json = resp.choices[0].message.content or "{}"
-    verdict = CompleteVerdict.model_validate_json(raw_json)
+
+    if finish_reason == "length":
+        _log(f"WARN Stage 2: response truncated (finish_reason=length, {len(raw_json)} chars). Retrying with concise hint...")
+        resp = await deepseek_client.chat.completions.create(
+            model=MODEL_STAGE2,
+            messages=[
+                {"role": "system", "content": STAGE2_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt + "\n\nIMPORTANT: Be concise. Output complete valid JSON within token budget."},
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=8000,
+            temperature=0.3,
+        )
+        finish_reason = resp.choices[0].finish_reason
+        raw_json = resp.choices[0].message.content or "{}"
+        _log(f"Stage 2 retry done (finish_reason={finish_reason}, {len(raw_json)} chars)")
+
+    try:
+        verdict = CompleteVerdict.model_validate_json(raw_json)
+    except Exception as parse_err:
+        _log(f"WARN Stage 2: JSON parse failed ({type(parse_err).__name__}), attempting repair...")
+        repaired = _repair_json(raw_json)
+        verdict = CompleteVerdict.model_validate_json(repaired)
+        _log("Stage 2: JSON repaired successfully")
 
     usage = resp.usage
     cost = _estimate_cost(MODEL_STAGE2, usage.prompt_tokens, usage.completion_tokens)
