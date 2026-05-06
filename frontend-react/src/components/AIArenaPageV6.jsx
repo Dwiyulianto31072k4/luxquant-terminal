@@ -324,7 +324,7 @@ export default function AIArenaPageV6() {
 
         {/* 1b. Header Stat Strip — v6.2 (4 unique stats: F&G, Confluence, AI Verdict, Pipeline) */}
         <div className="mt-4">
-          <HeaderStatStrip data={latestReport} />
+          <HeaderStatStrip data={report} />
         </div>
         {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
