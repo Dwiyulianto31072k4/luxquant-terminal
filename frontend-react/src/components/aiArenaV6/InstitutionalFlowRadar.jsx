@@ -83,10 +83,10 @@ const FlowHistoryBars = ({ history }) => {
   return (
     <div className="flex flex-col gap-2">
       {/* Bar row — fixed height, bars sit at bottom, label below */}
-      <div className="flex items-end justify-between gap-1.5" style={{ height: 64 }}>
+      <div className="flex items-end justify-between gap-1.5" style={{ height: 120 }}>
         {data.map((d, i) => {
           const isPositive = d.total >= 0;
-          const heightPx = Math.max((Math.abs(d.pct) / 100) * 64, 3); // bar fills 0-64px, min 3px so even zero shows
+          const heightPx = Math.max((Math.abs(d.pct) / 100) * 120, 4); // bar fills 0-120px, min 4px so even zero shows
           return (
             <div
               key={`${d.date}-bar-${i}`}
