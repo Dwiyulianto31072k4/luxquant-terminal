@@ -88,25 +88,13 @@ function PageHeader({ report, onRefresh, refreshing }) {
     ? Math.round((Date.now() - lastUpdate.getTime()) / 60000)
     : null;
 
-  const cost = report?.cost_usd;
 
   return (
     <header className="mb-6 pb-4 border-b border-white/5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-[10px] font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(245, 196, 81, 0.2), rgba(245, 196, 81, 0.05))",
-                color: "#f5c451",
-                border: "1px solid rgba(245, 196, 81, 0.3)",
-              }}
-            >
-              v6.1
-            </span>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+<span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
               BTC compass
             </span>
           </div>
@@ -139,15 +127,7 @@ function PageHeader({ report, onRefresh, refreshing }) {
               </div>
             </div>
           )}
-          {cost != null && (
-            <div className="text-right">
-              <div className="text-white/40 uppercase tracking-wider text-[10px]">
-                Cost
-              </div>
-              <div className="text-white/70">${Number(cost).toFixed(4)}</div>
-            </div>
-          )}
-          <button
+<button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
