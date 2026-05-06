@@ -273,7 +273,7 @@ export default function AIArenaPageV6() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
           <LoadingState />
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function AIArenaPageV6() {
   if (error && !report) {
     return (
       <div className="min-h-screen bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
           <ErrorState error={error} onRetry={() => loadAll(false)} />
         </div>
       </div>
@@ -306,13 +306,13 @@ export default function AIArenaPageV6() {
 
   return (
     <div
-      className="min-h-screen bg-[#0a0a0a] text-white"
+      className="min-h-screen text-white"
       style={{
         fontFamily:
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
         <PageHeader
           report={report}
           onRefresh={() => loadAll(true)}
@@ -323,9 +323,7 @@ export default function AIArenaPageV6() {
         <VerdictHero report={report} btcPrice={report?.btc_price} />
 
         {/* 1b. Header Stat Strip — v6.2 (4 unique stats: F&G, Confluence, AI Verdict, Pipeline) */}
-        <div className="mt-4">
-          <HeaderStatStrip data={report} />
-        </div>
+        <HeaderStatStrip data={report} />
         {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
 
@@ -336,9 +334,7 @@ export default function AIArenaPageV6() {
         <TripleScreen tripleScreen={tripleScreen} />
 
         {/* 4b. Institutional Flow Radar — v6.2 (NEW) */}
-        <div className="mt-6">
-          <InstitutionalFlowRadar />
-        </div>
+        <InstitutionalFlowRadar />
         {/* 5. Zones to Watch — NEW Batch 2 Turn 1 */}
         <ZonesToWatch
           zones={zonesToWatch}
@@ -352,9 +348,7 @@ export default function AIArenaPageV6() {
         />
 
         {/* 6b. Macro Pulse — v6.2 (NEW) */}
-        <div className="mt-6">
-          <MacroPulse />
-        </div>
+        <MacroPulse />
         {/* 7. AI Reasoning Walkthrough */}
         <AIReasoningWalkthrough
           reasoningChain={reasoningChain}
