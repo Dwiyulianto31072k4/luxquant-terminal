@@ -71,12 +71,16 @@ async def lifespan(app: FastAPI):
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
         # ═══════════════════════════════════════════
-        try:
-            start_ai_arena_worker()
-        except Exception as e:
-            print(f'>>> AI Arena worker FAILED: {e}')
-            import traceback
-            traceback.print_exc()
+        # DEPRECATED 2026-05-06: v4 in-process worker replaced by
+        # luxquant-arena-v6.timer (systemd, runs every 6h).
+        # Frontend /ai-arena now renders v6. Legacy v4 still accessible at /ai-arena/legacy.
+        # To rollback: uncomment start_ai_arena_worker() below + restart backend.
+        # try:
+        #     start_ai_arena_worker()
+        # except Exception as e:
+        #     print(f'>>> AI Arena worker FAILED: {e}')
+        #     import traceback
+        #     traceback.print_exc()
         # asyncio.create_task(run_ai_report_pipeline())
         # ═══════════════════════════════════════════
         

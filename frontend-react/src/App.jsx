@@ -88,8 +88,8 @@ const PageLoader = () => (
 // ════════════════════════════════════════
 // ACCESS CONTROL
 // ════════════════════════════════════════
-const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/ai-arena/v6","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain","/autotrade","/portfolio"];
-const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/ai-arena/v6","/orderbook","/calendar","/whale","/onchain","/autotrade","/portfolio"];
+const LOGIN_REQUIRED = ["/signals","/analytics","/bitcoin","/markets","/watchlist","/tips","/admin","/ai-arena","/ai-arena/v6","/ai-arena/legacy","/referral","/orderbook","/calendar","/whale","/notifications","/journal","/onchain","/autotrade","/portfolio"];
+const PREMIUM_REQUIRED = ["/signals","/bitcoin","/markets","/watchlist","/tips","/ai-arena","/ai-arena/v6","/ai-arena/legacy","/orderbook","/calendar","/whale","/onchain","/autotrade","/portfolio"];
 
 // ════════════════════════════════════════
 // ROUTE GUARDS
@@ -478,8 +478,10 @@ function App() {
           <Route path="/signals" element={<RequireAuth><AppShell><PremiumGate><SignalsPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/autotrade" element={<RequireAuth><AppShell><PremiumGate><AutoTradePage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/portfolio" element={<RequireAuth><AppShell><PremiumGate><PortfolioPage /></PremiumGate></AppShell></RequireAuth>} />
-          <Route path="/ai-arena" element={<RequireAuth><AppShell><PremiumGate><AIArenaPage /></PremiumGate></AppShell></RequireAuth>} />
-          <Route path="/ai-arena/v6" element={<RequireAuth><AppShell><PremiumGate><AIArenaPageV6 /></PremiumGate></AppShell></RequireAuth>} />
+          {/* /ai-arena now renders v6 directly. Legacy v4 still accessible at /ai-arena/legacy for rollback. */}
+          <Route path="/ai-arena" element={<RequireAuth><AppShell><PremiumGate><AIArenaPageV6 /></PremiumGate></AppShell></RequireAuth>} />
+          <Route path="/ai-arena/v6" element={<Navigate to="/ai-arena" replace />} />
+          <Route path="/ai-arena/legacy" element={<RequireAuth><AppShell><PremiumGate><AIArenaPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/bitcoin" element={<RequireAuth><AppShell><PremiumGate><BitcoinPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/markets" element={<RequireAuth><AppShell><PremiumGate><MarketsPage /></PremiumGate></AppShell></RequireAuth>} />
           <Route path="/watchlist" element={<RequireAuth><AppShell><PremiumGate><WatchlistPage /></PremiumGate></AppShell></RequireAuth>} />
