@@ -58,10 +58,10 @@ function HorizonStatCard({ horizon, stats }) {
   let color = "#94a3b8"; // gray when no data
   let tier = "—";
   if (hitRate !== null && total >= 3) {
-    if (hitRate >= 65) {
+    if (hitRate >= 0.65) {
       color = "#22c55e";
       tier = "STRONG";
-    } else if (hitRate >= 50) {
+    } else if (hitRate >= 0.50) {
       color = "#f5c451";
       tier = "OK";
     } else {
@@ -100,7 +100,7 @@ function HorizonStatCard({ horizon, stats }) {
             color: hitRate !== null ? color : "rgba(255,255,255,0.3)",
           }}
         >
-          {hitRate !== null ? Number(hitRate).toFixed(0) : "—"}
+          {hitRate !== null ? (Number(hitRate) * 100).toFixed(0) : "—"}
         </span>
         <span className="text-base text-white/40 font-mono">%</span>
         <span className="text-xs text-white/40 font-mono ml-1">hit</span>
