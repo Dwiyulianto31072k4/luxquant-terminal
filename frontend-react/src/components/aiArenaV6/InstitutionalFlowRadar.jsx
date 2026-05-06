@@ -80,29 +80,59 @@ const FlowHistoryBars = ({ history }) => {
     return <div className="text-text-muted text-xs">No flow history available</div>;
   }
 
+  // Bidirectional bar chart — zero line in middle, positive grows up, negative grows down
+  const HALF = 60;          // px each side of zero line
+  const MIN_BAR = 3;        // px minimum so even zero-ish values show
+
   return (
-    <div className="flex flex-col gap-2">
-      {/* Bar row — fixed height, bars sit at bottom, label below */}
-      <div className="flex items-end justify-between gap-1.5" style={{ height: 120 }}>
+    <div className="flex flex-col">
+      {/* Chart area: positive bars sit on zero line growing up, negative growing down */}
+      <div className="flex justify-between gap-1.5 relative" style={{ height: HALF * 2 }}>
+        {/* Zero baseline */}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            top: HALF,
+            height: 1,
+            background: "rgba(255, 255, 255, 0.15)",
+            zIndex: 1,
+          }}
+        />
         {data.map((d, i) => {
           const isPositive = d.total >= 0;
-          const heightPx = Math.max((Math.abs(d.pct) / 100) * 120, 4); // bar fills 0-120px, min 4px so even zero shows
+          const barHeight = Math.max((Math.abs(d.pct) / 100) * HALF, MIN_BAR);
           return (
             <div
               key={`${d.date}-bar-${i}`}
-              className={`flex-1 min-w-0 rounded-sm transition-all ${
-                isPositive
-                  ? "bg-gradient-to-t from-green-600/70 to-green-400/90"
-                  : "bg-gradient-to-t from-red-600/70 to-red-400/90"
-              }`}
-              style={{ height: `${heightPx}px` }}
-              title={`${d.date}: ${fmtMoney(d.total)}`}
-            />
+              className="flex-1 min-w-0 flex flex-col items-stretch relative z-10"
+              style={{ height: HALF * 2 }}
+            >
+              {/* Top half: positive bar anchored to bottom of top half (= zero line) */}
+              <div className="flex-1 flex items-end" style={{ height: HALF }}>
+                {isPositive && (
+                  <div
+                    className="w-full rounded-t-sm bg-gradient-to-t from-green-600/70 to-green-400/90 transition-all"
+                    style={{ height: `${barHeight}px` }}
+                    title={`${d.date}: ${fmtMoney(d.total)}`}
+                  />
+                )}
+              </div>
+              {/* Bottom half: negative bar anchored to top of bottom half (= zero line) */}
+              <div className="flex-1 flex items-start" style={{ height: HALF }}>
+                {!isPositive && (
+                  <div
+                    className="w-full rounded-b-sm bg-gradient-to-b from-red-600/70 to-red-400/90 transition-all"
+                    style={{ height: `${barHeight}px` }}
+                    title={`${d.date}: ${fmtMoney(d.total)}`}
+                  />
+                )}
+              </div>
+            </div>
           );
         })}
       </div>
-      {/* Label row — same flex layout to align with bars above */}
-      <div className="flex items-start justify-between gap-1.5">
+      {/* Label row */}
+      <div className="flex justify-between gap-1.5 mt-2">
         {data.map((d, i) => (
           <span
             key={`${d.date}-label-${i}`}
