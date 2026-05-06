@@ -508,14 +508,14 @@ const HeroCard = ({ item, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-2xl overflow-hidden border border-white/5 hover:border-gold-primary/30 transition-all duration-500 h-full min-h-[360px] flex flex-col"
+      className="group relative cursor-pointer rounded-2xl overflow-hidden border border-white/5 hover:border-gold-primary/30 transition-all duration-500 flex flex-col"
       style={{
         background: "linear-gradient(180deg, rgba(20,16,28,0.6), rgba(12,10,16,0.4))",
         boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
       }}
     >
-      {/* Image area */}
-      <div className="relative flex-1 overflow-hidden">
+      {/* Image area — cinematic aspect, no crop on portrait images */}
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
         {imgSrc ? (
           <img
             src={imgSrc}
@@ -528,12 +528,12 @@ const HeroCard = ({ item, onSelect }) => {
         ) : (
           <ImagePlaceholder domain={item.domain} size="lg" />
         )}
-        {/* Strong gradient overlay for text legibility */}
+        {/* Top gradient for badge legibility only */}
         <div
-          className="absolute inset-0"
+          className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.95) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)",
           }}
         />
         {/* Top corner badges */}
@@ -550,8 +550,14 @@ const HeroCard = ({ item, onSelect }) => {
             ★ Featured
           </span>
         </div>
-        {/* Bottom content */}
-        <div className="absolute inset-x-0 bottom-0 p-6 z-10">
+        {/* Bottom content — stronger backdrop for legibility */}
+        <div
+          className="absolute inset-x-0 bottom-0 p-6 z-10"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.92) 100%)",
+          }}
+        >
           <h2
             className="text-white text-xl sm:text-2xl lg:text-3xl leading-tight line-clamp-3 mb-3 group-hover:text-gold-primary transition-colors duration-300"
             style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, letterSpacing: "-0.02em" }}
@@ -585,7 +591,7 @@ const FeaturedCard = ({ item, onSelect }) => {
       onClick={() => onSelect(item)}
       className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.03] transition-all duration-300 flex flex-col h-full"
     >
-      <div className="relative h-32 overflow-hidden flex-shrink-0">
+      <div className="relative w-full overflow-hidden flex-shrink-0" style={{ aspectRatio: "16 / 10" }}>
         {imgSrc ? (
           <img
             src={imgSrc}
@@ -635,7 +641,10 @@ const RegularCard = ({ item, onSelect, dense = false }) => {
       onClick={() => onSelect(item)}
       className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.035] transition-all duration-300 flex flex-col h-full"
     >
-      <div className={`relative overflow-hidden flex-shrink-0 ${dense ? "h-28" : "h-36"}`}>
+      <div
+        className="relative w-full overflow-hidden flex-shrink-0"
+        style={{ aspectRatio: dense ? "4 / 3" : "4 / 3" }}
+      >
         {imgSrc ? (
           <img
             src={imgSrc}
