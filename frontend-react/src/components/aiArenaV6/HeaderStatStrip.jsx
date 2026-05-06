@@ -1,38 +1,34 @@
 // frontend-react/src/components/aiArenaV6/HeaderStatStrip.jsx
 //
-// Header Stat Strip — Quick-scan dashboard row
+// Header Stat Strip v2 — 4 unique stats (additive, no duplicates with VerdictHero)
 // =================================================================
-// Adopted from AI Arena v4 — single-glance metrics aligned with verdict timestamp.
+// Adopted from AI Arena v4, redesigned to be ADDITIVE.
+// No provider names exposed (LuxQuant brand only).
+// No internal cost metrics surfaced (kept private).
 //
 // Sits between VerdictHero and CycleCompass.
-// Data source: `report` prop (verdict-time snapshot, NOT live).
-// Reads opportunistically — gracefully renders "—" when fields are absent.
+// Reads exact paths from `data` prop (full v6/latest response).
+// Each cell gracefully hides when its data is null.
 //
-// Fields displayed:
-//   1. BTC Price      ← report.btc_price (top-level fallback)
-//   2. Fear & Greed   ← report.bg_snapshot_summary['fear-greed-index'] OR report.feargreed
-//   3. RSI 4H         ← report.confluence.layers.smart_money OR technicals
-//   4. Cascade Risk   ← report.liquidation_levels.cascade_risk
-//   5. Sources        ← report.sources_count OR derived
-//   6. Generated      ← generated_in_seconds (top-level)
+// Fields displayed (all sourced from inspection of actual response):
+//   1. Fear & Greed       ← data.report.bg_snapshot_summary['fear-greed'].value
+//   2. Confluence         ← data.report.confluence (strength + counts)
+//   3. AI Verdict         ← data.critique_decision (top-level)
+//   4. Pipeline           ← data.generated_in_seconds (top-level)
 //
-// Defensive: every stat hidden if its source is null/missing.
+// Why these 4 (not BTC Price/Cycle Phase/Cycle Score):
+//   Those are already shown in VerdictHero's built-in stat row below the
+//   horizon cards. Showing them again here would be redundant.
+//   These 4 add NEW information about the verdict's confidence + quality.
 
 // ── Helpers ───────────────────────────────────────────
-const fmtPrice = (n) => {
-  if (n == null || isNaN(n)) return "—";
-  return `$${n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-};
-
 const fmtSec = (s) => {
   if (s == null || isNaN(s)) return "—";
-  if (s < 60) return `${Math.round(s)}s`;
+  if (s < 60) return `${s.toFixed(1)}s`;
   return `${(s / 60).toFixed(1)}m`;
 };
 
+// ── Fear & Greed ──────────────────────────────────────
 const fgColor = (v) => {
   if (v == null) return "text-text-muted";
   if (v <= 24) return "text-red-400";
@@ -51,58 +47,54 @@ const fgLabel = (v) => {
   return "Extreme Greed";
 };
 
-const rsiColor = (v) => {
-  if (v == null) return "text-text-muted";
-  if (v >= 70) return "text-red-400";
-  if (v >= 60) return "text-amber-300";
-  if (v >= 40) return "text-text-muted";
-  if (v >= 30) return "text-blue-300";
-  return "text-blue-400";
+// ── Confluence strength ──────────────────────────────
+const confluenceColor = (strength) => {
+  const s = (strength || "").toUpperCase();
+  if (s === "STRONG") return "text-green-400";
+  if (s === "MODERATE") return "text-amber-300";
+  if (s === "WEAK") return "text-orange-400";
+  if (s === "MIXED") return "text-text-muted";
+  return "text-white";
 };
 
-const rsiLabel = (v) => {
-  if (v == null) return "—";
-  if (v >= 70) return "Overbought";
-  if (v >= 60) return "Strong";
-  if (v >= 40) return "Neutral";
-  if (v >= 30) return "Weak";
-  return "Oversold";
-};
-
-const cascadeStyle = (level) => {
-  const l = (level || "").toLowerCase();
-  if (l === "high")
-    return { color: "text-red-400", label: "HIGH", bar: "bg-red-500" };
-  if (l === "medium" || l === "med")
-    return { color: "text-amber-300", label: "MEDIUM", bar: "bg-amber-500" };
-  if (l === "low")
-    return { color: "text-green-400", label: "LOW", bar: "bg-green-500" };
-  return { color: "text-text-muted", label: "—", bar: "bg-white/10" };
-};
-
-// Walk an object tree and look for a value matching a key list (case-insensitive)
-const deepFind = (obj, keys, depth = 0) => {
-  if (!obj || depth > 6) return null;
-  if (typeof obj !== "object") return null;
-  for (const k of Object.keys(obj)) {
-    const kl = k.toLowerCase();
-    for (const target of keys) {
-      if (kl === target.toLowerCase() || kl.includes(target.toLowerCase())) {
-        const v = obj[k];
-        if (v != null && (typeof v !== "object" || (Array.isArray(v) && v.length))) {
-          return v;
-        }
-      }
-    }
+// ── Critique decision ────────────────────────────────
+const critiqueColor = (decision) => {
+  switch (decision) {
+    case "approved":
+      return "text-green-400";
+    case "approved_with_caveat":
+      return "text-amber-300";
+    case "needs_revision":
+      return "text-red-400";
+    default:
+      return "text-text-muted";
   }
-  for (const k of Object.keys(obj)) {
-    const v = obj[k];
-    if (v && typeof v === "object") {
-      const found = deepFind(v, keys, depth + 1);
-      if (found != null) return found;
-    }
+};
+
+const critiqueLabel = (decision) => {
+  switch (decision) {
+    case "approved":
+      return "Approved ✓";
+    case "approved_with_caveat":
+      return "Caveat ⚠";
+    case "needs_revision":
+      return "Revise ⟳";
+    default:
+      return "—";
   }
-  return null;
+};
+
+const critiqueSubLabel = (decision) => {
+  switch (decision) {
+    case "approved":
+      return "no caveats";
+    case "approved_with_caveat":
+      return "with caveat";
+    case "needs_revision":
+      return "needs revision";
+    default:
+      return "—";
+  }
 };
 
 // ── Stat Cell ────────────────────────────────────────
@@ -127,106 +119,61 @@ const StatCell = ({ label, value, sublabel, valueClass = "text-white", mono = tr
 );
 
 // ── Main ─────────────────────────────────────────────
-export default function HeaderStatStrip({ report, btcPrice, generatedInSeconds }) {
-  if (!report && btcPrice == null && generatedInSeconds == null) return null;
+export default function HeaderStatStrip({ data }) {
+  if (!data) return null;
 
-  // 1. BTC price — from prop or report
-  const btcPx = btcPrice ?? report?.btc_price ?? deepFind(report, ["btc_price"]);
-
-  // 2. Fear & Greed — search common locations
-  const fg =
-    deepFind(report, ["fear_greed_value", "fear-greed-value", "fear_greed", "feargreed"]) ??
-    null;
-  const fgVal =
-    typeof fg === "object" && fg != null
-      ? fg.value ?? fg.current ?? fg.score
-      : fg;
-  const fgNum = fgVal != null ? Number(fgVal) : null;
-
-  // 3. RSI 4H — from technicals or layer briefs
-  const rsi =
-    deepFind(report, ["rsi_4h", "rsi4h"]) ??
-    deepFind(report?.confluence, ["rsi_4h", "rsi4h"]) ??
-    null;
-  const rsiNum =
-    typeof rsi === "object" && rsi != null ? rsi.value ?? rsi.current : rsi;
-  const rsiVal = rsiNum != null ? Number(rsiNum) : null;
-
-  // 4. Cascade risk
-  const cascade =
-    deepFind(report, ["cascade_risk"]) ??
-    deepFind(report?.liquidation_levels, ["cascade_risk"]) ??
-    null;
-  const cascadeVal = typeof cascade === "string" ? cascade : cascade?.level;
-  const cascadeInfo = cascadeStyle(cascadeVal);
-
-  // 5. Sources count
-  const sources =
-    deepFind(report, ["sources_count", "source_count", "n_sources"]) ??
-    (Array.isArray(deepFind(report, ["sources"]))
-      ? deepFind(report, ["sources"]).length
-      : null);
-
-  // 6. Generated time
-  const genSec =
-    generatedInSeconds ?? deepFind(report, ["generated_in_seconds"]) ?? null;
-
-  // Cells: filter out fully-missing
   const cells = [];
 
-  if (btcPx != null) {
-    cells.push({
-      key: "btc",
-      label: "BTC Price",
-      value: fmtPrice(btcPx),
-      valueClass: "text-white",
-    });
-  }
-
-  if (fgNum != null) {
+  // 1. Fear & Greed — bg_snapshot_summary['fear-greed'].value
+  const fgRaw = data?.report?.bg_snapshot_summary?.["fear-greed"];
+  const fgVal = fgRaw?.value;
+  const fgNum = fgVal != null ? Number(fgVal) : null;
+  if (fgNum != null && !isNaN(fgNum)) {
     cells.push({
       key: "fg",
       label: "Fear & Greed",
-      value: fgNum.toString(),
+      value: Math.round(fgNum).toString(),
       sublabel: fgLabel(fgNum),
       valueClass: fgColor(fgNum),
     });
   }
 
-  if (rsiVal != null) {
+  // 2. Confluence — strength + counts
+  const conf = data?.report?.confluence;
+  if (conf) {
+    const bull = conf.bullish_count ?? 0;
+    const bear = conf.bearish_count ?? 0;
+    const neut = conf.neutral_count ?? 0;
+    const strength = conf.strength || "—";
     cells.push({
-      key: "rsi",
-      label: "RSI (4H)",
-      value: rsiVal.toFixed(1),
-      sublabel: rsiLabel(rsiVal),
-      valueClass: rsiColor(rsiVal),
-    });
-  }
-
-  if (cascadeVal) {
-    cells.push({
-      key: "cascade",
-      label: "Cascade Risk",
-      value: cascadeInfo.label,
-      valueClass: cascadeInfo.color,
+      key: "conf",
+      label: "Confluence",
+      value: strength,
+      sublabel: `${bull}↑ ${bear}↓ ${neut}→`,
+      valueClass: confluenceColor(strength),
       mono: false,
     });
   }
 
-  if (sources != null) {
+  // 3. AI Verdict (Critique decision)
+  const decision = data?.critique_decision;
+  if (decision) {
     cells.push({
-      key: "sources",
-      label: "Sources",
-      value: String(sources),
-      sublabel: "data feeds",
-      valueClass: "text-white/90",
+      key: "critique",
+      label: "AI Verdict",
+      value: critiqueLabel(decision),
+      sublabel: critiqueSubLabel(decision),
+      valueClass: critiqueColor(decision),
+      mono: false,
     });
   }
 
-  if (genSec != null) {
+  // 4. Pipeline runtime
+  const genSec = data?.generated_in_seconds;
+  if (genSec != null && !isNaN(genSec)) {
     cells.push({
       key: "gen",
-      label: "Generated",
+      label: "Pipeline",
       value: fmtSec(genSec),
       sublabel: "AI runtime",
       valueClass: "text-gold-primary",
@@ -240,7 +187,7 @@ export default function HeaderStatStrip({ report, btcPrice, generatedInSeconds }
       <div
         className="grid gap-x-4 gap-y-3"
         style={{
-          gridTemplateColumns: `repeat(${Math.min(cells.length, 6)}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${Math.min(cells.length, 4)}, minmax(0, 1fr))`,
         }}
       >
         {cells.map((c) => (

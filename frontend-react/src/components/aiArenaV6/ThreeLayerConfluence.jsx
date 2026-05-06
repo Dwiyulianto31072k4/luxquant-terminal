@@ -296,7 +296,7 @@ export default function ThreeLayerConfluence({ layerBriefs, overallSetup }) {
 
       {/* Footer note */}
       <p className="mt-3 text-[11px] text-white/30 font-mono">
-        Compressed by GPT-4o-mini from 23 raw indicators
+        Compressed by LuxQuant AI from 23 raw indicators
       </p>
     </section>
   );

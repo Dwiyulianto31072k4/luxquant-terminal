@@ -113,7 +113,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
 
       {/* Footer note */}
       <p className="mt-3 text-[11px] text-white/30 font-mono">
-        Diff produced by DeepSeek R1 comparing previous and current verdicts
+        Diff produced by LuxQuant AI comparing previous and current verdicts
       </p>
     </section>
   );

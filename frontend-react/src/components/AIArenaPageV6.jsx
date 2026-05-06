@@ -322,13 +322,9 @@ export default function AIArenaPageV6() {
         {/* 1. Verdict Hero */}
         <VerdictHero report={report} btcPrice={report?.btc_price} />
 
-        {/* 1b. Header Stat Strip — v6.2 (NEW) */}
+        {/* 1b. Header Stat Strip — v6.2 (4 unique stats: F&G, Confluence, AI Verdict, Pipeline) */}
         <div className="mt-4">
-          <HeaderStatStrip
-            report={report}
-            btcPrice={report?.btc_price}
-            generatedInSeconds={report?.generated_in_seconds}
-          />
+          <HeaderStatStrip data={latestReport} />
         </div>
         {/* 2. Cycle Compass */}
         <CycleCompass report={report} />
@@ -380,8 +376,8 @@ export default function AIArenaPageV6() {
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-white/5 text-center">
           <p className="text-[11px] font-mono text-white/30 leading-relaxed">
-            LuxQuant AI Arena v6 · Multi-stage pipeline (GPT-4o-mini →
-            DeepSeek R1 → GPT-4o) · Auto-refreshed every 6 hours · Not
+            LuxQuant AI Arena v6 · Multi-stage AI pipeline · Auto-refreshed
+            every 6 hours · Not
             financial advice
           </p>
         </footer>
