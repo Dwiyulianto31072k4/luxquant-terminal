@@ -1,10 +1,12 @@
 """
-LuxQuant Coin Metadata Worker v2
+LuxQuant Coin Metadata Worker v3
 =================================
-v2 changes vs v1:
-- MANUAL_OVERRIDES enriched with summary, use_cases, key_features, risk_notes
-- CoinGecko fetch extracts description, generates summary
-- update_coin() handles 4 new detail columns
+v3 changes vs v2:
+- Sleep increased to 12s (free tier safe)
+- Retry logic on HTTP 429 with exponential backoff (up to 3 retries)
+- Progress logging every 10 coins ("Processed N/Total ...")
+- Resume-safe (skips already categorized coins)
+- Optional COINGECKO_API_KEY support (auto-detects demo vs pro header)
 
 Place at:
     /root/luxquant-terminal/backend/app/services/coin_metadata_worker.py
@@ -33,7 +35,18 @@ DATABASE_URL = os.getenv(
 )
 COINGECKO_API_BASE = "https://api.coingecko.com/api/v3"
 COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY", "")
-COINGECKO_RATE_LIMIT_SLEEP = 6.5
+COINGECKO_KEY_TYPE = os.getenv("COINGECKO_KEY_TYPE", "demo")  # "demo" or "pro"
+
+# Adaptive sleep: 12s if no key (free tier), 2s if key set
+COINGECKO_RATE_LIMIT_SLEEP = float(os.getenv(
+    "COINGECKO_SLEEP",
+    "2.0" if COINGECKO_API_KEY else "12.0"
+))
+
+# Retry config
+MAX_RETRIES = 3
+RETRY_BACKOFF_BASE = 30.0  # seconds, multiplied by 2^attempt
+
 BATCH_LIMIT = int(os.getenv("COIN_META_BATCH", "20"))
 LISTEN_CHANNEL = "new_pair_to_categorize"
 STALE_THRESHOLD_DAYS = 30
@@ -425,19 +438,55 @@ MANUAL_OVERRIDES = {
 }
 
 
+# ============================================================
+# HTTP CLIENT (with key auto-detect)
+# ============================================================
+
 def get_http_client() -> httpx.Client:
     headers = {"accept": "application/json"}
     if COINGECKO_API_KEY:
-        headers["x-cg-pro-api-key"] = COINGECKO_API_KEY
+        if COINGECKO_KEY_TYPE == "pro":
+            headers["x-cg-pro-api-key"] = COINGECKO_API_KEY
+        else:
+            headers["x-cg-demo-api-key"] = COINGECKO_API_KEY
+        logger.info(f"Using CoinGecko {COINGECKO_KEY_TYPE} API key")
+    else:
+        logger.info("No CoinGecko API key — using free public tier")
     return httpx.Client(timeout=15.0, headers=headers)
 
 
+# ============================================================
+# COINGECKO FETCHING (with retry on 429)
+# ============================================================
+
+def _request_with_retry(client: httpx.Client, url: str, params: dict = None) -> Optional[httpx.Response]:
+    """GET with retry on 429 (rate limit). Returns None if all retries exhausted."""
+    for attempt in range(MAX_RETRIES):
+        try:
+            r = client.get(url, params=params)
+            if r.status_code == 200:
+                return r
+            elif r.status_code == 429:
+                # Rate limited — exponential backoff
+                wait = RETRY_BACKOFF_BASE * (2 ** attempt)
+                logger.warning(f"HTTP 429 (rate limit) — backoff {wait:.0f}s (attempt {attempt+1}/{MAX_RETRIES})")
+                time.sleep(wait)
+                continue
+            else:
+                logger.warning(f"HTTP {r.status_code} for {url}")
+                return None
+        except Exception as e:
+            logger.error(f"Request error: {e}")
+            time.sleep(5)
+    logger.error(f"All {MAX_RETRIES} retries exhausted for {url}")
+    return None
+
+
 def coingecko_search(symbol: str, client: httpx.Client) -> Optional[str]:
+    r = _request_with_retry(client, f"{COINGECKO_API_BASE}/search", {"query": symbol})
+    if not r:
+        return None
     try:
-        r = client.get(f"{COINGECKO_API_BASE}/search", params={"query": symbol})
-        if r.status_code != 200:
-            logger.warning(f"CoinGecko search {symbol}: HTTP {r.status_code}")
-            return None
         coins = r.json().get("coins", [])
         if not coins:
             return None
@@ -446,21 +495,20 @@ def coingecko_search(symbol: str, client: httpx.Client) -> Optional[str]:
                 return c.get("id")
         return coins[0].get("id")
     except Exception as e:
-        logger.error(f"CoinGecko search failed for {symbol}: {e}")
+        logger.error(f"Search parse error for {symbol}: {e}")
         return None
 
 
 def coingecko_fetch_coin(coingecko_id: str, client: httpx.Client) -> Optional[Dict[str, Any]]:
+    params = {"localization": "false", "tickers": "false", "market_data": "true",
+              "community_data": "false", "developer_data": "false"}
+    r = _request_with_retry(client, f"{COINGECKO_API_BASE}/coins/{coingecko_id}", params)
+    if not r:
+        return None
     try:
-        params = {"localization": "false", "tickers": "false", "market_data": "true",
-                  "community_data": "false", "developer_data": "false"}
-        r = client.get(f"{COINGECKO_API_BASE}/coins/{coingecko_id}", params=params)
-        if r.status_code != 200:
-            logger.warning(f"CoinGecko fetch {coingecko_id}: HTTP {r.status_code}")
-            return None
         return r.json()
     except Exception as e:
-        logger.error(f"CoinGecko fetch failed for {coingecko_id}: {e}")
+        logger.error(f"Fetch parse error for {coingecko_id}: {e}")
         return None
 
 
@@ -499,6 +547,23 @@ def categorize_from_coingecko(coin_data: Dict[str, Any]) -> Dict[str, Any]:
         "default_features": ["Categorization pending manual review"],
         "default_risk": "This token has not been auto-categorized. Review project fundamentals carefully.",
     }
+
+
+# ============================================================
+# DATABASE OPERATIONS
+# ============================================================
+
+def get_pending_count() -> int:
+    """How many coins still pending."""
+    with engine.begin() as conn:
+        return conn.execute(text("""
+            SELECT COUNT(*) FROM coins WHERE review_status = 'pending'
+        """)).scalar()
+
+
+def get_total_count() -> int:
+    with engine.begin() as conn:
+        return conn.execute(text("SELECT COUNT(*) FROM coins")).scalar()
 
 
 def get_pending_coins(limit: int = BATCH_LIMIT) -> List[Dict[str, Any]]:
@@ -601,7 +666,7 @@ def process_coin(coin: Dict[str, Any], client: httpx.Client) -> bool:
 
     override = _resolve_alias(base_symbol)
     if override:
-        logger.info(f"[{pair}] Applying manual override")
+        logger.info(f"[{pair}] Manual override (instant)")
         updates = {
             "token_type": override["token_type"],
             "sector": override["sector"],
@@ -618,10 +683,10 @@ def process_coin(coin: Dict[str, Any], client: httpx.Client) -> bool:
         }
         return update_coin(pair, updates)
 
-    logger.info(f"[{pair}] Searching CoinGecko for {base_symbol}")
+    logger.info(f"[{pair}] CoinGecko search: {base_symbol}")
     coingecko_id = coin.get("coingecko_id") or coingecko_search(base_symbol, client)
     if not coingecko_id:
-        logger.warning(f"[{pair}] No CoinGecko match found")
+        logger.warning(f"[{pair}] No CoinGecko match")
         mark_fetch_error(pair, "no_coingecko_match")
         return False
 
@@ -663,32 +728,65 @@ def process_coin(coin: Dict[str, Any], client: httpx.Client) -> bool:
     if success:
         logger.info(
             f"[{pair}] OK — type={cat['token_type']} sector={cat['sector']} "
-            f"utility={cat['has_utility']} rank={updates['market_cap_rank']}"
+            f"util={cat['has_utility']} rank={updates['market_cap_rank']}"
         )
     return success
 
 
+# ============================================================
+# MODES
+# ============================================================
+
 def run_pending_batch():
-    logger.info("=" * 60)
-    logger.info("Mode: PENDING BATCH")
-    logger.info("=" * 60)
+    logger.info("=" * 70)
+    logger.info("MODE: PENDING BATCH")
+    logger.info(f"Sleep between requests: {COINGECKO_RATE_LIMIT_SLEEP}s")
+    total_pending = get_pending_count()
+    total_all = get_total_count()
+    logger.info(f"Pending: {total_pending}  |  Total in coins table: {total_all}")
+    logger.info("=" * 70)
+
+    if total_pending == 0:
+        logger.info("Nothing to do — all coins already categorized.")
+        return
+
     client = get_http_client()
-    total_processed = total_success = total_failed = 0
+    processed = success = failed = 0
+    start_time = time.time()
+
     while True:
         coins = get_pending_coins(BATCH_LIMIT)
         if not coins:
             logger.info("No more pending coins.")
             break
-        logger.info(f"Fetched batch of {len(coins)} pending coins")
+
         for coin in coins:
             ok = process_coin(coin, client)
-            total_processed += 1
+            processed += 1
             if ok:
-                total_success += 1
+                success += 1
             else:
-                total_failed += 1
+                failed += 1
+
+            # Progress log every 10 coins
+            if processed % 10 == 0:
+                elapsed = time.time() - start_time
+                rate = processed / elapsed if elapsed > 0 else 0
+                remaining_est = (total_pending - processed) / rate if rate > 0 else 0
+                logger.info(
+                    f"PROGRESS — {processed}/{total_pending} done "
+                    f"({success} ok, {failed} failed) | "
+                    f"rate={rate:.2f}/s | "
+                    f"eta={remaining_est/60:.1f}min"
+                )
+
     client.close()
-    logger.info(f"DONE — processed={total_processed} success={total_success} failed={total_failed}")
+    elapsed_total = time.time() - start_time
+    logger.info("=" * 70)
+    logger.info(f"BATCH COMPLETE")
+    logger.info(f"Processed: {processed}  |  Success: {success}  |  Failed: {failed}")
+    logger.info(f"Total time: {elapsed_total/60:.1f} minutes")
+    logger.info("=" * 70)
 
 
 def run_single_pair(pair: str):
@@ -742,7 +840,7 @@ def run_refresh_stale():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LuxQuant Coin Metadata Worker v2")
+    parser = argparse.ArgumentParser(description="LuxQuant Coin Metadata Worker v3")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--pending", action="store_true")
     group.add_argument("--pair", type=str)
