@@ -68,139 +68,180 @@ const TopPerformers = () => {
 
   const cleanPair = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') + 'USDT' : '???';
   const coinSymbol = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') : '???';
-  const maxGain = data?.top_gainers?.length > 0 ? Math.max(...data.top_gainers.map(i => i.gain_pct || 0)) : 1;
 
   if (loading && !data) {
     return (
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-3xl font-bold text-white">{t('top.title')}</h2>
+      <div className="mb-12">
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+            <span className="font-mono text-[10px] text-gold-primary tracking-[0.2em] font-semibold uppercase">PERFORMANCE OUTPUT</span>
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">{t('top.title')}</h2>
         </div>
-        <div className="bg-bg-card rounded-xl p-5 border border-gold-primary/10 animate-pulse">
-          <div className="space-y-1">{[...Array(10)].map((_, j) => <div key={j} className="h-12 bg-bg-primary/30 rounded-lg" />)}</div>
+        <div className="bg-bg-card/40 rounded-xl p-5 border border-gold-primary/10 animate-pulse">
+          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-11 bg-bg-primary/30 rounded-lg" />)}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mb-6 relative">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h2 className="font-display text-3xl font-bold text-white">{t('top.title')}</h2>
+    <div className="mb-12 relative">
+      {/* === SECTION HEADER (System Architecture aesthetic) === */}
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+            <span className="font-mono text-[10px] text-gold-primary tracking-[0.2em] font-semibold uppercase">PERFORMANCE OUTPUT</span>
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight">
+            {t('top.title')}
+          </h2>
         </div>
+
+        {/* Filter pills — refined */}
         <div className="flex items-center gap-1.5">
           {presets.map(({ key, label }) => (
-            <button key={key} onClick={() => handlePresetClick(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${activeFilter === key ? 'bg-gold-primary text-bg-primary shadow-lg shadow-gold-primary/20' : 'bg-bg-card/60 text-text-muted border border-gold-primary/10 hover:border-gold-primary/30 hover:text-white'}`}>
+            <button
+              key={key}
+              onClick={() => handlePresetClick(key)}
+              className={`px-3 py-1.5 rounded-md font-mono text-[10px] uppercase tracking-[0.15em] font-semibold transition-all duration-200 ${
+                activeFilter === key
+                  ? 'bg-gold-primary text-bg-primary shadow-md shadow-gold-primary/20'
+                  : 'bg-bg-card/40 text-text-muted/70 border border-gold-primary/15 hover:border-gold-primary/30 hover:text-white'
+              }`}
+            >
               {label}
             </button>
           ))}
         </div>
       </div>
 
+      {/* === CUSTOM DATE PICKER === */}
       {showCustom && (
-        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-bg-card/40 rounded-xl border border-gold-primary/10">
-          <span className="text-text-muted text-xs">{t('top.from')}</span>
+        <div className="flex flex-wrap items-center gap-3 mb-5 p-3 bg-bg-card/40 rounded-xl border border-gold-primary/15">
+          <span className="font-mono text-[10px] text-text-muted/70 uppercase tracking-wider">{t('top.from')}</span>
           <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50 [color-scheme:dark]" />
-          <span className="text-text-muted text-xs">{t('top.to')}</span>
+          <span className="font-mono text-[10px] text-text-muted/70 uppercase tracking-wider">{t('top.to')}</span>
           <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50 [color-scheme:dark]" />
           <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="px-4 py-1.5 bg-gold-primary text-bg-primary rounded-lg text-xs font-bold hover:bg-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{t('top.apply')}</button>
         </div>
       )}
 
-      {data?.period && <div className="mb-4"><span className="inline-block px-4 py-2 bg-gold-primary/10 border border-gold-primary/20 rounded-lg text-gold-primary text-xs font-semibold">📅 {data.period}</span></div>}
+      {/* === PERIOD BADGE === */}
+      {data?.period && (
+        <div className="mb-5">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-bg-card/40 border border-gold-primary/15 rounded-md">
+            <span className="w-1 h-1 rounded-full bg-gold-primary" />
+            <span className="font-mono text-[10px] text-gold-primary/80 tracking-wider uppercase">PERIOD: {data.period}</span>
+          </span>
+        </div>
+      )}
 
+      {/* === STATS CARDS === */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <StatCard label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')} />
           <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} valueClass="text-gold-primary" />
-          <StatCard label={t('top.avg_gain')} value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`} sub={t('top.gain_sub')} valueClass="text-green-400" borderClass="border-green-500/10" />
+          <StatCard label={t('top.avg_gain')} value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`} sub={t('top.gain_sub')} valueClass="text-green-400" />
           <StatCard label={t('top.avg_dur')} value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'} sub={t('top.dur_sub')} />
         </div>
       )}
 
       {data && (data.total_tp_hits || data.total_tp4) === 0 && !loading && (
-        <div className="text-center py-8 mb-4 bg-bg-card/40 rounded-xl border border-gold-primary/10"><p className="text-text-muted text-sm">{t('top.no_tp')}</p></div>
+        <div className="text-center py-8 mb-5 bg-bg-card/40 rounded-xl border border-gold-primary/10">
+          <p className="text-text-muted text-sm">{t('top.no_tp')}</p>
+        </div>
       )}
 
+      {/* === TOP GAINERS LIST === */}
       {data && data.top_gainers?.length > 0 && (
-        <div className={`${loading ? 'opacity-50' : ''}`}>
-          <div className="bg-bg-card rounded-xl border border-gold-primary/10 overflow-hidden">
+        <div className={loading ? 'opacity-50' : ''}>
+          <div className="bg-[#0d0708] rounded-xl border border-gold-primary/15 overflow-hidden">
+            {/* List header */}
             <div className="px-5 py-3 border-b border-gold-primary/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>🏆</span>
-                <h3 className="text-gold-primary font-semibold text-sm uppercase tracking-wider">{t('top.top_gainers')}</h3>
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-primary" />
+                <h3 className="font-mono text-[11px] text-gold-primary tracking-[0.2em] font-semibold uppercase">
+                  {t('top.top_gainers')}
+                </h3>
               </div>
-              <div className="hidden sm:flex items-center gap-8 text-[10px] text-text-muted/50 uppercase tracking-wider font-medium pr-1">
+              <div className="hidden sm:flex items-center gap-8 font-mono text-[9px] text-text-muted/40 uppercase tracking-[0.2em]">
                 <span className="w-24 text-right">{t('top.first_entry')}</span>
                 <span className="w-20 text-right">Duration</span>
                 <span className="w-28 text-right">Gain</span>
               </div>
             </div>
 
-            <div className="divide-y divide-white/[0.03]">
+            {/* Rows — UNIFORM size, no condong gede */}
+            <div className="divide-y divide-gold-primary/[0.05]">
               {data.top_gainers.map((item, idx) => {
-                const barW = maxGain > 0 ? Math.max((item.gain_pct / maxGain) * 100, 3) : 3;
-                const isFirst = idx === 0;
+                const rank = idx + 1;
                 const isPodium = idx < 3;
-                const rankBg = idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-black shadow-md shadow-amber-500/20'
-                  : idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-sm shadow-gray-400/15'
-                  : idx === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-white shadow-sm shadow-amber-700/15'
-                  : 'bg-bg-primary/60 border border-gold-primary/15 text-gold-primary/60';
-                const rankSize = isPodium ? 'w-8 h-8 text-sm' : 'w-6 h-6 text-[11px]';
-                const logoSize = isFirst ? 38 : isPodium ? 34 : 28;
-                const nameSize = isFirst ? 'text-lg font-bold' : isPodium ? 'text-base font-bold' : 'text-sm font-semibold';
-                const gainSize = isFirst ? 'text-2xl sm:text-3xl' : isPodium ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg';
-                const rowPad = isFirst ? 'px-4 sm:px-5 py-4' : isPodium ? 'px-4 sm:px-5 py-3' : 'px-4 sm:px-5 py-2.5';
-                const rowBg = isFirst ? 'bg-amber-500/[0.03]' : '';
-                const barColor = isFirst ? 'bg-gradient-to-r from-amber-500/30 to-green-500/10'
-                  : isPodium ? 'bg-gradient-to-r from-green-500/10 to-transparent'
-                  : 'bg-green-500/[0.04]';
 
                 return (
-                  <div key={idx} onClick={() => handleItemClick(item)}
-                    className={`relative flex items-center gap-3 sm:gap-4 ${rowPad} ${rowBg} hover:bg-white/[0.03] transition-colors cursor-pointer group overflow-hidden`}>
-                    <div className={`absolute inset-y-0 left-0 ${barColor} pointer-events-none`} style={{ width: `${barW}%` }} />
-                    <div className={`${rankSize} rounded-lg flex items-center justify-center flex-shrink-0 relative z-10 font-bold ${rankBg}`}>
-                      {idx + 1}
+                  <div
+                    key={idx}
+                    onClick={() => handleItemClick(item)}
+                    className="relative flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                  >
+                    {/* Rank — top 3 gold, rest muted, all SAME size */}
+                    <div
+                      className={`w-7 flex-shrink-0 font-mono text-sm tracking-wider text-right tabular-nums ${
+                        isPodium ? 'text-gold-primary font-semibold' : 'text-text-muted/40'
+                      }`}
+                    >
+                      {String(rank).padStart(2, '0')}
                     </div>
-                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 relative z-10">
-                      <CoinLogo pair={cleanPair(item.pair)} size={logoSize} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-white ${nameSize} group-hover:text-gold-primary transition-colors`}>{coinSymbol(item.pair)}</span>
-                          {item.signal_count > 1 && (
-                            <span className={`px-1.5 py-0.5 bg-gold-primary/15 text-gold-primary font-bold rounded-full leading-none border border-gold-primary/20 ${isPodium ? 'text-[9px]' : 'text-[8px]'}`}>
-                              {t('top.called')} {item.signal_count}x
-                            </span>
-                          )}
-                        </div>
-                        <p className="sm:hidden text-text-muted/50 text-[10px] mt-0.5 font-mono truncate">
-                          ${formatPrice(item.entry)} · {item.duration_display}
-                        </p>
+
+                    {/* Coin */}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <CoinLogo pair={cleanPair(item.pair)} size={28} />
+                      <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-semibold text-sm tracking-wide group-hover:text-gold-primary transition-colors">
+                          {coinSymbol(item.pair)}
+                        </span>
+                        {item.signal_count > 1 && (
+                          <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none">
+                            ×{item.signal_count}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="hidden sm:block w-24 text-right flex-shrink-0 relative z-10">
-                      <span className="text-text-muted/60 font-mono text-xs">${formatPrice(item.entry)}</span>
+
+                    {/* Mobile: combined entry + duration */}
+                    <div className="sm:hidden text-right flex-shrink-0">
+                      <div className="font-mono text-[10px] text-text-muted/60">${formatPrice(item.entry)}</div>
+                      <div className="font-mono text-[9px] text-text-muted/40 mt-0.5">{item.duration_display}</div>
                     </div>
-                    <div className="hidden sm:block w-20 text-right flex-shrink-0 relative z-10">
-                      <span className="text-text-muted/40 text-xs">{item.duration_display}</span>
+
+                    {/* Desktop: entry */}
+                    <div className="hidden sm:block w-24 text-right font-mono text-xs text-text-muted/70 flex-shrink-0 tabular-nums">
+                      ${formatPrice(item.entry)}
                     </div>
-                    <div className="w-28 sm:w-32 text-right flex-shrink-0 relative z-10">
-                      <span className={`text-green-400 font-mono font-black ${gainSize} tracking-tight`}>
+
+                    {/* Desktop: duration */}
+                    <div className="hidden sm:block w-20 text-right font-mono text-[11px] text-text-muted/50 flex-shrink-0">
+                      {item.duration_display}
+                    </div>
+
+                    {/* Gain — same size for all rows */}
+                    <div className="w-28 sm:w-32 text-right flex-shrink-0">
+                      <div className="font-mono font-bold tracking-tight text-green-400 text-base sm:text-lg tabular-nums">
                         +{formatGainDisplay(item.gain_pct)}
-                      </span>
+                      </div>
                       {item.tp_price > 0 && (
-                        <p className="text-green-500/30 text-[9px] font-mono mt-0.5">peak ${formatPrice(item.tp_price)}</p>
+                        <div className="font-mono text-[9px] text-text-muted/40 mt-0.5 tabular-nums">
+                          peak ${formatPrice(item.tp_price)}
+                        </div>
                       )}
                     </div>
                   </div>
                 );
               })}
             </div>
+
             {(!data.top_gainers || data.top_gainers.length === 0) && (
               <div className="p-6"><p className="text-text-muted text-sm text-center">{t('top.no_data')}</p></div>
             )}
@@ -208,6 +249,7 @@ const TopPerformers = () => {
         </div>
       )}
 
+      {/* === MODAL (unchanged logic) === */}
       {modalOpen && modalItem && (
         <SignalDetailModal item={modalItem} detail={signalDetail} loading={detailLoading}
           signalIds={modalSignalIds} currentIndex={modalIndex} onNavigate={goToSignal}
@@ -217,11 +259,14 @@ const TopPerformers = () => {
   );
 };
 
-const StatCard = ({ label, value, sub, valueClass = 'text-white', borderClass = 'border-gold-primary/10' }) => (
-  <div className={`bg-bg-card/60 rounded-xl p-4 border ${borderClass}`}>
-    <p className="text-text-muted text-[10px] uppercase tracking-wider font-medium">{label}</p>
-    <p className={`font-mono text-2xl font-bold mt-1 ${valueClass}`}>{value}</p>
-    <p className="text-text-muted text-[10px] mt-0.5">{sub}</p>
+// === STAT CARD — System Architecture aesthetic ===
+const StatCard = ({ label, value, sub, valueClass = 'text-white' }) => (
+  <div className="bg-[#0d0708] rounded-xl px-4 py-3.5 border border-gold-primary/15 hover:border-gold-primary/25 transition-colors">
+    <p className="font-mono text-[10px] text-text-muted/60 uppercase tracking-[0.15em] font-medium mb-1.5">
+      {label}
+    </p>
+    <p className={`font-mono text-2xl font-bold tabular-nums ${valueClass}`}>{value}</p>
+    <p className="text-text-muted/50 text-[10px] mt-1 tracking-wide">{sub}</p>
   </div>
 );
 
@@ -247,12 +292,9 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
       try {
         const entryVal = Number(detail.entry);
         const symbol = pair.replace('USDT', '') + 'USDT';
-
-        // Start from signal created_at — consistent with worker logic
         const startTime = new Date(created).getTime();
         if (isNaN(startTime)) return;
 
-        // Find peak above entry (all signals are LONG)
         const extractPeak = (candles, gH) => {
           if (!Array.isArray(candles) || candles.length === 0) return null;
           let best = entryVal;
@@ -269,19 +311,10 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
 
         let peak = null;
 
-        // 1. Binance Futures
         try { const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH); } } catch {}
-
-        // 2. Binance Spot
         if (!peak) { try { const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&startTime=${startTime}&limit=1500`); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length > 0) peak = extractPeak(d, bH); } } catch {} }
-
-        // 3. Bybit Linear
         if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
-
-        // 4. Bybit Linear (global)
         if (!peak) { try { const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
-
-        // 5. Bybit Spot
         if (!peak) { try { const r = await fetch(`https://api.bybit.id/v5/market/kline?category=spot&symbol=${symbol}&interval=60&start=${startTime}&end=${Date.now()}&limit=1000`); if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map(k => ({ high: k[2] })); peak = extractPeak(list, yH); } } catch {} }
 
         if (peak) setPeakPrice(peak);
