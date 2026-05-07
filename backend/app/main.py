@@ -15,6 +15,7 @@ from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
+from app.api.routes import coins
 
 
 # Import Router
@@ -38,6 +39,8 @@ from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
 from app.api.routes.onchain_endpoint import router as onchain_router
+
+
 
 # Import AI Worker
 from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
@@ -141,6 +144,8 @@ app.include_router(journal_router, prefix="/api/v1")
 app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["market-pulse"])
 app.include_router(crypto_news_feed_router, prefix="/api/v1/crypto-news-feed", tags=["crypto-news-feed"])
 app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
+app.include_router(coins.router, prefix="/api/v1/coins", tags=["coins"])
+
 
 # ═══════════════════════════════════════════
 # Serve chart screenshots as static files
