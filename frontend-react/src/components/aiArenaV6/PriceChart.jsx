@@ -428,8 +428,9 @@ export default function PriceChart() {
           </button>
         ))}
 
-        <span className="w-px h-4 bg-white/10 mx-1" />
-
+        {/* Liq Levels button hidden — worker v6 doesn't generate liquidation_levels yet.
+            Re-enable after Coinglass/Binance integration. */}
+        {/* <span className="w-px h-4 bg-white/10 mx-1" />
         <button
           onClick={() => setShowLiq((v) => !v)}
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold transition-all border ${
@@ -438,16 +439,8 @@ export default function PriceChart() {
           title="Liquidation clusters & key levels"
         >
           ◆ Liq Levels
-        </button>
-        <button
-          onClick={() => setShowZones((v) => !v)}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold transition-all border ${
-            showZones ? "bg-gold-primary/10 border-gold-primary/25 text-gold-primary" : "bg-transparent border-white/5 text-text-muted hover:text-white"
-          }`}
-          title="Demand / Fair / Supply bands"
-        >
-          ▭ Zones
-        </button>
+        </button> */}
+        <span className="w-px h-4 bg-white/10 mx-1" />
       </div>
 
       <div className="relative">
