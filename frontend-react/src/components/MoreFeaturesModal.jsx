@@ -1,20 +1,25 @@
 // src/components/MoreFeaturesModal.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 /**
- * MoreFeaturesModal v3 — "Quantitative Pipeline" aesthetic
+ * MoreFeaturesModal v4 — Refined.
  *
- * Design language inspired by LuxQuant landing page:
- *   • Serif headline with dual-tone gold gradient
- *   • Mono breadcrumb readout (// PATH → PATH → ...)
- *   • Hex addressing per tile (0x01..0x12)
- *   • L-shaped corner brackets on tiles
- *   • Technical status pills ([ PRO ], ● ACTIVE)
- *   • Radial ambient glow (warm red/gold) bleeding from corners
- *   • Section dividers (// PRIMARY, // SECONDARY, // UTILITY)
- *   • Terminal-style footer readout
+ * Design principles (from Linear / Stripe / Cursor research):
+ *   • Modal sits *brighter* than overlay → creates depth via tonal hierarchy
+ *   • Edge lighting on container for dimensionality
+ *   • Cursor-following spotlight per tile (premium feel without 3D tilt gimmick)
+ *   • Animated gradient border that glows toward cursor
+ *   • Hover state must be DISTINCT (not just opacity shift)
+ *   • No fake technical chrome — content speaks
+ *
+ * Removed from v3:
+ *   - Hex addresses (noise, no user value)
+ *   - Fake breadcrumb (lied about context)
+ *   - "FEATURE INDEX" pill (redundant with title)
+ *   - Section dividers exposing internal jargon
+ *   - "MODULES LOADED" terminal LARP
  */
 const MoreFeaturesModal = ({
   isOpen,
@@ -27,6 +32,7 @@ const MoreFeaturesModal = ({
 }) => {
   const { t } = useTranslation();
   const [isClosing, setIsClosing] = useState(false);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
@@ -37,6 +43,25 @@ const MoreFeaturesModal = ({
     const handleEsc = (e) => { if (e.key === 'Escape') handleClose(); };
     if (isOpen) window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
+
+  // ─── Cursor-following spotlight (single mousemove for whole grid) ───
+  useEffect(() => {
+    if (!isOpen) return;
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const handleMove = (e) => {
+      const tiles = grid.querySelectorAll('.mfm-tile');
+      tiles.forEach((tile) => {
+        const r = tile.getBoundingClientRect();
+        tile.style.setProperty('--mx', `${e.clientX - r.left}px`);
+        tile.style.setProperty('--my', `${e.clientY - r.top}px`);
+      });
+    };
+
+    grid.addEventListener('mousemove', handleMove);
+    return () => grid.removeEventListener('mousemove', handleMove);
   }, [isOpen]);
 
   const handleClose = () => {
@@ -54,7 +79,7 @@ const MoreFeaturesModal = ({
 
   if (!isOpen) return null;
 
-  // ─── Custom-crafted SVG icons (carried over from v2) ──────────
+  // ─── Custom-crafted SVG icons ───────────────────────────────
   const Icon = {
     home: (
       <g>
@@ -244,72 +269,30 @@ const MoreFeaturesModal = ({
     ),
   };
 
-  // ─── Feature catalog grouped by tier ───────────────────────────
-  const groups = [
-    {
-      key: 'primary',
-      label: 'PRIMARY',
-      sub: 'core_modules',
-      items: [
-        { path: '/home',      icon: Icon.home,      label: t('mfm.home'),      desc: t('mfm.home_desc') },
-        { path: '/signals',   icon: Icon.signals,   label: t('mfm.signals'),   desc: t('mfm.signals_desc') },
-        { path: '/autotrade', icon: Icon.autotrade, label: t('mfm.autotrade'), desc: t('mfm.autotrade_desc') },
-        { path: '/ai-arena',  icon: Icon.aiArena,   label: t('mfm.ai_arena'),  desc: t('mfm.ai_arena_desc') },
-        { path: '/bitcoin',   icon: Icon.bitcoin,   label: t('mfm.bitcoin'),   desc: t('mfm.bitcoin_desc') },
-      ],
-    },
-    {
-      key: 'secondary',
-      label: 'SECONDARY',
-      sub: 'analytics_layer',
-      items: [
-        { path: '/market-pulse', icon: Icon.pulse,    label: t('mfm.pulse'),    desc: t('mfm.pulse_desc') },
-        { path: '/crypto-news',  icon: Icon.news,     label: t('mfm.news'),     desc: t('mfm.news_desc') },
-        { path: '/onchain',      icon: Icon.onchain,  label: t('mfm.onchain'),  desc: t('mfm.onchain_desc') },
-        { path: '/markets',      icon: Icon.markets,  label: t('mfm.markets'),  desc: t('mfm.markets_desc') },
-        { path: '/journal',      icon: Icon.journal,  label: t('mfm.journal'),  desc: t('mfm.journal_desc') },
-      ],
-    },
-    {
-      key: 'utility',
-      label: 'UTILITY',
-      sub: 'support_modules',
-      items: [
-        { path: '/portfolio', icon: Icon.portfolio, label: t('mfm.portfolio'), desc: t('mfm.portfolio_desc') },
-        { path: '/analytics', icon: Icon.analytics, label: t('mfm.analytics'), desc: t('mfm.analytics_desc') },
-        { path: '/orderbook', icon: Icon.orderbook, label: t('mfm.orderbook'), desc: t('mfm.orderbook_desc') },
-        { path: '/calendar',  icon: Icon.calendar,  label: t('mfm.calendar'),  desc: t('mfm.calendar_desc') },
-        { path: '/whale',     icon: Icon.whale,     label: t('mfm.whale'),     desc: t('mfm.whale_desc') },
-        { path: '/tips',      icon: Icon.tips,      label: t('mfm.tips'),      desc: t('mfm.tips_desc') },
-        { path: '/watchlist', icon: Icon.watchlist, label: t('mfm.watchlist'), desc: t('mfm.watchlist_desc') },
-        { path: '/referral',  icon: Icon.referral,  label: t('mfm.referral'),  desc: t('mfm.referral_desc') },
-      ],
-    },
+  // ─── Flat feature list (no internal jargon exposed to user) ───
+  const features = [
+    { path: '/home',         icon: Icon.home,       label: t('mfm.home'),       desc: t('mfm.home_desc') },
+    { path: '/signals',      icon: Icon.signals,    label: t('mfm.signals'),    desc: t('mfm.signals_desc') },
+    { path: '/autotrade',    icon: Icon.autotrade,  label: t('mfm.autotrade'),  desc: t('mfm.autotrade_desc') },
+    { path: '/ai-arena',     icon: Icon.aiArena,    label: t('mfm.ai_arena'),   desc: t('mfm.ai_arena_desc') },
+    { path: '/bitcoin',      icon: Icon.bitcoin,    label: t('mfm.bitcoin'),    desc: t('mfm.bitcoin_desc') },
+    { path: '/market-pulse', icon: Icon.pulse,      label: t('mfm.pulse'),      desc: t('mfm.pulse_desc') },
+    { path: '/crypto-news',  icon: Icon.news,       label: t('mfm.news'),       desc: t('mfm.news_desc') },
+    { path: '/onchain',      icon: Icon.onchain,    label: t('mfm.onchain'),    desc: t('mfm.onchain_desc') },
+    { path: '/markets',      icon: Icon.markets,    label: t('mfm.markets'),    desc: t('mfm.markets_desc') },
+    { path: '/journal',      icon: Icon.journal,    label: t('mfm.journal'),    desc: t('mfm.journal_desc') },
+    { path: '/portfolio',    icon: Icon.portfolio,  label: t('mfm.portfolio'),  desc: t('mfm.portfolio_desc') },
+    { path: '/analytics',    icon: Icon.analytics,  label: t('mfm.analytics'),  desc: t('mfm.analytics_desc') },
+    { path: '/orderbook',    icon: Icon.orderbook,  label: t('mfm.orderbook'),  desc: t('mfm.orderbook_desc') },
+    { path: '/calendar',     icon: Icon.calendar,   label: t('mfm.calendar'),   desc: t('mfm.calendar_desc') },
+    { path: '/whale',        icon: Icon.whale,      label: t('mfm.whale'),      desc: t('mfm.whale_desc') },
+    { path: '/tips',         icon: Icon.tips,       label: t('mfm.tips'),       desc: t('mfm.tips_desc') },
+    { path: '/watchlist',    icon: Icon.watchlist,  label: t('mfm.watchlist'),  desc: t('mfm.watchlist_desc') },
+    { path: '/referral',     icon: Icon.referral,   label: t('mfm.referral'),   desc: t('mfm.referral_desc') },
     ...(isAdmin ? [{
-      key: 'admin',
-      label: 'ADMIN',
-      sub: 'restricted_access',
-      items: [
-        { path: '/admin', icon: Icon.admin, label: t('mfm.admin'), desc: t('mfm.admin_desc') },
-      ],
+      path: '/admin', icon: Icon.admin, label: t('mfm.admin'), desc: t('mfm.admin_desc'), isAdmin: true,
     }] : []),
   ];
-
-  // Flat list with global hex addressing
-  let hexCounter = 0;
-  const flatItems = groups.flatMap(g =>
-    g.items.map(it => {
-      hexCounter += 1;
-      return { ...it, tier: g.key, hex: `0x${hexCounter.toString(16).toUpperCase().padStart(2, '0')}` };
-    })
-  );
-  const totalCount = flatItems.length;
-
-  // Build breadcrumb readout from primary tier paths
-  const breadcrumb = groups[0].items
-    .slice(0, 4)
-    .map(i => i.path.replace('/', '').replace('-', '_').toUpperCase())
-    .join('  →  ');
 
   const modalContent = (
     <div
@@ -326,459 +309,318 @@ const MoreFeaturesModal = ({
         .mfm-overlay-out { animation: mfmOverlayOut .22s ease forwards; }
         .mfm-overlay-out .mfm-card { animation: mfmCardOut .22s ease forwards; }
         @keyframes mfmOverlayIn {
-          to { background: rgba(0,0,0,.88); backdrop-filter: blur(10px); }
+          to { background: rgba(0,0,0,.85); backdrop-filter: blur(12px); }
         }
         @keyframes mfmOverlayOut {
-          from { background: rgba(0,0,0,.88); backdrop-filter: blur(10px); }
-          to   { background: rgba(0,0,0,0);   backdrop-filter: blur(0px); }
+          from { background: rgba(0,0,0,.85); backdrop-filter: blur(12px); }
+          to   { background: rgba(0,0,0,0); backdrop-filter: blur(0px); }
         }
 
-        /* ─── Card with warm radial ambient ─── */
+        /* ─── Card: brighter than overlay (Linear principle) + warm ambient ─── */
         .mfm-card {
-          animation: mfmCardIn .4s cubic-bezier(.16,1,.3,1) forwards;
+          animation: mfmCardIn .42s cubic-bezier(.16,1,.3,1) forwards;
           background:
-            radial-gradient(ellipse 80% 50% at 15% 0%, rgba(180,40,30,0.16), transparent 55%),
-            radial-gradient(ellipse 70% 60% at 90% 110%, rgba(212,168,83,0.10), transparent 55%),
-            radial-gradient(ellipse 100% 60% at 50% 50%, rgba(40,20,15,0.4), transparent 70%),
-            #0a0708;
+            radial-gradient(ellipse 60% 40% at 20% 0%, rgba(212,168,83,0.08), transparent 60%),
+            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(180,80,40,0.06), transparent 60%),
+            #131012;
+          box-shadow:
+            0 24px 80px -12px rgba(0,0,0,0.7),
+            0 0 0 1px rgba(212,168,83,0.06),
+            inset 0 1px 0 rgba(255,255,255,0.03);
         }
         @keyframes mfmCardIn {
-          from { opacity: 0; transform: scale(.97) translateY(14px); }
+          from { opacity: 0; transform: scale(.97) translateY(16px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes mfmCardOut {
           from { opacity: 1; transform: scale(1); }
-          to   { opacity: 0; transform: scale(.97) translateY(14px); }
+          to   { opacity: 0; transform: scale(.97) translateY(16px); }
+        }
+
+        /* ─── Edge lighting (subtle gold glow at top edge) ─── */
+        .mfm-edge-light {
+          position: absolute;
+          top: 0;
+          left: 10%;
+          right: 10%;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(245,208,136,0.6), transparent);
         }
 
         /* ─── Typography ─── */
         .mfm-serif {
           font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
-          font-feature-settings: 'liga' 1, 'kern' 1;
-          letter-spacing: -0.02em;
-        }
-        .mfm-mono {
-          font-family: 'JetBrains Mono', 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
-          font-feature-settings: 'liga' 0;
+          letter-spacing: -0.025em;
         }
         .mfm-gold-grad {
-          background: linear-gradient(135deg, #f5d088 0%, #d4a853 40%, #a87938 100%);
+          background: linear-gradient(135deg, #fde6a8 0%, #d4a853 50%, #a87938 100%);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
           color: transparent;
         }
 
-        /* ─── Pill (• SYSTEM ARCHITECTURE style) ─── */
-        .mfm-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 5px 12px;
-          border-radius: 999px;
-          border: 1px solid rgba(212,168,83,0.25);
-          background: rgba(212,168,83,0.04);
-          font-size: 10px;
-          letter-spacing: 0.18em;
-          color: #c89143;
-        }
-        .mfm-pill-dot {
-          width: 5px; height: 5px; border-radius: 999px;
-          background: #d4a853;
-          box-shadow: 0 0 8px rgba(212,168,83,0.7);
-        }
-
-        /* ─── Breadcrumb readout ─── */
-        .mfm-breadcrumb {
-          display: inline-block;
-          padding: 7px 16px;
-          border: 1px solid rgba(212,168,83,0.18);
-          background: rgba(20,12,8,0.5);
-          border-radius: 6px;
-          font-size: 11px;
-          color: rgba(245,208,136,0.65);
-          letter-spacing: 0.08em;
-        }
-        .mfm-breadcrumb .arrow { color: rgba(212,168,83,0.5); margin: 0 2px; }
-        .mfm-breadcrumb .slash { color: rgba(168,121,56,0.7); margin-right: 6px; }
-
-        /* ─── Section divider ─── */
-        .mfm-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 18px 0 14px;
-        }
-        .mfm-divider-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 10px;
-          letter-spacing: 0.22em;
-          color: rgba(212,168,83,0.7);
-          white-space: nowrap;
-        }
-        .mfm-divider-label .num {
-          color: rgba(168,121,56,0.55);
-        }
-        .mfm-divider-line {
-          flex: 1;
-          height: 1px;
-          background: linear-gradient(90deg, rgba(212,168,83,0.25), transparent);
-        }
-        .mfm-divider-count {
-          font-size: 10px;
-          letter-spacing: 0.15em;
-          color: rgba(168,121,56,0.55);
-          white-space: nowrap;
-        }
-
-        /* ─── Tile ─── */
+        /* ─── Tile base ─── */
         .mfm-tile {
+          --mx: 50%;
+          --my: 50%;
           position: relative;
-          padding: 14px 12px 12px;
-          border-radius: 12px;
-          border: 1px solid rgba(255,255,255,0.05);
-          background: linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.002));
-          transition: transform .28s cubic-bezier(.16,1,.3,1),
-                      border-color .25s ease,
-                      background .25s ease,
-                      box-shadow .25s ease;
+          padding: 18px 16px 16px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.018);
+          border: 1px solid rgba(255,255,255,0.06);
+          transition:
+            transform .35s cubic-bezier(.16,1,.3,1),
+            border-color .3s ease,
+            background .3s ease;
           overflow: hidden;
+          isolation: isolate;
         }
+
+        /* ─── Cursor-following spotlight (radial fill at mouse pos) ─── */
         .mfm-tile::before {
-          /* warm ambient inner glow */
           content: '';
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(212,168,83,0.0), transparent 60%);
-          transition: background .3s ease;
+          background: radial-gradient(
+            260px circle at var(--mx) var(--my),
+            rgba(245,208,136,0.10),
+            rgba(212,168,83,0.04) 40%,
+            transparent 70%
+          );
+          opacity: 0;
+          transition: opacity .35s ease;
           pointer-events: none;
-        }
-        .mfm-tile:hover {
-          transform: translateY(-3px);
-          border-color: rgba(212,168,83,0.3);
-          background: linear-gradient(180deg, rgba(212,168,83,0.05), rgba(212,168,83,0.01));
-          box-shadow:
-            0 10px 28px -10px rgba(212,168,83,0.28),
-            0 0 0 1px rgba(212,168,83,0.06),
-            inset 0 1px 0 rgba(255,255,255,0.04);
-        }
-        .mfm-tile:hover::before {
-          background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(212,168,83,0.18), transparent 60%);
-        }
-        .mfm-tile:hover .mfm-corner { opacity: 1; }
-        .mfm-tile:hover .mfm-icon-wrap { transform: scale(1.05); }
-        .mfm-tile:hover .mfm-hex { color: rgba(212,168,83,0.85); }
-
-        .mfm-tile.active {
-          border-color: rgba(212,168,83,0.5);
-          background: linear-gradient(180deg, rgba(212,168,83,0.07), rgba(212,168,83,0.015));
-          box-shadow:
-            0 0 0 1px rgba(212,168,83,0.25),
-            0 4px 18px -4px rgba(212,168,83,0.32),
-            inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-        .mfm-tile.active .mfm-corner { opacity: 1; }
-        .mfm-tile.active .mfm-hex { color: rgba(212,168,83,0.9); }
-
-        /* ─── L-shaped corner brackets ─── */
-        .mfm-corner {
-          position: absolute;
-          width: 10px;
-          height: 10px;
-          border-color: rgba(212,168,83,0.6);
-          opacity: 0.25;
-          transition: opacity .25s ease;
-          pointer-events: none;
-        }
-        .mfm-corner.tl { top: 6px; left: 6px;  border-top: 1px solid; border-left: 1px solid; }
-        .mfm-corner.tr { top: 6px; right: 6px; border-top: 1px solid; border-right: 1px solid; }
-        .mfm-corner.bl { bottom: 6px; left: 6px;  border-bottom: 1px solid; border-left: 1px solid; }
-        .mfm-corner.br { bottom: 6px; right: 6px; border-bottom: 1px solid; border-right: 1px solid; }
-
-        /* ─── Hex address ─── */
-        .mfm-hex {
-          font-size: 9px;
-          letter-spacing: 0.1em;
-          color: rgba(168,121,56,0.55);
-          transition: color .25s ease;
+          z-index: 0;
         }
 
-        /* ─── Icon container ─── */
-        .mfm-icon-wrap {
-          position: relative;
-          width: 46px;
-          height: 46px;
-          border-radius: 11px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 6px auto 12px;
-          transition: transform .3s cubic-bezier(.16,1,.3,1);
-        }
-        .mfm-icon-wrap::after {
+        /* ─── Animated gradient border (mask trick, follows cursor) ─── */
+        .mfm-tile::after {
           content: '';
           position: absolute;
           inset: 0;
           border-radius: inherit;
           padding: 1px;
+          background: radial-gradient(
+            220px circle at var(--mx) var(--my),
+            rgba(245,208,136,0.55),
+            rgba(212,168,83,0.15) 40%,
+            transparent 70%
+          );
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           -webkit-mask-composite: xor;
           mask-composite: exclude;
+          opacity: 0;
+          transition: opacity .35s ease;
           pointer-events: none;
-        }
-        .mfm-icon-wrap.t-primary {
-          background:
-            radial-gradient(circle at 30% 25%, rgba(253,230,168,0.18), transparent 65%),
-            rgba(212,168,83,0.10);
-          color: #f5d088;
-        }
-        .mfm-icon-wrap.t-primary::after {
-          background: linear-gradient(135deg, rgba(253,230,168,0.5), rgba(212,168,83,0.2), rgba(139,105,20,0.35));
-        }
-        .mfm-icon-wrap.t-secondary {
-          background:
-            radial-gradient(circle at 30% 25%, rgba(245,208,136,0.14), transparent 65%),
-            rgba(200,145,67,0.08);
-          color: #d4a853;
-        }
-        .mfm-icon-wrap.t-secondary::after {
-          background: linear-gradient(135deg, rgba(245,208,136,0.4), rgba(200,145,67,0.18), rgba(122,86,16,0.3));
-        }
-        .mfm-icon-wrap.t-utility {
-          background:
-            radial-gradient(circle at 30% 25%, rgba(232,184,122,0.12), transparent 65%),
-            rgba(168,121,56,0.07);
-          color: #c89143;
-        }
-        .mfm-icon-wrap.t-utility::after {
-          background: linear-gradient(135deg, rgba(232,184,122,0.35), rgba(168,121,56,0.15), rgba(94,61,9,0.25));
-        }
-        .mfm-icon-wrap.t-admin {
-          background:
-            radial-gradient(circle at 30% 25%, rgba(245,180,120,0.18), transparent 65%),
-            rgba(200,100,60,0.08);
-          color: #e8a878;
-        }
-        .mfm-icon-wrap.t-admin::after {
-          background: linear-gradient(135deg, rgba(245,180,120,0.45), rgba(200,100,60,0.18), rgba(120,50,20,0.3));
+          z-index: 1;
         }
 
-        /* ─── Status pills (technical) ─── */
-        .mfm-status {
-          position: absolute;
-          top: 6px;
-          right: 22px;
-          font-size: 8.5px;
-          letter-spacing: 0.12em;
-          padding: 2px 6px;
-          border-radius: 3px;
-          background: rgba(212,168,83,0.12);
-          color: #d4a853;
-          border: 1px solid rgba(212,168,83,0.28);
+        .mfm-tile:hover {
+          transform: translateY(-4px);
+          background: rgba(212,168,83,0.025);
+          border-color: rgba(212,168,83,0.18);
         }
-        .mfm-status-active {
-          position: absolute;
-          top: 6px;
-          right: 22px;
-          font-size: 8.5px;
-          letter-spacing: 0.14em;
-          color: #6ee7a8;
-          display: inline-flex;
+        .mfm-tile:hover::before { opacity: 1; }
+        .mfm-tile:hover::after  { opacity: 1; }
+        .mfm-tile:hover .mfm-icon-wrap {
+          transform: translateY(-2px) scale(1.06);
+        }
+        .mfm-tile:hover .mfm-icon-wrap::before { opacity: 1; }
+        .mfm-tile:hover .mfm-arrow {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        /* ─── Active state (distinct, not just opacity) ─── */
+        .mfm-tile.active {
+          background: rgba(212,168,83,0.05);
+          border-color: rgba(212,168,83,0.4);
+          box-shadow:
+            0 0 0 1px rgba(212,168,83,0.2),
+            0 8px 24px -8px rgba(212,168,83,0.25);
+        }
+        .mfm-tile.active::before { opacity: 1; }
+
+        /* Tile content above pseudo-elements */
+        .mfm-tile > * { position: relative; z-index: 2; }
+
+        /* ─── Icon container ─── */
+        .mfm-icon-wrap {
+          position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 11px;
+          display: flex;
           align-items: center;
-          gap: 4px;
+          justify-content: center;
+          margin-bottom: 14px;
+          background: linear-gradient(135deg, rgba(245,208,136,0.10), rgba(168,121,56,0.04));
+          border: 1px solid rgba(212,168,83,0.18);
+          color: #f5d088;
+          transition: transform .4s cubic-bezier(.16,1,.3,1);
         }
-        .mfm-status-active::before {
+        .mfm-icon-wrap::before {
           content: '';
-          width: 5px; height: 5px;
-          border-radius: 999px;
-          background: #6ee7a8;
-          box-shadow: 0 0 6px rgba(110,231,168,0.7);
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: radial-gradient(circle at 30% 25%, rgba(253,230,168,0.25), transparent 60%);
+          opacity: 0;
+          transition: opacity .35s ease;
         }
 
-        /* ─── Footer terminal readout ─── */
-        .mfm-footer-readout {
-          font-size: 10px;
-          letter-spacing: 0.15em;
-          color: rgba(168,121,56,0.7);
+        /* Admin variant — slightly warmer/red */
+        .mfm-icon-wrap.is-admin {
+          background: linear-gradient(135deg, rgba(245,160,100,0.12), rgba(180,70,40,0.04));
+          border-color: rgba(220,120,80,0.25);
+          color: #f5b088;
         }
-        .mfm-footer-readout .bracket { color: rgba(168,121,56,0.45); }
-        .mfm-footer-readout .num { color: #d4a853; }
 
-        .mfm-kbd {
-          display: inline-block;
-          padding: 2px 6px;
-          font-size: 9.5px;
-          letter-spacing: 0.08em;
-          border: 1px solid rgba(212,168,83,0.25);
+        /* ─── PRO badge ─── */
+        .mfm-pro {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          padding: 3px 7px;
           border-radius: 4px;
-          background: rgba(20,12,8,0.5);
+          background: linear-gradient(135deg, rgba(245,208,136,0.18), rgba(212,168,83,0.08));
+          color: #f5d088;
+          border: 1px solid rgba(212,168,83,0.3);
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        /* ─── Active dot ─── */
+        .mfm-active-dot {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #f5d088;
+          box-shadow: 0 0 10px rgba(245,208,136,0.7);
+        }
+
+        /* ─── Arrow indicator (slides in on hover) ─── */
+        .mfm-arrow {
+          position: absolute;
+          bottom: 14px;
+          right: 14px;
+          width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: rgba(245,208,136,0.7);
-          margin: 0 2px;
+          opacity: 0;
+          transform: translateX(-6px);
+          transition: opacity .3s ease, transform .35s cubic-bezier(.16,1,.3,1);
         }
 
         /* ─── Scrollbar ─── */
         .mfm-body::-webkit-scrollbar { width: 6px; }
         .mfm-body::-webkit-scrollbar-track { background: transparent; }
         .mfm-body::-webkit-scrollbar-thumb {
-          background: rgba(212,168,83,0.18);
+          background: rgba(212,168,83,0.15);
           border-radius: 3px;
         }
-        .mfm-body::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,0.32); }
+        .mfm-body::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,0.3); }
       `}</style>
 
       <div
-        className="mfm-card relative w-full max-w-6xl max-h-[90vh] rounded-2xl border border-white/[0.06] shadow-2xl shadow-black/90 overflow-hidden flex flex-col"
+        className="mfm-card relative w-full max-w-5xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top accent line — gold gradient */}
-        <div
-          className="absolute top-0 left-0 right-0 h-px z-10"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.5), rgba(245,208,136,0.7), rgba(212,168,83,0.5), transparent)' }}
-        />
+        {/* Edge lighting */}
+        <span className="mfm-edge-light" />
 
         {/* ────────── HEADER ────────── */}
-        <div className="relative px-6 sm:px-9 pt-7 pb-5 border-b border-white/[0.05] flex-shrink-0">
+        <div className="relative px-7 sm:px-9 pt-9 pb-6 flex-shrink-0">
           {/* Close button */}
           <button
             onClick={handleClose}
             aria-label="Close"
             className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/[0.06] transition-all"
-            style={{ border: '1px solid rgba(212,168,83,0.15)' }}
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
 
-          {/* Section pill */}
-          <div className="flex items-center mb-4">
-            <span className="mfm-pill mfm-mono">
-              <span className="mfm-pill-dot" />
-              <span>{t('mfm.section_label', { defaultValue: 'FEATURE INDEX' })}</span>
-            </span>
-          </div>
-
-          {/* Serif headline */}
-          <h2 className="mfm-serif text-white text-3xl sm:text-4xl lg:text-[44px] font-bold leading-[1.05] mb-3">
-            {t('mfm.title_lead', { defaultValue: 'More' })}{' '}
+          {/* Headline + subtitle */}
+          <h2 className="mfm-serif text-3xl sm:text-[40px] font-bold leading-[1.05] mb-2.5">
+            <span className="text-white">{t('mfm.title_lead', { defaultValue: 'More' })}</span>{' '}
             <span className="mfm-gold-grad italic">
               {t('mfm.title_accent', { defaultValue: 'Features' })}
             </span>
           </h2>
-
-          {/* Mono breadcrumb */}
-          <div className="mfm-breadcrumb mfm-mono mt-1">
-            <span className="slash">//</span>
-            {breadcrumb.split('  →  ').map((seg, i, arr) => (
-              <span key={i}>
-                {seg}
-                {i < arr.length - 1 && <span className="arrow">  →  </span>}
-              </span>
-            ))}
-            <span className="arrow">  →  </span>
-            <span style={{ color: 'rgba(168,121,56,0.6)' }}>...</span>
-          </div>
+          <p className="text-white/45 text-[13.5px] leading-relaxed max-w-md">
+            {t('mfm.subtitle', { defaultValue: 'Explore the complete LuxQuant toolkit.' })}
+          </p>
         </div>
 
         {/* ────────── BODY ────────── */}
-        <div className="mfm-body flex-1 overflow-y-auto px-6 sm:px-9 py-5">
-          {groups.map((group, gIdx) => {
-            const groupNumber = `0${gIdx + 1}`.slice(-2);
-            return (
-              <div key={group.key} className={gIdx > 0 ? 'mt-2' : ''}>
-                {/* Section divider */}
-                <div className="mfm-divider">
-                  <span className="mfm-divider-label mfm-mono">
-                    <span className="num">{groupNumber}</span>
-                    <span style={{ color: 'rgba(168,121,56,0.5)' }}>//</span>
-                    <span>{group.label}</span>
-                    <span style={{ color: 'rgba(168,121,56,0.4)', marginLeft: 4 }}>· {group.sub}</span>
+        <div
+          ref={gridRef}
+          className="mfm-body flex-1 overflow-y-auto px-7 sm:px-9 pb-7"
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+            {features.map((item) => {
+              const active = isActive(item.path);
+              const isPro = premiumPaths.includes(item.path) && !isPremium;
+
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleItemClick(item.path)}
+                  className={`mfm-tile group flex flex-col items-start text-left ${active ? 'active' : ''}`}
+                >
+                  {/* Top-right indicator */}
+                  {active ? (
+                    <span className="mfm-active-dot" />
+                  ) : isPro ? (
+                    <span className="mfm-pro">PRO</span>
+                  ) : null}
+
+                  {/* Icon */}
+                  <div className={`mfm-icon-wrap ${item.isAdmin ? 'is-admin' : ''}`}>
+                    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none">
+                      {item.icon}
+                    </svg>
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={`text-[13.5px] font-semibold leading-tight tracking-tight ${
+                      active ? 'text-[#f5d088]' : 'text-white'
+                    }`}
+                  >
+                    {item.label}
                   </span>
-                  <span className="mfm-divider-line" />
-                  <span className="mfm-divider-count mfm-mono">
-                    [ {group.items.length.toString().padStart(2, '0')} ]
+
+                  {/* Description */}
+                  {item.desc && (
+                    <span className="text-[11.5px] text-white/40 mt-1.5 leading-snug line-clamp-2">
+                      {item.desc}
+                    </span>
+                  )}
+
+                  {/* Arrow indicator on hover */}
+                  <span className="mfm-arrow">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
                   </span>
-                </div>
-
-                {/* Tile grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {group.items.map((item) => {
-                    const meta = flatItems.find(f => f.path === item.path);
-                    const active = isActive(item.path);
-                    const isPro = premiumPaths.includes(item.path) && !isPremium;
-
-                    return (
-                      <button
-                        key={item.path}
-                        onClick={() => handleItemClick(item.path)}
-                        className={`mfm-tile group flex flex-col items-center text-center ${active ? 'active' : ''}`}
-                      >
-                        {/* L-shaped corner brackets */}
-                        <span className="mfm-corner tl" />
-                        <span className="mfm-corner tr" />
-                        <span className="mfm-corner bl" />
-                        <span className="mfm-corner br" />
-
-                        {/* Hex address */}
-                        <div className="absolute top-2 left-2.5 mfm-hex mfm-mono">
-                          {meta?.hex}
-                        </div>
-
-                        {/* Status pill */}
-                        {active ? (
-                          <span className="mfm-status-active mfm-mono">ACTIVE</span>
-                        ) : isPro ? (
-                          <span className="mfm-status mfm-mono">PRO</span>
-                        ) : null}
-
-                        {/* Icon container */}
-                        <div className={`mfm-icon-wrap t-${group.key}`}>
-                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                            {item.icon}
-                          </svg>
-                        </div>
-
-                        {/* Label */}
-                        <span
-                          className={`text-[12.5px] sm:text-[13px] font-semibold leading-tight tracking-tight px-1 ${
-                            active ? 'text-[#f5d088]' : 'text-white'
-                          }`}
-                        >
-                          {item.label}
-                        </span>
-
-                        {/* Description */}
-                        {item.desc && (
-                          <span className="text-[10px] text-white/40 mt-1.5 leading-snug line-clamp-2 hidden sm:block px-1">
-                            {item.desc}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ────────── FOOTER ────────── */}
-        <div className="relative px-6 sm:px-9 py-3.5 border-t border-white/[0.05] flex items-center justify-between flex-shrink-0">
-          <span className="mfm-footer-readout mfm-mono">
-            <span className="bracket">[</span>{' '}
-            <span className="num">{totalCount.toString().padStart(2, '0')}</span>{' '}
-            MODULES LOADED{' '}
-            <span className="bracket">]</span>
-            <span style={{ color: 'rgba(110,231,168,0.7)', marginLeft: 12 }}>● SYNCED</span>
-          </span>
-          <span className="mfm-footer-readout mfm-mono hidden sm:flex items-center">
-            <span>PRESS</span>
-            <span className="mfm-kbd">ESC</span>
-            <span>TO CLOSE</span>
-          </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
