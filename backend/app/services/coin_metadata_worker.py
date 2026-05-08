@@ -1,5 +1,5 @@
 """
-LuxQuant Coin Metadata Worker v3.1
+LuxQuant Coin Metadata Worker v3.2
 ====================================
 v3.1 fixes:
 - CRITICAL FIX: ecosystem tags filtered out (X ecosystem, X chain)
@@ -702,21 +702,35 @@ def _request_with_retry(client: httpx.Client, url: str, params: dict = None) -> 
     return None
 
 
+def _strip_perpetual_prefix(symbol: str) -> str:
+    """Strip 1000/1000000 prefix used in perpetual contract pairs."""
+    for prefix in ("1000000", "1000"):
+        if symbol.startswith(prefix) and len(symbol) > len(prefix):
+            return symbol[len(prefix):]
+    return symbol
+
+
 def coingecko_search(symbol: str, client: httpx.Client) -> Optional[str]:
-    r = _request_with_retry(client, f"{COINGECKO_API_BASE}/search", {"query": symbol})
-    if not r:
-        return None
-    try:
-        coins = r.json().get("coins", [])
-        if not coins:
-            return None
-        for c in coins:
-            if c.get("symbol", "").upper() == symbol.upper():
-                return c.get("id")
-        return coins[0].get("id")
-    except Exception as e:
-        logger.error(f"Search parse error for {symbol}: {e}")
-        return None
+    candidates = [symbol]
+    stripped = _strip_perpetual_prefix(symbol)
+    if stripped != symbol:
+        candidates.append(stripped)
+
+    for query_symbol in candidates:
+        r = _request_with_retry(client, f"{COINGECKO_API_BASE}/search", {"query": query_symbol})
+        if not r:
+            continue
+        try:
+            coins = r.json().get("coins", [])
+            if not coins:
+                continue
+            for c in coins:
+                if c.get("symbol", "").upper() == query_symbol.upper():
+                    return c.get("id")
+            return coins[0].get("id")
+        except Exception as e:
+            logger.error(f"Search parse error for {query_symbol}: {e}")
+    return None
 
 
 def coingecko_fetch_coin(coingecko_id: str, client: httpx.Client) -> Optional[Dict[str, Any]]:
@@ -881,13 +895,35 @@ def update_coin(pair: str, updates: Dict[str, Any]) -> bool:
 
 
 def mark_fetch_error(pair: str, error_msg: str):
+    """v3.2 FIX: Now also sets review_status='fetch_failed' to prevent infinite loop."""
     try:
         with engine.begin() as conn:
             conn.execute(text("""
-                UPDATE coins SET fetch_error=:err, last_fetched_at=NOW() WHERE pair=:pair
+                UPDATE coins
+                SET fetch_error=:err,
+                    last_fetched_at=NOW(),
+                    review_status='fetch_failed',
+                    updated_at=NOW()
+                WHERE pair=:pair
             """), {"pair": pair, "err": error_msg[:500]})
     except Exception as e:
         logger.error(f"Failed to mark error for {pair}: {e}")
+
+
+def reset_failed_to_pending(pair: str):
+    """For --retry-failed mode."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE coins
+                SET review_status='pending',
+                    last_fetched_at=NULL,
+                    fetch_error=NULL,
+                    updated_at=NOW()
+                WHERE pair=:pair
+            """), {"pair": pair})
+    except Exception as e:
+        logger.error(f"Failed to reset {pair}: {e}")
 
 
 def _resolve_alias(base_symbol: str) -> Optional[Dict[str, Any]]:
@@ -989,6 +1025,9 @@ def run_pending_batch():
     processed = success = failed = 0
     start_time = time.time()
 
+    no_progress_count = 0
+    last_pending = total_pending
+
     while True:
         coins = get_pending_coins(BATCH_LIMIT)
         if not coins:
@@ -1006,13 +1045,25 @@ def run_pending_batch():
             if processed % 10 == 0:
                 elapsed = time.time() - start_time
                 rate = processed / elapsed if elapsed > 0 else 0
-                remaining_est = (total_pending - processed) / rate if rate > 0 else 0
+                current_pending = get_pending_count()
                 logger.info(
-                    f"PROGRESS — {processed}/{total_pending} done "
+                    f"PROGRESS — {processed} done "
                     f"({success} ok, {failed} failed) | "
-                    f"rate={rate:.2f}/s | "
-                    f"eta={remaining_est/60:.1f}min"
+                    f"pending_now={current_pending} | "
+                    f"rate={rate:.2f}/s"
                 )
+
+        # SAFETY NET: detect no-progress loop
+        current_pending = get_pending_count()
+        if current_pending >= last_pending:
+            no_progress_count += 1
+            logger.warning(f"No progress detected ({no_progress_count}/3) — pending={current_pending}")
+            if no_progress_count >= 3:
+                logger.error("STUCK — no progress for 3 batch iterations. Stopping batch.")
+                break
+        else:
+            no_progress_count = 0
+        last_pending = current_pending
 
     client.close()
     elapsed_total = time.time() - start_time
@@ -1073,13 +1124,34 @@ def run_refresh_stale():
     client.close()
 
 
+
+def run_retry_failed():
+    """Reset all fetch_failed coins to pending and reprocess."""
+    logger.info("=" * 70)
+    logger.info("MODE: RETRY FAILED COINS")
+    logger.info("=" * 70)
+
+    with engine.begin() as conn:
+        result = conn.execute(text("""
+            UPDATE coins
+            SET review_status='pending', last_fetched_at=NULL, fetch_error=NULL, updated_at=NOW()
+            WHERE review_status='fetch_failed'
+        """))
+        reset_count = result.rowcount
+
+    logger.info(f"Reset {reset_count} fetch_failed coins to pending")
+    logger.info("Now running pending batch...")
+    run_pending_batch()
+
+
 def main():
-    parser = argparse.ArgumentParser(description="LuxQuant Coin Metadata Worker v3.1")
+    parser = argparse.ArgumentParser(description="LuxQuant Coin Metadata Worker v3.2")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--pending", action="store_true")
-    group.add_argument("--pair", type=str)
-    group.add_argument("--listen", action="store_true")
-    group.add_argument("--refresh-stale", action="store_true")
+    group.add_argument("--pending", action="store_true", help="Process pending coins")
+    group.add_argument("--pair", type=str, help="Process single pair")
+    group.add_argument("--listen", action="store_true", help="Daemon mode (LISTEN/NOTIFY)")
+    group.add_argument("--refresh-stale", action="store_true", help="Refresh stale coins")
+    group.add_argument("--retry-failed", action="store_true", help="Retry fetch_failed coins")
     args = parser.parse_args()
 
     if args.pending:
@@ -1090,6 +1162,8 @@ def main():
         run_listen_daemon()
     elif args.refresh_stale:
         run_refresh_stale()
+    elif args.retry_failed:
+        run_retry_failed()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,36 @@
+# LuxQuant Coin Metadata Worker — Systemd Service
+# 
+# Place at:
+#   /etc/systemd/system/luxquant-coin-metadata.service
+#
+# Then:
+#   systemctl daemon-reload
+#   systemctl enable luxquant-coin-metadata
+#   systemctl start luxquant-coin-metadata
+#
+# Worker akan:
+# - Auto-start saat VPS boot
+# - Auto-restart kalau crash
+# - Listen NOTIFY 'new_pair_to_categorize' (saat ada signal pair baru)
+# - Process pending coin baru otomatis
+
+[Unit]
+Description=LuxQuant Coin Metadata Worker (daemon mode)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONPATH=/root/luxquant-terminal/backend"
+Environment="COINGECKO_SLEEP=15"
+Environment="LOG_DIR=/var/log/luxquant-sync"
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python3 -m app.services.coin_metadata_worker --listen
+Restart=always
+RestartSec=30
+StandardOutput=append:/var/log/luxquant-sync/coin-metadata-daemon.log
+StandardError=append:/var/log/luxquant-sync/coin-metadata-daemon.log
+
+[Install]
+WantedBy=multi-user.target

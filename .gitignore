@@ -21,3 +21,6 @@ nohup.out
 *.bak_*
 _*_backup_*/
 _v*_emergency_fix_*
+
+# Worker backup files
+*.py.bak-*
