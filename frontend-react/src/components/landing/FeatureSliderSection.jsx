@@ -197,14 +197,14 @@ const FeatureSliderSection = () => {
         </p>
       </div>
 
-      {/* 3. SIDE-BY-SIDE MOCKUPS (Proportional + Separated + More Rounded iPhone) */}
+      {/* 3. SIDE-BY-SIDE MOCKUPS (Mac Besar + Proporsional) */}
       <div className="relative max-w-7xl mx-auto px-4 lg:px-8 mt-4 mb-16 lg:mb-24">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] bg-gold-primary/10 blur-[110px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[82%] h-[72%] bg-gold-primary/10 blur-[130px] rounded-full pointer-events-none -z-10" />
         
-        <div className="flex flex-col lg:flex-row items-end justify-center gap-8 lg:gap-16 relative z-10">
+        <div className="flex flex-col lg:flex-row items-end justify-center gap-10 lg:gap-20 relative z-10">
           
-          {/* Mac Mockup */}
-          <div className="relative w-full max-w-[800px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+          {/* Mac Mockup - LEBIH BESAR */}
+          <div className="relative w-full max-w-[920px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
             
             <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
               <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
@@ -233,8 +233,8 @@ const FeatureSliderSection = () => {
             </div>
           </div>
 
-          {/* iPhone Mockup - More Rounded + Bigger Size */}
-          <div className="relative w-[240px] sm:w-[270px] lg:w-[300px] xl:w-[330px] aspect-[9/19.5] bg-[#050302] border-[4px] sm:border-[5px] lg:border-[7px] border-[#2a2a2a] rounded-[2.5rem] sm:rounded-[3rem] lg:rounded-[3.5rem] shadow-[0_18px_35px_rgba(0,0,0,0.85)] lg:shadow-[0_25px_55px_rgba(0,0,0,0.95)] overflow-hidden z-20 transition-all duration-500 -mb-6 lg:-mb-10">
+          {/* iPhone Mockup - More Rounded */}
+          <div className="relative w-[240px] sm:w-[270px] lg:w-[300px] xl:w-[320px] aspect-[9/19.5] bg-[#050302] border-[4px] sm:border-[5px] lg:border-[7px] border-[#2a2a2a] rounded-[2.5rem] sm:rounded-[3rem] lg:rounded-[3.5rem] shadow-[0_18px_35px_rgba(0,0,0,0.85)] lg:shadow-[0_25px_55px_rgba(0,0,0,0.95)] overflow-hidden z-20 transition-all duration-500 -mb-6 lg:-mb-10">
             <div className="absolute top-0 inset-x-0 h-3.5 lg:h-6 bg-[#2a2a2a] rounded-b-[1.25rem] lg:rounded-b-[1.75rem] w-[42%] mx-auto z-30" />
             
             <div className="relative w-full h-full bg-[#050302]">
