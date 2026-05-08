@@ -4,7 +4,7 @@ const FEATURES = [
   { 
     id: 'signals', 
     title: 'Algorithmic Signals', 
-    desc: 'Precise entry, multiple take-profit targets, and strict stop-loss levels — auto-delivered 24/7 with risk scoring and volume ranking on every single call.',
+    desc: 'Precise entry, multiple take-profit targets, and strict stop-loss levels — auto-delivered 24/7 with risk scoring and volume ranking.',
     macImg: '/mockups/mac-signals.png',
     phoneImg: '/mockups/phone-signals.png',
     icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg> 
@@ -28,7 +28,7 @@ const FEATURES = [
   { 
     id: 'whale', 
     title: 'Whale Surveillance', 
-    desc: 'See what the big players are doing before the crowd reacts. Real-time tracking of massive transfers and exchange flows across major blockchains.',
+    desc: 'Real-time tracking of massive transfers and exchange flows across major blockchains — see what the big players are doing before the crowd reacts.',
     macImg: '/mockups/mac-whale.png',
     phoneImg: '/mockups/phone-whale.png',
     icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0M22 12h-2M12 2v2M4 12H2M12 22v-2" /></svg> 
@@ -44,7 +44,7 @@ const FEATURES = [
   { 
     id: 'proof', 
     title: 'Visual Trade Proof', 
-    desc: "We don't just call trades — we prove them. Branded before-and-after chart captures with a step-by-step journey timeline from entry to each TP hit.",
+    desc: "We don't just call trades — we prove them. Branded before-and-after chart captures with full transparency from entry to each TP hit.",
     macImg: '/mockups/mac-proof.png',
     phoneImg: '/mockups/phone-proof.png',
     icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 4H6a2 2 0 00-2 2v2m16 0V6a2 2 0 00-2-2h-2M8 20H6a2 2 0 01-2-2v-2m16 0v2a2 2 0 01-2 2h-2M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> 
@@ -197,12 +197,12 @@ const FeatureSliderSection = () => {
         </p>
       </div>
 
-      {/* 3. CENTERED MOCKUPS (Mac & iPhone) */}
-      <div className="relative max-w-5xl mx-auto px-4 lg:px-8 flex justify-center items-center mt-4 mb-16 lg:mb-24">
+      {/* 3. CENTERED MOCKUPS (Mac & iPhone - Terpisah Rapi) */}
+      <div className="relative max-w-6xl mx-auto px-4 lg:px-8 flex justify-center items-center mt-4 mb-16 lg:mb-24">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
         
         {/* Mac Mockup */}
-        <div className="relative w-full max-w-[850px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+        <div className="relative w-full max-w-[900px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
           
           <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
             <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
@@ -231,8 +231,8 @@ const FeatureSliderSection = () => {
           </div>
         </div>
 
-        {/* iPhone Mockup - Sudah Digeser Jauh ke Kanan + Lebih Rendah */}
-        <div className="absolute -bottom-10 right-4 sm:-bottom-12 sm:-right-10 lg:-bottom-20 lg:-right-28 xl:-right-36 w-[90px] sm:w-[130px] lg:w-[160px] xl:w-[180px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
+        {/* iPhone Mockup - Terpisah Rapi di Kanan */}
+        <div className="absolute -bottom-12 -right-2 sm:-bottom-16 sm:-right-6 lg:-bottom-24 lg:-right-14 xl:-right-20 w-[95px] sm:w-[135px] lg:w-[165px] xl:w-[185px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
           <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
           
           <div className="relative w-full h-full bg-[#050302]">
@@ -254,7 +254,7 @@ const FeatureSliderSection = () => {
         </div>
       </div>
 
-      {/* 4. SEAMLESS "...AND MUCH MORE" FOOTER */}
+      {/* 4. "...AND MUCH MORE" FOOTER */}
       <div className="max-w-4xl mx-auto px-4 relative z-20 text-center">
         <div className="w-16 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent mx-auto mb-6" />
         
