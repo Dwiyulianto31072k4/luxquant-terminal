@@ -197,59 +197,62 @@ const FeatureSliderSection = () => {
         </p>
       </div>
 
-      {/* 3. CENTERED MOCKUPS (Mac & iPhone - Ukuran Setara + Jarak Jauh) */}
-      <div className="relative max-w-7xl mx-auto px-4 lg:px-8 flex justify-center items-center mt-4 mb-16 lg:mb-24">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+      {/* 3. SIDE-BY-SIDE MOCKUPS (Proportional + Separated + More Rounded iPhone) */}
+      <div className="relative max-w-7xl mx-auto px-4 lg:px-8 mt-4 mb-16 lg:mb-24">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] h-[75%] bg-gold-primary/10 blur-[110px] rounded-full pointer-events-none -z-10" />
         
-        {/* Mac Mockup */}
-        <div className="relative w-full max-w-[920px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+        <div className="flex flex-col lg:flex-row items-end justify-center gap-8 lg:gap-16 relative z-10">
           
-          <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
-            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
-            <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono tracking-widest">
-              luxquant.tw
+          {/* Mac Mockup */}
+          <div className="relative w-full max-w-[800px] aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+            
+            <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
+              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
+              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
+              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
+              <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono tracking-widest">
+                luxquant.tw
+              </div>
+            </div>
+            
+            <div className="relative w-full h-full pt-6 lg:pt-8 bg-[#050302]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-xs font-mono">
+                 Awaiting Screenshots...
+              </div>
+              {FEATURES.map((feat, idx) => (
+                <img 
+                  key={`mac-${feat.id}`}
+                  src={feat.macImg}
+                  alt={`${feat.title} Desktop`}
+                  className={`absolute top-6 lg:top-8 left-0 w-full h-[calc(100%-1.5rem)] lg:h-[calc(100%-2rem)] object-cover object-top transition-all duration-700 ease-in-out ${
+                    activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-[1.02]'
+                  }`}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              ))}
             </div>
           </div>
-          
-          <div className="relative w-full h-full pt-6 lg:pt-8 bg-[#050302]">
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-xs font-mono">
-               Awaiting Screenshots...
-            </div>
-            {FEATURES.map((feat, idx) => (
-              <img 
-                key={`mac-${feat.id}`}
-                src={feat.macImg}
-                alt={`${feat.title} Desktop`}
-                className={`absolute top-6 lg:top-8 left-0 w-full h-[calc(100%-1.5rem)] lg:h-[calc(100%-2rem)] object-cover object-top transition-all duration-700 ease-in-out ${
-                  activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-[1.02]'
-                }`}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            ))}
-          </div>
-        </div>
 
-        {/* iPhone Mockup - Ukuran Besar + Jarak Jauh */}
-        <div className="absolute -bottom-8 -right-4 sm:-bottom-14 sm:-right-10 lg:-bottom-20 lg:-right-20 xl:-right-28 w-[120px] sm:w-[170px] lg:w-[220px] xl:w-[250px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
-          <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
-          
-          <div className="relative w-full h-full bg-[#050302]">
-             <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-[8px] font-mono text-center px-2">
-               App Screen
-             </div>
-             {FEATURES.map((feat, idx) => (
-               <img 
-                key={`phone-${feat.id}`}
-                src={feat.phoneImg}
-                alt={`${feat.title} Mobile`}
-                className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-700 ease-in-out ${
-                  activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'
-                }`}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-             ))}
+          {/* iPhone Mockup - More Rounded + Bigger Size */}
+          <div className="relative w-[240px] sm:w-[270px] lg:w-[300px] xl:w-[330px] aspect-[9/19.5] bg-[#050302] border-[4px] sm:border-[5px] lg:border-[7px] border-[#2a2a2a] rounded-[2.5rem] sm:rounded-[3rem] lg:rounded-[3.5rem] shadow-[0_18px_35px_rgba(0,0,0,0.85)] lg:shadow-[0_25px_55px_rgba(0,0,0,0.95)] overflow-hidden z-20 transition-all duration-500 -mb-6 lg:-mb-10">
+            <div className="absolute top-0 inset-x-0 h-3.5 lg:h-6 bg-[#2a2a2a] rounded-b-[1.25rem] lg:rounded-b-[1.75rem] w-[42%] mx-auto z-30" />
+            
+            <div className="relative w-full h-full bg-[#050302]">
+               <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-[9px] font-mono text-center px-3">
+                 App Screen
+               </div>
+               {FEATURES.map((feat, idx) => (
+                 <img 
+                  key={`phone-${feat.id}`}
+                  src={feat.phoneImg}
+                  alt={`${feat.title} Mobile`}
+                  className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-700 ease-in-out ${
+                    activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'
+                  }`}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+               ))}
+            </div>
           </div>
         </div>
       </div>
