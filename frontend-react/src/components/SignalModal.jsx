@@ -8,7 +8,13 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 
-const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal, initialTab = "chart" }) => {
+const SignalModal = ({
+  signal,
+  isOpen,
+  onClose,
+  onSwitchSignal,
+  initialTab = "chart",
+}) => {
   const { t } = useTranslation();
 
   const chartContainerRef = useRef(null);
@@ -1307,7 +1313,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <CoinLogo pair={signal?.pair} size={28} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    {/* Baris 1: Pair name + status */}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <h2 className="text-white font-display text-sm font-semibold truncate">
                         {signal?.pair}
                       </h2>
@@ -1316,13 +1323,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       >
                         {signal?.status?.toUpperCase()}
                       </span>
-                      {/* === NEW: Coin Category Badge === */}
-                      <CoinCategoryBadge
-                        pair={signal?.pair}
-                        onClick={() => setShowCoinUtility(true)}
-                        compact
-                      />
                     </div>
+
+                    {/* Baris 2: Coin Category Badge (dual pill + tagline) */}
+                    <CoinCategoryBadge
+                      pair={signal?.pair}
+                      onClick={() => setShowCoinUtility(true)}
+                    />
+
+                    {/* Baris 3: Timestamp */}
                     <p className="text-text-muted text-[10px] truncate">
                       {formatShortDateTime(signal?.created_at)}
                     </p>
