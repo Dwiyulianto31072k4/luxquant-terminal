@@ -1669,7 +1669,13 @@ const CoinChartModal = ({ pair, onClose }) => {
   const tvSymbol = `BINANCE:${pair}.P`;
 
   const [tvInterval, setTvInterval] = useState("60"); // TV interval string
-  const [stats24h, setStats24h] = useState(null);
+  // Trading metrics — fetched in parallel, each independent (one failing doesn't break others)
+  const [metrics, setMetrics] = useState({
+    ticker: null,       // { last, high, low, volume, changePct }
+    funding: null,      // { rate, nextTime }       — perp funding rate + countdown
+    openInterest: null, // { current, changePct }   — OI now + 24h change
+    ratio: null,        // { longPct, shortPct, r } — top traders L/S ratio
+  });
   const [isClosing, setIsClosing] = useState(false);
 
   const tvContainerRef = useRef(null);
@@ -1700,21 +1706,35 @@ const CoinChartModal = ({ pair, onClose }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleClose]);
 
-  // ── Fetch 24h ticker (Binance Futures → Spot → Bybit fallback chain) ──
+  // ── Fetch all trading metrics in parallel (each independent) ──
+  // All endpoints are FREE Binance Futures public APIs (CORS-enabled).
+  // Bybit fallback for ticker only (perp metrics are Binance-specific).
   useEffect(() => {
     let cancelled = false;
-    setStats24h(null);
+    setMetrics({
+      ticker: null,
+      funding: null,
+      openInterest: null,
+      ratio: null,
+    });
 
-    const tryFetch = async () => {
-      // 1. Binance Futures
-      try {
-        const r = await fetch(
-          `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${pair}`
-        );
-        if (r.ok) {
+    const setMetric = (key, value) => {
+      if (cancelled) return;
+      setMetrics((m) => ({ ...m, [key]: value }));
+    };
+
+    // 1) 24h ticker — Binance Futures → Spot → Bybit Linear → Bybit Spot
+    const fetchTicker = async () => {
+      const sources = [
+        `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${pair}`,
+        `https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`,
+      ];
+      for (const url of sources) {
+        try {
+          const r = await fetch(url);
+          if (!r.ok) continue;
           const d = await r.json();
-          if (cancelled) return;
-          setStats24h({
+          setMetric("ticker", {
             last: parseFloat(d.lastPrice),
             high: parseFloat(d.highPrice),
             low: parseFloat(d.lowPrice),
@@ -1722,29 +1742,47 @@ const CoinChartModal = ({ pair, onClose }) => {
             changePct: parseFloat(d.priceChangePercent),
           });
           return;
-        }
-      } catch {}
+        } catch {}
+      }
+      // Bybit fallback
+      for (const cat of ["linear", "spot"]) {
+        try {
+          const r = await fetch(
+            `https://api.bybit.com/v5/market/tickers?category=${cat}&symbol=${pair}`
+          );
+          if (!r.ok) continue;
+          const j = await r.json();
+          const t = j?.result?.list?.[0];
+          if (!t) continue;
+          setMetric("ticker", {
+            last: parseFloat(t.lastPrice),
+            high: parseFloat(t.highPrice24h),
+            low: parseFloat(t.lowPrice24h),
+            volume: parseFloat(t.turnover24h || 0),
+            changePct: parseFloat(t.price24hPcnt) * 100,
+          });
+          return;
+        } catch {}
+      }
+    };
 
-      // 2. Binance Spot
+    // 2) Funding rate + next funding countdown — Binance Futures → Bybit fallback
+    const fetchFunding = async () => {
       try {
         const r = await fetch(
-          `https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`
+          `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${pair}`
         );
         if (r.ok) {
           const d = await r.json();
-          if (cancelled) return;
-          setStats24h({
-            last: parseFloat(d.lastPrice),
-            high: parseFloat(d.highPrice),
-            low: parseFloat(d.lowPrice),
-            volume: parseFloat(d.quoteVolume || d.volume || 0),
-            changePct: parseFloat(d.priceChangePercent),
-          });
-          return;
+          if (d?.lastFundingRate != null) {
+            setMetric("funding", {
+              rate: parseFloat(d.lastFundingRate),
+              nextTime: parseInt(d.nextFundingTime),
+            });
+            return;
+          }
         }
       } catch {}
-
-      // 3. Bybit Linear
       try {
         const r = await fetch(
           `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${pair}`
@@ -1752,43 +1790,58 @@ const CoinChartModal = ({ pair, onClose }) => {
         if (r.ok) {
           const j = await r.json();
           const t = j?.result?.list?.[0];
-          if (t && !cancelled) {
-            setStats24h({
-              last: parseFloat(t.lastPrice),
-              high: parseFloat(t.highPrice24h),
-              low: parseFloat(t.lowPrice24h),
-              volume: parseFloat(t.turnover24h || 0),
-              changePct: parseFloat(t.price24hPcnt) * 100,
+          if (t?.fundingRate != null && t?.nextFundingTime != null) {
+            setMetric("funding", {
+              rate: parseFloat(t.fundingRate),
+              nextTime: parseInt(t.nextFundingTime),
             });
-            return;
           }
         }
       } catch {}
-
-      // 4. Bybit Spot
-      try {
-        const r = await fetch(
-          `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${pair}`
-        );
-        if (r.ok) {
-          const j = await r.json();
-          const t = j?.result?.list?.[0];
-          if (t && !cancelled) {
-            setStats24h({
-              last: parseFloat(t.lastPrice),
-              high: parseFloat(t.highPrice24h),
-              low: parseFloat(t.lowPrice24h),
-              volume: parseFloat(t.turnover24h || 0),
-              changePct: parseFloat(t.price24hPcnt) * 100,
-            });
-            return;
-          }
-        }
-      } catch {}
-      // If all fail, stats24h stays null and we render "—" for those fields
     };
 
-    tryFetch();
+    // 3) Open Interest — fetch 24h history, compute current vs 24h ago
+    const fetchOI = async () => {
+      try {
+        const r = await fetch(
+          `https://fapi.binance.com/futures/data/openInterestHist?symbol=${pair}&period=1h&limit=24`
+        );
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!Array.isArray(d) || d.length === 0) return;
+        const latest = d[d.length - 1];
+        const oldest = d[0];
+        const current = parseFloat(latest.sumOpenInterestValue || 0);
+        const prev = parseFloat(oldest.sumOpenInterestValue || 0);
+        const changePct = prev > 0 ? ((current - prev) / prev) * 100 : 0;
+        setMetric("openInterest", { current, changePct });
+      } catch {}
+    };
+
+    // 4) Long/Short ratio (top traders by position) — better signal than retail accounts
+    const fetchRatio = async () => {
+      try {
+        const r = await fetch(
+          `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${pair}&period=1h&limit=1`
+        );
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!Array.isArray(d) || d.length === 0) return;
+        const item = d[0];
+        setMetric("ratio", {
+          longPct: parseFloat(item.longAccount) * 100,
+          shortPct: parseFloat(item.shortAccount) * 100,
+          r: parseFloat(item.longShortRatio),
+        });
+      } catch {}
+    };
+
+    // Fire all in parallel — independent failures
+    fetchTicker();
+    fetchFunding();
+    fetchOI();
+    fetchRatio();
+
     return () => {
       cancelled = true;
     };
@@ -1848,8 +1901,8 @@ const CoinChartModal = ({ pair, onClose }) => {
     };
   }, [tvSymbol, tvInterval]);
 
-  const last = stats24h?.last;
-  const change = stats24h?.changePct;
+  const last = metrics.ticker?.last;
+  const change = metrics.ticker?.changePct;
   const isPos = (change ?? 0) >= 0;
 
   const intervals = [
@@ -1961,32 +2014,17 @@ const CoinChartModal = ({ pair, onClose }) => {
           <div ref={tvContainerRef} className="w-full h-full" />
         </div>
 
-        {/* Footer stats */}
-        <div className="border-t border-white/[0.06] bg-black/30 px-4 sm:px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 flex-shrink-0">
-          <ModalStat
-            label="24h High"
-            value={stats24h ? `$${formatPrice(stats24h.high)}` : "—"}
-            accent="emerald"
-          />
-          <ModalStat
-            label="24h Low"
-            value={stats24h ? `$${formatPrice(stats24h.low)}` : "—"}
-            accent="red"
-          />
-          <ModalStat
-            label="24h Volume"
-            value={stats24h ? `$${formatVolume(stats24h.volume)}` : "—"}
-          />
-          <ModalStat
-            label="Source"
-            value={stats24h ? "Live" : "TV only"}
-            accent="gold"
-          />
+        {/* Footer trading metrics — 4 perp-essential signals from Binance Futures public API */}
+        <div className="border-t border-white/[0.06] bg-black/30 px-4 sm:px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-2 flex-shrink-0">
+          <Metric24h ticker={metrics.ticker} />
+          <MetricFunding funding={metrics.funding} />
+          <MetricOI oi={metrics.openInterest} />
+          <MetricLS ratio={metrics.ratio} />
         </div>
 
         <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-black/20 flex-shrink-0">
           <span className="uppercase tracking-wider">
-            Chart by TradingView · Stats by Binance/Bybit
+            Chart by TradingView · Metrics by Binance Futures
           </span>
           <span>ESC to close</span>
         </div>
@@ -1997,21 +2035,140 @@ const CoinChartModal = ({ pair, onClose }) => {
   return createPortal(modalContent, document.body);
 };
 
-const ModalStat = ({ label, value, accent }) => {
-  const colorMap = {
-    emerald: "text-emerald-400",
-    red: "text-red-400",
-    gold: "text-gold-primary",
-  };
+// ════════════════════════════════════════════════════════
+// Footer metric cells — each is self-contained, handles null state
+// ════════════════════════════════════════════════════════
+
+const MetricCellShell = ({ label, children }) => (
+  <div className="bg-black/30 rounded-lg px-2.5 py-2 border border-white/[0.04] min-h-[64px] flex flex-col justify-between">
+    <p className="text-text-muted/60 text-[9px] uppercase tracking-widest font-mono">
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
+// 1) 24h Change with H/L sub-line
+const Metric24h = ({ ticker }) => {
+  if (!ticker) {
+    return (
+      <MetricCellShell label="24h Change">
+        <p className="text-sm font-bold font-mono text-text-muted/40 leading-none mt-1">—</p>
+        <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight">
+          high / low
+        </p>
+      </MetricCellShell>
+    );
+  }
+  const isPos = ticker.changePct >= 0;
   return (
-    <div className="bg-black/30 rounded-lg p-2.5 border border-white/[0.04]">
-      <p className={`text-sm font-bold font-mono leading-none ${colorMap[accent] || "text-white"}`}>
-        {value}
+    <MetricCellShell label="24h Change">
+      <p
+        className={`text-sm font-bold font-mono leading-none mt-1 ${
+          isPos ? "text-emerald-400" : "text-red-400"
+        }`}
+      >
+        {isPos ? "+" : ""}
+        {ticker.changePct.toFixed(2)}%
       </p>
-      <p className="text-text-muted/60 text-[9px] uppercase tracking-widest mt-1.5 font-mono">
-        {label}
+      <p className="text-[9px] text-text-muted/60 font-mono mt-1 leading-tight">
+        H ${formatPrice(ticker.high)} · L ${formatPrice(ticker.low)}
       </p>
-    </div>
+    </MetricCellShell>
+  );
+};
+
+// 2) Funding Rate with countdown to next payment
+const MetricFunding = ({ funding }) => {
+  if (!funding) {
+    return (
+      <MetricCellShell label="Funding · perp">
+        <p className="text-sm font-bold font-mono text-text-muted/40 leading-none mt-1">—</p>
+        <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight">
+          spot only
+        </p>
+      </MetricCellShell>
+    );
+  }
+  const ratePct = funding.rate * 100;
+  const isPos = ratePct >= 0;
+  const msToNext = Math.max(0, funding.nextTime - Date.now());
+  const hrs = Math.floor(msToNext / 3600000);
+  const mins = Math.floor((msToNext % 3600000) / 60000);
+  return (
+    <MetricCellShell label="Funding · perp">
+      <p
+        className={`text-sm font-bold font-mono leading-none mt-1 ${
+          isPos ? "text-emerald-400" : "text-red-400"
+        }`}
+      >
+        {isPos ? "+" : ""}
+        {ratePct.toFixed(4)}%
+      </p>
+      <p className="text-[9px] text-text-muted/60 font-mono mt-1 leading-tight">
+        {isPos ? "longs pay" : "shorts pay"} · in {hrs}h {mins}m
+      </p>
+    </MetricCellShell>
+  );
+};
+
+// 3) Open Interest with 24h delta
+const MetricOI = ({ oi }) => {
+  if (!oi) {
+    return (
+      <MetricCellShell label="Open Interest">
+        <p className="text-sm font-bold font-mono text-text-muted/40 leading-none mt-1">—</p>
+        <p className="text-[9px] text-text-muted/30 font-mono mt-1 leading-tight">
+          24h change
+        </p>
+      </MetricCellShell>
+    );
+  }
+  const isPos = oi.changePct >= 0;
+  return (
+    <MetricCellShell label="Open Interest">
+      <p className="text-sm font-bold font-mono text-white leading-none mt-1">
+        ${formatVolume(oi.current)}
+      </p>
+      <p
+        className={`text-[9px] font-mono mt-1 leading-tight ${
+          isPos ? "text-emerald-400" : "text-red-400"
+        }`}
+      >
+        {isPos ? "↑" : "↓"} {Math.abs(oi.changePct).toFixed(2)}% · 24h
+      </p>
+    </MetricCellShell>
+  );
+};
+
+// 4) Long/Short Ratio (top traders by position) — with split bar viz
+const MetricLS = ({ ratio }) => {
+  if (!ratio) {
+    return (
+      <MetricCellShell label="L/S · top traders">
+        <p className="text-sm font-bold font-mono text-text-muted/40 leading-none mt-1">—</p>
+        <div className="h-1 mt-2 rounded-full bg-white/5" />
+      </MetricCellShell>
+    );
+  }
+  return (
+    <MetricCellShell label="L/S · top traders">
+      <p className="text-sm font-bold font-mono leading-none mt-1">
+        <span className="text-emerald-400">{ratio.longPct.toFixed(0)}%</span>
+        <span className="text-text-muted/40 mx-1">/</span>
+        <span className="text-red-400">{ratio.shortPct.toFixed(0)}%</span>
+      </p>
+      <div className="h-1 mt-2 rounded-full overflow-hidden bg-white/5 flex">
+        <div
+          className="bg-gradient-to-r from-emerald-500 to-emerald-400"
+          style={{ width: `${ratio.longPct}%` }}
+        />
+        <div
+          className="bg-gradient-to-l from-red-500 to-red-400"
+          style={{ width: `${ratio.shortPct}%` }}
+        />
+      </div>
+    </MetricCellShell>
   );
 };
 
