@@ -231,8 +231,8 @@ const FeatureSliderSection = () => {
           </div>
         </div>
 
-        {/* iPhone Mockup - SUDAH DIGESER KE KANAN */}
-        <div className="absolute -bottom-8 right-2 sm:-bottom-10 sm:-right-8 lg:-bottom-16 lg:-right-20 xl:-right-28 w-[100px] sm:w-[140px] lg:w-[170px] xl:w-[190px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
+        {/* iPhone Mockup - Sudah Digeser Jauh ke Kanan + Lebih Rendah */}
+        <div className="absolute -bottom-10 right-4 sm:-bottom-12 sm:-right-10 lg:-bottom-20 lg:-right-28 xl:-right-36 w-[90px] sm:w-[130px] lg:w-[160px] xl:w-[180px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
           <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
           
           <div className="relative w-full h-full bg-[#050302]">
