@@ -197,7 +197,7 @@ const FeatureSliderSection = () => {
         </p>
       </div>
 
-      {/* 3. CENTERED MOCKUPS (Mac & iPhone - Jarak Sangat Jauh) */}
+      {/* 3. CENTERED MOCKUPS (Mac & iPhone - Ukuran Setara + Jarak Jauh) */}
       <div className="relative max-w-7xl mx-auto px-4 lg:px-8 flex justify-center items-center mt-4 mb-16 lg:mb-24">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
         
@@ -231,8 +231,8 @@ const FeatureSliderSection = () => {
           </div>
         </div>
 
-        {/* iPhone Mockup - Jauh di Kanan (Setelah Mac Berakhir) */}
-        <div className="absolute -bottom-16 -right-8 sm:-bottom-24 sm:-right-14 lg:-bottom-32 lg:-right-24 xl:-right-32 w-[90px] sm:w-[125px] lg:w-[155px] xl:w-[175px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
+        {/* iPhone Mockup - Ukuran Besar + Jarak Jauh */}
+        <div className="absolute -bottom-8 -right-4 sm:-bottom-14 sm:-right-10 lg:-bottom-20 lg:-right-20 xl:-right-28 w-[120px] sm:w-[170px] lg:w-[220px] xl:w-[250px] aspect-[9/19.5] bg-[#050302] border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a] rounded-[1rem] sm:rounded-2xl lg:rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)] overflow-hidden z-20 transition-all duration-500">
           <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
           
           <div className="relative w-full h-full bg-[#050302]">
