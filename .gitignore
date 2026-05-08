@@ -24,3 +24,4 @@ _v*_emergency_fix_*
 
 # Worker backup files
 *.py.bak-*
+*.bak

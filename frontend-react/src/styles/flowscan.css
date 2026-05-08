@@ -1,0 +1,102 @@
+/* =============================================================
+   src/styles/flowscan.css
+
+   File terpisah dari index.css. Cara pakai:
+   1. Letakkan di src/styles/flowscan.css
+   2. Buka src/main.jsx
+   3. Tambah import SETELAH index.css yang sudah ada:
+
+        import './styles/index.css'
+        import './styles/flowscan.css'   // <-- baris baru
+
+   File ini TIDAK menimpa style existing. Cuma:
+   - Load Space Grotesk (font baru)
+   - Tambah helper class .flow-card, .flow-badge, dll untuk page yang dimigrasi
+   ============================================================= */
+
+/* 1. Font Space Grotesk dari Google Fonts CDN.
+      JetBrains Mono ga perlu di-import lagi karena udah ada di font-mono. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+
+/* 2. Helper class — opsional, biar JSX lebih bersih.
+      Bisa di-skip kalau mau pake utility Tailwind langsung di className. */
+@layer components {
+
+  /* Card khas Flowscan: sharp corners + hairline highlight di top + soft shadow */
+  .flow-card {
+    @apply relative overflow-hidden bg-flow-surface border border-flow-border/80
+           shadow-flow-card p-6;
+  }
+  .flow-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px
+           bg-gradient-to-r from-transparent via-white/[0.06] to-transparent;
+  }
+
+  /* Badge variants */
+  .flow-badge {
+    @apply inline-flex items-center justify-center font-medium gap-1.5
+           bg-flow-accent/15 text-flow-accent border border-flow-accent/30
+           px-2.5 py-0.5 text-[11px] transition-colors;
+  }
+  .flow-badge-muted {
+    @apply inline-flex items-center justify-center font-medium gap-1.5
+           bg-white/[0.04] text-flow-steel border border-flow-border/60
+           px-2.5 py-0.5 text-[11px];
+  }
+  .flow-badge-danger {
+    @apply inline-flex items-center justify-center font-medium gap-1.5
+           bg-rose-500/15 text-rose-400 border border-rose-500/30
+           px-2.5 py-0.5 text-[11px];
+  }
+  .flow-badge-warn {
+    @apply inline-flex items-center justify-center font-medium gap-1.5
+           bg-amber-500/15 text-amber-400 border border-amber-500/30
+           px-2.5 py-0.5 text-[11px];
+  }
+  .flow-badge-success {
+    @apply inline-flex items-center justify-center font-medium gap-1.5
+           bg-emerald-500/15 text-emerald-400 border border-emerald-500/30
+           px-2.5 py-0.5 text-[11px];
+  }
+
+  /* Section heading */
+  .flow-h-section {
+    @apply text-sm font-medium leading-none tracking-tight text-flow-fg;
+  }
+  .flow-h-page {
+    @apply text-2xl font-medium tracking-tight text-flow-fg;
+  }
+
+  /* Table header cell label */
+  .flow-th {
+    @apply text-[11px] font-medium uppercase tracking-wider text-flow-muted;
+  }
+
+  /* Input field */
+  .flow-input {
+    @apply bg-flow-surface-2 border border-flow-border/60 text-flow-fg
+           placeholder:text-flow-muted/70
+           focus:border-flow-accent/50 focus:ring-1 focus:ring-flow-accent/40
+           focus:outline-none transition-colors text-sm;
+  }
+
+  /* Ghost button (untuk nav, reset, dll) */
+  .flow-btn-ghost {
+    @apply rounded-md px-3 py-1.5 text-[13px] font-medium
+           text-flow-steel hover:text-flow-fg hover:bg-white/[0.06]
+           transition-colors outline-none
+           focus-visible:ring-2 focus-visible:ring-flow-accent/40;
+  }
+
+  /* Filter chip */
+  .flow-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs
+           bg-flow-surface-2 text-flow-steel border border-flow-border/60
+           hover:text-flow-fg hover:border-flow-border
+           transition-colors cursor-pointer;
+  }
+  .flow-chip-active {
+    @apply bg-flow-accent/15 text-flow-accent border-flow-accent/40;
+  }
+}
