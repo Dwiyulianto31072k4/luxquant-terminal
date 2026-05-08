@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   FLOWSCAN FONTS — Space Grotesk + JetBrains Mono
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+.font-grotesk {
+  font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
 :root {
   --bg-primary: #0a0506;
   --bg-secondary: #120809;
@@ -368,28 +381,8 @@ body {
     width: 60px;
     height: 60px;
   }
-}/* =============================================================
-   src/styles/flowscan.css
+}/* 
 
-   File terpisah dari index.css. Cara pakai:
-   1. Letakkan di src/styles/flowscan.css
-   2. Buka src/main.jsx
-   3. Tambah import SETELAH index.css yang sudah ada:
-
-        import './styles/index.css'
-        import './styles/flowscan.css'   // <-- baris baru
-
-   File ini TIDAK menimpa style existing. Cuma:
-   - Load Space Grotesk (font baru)
-   - Tambah helper class .flow-card, .flow-badge, dll untuk page yang dimigrasi
-   ============================================================= */
-
-/* 1. Font Space Grotesk dari Google Fonts CDN.
-      JetBrains Mono ga perlu di-import lagi karena udah ada di font-mono. */
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
-
-/* 2. Helper class — opsional, biar JSX lebih bersih.
-      Bisa di-skip kalau mau pake utility Tailwind langsung di className. */
 @layer components {
 
   /* Card khas Flowscan: sharp corners + hairline highlight di top + soft shadow */
