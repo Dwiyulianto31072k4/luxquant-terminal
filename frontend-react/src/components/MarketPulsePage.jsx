@@ -1154,13 +1154,15 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
 };
 
 // ════════════════════════════════════════════════════════
-// ★ NEW HEATMAP — uniform grid, NO overlap, toggle Events / % Change
+// ★ HEATMAP — Treemap layout (size scales with rank)
+//   Rank 1 → 2x2 huge tile · Rank 2-3 → 2x1 wide · Rank 4+ → 1x1
+//   Toggle: Events count vs % Change · Direction = color
 // ════════════════════════════════════════════════════════
 
 const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange }) => {
   const tiles = useMemo(() => {
     if (!heatmap || heatmap.length === 0) return [];
-    return heatmap.slice(0, 16).map((coin) => {
+    return heatmap.slice(0, 13).map((coin) => {
       const upAbs = Math.abs(coin.max_up || 0);
       const downAbs = Math.abs(coin.max_down || 0);
       const strongest = upAbs >= downAbs ? coin.max_up || 0 : coin.max_down || 0;
@@ -1174,11 +1176,27 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
     });
   }, [heatmap]);
 
-  // Intensity scaling depends on sort mode — gives clearer visual meaning
-  const maxEvents = useMemo(
-    () => Math.max(1, ...tiles.map((t) => t.eventCount)),
-    [tiles]
-  );
+  // Treemap layout — 4 cols × 5 rows = 20 cells, fits 13 tiles
+  // Cell positions for each rank (1-indexed visually, 0-indexed in array):
+  //   Rank 1: 2x2 huge   |  Rank 2-3: 2x1 wide  |  Rank 4-11: 1x1 small
+  //   Rank 12-13: 2x1 wide (bottom row)
+  const layouts = [
+    { col: "1 / 3", row: "1 / 3", size: "xl" }, // R1: 2x2
+    { col: "3 / 5", row: "1 / 2", size: "lg" }, // R2: 2x1
+    { col: "3 / 5", row: "2 / 3", size: "lg" }, // R3: 2x1
+    { col: "1 / 2", row: "3 / 4", size: "sm" }, // R4
+    { col: "2 / 3", row: "3 / 4", size: "sm" }, // R5
+    { col: "3 / 4", row: "3 / 4", size: "sm" }, // R6
+    { col: "4 / 5", row: "3 / 4", size: "sm" }, // R7
+    { col: "1 / 2", row: "4 / 5", size: "sm" }, // R8
+    { col: "2 / 3", row: "4 / 5", size: "sm" }, // R9
+    { col: "3 / 4", row: "4 / 5", size: "sm" }, // R10
+    { col: "4 / 5", row: "4 / 5", size: "sm" }, // R11
+    { col: "1 / 3", row: "5 / 6", size: "lg" }, // R12: 2x1 (extra)
+    { col: "3 / 5", row: "5 / 6", size: "lg" }, // R13: 2x1 (extra)
+  ];
+
+  const visibleTiles = tiles.slice(0, layouts.length);
 
   return (
     <div className="bg-[#0a0506] rounded-xl border border-white/10 p-3">
@@ -1189,7 +1207,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
             Heatmap · 1h
           </h3>
           <span className="text-[9px] text-text-muted/50 font-mono">
-            Top {tiles.length}
+            Top {visibleTiles.length}
           </span>
         </div>
 
@@ -1201,7 +1219,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 ? "bg-gold-primary/20 text-gold-primary"
                 : "text-text-muted/60 hover:text-white"
             }`}
-            title="Sort by event count"
+            title="Sort by event count (more events = bigger tile)"
           >
             Events
           </button>
@@ -1212,27 +1230,33 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 ? "bg-gold-primary/20 text-gold-primary"
                 : "text-text-muted/60 hover:text-white"
             }`}
-            title="Sort by % change"
+            title="Sort by % change (bigger move = bigger tile)"
           >
             % Change
           </button>
         </div>
       </div>
 
-      {tiles.length === 0 ? (
+      {visibleTiles.length === 0 ? (
         <div className="text-center py-12 text-text-muted/50 text-xs">
           No activity yet
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-          {tiles.map((tile) => (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gridAutoRows: "62px",
+            gap: "6px",
+          }}
+        >
+          {visibleTiles.map((tile, i) => (
             <HeatmapTile
               key={tile.pair}
               tile={tile}
               isSelected={selectedCoin === tile.pair}
               onSelect={onSelect}
-              maxEvents={maxEvents}
-              sortMode={sortMode}
+              layout={layouts[i]}
             />
           ))}
         </div>
@@ -1240,7 +1264,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
 
       <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[8.5px] font-mono text-text-muted/50">
         <span className="uppercase tracking-wider">
-          Color = direction · Tap for chart
+          Size = rank · Color = direction · Tap for chart
         </span>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1">
@@ -1255,91 +1279,171 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   );
 };
 
-// ── Heatmap Tile — uniform sized, vertical stack, NO overlap ──
-const HeatmapTile = ({ tile, isSelected, onSelect, maxEvents, sortMode }) => {
+// ── Heatmap Tile — Size-aware typography (3 variants: xl, lg, sm) ──
+const HeatmapTile = ({ tile, isSelected, onSelect, layout }) => {
   const { pair, symbol, pct, isBull, eventCount } = tile;
 
-  // Intensity: events mode uses event count ratio; pct mode uses |pct| / 10
-  const intensity =
-    sortMode === "events"
-      ? Math.min(eventCount / maxEvents, 1)
-      : Math.min(Math.abs(pct) / 10, 1);
-
+  const intensity = Math.min(Math.abs(pct) / 12, 0.85);
   const bgColor = isBull
-    ? `rgba(16, 185, 129, ${0.1 + intensity * 0.4})`
-    : `rgba(239, 68, 68, ${0.1 + intensity * 0.4})`;
+    ? `rgba(16, 185, 129, ${0.12 + intensity * 0.4})`
+    : `rgba(239, 68, 68, ${0.12 + intensity * 0.4})`;
 
-  const borderColor = isSelected
-    ? "#d4a853"
-    : isBull
-    ? `rgba(16,185,129,${0.25 + intensity * 0.3})`
-    : `rgba(239,68,68,${0.25 + intensity * 0.3})`;
+  const isXL = layout.size === "xl";
+  const isLG = layout.size === "lg";
 
-  // Truncate symbol if too long (e.g., "PEPECOIN" -> "PEPEC…")
+  // Per-size styling — guarantees no overlap regardless of tile dimensions
+  const styles = isXL
+    ? { logo: 36, symbolFs: 15, pctFs: 22, pad: "16px 12px 12px", gap: 4 }
+    : isLG
+    ? { logo: 26, symbolFs: 13, pctFs: 16, pad: "8px 10px", gap: 6 }
+    : { logo: 18, symbolFs: 11, pctFs: 11, pad: "14px 6px 6px", gap: 2 };
+
+  // Truncate symbol smartly per tile size
+  const maxLen = isXL ? 8 : isLG ? 8 : 5;
   const displaySymbol =
-    symbol.length > 6 ? symbol.slice(0, 5) + "…" : symbol;
+    symbol.length > maxLen ? symbol.slice(0, maxLen) + "…" : symbol;
+
+  // LG (2x1 wide) uses HORIZONTAL layout: logo left, text stacked right
+  // XL and SM use VERTICAL stack
+  const useHorizontal = isLG;
 
   return (
     <button
       onClick={() => onSelect(pair)}
       title={`${pair} · ${eventCount} events · ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`}
-      className="heatmap-tile relative rounded-md cursor-pointer transition-all hover:scale-[1.04] hover:z-10"
       style={{
+        gridColumn: layout.col,
+        gridRow: layout.row,
         backgroundColor: bgColor,
-        border: `${isSelected ? 2 : 1}px solid ${borderColor}`,
-        padding: "8px 6px 6px",
-        minHeight: "76px",
+        border: isSelected
+          ? "1.5px solid #d4a853"
+          : `1px solid ${isBull ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+        borderRadius: "8px",
+        padding: styles.pad,
+        cursor: "pointer",
+        position: "relative",
+        overflow: "hidden",
+        transition: "transform 0.15s ease, border-color 0.15s ease",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: useHorizontal ? "row" : "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "3px",
+        gap: `${styles.gap}px`,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "scale(1.02)";
+        e.currentTarget.style.zIndex = "10";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.zIndex = "1";
       }}
     >
-      {/* Event count badge — top-left corner, separate from main content */}
+      {/* Event count badge — top-left corner (separate from main content) */}
       <span
-        className="absolute top-1 left-1.5 text-[8.5px] font-mono font-bold leading-none"
-        style={{ color: "rgba(255,255,255,0.55)" }}
+        style={{
+          position: "absolute",
+          top: 4,
+          left: 6,
+          fontSize: isXL ? "10px" : "8.5px",
+          fontFamily: "ui-monospace, monospace",
+          color: "rgba(255,255,255,0.55)",
+          fontWeight: 600,
+          lineHeight: 1,
+          pointerEvents: "none",
+        }}
       >
         ×{eventCount}
       </span>
 
       {/* Direction arrow — top-right corner */}
       <span
-        className="absolute top-1 right-1.5 text-[9px] leading-none"
-        style={{ color: isBull ? "#34d399" : "#f87171" }}
+        style={{
+          position: "absolute",
+          top: 4,
+          right: 6,
+          fontSize: isXL ? "11px" : "9px",
+          color: isBull ? "#34d399" : "#f87171",
+          lineHeight: 1,
+          pointerEvents: "none",
+        }}
       >
         {isBull ? "▲" : "▼"}
       </span>
 
-      {/* Logo */}
-      <CoinLogo pair={pair} size={22} />
+      <CoinLogo pair={pair} size={styles.logo} />
 
-      {/* Symbol */}
-      <span
-        className="text-white font-bold leading-none"
-        style={{
-          fontSize: "11px",
-          maxWidth: "100%",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {displaySymbol}
-      </span>
-
-      {/* % Change */}
-      <span
-        className="font-mono font-bold leading-none"
-        style={{
-          fontSize: "11px",
-          color: isBull ? "#34d399" : "#f87171",
-        }}
-      >
-        {pct >= 0 ? "+" : ""}
-        {pct.toFixed(1)}%
-      </span>
+      {useHorizontal ? (
+        // Horizontal layout: text stacked vertically beside logo
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 3,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <span
+            style={{
+              fontSize: `${styles.symbolFs}px`,
+              fontWeight: 700,
+              color: "#fff",
+              lineHeight: 1,
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {displaySymbol}
+          </span>
+          <span
+            style={{
+              fontSize: `${styles.pctFs}px`,
+              fontFamily: "ui-monospace, monospace",
+              fontWeight: 800,
+              color: isBull ? "#34d399" : "#f87171",
+              lineHeight: 1,
+            }}
+          >
+            {pct >= 0 ? "+" : ""}
+            {pct.toFixed(1)}%
+          </span>
+        </div>
+      ) : (
+        // Vertical stack (XL & SM)
+        <>
+          <span
+            style={{
+              fontSize: `${styles.symbolFs}px`,
+              fontWeight: 700,
+              color: "#fff",
+              lineHeight: 1,
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              marginTop: isXL ? 2 : 0,
+            }}
+          >
+            {displaySymbol}
+          </span>
+          <span
+            style={{
+              fontSize: `${styles.pctFs}px`,
+              fontFamily: "ui-monospace, monospace",
+              fontWeight: 800,
+              color: isBull ? "#34d399" : "#f87171",
+              lineHeight: 1,
+            }}
+          >
+            {pct >= 0 ? "+" : ""}
+            {pct.toFixed(1)}%
+          </span>
+        </>
+      )}
     </button>
   );
 };
@@ -1554,24 +1658,21 @@ const FeedSkeleton = () => (
 );
 
 // ════════════════════════════════════════════════════════
-// ★ NEW COIN CHART MODAL — premium style, real data via Binance
+// ★ COIN CHART MODAL — TradingView embed (same approach as SignalModal)
+//   No manual API fetching — TV handles symbol resolution itself.
+//   Supplementary 24h stats from Binance with Bybit fallback.
 // ════════════════════════════════════════════════════════
 
 const CoinChartModal = ({ pair, onClose }) => {
   const symbol = stripQuote(pair);
-  const binanceSymbol = symbol + "USDT";
-  const tvSymbol = `BINANCE:${binanceSymbol}.P`;
+  // pair is already like "OGUSDT" / "BUSDT" — TV format: "BINANCE:{pair}.P"
+  const tvSymbol = `BINANCE:${pair}.P`;
 
-  const [klines, setKlines] = useState(null); // raw klines array
-  const [interval, setIntervalState] = useState("1h"); // "15m" | "1h" | "4h" | "1d"
+  const [tvInterval, setTvInterval] = useState("60"); // TV interval string
   const [stats24h, setStats24h] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showTV, setShowTV] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
   const tvContainerRef = useRef(null);
-  const tvWidgetRef = useRef(null);
 
   // ── Lock body scroll while open ──
   useEffect(() => {
@@ -1581,7 +1682,7 @@ const CoinChartModal = ({ pair, onClose }) => {
     };
   }, []);
 
-  // ── Close on ESC ──
+  // ── Close handler with exit animation ──
   const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
@@ -1590,6 +1691,7 @@ const CoinChartModal = ({ pair, onClose }) => {
     }, 180);
   }, [onClose]);
 
+  // ── Close on ESC ──
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") handleClose();
@@ -1598,227 +1700,183 @@ const CoinChartModal = ({ pair, onClose }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleClose]);
 
-  // ── Fetch klines (Binance Futures, fallback Spot) ──
+  // ── Fetch 24h ticker (Binance Futures → Spot → Bybit fallback chain) ──
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setKlines(null);
+    setStats24h(null);
 
-    const limit = 100;
-
-    const fetchOne = async (url) => {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      const d = await r.json();
-      if (!Array.isArray(d) || d.length === 0) throw new Error("Empty");
-      return d;
-    };
-
-    (async () => {
-      let data = null;
+    const tryFetch = async () => {
+      // 1. Binance Futures
       try {
-        data = await fetchOne(
-          `https://fapi.binance.com/fapi/v1/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
+        const r = await fetch(
+          `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${pair}`
         );
-      } catch {
-        try {
-          data = await fetchOne(
-            `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
-          );
-        } catch (e) {
-          if (!cancelled) {
-            setError("Chart data unavailable");
-            setLoading(false);
-          }
+        if (r.ok) {
+          const d = await r.json();
+          if (cancelled) return;
+          setStats24h({
+            last: parseFloat(d.lastPrice),
+            high: parseFloat(d.highPrice),
+            low: parseFloat(d.lowPrice),
+            volume: parseFloat(d.quoteVolume || d.volume || 0),
+            changePct: parseFloat(d.priceChangePercent),
+          });
           return;
         }
-      }
-      if (cancelled) return;
-      setKlines(data);
-      setLoading(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [binanceSymbol, interval]);
-
-  // ── Fetch 24h ticker ──
-  useEffect(() => {
-    let cancelled = false;
-    const tryFetch = async () => {
-      try {
-        let r = await fetch(
-          `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${binanceSymbol}`
-        );
-        if (!r.ok) {
-          r = await fetch(
-            `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`
-          );
-        }
-        if (!r.ok) return;
-        const d = await r.json();
-        if (cancelled) return;
-        setStats24h({
-          last: parseFloat(d.lastPrice),
-          high: parseFloat(d.highPrice),
-          low: parseFloat(d.lowPrice),
-          volume: parseFloat(d.quoteVolume || d.volume || 0),
-          changePct: parseFloat(d.priceChangePercent),
-        });
       } catch {}
+
+      // 2. Binance Spot
+      try {
+        const r = await fetch(
+          `https://api.binance.com/api/v3/ticker/24hr?symbol=${pair}`
+        );
+        if (r.ok) {
+          const d = await r.json();
+          if (cancelled) return;
+          setStats24h({
+            last: parseFloat(d.lastPrice),
+            high: parseFloat(d.highPrice),
+            low: parseFloat(d.lowPrice),
+            volume: parseFloat(d.quoteVolume || d.volume || 0),
+            changePct: parseFloat(d.priceChangePercent),
+          });
+          return;
+        }
+      } catch {}
+
+      // 3. Bybit Linear
+      try {
+        const r = await fetch(
+          `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${pair}`
+        );
+        if (r.ok) {
+          const j = await r.json();
+          const t = j?.result?.list?.[0];
+          if (t && !cancelled) {
+            setStats24h({
+              last: parseFloat(t.lastPrice),
+              high: parseFloat(t.highPrice24h),
+              low: parseFloat(t.lowPrice24h),
+              volume: parseFloat(t.turnover24h || 0),
+              changePct: parseFloat(t.price24hPcnt) * 100,
+            });
+            return;
+          }
+        }
+      } catch {}
+
+      // 4. Bybit Spot
+      try {
+        const r = await fetch(
+          `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${pair}`
+        );
+        if (r.ok) {
+          const j = await r.json();
+          const t = j?.result?.list?.[0];
+          if (t && !cancelled) {
+            setStats24h({
+              last: parseFloat(t.lastPrice),
+              high: parseFloat(t.highPrice24h),
+              low: parseFloat(t.lowPrice24h),
+              volume: parseFloat(t.turnover24h || 0),
+              changePct: parseFloat(t.price24hPcnt) * 100,
+            });
+            return;
+          }
+        }
+      } catch {}
+      // If all fail, stats24h stays null and we render "—" for those fields
     };
+
     tryFetch();
     return () => {
       cancelled = true;
     };
-  }, [binanceSymbol]);
+  }, [pair]);
 
-  // ── TradingView widget mount ──
+  // ── Mount TradingView embed widget (same pattern as SignalModal) ──
   useEffect(() => {
-    if (!showTV) {
-      // Cleanup if user toggled off
-      if (tvWidgetRef.current) {
-        try {
-          tvWidgetRef.current.remove();
-        } catch {}
-        tvWidgetRef.current = null;
-      }
-      return;
-    }
+    const container = tvContainerRef.current;
+    if (!container) return;
 
-    let cancelled = false;
-    const containerId = "tv_chart_pulse_modal";
+    // Clear any previous widget
+    container.innerHTML = "";
 
-    const init = () => {
-      if (cancelled || !document.getElementById(containerId)) return;
-      try {
-        tvWidgetRef.current = new window.TradingView.widget({
-          container_id: containerId,
-          autosize: true,
-          symbol: tvSymbol,
-          interval: interval === "15m" ? "15" : interval === "1h" ? "60" : interval === "4h" ? "240" : "D",
-          timezone: "Asia/Jakarta",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          toolbar_bg: "#0a0a0f",
-          enable_publishing: false,
-          backgroundColor: "#0d0d0d",
-          gridColor: "rgba(212, 168, 83, 0.05)",
-          allow_symbol_change: true,
-          save_image: false,
-        });
-      } catch (e) {
-        console.error("[TradingView]", e);
-      }
-    };
+    let timezone = "Etc/UTC";
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {}
 
-    if (window.TradingView) {
-      const t = setTimeout(init, 80);
-      return () => {
-        cancelled = true;
-        clearTimeout(t);
-        if (tvWidgetRef.current) {
-          try {
-            tvWidgetRef.current.remove();
-          } catch {}
-          tvWidgetRef.current = null;
-        }
-      };
-    } else {
-      const s = document.createElement("script");
-      s.src = "https://s3.tradingview.com/tv.js";
-      s.async = true;
-      s.onload = () => {
-        const t = setTimeout(init, 80);
-      };
-      document.head.appendChild(s);
-      return () => {
-        cancelled = true;
-        if (tvWidgetRef.current) {
-          try {
-            tvWidgetRef.current.remove();
-          } catch {}
-          tvWidgetRef.current = null;
-        }
-      };
-    }
-  }, [showTV, tvSymbol, interval]);
+    const widgetContainer = document.createElement("div");
+    widgetContainer.className = "tradingview-widget-container";
+    widgetContainer.style.cssText = "height:100%;width:100%";
 
-  // ── Derived chart geometry from klines ──
-  const chartGeo = useMemo(() => {
-    if (!klines || klines.length === 0) return null;
-    // Binance kline: [openTime, open, high, low, close, volume, closeTime, ...]
-    const data = klines.map((k) => ({
-      t: k[0],
-      o: parseFloat(k[1]),
-      h: parseFloat(k[2]),
-      l: parseFloat(k[3]),
-      c: parseFloat(k[4]),
-      v: parseFloat(k[5]),
-    }));
-    const first = data[0].o;
-    const last = data[data.length - 1].c;
-    const high = Math.max(...data.map((d) => d.h));
-    const low = Math.min(...data.map((d) => d.l));
-    const change = first > 0 ? ((last - first) / first) * 100 : 0;
-    return { data, first, last, high, low, change };
-  }, [klines]);
+    const widgetInner = document.createElement("div");
+    widgetInner.className = "tradingview-widget-container__widget";
+    widgetInner.style.cssText = "height:100%;width:100%";
+    widgetContainer.appendChild(widgetInner);
 
-  // ── SVG path for area chart ──
-  const svgPath = useMemo(() => {
-    if (!chartGeo) return null;
-    const { data, high, low } = chartGeo;
-    const W = 800;
-    const H = 320;
-    const padX = 4;
-    const padY = 16;
-    const range = Math.max(high - low, 1e-9);
-    const stepX = (W - padX * 2) / Math.max(data.length - 1, 1);
-
-    const points = data.map((d, i) => {
-      const x = padX + i * stepX;
-      const y = padY + (1 - (d.c - low) / range) * (H - padY * 2);
-      return [x, y];
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: tvSymbol,
+      interval: tvInterval,
+      timezone: timezone,
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      backgroundColor: "rgba(13, 13, 13, 1)",
+      gridColor: "rgba(212, 168, 83, 0.05)",
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      save_image: false,
+      studies: ["STD;EMA"],
+      support_host: "https://www.tradingview.com",
     });
 
-    const linePath = points
-      .map((p, i) => (i === 0 ? `M ${p[0]},${p[1]}` : `L ${p[0]},${p[1]}`))
-      .join(" ");
-    const areaPath =
-      linePath +
-      ` L ${points[points.length - 1][0]},${H - padY}` +
-      ` L ${points[0][0]},${H - padY} Z`;
+    widgetContainer.appendChild(script);
+    container.appendChild(widgetContainer);
 
-    return { W, H, linePath, areaPath, points };
-  }, [chartGeo]);
+    return () => {
+      if (container) container.innerHTML = "";
+    };
+  }, [tvSymbol, tvInterval]);
 
-  const last = chartGeo?.last ?? stats24h?.last ?? 0;
-  const change = stats24h?.changePct ?? chartGeo?.change ?? 0;
-  const isPos = change >= 0;
+  const last = stats24h?.last;
+  const change = stats24h?.changePct;
+  const isPos = (change ?? 0) >= 0;
 
   const intervals = [
-    { v: "15m", l: "15m" },
-    { v: "1h", l: "1H" },
-    { v: "4h", l: "4H" },
-    { v: "1d", l: "1D" },
+    { v: "15", l: "15m" },
+    { v: "60", l: "1H" },
+    { v: "240", l: "4H" },
+    { v: "D", l: "1D" },
   ];
 
-  // ── Render ──
+  const tvFullUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`;
+
+  // ── Render via portal ──
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[100000] flex items-start justify-center px-3 py-4 sm:px-6 md:px-8 pt-[80px] sm:pt-[100px] pb-6 ${
+      className={`fixed inset-0 z-[100000] flex items-start justify-center px-3 py-4 sm:px-6 md:px-8 pt-[60px] sm:pt-[80px] pb-6 ${
         isClosing
           ? "animate-[mpfade-out_.18s_ease-in_forwards]"
           : "animate-[mpfade-in_.22s_ease-out]"
       }`}
-      style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)" }}
+      style={{
+        backgroundColor: "rgba(0,0,0,0.82)",
+        backdropFilter: "blur(6px)",
+      }}
       onClick={handleClose}
     >
       <div
-        className={`relative w-full max-w-[920px] bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-110px)] sm:max-h-[calc(100dvh-130px)] ${
+        className={`relative w-full max-w-[1180px] bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-90px)] sm:max-h-[calc(100dvh-110px)] ${
           isClosing
             ? "animate-[mppanel-out_.18s_ease-in_forwards]"
             : "animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
@@ -1834,22 +1892,26 @@ const CoinChartModal = ({ pair, onClose }) => {
                 <span className="text-white text-base sm:text-lg font-bold leading-none">
                   {symbol}
                 </span>
-                <span className="text-text-muted/60 text-[10px] font-mono">{pair}</span>
+                <span className="text-text-muted/60 text-[10px] font-mono">
+                  {pair}
+                </span>
               </div>
               <div className="flex items-baseline gap-2 mt-1.5">
                 <span className="text-white font-mono text-sm sm:text-base font-bold leading-none">
-                  ${formatPrice(last)}
+                  {last != null ? `$${formatPrice(last)}` : "—"}
                 </span>
-                <span
-                  className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                    isPos
-                      ? "bg-emerald-500/15 text-emerald-400"
-                      : "bg-red-500/15 text-red-400"
-                  }`}
-                >
-                  {isPos ? "+" : ""}
-                  {change.toFixed(2)}%
-                </span>
+                {change != null && (
+                  <span
+                    className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                      isPos
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-red-500/15 text-red-400"
+                    }`}
+                  >
+                    {isPos ? "+" : ""}
+                    {change.toFixed(2)}%
+                  </span>
+                )}
                 <span className="text-[9px] text-text-muted/50 uppercase tracking-wider">
                   24h
                 </span>
@@ -1865,141 +1927,44 @@ const CoinChartModal = ({ pair, onClose }) => {
           </button>
         </div>
 
-        {/* Toolbar: interval + view toggle */}
+        {/* Toolbar: interval + open in TV */}
         <div className="px-4 sm:px-5 py-2 border-b border-white/[0.04] flex items-center justify-between gap-3 bg-black/20 flex-shrink-0 flex-wrap">
           <div className="flex items-center gap-1 bg-black/40 rounded-md p-0.5 border border-white/[0.06]">
             {intervals.map((it) => (
               <button
                 key={it.v}
-                onClick={() => setIntervalState(it.v)}
-                disabled={showTV}
+                onClick={() => setTvInterval(it.v)}
                 className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
-                  interval === it.v && !showTV
+                  tvInterval === it.v
                     ? "bg-gold-primary/20 text-gold-primary"
                     : "text-text-muted/60 hover:text-white"
-                } ${showTV ? "opacity-40 cursor-not-allowed" : ""}`}
+                }`}
               >
                 {it.l}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-text-muted/50 font-mono uppercase tracking-wider hidden sm:inline">
-              {showTV ? "TradingView" : "Quick chart"}
-            </span>
-            <button
-              onClick={() => setShowTV((v) => !v)}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all ${
-                showTV
-                  ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                  : "bg-black/40 text-text-muted border-white/10 hover:text-white hover:border-white/30"
-              }`}
-            >
-              {showTV ? "✕ Close TV" : "📊 Open in TradingView"}
-            </button>
-          </div>
+          <a
+            href={tvFullUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1 rounded-md text-[10px] font-bold border bg-black/40 text-text-muted border-white/10 hover:text-white hover:border-white/30 transition-all flex items-center gap-1.5"
+          >
+            <span>↗</span>
+            <span>Open in TradingView</span>
+          </a>
         </div>
 
-        {/* Chart area */}
+        {/* Chart area — TradingView embed fills the box */}
         <div
-          className="relative bg-[#0d0908] flex-1 overflow-hidden"
-          style={{ minHeight: 320 }}
+          className="relative bg-[#0d0d0d] flex-1 overflow-hidden"
+          style={{ minHeight: 380 }}
         >
-          {showTV ? (
-            <div
-              id="tv_chart_pulse_modal"
-              ref={tvContainerRef}
-              style={{ width: "100%", height: "100%", minHeight: 320 }}
-            />
-          ) : (
-            <>
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center text-text-muted/50 text-xs">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
-                    <span className="font-mono text-[10px] uppercase tracking-wider">
-                      Loading chart…
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {error && !loading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl mb-2 opacity-30">⚠</div>
-                    <div className="text-text-muted text-xs">{error}</div>
-                    <div className="text-text-muted/40 text-[10px] mt-1 font-mono">
-                      {binanceSymbol} not on Binance
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!loading && !error && chartGeo && svgPath && (
-                <svg
-                  viewBox={`0 0 ${svgPath.W} ${svgPath.H}`}
-                  preserveAspectRatio="none"
-                  className="w-full h-full"
-                  style={{ display: "block" }}
-                >
-                  <defs>
-                    <linearGradient id="mp-area" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor={isPos ? "#10b981" : "#ef4444"}
-                        stopOpacity="0.35"
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={isPos ? "#10b981" : "#ef4444"}
-                        stopOpacity="0.01"
-                      />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Grid lines */}
-                  {[0.25, 0.5, 0.75].map((p) => (
-                    <line
-                      key={p}
-                      x1="0"
-                      x2={svgPath.W}
-                      y1={svgPath.H * p}
-                      y2={svgPath.H * p}
-                      stroke="rgba(255,255,255,0.04)"
-                      strokeWidth="1"
-                    />
-                  ))}
-
-                  {/* Area fill */}
-                  <path d={svgPath.areaPath} fill="url(#mp-area)" />
-
-                  {/* Line */}
-                  <path
-                    d={svgPath.linePath}
-                    fill="none"
-                    stroke={isPos ? "#10b981" : "#ef4444"}
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Last-point dot */}
-                  {svgPath.points.length > 0 && (
-                    <circle
-                      cx={svgPath.points[svgPath.points.length - 1][0]}
-                      cy={svgPath.points[svgPath.points.length - 1][1]}
-                      r="3.5"
-                      fill={isPos ? "#10b981" : "#ef4444"}
-                      stroke="#0d0908"
-                      strokeWidth="2"
-                    />
-                  )}
-                </svg>
-              )}
-            </>
-          )}
+          <div
+            ref={tvContainerRef}
+            style={{ width: "100%", height: "100%", minHeight: 380 }}
+          />
         </div>
 
         {/* Footer stats */}
@@ -2020,13 +1985,15 @@ const CoinChartModal = ({ pair, onClose }) => {
           />
           <ModalStat
             label="Source"
-            value="Binance"
+            value={stats24h ? "Live" : "TV only"}
             accent="gold"
           />
         </div>
 
         <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-black/20 flex-shrink-0">
-          <span className="uppercase tracking-wider">Live · Binance API</span>
+          <span className="uppercase tracking-wider">
+            Chart by TradingView · Stats by Binance/Bybit
+          </span>
           <span>ESC to close</span>
         </div>
       </div>
