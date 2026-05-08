@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 
 /**
- * CoinCategoryBadge — compact chip displaying coin type & utility status.
+ * CoinCategoryBadge v2 — Inline pill + tagline format
  *
  * Place at:
  *   /Users/dwiyulianto/Downloads/luxquant-fullstack/frontend-react/src/components/CoinCategoryBadge.jsx
  *
  * Usage in SignalModal header:
- *   <CoinCategoryBadge pair={signal?.pair} onClick={() => setShowCoinDetail(true)} />
+ *   <CoinCategoryBadge pair={signal?.pair} onClick={() => setShowCoinUtility(true)} />
  *
- * Renders: [🏗️ L1] [✓ Has Utility]   or   [🐶 Meme] [⚠️ No Utility]
+ * Renders (full mode):
+ *   ✓ Utility · Infrastructure  Decentralized oracle network →
+ *   ⚠ Meme · Hype-driven  Click for risks →
+ *
+ * Renders (compact mode — fallback for tight spaces):
+ *   [✓ Utility]
  *
  * Fetches /api/v1/coins/{pair} once, caches in module-level Map.
  */
@@ -17,29 +22,72 @@ import { useEffect, useState } from "react";
 // Module-level cache to avoid refetching when modal reopens for same pair
 const coinCache = new Map();
 
+// ───────────────────────────────────────────────────────────────
+// META: token type → label, sector → label, default tagline
+// ───────────────────────────────────────────────────────────────
+
 const TOKEN_TYPE_META = {
-  layer1:     { icon: "🏗️", label: "L1",        color: "blue" },
-  layer2:     { icon: "🚀", label: "L2",        color: "blue" },
-  utility:    { icon: "🔧", label: "Utility",   color: "cyan" },
-  defi:       { icon: "💱", label: "DeFi",      color: "purple" },
-  governance: { icon: "🗳️", label: "Gov",       color: "purple" },
-  rwa:        { icon: "🏦", label: "RWA",       color: "amber" },
-  stablecoin: { icon: "💵", label: "Stable",    color: "emerald" },
-  exchange:   { icon: "🏢", label: "Exchange",  color: "yellow" },
-  privacy:    { icon: "🔒", label: "Privacy",   color: "gray" },
-  memecoin:   { icon: "🐶", label: "Meme",      color: "pink" },
+  layer1:     { label: "Layer 1",     status: "utility", defaultTag: "Blockchain infrastructure" },
+  layer2:     { label: "Layer 2",     status: "utility", defaultTag: "Scaling solution" },
+  utility:    { label: "Utility",     status: "utility", defaultTag: "Real utility token" },
+  defi:       { label: "DeFi",        status: "utility", defaultTag: "Decentralized finance protocol" },
+  governance: { label: "Governance",  status: "utility", defaultTag: "Protocol governance token" },
+  rwa:        { label: "RWA",         status: "utility", defaultTag: "Real-world asset backed" },
+  stablecoin: { label: "Stablecoin",  status: "utility", defaultTag: "Price-stable asset" },
+  exchange:   { label: "Exchange",    status: "utility", defaultTag: "Exchange native token" },
+  privacy:    { label: "Privacy",     status: "utility", defaultTag: "Privacy-focused crypto" },
+  memecoin:   { label: "Meme",        status: "speculation", defaultTag: "Hype-driven, click for risks" },
 };
 
-const COLOR_CLASSES = {
-  blue:    "bg-blue-500/15 text-blue-300 border-blue-500/30",
-  cyan:    "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-  purple:  "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  amber:   "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  emerald: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  yellow:  "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
-  gray:    "bg-gray-500/15 text-gray-300 border-gray-500/30",
-  pink:    "bg-pink-500/15 text-pink-300 border-pink-500/30",
+const SECTOR_LABEL = {
+  infrastructure: "Infrastructure",
+  defi:           "DeFi",
+  gamefi:         "GameFi",
+  nft:            "NFT",
+  metaverse:      "Metaverse",
+  ai:             "AI",
+  socialfi:       "SocialFi",
+  payments:       "Payments",
+  rwa:            "RWA",
+  privacy:        "Privacy",
+  hype:           "Hype-driven",
+  other:          "Other",
 };
+
+// ───────────────────────────────────────────────────────────────
+// HELPERS
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * Pick the best tagline from coin data.
+ * Priority: top use_case → summary (truncated) → meta.defaultTag
+ */
+const buildTagline = (coinData, meta) => {
+  // 1. Prefer first use case (most actionable, ~50 chars)
+  const useCases = Array.isArray(coinData.use_cases) ? coinData.use_cases : [];
+  if (useCases.length > 0 && typeof useCases[0] === "string") {
+    return truncate(useCases[0], 60);
+  }
+
+  // 2. Fallback: summary truncated
+  if (coinData.summary && typeof coinData.summary === "string") {
+    return truncate(coinData.summary, 60);
+  }
+
+  // 3. Last resort: generic per token type
+  return meta.defaultTag;
+};
+
+const truncate = (str, max) => {
+  if (!str) return "";
+  const s = String(str).trim();
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + "…";
+};
+
+// ───────────────────────────────────────────────────────────────
+// COMPONENT
+// ───────────────────────────────────────────────────────────────
 
 const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
   const [coinData, setCoinData] = useState(() => coinCache.get(pair) || null);
@@ -88,56 +136,92 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
   if (loading || !coinData) return null;
 
   const meta = TOKEN_TYPE_META[coinData.token_type] || {
-    icon: "❓",
     label: coinData.token_type || "Unknown",
-    color: "gray",
+    status: "unknown",
+    defaultTag: "Click for details",
   };
 
-  const typeColorClass = COLOR_CLASSES[meta.color] || COLOR_CLASSES.gray;
+  const sectorLabel =
+    SECTOR_LABEL[coinData.sector] ||
+    (coinData.sector
+      ? coinData.sector.charAt(0).toUpperCase() + coinData.sector.slice(1)
+      : null);
 
-  // Utility indicator
-  const utilityChip =
-    coinData.has_utility === true
-      ? {
-          icon: "✓",
-          label: compact ? "Util" : "Has Utility",
-          class: "bg-green-500/15 text-green-300 border-green-500/30",
-        }
-      : coinData.has_utility === false
-        ? {
-            icon: "⚠",
-            label: compact ? "Spec" : "No Utility",
-            class: "bg-orange-500/15 text-orange-300 border-orange-500/30",
-          }
-        : null;
+  // Determine status (utility vs speculation)
+  const isSpeculation =
+    coinData.has_utility === false || meta.status === "speculation";
+
+  const tagline = buildTagline(coinData, meta);
+
+  // ─────────────────────────────────────────────────────────────
+  // COMPACT MODE — single pill (used in tight spaces, e.g. signal cards)
+  // ─────────────────────────────────────────────────────────────
+  if (compact) {
+    const compactClass = isSpeculation
+      ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+      : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+
+    return (
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onClick) onClick(coinData);
+        }}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide cursor-pointer hover:opacity-80 transition-opacity ${compactClass}`}
+        title={tagline}
+      >
+        <span>{isSpeculation ? "⚠" : "✓"}</span>
+        <span>{meta.label}</span>
+      </span>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // FULL MODE — inline pill + tagline (for signal modal header)
+  // ─────────────────────────────────────────────────────────────
+
+  // Status pill: green for utility, amber for speculation
+  const statusPillClass = isSpeculation
+    ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
+    : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+
+  const statusIcon = isSpeculation ? "⚠" : "✓";
 
   return (
-    <div
-      className="flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+    <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         if (onClick) onClick(coinData);
       }}
-      title="Click for details"
+      className="group flex items-center gap-1.5 sm:gap-2 max-w-full text-left rounded-md hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors px-1 -mx-1 py-0.5"
+      title="Click for full categorization details"
     >
-      {/* Token type chip */}
+      {/* Status + Type pill (e.g., "✓ Utility" or "⚠ Meme") */}
       <span
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide ${typeColorClass}`}
+        className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide ${statusPillClass}`}
       >
-        <span className="text-[10px]">{meta.icon}</span>
+        <span>{statusIcon}</span>
         <span>{meta.label}</span>
       </span>
 
-      {/* Utility chip */}
-      {utilityChip && (
-        <span
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold ${utilityChip.class}`}
-        >
-          <span>{utilityChip.icon}</span>
-          {!compact && <span>{utilityChip.label}</span>}
+      {/* Sector chip (subtle, secondary) */}
+      {sectorLabel && (
+        <span className="flex-shrink-0 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-medium bg-white/[0.04] text-white/60 border-white/10">
+          {sectorLabel}
         </span>
       )}
-    </div>
+
+      {/* Tagline (truncated, hidden on very narrow screens) */}
+      <span className="hidden md:inline text-[10px] sm:text-[11px] text-text-muted truncate min-w-0">
+        {tagline}
+      </span>
+
+      {/* Arrow hint */}
+      <span className="flex-shrink-0 text-[11px] text-gold-primary/60 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all">
+        →
+      </span>
+    </button>
   );
 };
 
