@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -13,6 +14,22 @@ const stripQuote = (sym) => (sym || "").replace(/USDT$|USDC$|BUSD$|USD$/i, "");
 const titleCase = (s) => {
   if (!s) return "";
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+const formatPrice = (p) => {
+  if (!p || p <= 0) return "0.00";
+  if (p >= 1000) return p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (p >= 1) return p.toFixed(4);
+  if (p >= 0.01) return p.toFixed(6);
+  return p.toFixed(8);
+};
+
+const formatVolume = (v) => {
+  if (!v || v <= 0) return "—";
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + "B";
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(2) + "K";
+  return v.toFixed(2);
 };
 
 // ════════════════════════════════════════════════════════
@@ -35,6 +52,10 @@ const MarketPulsePage = () => {
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [moverPeriod, setMoverPeriod] = useState("1h");
   const [expandedGroups, setExpandedGroups] = useState({});
+
+  // === NEW: Heatmap sort mode + Chart Modal ===
+  const [heatmapSortMode, setHeatmapSortMode] = useState("events"); // "events" | "pct"
+  const [chartModalPair, setChartModalPair] = useState(null);
 
   // ═════════ FETCH ═════════
 
@@ -179,17 +200,29 @@ const MarketPulsePage = () => {
     return buckets;
   }, [feed]);
 
+  // === NEW: Heatmap enriched — supports up to 20 coins + sort by events/% ===
   const heatmapEnriched = useMemo(() => {
     if (!stats?.heatmap) return [];
     const counts = {};
     feed.forEach((e) => {
       counts[e.pair] = (counts[e.pair] || 0) + 1;
     });
-    return stats.heatmap.slice(0, 9).map((c) => ({
+    const items = stats.heatmap.slice(0, 20).map((c) => ({
       ...c,
       event_count: counts[c.pair] || c.event_count || 1,
     }));
-  }, [feed, stats]);
+
+    if (heatmapSortMode === "pct") {
+      items.sort((a, b) => {
+        const aPct = Math.max(Math.abs(a.max_up || 0), Math.abs(a.max_down || 0));
+        const bPct = Math.max(Math.abs(b.max_up || 0), Math.abs(b.max_down || 0));
+        return bPct - aPct;
+      });
+    } else {
+      items.sort((a, b) => (b.event_count || 0) - (a.event_count || 0));
+    }
+    return items;
+  }, [feed, stats, heatmapSortMode]);
 
   // ═════════ HELPERS ═════════
 
@@ -239,6 +272,11 @@ const MarketPulsePage = () => {
   const toggleGroup = (pair, e) => {
     e.stopPropagation();
     setExpandedGroups((prev) => ({ ...prev, [pair]: !prev[pair] }));
+  };
+
+  // === NEW: open chart modal ===
+  const openChartModal = (pair) => {
+    setChartModalPair(pair);
   };
 
   // Flash moves (top 5) — derived from feed for hero card
@@ -296,7 +334,7 @@ const MarketPulsePage = () => {
       </div>
 
       {/* ═══ PULSE TAPE ═══ */}
-      {tapeItems.length > 0 && <PulseTape items={tapeItems} onSelect={selectCoin} />}
+      {tapeItems.length > 0 && <PulseTape items={tapeItems} onSelect={openChartModal} />}
 
       {/* ═══ KPI CARDS — with mini visuals ═══ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -309,11 +347,11 @@ const MarketPulsePage = () => {
         <KpiFlash
           count={stats?.hourly?.flash_moves || 0}
           previews={flashMovesPreview}
-          onSelect={selectCoin}
+          onSelect={openChartModal}
         />
         <KpiBiggestMove
           biggest={stats?.hourly?.biggest_move}
-          onSelect={selectCoin}
+          onSelect={openChartModal}
         />
       </div>
 
@@ -416,6 +454,7 @@ const MarketPulsePage = () => {
             histogram={coinHistograms[selectedCoin]}
             timeAgo={timeAgo}
             onClose={() => setSelectedCoin(null)}
+            onOpenChart={openChartModal}
           />
         )}
       </div>
@@ -458,7 +497,7 @@ const MarketPulsePage = () => {
                       event={event}
                       histogram={coinHistograms[event.pair]}
                       isSelected={selectedCoin === event.pair}
-                      onSelect={() => selectCoin(event.pair)}
+                      onSelect={() => openChartModal(event.pair)}
                       eventTagClass={eventTagClass}
                       eventLabel={eventLabel}
                       timeAgo={timeAgo}
@@ -478,7 +517,7 @@ const MarketPulsePage = () => {
                       expanded={isExpanded}
                       onToggle={(e) => toggleGroup(`${gi}-${group.pair}`, e)}
                       isSelected={selectedCoin === group.pair}
-                      onSelectCoin={() => selectCoin(group.pair)}
+                      onSelectCoin={() => openChartModal(group.pair)}
                     />
                     {isExpanded &&
                       group.events.map((event, ei) => (
@@ -488,7 +527,7 @@ const MarketPulsePage = () => {
                           eventTagClass={eventTagClass}
                           eventLabel={eventLabel}
                           timeAgo={timeAgo}
-                          onSelect={() => selectCoin(event.pair)}
+                          onSelect={() => openChartModal(event.pair)}
                         />
                       ))}
                   </div>
@@ -509,7 +548,9 @@ const MarketPulsePage = () => {
           <HeatmapPanel
             heatmap={heatmapEnriched}
             selectedCoin={selectedCoin}
-            onSelect={selectCoin}
+            onSelect={openChartModal}
+            sortMode={heatmapSortMode}
+            onSortChange={setHeatmapSortMode}
           />
 
           <MostActivePanel
@@ -517,18 +558,26 @@ const MarketPulsePage = () => {
             period={moverPeriod}
             setPeriod={setMoverPeriod}
             histograms={coinHistograms}
-            onSelect={selectCoin}
+            onSelect={openChartModal}
           />
 
           <FlashMovesPanel
             moves={topMovers?.flash_moves}
-            onSelect={selectCoin}
+            onSelect={openChartModal}
           />
 
           {/* Last panel stretches to fill */}
           <SummaryPanel daily={stats?.daily} className="mp-sidebar-stretch" />
         </div>
       </div>
+
+      {/* ═══ COIN CHART MODAL ═══ */}
+      {chartModalPair && (
+        <CoinChartModal
+          pair={chartModalPair}
+          onClose={() => setChartModalPair(null)}
+        />
+      )}
     </div>
   );
 };
@@ -799,7 +848,7 @@ const FilterPill = ({ active, onClick, label }) => (
 );
 
 // ── Coin Detail Banner ──────────────────────────────────
-const CoinDetailBanner = ({ pair, coinDetail, histogram, timeAgo, onClose }) => {
+const CoinDetailBanner = ({ pair, coinDetail, histogram, timeAgo, onClose, onOpenChart }) => {
   const symbol = stripQuote(pair);
   const stats = coinDetail.stats;
   const bullPct = stats.bull_pct;
@@ -840,12 +889,22 @@ const CoinDetailBanner = ({ pair, coinDetail, histogram, timeAgo, onClose }) => 
             })}
           </div>
         )}
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-white text-base px-2 transition-colors"
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenChart && (
+            <button
+              onClick={() => onOpenChart(pair)}
+              className="text-[10px] px-2.5 py-1 rounded border border-gold-primary/40 text-gold-primary hover:bg-gold-primary/10 transition-colors font-bold tracking-wider"
+            >
+              📊 CHART
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-white text-base px-2 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <DetailStat
@@ -1094,172 +1153,193 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
   );
 };
 
-// ── Heatmap Panel — Pure CSS Grid, no library, guaranteed render ──
-// Uses fixed grid template (4 cols × 3 rows = 12 cells, 220px tall).
-// Top 1 spans 2x2 (4 cells), top 2-3 span 2x1 (2 cells each), rest 1x1.
-// All sizing via inline styles + static Tailwind classes — no dynamic class
-// concatenation that could be tree-shaken in production.
-const HeatmapPanel = ({ heatmap, selectedCoin, onSelect }) => {
+// ════════════════════════════════════════════════════════
+// ★ NEW HEATMAP — uniform grid, NO overlap, toggle Events / % Change
+// ════════════════════════════════════════════════════════
+
+const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange }) => {
   const tiles = useMemo(() => {
     if (!heatmap || heatmap.length === 0) return [];
-    const items = heatmap.map((coin) => {
-      const strongestMove =
-        coin.max_up && (!coin.max_down || coin.max_up >= Math.abs(coin.max_down))
-          ? coin.max_up
-          : coin.max_down
-          ? coin.max_down
-          : 0;
+    return heatmap.slice(0, 16).map((coin) => {
+      const upAbs = Math.abs(coin.max_up || 0);
+      const downAbs = Math.abs(coin.max_down || 0);
+      const strongest = upAbs >= downAbs ? coin.max_up || 0 : coin.max_down || 0;
       return {
         pair: coin.pair,
         symbol: stripQuote(coin.pair),
         eventCount: Math.max(1, coin.event_count || 1),
-        pct: strongestMove,
-        isBull: strongestMove >= 0,
+        pct: strongest,
+        isBull: strongest >= 0,
       };
     });
-    items.sort((a, b) => b.eventCount - a.eventCount);
-    return items.slice(0, 9);
   }, [heatmap]);
 
-  // Pre-defined grid layout: explicit grid-area for each tile by rank.
-  // Grid: 4 columns × 3 rows = 12 cells. Tile placements:
-  //   rank 1: 2x2 (cells 1-2, rows 1-2)
-  //   rank 2: 2x1 (cells 3-4, row 1)
-  //   rank 3: 2x1 (cells 3-4, row 2)
-  //   rank 4-9: 1x1 (row 3, fills remaining)
-  const gridAreas = [
-    { gridColumn: "1 / 3", gridRow: "1 / 3" }, // rank 1: 2x2
-    { gridColumn: "3 / 5", gridRow: "1 / 2" }, // rank 2: 2x1
-    { gridColumn: "3 / 5", gridRow: "2 / 3" }, // rank 3: 2x1
-    { gridColumn: "1 / 2", gridRow: "3 / 4" }, // rank 4
-    { gridColumn: "2 / 3", gridRow: "3 / 4" },
-    { gridColumn: "3 / 4", gridRow: "3 / 4" },
-    { gridColumn: "4 / 5", gridRow: "3 / 4" },
-  ];
+  // Intensity scaling depends on sort mode — gives clearer visual meaning
+  const maxEvents = useMemo(
+    () => Math.max(1, ...tiles.map((t) => t.eventCount)),
+    [tiles]
+  );
 
   return (
     <div className="bg-[#0a0506] rounded-xl border border-white/10 p-3">
-      <div className="flex items-center justify-between mb-2.5">
-        <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
-          Heatmap · 1h
-        </h3>
-        <span className="text-[9px] text-text-muted/50 font-mono">
-          Size = events · Top {tiles.length}
-        </span>
+      {/* Header with sort toggle */}
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="text-text-muted text-[10px] font-bold uppercase tracking-widest">
+            Heatmap · 1h
+          </h3>
+          <span className="text-[9px] text-text-muted/50 font-mono">
+            Top {tiles.length}
+          </span>
+        </div>
+
+        <div className="flex bg-black/40 rounded-md p-0.5 border border-white/[0.06] flex-shrink-0">
+          <button
+            onClick={() => onSortChange("events")}
+            className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
+              sortMode === "events"
+                ? "bg-gold-primary/20 text-gold-primary"
+                : "text-text-muted/60 hover:text-white"
+            }`}
+            title="Sort by event count"
+          >
+            Events
+          </button>
+          <button
+            onClick={() => onSortChange("pct")}
+            className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${
+              sortMode === "pct"
+                ? "bg-gold-primary/20 text-gold-primary"
+                : "text-text-muted/60 hover:text-white"
+            }`}
+            title="Sort by % change"
+          >
+            % Change
+          </button>
+        </div>
       </div>
 
       {tiles.length === 0 ? (
-        <div className="text-center py-12 text-text-muted/50 text-xs">No activity yet</div>
+        <div className="text-center py-12 text-text-muted/50 text-xs">
+          No activity yet
+        </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gridTemplateRows: "repeat(3, 60px)",
-            gap: "6px",
-            width: "100%",
-            height: "192px",
-          }}
-        >
-          {tiles.slice(0, 7).map((tile, i) => (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+          {tiles.map((tile) => (
             <HeatmapTile
               key={tile.pair}
               tile={tile}
               isSelected={selectedCoin === tile.pair}
               onSelect={onSelect}
-              areaStyle={gridAreas[i] || {}}
-              isLarge={i === 0}
-              isMedium={i === 1 || i === 2}
+              maxEvents={maxEvents}
+              sortMode={sortMode}
             />
           ))}
         </div>
       )}
+
+      <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[8.5px] font-mono text-text-muted/50">
+        <span className="uppercase tracking-wider">
+          Color = direction · Tap for chart
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm bg-emerald-500/60" /> bull
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm bg-red-500/60" /> bear
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
 
-// Single heatmap tile — takes its grid area style + size variant
-const HeatmapTile = ({ tile, isSelected, onSelect, areaStyle, isLarge, isMedium }) => {
+// ── Heatmap Tile — uniform sized, vertical stack, NO overlap ──
+const HeatmapTile = ({ tile, isSelected, onSelect, maxEvents, sortMode }) => {
   const { pair, symbol, pct, isBull, eventCount } = tile;
-  const intensity = Math.min(Math.abs(pct) / 10, 1);
-  const bgColor = isBull
-    ? `rgba(16, 185, 129, ${0.12 + intensity * 0.4})`
-    : `rgba(239, 68, 68, ${0.12 + intensity * 0.4})`;
 
-  const logoSize = isLarge ? 28 : isMedium ? 22 : 18;
-  const symbolFontSize = isLarge ? 13 : isMedium ? 12 : 11;
-  const pctFontSize = isLarge ? 12 : isMedium ? 11 : 10;
+  // Intensity: events mode uses event count ratio; pct mode uses |pct| / 10
+  const intensity =
+    sortMode === "events"
+      ? Math.min(eventCount / maxEvents, 1)
+      : Math.min(Math.abs(pct) / 10, 1);
+
+  const bgColor = isBull
+    ? `rgba(16, 185, 129, ${0.1 + intensity * 0.4})`
+    : `rgba(239, 68, 68, ${0.1 + intensity * 0.4})`;
+
+  const borderColor = isSelected
+    ? "#d4a853"
+    : isBull
+    ? `rgba(16,185,129,${0.25 + intensity * 0.3})`
+    : `rgba(239,68,68,${0.25 + intensity * 0.3})`;
+
+  // Truncate symbol if too long (e.g., "PEPECOIN" -> "PEPEC…")
+  const displaySymbol =
+    symbol.length > 6 ? symbol.slice(0, 5) + "…" : symbol;
 
   return (
     <button
       onClick={() => onSelect(pair)}
+      title={`${pair} · ${eventCount} events · ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`}
+      className="heatmap-tile relative rounded-md cursor-pointer transition-all hover:scale-[1.04] hover:z-10"
       style={{
-        ...areaStyle,
         backgroundColor: bgColor,
-        border: isSelected ? "2px solid #d4a853" : "1px solid rgba(0,0,0,0.4)",
-        borderRadius: "6px",
-        cursor: "pointer",
-        position: "relative",
-        overflow: "hidden",
-        transition: "transform 0.15s ease, border-color 0.15s ease",
-        padding: "6px",
+        border: `${isSelected ? 2 : 1}px solid ${borderColor}`,
+        padding: "8px 6px 6px",
+        minHeight: "76px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "4px",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "scale(1.03)";
-        e.currentTarget.style.zIndex = "10";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "scale(1)";
-        e.currentTarget.style.zIndex = "1";
+        gap: "3px",
       }}
     >
-      <CoinLogo pair={pair} size={logoSize} />
+      {/* Event count badge — top-left corner, separate from main content */}
       <span
+        className="absolute top-1 left-1.5 text-[8.5px] font-mono font-bold leading-none"
+        style={{ color: "rgba(255,255,255,0.55)" }}
+      >
+        ×{eventCount}
+      </span>
+
+      {/* Direction arrow — top-right corner */}
+      <span
+        className="absolute top-1 right-1.5 text-[9px] leading-none"
+        style={{ color: isBull ? "#34d399" : "#f87171" }}
+      >
+        {isBull ? "▲" : "▼"}
+      </span>
+
+      {/* Logo */}
+      <CoinLogo pair={pair} size={22} />
+
+      {/* Symbol */}
+      <span
+        className="text-white font-bold leading-none"
         style={{
-          fontSize: `${symbolFontSize}px`,
-          fontWeight: 600,
-          color: isBull ? "#a7f3d0" : "#fecaca",
-          lineHeight: 1,
+          fontSize: "11px",
           maxWidth: "100%",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
         }}
       >
-        {symbol}
+        {displaySymbol}
       </span>
+
+      {/* % Change */}
       <span
+        className="font-mono font-bold leading-none"
         style={{
-          fontSize: `${pctFontSize}px`,
-          fontFamily: "ui-monospace, monospace",
-          fontWeight: 600,
+          fontSize: "11px",
           color: isBull ? "#34d399" : "#f87171",
-          lineHeight: 1,
         }}
       >
         {pct >= 0 ? "+" : ""}
         {pct.toFixed(1)}%
       </span>
-      {eventCount > 1 && (
-        <span
-          style={{
-            position: "absolute",
-            top: "4px",
-            right: "6px",
-            fontSize: "9px",
-            fontFamily: "ui-monospace, monospace",
-            color: "rgba(255,255,255,0.55)",
-            lineHeight: 1,
-          }}
-        >
-          {eventCount}
-        </span>
-      )}
     </button>
   );
 };
@@ -1473,6 +1553,507 @@ const FeedSkeleton = () => (
   </div>
 );
 
+// ════════════════════════════════════════════════════════
+// ★ NEW COIN CHART MODAL — premium style, real data via Binance
+// ════════════════════════════════════════════════════════
+
+const CoinChartModal = ({ pair, onClose }) => {
+  const symbol = stripQuote(pair);
+  const binanceSymbol = symbol + "USDT";
+  const tvSymbol = `BINANCE:${binanceSymbol}.P`;
+
+  const [klines, setKlines] = useState(null); // raw klines array
+  const [interval, setIntervalState] = useState("1h"); // "15m" | "1h" | "4h" | "1d"
+  const [stats24h, setStats24h] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showTV, setShowTV] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const tvContainerRef = useRef(null);
+  const tvWidgetRef = useRef(null);
+
+  // ── Lock body scroll while open ──
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  // ── Close on ESC ──
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 180);
+  }, [onClose]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
+  // ── Fetch klines (Binance Futures, fallback Spot) ──
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setKlines(null);
+
+    const limit = 100;
+
+    const fetchOne = async (url) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const d = await r.json();
+      if (!Array.isArray(d) || d.length === 0) throw new Error("Empty");
+      return d;
+    };
+
+    (async () => {
+      let data = null;
+      try {
+        data = await fetchOne(
+          `https://fapi.binance.com/fapi/v1/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
+        );
+      } catch {
+        try {
+          data = await fetchOne(
+            `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`
+          );
+        } catch (e) {
+          if (!cancelled) {
+            setError("Chart data unavailable");
+            setLoading(false);
+          }
+          return;
+        }
+      }
+      if (cancelled) return;
+      setKlines(data);
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [binanceSymbol, interval]);
+
+  // ── Fetch 24h ticker ──
+  useEffect(() => {
+    let cancelled = false;
+    const tryFetch = async () => {
+      try {
+        let r = await fetch(
+          `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${binanceSymbol}`
+        );
+        if (!r.ok) {
+          r = await fetch(
+            `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`
+          );
+        }
+        if (!r.ok) return;
+        const d = await r.json();
+        if (cancelled) return;
+        setStats24h({
+          last: parseFloat(d.lastPrice),
+          high: parseFloat(d.highPrice),
+          low: parseFloat(d.lowPrice),
+          volume: parseFloat(d.quoteVolume || d.volume || 0),
+          changePct: parseFloat(d.priceChangePercent),
+        });
+      } catch {}
+    };
+    tryFetch();
+    return () => {
+      cancelled = true;
+    };
+  }, [binanceSymbol]);
+
+  // ── TradingView widget mount ──
+  useEffect(() => {
+    if (!showTV) {
+      // Cleanup if user toggled off
+      if (tvWidgetRef.current) {
+        try {
+          tvWidgetRef.current.remove();
+        } catch {}
+        tvWidgetRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const containerId = "tv_chart_pulse_modal";
+
+    const init = () => {
+      if (cancelled || !document.getElementById(containerId)) return;
+      try {
+        tvWidgetRef.current = new window.TradingView.widget({
+          container_id: containerId,
+          autosize: true,
+          symbol: tvSymbol,
+          interval: interval === "15m" ? "15" : interval === "1h" ? "60" : interval === "4h" ? "240" : "D",
+          timezone: "Asia/Jakarta",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          toolbar_bg: "#0a0a0f",
+          enable_publishing: false,
+          backgroundColor: "#0d0d0d",
+          gridColor: "rgba(212, 168, 83, 0.05)",
+          allow_symbol_change: true,
+          save_image: false,
+        });
+      } catch (e) {
+        console.error("[TradingView]", e);
+      }
+    };
+
+    if (window.TradingView) {
+      const t = setTimeout(init, 80);
+      return () => {
+        cancelled = true;
+        clearTimeout(t);
+        if (tvWidgetRef.current) {
+          try {
+            tvWidgetRef.current.remove();
+          } catch {}
+          tvWidgetRef.current = null;
+        }
+      };
+    } else {
+      const s = document.createElement("script");
+      s.src = "https://s3.tradingview.com/tv.js";
+      s.async = true;
+      s.onload = () => {
+        const t = setTimeout(init, 80);
+      };
+      document.head.appendChild(s);
+      return () => {
+        cancelled = true;
+        if (tvWidgetRef.current) {
+          try {
+            tvWidgetRef.current.remove();
+          } catch {}
+          tvWidgetRef.current = null;
+        }
+      };
+    }
+  }, [showTV, tvSymbol, interval]);
+
+  // ── Derived chart geometry from klines ──
+  const chartGeo = useMemo(() => {
+    if (!klines || klines.length === 0) return null;
+    // Binance kline: [openTime, open, high, low, close, volume, closeTime, ...]
+    const data = klines.map((k) => ({
+      t: k[0],
+      o: parseFloat(k[1]),
+      h: parseFloat(k[2]),
+      l: parseFloat(k[3]),
+      c: parseFloat(k[4]),
+      v: parseFloat(k[5]),
+    }));
+    const first = data[0].o;
+    const last = data[data.length - 1].c;
+    const high = Math.max(...data.map((d) => d.h));
+    const low = Math.min(...data.map((d) => d.l));
+    const change = first > 0 ? ((last - first) / first) * 100 : 0;
+    return { data, first, last, high, low, change };
+  }, [klines]);
+
+  // ── SVG path for area chart ──
+  const svgPath = useMemo(() => {
+    if (!chartGeo) return null;
+    const { data, high, low } = chartGeo;
+    const W = 800;
+    const H = 320;
+    const padX = 4;
+    const padY = 16;
+    const range = Math.max(high - low, 1e-9);
+    const stepX = (W - padX * 2) / Math.max(data.length - 1, 1);
+
+    const points = data.map((d, i) => {
+      const x = padX + i * stepX;
+      const y = padY + (1 - (d.c - low) / range) * (H - padY * 2);
+      return [x, y];
+    });
+
+    const linePath = points
+      .map((p, i) => (i === 0 ? `M ${p[0]},${p[1]}` : `L ${p[0]},${p[1]}`))
+      .join(" ");
+    const areaPath =
+      linePath +
+      ` L ${points[points.length - 1][0]},${H - padY}` +
+      ` L ${points[0][0]},${H - padY} Z`;
+
+    return { W, H, linePath, areaPath, points };
+  }, [chartGeo]);
+
+  const last = chartGeo?.last ?? stats24h?.last ?? 0;
+  const change = stats24h?.changePct ?? chartGeo?.change ?? 0;
+  const isPos = change >= 0;
+
+  const intervals = [
+    { v: "15m", l: "15m" },
+    { v: "1h", l: "1H" },
+    { v: "4h", l: "4H" },
+    { v: "1d", l: "1D" },
+  ];
+
+  // ── Render ──
+  const modalContent = (
+    <div
+      className={`fixed inset-0 z-[100000] flex items-start justify-center px-3 py-4 sm:px-6 md:px-8 pt-[80px] sm:pt-[100px] pb-6 ${
+        isClosing
+          ? "animate-[mpfade-out_.18s_ease-in_forwards]"
+          : "animate-[mpfade-in_.22s_ease-out]"
+      }`}
+      style={{ backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)" }}
+      onClick={handleClose}
+    >
+      <div
+        className={`relative w-full max-w-[920px] bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-110px)] sm:max-h-[calc(100dvh-130px)] ${
+          isClosing
+            ? "animate-[mppanel-out_.18s_ease-in_forwards]"
+            : "animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-4 sm:px-5 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-black/30 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <CoinLogo pair={pair} size={36} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-white text-base sm:text-lg font-bold leading-none">
+                  {symbol}
+                </span>
+                <span className="text-text-muted/60 text-[10px] font-mono">{pair}</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1.5">
+                <span className="text-white font-mono text-sm sm:text-base font-bold leading-none">
+                  ${formatPrice(last)}
+                </span>
+                <span
+                  className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                    isPos
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "bg-red-500/15 text-red-400"
+                  }`}
+                >
+                  {isPos ? "+" : ""}
+                  {change.toFixed(2)}%
+                </span>
+                <span className="text-[9px] text-text-muted/50 uppercase tracking-wider">
+                  24h
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 rounded-lg bg-[#0a0a0a] border border-gold-primary/20 hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center text-text-muted hover:text-white transition-all flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Toolbar: interval + view toggle */}
+        <div className="px-4 sm:px-5 py-2 border-b border-white/[0.04] flex items-center justify-between gap-3 bg-black/20 flex-shrink-0 flex-wrap">
+          <div className="flex items-center gap-1 bg-black/40 rounded-md p-0.5 border border-white/[0.06]">
+            {intervals.map((it) => (
+              <button
+                key={it.v}
+                onClick={() => setIntervalState(it.v)}
+                disabled={showTV}
+                className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                  interval === it.v && !showTV
+                    ? "bg-gold-primary/20 text-gold-primary"
+                    : "text-text-muted/60 hover:text-white"
+                } ${showTV ? "opacity-40 cursor-not-allowed" : ""}`}
+              >
+                {it.l}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-text-muted/50 font-mono uppercase tracking-wider hidden sm:inline">
+              {showTV ? "TradingView" : "Quick chart"}
+            </span>
+            <button
+              onClick={() => setShowTV((v) => !v)}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all ${
+                showTV
+                  ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                  : "bg-black/40 text-text-muted border-white/10 hover:text-white hover:border-white/30"
+              }`}
+            >
+              {showTV ? "✕ Close TV" : "📊 Open in TradingView"}
+            </button>
+          </div>
+        </div>
+
+        {/* Chart area */}
+        <div
+          className="relative bg-[#0d0908] flex-1 overflow-hidden"
+          style={{ minHeight: 320 }}
+        >
+          {showTV ? (
+            <div
+              id="tv_chart_pulse_modal"
+              ref={tvContainerRef}
+              style={{ width: "100%", height: "100%", minHeight: 320 }}
+            />
+          ) : (
+            <>
+              {loading && (
+                <div className="absolute inset-0 flex items-center justify-center text-text-muted/50 text-xs">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-6 h-6 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+                    <span className="font-mono text-[10px] uppercase tracking-wider">
+                      Loading chart…
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {error && !loading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-2xl mb-2 opacity-30">⚠</div>
+                    <div className="text-text-muted text-xs">{error}</div>
+                    <div className="text-text-muted/40 text-[10px] mt-1 font-mono">
+                      {binanceSymbol} not on Binance
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!loading && !error && chartGeo && svgPath && (
+                <svg
+                  viewBox={`0 0 ${svgPath.W} ${svgPath.H}`}
+                  preserveAspectRatio="none"
+                  className="w-full h-full"
+                  style={{ display: "block" }}
+                >
+                  <defs>
+                    <linearGradient id="mp-area" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stopColor={isPos ? "#10b981" : "#ef4444"}
+                        stopOpacity="0.35"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor={isPos ? "#10b981" : "#ef4444"}
+                        stopOpacity="0.01"
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid lines */}
+                  {[0.25, 0.5, 0.75].map((p) => (
+                    <line
+                      key={p}
+                      x1="0"
+                      x2={svgPath.W}
+                      y1={svgPath.H * p}
+                      y2={svgPath.H * p}
+                      stroke="rgba(255,255,255,0.04)"
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  {/* Area fill */}
+                  <path d={svgPath.areaPath} fill="url(#mp-area)" />
+
+                  {/* Line */}
+                  <path
+                    d={svgPath.linePath}
+                    fill="none"
+                    stroke={isPos ? "#10b981" : "#ef4444"}
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Last-point dot */}
+                  {svgPath.points.length > 0 && (
+                    <circle
+                      cx={svgPath.points[svgPath.points.length - 1][0]}
+                      cy={svgPath.points[svgPath.points.length - 1][1]}
+                      r="3.5"
+                      fill={isPos ? "#10b981" : "#ef4444"}
+                      stroke="#0d0908"
+                      strokeWidth="2"
+                    />
+                  )}
+                </svg>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer stats */}
+        <div className="border-t border-white/[0.06] bg-black/30 px-4 sm:px-5 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 flex-shrink-0">
+          <ModalStat
+            label="24h High"
+            value={stats24h ? `$${formatPrice(stats24h.high)}` : "—"}
+            accent="emerald"
+          />
+          <ModalStat
+            label="24h Low"
+            value={stats24h ? `$${formatPrice(stats24h.low)}` : "—"}
+            accent="red"
+          />
+          <ModalStat
+            label="24h Volume"
+            value={stats24h ? `$${formatVolume(stats24h.volume)}` : "—"}
+          />
+          <ModalStat
+            label="Source"
+            value="Binance"
+            accent="gold"
+          />
+        </div>
+
+        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-black/20 flex-shrink-0">
+          <span className="uppercase tracking-wider">Live · Binance API</span>
+          <span>ESC to close</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modalContent, document.body);
+};
+
+const ModalStat = ({ label, value, accent }) => {
+  const colorMap = {
+    emerald: "text-emerald-400",
+    red: "text-red-400",
+    gold: "text-gold-primary",
+  };
+  return (
+    <div className="bg-black/30 rounded-lg p-2.5 border border-white/[0.04]">
+      <p className={`text-sm font-bold font-mono leading-none ${colorMap[accent] || "text-white"}`}>
+        {value}
+      </p>
+      <p className="text-text-muted/60 text-[9px] uppercase tracking-widest mt-1.5 font-mono">
+        {label}
+      </p>
+    </div>
+  );
+};
+
 // ── CSS for animations + equal-height grid ──────────────
 const PulseStyles = () => (
   <style>{`
@@ -1490,6 +2071,18 @@ const PulseStyles = () => (
     .pulse-feed-scroll::-webkit-scrollbar-track { background: transparent; }
     .pulse-feed-scroll::-webkit-scrollbar-thumb { background: rgba(212, 168, 83, 0.15); border-radius: 3px; }
     .pulse-feed-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212, 168, 83, 0.3); }
+
+    /* Modal animations */
+    @keyframes mpfade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes mpfade-out { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes mppanel-in {
+      from { opacity: 0; transform: translateY(20px) scale(.98); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+    @keyframes mppanel-out {
+      from { opacity: 1; transform: translateY(0)    scale(1); }
+      to   { opacity: 0; transform: translateY(20px) scale(.98); }
+    }
 
     /* Sidebar dictates height. Feed matches sidebar's natural height,
        and its internal list area scrolls. No fixed height — adapts to sidebar content.
