@@ -8,7 +8,7 @@ import SignalJourneyExtended from "./SignalJourneyExtended";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 
-const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
+const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal, initialTab = "chart" }) => {
   const { t } = useTranslation();
 
   const chartContainerRef = useRef(null);
@@ -16,7 +16,7 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
   const coinInfoFetchedRef = useRef(false);
 
   const [signalDetail, setSignalDetail] = useState(null);
-  const [activeTab, setActiveTab] = useState("chart");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [coinInfo, setCoinInfo] = useState(null);
   const [coinInfoLoading, setCoinInfoLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -57,6 +57,7 @@ const SignalModal = ({ signal, isOpen, onClose, onSwitchSignal }) => {
     setShowTV(false);
     setPromptCopied(false);
     setShowDeepAnalysis(false);
+    setActiveTab(initialTab);
 
     const fetchDetail = async () => {
       try {

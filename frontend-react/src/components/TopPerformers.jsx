@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import CoinLogo from './CoinLogo';
+import SignalJourneyExtended from './SignalJourneyExtended';
+import SignalModal from './SignalModal';
 
 const API_BASE = '/api/v1';
 
@@ -19,6 +21,21 @@ const TopPerformers = () => {
   const [modalItem, setModalItem] = useState(null);
   const [signalDetail, setSignalDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Full SignalModal state (opened via "View Full History" button)
+  const [historyModalSignal, setHistoryModalSignal] = useState(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+
+  const openHistoryModal = (item) => {
+    // Close current detail modal first, then open SignalModal in History tab
+    closeModal();
+    setHistoryModalSignal(item);
+    setHistoryModalOpen(true);
+  };
+  const closeHistoryModal = () => {
+    setHistoryModalOpen(false);
+    setHistoryModalSignal(null);
+  };
 
   const presets = [
     { key: '1d', label: t('top.d1'), days: 1 },
@@ -253,8 +270,17 @@ const TopPerformers = () => {
       {modalOpen && modalItem && (
         <SignalDetailModal item={modalItem} detail={signalDetail} loading={detailLoading}
           signalIds={modalSignalIds} currentIndex={modalIndex} onNavigate={goToSignal}
-          onClose={closeModal} cleanPair={cleanPair} t={t} />
+          onClose={closeModal} cleanPair={cleanPair} t={t}
+          onOpenHistory={openHistoryModal} />
       )}
+
+      {/* === FULL SIGNAL MODAL — opened via "View Full History" button === */}
+      <SignalModal
+        signal={historyModalSignal}
+        isOpen={historyModalOpen}
+        onClose={closeHistoryModal}
+        initialTab="history"
+      />
     </div>
   );
 };
@@ -274,7 +300,7 @@ function formatDuration(s) { if (!s || s <= 0) return 'N/A'; const d = Math.floo
 function formatPrice(p) { if (!p || p <= 0) return '0.00'; if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); if (p >= 1) return p.toFixed(4); if (p >= 0.01) return p.toFixed(6); return p.toFixed(8); }
 function formatGainDisplay(pct) { if (pct >= 10000) return (pct / 1000).toFixed(1) + 'K%'; if (pct >= 1000) return pct.toFixed(0) + '%'; return pct.toFixed(2) + '%'; }
 
-const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onNavigate, onClose, cleanPair, t }) => {
+const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onNavigate, onClose, cleanPair, t, onOpenHistory }) => {
   const [lightboxImg, setLightboxImg] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);
@@ -351,7 +377,19 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
         <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0 flex-1"><CoinLogo pair={pair} size={32} /><div className="min-w-0"><div className="flex items-center gap-2 flex-wrap"><h2 className="text-white font-display text-base font-semibold truncate">{pair}</h2>{status && <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${sColor(status)}`}>{sLabel(status)}</span>}{detail?.risk_level && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gold-primary/30 text-gold-primary">{detail.risk_level}</span>}</div><p className="text-text-muted text-xs mt-0.5 truncate">{t('top.called_sig')}: {fmtDt(created)}</p></div></div>
-            <button onClick={handleClose} className="w-8 h-8 rounded-lg bg-[#0a0a0a] border border-gold-primary/20 hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center text-text-muted hover:text-white transition-all flex-shrink-0 ml-3"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+              {onOpenHistory && (
+                <button
+                  onClick={() => onOpenHistory(item)}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/50 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
+                  title="Open full signal history"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  Full History
+                </button>
+              )}
+              <button onClick={handleClose} className="w-8 h-8 rounded-lg bg-[#0a0a0a] border border-gold-primary/20 hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center text-text-muted hover:text-white transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
           </div>
           {multi && (<div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-gold-primary/10"><button onClick={() => onNavigate(currentIndex - 1)} disabled={currentIndex <= 0} className="px-3 py-1 rounded border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">&larr; {t('top.prev')}</button><div className="flex items-center gap-2"><span className="text-text-muted text-[10px] sm:text-xs hidden sm:inline">{t('top.signal')}</span><div className="flex items-center gap-1">{signalIds.map((_, i) => (<button key={i} onClick={() => onNavigate(i)} className={`w-5 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-[10px] font-bold transition-all ${i === currentIndex ? 'bg-gold-primary text-black' : 'border border-gold-primary/20 text-text-muted hover:text-white hover:bg-white/5'}`}>{i + 1}</button>))}</div></div><button onClick={() => onNavigate(currentIndex + 1)} disabled={currentIndex >= total - 1} className="px-3 py-1 rounded border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">{t('top.next')} &rarr;</button></div>)}
         </div>
@@ -409,7 +447,16 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
               </div>
               <div className="space-y-6">
                 <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">&#x23F1;&#xFE0F; {t('top.journey')}</h4><div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 sm:p-5 w-full"><div className="flex justify-between items-start w-full relative"><div className="absolute top-[13px] sm:top-[15px] left-0 right-0 h-[2px] bg-white/5 z-0" />{events.map((ev, i) => { const isLast = i === events.length - 1; return (<div key={i} className="relative flex flex-col items-center flex-1 w-0 group z-10">{!isLast && (<div className={`absolute top-[13px] sm:top-[15px] left-[50%] w-full h-[2px] ${ev.colors.line} z-0`} />)}<div className={`relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-solid flex items-center justify-center bg-[#111] ${ev.colors.border}`}><div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ev.colors.dot} ${ev.colors.bg.replace('/10', '')}`} /></div><div className="mt-2.5 text-center flex flex-col items-center px-0.5 sm:px-1 w-full max-w-full"><span className={`text-[9px] sm:text-[11px] font-bold tracking-wide truncate w-full ${ev.colors.text}`} title={ev.label}>{ev.label}</span><span className="text-[8px] sm:text-[9px] font-mono font-medium px-1 sm:px-1.5 py-0.5 mt-1 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>{ev.sub && <span className="text-[7px] sm:text-[8px] text-text-muted mt-1 truncate w-full" title={ev.sub}>{ev.sub}</span>}{ev.detail && (<span className={`text-[8px] sm:text-[9px] font-mono mt-0.5 sm:mt-1 truncate w-full ${ev.isSL ? 'text-red-400' : 'text-green-400'}`} title={ev.detail}>{ev.detail}</span>)}</div></div>); })}</div></div></div>
-                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">📊 {t('top.sig_data')}</h4><div className={`grid grid-cols-2 gap-3 sm:gap-4 ${detail.message_link ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}><StatBlock label={t('top.duration')} value={detail.updates?.length > 0 ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at) : 'Active'} /><StatBlock label={t('top.vol_rank')} value={detail.volume_rank_num && detail.volume_rank_den ? `#${detail.volume_rank_num} / ${detail.volume_rank_den}` : 'N/A'} /><StatBlock label={t('top.risk')} value={detail.risk_level || 'N/A'} valueClass={detail.risk_level === 'High' ? 'text-red-400' : detail.risk_level === 'Medium' ? 'text-yellow-400' : 'text-green-400'} /><StatBlock label={t('top.sig_id')} value={detail.signal_id ? `${detail.signal_id.slice(0, 8)}...` : 'N/A'} valueClass="text-text-muted" />{detail.message_link && (<a href={detail.message_link} target="_blank" rel="noopener noreferrer" className="bg-[#0d0d0d] rounded-xl border border-blue-500/20 p-3 sm:p-4 flex flex-col justify-center items-center text-center hover:bg-blue-500/10 hover:border-blue-500/40 transition-colors group col-span-2 md:col-span-1"><span className="text-blue-400/70 text-[9px] sm:text-[10px] uppercase tracking-wider mb-1.5">Telegram</span><span className="font-bold text-sm sm:text-base text-blue-400 group-hover:text-blue-300 flex items-center gap-1.5">View Post<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></span></a>)}</div></div>
+
+                {/* === DETAILED JOURNEY (Layer 6) === */}
+                {detail.signal_id && (
+                  <div>
+                    <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">📊 Detailed Journey</h4>
+                    <SignalJourneyExtended signalId={detail.signal_id} />
+                  </div>
+                )}
+
+                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">📊 {t('top.sig_data')}</h4><div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"><StatBlock label={t('top.duration')} value={detail.updates?.length > 0 ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at) : 'Active'} /><StatBlock label={t('top.vol_rank')} value={detail.volume_rank_num && detail.volume_rank_den ? `#${detail.volume_rank_num} / ${detail.volume_rank_den}` : 'N/A'} /><StatBlock label={t('top.risk')} value={detail.risk_level || 'N/A'} valueClass={detail.risk_level === 'High' ? 'text-red-400' : detail.risk_level === 'Medium' ? 'text-yellow-400' : 'text-green-400'} /></div></div>
               </div>
             </div>
           ) : (<div className="flex items-center justify-center py-20"><p className="text-text-muted text-sm">{t('top.failed')}</p></div>)}
