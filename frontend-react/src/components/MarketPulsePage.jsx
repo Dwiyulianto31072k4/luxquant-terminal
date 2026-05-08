@@ -1876,7 +1876,7 @@ const CoinChartModal = ({ pair, onClose }) => {
       onClick={handleClose}
     >
       <div
-        className={`relative w-full max-w-[1180px] bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-90px)] sm:max-h-[calc(100dvh-110px)] ${
+        className={`relative w-full max-w-[1180px] bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[calc(100dvh-90px)] sm:h-[calc(100dvh-110px)] max-h-[920px] min-h-0 ${
           isClosing
             ? "animate-[mppanel-out_.18s_ease-in_forwards]"
             : "animate-[mppanel-in_.28s_cubic-bezier(.16,1,.3,1)]"
@@ -1956,15 +1956,9 @@ const CoinChartModal = ({ pair, onClose }) => {
           </a>
         </div>
 
-        {/* Chart area — TradingView embed fills the box */}
-        <div
-          className="relative bg-[#0d0d0d] flex-1 overflow-hidden"
-          style={{ minHeight: 380 }}
-        >
-          <div
-            ref={tvContainerRef}
-            style={{ width: "100%", height: "100%", minHeight: 380 }}
-          />
+        {/* Chart area — TradingView embed fills the box (matches SignalModal pattern) */}
+        <div className="relative flex-1 min-h-0 min-w-0 bg-[#0d0d0d]">
+          <div ref={tvContainerRef} className="w-full h-full" />
         </div>
 
         {/* Footer stats */}
