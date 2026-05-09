@@ -1,51 +1,92 @@
+// frontend-react/src/services/referralApi.js
 import api from './authApi';
 
-// KITA GUNAKAN NAMED EXPORT (tambahkan kata 'export' di depan const)
 export const referralApi = {
-  // Generate or get existing referral code
+  // ─── Code Management ─────────────────────────────────────────
+
   generateCode: async (customCode = null) => {
     const body = customCode ? { custom_code: customCode } : {};
     const response = await api.post('/api/v1/referral/generate', body);
     return response.data;
   },
 
-  // Get my current referral code
   getMyCode: async () => {
     const response = await api.get('/api/v1/referral/my-code');
     return response.data;
   },
 
-  // Get referral dashboard stats
+  // ─── Combined Stats (one-shot dashboard load) ────────────────
+
   getStats: async () => {
     const response = await api.get('/api/v1/referral/stats');
     return response.data;
   },
 
-  // Validate a referral code (public, no auth needed)
+  // ─── Detailed Analytics ──────────────────────────────────────
+
+  getFunnel: async () => {
+    const response = await api.get('/api/v1/referral/funnel');
+    return response.data;
+  },
+
+  getEarnings: async () => {
+    const response = await api.get('/api/v1/referral/earnings');
+    return response.data;
+  },
+
+  getReferees: async (page = 1, pageSize = 20) => {
+    const response = await api.get('/api/v1/referral/referees', {
+      params: { page, page_size: pageSize },
+    });
+    return response.data;
+  },
+
+  getLedger: async (page = 1, pageSize = 20) => {
+    const response = await api.get('/api/v1/referral/ledger', {
+      params: { page, page_size: pageSize },
+    });
+    return response.data;
+  },
+
+  // ─── Validation (public) ─────────────────────────────────────
+
   validateCode: async (code) => {
     const response = await api.get(`/api/v1/referral/validate/${code}`);
     return response.data;
   },
 
-  // Apply referral code to current user
+  // ─── Share Tracking ──────────────────────────────────────────
+
+  trackShare: async (code, channel = 'copy_link') => {
+    const response = await api.post('/api/v1/referral/track-share', {
+      code,
+      channel,
+    });
+    return response.data;
+  },
+
+  // ─── Apply (legacy/manual) ──────────────────────────────────
+
   applyCode: async (code) => {
     const response = await api.post('/api/v1/referral/apply', { code });
     return response.data;
   },
 
-  // Request commission payout
-  requestPayout: async (amountUsdt, walletAddress, network = 'BSC') => {
-    const response = await api.post('/api/v1/referral/payout', {
+  // ─── Redemption ─────────────────────────────────────────────
+
+  redeem: async (amountUsdt, paymentId) => {
+    const response = await api.post('/api/v1/referral/redeem', {
       amount_usdt: amountUsdt,
-      wallet_address: walletAddress,
-      network,
+      payment_id: paymentId,
     });
     return response.data;
   },
 
-  // Get payout history
-  getPayouts: async () => {
-    const response = await api.get('/api/v1/referral/payouts');
+  redeemPreview: async (amountUsdt, paymentId) => {
+    const response = await api.post('/api/v1/referral/redeem/preview', {
+      amount_usdt: amountUsdt,
+      payment_id: paymentId,
+    });
     return response.data;
   },
 };
