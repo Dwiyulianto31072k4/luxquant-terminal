@@ -597,23 +597,71 @@ const LivePerformanceStats = ({ data }) => {
   };
   const riskTotal = riskDist.reduce((s, r) => s + (r.total_signals || 0), 0);
 
+  // 6-stat grid config (data-driven)
+  const statCards = [
+    {
+      label: "Win Rate",
+      value: stats ? `${winRate.toFixed(1)}%` : "—",
+      colorClass:
+        winRate >= 75
+          ? "text-green-400"
+          : winRate >= 55
+            ? "text-yellow-400"
+            : "text-red-400",
+      isAccent: true,
+    },
+    {
+      label: "Closed Trades",
+      value: stats ? closedTrades.toLocaleString() : "—",
+      colorClass: "text-white",
+    },
+    {
+      label: "Winners",
+      value: stats ? totalWinners.toLocaleString() : "—",
+      colorClass: "text-green-400",
+    },
+    {
+      label: "Losses",
+      value: stats ? slCount.toLocaleString() : "—",
+      colorClass: "text-red-400",
+    },
+    {
+      label: "Pairs Traded",
+      value: stats ? activePairs.toLocaleString() : "—",
+      colorClass: "text-gold-primary",
+    },
+    {
+      label: "Not Hit",
+      value: stats ? openSignals.toLocaleString() : "—",
+      colorClass: "text-text-secondary",
+    },
+  ];
+
   return (
     <div>
+      {/* ════════════════════════════════════════
+          1. SECTION HEADER — line-label-line pattern
+          ════════════════════════════════════════ */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-5">
-          <span className="text-base">🇹🇼</span>
-          <span className="text-gold-primary text-xs font-semibold tracking-wide">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <span className="h-px w-8 bg-gold-primary/40" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 flex items-center gap-2">
+            <span className="text-base leading-none">🇹🇼</span>
             Built in Taiwan · Running Since 2023
           </span>
+          <span className="h-px w-8 bg-gold-primary/40" />
         </div>
-        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4">
-          Transparent & <span className="text-gold-primary">Verified</span>{" "}
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          Transparent &{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
+            Verified
+          </span>{" "}
           Performance
         </h2>
         <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
           Every signal is recorded on-chain since day one. Full history, no
           hidden trades, no cherry-picking —
-          <span className="text-white font-medium">
+          <span className="text-white font-medium font-mono">
             {" "}
             {stats ? totalSignals.toLocaleString() : "..."} signals
           </span>{" "}
@@ -621,81 +669,64 @@ const LivePerformanceStats = ({ data }) => {
         </p>
       </div>
 
+      {/* Runtime Counter (separate component) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
         <RuntimeCounter />
       </div>
 
+      {/* ════════════════════════════════════════
+          2. 6-STAT GRID — Naked huge numbers, flat hairline
+          ════════════════════════════════════════ */}
       <div onClick={goPerf} className="cursor-pointer group">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
-          <div className="rounded-xl p-3 lg:p-4 border bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20 group-hover:border-gold-primary/40 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Win Rate
-            </p>
-            <p
-              className={`text-xl lg:text-2xl font-bold font-mono leading-none ${winRate >= 75 ? "text-green-400" : winRate >= 55 ? "text-yellow-400" : "text-red-400"}`}
+          {statCards.map((card, idx) => (
+            <div
+              key={idx}
+              className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-[#0a0805] border transition-all ${
+                card.isAccent
+                  ? "border-gold-primary/25 group-hover:border-gold-primary/50"
+                  : "border-white/[0.06] group-hover:border-gold-primary/20"
+              }`}
             >
-              {stats ? `${winRate.toFixed(1)}%` : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Closed Trades
-            </p>
-            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-white">
-              {stats ? closedTrades.toLocaleString() : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Winners
-            </p>
-            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-green-400">
-              {stats ? totalWinners.toLocaleString() : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Losses
-            </p>
-            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-red-400">
-              {stats ? slCount.toLocaleString() : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Pairs Traded
-            </p>
-            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-gold-primary">
-              {stats ? activePairs.toLocaleString() : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] group-hover:border-gold-primary/10 transition-all">
-            <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1">
-              Not Hit
-            </p>
-            <p className="text-xl lg:text-2xl font-bold font-mono leading-none text-text-secondary">
-              {stats ? openSignals.toLocaleString() : "—"}
-            </p>
-          </div>
+              {/* Hairline accent on top for accent card */}
+              {card.isAccent && (
+                <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
+              )}
+              <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-[0.18em] font-medium mb-2">
+                {card.label}
+              </p>
+              <div className="h-px bg-white/[0.04] mb-2" />
+              <p
+                className={`text-2xl lg:text-3xl font-bold font-mono leading-none tabular-nums ${card.colorClass}`}
+              >
+                {card.value}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* ════════════════════════════════════════
+          3. CHART + OUTCOME DISTRIBUTION
+          ════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 mb-4">
+        {/* Performance Trend Chart (2/3) */}
         <div
           onClick={goPerf}
-          className="lg:col-span-2 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer"
+          className="lg:col-span-2 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
         >
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-white font-semibold text-base lg:text-lg mb-1">
+              <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
                 Performance Trend
               </h3>
-              <p className="text-text-muted text-[10px] lg:text-xs">
+              <p className="text-text-muted text-[10px] lg:text-xs font-mono">
                 Weekly algorithmic win rate progression
               </p>
             </div>
-            <div className="px-3 py-1 bg-gold-primary/10 border border-gold-primary/20 rounded-lg">
-              <span className="text-gold-primary text-[10px] font-bold uppercase tracking-wider">
+            <div className="px-2.5 py-1 bg-gold-primary/10 border border-gold-primary/20 rounded-sm">
+              <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em] font-mono">
                 Weekly
               </span>
             </div>
@@ -703,50 +734,55 @@ const LivePerformanceStats = ({ data }) => {
           <LandingWinRateChart data={trendData} />
         </div>
 
+        {/* Outcome Distribution (1/3) — flat segmented Hydromancer-style */}
         <div
           onClick={goPerf}
-          className="lg:col-span-1 glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all cursor-pointer"
+          className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
         >
-          <h3 className="text-white font-semibold text-base lg:text-lg mb-1">
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+          <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
             Outcome Distribution
           </h3>
-          <p className="text-text-muted text-[10px] lg:text-xs mb-6">
+          <p className="text-text-muted text-[10px] lg:text-xs mb-6 font-mono">
             {stats ? closedTrades.toLocaleString() : "—"} closed trades
           </p>
           {outcomeTotal > 0 ? (
             <div className="space-y-5">
-              <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
+              {/* Flat segmented bar with hairline gaps */}
+              <div className="h-2.5 flex bg-bg-card/40 border border-white/5 rounded-sm overflow-hidden">
                 {outcomeItems
                   .filter((i) => i.count > 0)
-                  .map((item, idx) => {
+                  .map((item, idx, arr) => {
                     const pct = (item.count / outcomeTotal) * 100;
+                    const isLast = idx === arr.length - 1;
                     return (
                       <div
                         key={idx}
                         style={{
                           width: `${pct}%`,
                           backgroundColor: item.color,
+                          marginRight: isLast ? 0 : "1px",
                         }}
-                        className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative"
+                        className="h-full transition-all duration-700"
                       />
                     );
                   })}
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {outcomeItems.map((item) => {
                   const pct =
                     outcomeTotal > 0 ? (item.count / outcomeTotal) * 100 : 0;
                   return (
                     <div key={item.label} className="flex items-center gap-3">
                       <span
-                        className="text-[11px] font-bold w-8"
+                        className="text-[11px] font-bold w-8 font-mono tracking-wider"
                         style={{ color: item.color }}
                       >
                         {item.label}
                       </span>
-                      <div className="flex-1 h-2 rounded-full bg-bg-card/60 overflow-hidden">
+                      <div className="flex-1 h-1.5 rounded-sm bg-bg-card/60 overflow-hidden">
                         <div
-                          className="h-full rounded-full transition-all duration-700"
+                          className="h-full rounded-sm transition-all duration-700"
                           style={{
                             width: `${Math.max(pct, 1)}%`,
                             backgroundColor: item.color,
@@ -754,7 +790,7 @@ const LivePerformanceStats = ({ data }) => {
                         />
                       </div>
                       <div className="flex items-center justify-end w-12">
-                        <span className="text-white text-[11px] font-mono font-semibold">
+                        <span className="text-white text-[11px] font-mono font-semibold tabular-nums">
                           {item.count.toLocaleString()}
                         </span>
                       </div>
@@ -771,21 +807,25 @@ const LivePerformanceStats = ({ data }) => {
         </div>
       </div>
 
+      {/* ════════════════════════════════════════
+          4. RISK LEVEL ANALYSIS — Sharper, hairline accent
+          ════════════════════════════════════════ */}
       <div
         onClick={goPerf}
-        className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 hover:border-gold-primary/25 transition-all mb-4 cursor-pointer"
+        className="relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all mb-4 cursor-pointer"
       >
+        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-5 gap-3">
           <div>
-            <h3 className="text-white font-semibold text-base lg:text-lg mb-1">
+            <h3 className="text-white font-semibold text-base lg:text-lg mb-1 tracking-tight">
               Risk Level Analysis
             </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs">
+            <p className="text-text-muted text-[10px] lg:text-xs font-mono">
               Performance breakdown by signal risk level
             </p>
           </div>
           {riskDist.length > 0 && (
-            <div className="flex items-center gap-3 bg-bg-card/30 p-2 rounded-lg border border-white/5">
+            <div className="flex items-center gap-3 bg-bg-card/30 px-3 py-2 rounded-sm border border-white/5">
               {riskDist.map((rd) => (
                 <div key={rd.risk_level} className="flex items-center gap-1.5">
                   <div
@@ -796,7 +836,7 @@ const LivePerformanceStats = ({ data }) => {
                       ).bar,
                     }}
                   />
-                  <span className="text-text-muted text-[10px] font-mono">
+                  <span className="text-text-muted text-[10px] font-mono tabular-nums">
                     {riskTotal > 0
                       ? ((rd.total_signals / riskTotal) * 100).toFixed(0)
                       : 0}
@@ -819,37 +859,45 @@ const LivePerformanceStats = ({ data }) => {
               return (
                 <div
                   key={rd.risk_level}
-                  className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} to-transparent border ${c.border}`}
+                  className={`rounded-md p-4 lg:p-5 bg-gradient-to-b ${c.bg} to-transparent border ${c.border}`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${c.dot}`} />
-                      <span className={`font-bold text-sm ${c.text}`}>
+                      <span
+                        className={`font-bold text-sm font-mono tracking-wider uppercase ${c.text}`}
+                      >
                         {rd.risk_level}
                       </span>
                     </div>
                   </div>
                   <p
-                    className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none mb-1`}
+                    className={`text-3xl lg:text-4xl font-bold font-mono tabular-nums ${c.text} leading-none mb-1`}
                   >
                     {rd.win_rate.toFixed(1)}%
                   </p>
-                  <p className="text-text-muted text-[10px] mb-3">Win Rate</p>
-                  <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
+                  <p className="text-text-muted text-[10px] mb-3 font-mono">
+                    Win Rate
+                  </p>
+                  {/* Flat segmented bar */}
+                  <div className="h-1.5 flex bg-bg-card/50 rounded-sm overflow-hidden mb-2">
                     <div
-                      className="h-full bg-green-500/70 rounded-l-full"
-                      style={{ width: `${winPct}%` }}
+                      className="h-full bg-green-500/70"
+                      style={{
+                        width: `${winPct}%`,
+                        marginRight: "1px",
+                      }}
                     />
                     <div
-                      className="h-full bg-red-500/70 rounded-r-full"
+                      className="h-full bg-red-500/70"
                       style={{ width: `${100 - winPct}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span className="text-green-400/80 font-mono">
+                    <span className="text-green-400/80 font-mono tabular-nums">
                       {rd.winners?.toLocaleString()} W
                     </span>
-                    <span className="text-red-400/80 font-mono">
+                    <span className="text-red-400/80 font-mono tabular-nums">
                       {rd.losers?.toLocaleString()} L
                     </span>
                   </div>
@@ -864,29 +912,48 @@ const LivePerformanceStats = ({ data }) => {
         )}
       </div>
 
+      {/* ════════════════════════════════════════
+          5. FOOTER CTA — Lock SVG + consistent button gradient
+          ════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 p-4 rounded-xl bg-gold-primary/5 border border-gold-primary/10 flex items-center gap-3">
-          <span className="text-xl">🔒</span>
+        <div className="flex-1 p-4 rounded-md bg-gold-primary/[0.04] border border-gold-primary/15 flex items-center gap-3">
+          {/* SVG Lock icon (replace 🔒 emoji) */}
+          <svg
+            className="w-5 h-5 text-gold-primary flex-shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+            />
+          </svg>
           <p className="text-text-secondary text-xs lg:text-sm leading-relaxed">
             <span className="text-white font-semibold">
               Every trade on record.
             </span>{" "}
-            All {stats ? totalSignals.toLocaleString() : "..."} signals publicly
-            verifiable — no edits, no deletions.
+            All{" "}
+            <span className="font-mono text-white">
+              {stats ? totalSignals.toLocaleString() : "..."}
+            </span>{" "}
+            signals publicly verifiable — no edits, no deletions.
           </p>
         </div>
         <button
           onClick={goPerf}
-          className="px-6 py-4 rounded-xl font-bold text-sm transition-all hover:scale-105 flex items-center justify-center gap-2 flex-shrink-0"
+          className="group relative px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2.5 flex-shrink-0 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)]"
           style={{
-            background: "linear-gradient(to right, #d4a853, #8b6914)",
+            background:
+              "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
             color: "#0a0506",
-            boxShadow: "0 0 20px rgba(212, 168, 83, 0.3)",
           }}
         >
-          View Full Analytics
+          <span className="tracking-wide">View Full Analytics</span>
           <svg
-            className="w-4 h-4"
+            className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-300"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
