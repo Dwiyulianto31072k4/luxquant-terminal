@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LeftBrandPanel, { MobileGlobeSection, TypewriterLine } from './LeftBrandPanel';
+import ReferralBanner from './ReferralBanner'; 
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -119,6 +120,8 @@ const LoginPage = () => {
               {error}
             </div>
           )}
+
+          <ReferralBanner className="mb-4" />
 
           {/* Login Buttons */}
           <div className="space-y-3 sm:space-y-4 mt-4 sm:mt-6">

@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../services/authApi';
+import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 
 const AuthContext = createContext(null);
 
@@ -90,9 +91,17 @@ export const AuthProvider = ({ children }) => {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
           try {
-            const result = await authApi.googleLogin(response.credential);
+            // ─── Layer 6: forward stored referral code ───
+            const referralCode = getStoredRef();
+            const result = await authApi.googleLogin(response.credential, referralCode);
+
             localStorage.setItem('access_token', result.access_token);
             localStorage.setItem('refresh_token', result.refresh_token);
+
+            // Clear pending ref setelah login sukses
+            // (backend akan ignore kalau user existing, jadi safe to clear)
+            if (referralCode) clearStoredRef();
+
             setUser(result.user);
             resolve(result);
           } catch (err) {
@@ -108,7 +117,7 @@ export const AuthProvider = ({ children }) => {
       window.google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
           console.log('One Tap not displayed:', notification.getNotDisplayedReason());
-          
+
           const tempDiv = document.createElement('div');
           tempDiv.style.position = 'fixed';
           tempDiv.style.top = '50%';
@@ -120,24 +129,24 @@ export const AuthProvider = ({ children }) => {
           tempDiv.style.borderRadius = '16px';
           tempDiv.style.border = '1px solid rgba(212,168,83,0.3)';
           tempDiv.id = 'google-fallback-container';
-          
+
           const closeBtn = document.createElement('button');
           closeBtn.innerHTML = '✕';
           closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;color:#8a7a6e;background:none;border:none;font-size:18px;cursor:pointer;';
           closeBtn.onclick = () => { document.body.removeChild(tempDiv); reject(new Error('Dibatalkan')); };
           tempDiv.appendChild(closeBtn);
-          
+
           const title = document.createElement('p');
           title.textContent = 'Pilih akun Google';
           title.style.cssText = 'color:#b8a89a;margin-bottom:16px;text-align:center;font-size:14px;';
           tempDiv.appendChild(title);
-          
+
           const btnDiv = document.createElement('div');
           btnDiv.id = 'google-fallback-btn';
           tempDiv.appendChild(btnDiv);
-          
+
           document.body.appendChild(tempDiv);
-          
+
           window.google.accounts.id.renderButton(btnDiv, {
             theme: 'filled_black',
             size: 'large',
@@ -145,7 +154,7 @@ export const AuthProvider = ({ children }) => {
             text: 'continue_with',
           });
         }
-        
+
         if (notification.isDismissedMoment()) {
           console.log('One Tap dismissed:', notification.getDismissedReason());
           const fallback = document.getElementById('google-fallback-container');
@@ -162,14 +171,21 @@ export const AuthProvider = ({ children }) => {
 
       window.onTelegramAuth = async (telegramUser) => {
         try {
-          const result = await authApi.telegramLogin(telegramUser);
+          // ─── Layer 6: forward stored referral code ───
+          const referralCode = getStoredRef();
+          const result = await authApi.telegramLogin(telegramUser, referralCode);
+
           localStorage.setItem('access_token', result.access_token);
           localStorage.setItem('refresh_token', result.refresh_token);
+
+          // Clear pending ref setelah login sukses
+          if (referralCode) clearStoredRef();
+
           setUser(result.user);
-          
+
           const container = document.getElementById('telegram-login-container');
           if (container) document.body.removeChild(container);
-          
+
           resolve(result);
         } catch (err) {
           const message = err.response?.data?.detail || 'Telegram login gagal';
@@ -181,10 +197,10 @@ export const AuthProvider = ({ children }) => {
       const container = document.createElement('div');
       container.id = 'telegram-login-container';
       container.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);';
-      
+
       const card = document.createElement('div');
       card.style.cssText = 'background:#1a1014;padding:32px;border-radius:16px;border:1px solid rgba(212,168,83,0.3);text-align:center;min-width:300px;';
-      
+
       const title = document.createElement('p');
       title.textContent = 'Login dengan Telegram';
       title.style.cssText = 'color:#b8a89a;margin-bottom:20px;font-size:16px;font-weight:600;';
@@ -192,7 +208,7 @@ export const AuthProvider = ({ children }) => {
 
       const widgetDiv = document.createElement('div');
       widgetDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:16px;';
-      
+
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', 'LuxQuantTerminalBot');
@@ -209,21 +225,21 @@ export const AuthProvider = ({ children }) => {
       closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.2);padding:8px 24px;border-radius:12px;cursor:pointer;font-size:14px;margin-top:8px;';
       closeBtn.onmouseenter = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.5)'; closeBtn.style.color = '#b8a89a'; };
       closeBtn.onmouseleave = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.2)'; closeBtn.style.color = '#8a7a6e'; };
-      closeBtn.onclick = () => { 
+      closeBtn.onclick = () => {
         document.body.removeChild(container);
         reject(new Error('Dibatalkan'));
       };
       card.appendChild(closeBtn);
 
       container.appendChild(card);
-      
+
       container.onclick = (e) => {
         if (e.target === container) {
           document.body.removeChild(container);
           reject(new Error('Dibatalkan'));
         }
       };
-      
+
       document.body.appendChild(container);
     });
   }, []);
@@ -232,8 +248,15 @@ export const AuthProvider = ({ children }) => {
   const loginWithDiscord = useCallback(async () => {
     setError(null);
     try {
-      const data = await authApi.discordGetUrl();
-      // Redirect to Discord OAuth2 page
+      // ─── Layer 6: forward stored referral code via OAuth state ───
+      const referralCode = getStoredRef();
+      const data = await authApi.discordGetUrl(referralCode);
+
+      // Note: Don't clearStoredRef here. User belum login (cuma redirecting).
+      // Backend akan handle setelah callback success. localStorage tetap di-persist
+      // sampai user balik dari Discord callback. Setelah callback redirect ke
+      // /auth/discord/callback, kalau sukses kita clear di sana (DiscordCallback.jsx).
+
       window.location.href = data.url;
     } catch (err) {
       const message = err.response?.data?.detail || 'Discord login gagal';
@@ -259,11 +282,11 @@ export const AuthProvider = ({ children }) => {
   // ─── Periodic VIP Check (setiap 30 menit) ───
   useEffect(() => {
     if (!user?.telegram_id) return;
-    
+
     const interval = setInterval(() => {
       refreshVipStatus();
     }, 30 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, [user?.telegram_id, refreshVipStatus]);
 
@@ -273,7 +296,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('refresh_token');
     setUser(null);
     setError(null);
-    
+
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
     }

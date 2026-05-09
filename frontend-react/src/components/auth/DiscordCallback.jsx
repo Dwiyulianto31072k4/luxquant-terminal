@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { clearStoredRef } from '../../utils/referralStorage';
 
 const DiscordCallback = () => {
   const navigate = useNavigate();
@@ -33,6 +34,11 @@ const DiscordCallback = () => {
           console.error('Failed to parse user data', e);
         }
       }
+
+      // ─── Layer 6: clear pending referral after successful Discord login ───
+      // Backend sudah ambil referral_code dari OAuth state param,
+      // jadi localStorage udah ga butuh.
+      clearStoredRef();
 
       navigate('/', { replace: true });
     } else {

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { saveRefFromURL } from '../../utils/referralStorage';
 import {
   ResponsiveContainer,
   Tooltip,
@@ -1040,6 +1041,11 @@ const LandingPage = () => {
 
   const [performanceData, setPerformanceData] = useState(null);
   const [topGainers, setTopGainers] = useState([]);
+
+  // Capture ?ref= dari URL → simpan localStorage TTL 7 hari
+useEffect(() => {
+  saveRefFromURL();
+}, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
