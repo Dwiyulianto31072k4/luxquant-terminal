@@ -361,7 +361,33 @@ const RuntimeCounter = () => {
     <div className="glass-card rounded-xl p-5 lg:p-6 border border-gold-primary/20 col-span-2 lg:col-span-4">
       <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-positive rounded-full animate-pulse" />
+          <>
+            <style>{`
+              @keyframes goldFlare {
+                0%, 100% {
+                  box-shadow:
+                    0 0 6px rgba(212, 168, 83, 0.85),
+                    0 0 12px rgba(212, 168, 83, 0.55),
+                    0 0 20px rgba(212, 168, 83, 0.3),
+                    inset 0 0 3px rgba(255, 245, 214, 0.6);
+                }
+                50% {
+                  box-shadow:
+                    0 0 3px rgba(212, 168, 83, 0.5),
+                    0 0 6px rgba(212, 168, 83, 0.3),
+                    0 0 10px rgba(212, 168, 83, 0.15),
+                    inset 0 0 2px rgba(255, 245, 214, 0.4);
+                }
+              }
+            `}</style>
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, #fde6a8, #d4a853 60%, #8b6914)',
+                animation: 'goldFlare 2s ease-in-out infinite',
+              }}
+            />
+          </>
           <div>
             <p className="text-white font-semibold text-sm lg:text-base">
               Algorithm Running Since
@@ -880,22 +906,28 @@ const LivePerformanceStats = ({ data }) => {
                   {/* Flat segmented bar */}
                   <div className="h-1.5 flex bg-bg-card/50 rounded-sm overflow-hidden mb-2">
                     <div
-                      className="h-full bg-green-500/70"
+                      className="h-full"
                       style={{
                         width: `${winPct}%`,
+                        backgroundColor: "#d4a853",
+                        opacity: 1,
                         marginRight: "1px",
                       }}
                     />
                     <div
-                      className="h-full bg-red-500/70"
-                      style={{ width: `${100 - winPct}%` }}
+                      className="h-full"
+                      style={{
+                        width: `${100 - winPct}%`,
+                        backgroundColor: "#d4a853",
+                        opacity: 0.3,
+                      }}
                     />
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span className="text-white/60 font-mono tabular-nums">
+                    <span className="font-mono tabular-nums" style={{ color: "#d4a853", opacity: 1 }}>
                       {rd.winners?.toLocaleString()} W
                     </span>
-                    <span className="text-white/60 font-mono tabular-nums">
+                    <span className="font-mono tabular-nums" style={{ color: "#d4a853", opacity: 0.4 }}>
                       {rd.losers?.toLocaleString()} L
                     </span>
                   </div>
