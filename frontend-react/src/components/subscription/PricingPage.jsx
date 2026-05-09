@@ -184,7 +184,7 @@ const PricingPage = () => {
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight"
-                style={{ fontFamily: 'Playfair Display, serif' }}>
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {isPremium ? t('pricing.switch') : t('pricing.upgrade_to')}{' '}
                 <span className="relative">
                   <span style={{ color: '#d4a853' }}>{t('pricing.premium')}</span>
@@ -281,7 +281,7 @@ const PricingPage = () => {
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-sm" style={{ color: '#6b5c52' }}>$</span>
                           <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight"
-                            style={{ fontFamily: 'Playfair Display, serif' }}>
+                            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                             {plan.price_usdt}
                           </span>
                           <span className="text-sm ml-0.5" style={{ color: '#6b5c52' }}>

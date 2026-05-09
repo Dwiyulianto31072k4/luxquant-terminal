@@ -103,11 +103,11 @@ const MarketConditionLineChart = ({ timeline }) => {
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="2.5" fill="#0a0506" stroke={FC[p.marketCond]?.border || FC.neutral.border} strokeWidth="1.5" />
             <text x={p.x} y={H + 15} fill="#6b5c52" fontSize="7" textAnchor="middle">{fmtDate(p.date)}</text>
-            <text x={p.x} y={p.y - 7} fill={FC[p.marketCond]?.text || FC.neutral.text} fontSize="8" fontWeight="700" fontFamily="monospace" textAnchor="middle">{Math.round(p.wr)}%</text>
+            <text x={p.x} y={p.y - 7} fill={FC[p.marketCond]?.text || FC.neutral.text} fontSize="8" fontWeight="700" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">{Math.round(p.wr)}%</text>
           </g>
         ))}
-        <text x={2} y={padY + 4} fill="#4a3f35" fontSize="6" fontFamily="monospace">100%</text>
-        <text x={2} y={H - padY + 4} fill="#4a3f35" fontSize="6" fontFamily="monospace">0%</text>
+        <text x={2} y={padY + 4} fill="#4a3f35" fontSize="6" fontFamily="'JetBrains Mono', monospace">100%</text>
+        <text x={2} y={H - padY + 4} fill="#4a3f35" fontSize="6" fontFamily="'JetBrains Mono', monospace">0%</text>
       </svg>
     </div>
   );
@@ -144,12 +144,12 @@ const MonthlyLineChart = ({ data }) => {
         {points.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="2.5" fill="#0a0506" stroke={wrc(p.wr)} strokeWidth="1.5" />
-            <text x={p.x} y={p.y - 6} fill={wrc(p.wr)} fontSize="7" fontWeight="700" fontFamily="monospace" textAnchor="middle">{p.wr}%</text>
+            <text x={p.x} y={p.y - 6} fill={wrc(p.wr)} fontSize="7" fontWeight="700" fontFamily="'JetBrains Mono', monospace" textAnchor="middle">{p.wr}%</text>
             <text x={p.x} y={H + 12} fill="#6b5c52" fontSize="6" textAnchor="middle">{p.month?.slice(5)}</text>
           </g>
         ))}
-        <text x={2} y={padY + 3} fill="#4a3f35" fontSize="5" fontFamily="monospace">{Math.round(maxWr)}%</text>
-        <text x={2} y={H - padY + 3} fill="#4a3f35" fontSize="5" fontFamily="monospace">{Math.round(minWr)}%</text>
+        <text x={2} y={padY + 3} fill="#4a3f35" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(maxWr)}%</text>
+        <text x={2} y={H - padY + 3} fill="#4a3f35" fontSize="5" fontFamily="'JetBrains Mono', monospace">{Math.round(minWr)}%</text>
       </svg>
     </div>
   );

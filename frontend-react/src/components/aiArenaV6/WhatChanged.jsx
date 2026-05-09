@@ -21,7 +21,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         <h2
           className="text-2xl text-white/90 mb-4"
           style={{
-            fontFamily: "Fraunces, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
             letterSpacing: "-0.02em",
           }}
@@ -61,7 +61,7 @@ export default function WhatChanged({ whatChanged, timestamp }) {
         <h2
           className="text-2xl text-white/90"
           style={{
-            fontFamily: "Fraunces, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
             letterSpacing: "-0.02em",
           }}

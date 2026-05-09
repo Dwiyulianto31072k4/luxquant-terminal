@@ -50,7 +50,7 @@ export const TypewriterLine = ({ mobile }) => {
   const parts = useTypewriter(taglines);
   return (
     <div style={{ textAlign: mobile ? 'left' : 'center', minHeight: mobile ? 44 : 40 }}>
-      <p style={{ fontFamily: 'Playfair Display, serif', fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: '#6b5c52' }}>
+      <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: mobile ? 15 : 26, fontWeight: 500, lineHeight: 1.5, color: '#6b5c52' }}>
         {parts.map((p, i) => (
           <span key={i} style={{ color: p.g ? '#d4a853' : '#8a7d73' }}>{p.text}</span>
         ))}
@@ -231,7 +231,7 @@ const DesktopTypewriter = () => {
   const taglines = getTaglines(t);
   const parts = useTypewriter(taglines);
   return (
-    <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, fontWeight: 600, lineHeight: 1.4 }}>
+    <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.4 }}>
       {parts.map((p, i) => (
         <span key={i} style={{ color: p.g ? '#d4a853' : '#ffffff' }}>{p.text}</span>
       ))}
@@ -265,7 +265,7 @@ const LeftBrandPanel = () => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
-            <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 18 }}>LuxQuant</span>
+            <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>LuxQuant</span>
           </div>
 
           {/* Center */}

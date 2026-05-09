@@ -288,7 +288,7 @@ export default function GlobalNetworkSection(){
 
         {/* Heading */}
         <div style={{textAlign:"center",marginBottom:48}}>
-          <h2 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(28px,5vw,52px)",fontWeight:700,color:"#ffffff",margin:"0 0 16px",lineHeight:1.15}}>
+          <h2 style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:"clamp(28px,5vw,52px)",fontWeight:700,color:"#ffffff",margin:"0 0 16px",lineHeight:1.15}}>
             Serving Traders Across{" "}
             <span style={{background:"linear-gradient(to right,#f0d890,#d4a853,#8b6914)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
               Every Continent.
@@ -308,7 +308,7 @@ export default function GlobalNetworkSection(){
               {/* 2. Dot */}
               <div style={{width:10,height:10,borderRadius:"50%",background:"#d4a853",boxShadow:"0 0 10px rgba(212,168,83,0.6)",margin:"0 0 16px"}}/>
               {/* 3. Number */}
-              <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(30px,5vw,54px)",fontWeight:700,color:i===0?"#f0d890":"#d4a853",lineHeight:1.1,textShadow:i===0?"0 0 20px rgba(212,168,83,0.3)":"none"}}>
+              <span style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:"clamp(30px,5vw,54px)",fontWeight:700,color:i===0?"#f0d890":"#d4a853",lineHeight:1.1,textShadow:i===0?"0 0 20px rgba(212,168,83,0.3)":"none"}}>
                 {s.value}
               </span>
               {/* 4. Label */}

@@ -281,7 +281,7 @@ export default function VerdictLedger({ trackRecord, ledger }) {
           <h2
             className="text-2xl text-white/90"
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
               letterSpacing: "-0.02em",
             }}

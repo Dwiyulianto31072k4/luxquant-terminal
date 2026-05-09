@@ -50,8 +50,8 @@ export const COLORS = {
 };
 
 export const FONTS = {
-  display: "'Fraunces', Georgia, serif",
-  body: "'Inter', system-ui, sans-serif",
+  display: "'Space Grotesk', sans-serif",
+  body: "'Space Grotesk', sans-serif",
   mono: "'JetBrains Mono', 'SF Mono', Consolas, monospace",
 };
 

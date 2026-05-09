@@ -76,7 +76,7 @@ const RegisterPage = () => {
         {/* LOGO MOBILE */}
         <div className="lg:hidden absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2.5 z-30">
           <img src="/logo.png" alt="LuxQuant" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
-          <span className="text-white font-bold tracking-wide" style={{ fontFamily: 'Playfair Display, serif', fontSize: 17 }}>LuxQuant</span>
+          <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
         </div>
 
         {/* GLASSMORPHISM WRAPPER */}
@@ -91,7 +91,7 @@ const RegisterPage = () => {
 
           {/* Heading */}
           <div className="mb-1 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: 'Playfair Display, serif' }}>{a('register_title')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{a('register_title')}</h1>
             <p className="text-sm" style={{ color: '#8a7a6e' }}>{a('register_subtitle')}</p>
           </div>
 
@@ -287,7 +287,7 @@ const FlagBadgesCompact = () => (
           whiteSpace: 'nowrap',
         }}>
           <span style={{ fontSize: 12, lineHeight: 1 }}>{f.emoji}</span>
-          <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{f.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', fontFamily: "'Space Grotesk', sans-serif" }}>{f.name}</span>
         </div>
       </div>
     ))}

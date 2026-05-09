@@ -245,7 +245,7 @@ const MacroCalendarPage = () => {
       {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <span className="text-lg">📅</span> {t('calendar.title')}
           </h1>
           <p className="text-xs mt-1" style={{ color: '#6b5c52' }}>{t('calendar.subtitle')}</p>

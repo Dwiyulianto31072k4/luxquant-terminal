@@ -213,7 +213,7 @@ const PaymentPage = () => {
         {/* ─── Header ─── */}
         <div className="text-center mb-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight"
-            style={{ fontFamily: 'Playfair Display, serif' }}>
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {t('payment.title')}
           </h1>
           <p className="text-sm" style={{ color: '#6b5c52' }}>
@@ -350,7 +350,7 @@ const PaymentPage = () => {
                       {t('payment.amount')}
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                      <span className="text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {displayAmount.value}
                       </span>
                       <span className="text-xs font-semibold" style={{ color: '#d4a853' }}>{displayAmount.suffix}</span>

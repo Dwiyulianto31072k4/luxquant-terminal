@@ -195,7 +195,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight"
-                  style={{ fontFamily: 'Playfair Display, serif' }}>
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {t('pricing.upgrade_to')} <span style={{ color: '#d4a853' }}>{t('pricing.premium')}</span>
               </h2>
               <p className="text-xs max-w-md mx-auto" style={{ color: '#6b5c52' }}>
@@ -257,7 +257,7 @@ const PremiumModal = ({ isOpen, onClose }) => {
                           <div className="flex items-baseline gap-1">
                             <span className="text-xs" style={{ color: '#534a42' }}>$</span>
                             <span className="text-3xl font-bold text-white tracking-tight"
-                                  style={{ fontFamily: 'Playfair Display, serif' }}>
+                                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                               {plan.price_usdt}
                             </span>
                             <span className="text-[10px] ml-0.5" style={{ color: '#534a42' }}>

@@ -103,7 +103,7 @@ function ScenarioCard({ scenario }) {
           <h3
             className="text-base text-white/90 leading-tight"
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
             }}
           >
@@ -168,7 +168,7 @@ export default function RiskWatch({ riskScenarios }) {
         <h2
           className="text-2xl text-white/90 mb-4"
           style={{
-            fontFamily: "Fraunces, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
             letterSpacing: "-0.02em",
           }}
@@ -209,7 +209,7 @@ export default function RiskWatch({ riskScenarios }) {
           <h2
             className="text-2xl text-white/90"
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
               letterSpacing: "-0.02em",
             }}

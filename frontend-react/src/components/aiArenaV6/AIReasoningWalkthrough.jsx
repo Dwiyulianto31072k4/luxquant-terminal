@@ -125,7 +125,7 @@ function ReasoningStep({ step, index, total, isOpen, onToggle, hasCritique }) {
               isOpen ? "text-white" : "text-white/80 group-hover:text-white"
             }`}
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
             }}
           >
@@ -317,7 +317,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
         <h2
           className="text-2xl text-white/90 mb-4"
           style={{
-            fontFamily: "Fraunces, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
             letterSpacing: "-0.02em",
           }}
@@ -368,7 +368,7 @@ export default function AIReasoningWalkthrough({ reasoningChain, critique }) {
           <h2
             className="text-2xl text-white/90"
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
               letterSpacing: "-0.02em",
             }}

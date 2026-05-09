@@ -56,7 +56,7 @@ function PlaceholderSection({ title, note }) {
         <h2
           className="text-2xl text-white/90"
           style={{
-            fontFamily: "Fraunces, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 500,
             letterSpacing: "-0.02em",
           }}
@@ -101,7 +101,7 @@ function PageHeader({ report, onRefresh, refreshing }) {
           <h1
             className="text-3xl md:text-4xl text-white"
             style={{
-              fontFamily: "Fraunces, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 500,
               letterSpacing: "-0.025em",
             }}

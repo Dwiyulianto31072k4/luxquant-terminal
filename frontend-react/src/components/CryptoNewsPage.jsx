@@ -200,7 +200,7 @@ const ImagePlaceholder = ({ domain, className = "", size = "md" }) => {
       <div className="relative flex flex-col items-center gap-1.5 z-10">
         <span
           style={{
-            fontFamily: "Fraunces, Georgia, serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontSize,
             fontWeight: 700,
             color: `${color}d6`,
@@ -354,7 +354,7 @@ const NewsModal = ({ item, onClose }) => {
           <div className="p-5 space-y-4">
             <h2
               className="text-white text-lg sm:text-2xl leading-tight"
-              style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, letterSpacing: "-0.02em" }}
+              style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
             >
               {item.title}
             </h2>
@@ -560,7 +560,7 @@ const HeroCard = ({ item, onSelect }) => {
         >
           <h2
             className="text-white text-xl sm:text-2xl lg:text-3xl leading-tight line-clamp-3 mb-3 group-hover:text-gold-primary transition-colors duration-300"
-            style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 600, letterSpacing: "-0.02em" }}
+            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
           >
             {item.title}
           </h2>
@@ -612,7 +612,7 @@ const FeaturedCard = ({ item, onSelect }) => {
       <div className="p-3 flex flex-col flex-1">
         <h3
           className="text-white text-[13px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1"
-          style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 500 }}
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
         >
           {item.title}
         </h3>
@@ -674,7 +674,7 @@ const RegularCard = ({ item, onSelect, dense = false }) => {
           className={`text-white leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1 ${
             dense ? "text-[11px]" : "text-[12.5px]"
           }`}
-          style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 500 }}
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
         >
           {item.title}
         </h4>
@@ -719,7 +719,7 @@ const HeadlineCard = ({ item, onSelect }) => {
           </div>
           <h4
             className="text-white text-[12.5px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors"
-            style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 500 }}
+            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
           >
             {item.title}
           </h4>
@@ -1310,7 +1310,7 @@ const CryptoNewsPage = () => {
           <h1
             className="text-3xl sm:text-4xl text-white"
             style={{
-              fontFamily: "Fraunces, Georgia, serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 600,
               letterSpacing: "-0.025em",
             }}
@@ -1371,7 +1371,7 @@ const CryptoNewsPage = () => {
           </div>
           <p
             className="text-white text-base mb-1"
-            style={{ fontFamily: "Fraunces, Georgia, serif" }}
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
             No results found
           </p>

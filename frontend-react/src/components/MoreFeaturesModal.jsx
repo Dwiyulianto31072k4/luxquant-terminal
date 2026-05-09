@@ -372,7 +372,7 @@ const MoreFeaturesModal = ({
 
         /* ─── Typography ─── */
         .mfm-serif {
-          font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+          font-family: 'Space Grotesk', sans-serif;
           letter-spacing: -0.025em;
         }
         .mfm-gold-grad {
@@ -619,7 +619,7 @@ const MoreFeaturesModal = ({
           background: linear-gradient(135deg, rgba(253,230,168,0.22), rgba(212,168,83,0.08));
           color: #fde6a8;
           border: 1px solid rgba(245,208,136,0.35);
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: 'Space Grotesk', sans-serif;
           box-shadow: 0 2px 8px -2px rgba(245,208,136,0.3);
         }
 

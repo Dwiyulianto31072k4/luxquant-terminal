@@ -249,7 +249,7 @@ export default function OrderBookPage() {
         <div className="flex items-center gap-3">
           <IconBadge>{Icons.orderbook}</IconBadge>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "Playfair Display, serif" }}>
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {t("orderbook.title")}
             </h1>
             <p className="text-[12px] mt-0.5 text-text-muted">{t("orderbook.subtitle")}</p>
