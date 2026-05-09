@@ -30,11 +30,10 @@ export default {
         warning: "#fbbf24",
       },
       fontFamily: {
-        display: ["Playfair Display", "serif"],
+        // === REVISI FONT ===
+        display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
         body: ["Plus Jakarta Sans", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
-
-        // === INI YANG BARU ===
         sans: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
