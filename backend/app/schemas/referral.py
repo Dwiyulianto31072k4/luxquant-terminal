@@ -8,13 +8,6 @@ from datetime import datetime
 # ════════════════════════════════════════════════════════════════════
 # CUSTOM SLUG VALIDATION RULES
 # ════════════════════════════════════════════════════════════════════
-# - 4-20 chars
-# - Alphanumeric + dash + underscore
-# - Tidak boleh start/end dengan dash/underscore
-# - Tidak boleh consecutive special chars (--, __, -_, _-)
-# - Tidak boleh match reserved words (admin, api, login, register, dll)
-# - Profanity filter ringan
-# ════════════════════════════════════════════════════════════════════
 
 RESERVED_SLUGS = {
     # Routes
@@ -28,7 +21,6 @@ RESERVED_SLUGS = {
     "luxquant", "luxq", "lux",
 }
 
-# Profanity filter ringan (EN/ID basic) — bisa di-extend nanti
 PROFANITY_TOKENS = {
     "fuck", "shit", "bitch", "asshole", "dick", "cunt",
     "anjing", "babi", "kontol", "memek",
@@ -51,15 +43,12 @@ def validate_slug(value: str) -> str:
     if not SLUG_REGEX.match(v):
         raise ValueError('Code can only contain letters, numbers, dash (-), underscore (_), and cannot start/end with special chars')
 
-    # Cek consecutive special chars
     if re.search(r'[-_]{2,}', v):
         raise ValueError('Code cannot contain consecutive dashes or underscores')
 
-    # Reserved words check (case-insensitive)
     if v.lower() in RESERVED_SLUGS:
         raise ValueError('This code is reserved and cannot be used')
 
-    # Profanity check
     v_lower = v.lower()
     for token in PROFANITY_TOKENS:
         if token in v_lower:
@@ -85,6 +74,7 @@ class ReferralCodeCreate(BaseModel):
 
 
 class ReferralCodeResponse(BaseModel):
+    """Code dengan share-ready fields"""
     id: int
     code: str
     discount_pct: float
@@ -95,6 +85,15 @@ class ReferralCodeResponse(BaseModel):
     expires_at: Optional[datetime] = None
     created_at: datetime
 
+    # ─── Share-ready fields (computed) ───
+    share_link: str           # https://luxquant.tw/?ref=XXX
+    qr_url: str               # https://luxquant.tw/api/v1/referral/qr/XXX
+
+    # ─── Tracking metrics ───
+    share_count: int = 0
+    qr_count: int = 0
+    last_shared_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
@@ -104,7 +103,7 @@ class ReferralCodeResponse(BaseModel):
 # ════════════════════════════════════════════════════════════════════
 
 class ReferralApply(BaseModel):
-    """New user applies a referral code at registration"""
+    """Manual apply (legacy, ga dipake frontend baru)"""
     code: str
 
     @field_validator('code')
@@ -114,46 +113,97 @@ class ReferralApply(BaseModel):
 
 
 class ReferralValidateResponse(BaseModel):
+    """Public endpoint untuk validate code (e.g. dari LandingPage banner)"""
     valid: bool
     code: Optional[str] = None
     discount_pct: Optional[float] = None
+    referrer_username: Optional[str] = None  # Untuk banner: "Referred by @saptadi"
     message: str
 
 
 # ════════════════════════════════════════════════════════════════════
-# STATS — Funnel + Earnings
+# SHARE TRACKING
+# ════════════════════════════════════════════════════════════════════
+
+class TrackShareRequest(BaseModel):
+    """Track share event (copy link, QR download, social share)"""
+    code: str
+    channel: str  # "copy_link" | "qr_download" | "twitter" | "telegram" | "whatsapp" | "other"
+
+    @field_validator('code')
+    @classmethod
+    def normalize_code(cls, v):
+        return v.strip().upper()
+
+    @field_validator('channel')
+    @classmethod
+    def validate_channel(cls, v):
+        allowed = {"copy_link", "qr_download", "twitter", "telegram", "whatsapp", "other"}
+        if v not in allowed:
+            raise ValueError(f"channel must be one of: {', '.join(allowed)}")
+        return v
+
+
+class TrackShareResponse(BaseModel):
+    success: bool
+    share_count: int
+    qr_count: int
+
+
+# ════════════════════════════════════════════════════════════════════
+# FUNNEL & EARNINGS
 # ════════════════════════════════════════════════════════════════════
 
 class ReferralFunnelResponse(BaseModel):
-    """Funnel breakdown: signup → active (login) → subscribed → churned"""
-    signed_up: int        # total referee yang apply code
-    active: int           # yang udah login min 1x
-    subscribed: int       # yang udah bayar min 1x
-    churned: int          # subscription expired & ga renew
+    """Funnel breakdown: signup → active → subscribed → churned"""
+    signed_up: int        # Total referee yang apply code
+    active: int           # Yang udah login min 1x
+    subscribed: int       # Yang udah bayar min 1x
+    churned: int          # Subscription expired & ga renew
+
+    # Conversion rates (helper, frontend bisa display %)
+    activation_rate: float = 0       # active / signed_up
+    subscription_rate: float = 0     # subscribed / active
 
 
 class ReferralEarningsResponse(BaseModel):
-    """Earnings summary referrer"""
-    available_balance: float        # current credit balance (yg bisa di-redeem)
-    lifetime_earned: float          # total all-time earned (immutable counter)
-    total_redeemed: float           # total udah di-redeem ke subscription
-    pending_commission: float       # estimasi commission referee yang masih active tapi belum bayar
-    this_month_earned: float        # earned dalam 30 hari terakhir
+    """Earnings card data"""
+    available_balance: float        # Current credit balance (yg bisa di-redeem)
+    lifetime_earned: float          # Total all-time earned (immutable counter)
+    total_redeemed: float           # Total udah di-redeem
+    pending_commission: float       # Estimasi commission referee yang masih active
+    this_month_earned: float        # Earned dalam 30 hari terakhir
+    has_earnings: bool              # True kalau lifetime_earned > 0
 
 
-class ReferralStatsResponse(BaseModel):
-    """Combined dashboard stats (backward compat dengan stats endpoint lama)"""
-    # Funnel
-    total_referrals: int
-    confirmed_referrals: int        # alias subscribed
-    pending_referrals: int          # alias pending+active
-    funnel: ReferralFunnelResponse
+# ════════════════════════════════════════════════════════════════════
+# REFEREE LIST (privacy: Level 3 — full disclosure)
+# ════════════════════════════════════════════════════════════════════
 
-    # Earnings
-    earnings: ReferralEarningsResponse
+class RefereeItem(BaseModel):
+    """Satu referee di list"""
+    user_id: int                          # Internal ID (frontend bisa abaikan)
+    username: str
+    avatar_url: Optional[str] = None
+    status: str                           # pending | active | subscribed | churned | cancelled
+    joined_at: datetime                   # Kapan referee register pake code lo
+    first_login_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+    login_count: int = 0
+    total_payments: int = 0
+    total_commission_earned: float = 0    # Commission yg lo dapet dari user ini
 
-    # Recent activity
-    recent_referrals: List[dict]
+    class Config:
+        from_attributes = True
+
+
+class RefereeListResponse(BaseModel):
+    """Paginated referee list"""
+    items: List[RefereeItem]
+    total: int
+    page: int
+    page_size: int
+    has_more: bool
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -161,9 +211,8 @@ class ReferralStatsResponse(BaseModel):
 # ════════════════════════════════════════════════════════════════════
 
 class RedeemRequest(BaseModel):
-    """Request redeem credit untuk potong invoice subscription"""
     amount_usdt: float
-    payment_id: int                 # invoice ID yang mau di-potong
+    payment_id: int
 
     @field_validator('amount_usdt')
     @classmethod
@@ -172,12 +221,10 @@ class RedeemRequest(BaseModel):
             raise ValueError('Amount must be positive')
         if v > 10000:
             raise ValueError('Amount exceeds maximum redeemable')
-        # Round ke 2 desimal
         return round(v, 2)
 
 
 class RedeemPreviewRequest(BaseModel):
-    """Preview redeem (calculate tanpa commit)"""
     amount_usdt: float
     payment_id: int
 
@@ -190,19 +237,17 @@ class RedeemPreviewRequest(BaseModel):
 
 
 class RedeemPreviewResponse(BaseModel):
-    """Preview result"""
     requested_amount: float
     available_balance: float
     invoice_amount: float
-    discount_amount: float          # discount referral kalo first payment
+    discount_amount: float
     final_amount_after_credit: float
-    redeem_amount: float            # actual yang akan di-redeem (mungkin di-cap)
+    redeem_amount: float
     will_succeed: bool
     message: str
 
 
 class RedeemResponse(BaseModel):
-    """Hasil redeem berhasil"""
     redeemed_amount: float
     new_balance: float
     invoice_amount_after: float
@@ -211,7 +256,7 @@ class RedeemResponse(BaseModel):
 
 
 # ════════════════════════════════════════════════════════════════════
-# CREDIT LEDGER (audit trail history untuk user)
+# CREDIT LEDGER
 # ════════════════════════════════════════════════════════════════════
 
 class CreditLedgerEntry(BaseModel):
@@ -232,15 +277,29 @@ class CreditLedgerResponse(BaseModel):
     entries: List[CreditLedgerEntry]
     total: int
     current_balance: float
+    page: int = 1
+    page_size: int = 20
+    has_more: bool = False
 
 
 # ════════════════════════════════════════════════════════════════════
-# DEPRECATED — kept for backward compat ke frontend lama
+# COMBINED STATS (dashboard summary)
+# ════════════════════════════════════════════════════════════════════
+
+class ReferralStatsResponse(BaseModel):
+    """One-shot endpoint buat dashboard load"""
+    code: Optional[ReferralCodeResponse] = None       # User's code (None kalau belum generate)
+    funnel: ReferralFunnelResponse
+    earnings: ReferralEarningsResponse
+    recent_referees: List[RefereeItem] = []           # Last 5 referees (for dashboard preview)
+
+
+# ════════════════════════════════════════════════════════════════════
+# DEPRECATED — kept untuk backward compat
 # ════════════════════════════════════════════════════════════════════
 
 class PayoutRequest(BaseModel):
-    """DEPRECATED — sekarang pake RedeemRequest. Schema ini di-keep biar
-    backend ga error kalo masih ada client lama yang hit /payout"""
+    """DEPRECATED — sekarang pake RedeemRequest."""
     amount_usdt: float
     wallet_address: str
     network: Optional[str] = "BSC"
