@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
+import { saveRefFromURL } from "../../utils/referralStorage";
 import {
   ResponsiveContainer,
   Tooltip,
@@ -562,13 +563,12 @@ const LivePerformanceStats = ({ data }) => {
   const activePairs = stats?.active_pairs ?? 0;
   const openSignals = stats?.open_signals ?? 0;
 
-  // ─── Outcome bar: gold gradient opacity (TP1 solid -> TP4 fade) + SL red ───
   const outcomeItems = [
-    { label: "TP1", count: stats?.tp1_count ?? 0, color: "#f0d890", opacity: 1 },
-    { label: "TP2", count: stats?.tp2_count ?? 0, color: "#d4a853", opacity: 0.85 },
-    { label: "TP3", count: stats?.tp3_count ?? 0, color: "#b88a3e", opacity: 0.7 },
-    { label: "TP4", count: stats?.tp4_count ?? 0, color: "#8b6914", opacity: 0.55 },
-    { label: "SL",  count: slCount, color: "#EF4444", opacity: 1 },
+    { label: "TP1", count: stats?.tp1_count ?? 0, color: "#22C55E" },
+    { label: "TP2", count: stats?.tp2_count ?? 0, color: "#84CC16" },
+    { label: "TP3", count: stats?.tp3_count ?? 0, color: "#EAB308" },
+    { label: "TP4", count: stats?.tp4_count ?? 0, color: "#F97316" },
+    { label: "SL", count: slCount, color: "#EF4444" },
   ];
   const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
 
@@ -578,37 +578,32 @@ const LivePerformanceStats = ({ data }) => {
       text: "text-green-400",
       dot: "bg-green-500",
       bar: "#22C55E",
-      border: "border-green-500/15",
-      bg: "from-green-500/[0.04]",
+      border: "border-green-500/20",
+      bg: "from-green-500/[0.06]",
     },
     Normal: {
       text: "text-yellow-400",
       dot: "bg-yellow-500",
       bar: "#EAB308",
-      border: "border-yellow-500/15",
-      bg: "from-yellow-500/[0.04]",
+      border: "border-yellow-500/20",
+      bg: "from-yellow-500/[0.06]",
     },
     High: {
       text: "text-red-400",
       dot: "bg-red-500",
       bar: "#EF4444",
-      border: "border-red-500/15",
-      bg: "from-red-500/[0.04]",
+      border: "border-red-500/20",
+      bg: "from-red-500/[0.06]",
     },
   };
   const riskTotal = riskDist.reduce((s, r) => s + (r.total_signals || 0), 0);
 
-  // ─── 6-stat grid: neutral palette (gold cuma di Win Rate accent) ───
+  // 6-stat grid config (data-driven)
   const statCards = [
     {
       label: "Win Rate",
       value: stats ? `${winRate.toFixed(1)}%` : "—",
-      colorClass:
-        winRate >= 75
-          ? "text-green-400"
-          : winRate >= 55
-            ? "text-yellow-400"
-            : "text-red-400",
+      colorClass: "text-gold-primary",
       isAccent: true,
     },
     {
@@ -619,12 +614,12 @@ const LivePerformanceStats = ({ data }) => {
     {
       label: "Winners",
       value: stats ? totalWinners.toLocaleString() : "—",
-      colorClass: "text-green-400",
+      colorClass: "text-white",
     },
     {
       label: "Losses",
       value: stats ? slCount.toLocaleString() : "—",
-      colorClass: "text-red-400",
+      colorClass: "text-white",
     },
     {
       label: "Pairs Traded",
@@ -670,13 +665,13 @@ const LivePerformanceStats = ({ data }) => {
         </p>
       </div>
 
-      {/* Runtime Counter */}
+      {/* Runtime Counter (separate component) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
         <RuntimeCounter />
       </div>
 
       {/* ════════════════════════════════════════
-          2. 6-STAT GRID — Web3 minimalism, hairline, mono numbers
+          2. 6-STAT GRID — Naked huge numbers, flat hairline
           ════════════════════════════════════════ */}
       <div onClick={goPerf} className="cursor-pointer group">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3 mb-4">
@@ -686,9 +681,10 @@ const LivePerformanceStats = ({ data }) => {
               className={`relative overflow-hidden rounded-md p-3 lg:p-4 bg-[#0a0805] border transition-all ${
                 card.isAccent
                   ? "border-gold-primary/25 group-hover:border-gold-primary/50"
-                  : "border-white/[0.06] group-hover:border-white/[0.12]"
+                  : "border-white/[0.06] group-hover:border-gold-primary/20"
               }`}
             >
+              {/* Hairline accent on top for accent card */}
               {card.isAccent && (
                 <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
               )}
@@ -734,7 +730,7 @@ const LivePerformanceStats = ({ data }) => {
           <LandingWinRateChart data={trendData} />
         </div>
 
-        {/* Outcome Distribution — gold gradient opacity */}
+        {/* Outcome Distribution (1/3) — flat segmented Hydromancer-style */}
         <div
           onClick={goPerf}
           className="lg:col-span-1 relative overflow-hidden rounded-md p-4 lg:p-6 bg-[#0a0805] border border-white/10 hover:border-gold-primary/30 transition-all cursor-pointer"
@@ -748,7 +744,7 @@ const LivePerformanceStats = ({ data }) => {
           </p>
           {outcomeTotal > 0 ? (
             <div className="space-y-5">
-              {/* Flat segmented bar — gold gradient + 1 red SL */}
+              {/* Flat segmented bar with hairline gaps */}
               <div className="h-2.5 flex bg-bg-card/40 border border-white/5 rounded-sm overflow-hidden">
                 {outcomeItems
                   .filter((i) => i.count > 0)
@@ -761,7 +757,6 @@ const LivePerformanceStats = ({ data }) => {
                         style={{
                           width: `${pct}%`,
                           backgroundColor: item.color,
-                          opacity: item.opacity,
                           marginRight: isLast ? 0 : "1px",
                         }}
                         className="h-full transition-all duration-700"
@@ -773,15 +768,11 @@ const LivePerformanceStats = ({ data }) => {
                 {outcomeItems.map((item) => {
                   const pct =
                     outcomeTotal > 0 ? (item.count / outcomeTotal) * 100 : 0;
-                  const isSL = item.label === "SL";
                   return (
                     <div key={item.label} className="flex items-center gap-3">
                       <span
-                        className={`text-[11px] font-bold w-8 font-mono tracking-wider ${isSL ? "" : ""}`}
-                        style={{
-                          color: item.color,
-                          opacity: isSL ? 1 : item.opacity,
-                        }}
+                        className="text-[11px] font-bold w-8 font-mono tracking-wider"
+                        style={{ color: item.color }}
                       >
                         {item.label}
                       </span>
@@ -791,7 +782,6 @@ const LivePerformanceStats = ({ data }) => {
                           style={{
                             width: `${Math.max(pct, 1)}%`,
                             backgroundColor: item.color,
-                            opacity: item.opacity,
                           }}
                         />
                       </div>
@@ -814,7 +804,7 @@ const LivePerformanceStats = ({ data }) => {
       </div>
 
       {/* ════════════════════════════════════════
-          4. RISK LEVEL ANALYSIS — flat, sharper
+          4. RISK LEVEL ANALYSIS — Sharper, hairline accent
           ════════════════════════════════════════ */}
       <div
         onClick={goPerf}
@@ -870,21 +860,18 @@ const LivePerformanceStats = ({ data }) => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${c.dot}`} />
-                      <span
-                        className={`font-bold text-sm font-mono tracking-wider uppercase ${c.text}`}
-                      >
+                      <span className="font-bold text-sm font-mono tracking-wider uppercase text-white/70">
                         {rd.risk_level}
                       </span>
                     </div>
                   </div>
-                  <p
-                    className={`text-3xl lg:text-4xl font-bold font-mono tabular-nums ${c.text} leading-none mb-1`}
-                  >
+                  <p className="text-3xl lg:text-4xl font-bold font-mono tabular-nums text-white leading-none mb-1">
                     {rd.win_rate.toFixed(1)}%
                   </p>
                   <p className="text-text-muted text-[10px] mb-3 font-mono">
                     Win Rate
                   </p>
+                  {/* Flat segmented bar */}
                   <div className="h-1.5 flex bg-bg-card/50 rounded-sm overflow-hidden mb-2">
                     <div
                       className="h-full bg-green-500/70"
@@ -899,10 +886,10 @@ const LivePerformanceStats = ({ data }) => {
                     />
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span className="text-green-400/80 font-mono tabular-nums">
+                    <span className="text-white/60 font-mono tabular-nums">
                       {rd.winners?.toLocaleString()} W
                     </span>
-                    <span className="text-red-400/80 font-mono tabular-nums">
+                    <span className="text-white/60 font-mono tabular-nums">
                       {rd.losers?.toLocaleString()} L
                     </span>
                   </div>
@@ -918,10 +905,11 @@ const LivePerformanceStats = ({ data }) => {
       </div>
 
       {/* ════════════════════════════════════════
-          5. FOOTER CTA — SVG Lock + consistent button gradient
+          5. FOOTER CTA — Lock SVG + consistent button gradient
           ════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 p-4 rounded-md bg-gold-primary/[0.04] border border-gold-primary/15 flex items-center gap-3">
+          {/* SVG Lock icon (replace 🔒 emoji) */}
           <svg
             className="w-5 h-5 text-gold-primary flex-shrink-0"
             fill="none"
@@ -1044,6 +1032,11 @@ const LandingPage = () => {
 
   const [performanceData, setPerformanceData] = useState(null);
   const [topGainers, setTopGainers] = useState([]);
+
+  // Capture ?ref= dari URL → simpan localStorage TTL 7 hari
+  useEffect(() => {
+    saveRefFromURL();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
