@@ -27,6 +27,10 @@ class User(Base):
     telegram_id = Column(BigInteger, unique=True, nullable=True, index=True)
     telegram_username = Column(String(100), nullable=True)
 
+    # ─── Discord OAuth ───
+    discord_id = Column(BigInteger, unique=True, nullable=True, index=True)
+    discord_username = Column(String(100), nullable=True)
+
     # Subscription
     role = Column(String(20), default="free", nullable=False)
     subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
@@ -34,14 +38,16 @@ class User(Base):
     subscription_granted_at = Column(DateTime(timezone=True), nullable=True)
     subscription_note = Column(Text, nullable=True)
 
+    # ─── v2.1: Subscription source (cross-OAuth provider protection) ───
+    # Values: lifetime | admin | payment | telegram_vip | discord_premium | NULL
+    subscription_source = Column(String(30), nullable=True)
+
     # ─── Referral (legacy fields, masih dipake buat backref cepat) ───
     referred_by = Column(Integer, nullable=True)
     referral_code_used = Column(String(20), nullable=True)
 
     # ─── Referral v2: Credit balance ───
-    # Saldo credit yang available buat di-redeem ke subscription
     referral_credit_usdt = Column(Numeric(10, 2), default=0, nullable=False)
-    # Total lifetime earned (audit, ga pernah berkurang walaupun di-redeem)
     lifetime_credit_earned = Column(Numeric(10, 2), default=0, nullable=False)
 
     # ─── Login tracking (untuk funnel analytics referrer) ───
@@ -70,8 +76,7 @@ class User(Base):
 
     @property
     def has_credit(self) -> bool:
-        """True kalau user punya credit balance > 0"""
         return self.referral_credit_usdt and float(self.referral_credit_usdt) > 0
 
     def __repr__(self):
-        return f"<User {self.username} role={self.role}>"
+        return f"<User {self.username} role={self.role} source={self.subscription_source}>"
