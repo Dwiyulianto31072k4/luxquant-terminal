@@ -734,9 +734,8 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <div className="flex-1 flex items-center gap-2.5 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <div className="relative overflow-hidden rounded-xl">
-                 <img src="/logo.png" alt="LuxQuant" className="w-8 h-8 lg:w-10 lg:h-10 object-cover group-hover:scale-110 transition-transform duration-500" />
-                 <div className="absolute inset-0 bg-gold-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative overflow-hidden rounded-md">
+                 <img src="/logo.png" alt="LuxQuant" className="w-8 h-8 lg:w-10 lg:h-10 object-cover group-hover:opacity-80 transition-opacity duration-300" />
               </div>
               <h1 className="font-display text-lg lg:text-xl font-bold text-white tracking-wide group-hover:text-gold-primary transition-colors duration-300">LuxQuant</h1>
             </div>
@@ -755,16 +754,18 @@ const LandingPage = () => {
             </nav>
 
             <div className="hidden lg:flex flex-1 justify-end items-center">
-              <button 
-                onClick={isAuthenticated ? goTerminal : goLogin} 
-                className="relative overflow-hidden px-6 py-2.5 rounded-xl font-bold transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,168,83,0.25)] flex items-center gap-2 group" 
-                style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+              <button
+                onClick={isAuthenticated ? goTerminal : goLogin}
+                className="group relative px-6 py-2.5 rounded-md font-semibold transition-all hover:-translate-y-0.5 flex items-center gap-2 shadow-[0_4px_14px_rgba(212,168,83,0.2)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.3)]"
+                style={{
+                  background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+                  color: '#0a0506',
+                }}
               >
-                <span className="relative z-10 uppercase tracking-widest text-[10px] lg:text-xs">Open Platform</span>
-                <svg className="w-3.5 h-3.5 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <span className="uppercase tracking-widest text-[10px] lg:text-xs">Open Platform</span>
+                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               </button>
             </div>
 
@@ -811,28 +812,33 @@ const LandingPage = () => {
           HERO SECTION (Algorithmic Focus + Multi-Device)
       ════════════════════════════════════════ */}
       <section id="hero" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-32 xl:pt-40 pb-16 lg:pb-20 overflow-visible">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] pointer-events-none -z-10">
-          <div className="absolute inset-0 bg-gold-primary/[0.03] rounded-full blur-[150px]" style={{ animation: 'heroGlowPulse 6s ease-in-out infinite' }} />
-          <div className="absolute top-20 -left-40 w-[400px] h-[400px] bg-[#8b1a1a]/[0.05] rounded-full blur-[120px]" />
-          <div className="absolute -bottom-20 -right-20 w-[300px] h-[300px] bg-gold-primary/[0.04] rounded-full blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none -z-10">
+          <div className="absolute inset-0 bg-gold-primary/[0.025] rounded-full blur-[160px]" style={{ animation: 'heroGlowPulse 8s ease-in-out infinite' }} />
         </div>
 
         {/* 👇 FIX: gap-12 diubah jadi gap-2 untuk mobile 👇 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-8 items-center relative z-10">
           
           <div className="relative z-20 flex flex-col items-center text-center lg:items-start lg:text-left">
-            <h1 
-              className="font-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.15] lg:leading-[1.05] tracking-tight mb-5 px-2 sm:px-0"
+            {/* Section Label — clean, no number */}
+            <div
+              className="flex items-center gap-3 mb-6 lg:mb-8 self-center lg:self-start"
+              style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.1s both' }}
+            >
+              <span className="h-px w-8 bg-gold-primary/40" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+                The Quantitative Terminal
+              </span>
+              <span className="h-px w-8 bg-gold-primary/40" />
+            </div>
+
+            <h1
+              className="font-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] xl:text-[4.5rem] font-bold text-white leading-[1.1] lg:leading-[1.02] tracking-tight mb-5 px-2 sm:px-0"
               style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.2s both' }}
             >
-              An <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">Algorithm</span> <br />
-              Built to Outsmart <br />
-              <span className="relative inline-block mt-1 lg:mt-2">
-                The Market.
-                <svg className="absolute w-[110%] h-3 lg:h-4 -bottom-1 lg:-bottom-1.5 -left-[5%] text-gold-primary/60" viewBox="0 0 100 10" preserveAspectRatio="none">
-                  <path d="M0 8 Q 25 2 50 6 T 100 4" fill="transparent" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </span>
+              An <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">Algorithm</span><br />
+              Built to Outsmart<br />
+              The Market.
             </h1>
 
             {/* 👇 FIX: mb-8 diubah jadi mb-2 khusus mobile 👇 */}
@@ -845,20 +851,32 @@ const LandingPage = () => {
               Complemented by an <span className="text-white font-medium">AI market researcher</span> that synthesizes sentiment and macro events into one clear verdict.
             </p>
 
-            <div className="hidden lg:block mb-12" style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.45s both' }}>
-              <div className="inline-flex relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-gold-primary to-gold-dark rounded-xl blur opacity-30 group-hover:opacity-70 transition duration-500" />
-                <button 
-                  onClick={isAuthenticated ? goTerminal : goLogin} 
-                  className="relative px-8 py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] flex items-center gap-3"
-                  style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
-                >
-                  <span className="tracking-wide uppercase">Open Terminal</span>
-                  <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </button>
-              </div>
+            <div className="hidden lg:flex items-center gap-3 mb-12" style={{ animation: 'heroCardFadeIn 0.8s ease-out 0.45s both' }}>
+              {/* Primary CTA — subtle gradient, lively but modern */}
+              <button
+                onClick={isAuthenticated ? goTerminal : goLogin}
+                className="group relative px-7 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)]"
+                style={{
+                  background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+                  color: '#0a0506',
+                }}
+              >
+                <span className="tracking-wide">Open Terminal</span>
+                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+
+              {/* Ghost CTA — outline */}
+              <button
+                onClick={() => scrollTo('performance-top')}
+                className="group px-6 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 text-white/80 hover:text-white border border-white/10 hover:border-white/25 hover:bg-white/[0.03]"
+              >
+                <span className="tracking-wide">View Performance</span>
+                <svg className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -940,15 +958,17 @@ const LandingPage = () => {
       <section id="performance-top" className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24 pt-12 mt-4">
         <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[80%] h-40 bg-gold-primary/10 blur-[120px] pointer-events-none rounded-full" />
         <div className="text-center mb-8 relative z-10">
-          <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-6">
-            Recent Winner <span className="relative inline-block">
-              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Captures</span>
-              <svg className="absolute w-[110%] h-3 -bottom-1 -left-[5%] text-gold-primary/40" viewBox="0 0 100 10" preserveAspectRatio="none">
-                <path d="M0 5 Q 50 10 100 5" fill="transparent" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <span className="h-px w-8 bg-gold-primary/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+              Live Track Record
             </span>
+            <span className="h-px w-8 bg-gold-primary/40" />
+          </div>
+          <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-6 tracking-tight">
+            Recent Winner <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">Captures</span>
           </h2>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
             Witness the algorithmic edge. Here are the most recent setups successfully identified and signaled by our quantitative engine <span className="text-white font-medium">with massive upside potential</span>.
           </p>
         </div>
@@ -956,17 +976,12 @@ const LandingPage = () => {
            <div className="absolute -inset-4 bg-gradient-to-b from-gold-primary/5 to-transparent rounded-3xl blur-md -z-10" />
            <TopPerformers />
         </div>
-        <div className="mt-8 flex flex-row items-center justify-center gap-2.5 text-sm text-text-secondary">
-          <svg className="w-4 h-4 text-gold-primary animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+        <div className="mt-8 flex flex-row items-center justify-center gap-2 text-xs lg:text-sm text-text-muted">
+          <svg className="w-3.5 h-3.5 text-gold-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           <span>
-            <span className="font-semibold text-white">Interactive Feature:</span> Click any coin above to view its original <span className="relative inline-block text-white font-medium">
-              history call and results
-              <svg className="absolute w-[110%] h-2 -bottom-0.5 -left-[5%] text-gold-primary/60" viewBox="0 0 100 10" preserveAspectRatio="none">
-                <path d="M0 5 Q 50 10 100 5" fill="transparent" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </span>!
+            <span className="text-gold-primary/90 font-medium">Tip:</span> Click any coin to view its original signal & results.
           </span>
         </div>
       </section>
@@ -1237,13 +1252,19 @@ const LandingPage = () => {
       {/* ════════════════════════════════════════
           STICKY MOBILE CTA
       ════════════════════════════════════════ */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-bg-primary/95 backdrop-blur-xl border-t border-gold-primary/20 z-[100] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        <button 
-          onClick={isAuthenticated ? goTerminal : goLogin} 
-          className="w-full py-4 rounded-xl font-bold text-sm flex justify-center items-center uppercase tracking-wide transition-transform active:scale-95 shadow-[0_0_15px_rgba(212,168,83,0.15)]" 
-          style={{ background: 'linear-gradient(to right, #d4a853, #8b6914)', color: '#0a0506' }}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-bg-primary/95 backdrop-blur-xl border-t border-gold-primary/15 z-[100]">
+        <button
+          onClick={isAuthenticated ? goTerminal : goLogin}
+          className="w-full py-3.5 rounded-md font-semibold text-sm flex justify-center items-center gap-2 uppercase tracking-wide transition-transform active:scale-[0.98] shadow-[0_4px_14px_rgba(212,168,83,0.25)]"
+          style={{
+            background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+            color: '#0a0506',
+          }}
         >
           Open Terminal
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
         </button>
       </div>
 
