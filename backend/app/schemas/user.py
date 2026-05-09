@@ -1,43 +1,39 @@
 # backend/app/schemas/user.py
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
 
-# ============ Request Schemas ============
+# ════════════════════════════════════════════════════════════════════
+# Helper: normalize referral code (uppercase, strip, None if empty)
+# ════════════════════════════════════════════════════════════════════
 
-class UserRegister(BaseModel):
-    email: EmailStr
-    username: str
-    password: str
-    
-    @field_validator('username')
-    @classmethod
-    def username_valid(cls, v):
-        if len(v) < 3:
-            raise ValueError('Username minimal 3 karakter')
-        if len(v) > 50:
-            raise ValueError('Username maksimal 50 karakter')
-        if not v.replace('_', '').isalnum():
-            raise ValueError('Username hanya boleh huruf, angka, dan underscore')
-        return v.lower()
-    
-    @field_validator('password')
-    @classmethod
-    def password_valid(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password minimal 8 karakter')
-        return v
+def _normalize_referral_code(v):
+    if v is None:
+        return None
+    v = str(v).strip().upper()
+    if not v:
+        return None
+    return v
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+# ════════════════════════════════════════════════════════════════════
+# OAuth Login Schemas
+# ════════════════════════════════════════════════════════════════════
+# Email/password (UserRegister, UserLogin) udah di-deprecate karena
+# auth flow sekarang OAuth-only (Google + Telegram + Discord).
+# ════════════════════════════════════════════════════════════════════
 
 
 class GoogleLogin(BaseModel):
     """Schema untuk Google OAuth login — frontend kirim id_token dari Google"""
     id_token: str
+    referral_code: Optional[str] = None  # ← dari ?ref di URL atau localStorage
+
+    @field_validator('referral_code')
+    @classmethod
+    def normalize_ref(cls, v):
+        return _normalize_referral_code(v)
 
 
 class TelegramLogin(BaseModel):
@@ -49,20 +45,28 @@ class TelegramLogin(BaseModel):
     photo_url: Optional[str] = None
     auth_date: int
     hash: str
+    referral_code: Optional[str] = None  # ← dari ?ref di URL atau localStorage
+
+    @field_validator('referral_code')
+    @classmethod
+    def normalize_ref(cls, v):
+        return _normalize_referral_code(v)
 
 
 class TokenRefresh(BaseModel):
     refresh_token: str
 
 
-# ============ Admin Request Schemas ============
+# ════════════════════════════════════════════════════════════════════
+# Admin Request Schemas
+# ════════════════════════════════════════════════════════════════════
 
 class GrantSubscription(BaseModel):
     """Admin grant subscription ke user"""
     duration: str  # '1_month', '1_year', 'lifetime'
     note: Optional[str] = None
-    start_date: Optional[str] = None  # ISO format: '2025-01-15' — kalau None = hari ini
-    
+    start_date: Optional[str] = None
+
     @field_validator('duration')
     @classmethod
     def duration_valid(cls, v):
@@ -70,7 +74,7 @@ class GrantSubscription(BaseModel):
         if v not in valid:
             raise ValueError(f'Duration harus salah satu dari: {", ".join(valid)}')
         return v
-    
+
     @field_validator('start_date')
     @classmethod
     def start_date_valid(cls, v):
@@ -86,7 +90,7 @@ class GrantSubscription(BaseModel):
 class UpdateUserRole(BaseModel):
     """Admin update user role"""
     role: str
-    
+
     @field_validator('role')
     @classmethod
     def role_valid(cls, v):
@@ -96,7 +100,9 @@ class UpdateUserRole(BaseModel):
         return v
 
 
-# ============ Response Schemas ============
+# ════════════════════════════════════════════════════════════════════
+# Response Schemas
+# ════════════════════════════════════════════════════════════════════
 
 class UserResponse(BaseModel):
     id: int
@@ -114,8 +120,21 @@ class UserResponse(BaseModel):
     subscription_expires_at: Optional[datetime] = None
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
+    subscription_source: Optional[str] = None  # ← v2.1
+
+    # Referral v2
+    referred_by: Optional[int] = None
+    referral_code_used: Optional[str] = None
+    referral_credit_usdt: Optional[float] = 0
+    lifetime_credit_earned: Optional[float] = 0
+
+    # Login tracking
+    last_login_at: Optional[datetime] = None
+    first_login_at: Optional[datetime] = None
+    login_count: Optional[int] = 0
+
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -138,9 +157,20 @@ class AdminUserResponse(BaseModel):
     subscription_granted_by: Optional[int] = None
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
+    subscription_source: Optional[str] = None
+
+    # Referral v2
+    referred_by: Optional[int] = None
+    referral_code_used: Optional[str] = None
+    referral_credit_usdt: Optional[float] = 0
+    lifetime_credit_earned: Optional[float] = 0
+    last_login_at: Optional[datetime] = None
+    first_login_at: Optional[datetime] = None
+    login_count: Optional[int] = 0
+
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 

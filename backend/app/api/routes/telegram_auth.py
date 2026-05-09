@@ -1,16 +1,15 @@
 # backend/app/api/routes/telegram_auth.py
 """
-Telegram Login + VIP Group Membership Verification
+Telegram Login + VIP Group Membership Verification + Referral
 
 Flow:
 1. User klik "Login with Telegram" → Telegram Login Widget popup
-2. Frontend kirim auth data ke POST /auth/telegram
+2. Frontend kirim auth data (+ optional referral_code) ke POST /auth/telegram
 3. Backend verify hash (keamanan dari Telegram)
 4. Backend cek membership di VIP group via Bot API getChatMember
-5. Set role berdasarkan membership: subscriber / free
-   ⚠️  PENTING: Jangan override role jika user punya active subscription
-       (lifetime atau belum expired) yang di-set via admin/payment.
-6. Return JWT tokens
+5. Resolve role via role_resolver (respect subscription_source)
+6. Apply referral_code (kalo user baru) + track login
+7. Return JWT tokens
 """
 import hashlib
 import hmac
@@ -18,8 +17,7 @@ import time
 import os
 import re
 import secrets
-from datetime import datetime, timezone
-from typing import Optional
+import logging
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,6 +32,17 @@ from app.schemas.user import (
     TokenResponse,
 )
 from app.api.deps import get_current_user
+from app.services.referral_helpers import (
+    apply_referral_to_user,
+    track_user_login,
+)
+from app.services.role_resolver import (
+    resolve_role_for_telegram,
+    is_role_protected,
+    PROVIDER_TELEGRAM,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Telegram Auth"])
 
@@ -46,123 +55,72 @@ VIP_GROUP_CHAT_ID = int(os.getenv("VIP_GROUP_CHAT_ID", "-1002670915863"))
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 
-# ════════════════════════════════════════════
-# Helper: Check if user has active subscription
-# ════════════════════════════════════════════
-
-def _has_active_subscription(user: User) -> bool:
-    """
-    Check if user has an active subscription that should NOT be overridden.
-    This covers:
-    - Lifetime subscribers (role=subscriber, expires_at=None)
-    - Active time-based subscribers (role=subscriber, expires_at > now)
-    - Admin-granted access
-    
-    Returns True if the user's role should be preserved.
-    """
-    if user.role == 'admin':
-        return True
-    
-    if user.role in ('subscriber', 'premium'):
-        # Lifetime subscription (expires_at is NULL)
-        if user.subscription_expires_at is None:
-            return True
-        # Time-based subscription not yet expired
-        if user.subscription_expires_at > datetime.now(timezone.utc):
-            return True
-    
-    return False
-
-
-def _resolve_role(user: User, is_vip_member: bool) -> str:
-    """
-    Determine the correct role for a user, respecting active subscriptions.
-    
-    Rules:
-    - Admin → never touch
-    - Has active subscription (lifetime or not expired) → keep current role
-    - VIP group member but no active sub → upgrade to subscriber
-    - Not VIP and no active sub → free
-    """
-    if user.role == 'admin':
-        return user.role
-    
-    # If user has active subscription, NEVER downgrade
-    if _has_active_subscription(user):
-        return user.role
-    
-    # No active subscription → VIP check determines role
-    return 'subscriber' if is_vip_member else 'free'
-
-
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 # 1. Telegram Login
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 
 @router.post("/telegram", response_model=TokenResponse)
 async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
-    """
-    Login/Register via Telegram Login Widget.
-    Juga cek membership VIP group untuk set role.
-    """
-    
-    # Step 1: Verify hash dari Telegram
+    """Login/Register via Telegram Login Widget."""
+
+    # Verify hash
     if not _verify_telegram_hash(data):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Data Telegram tidak valid"
         )
-    
-    # Step 2: Cek auth_date tidak terlalu lama (max 1 hari)
+
+    # Cek auth_date tidak terlalu lama (max 1 hari)
     if time.time() - data.auth_date > 86400:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Autentikasi Telegram sudah expired, silakan coba lagi"
         )
-    
-    # Step 3: Cek VIP membership
+
+    # Cek VIP membership
     is_vip_member = await _check_vip_membership(data.id)
-    
-    # Step 4: Find or create user
+
+    # Find or create user
     user = db.query(User).filter(User.telegram_id == data.id).first()
-    
+    is_new_user = False
+
     if user:
-        # Update info dari Telegram
+        # User existing — update info & resolve role
         user.telegram_username = data.username
         if data.photo_url:
             user.avatar_url = data.photo_url
-        
-        # ✅ FIX: Resolve role with subscription protection
-        user.role = _resolve_role(user, is_vip_member)
-        
+
+        new_role, new_source = resolve_role_for_telegram(user, is_vip_member)
+        user.role = new_role
+        user.subscription_source = new_source
+
         db.commit()
         db.refresh(user)
     else:
-        # Cek apakah ada user dengan username Telegram yang sama
-        # atau buat user baru
+        # User baru
         username = _generate_username(data, db)
-        
-        # Email placeholder untuk Telegram users (email required di schema)
         email = f"tg_{data.id}@telegram.luxquant.tw"
-        
-        # For new users, VIP check determines initial role
-        target_role = 'subscriber' if is_vip_member else 'free'
-        
-        # Cek email collision (harusnya tidak terjadi)
+
+        # Cek email collision
         existing_email = db.query(User).filter(User.email == email).first()
         if existing_email:
-            # Link Telegram ke existing user
+            # Link Telegram ke existing user (BUKAN user baru, no referral apply)
             existing_email.telegram_id = data.id
             existing_email.telegram_username = data.username
             existing_email.avatar_url = data.photo_url or existing_email.avatar_url
-            
-            # ✅ FIX: Resolve role with subscription protection
-            existing_email.role = _resolve_role(existing_email, is_vip_member)
-            
+
+            new_role, new_source = resolve_role_for_telegram(existing_email, is_vip_member)
+            existing_email.role = new_role
+            existing_email.subscription_source = new_source
+
             db.commit()
             db.refresh(existing_email)
             user = existing_email
         else:
+            # Genuinely new user
+            initial_role = 'subscriber' if is_vip_member else 'free'
+            initial_source = 'telegram_vip' if is_vip_member else None
+
             user = User(
                 email=email,
                 username=username,
@@ -173,21 +131,37 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
                 avatar_url=data.photo_url,
                 is_active=True,
                 is_verified=True,
-                role=target_role,
+                role=initial_role,
+                subscription_source=initial_source,
             )
             db.add(user)
             db.commit()
             db.refresh(user)
-    
+            is_new_user = True
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Akun tidak aktif"
         )
-    
-    # Generate JWT tokens
+
+    # ─── Apply referral KHUSUS user baru ───
+    if is_new_user and data.referral_code:
+        success, msg, _use = apply_referral_to_user(
+            db, user, data.referral_code, commit=True
+        )
+        if not success:
+            logger.info(
+                f"Telegram referral apply failed for user {user.id} "
+                f"with code='{data.referral_code}': {msg}"
+            )
+        db.refresh(user)
+
+    # ─── Track login ───
+    track_user_login(db, user, commit=True)
+
     tokens = create_tokens(user.id, user.email)
-    
+
     return TokenResponse(
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
@@ -195,25 +169,22 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     )
 
 
-# ════════════════════════════════════════════
-# 2. Check VIP Membership (public endpoint)
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
+# 2. Check VIP Status
+# ════════════════════════════════════════════════════════════════════
 
 @router.get("/telegram/check-vip")
 async def check_vip_status(current_user: User = Depends(get_current_user)):
-    """
-    Cek ulang VIP membership untuk current user.
-    Bisa dipanggil periodik dari frontend.
-    """
+    """Cek ulang VIP membership untuk current user."""
     if not current_user.telegram_id:
         return {
             "is_vip": False,
             "role": current_user.role,
             "message": "Akun belum terhubung dengan Telegram"
         }
-    
+
     is_vip = await _check_vip_membership(current_user.telegram_id)
-    
+
     return {
         "is_vip": is_vip,
         "role": current_user.role,
@@ -221,52 +192,49 @@ async def check_vip_status(current_user: User = Depends(get_current_user)):
     }
 
 
-# ════════════════════════════════════════════
-# 3. Refresh VIP Status (update role di DB)
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
+# 3. Refresh VIP Status (update role)
+# ════════════════════════════════════════════════════════════════════
 
 @router.post("/telegram/refresh-vip")
 async def refresh_vip_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Cek ulang VIP membership dan update role di database.
-    Dipanggil periodik oleh frontend atau background worker.
-    
-    ⚠️ Tidak akan downgrade user yang punya active subscription.
-    """
+    """Cek ulang VIP membership dan update role."""
     if not current_user.telegram_id:
         return {
             "updated": False,
             "role": current_user.role,
             "message": "Akun belum terhubung dengan Telegram"
         }
-    
+
     is_vip = await _check_vip_membership(current_user.telegram_id)
-    
-    # ✅ FIX: Resolve role with subscription protection
+
     old_role = current_user.role
-    new_role = _resolve_role(current_user, is_vip)
-    
-    if current_user.role != new_role:
+    old_source = current_user.subscription_source
+
+    new_role, new_source = resolve_role_for_telegram(current_user, is_vip)
+
+    if old_role != new_role or old_source != new_source:
         current_user.role = new_role
+        current_user.subscription_source = new_source
         db.commit()
         db.refresh(current_user)
-    
+
     return {
-        "updated": old_role != new_role,
+        "updated": old_role != new_role or old_source != new_source,
         "old_role": old_role,
         "new_role": current_user.role,
         "is_vip": is_vip,
-        "has_active_subscription": _has_active_subscription(current_user),
+        "is_protected": is_role_protected(current_user, current_provider=PROVIDER_TELEGRAM),
         "telegram_id": current_user.telegram_id
     }
 
 
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 # 4. Link Telegram to existing account
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 
 @router.post("/telegram/link", response_model=UserResponse)
 async def link_telegram(
@@ -274,17 +242,13 @@ async def link_telegram(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Link Telegram account ke user yang sudah login (via email/Google).
-    Berguna kalau user sudah register via email tapi mau connect Telegram untuk VIP check.
-    """
-    # Verify hash
+    """Link Telegram account ke user yang sudah login (via Google/Discord)."""
     if not _verify_telegram_hash(data):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Data Telegram tidak valid"
         )
-    
+
     # Cek apakah telegram_id sudah dipakai user lain
     existing = db.query(User).filter(User.telegram_id == data.id).first()
     if existing and existing.id != current_user.id:
@@ -292,60 +256,52 @@ async def link_telegram(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Akun Telegram ini sudah terhubung dengan akun lain"
         )
-    
-    # Link
+
     current_user.telegram_id = data.id
     current_user.telegram_username = data.username
     if data.photo_url and not current_user.avatar_url:
         current_user.avatar_url = data.photo_url
-    
-    # Check VIP — only upgrade, never downgrade
+
     is_vip = await _check_vip_membership(data.id)
-    if current_user.role != 'admin':
-        # ✅ FIX: Use _resolve_role instead of blind overwrite
-        current_user.role = _resolve_role(current_user, is_vip)
-    
+    new_role, new_source = resolve_role_for_telegram(current_user, is_vip)
+    current_user.role = new_role
+    current_user.subscription_source = new_source
+
     db.commit()
     db.refresh(current_user)
-    
+
     return UserResponse.model_validate(current_user)
 
 
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 # Helper Functions
-# ════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════
 
 def _verify_telegram_hash(data: TelegramLogin) -> bool:
     """
-    Verify data authenticity menggunakan HMAC-SHA256.
+    Verify data authenticity via HMAC-SHA256.
     https://core.telegram.org/widgets/login#checking-authorization
+
+    PENTING: referral_code BUKAN data dari Telegram, exclude dari hash check.
     """
-    # Build check string (sorted key=value pairs, excluding hash)
-    check_dict = data.model_dump(exclude={'hash'})
-    # Remove None values
+    check_dict = data.model_dump(exclude={'hash', 'referral_code'})
     check_dict = {k: v for k, v in check_dict.items() if v is not None}
     check_string = '\n'.join(
         f"{k}={v}" for k, v in sorted(check_dict.items())
     )
-    
-    # Secret key = SHA256(bot_token)
+
     secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
-    
-    # HMAC-SHA256
     computed_hash = hmac.new(
         secret_key,
         check_string.encode(),
         hashlib.sha256
     ).hexdigest()
-    
+
     return computed_hash == data.hash
 
 
 async def _check_vip_membership(telegram_user_id: int) -> bool:
-    """
-    Cek apakah Telegram user adalah member VIP group.
-    Menggunakan Bot API getChatMember.
-    """
+    """Cek apakah Telegram user adalah member VIP group."""
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
@@ -355,51 +311,45 @@ async def _check_vip_membership(telegram_user_id: int) -> bool:
                     "user_id": telegram_user_id
                 }
             )
-            
+
             if response.status_code != 200:
                 return False
-            
+
             result = response.json()
-            
             if not result.get("ok"):
                 return False
-            
-            # Status bisa: creator, administrator, member, restricted, left, kicked
+
             member_status = result.get("result", {}).get("status", "left")
-            
-            # Dianggap VIP member jika statusnya salah satu dari:
             return member_status in ("creator", "administrator", "member", "restricted")
-    
+
     except Exception as e:
-        print(f"Error checking VIP membership: {e}")
+        logger.error(f"Error checking VIP membership: {e}")
         return False
 
 
 def _generate_username(data: TelegramLogin, db: Session) -> str:
     """Generate unique username dari Telegram data."""
-    # Prioritas: telegram username > first_name > fallback
     if data.username:
         base = re.sub(r'[^a-zA-Z0-9_]', '', data.username.lower())
     elif data.first_name:
         base = re.sub(r'[^a-zA-Z0-9]', '_', data.first_name.lower()).strip('_')
         base = re.sub(r'_+', '_', base)
     else:
-        base = f"tg_user"
-    
+        base = "tg_user"
+
     if len(base) < 3:
         base = base + '_user'
-    
+
     base = base[:40]
-    
-    # Cek uniqueness
+
     existing = db.query(User).filter(User.username == base).first()
     if not existing:
         return base
-    
+
     for _ in range(10):
         suffix = secrets.token_hex(2)
         candidate = f"{base}_{suffix}"[:50]
         if not db.query(User).filter(User.username == candidate).first():
             return candidate
-    
+
     return f"tg_{secrets.token_hex(4)}"

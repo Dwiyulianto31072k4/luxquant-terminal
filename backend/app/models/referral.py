@@ -5,6 +5,32 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
+# ════════════════════════════════════════════════════════════════════
+# STATUS CONSTANTS — biar konsisten di seluruh codebase
+# ════════════════════════════════════════════════════════════════════
+# Flow:
+#   pending     → user apply code saat register, belum login
+#   active      → referee udah login pertama kali (first_login_at terisi)
+#   subscribed  → referee udah bayar minimal sekali (total_payments >= 1)
+#   churned     → subscription expired & ga renew >30 hari
+#   cancelled   → admin manual cancel (fraud, refund, dll)
+# ════════════════════════════════════════════════════════════════════
+
+REFERRAL_STATUS_PENDING = "pending"
+REFERRAL_STATUS_ACTIVE = "active"
+REFERRAL_STATUS_SUBSCRIBED = "subscribed"
+REFERRAL_STATUS_CHURNED = "churned"
+REFERRAL_STATUS_CANCELLED = "cancelled"
+
+REFERRAL_STATUS_VALUES = [
+    REFERRAL_STATUS_PENDING,
+    REFERRAL_STATUS_ACTIVE,
+    REFERRAL_STATUS_SUBSCRIBED,
+    REFERRAL_STATUS_CHURNED,
+    REFERRAL_STATUS_CANCELLED,
+]
+
+
 class ReferralCode(Base):
     __tablename__ = "referral_codes"
 
@@ -34,10 +60,21 @@ class ReferralUse(Base):
     referral_code_id = Column(Integer, ForeignKey("referral_codes.id", ondelete="CASCADE"), nullable=False, index=True)
     referrer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     referred_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+
+    # Backward compat — first payment yang trigger commission
     payment_id = Column(Integer, ForeignKey("payments.id"), nullable=True)
-    discount_amount = Column(Numeric(10, 2), default=0)
-    commission_amount = Column(Numeric(10, 2), default=0)
-    status = Column(String(20), default="pending")     # pending / confirmed / paid / cancelled
+    discount_amount = Column(Numeric(10, 2), default=0)       # discount yg diberikan ke referee (first payment)
+    commission_amount = Column(Numeric(10, 2), default=0)     # commission first payment (DEPRECATED, pake total_commission_earned)
+
+    # Status: pending / active / subscribed / churned / cancelled
+    status = Column(String(20), default=REFERRAL_STATUS_PENDING)
+
+    # ─── v2 fields: tracking + recurring ───
+    first_login_at = Column(DateTime(timezone=True), nullable=True)
+    total_commission_earned = Column(Numeric(10, 2), default=0, nullable=False)  # akumulator semua payment
+    total_payments = Column(Integer, default=0, nullable=False)                  # jumlah payment (first + renewals)
+    last_payment_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -48,6 +85,14 @@ class ReferralUse(Base):
     def __repr__(self):
         return f"<ReferralUse referrer={self.referrer_id} referred={self.referred_id} status={self.status}>"
 
+
+# ════════════════════════════════════════════════════════════════════
+# DEPRECATED — kept for backward compat, manual admin adjustment only
+# ════════════════════════════════════════════════════════════════════
+# Pre-v2 model: USDT wallet payout. Sekarang model utama = credit balance,
+# table ini cuma kepake kalo admin mau manual record (mis. refund USDT
+# off-chain ke user yg request explicit).
+# ════════════════════════════════════════════════════════════════════
 
 class ReferralPayout(Base):
     __tablename__ = "referral_payouts"
@@ -63,7 +108,6 @@ class ReferralPayout(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
     notes = Column(Text, nullable=True)
 
-    # Relationships
     user = relationship("User", foreign_keys=[user_id])
 
     def __repr__(self):
