@@ -564,11 +564,11 @@ const LivePerformanceStats = ({ data }) => {
   const openSignals = stats?.open_signals ?? 0;
 
   const outcomeItems = [
-    { label: "TP1", count: stats?.tp1_count ?? 0, color: "#22C55E" },
-    { label: "TP2", count: stats?.tp2_count ?? 0, color: "#84CC16" },
-    { label: "TP3", count: stats?.tp3_count ?? 0, color: "#EAB308" },
-    { label: "TP4", count: stats?.tp4_count ?? 0, color: "#F97316" },
-    { label: "SL", count: slCount, color: "#EF4444" },
+    { label: "TP1", count: stats?.tp1_count ?? 0, color: "#f0d890", opacity: 1 },
+    { label: "TP2", count: stats?.tp2_count ?? 0, color: "#d4a853", opacity: 0.85 },
+    { label: "TP3", count: stats?.tp3_count ?? 0, color: "#b88a3e", opacity: 0.7 },
+    { label: "TP4", count: stats?.tp4_count ?? 0, color: "#8b6914", opacity: 0.55 },
+    { label: "SL", count: slCount, color: "#EF4444", opacity: 1 },
   ];
   const outcomeTotal = outcomeItems.reduce((s, i) => s + i.count, 0);
 
@@ -757,6 +757,7 @@ const LivePerformanceStats = ({ data }) => {
                         style={{
                           width: `${pct}%`,
                           backgroundColor: item.color,
+                          opacity: item.opacity,
                           marginRight: isLast ? 0 : "1px",
                         }}
                         className="h-full transition-all duration-700"
@@ -768,11 +769,15 @@ const LivePerformanceStats = ({ data }) => {
                 {outcomeItems.map((item) => {
                   const pct =
                     outcomeTotal > 0 ? (item.count / outcomeTotal) * 100 : 0;
+                  const isSL = item.label === "SL";
                   return (
                     <div key={item.label} className="flex items-center gap-3">
                       <span
                         className="text-[11px] font-bold w-8 font-mono tracking-wider"
-                        style={{ color: item.color }}
+                        style={{
+                          color: item.color,
+                          opacity: isSL ? 1 : item.opacity,
+                        }}
                       >
                         {item.label}
                       </span>
@@ -782,6 +787,7 @@ const LivePerformanceStats = ({ data }) => {
                           style={{
                             width: `${Math.max(pct, 1)}%`,
                             backgroundColor: item.color,
+                            opacity: item.opacity,
                           }}
                         />
                       </div>
