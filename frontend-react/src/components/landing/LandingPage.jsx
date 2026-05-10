@@ -2343,51 +2343,21 @@ const LandingPage = () => {
             {/* ════════════════════════════════════════
           FOOTER
       ════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════
+          FOOTER (REVISI FINAL)
+      ════════════════════════════════════════ */}
       <footer className="relative z-10 bg-bg-primary overflow-hidden">
         {/* Ambient gold glow */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold-primary/[0.04] blur-[160px] rounded-full pointer-events-none" />
-
+        
         {/* Top hairline */}
         <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-
-        {/* BRAND WORDMARK */}
-        <div className="relative overflow-hidden border-b border-white/[0.06]">
-          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 lg:py-10 relative">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{
-                  background: "radial-gradient(circle at 30% 30%, #fde6a8, #d4a853 60%, #8b6914)",
-                  animation: "goldFlare 2s ease-in-out infinite",
-                }}
-              />
-              <span className="text-gold-primary/80 text-[10px] font-mono uppercase tracking-[0.25em]">
-                System Online · 24/7 Active
-              </span>
-            </div>
-
-            <p className="text-text-muted text-sm lg:text-base font-mono max-w-md leading-relaxed mb-6 lg:mb-8">
-              Quantitative intelligence for serious traders. Algorithms that don't sleep, signals that don't lie.
-            </p>
-
-            <div className="select-none -mb-3 lg:-mb-4">
-              <h2
-                className="font-display font-black text-white/[0.04] leading-[0.85] tracking-tighter"
-                style={{
-                  fontSize: "clamp(3.5rem, 14vw, 12rem)",
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                LUXQUANT
-              </h2>
-            </div>
-          </div>
-        </div>
 
         {/* MAIN GRID */}
         <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 lg:pt-12 pb-8">
           <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 mb-10">
-            {/* Brand column */}
+            
+            {/* Brand column (kiri) */}
             <div className="col-span-2 lg:col-span-4">
               <div className="flex items-center gap-2.5 mb-4">
                 <img src="/logo.png" alt="LuxQuant" className="w-9 h-9 rounded-md" />
@@ -2433,7 +2403,7 @@ const LandingPage = () => {
             </div>
 
             {/* Resources column */}
-            <div className="col-span-1 lg:col-span-2">
+            <div className="col-span-1 lg:col-span-2 lg:col-start-8">
               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-5 flex items-center gap-2">
                 <span className="h-px w-4 bg-gold-primary/40" />
                 Resources
@@ -2470,13 +2440,12 @@ const LandingPage = () => {
               </ul>
             </div>
 
-            {/* Connect column */}
-            <div className="col-span-2 lg:col-span-4">
+            {/* Connect column — DIPINDAH KE PALING KANAN */}
+            <div className="col-span-2 lg:col-span-3 lg:col-start-10">
               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-5 flex items-center gap-2">
                 <span className="h-px w-4 bg-gold-primary/40" />
                 Join the Network
               </p>
-
               <div className="space-y-2">
                 {/* Telegram */}
                 <a
