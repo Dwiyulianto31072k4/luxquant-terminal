@@ -146,7 +146,7 @@ const FeatureSliderSection = () => {
         </p>
       </div>
 
-      {/* 1. SEAMLESS HORIZONTAL NAVIGATION TABS (No Boxes, No Focus Outlines) */}
+      {/* 1. SEAMLESS HORIZONTAL NAVIGATION TABS */}
       <div className="w-full relative max-w-7xl mx-auto mb-8 px-4 lg:px-12">
         {/* Transparent Left Controller */}
         <button
@@ -199,93 +199,53 @@ const FeatureSliderSection = () => {
       </div>
 
       {/* ════════════════════════════════════════
-          3. MOCKUPS — Mac & iPhone
-          Mobile (<lg): Mac di atas (full width), HP center di bawah (separate, smaller)
-          Desktop (lg+): HP overlap kanan-bawah Mac (seperti sebelumnya)
+          3. MOCKUPS — Hanya Mac (iPhone dihapus)
       ════════════════════════════════════════ */}
       <div className="relative max-w-5xl mx-auto px-4 lg:px-8 mt-4 mb-16 lg:mb-24">
         {/* Ambient gold glow di belakang */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gold-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-        {/* WRAPPER — flex-col + gap di mobile, block + relative di desktop (untuk overlap absolute) */}
-        <div className="flex flex-col items-center gap-10 lg:gap-0 lg:block lg:relative">
-
-          {/* ─────────── MAC MOCKUP ─────────── */}
-          <div className="relative w-full max-w-[360px] sm:max-w-[500px] lg:max-w-[850px] mx-auto aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
-            {/* Browser chrome */}
-            <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
-              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
-              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
-              <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono tracking-widest">
-                luxquant.tw
-              </div>
-            </div>
-
-            {/* Screen content */}
-            <div className="relative w-full h-full pt-6 lg:pt-8 bg-[#050302]">
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-xs font-mono">
-                Awaiting Screenshots...
-              </div>
-              {FEATURES.map((feat, idx) => (
-                <img
-                  key={`mac-${feat.id}`}
-                  src={feat.macImg}
-                  alt={`${feat.title} Desktop`}
-                  className={`absolute top-6 lg:top-8 left-0 w-full h-[calc(100%-1.5rem)] lg:h-[calc(100%-2rem)] object-cover object-top transition-all duration-700 ease-in-out ${
-                    activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-[1.02]'
-                  }`}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              ))}
+        {/* MAC MOCKUP — Full centered */}
+        <div className="relative w-full max-w-[360px] sm:max-w-[500px] lg:max-w-[850px] mx-auto aspect-[16/10] bg-[#0a0805] rounded-xl sm:rounded-2xl lg:rounded-3xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] lg:shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-hidden z-10 transition-all duration-500">
+          {/* Browser chrome */}
+          <div className="h-6 lg:h-8 bg-[#1a1a1a] flex items-center px-4 gap-2 border-b border-white/5 w-full absolute top-0 z-20">
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-red-500/80" />
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-yellow-500/80" />
+            <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-green-500/80" />
+            <div className="mx-auto bg-black/40 px-6 py-0.5 rounded text-[8px] lg:text-[10px] text-white/30 font-mono tracking-widest">
+              luxquant.tw
             </div>
           </div>
 
-          {/* ─────────── iPhone MOCKUP ─────────── */}
-          {/* Mobile: relative + center | Desktop: absolute overlap kanan-bawah Mac */}
-          <div className="
-            relative w-[140px] sm:w-[160px]
-            lg:absolute lg:-bottom-12 lg:-right-12 lg:w-[190px] xl:w-[220px]
-            aspect-[9/19.5] bg-[#050302]
-            border-[3px] sm:border-[4px] lg:border-[6px] border-[#2a2a2a]
-            rounded-[1rem] sm:rounded-2xl lg:rounded-3xl
-            shadow-[0_15px_30px_rgba(0,0,0,0.8)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.9)]
-            overflow-hidden z-20 transition-all duration-500
-          ">
-            {/* Dynamic island */}
-            <div className="absolute top-0 inset-x-0 h-3 lg:h-5 bg-[#2a2a2a] rounded-b-md lg:rounded-b-xl w-[40%] mx-auto z-30" />
-
-            {/* Screen content */}
-            <div className="relative w-full h-full bg-[#050302]">
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-[8px] font-mono text-center px-2">
-                App Screen
-              </div>
-              {FEATURES.map((feat, idx) => (
-                <img
-                  key={`phone-${feat.id}`}
-                  src={feat.phoneImg}
-                  alt={`${feat.title} Mobile`}
-                  className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-700 ease-in-out ${
-                    activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-105'
-                  }`}
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              ))}
+          {/* Screen content */}
+          <div className="relative w-full h-full pt-6 lg:pt-8 bg-[#050302]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 text-white/10 text-xs font-mono">
+              Awaiting Screenshots...
             </div>
+            {FEATURES.map((feat, idx) => (
+              <img
+                key={`mac-${feat.id}`}
+                src={feat.macImg}
+                alt={`${feat.title} Desktop`}
+                className={`absolute top-6 lg:top-8 left-0 w-full h-[calc(100%-1.5rem)] lg:h-[calc(100%-2rem)] object-cover object-top transition-all duration-700 ease-in-out ${
+                  activeIdx === idx ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-[1.02]'
+                }`}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ))}
           </div>
-
         </div>
       </div>
 
-      {/* 4. SEAMLESS "...AND MUCH MORE" FOOTER */}
+      {/* 4. SEAMLESS "...AND MUCH MORE" FOOTER (diperbaiki) */}
       <div className="max-w-4xl mx-auto px-4 relative z-20 text-center">
         <div className="w-16 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent mx-auto mb-6" />
 
-        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-2 italic">
+        <h3 className="font-display text-xl lg:text-2xl font-bold text-white mb-2">
           ...and much <span className="text-gold-primary">more</span>
         </h3>
         <p className="text-text-secondary text-sm lg:text-base leading-relaxed max-w-2xl mx-auto">
-          Everything else a serious trader needs, already built in and waiting for you inside the terminal. No extra plugins, no hidden fees.
+          Everything else a serious market participant needs, already built in and waiting for you inside the terminal. No extra plugins, no hidden fees.
         </p>
       </div>
 
