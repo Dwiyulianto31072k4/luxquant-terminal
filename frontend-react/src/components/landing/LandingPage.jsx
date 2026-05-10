@@ -2366,13 +2366,10 @@ const LandingPage = () => {
                     LuxQuant
                   </p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/70">
-                    The Quantitative Terminal
+                    Terminal
                   </p>
                 </div>
               </div>
-              <p className="text-text-muted text-xs lg:text-sm font-mono leading-relaxed mt-4 max-w-xs">
-                Built in Taiwan 🇹🇼 · Running 24/7 since December 2023.
-              </p>
             </div>
 
             {/* Navigate column */}
@@ -2527,9 +2524,6 @@ const LandingPage = () => {
               <span className="text-white/20 hidden sm:inline">·</span>
               <span className="hidden sm:inline">All rights reserved</span>
             </div>
-            <p className="text-text-muted text-[10px] font-mono text-center lg:text-right max-w-xl leading-relaxed">
-              Trading cryptocurrency involves significant risk. Past performance does not guarantee future results.
-            </p>
           </div>
         </div>
       </footer>
