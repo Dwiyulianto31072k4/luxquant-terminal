@@ -111,32 +111,131 @@ const TickerBar = () => {
 // ════════════════════════════════════════
 // FAQ & Testimonial Cards
 // ════════════════════════════════════════
-const TestimonialCard = ({ name, role, text, flag }) => (
-  <div className="glass-card rounded-xl p-6 border border-gold-primary/10">
-    <div className="flex items-center gap-1 mb-3">
-      {[...Array(5)].map((_, i) => (
-        <svg
-          key={i}
-          className="w-4 h-4 text-gold-primary"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
-    <p className="text-text-secondary text-sm leading-relaxed mb-4 italic">
-      "{text}"
-    </p>
-    <div className="flex items-center gap-2">
-      <span className="text-lg">{flag}</span>
-      <div>
-        <p className="text-white text-sm font-semibold">{name}</p>
-        <p className="text-text-muted text-xs">{role}</p>
-      </div>
-    </div>
-  </div>
+// ════════════════════════════════════════
+// TESTIMONIALS CAROUSEL — Web3 style
+// 5 dummy mix personas, auto-scroll + drag + arrows
+// ════════════════════════════════════════
+const TESTIMONIALS = [
+  {
+    id: "0xLQ_001",
+    name: "Rizky Hidayat",
+    handle: "@rizkytrades",
+    role: "Day Trader",
+    location: "Jakarta",
+    flag: "🇮🇩",
+    text: "Win rate 80%+ konsisten 6 bulan terakhir. TP1-TP4 matrix kasih saya kepastian exit yang jelas — nggak perlu guess lagi. Best signal terminal yang pernah gue pakai untuk scalping.",
+    signalsTraded: 1247,
+    avgWinRate: 82.3,
+  },
+  {
+    id: "0xLQ_002",
+    name: "Marcus Chen",
+    handle: "@marcustaipei",
+    role: "Swing Trader",
+    location: "Taipei",
+    flag: "🇹🇼",
+    text: "AI Researcher mengubah game gue total. Setiap pagi tinggal cek verdict, baca thesis-nya, eksekusi. Saved me 4-5 jam riset manual per hari. Sharpe ratio gue naik 1.8x quarter ini.",
+    signalsTraded: 432,
+    avgWinRate: 78.9,
+  },
+  {
+    id: "0xLQ_003",
+    name: "Priya Sharma",
+    handle: "@priyaqcap",
+    role: "Portfolio Manager",
+    location: "Singapore",
+    flag: "🇸🇬",
+    text: "Managing $2M+ multi-strategy book. Whale alerts + macro calendar + on-chain intel = institutional-grade edge. Sebelumnya butuh 3 platform terpisah. Sekarang semua di satu terminal.",
+    signalsTraded: 891,
+    avgWinRate: 84.5,
+  },
+  {
+    id: "0xLQ_004",
+    name: "Hiroshi Tanaka",
+    handle: "@hiroonchain",
+    role: "On-Chain Analyst",
+    location: "Tokyo",
+    flag: "🇯🇵",
+    text: "Whale Surveillance feature is unmatched. Real-time tracking of large transfers across exchanges helps me front-run mass liquidations. Caught 3 perfect short setups last month alone.",
+    signalsTraded: 256,
+    avgWinRate: 76.2,
+  },
+  {
+    id: "0xLQ_005",
+    name: "Daniel Kim",
+    handle: "@dankimquant",
+    role: "Quant Researcher",
+    location: "Seoul",
+    flag: "🇰🇷",
+    text: "Order book heatmap + funding rate monitor = my secret weapon. Backtested LuxQuant signals against my own models — outperformed by 14% on risk-adjusted basis. Now I just follow the algo.",
+    signalsTraded: 678,
+    avgWinRate: 85.1,
+  },
+];
+
+// Verified gold checkmark icon
+const VerifiedBadge = () => (
+  <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 2l2.4 1.8 3 -.3 1.2 2.7 2.7 1.2 -.3 3 1.8 2.4 -1.8 2.4 .3 3 -2.7 1.2 -1.2 2.7 -3 -.3 -2.4 1.8 -2.4 -1.8 -3 .3 -1.2 -2.7 -2.7 -1.2 .3 -3 -1.8 -2.4 1.8 -2.4 -.3 -3 2.7 -1.2 1.2 -2.7 3 .3 2.4 -1.8z"
+      fill="#d4a853"
+    />
+    <path
+      d="M8 12.5l2.5 2.5 5 -5"
+      stroke="#0a0506"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
 );
+
+const TestimonialsCarousel = () => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const dragStartXRef = useRef(0);
+  const dragDeltaRef = useRef(0);
+
+  // Auto-scroll every 6 seconds (paused on hover/drag)
+  useEffect(() => {
+    if (isPaused || isDragging) return;
+    const iv = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 6000);
+    return () => clearInterval(iv);
+  }, [isPaused, isDragging]);
+
+  const goNext = () => setActiveIdx((prev) => (prev + 1) % TESTIMONIALS.length);
+  const goPrev = () =>
+    setActiveIdx((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
+
+  // ─── Drag handlers (mouse + touch) ───
+  const handleDragStart = (clientX) => {
+    setIsDragging(true);
+    dragStartXRef.current = clientX;
+    dragDeltaRef.current = 0;
+  };
+
+  const handleDragMove = (clientX) => {
+    if (!isDragging) return;
+    dragDeltaRef.current = clientX - dragStartXRef.current;
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    const delta = dragDeltaRef.current;
+    const threshold = 60; // pixels
+    if (delta < -threshold) goNext();
+    else if (delta > threshold) goPrev();
+    setIsDragging(false);
+    dragDeltaRef.current = 0;
+  };
+
+  return (
+    <TestimonialsCarousel />
+  );
+};
 
 const FAQ_DATA = [
   {
