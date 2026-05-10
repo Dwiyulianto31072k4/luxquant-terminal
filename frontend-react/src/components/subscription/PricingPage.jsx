@@ -111,13 +111,14 @@ const PricingPage = () => {
     return t('pricing.one_time');
   };
 
+  // ✅ UPDATED: Button label lebih jelas & berorientasi pembayaran
   const getButtonLabel = (plan) => {
-    if (!isPremium) return t('pricing.select_plan');
-    if (plan.name === currentPlanName) return t('pricing.current_plan');
+    if (!isPremium) return 'Continue to Payment';
+    if (plan.name === currentPlanName) return 'Current Plan';
     const currentPlan = plans.find(p => p.name === currentPlanName);
-    if (currentPlan && plan.sort_order > currentPlan.sort_order) return t('pricing.upgrade');
-    if (currentPlan && plan.sort_order < currentPlan.sort_order) return t('pricing.downgrade');
-    return t('pricing.switch_plan');
+    if (currentPlan && plan.sort_order > currentPlan.sort_order) return 'Upgrade & Pay';
+    if (currentPlan && plan.sort_order < currentPlan.sort_order) return 'Downgrade';
+    return 'Switch & Pay';
   };
 
   const isCurrentPlan = (plan) => isPremium && plan.name === currentPlanName;
@@ -134,7 +135,7 @@ const PricingPage = () => {
     return base;
   };
 
-  // SVG icon per plan
+  // SVG icon per plan (sama seperti sebelumnya)
   const PlanIcon = ({ name, isCurrent }) => {
     const color = isCurrent ? '#22c55e' : '#d4a853';
     if (name === 'monthly') {
@@ -167,7 +168,7 @@ const PricingPage = () => {
 
   return (
     <div className="relative overflow-hidden min-h-screen">
-      {/* ─── Animations for Subscribe via Admin button ─── */}
+      {/* Animations + background (sama seperti sebelumnya) */}
       <style>{`
         @keyframes admin-pulse-glow {
           0%, 100% {
@@ -191,7 +192,7 @@ const PricingPage = () => {
         }
       `}</style>
 
-      {/* Ambient background */}
+      {/* Ambient background (sama) */}
       <div className="absolute inset-0 pointer-events-none">
         <div style={{
           position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)',
@@ -213,7 +214,7 @@ const PricingPage = () => {
           </div>
         ) : (
           <>
-            {/* ─── Header ─── */}
+            {/* Header (sama) */}
             <div className="text-center mb-20">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
                 style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
@@ -241,7 +242,7 @@ const PricingPage = () => {
               </p>
             </div>
 
-            {/* ─── Plans ─── */}
+            {/* Plans Grid */}
             <div className="grid md:grid-cols-3 gap-5 sm:gap-6 mb-20 max-w-5xl mx-auto">
               {plans.map((plan) => {
                 const isHighlighted = getPlanHighlight(plan.name);
@@ -252,8 +253,7 @@ const PricingPage = () => {
                 return (
                   <div
                     key={plan.id}
-                    className={`group relative rounded-2xl transition-all duration-500 ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''
-                      }`}
+                    className={`group relative rounded-2xl transition-all duration-500 ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''}`}
                     style={{
                       background: isCurrent
                         ? 'linear-gradient(168deg, rgba(34,197,94,0.08) 0%, rgba(10,5,6,0.95) 40%)'
@@ -268,7 +268,7 @@ const PricingPage = () => {
                       backdropFilter: 'blur(20px)',
                     }}
                   >
-                    {/* Hover glow */}
+                    {/* Hover glow (sama) */}
                     <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                       style={{
                         boxShadow: isCurrent
@@ -276,7 +276,7 @@ const PricingPage = () => {
                           : '0 0 40px rgba(212,168,83,0.06)',
                       }} />
 
-                    {/* Badge */}
+                    {/* Badge (sama) */}
                     {(isCurrent || badge) && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                         <div className="px-4 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase"
@@ -289,19 +289,18 @@ const PricingPage = () => {
                             color: '#0a0506',
                             boxShadow: '0 2px 12px rgba(212,168,83,0.3)',
                           }}>
-                          {isCurrent ? t('pricing.current_plan') : badge}
+                          {isCurrent ? 'Current Plan' : badge}
                         </div>
                       </div>
                     )}
 
-                    {/* Most Popular indicator line for highlighted */}
                     {isHighlighted && !isCurrent && (
                       <div className="absolute top-0 left-4 right-4 h-px"
                         style={{ background: 'linear-gradient(90deg, transparent, #d4a853, transparent)' }} />
                     )}
 
                     <div className="relative p-6 sm:p-7">
-                      {/* Icon + Name */}
+                      {/* Icon + Name (sama) */}
                       <div className="flex items-start justify-between mb-6">
                         <div>
                           <div className="mb-3 opacity-70">
@@ -316,7 +315,7 @@ const PricingPage = () => {
                         </div>
                       </div>
 
-                      {/* Price */}
+                      {/* Price (sama) */}
                       <div className="mb-8">
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-sm" style={{ color: '#6b5c52' }}>$</span>
@@ -333,7 +332,6 @@ const PricingPage = () => {
                         </div>
                       </div>
 
-                      {/* Divider */}
                       <div className="h-px mb-6"
                         style={{
                           background: isCurrent
@@ -341,7 +339,7 @@ const PricingPage = () => {
                             : 'linear-gradient(90deg, rgba(212,168,83,0.1), transparent)'
                         }} />
 
-                      {/* Features */}
+                      {/* Features (sama) */}
                       <ul className="space-y-3.5 mb-8">
                         {features.map((feature, i) => (
                           <li key={i} className="flex items-center gap-3 text-sm" style={{ color: '#a09080' }}>
@@ -359,7 +357,7 @@ const PricingPage = () => {
                         ))}
                       </ul>
 
-                      {/* CTA Button (Primary — Get Started / Pay Crypto) */}
+                      {/* ========== PRIMARY BUTTON ========== */}
                       <button
                         onClick={() => handleSubscribe(plan)}
                         disabled={creating || isCurrent}
@@ -379,7 +377,6 @@ const PricingPage = () => {
                           border: '1px solid rgba(212,168,83,0.2)',
                         }}
                       >
-                        {/* Button hover shine effect */}
                         {!isCurrent && isHighlighted && (
                           <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"
                             style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
@@ -392,31 +389,46 @@ const PricingPage = () => {
                         </span>
                       </button>
 
-                      {/* ─── Subscribe via Admin (Secondary CTA — animated) ─── */}
+                      {/* ========== OR + SUBSCRIBE VIA ADMIN ========== */}
                       {!isCurrent && (
-                        <button
-                          onClick={() => handleSubscribeViaAdmin(plan)}
-                          className="w-full mt-3 py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                          style={{
-                            background:
-                              'linear-gradient(110deg, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0.18) 50%, rgba(212,168,83,0.05) 100%)',
-                            backgroundSize: '200% 100%',
-                            color: '#e8c578',
-                            borderRadius: '12px',
-                            animation:
-                              'admin-pulse-glow 2.4s ease-in-out infinite, admin-shimmer 3.2s linear infinite',
-                          }}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                            style={{ animation: 'admin-icon-bounce 2.4s ease-in-out infinite' }}
+                        <>
+                          {/* OR Divider */}
+                          <div className="my-4 flex items-center justify-center gap-3">
+                            <div className="h-px flex-1" 
+                              style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
+                            <span className="text-[10px] font-medium tracking-[2px] uppercase px-2" 
+                              style={{ color: '#6b5c52' }}>
+                              or
+                            </span>
+                            <div className="h-px flex-1" 
+                              style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
+                          </div>
+
+                          {/* Subscribe via Admin Button */}
+                          <button
+                            onClick={() => handleSubscribeViaAdmin(plan)}
+                            className="w-full py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                            style={{
+                              background:
+                                'linear-gradient(110deg, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0.18) 50%, rgba(212,168,83,0.05) 100%)',
+                              backgroundSize: '200% 100%',
+                              color: '#e8c578',
+                              borderRadius: '12px',
+                              animation:
+                                'admin-pulse-glow 2.4s ease-in-out infinite, admin-shimmer 3.2s linear infinite',
+                            }}
                           >
-                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                          </svg>
-                          {t('pricing.subscribe_via_admin', 'Subscribe via Admin')}
-                        </button>
+                            <svg
+                              className="w-4 h-4"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                              style={{ animation: 'admin-icon-bounce 2.4s ease-in-out infinite' }}
+                            >
+                              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                            </svg>
+                            {t('pricing.subscribe_via_admin', 'Subscribe via Admin')}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -424,7 +436,7 @@ const PricingPage = () => {
               })}
             </div>
 
-            {/* ─── Payment Info ─── */}
+            {/* Payment Info (sama) */}
             <div className="max-w-3xl mx-auto">
               <div className="relative rounded-2xl overflow-hidden"
                 style={{ background: 'rgba(12,7,8,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
@@ -461,7 +473,7 @@ const PricingPage = () => {
               </div>
             </div>
 
-            {/* Back button */}
+            {/* Back button (sama) */}
             <div className="text-center mt-10">
               <button
                 onClick={() => navigate('/')}
@@ -475,7 +487,6 @@ const PricingPage = () => {
         )}
       </div>
 
-      {/* ─── Subscribe via Admin Modal ─── */}
       <SubscribeViaAdminModal
         isOpen={!!adminModalPlan}
         onClose={() => setAdminModalPlan(null)}
