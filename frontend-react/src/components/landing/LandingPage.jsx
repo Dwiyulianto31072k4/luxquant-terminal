@@ -445,24 +445,33 @@ const FAQ_DATA = [
 ];
 
 const FAQItem = ({ q, a, isOpen, onClick }) => (
-  <div className="glass-card border border-gold-primary/10 rounded-xl overflow-hidden mb-3 transition-all duration-300 hover:border-gold-primary/30">
+  <div
+    className={`bg-[#0a0805] border rounded-md overflow-hidden mb-2 transition-all duration-300 ${
+      isOpen ? "border-gold-primary/30" : "border-white/[0.06] hover:border-white/[0.12]"
+    }`}
+  >
     <button
-      className="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none"
+      className="w-full px-5 py-4 text-left flex justify-between items-center focus:outline-none group"
       onClick={onClick}
     >
       <span className="font-semibold text-white pr-4 text-sm lg:text-base">
         {q}
       </span>
-      <span
-        className={`text-gold-primary transform transition-transform duration-300 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
+      <svg
+        className={`w-4 h-4 flex-shrink-0 transition-all duration-300 ${
+          isOpen ? "text-gold-primary rotate-180" : "text-white/40 group-hover:text-white/70"
+        }`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
       >
-        ▼
-      </span>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
     </button>
     <div
       className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}
     >
-      <div className="px-6 pb-5 text-text-secondary text-sm leading-relaxed border-t border-gold-primary/5 pt-4">
+      <div className="px-5 pb-4 text-text-secondary text-sm leading-relaxed border-t border-white/[0.06] pt-4 font-mono">
         {a}
       </div>
     </div>
@@ -526,88 +535,92 @@ const PromoFlyingCoins = ({ gainers }) => {
 };
 
 // ════════════════════════════════════════
+// ════════════════════════════════════════
 // Telegram Promo Component
 // ════════════════════════════════════════
 const TelegramPromo = ({ gainers }) => {
   return (
-    <div className="glass-card rounded-[2rem] p-8 lg:p-14 border border-gold-primary/20 bg-gradient-to-br from-bg-card via-[#0a0805] to-bg-primary overflow-hidden relative mt-16 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold-primary/5 blur-[100px] -z-10" />
-      <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#229ED9]/5 blur-[80px] -z-10" />
+    <div className="relative mt-16 overflow-visible">
+      {/* Subtle ambient glow — minimal, no box */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gold-primary/[0.04] blur-[140px] rounded-full pointer-events-none -z-10" />
 
-      <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
+      <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 relative z-10">
+        {/* LEFT — Content */}
         <div className="flex-1 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-primary/10 border border-gold-primary/20 mb-6">
-            <span className="w-2 h-2 bg-gold-primary rounded-full animate-pulse" />
-            <span className="text-gold-primary text-[10px] font-bold uppercase tracking-[0.2em]">
+          {/* Section label — line-label-line pattern */}
+          <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
+            <span className="h-px w-8 bg-gold-primary/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
               100% Free Tier
             </span>
+            <span className="h-px w-8 bg-gold-primary/40" />
           </div>
-          <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+
+          <h2 className="font-display text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
             Try Before You <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
               Subscribe.
             </span>
           </h2>
-          <p className="text-text-secondary mb-10 text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
-            Want to test our accuracy before unlocking the full institutional
-            terminal? Join{" "}
-            <span className="text-white font-semibold">@LuxQuantSignal</span>{" "}
-            for our free public channel. Experience our 24/7 non-stop
-            quantitative edge with real-time algorithm previews and selected
-            high-probability calls. Powerful intelligence directly to your
-            pocket—completely free.
+
+          <p className="text-text-secondary mb-10 text-base lg:text-lg leading-relaxed max-w-xl mx-auto lg:mx-0">
+            Want to test our accuracy before unlocking the full institutional terminal? Join{" "}
+            <span className="text-white font-mono">@LuxQuantSignal</span> for our free public channel. Real-time algorithm previews and selected high-probability calls — directly to your pocket.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
             <a
               href="https://t.me/LuxQuantSignal"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-sm overflow-hidden transition-all hover:scale-105"
+              className="group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)]"
               style={{
-                background: "linear-gradient(135deg, #d4a853, #8b6914)",
+                background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
                 color: "#0a0506",
               }}
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <svg
-                className="w-5 h-5 relative z-10"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
               </svg>
-              <span className="relative z-10 uppercase tracking-widest">
-                Join Free Channel
-              </span>
+              <span className="tracking-wide">Join Free Channel</span>
+              <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </a>
-            <div className="flex flex-col items-center sm:items-start mt-4 sm:mt-0">
-              <span className="text-white font-mono text-sm">
-                Thousands of Traders
-              </span>
-              <span className="text-gold-primary/70 text-[10px] uppercase tracking-tighter italic">
+
+            {/* Counter — minimal, mono */}
+            <div className="flex flex-col items-center sm:items-start mt-2 sm:mt-0 sm:ml-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
                 Active Community
+              </span>
+              <span className="text-white font-mono text-sm tabular-nums">
+                Thousands of Traders
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center lg:justify-end relative mt-12 lg:mt-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gold-primary/20 blur-[80px] rounded-full animate-pulse"></div>
+        {/* RIGHT — Phone mockup, FLOATING (no outer box) */}
+        <div className="flex-1 flex justify-center lg:justify-end relative">
+          {/* Subtle glow behind phone — not a container */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] bg-gold-primary/[0.08] blur-[80px] rounded-full pointer-events-none" />
+
           <div className="relative w-[240px] lg:w-[280px] aspect-[9/19.5] z-10 group">
+            {/* Phone bezel */}
             <div className="absolute inset-0 bg-[#050302] border-[6px] lg:border-[8px] border-[#1a1a1a] rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
+              {/* Dynamic island */}
               <div className="absolute top-0 inset-x-0 z-30">
                 <div className="w-[35%] h-[16px] lg:h-[20px] bg-[#1a1a1a] mx-auto rounded-b-xl lg:rounded-b-2xl" />
               </div>
+              {/* Screen */}
               <div className="absolute inset-[2px] rounded-[2.2rem] lg:rounded-[2.8rem] overflow-hidden bg-[#050302]">
                 <img
                   src="/telegram-ss.png?v=2"
                   alt="LuxQuant Telegram Channel Content"
-                  className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
+                  className="w-full h-full object-cover opacity-90"
+                  onError={(e) => { e.target.style.display = "none"; }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
               </div>
             </div>
             <PromoFlyingCoins gainers={gainers} />
