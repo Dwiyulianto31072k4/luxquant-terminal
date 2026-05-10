@@ -7,6 +7,113 @@ import CoinIntelligence from './CoinIntelligence';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+// ================================================================
+// INLINE SVG ICONS (Lucide-style)
+// ================================================================
+const Icon = {
+  filter: (className = 'w-3.5 h-3.5') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  ),
+  search: (className = 'w-3.5 h-3.5') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  ),
+  chevronDown: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  ),
+  arrowUp: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12 7-7 7 7" />
+      <path d="M12 19V5" />
+    </svg>
+  ),
+  arrowDown: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </svg>
+  ),
+  close: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  brain: (className = 'w-4 h-4') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
+    </svg>
+  ),
+  alert: (className = 'w-4 h-4') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+  bell: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  ),
+  check: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  trophy: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  ),
+  x: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+};
+
+// ================================================================
+// SECTION HEADER (line-label-line, Flowscan signature)
+// ================================================================
+const SectionHeader = ({ label, hint }) => (
+  <div className="flex items-center gap-3 mb-4">
+    <span className="h-px w-8 bg-gold-primary/40" />
+    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{label}</span>
+    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
+    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{hint}</span>}
+  </div>
+);
+
+// ================================================================
+// STAT CARD — flat hairline + font-light numbers + inset top accent
+// (consistent with OverviewPage MetricCard + TopPerformers StatCard)
+// ================================================================
+const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
+  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted mb-2">{label}</p>
+    <div className="h-px bg-white/[0.06] mb-3" />
+    <p className={`font-mono text-2xl lg:text-3xl font-light tabular-nums leading-none ${valueColor}`}>{value}</p>
+    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-2">{sub}</p>}
+  </div>
+);
+
+// ================================================================
+// MAIN PAGE
+// ================================================================
 const SignalsPage = () => {
   const { t } = useTranslation();
 
@@ -17,7 +124,6 @@ const SignalsPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [stats, setStats] = useState(null);
 
-  // Accordion / Collapsible States
   const [isIntelOpen, setIsIntelOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
@@ -27,11 +133,10 @@ const SignalsPage = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  // Filter States
   const [searchPair, setSearchPair] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
-  const [selectedDates, setSelectedDates] = useState([]); 
+  const [selectedDates, setSelectedDates] = useState([]);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -39,24 +144,20 @@ const SignalsPage = () => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
-
       const [signalsRes, statsRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`),
         fetch(`${API_BASE}/api/v1/signals/stats`),
       ]);
-
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
         setAllSignals(data.items || []);
       } else {
         throw new Error("Failed to fetch signals.");
       }
-
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
         const statsData = await statsRes.value.json();
         setStats(statsData);
       }
-
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching signals:", err);
@@ -134,17 +235,17 @@ const SignalsPage = () => {
     const isRisk = sortBy === "risk_level";
     const isStatus = sortBy === "status";
     if (sortOrder === "desc") {
-      if (isTime) return "↓ Newest";
-      if (isAlpha) return "↓ Z-A";
-      if (isRisk) return "↓ High";
-      if (isStatus) return "↓ Latest";
-      return "↓ Highest";
+      if (isTime) return "Newest";
+      if (isAlpha) return "Z–A";
+      if (isRisk) return "High";
+      if (isStatus) return "Latest";
+      return "Highest";
     } else {
-      if (isTime) return "↑ Oldest";
-      if (isAlpha) return "↑ A-Z";
-      if (isRisk) return "↑ Low";
-      if (isStatus) return "↑ Early";
-      return "↑ Lowest";
+      if (isTime) return "Oldest";
+      if (isAlpha) return "A–Z";
+      if (isRisk) return "Low";
+      if (isStatus) return "Early";
+      return "Lowest";
     }
   };
 
@@ -154,7 +255,7 @@ const SignalsPage = () => {
     setSearchPair("");
     setStatusFilter("all");
     setRiskFilter("all");
-    setSelectedDates([]); 
+    setSelectedDates([]);
     setSortBy("created_at");
     setSortOrder("desc");
   };
@@ -276,22 +377,24 @@ const SignalsPage = () => {
     else { setSortBy(field); setSortOrder("desc"); }
   };
 
+  // ─── Status filter options with SVG icons (no emoji) ───
   const statusOptions = [
-    { value: "all", label: "All Status", icon: "📊" },
-    { value: "updated", label: "Recently Hit", icon: "🔔" },
-    { value: "open", label: "Open", icon: "🟢" },
-    { value: "tp1", label: "TP1", icon: "✓" },
-    { value: "tp2", label: "TP2", icon: "✓" },
-    { value: "tp3", label: "TP3", icon: "✓" },
-    { value: "closed_win", label: "TP4", icon: "🏆" },
-    { value: "closed_loss", label: "Loss", icon: "✗" },
+    { value: "all", label: "All Status" },
+    { value: "updated", label: "Recently Hit", icon: Icon.bell, accent: 'gold' },
+    { value: "open", label: "Open" },
+    { value: "tp1", label: "TP1", icon: Icon.check, accent: 'profit' },
+    { value: "tp2", label: "TP2", icon: Icon.check, accent: 'profit' },
+    { value: "tp3", label: "TP3", icon: Icon.check, accent: 'profit' },
+    { value: "closed_win", label: "TP4", icon: Icon.trophy, accent: 'profit' },
+    { value: "closed_loss", label: "Loss", icon: Icon.x, accent: 'loss' },
   ];
 
+  // ─── Risk options with 3-color palette ───
   const riskOptions = [
-    { value: "all", label: "All Risk", color: "bg-gray-400" },
-    { value: "low", label: "Low", color: "bg-green-500" },
-    { value: "normal", label: "Normal", color: "bg-yellow-500" },
-    { value: "high", label: "High", color: "bg-red-500" },
+    { value: "all", label: "All" },
+    { value: "low", label: "Low", dotColor: 'bg-profit' },
+    { value: "normal", label: "Normal", dotColor: 'bg-gold-primary' },
+    { value: "high", label: "High", dotColor: 'bg-loss' },
   ];
 
   const sortOptions = [
@@ -309,144 +412,175 @@ const SignalsPage = () => {
   ];
 
   return (
-    <div className="space-y-8 pb-10">
-      
-      {/* 1. Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-1 bg-gradient-to-r from-gold-primary to-transparent rounded-full" />
-            <h1 className="text-3xl font-display font-bold text-white tracking-wide">Terminal Signals</h1>
+    <div className="space-y-6 pb-10">
+      {/* ════════ 1. PAGE HEADER ════════ */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          {/* Line-label-line title (Flowscan signature) */}
+          <div className="flex items-center gap-3 mb-3">
+            <span className="h-px w-8 bg-gold-primary/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+              Terminal Signals
+            </span>
+            <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
-          <p className="text-text-muted text-sm ml-15">
-            Last 7 Days · <span className="text-white font-semibold">{allSignals.length}</span> Signals Generated
+          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">
+            Last 7 Days Activity
+          </h1>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1.5">
+            <span className="text-white tabular-nums">{allSignals.length}</span> signals generated
             {updatedCount > 0 && (
-              <span className="ml-2 text-gold-primary">· <span className="font-semibold">{updatedCount}</span> Recently Updated</span>
+              <>
+                <span className="mx-2 text-text-muted/40">·</span>
+                <span className="text-gold-primary tabular-nums">{updatedCount}</span> recently updated
+              </>
             )}
           </p>
         </div>
-        
-        <div className="flex items-center gap-3 bg-bg-secondary/50 px-4 py-2 rounded-full border border-white/5 shadow-inner">
-          <span className="relative flex h-3 w-3">
-            {loading && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>}
-            <span className={`relative inline-flex rounded-full h-3 w-3 ${loading ? "bg-yellow-500" : "bg-green-500"}`}></span>
-          </span>
-          <span className="text-xs font-medium text-text-muted">
-            {loading ? "Syncing data..." : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}` : "Ready"}
+
+        {/* Status indicator — flat dot + soft glow (no ping) */}
+        <div className="flex items-center gap-2.5 bg-[#0a0805] px-3.5 py-2 rounded-sm border border-white/[0.06] relative overflow-hidden">
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              backgroundColor: loading ? '#fbbf24' : '#56c996',
+              boxShadow: loading
+                ? '0 0 6px rgba(251,191,36,0.7), 0 0 12px rgba(251,191,36,0.35)'
+                : '0 0 6px rgba(86,201,150,0.7), 0 0 12px rgba(86,201,150,0.35)',
+            }}
+          />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            {loading
+              ? 'Syncing'
+              : lastUpdated
+              ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+              : 'Ready'}
           </span>
         </div>
       </div>
 
-      {/* 2. Performance Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-[#140a0c] to-[#0a0506] rounded-2xl p-5 border border-white/5 shadow-md relative overflow-hidden group hover:border-gold-primary/30 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-blue-500/10"></div>
-          <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1 relative z-10">Today's Activity</p>
-          <p className="text-white text-3xl font-display font-bold relative z-10">{todayStats.total}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs font-medium relative z-10">
-            <span className="bg-green-500/10 text-green-400 px-2 py-0.5 rounded-md">{todayStats.open} Open</span>
-            <span className="text-text-muted">{todayStats.wins}W - {todayStats.losses}L</span>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-[#140a0c] to-[#0a0506] rounded-2xl p-5 border border-white/5 shadow-md relative overflow-hidden group hover:border-green-500/30 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-green-500/10"></div>
-          <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1 relative z-10">Today's Win Rate</p>
-          <div className="flex items-baseline gap-1 relative z-10">
-            <p className="text-green-400 text-3xl font-display font-bold drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]">{todayStats.wr}</p>
-            <span className="text-green-400 text-lg font-bold">%</span>
-          </div>
-          <p className="text-text-muted text-xs mt-2 relative z-10">{todayStats.closedCount} Signals Closed</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-[#140a0c] to-[#0a0506] rounded-2xl p-5 border border-white/5 shadow-md relative overflow-hidden group hover:border-gold-primary/30 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold-primary/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-gold-primary/10"></div>
-          <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1 relative z-10">Overall Win Rate</p>
-          <div className="flex items-baseline gap-1 relative z-10">
-            <p className="text-gold-primary text-3xl font-display font-bold drop-shadow-[0_0_8px_rgba(255,215,0,0.3)]">{stats?.win_rate ?? "—"}</p>
-            <span className="text-gold-primary text-lg font-bold">%</span>
-          </div>
-          <p className="text-text-muted text-xs mt-2 relative z-10">{stats ? `${(stats.total_signals || 0).toLocaleString()} Total Signals` : "—"}</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-[#140a0c] to-[#0a0506] rounded-2xl p-5 border border-white/5 shadow-md relative overflow-hidden group hover:border-purple-500/30 transition-colors">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-purple-500/10"></div>
-          <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1 relative z-10">This Week</p>
-          <p className="text-white text-3xl font-display font-bold relative z-10">{allSignals.length}</p>
-          <p className="text-text-muted text-xs mt-2 relative z-10">Signals in View</p>
-        </div>
+      {/* ════════ 2. PERFORMANCE STATS ════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Today's Activity"
+          value={todayStats.total}
+          sub={`${todayStats.open} open · ${todayStats.wins}W · ${todayStats.losses}L`}
+        />
+        <StatCard
+          label="Today's Win Rate"
+          value={`${todayStats.wr}%`}
+          valueColor="text-profit"
+          sub={`${todayStats.closedCount} signals closed`}
+        />
+        <StatCard
+          label="Overall Win Rate"
+          value={stats?.win_rate ? `${stats.win_rate}%` : '—'}
+          valueColor="text-gold-primary"
+          sub={stats ? `${(stats.total_signals || 0).toLocaleString()} total signals` : '—'}
+        />
+        <StatCard
+          label="This Week"
+          value={allSignals.length}
+          sub="signals in view"
+        />
       </div>
 
-      {/* 3. UX MAXIMIZED FILTER CONSOLE */}
-      <div className="bg-gradient-to-b from-[#1a0f13] to-[#0a0506] rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
-        
-        {/* Header Filter Console */}
-        <div className="relative z-10 flex items-center justify-between border-b border-white/[0.08] pb-4 mb-6">
-          <h2 className="text-sm font-semibold text-gold-primary flex items-center gap-2 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(212,168,83,0.5)]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-            Signal Scanner
-          </h2>
+      {/* ════════ 3. FILTER CONSOLE ════════ */}
+      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-5">
+          <div className="flex items-center gap-2.5">
+            {Icon.filter('w-3.5 h-3.5 text-gold-primary/70')}
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">
+              Signal Scanner
+            </h2>
+          </div>
           {hasActiveFilters && (
-            <button 
+            <button
               onClick={resetFilters}
-              className="text-[11px] text-gray-400 hover:text-white font-medium transition-colors flex items-center gap-1.5 bg-white/[0.05] px-3 py-1.5 rounded-lg hover:bg-white/[0.1] active:scale-95 border border-transparent hover:border-white/10"
+              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-white"
             >
-              <span>✕</span> Reset All
+              {Icon.close('w-3 h-3')}
+              Reset All
             </button>
           )}
         </div>
 
-        {/* Top Row: Search & Sort */}
-        <div className="relative z-10 flex flex-col md:flex-row gap-5 items-start mb-8">
-          <div className="flex-1 w-full md:w-auto">
-            <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
-              {/* Search */}
-              <div className="md:col-span-6 relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors group-focus-within:text-gold-primary">🔍</span>
-                <input type="text" placeholder="Search Pair (e.g. BTC, ETH, SOL)..." value={searchPair} onChange={(e) => setSearchPair(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:border-gold-primary/50 focus:ring-1 focus:ring-gold-primary/50 focus:outline-none transition-all text-sm shadow-inner" />
-              </div>
-              {/* Sort By */}
-              <div className="md:col-span-3 relative">
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-sm focus:border-gold-primary/50 focus:ring-1 focus:ring-gold-primary/50 focus:outline-none appearance-none cursor-pointer transition-all shadow-inner">
-                  {sortOptions.map((opt) => <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>)}
-                </select>
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-[10px]">▼</span>
-              </div>
-              {/* Order */}
-              <div className="md:col-span-1">
-                <button onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                  className="w-full h-full min-h-[46px] flex items-center justify-center px-2 bg-black/60 border border-white/10 rounded-xl text-white text-sm hover:border-gold-primary/50 transition-all shadow-inner hover:bg-white/5 active:scale-95">
-                  {getOrderLabel()}
-                </button>
-              </div>
-            </div>
+        {/* Top row: Search · Sort · Order */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
+          {/* Search */}
+          <div className="md:col-span-7 relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/60 pointer-events-none">
+              {Icon.search('w-3.5 h-3.5')}
+            </span>
+            <input
+              type="text"
+              placeholder="Search pair (e.g. BTC, ETH, SOL)..."
+              value={searchPair}
+              onChange={(e) => setSearchPair(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white placeholder-text-muted/40 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+            />
+          </div>
+
+          {/* Sort By */}
+          <div className="md:col-span-3 relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full pl-3 pr-9 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white font-mono text-xs focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
+              ))}
+            </select>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+              {Icon.chevronDown('w-3 h-3')}
+            </span>
+          </div>
+
+          {/* Order toggle */}
+          <div className="md:col-span-2">
+            <button
+              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              className="w-full h-full min-h-[42px] flex items-center justify-center gap-1.5 px-3 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-white"
+            >
+              {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
+              <span>{getOrderLabel()}</span>
+            </button>
           </div>
         </div>
 
-        {/* Bottom Row: Timeline, Status, & Risk */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Timeline - HIGH CONTRAST CHIPS */}
+        {/* Bottom: Timeline · Status · Risk */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Timeline */}
           <div className="lg:col-span-5">
-            <h2 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center justify-between">
-              <span>Timeline Filters</span>
-              <span className="text-gray-600 lowercase font-normal">(multi-select)</span>
-            </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Timeline Filters</span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">multi-select</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {dateOptions.map((opt) => {
                 const isActive = opt.value === "all" ? selectedDates.length === 0 : selectedDates.includes(opt.value);
                 return (
-                  <button key={opt.value} onClick={() => toggleDateFilter(opt.value)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs transition-all duration-300 border ${
+                  <button
+                    key={opt.value}
+                    onClick={() => toggleDateFilter(opt.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                       isActive
-                        ? "bg-gold-primary text-[#0a0506] font-bold border-gold-primary shadow-[0_0_15px_rgba(212,168,83,0.3)] scale-[1.03] z-10" // POP ACTIVE
-                        : "bg-black/40 text-gray-400 border-white/10 font-medium hover:border-white/30 hover:text-white hover:bg-white/5" // AFFORDANCE INACTIVE
-                    }`}>
+                        ? 'bg-white/10 border border-white/[0.08] text-white'
+                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+                    }`}
+                  >
                     <span>{opt.label}</span>
                     {opt.count != null && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isActive ? "bg-black/20 text-[#0a0506]" : "bg-white/10 text-gray-400"}`}>{opt.count}</span>
+                      <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded-sm ${
+                        isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-muted/70'
+                      }`}>
+                        {opt.count}
+                      </span>
                     )}
                   </button>
                 );
@@ -454,29 +588,39 @@ const SignalsPage = () => {
             </div>
           </div>
 
-          {/* Status - HIGH CONTRAST CHIPS */}
-          <div className="lg:col-span-4 lg:border-l lg:border-white/5 lg:pl-6">
-            <h2 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-              Signal Status
-            </h2>
-            <div className="flex flex-wrap gap-2">
+          {/* Status */}
+          <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Signal Status</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {statusOptions.map((opt) => {
                 const isActive = statusFilter === opt.value;
                 const isUpdated = opt.value === "updated";
+                const accentColor =
+                  opt.accent === 'profit' ? 'text-profit' :
+                  opt.accent === 'loss' ? 'text-loss' :
+                  opt.accent === 'gold' ? 'text-gold-primary' :
+                  'text-text-muted';
                 return (
-                  <button key={opt.value}
-                    onClick={() => { setStatusFilter(opt.value); if (isUpdated && sortBy === "created_at") setSortBy("last_update"); }}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs transition-all duration-300 border ${
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setStatusFilter(opt.value);
+                      if (isUpdated && sortBy === "created_at") setSortBy("last_update");
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                       isActive
-                        ? isUpdated 
-                          ? "bg-amber-500 text-black font-bold border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-[1.03] z-10" 
-                          : "bg-gold-primary/10 text-gold-primary font-bold border-gold-primary shadow-[0_0_15px_rgba(212,168,83,0.2)] scale-[1.03] z-10"
-                        : "bg-black/40 text-gray-400 border-white/10 font-medium hover:border-white/30 hover:text-white hover:bg-white/5"
-                    }`}>
-                    <span className="opacity-90">{opt.icon}</span>
+                        ? 'bg-white/10 border border-white/[0.08] text-white'
+                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
                     <span>{opt.label}</span>
                     {isUpdated && updatedCount > 0 && !isActive && (
-                      <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-full">{updatedCount}</span>
+                      <span className="px-1 py-0 bg-gold-primary/10 text-gold-primary text-[9px] tabular-nums rounded-sm">
+                        {updatedCount}
+                      </span>
                     )}
                   </button>
                 );
@@ -484,23 +628,28 @@ const SignalsPage = () => {
             </div>
           </div>
 
-          {/* Risk Profile - PRO SEGMENTED CONTROL */}
-          <div className="lg:col-span-3 lg:border-l lg:border-white/5 lg:pl-6">
-            <h2 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-              Risk Profile
-            </h2>
-            <div className="flex bg-black/60 p-1.5 rounded-xl border border-white/10 shadow-inner relative">
+          {/* Risk */}
+          <div className="lg:col-span-3 lg:border-l lg:border-white/[0.06] lg:pl-5">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Risk Profile</span>
+            </div>
+            <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-sm p-0.5">
               {riskOptions.map((opt) => {
                 const isActive = riskFilter === opt.value;
                 return (
-                  <button key={opt.value} onClick={() => setRiskFilter(opt.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 relative z-10 ${
+                  <button
+                    key={opt.value}
+                    onClick={() => setRiskFilter(opt.value)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                       isActive
-                        ? "text-white shadow-lg border border-white/10 bg-white/10" // Active Block
-                        : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
-                    }`}>
-                    {opt.value !== 'all' && (
-                      <span className={`w-2 h-2 rounded-full ${opt.color} ${isActive ? 'shadow-[0_0_8px_currentColor] animate-pulse' : 'opacity-40'}`}></span>
+                        ? 'bg-white/10 text-white'
+                        : 'text-text-muted hover:text-white hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    {opt.dotColor && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? '' : 'opacity-50'}`}
+                      />
                     )}
                     {opt.label}
                   </button>
@@ -508,108 +657,125 @@ const SignalsPage = () => {
               })}
             </div>
           </div>
-          
         </div>
       </div>
 
-      {/* 4. Intelligence & Alerts Containers */}
-      <div className="flex flex-col gap-4">
-        
-        {/* Accordion: Coin Intelligence */}
-        <div className="bg-[#140a0c] border border-white/10 rounded-2xl overflow-hidden shadow-md transition-all">
-          <button 
+      {/* ════════ 4. ACCORDIONS ════════ */}
+      <div className="space-y-3">
+        {/* Coin Intelligence */}
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <button
             onClick={() => setIsIntelOpen(!isIntelOpen)}
-            className="w-full flex items-center justify-between p-5 hover:bg-white/[0.03] transition-colors"
+            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center text-gold-primary text-lg shadow-inner">
-                🧠
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-sm bg-gold-primary/[0.06] border border-gold-primary/20 flex items-center justify-center text-gold-primary/80">
+                {Icon.brain('w-4 h-4')}
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-white text-sm tracking-wide">Coin Intelligence</h3>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">AI-Powered deep analysis & streaks</p>
+                <h3 className="font-mono text-sm text-white">Coin Intelligence</h3>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">
+                  AI-powered deep analysis & streaks
+                </p>
               </div>
             </div>
-            <div className={`w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-400 transition-transform duration-300 ${isIntelOpen ? 'rotate-180 text-gold-primary border-gold-primary/50' : ''}`}>
-              ▼
+            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${
+              isIntelOpen ? 'rotate-180 text-gold-primary border-gold-primary/30' : ''
+            }`}>
+              {Icon.chevronDown('w-3 h-3')}
             </div>
           </button>
-          
-          <div className={`transition-all duration-500 ease-in-out ${isIntelOpen ? 'max-h-[2000px] opacity-100 p-5 border-t border-white/10 bg-[#0a0506]' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-             <CoinIntelligence selectedDates={selectedDates} />
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
+            isIntelOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+          }`}>
+            <div className="p-5 border-t border-white/[0.06]">
+              <CoinIntelligence selectedDates={selectedDates} />
+            </div>
           </div>
         </div>
 
-        {/* Accordion: BTC Dominance Alert */}
-        <div className="bg-[#140a0c] border border-white/10 rounded-2xl overflow-hidden shadow-md transition-all">
-          <button 
+        {/* BTC Dominance Alert */}
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <button
             onClick={() => setIsAlertOpen(!isAlertOpen)}
-            className="w-full flex items-center justify-between p-5 hover:bg-white/[0.03] transition-colors"
+            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 text-lg shadow-inner">
-                ⚠️
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-sm bg-loss/[0.06] border border-loss/20 flex items-center justify-center text-loss/80">
+                {Icon.alert('w-4 h-4')}
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-white text-sm tracking-wide">BTC Dominance Alert</h3>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Macro market condition warning</p>
+                <h3 className="font-mono text-sm text-white">BTC Dominance Alert</h3>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">
+                  Macro market condition warning
+                </p>
               </div>
             </div>
-            <div className={`w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-gray-400 transition-transform duration-300 ${isAlertOpen ? 'rotate-180 text-orange-500 border-orange-500/50' : ''}`}>
-              ▼
+            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${
+              isAlertOpen ? 'rotate-180 text-loss border-loss/30' : ''
+            }`}>
+              {Icon.chevronDown('w-3 h-3')}
             </div>
           </button>
-
-          <div className={`transition-all duration-500 ease-in-out ${isAlertOpen ? 'max-h-[1000px] opacity-100 p-5 border-t border-white/10 bg-[#0a0506]' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-            <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
+            isAlertOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+          }`}>
+            <div className="p-5 border-t border-white/[0.06]">
+              <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
+            </div>
           </div>
         </div>
-
       </div>
 
-      {/* 5. Error & Data Table */}
+      {/* ════════ 5. ERROR / TABLE ════════ */}
       {error && (
-        <div className="bg-red-500/10 rounded-2xl p-8 border border-red-500/30 text-center flex flex-col items-center justify-center">
-          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center text-2xl mb-4">⚠️</div>
-          <h3 className="text-red-400 font-bold text-lg mb-2">Failed to load signals</h3>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button 
-            onClick={() => fetchBulkSignals(true)} 
-            className="px-6 py-2.5 bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition-colors font-semibold"
-          >
-            Try Again
-          </button>
+        <div className="bg-[#0a0805] rounded-md p-6 border border-loss/30 text-center relative overflow-hidden">
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-loss/[0.06] border border-loss/20 flex items-center justify-center text-loss">
+              {Icon.alert('w-5 h-5')}
+            </div>
+            <h3 className="font-mono text-sm text-white">Failed to load signals</h3>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{error}</p>
+            <button
+              onClick={() => fetchBulkSignals(true)}
+              className="px-4 py-2 mt-1 bg-loss/10 text-loss border border-loss/20 hover:bg-loss/15 hover:border-loss/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       )}
 
+      {/* Direct table render — no double wrapper (SignalsTable handles its own container) */}
       {!error && (
-        <div className="bg-[#0a0506] rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-          <SignalsTable 
-            signals={signals} 
-            loading={loading} 
-            onRowClick={setSelectedSignal} 
-            sortBy={sortBy} 
-            sortOrder={sortOrder} 
-            onSort={handleSort}
-            page={page} 
-            totalPages={totalPages} 
-            onPageChange={setPage} 
-            onPricesUpdate={handlePricesUpdate} 
-          />
-        </div>
+        <SignalsTable
+          signals={signals}
+          loading={loading}
+          onRowClick={setSelectedSignal}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPricesUpdate={handlePricesUpdate}
+        />
       )}
 
-      {/* 6. Modal */}
+      {/* ════════ 6. MODAL ════════ */}
       {selectedSignal && (
-        <SignalModal 
-          key={selectedSignal.signal_id} 
-          signal={selectedSignal} 
-          isOpen={!!selectedSignal} 
+        <SignalModal
+          key={selectedSignal.signal_id}
+          signal={selectedSignal}
+          isOpen={!!selectedSignal}
           onClose={() => setSelectedSignal(null)}
-          onSwitchSignal={(newSignal) => { 
-            setSelectedSignal(null); 
-            setTimeout(() => setSelectedSignal(newSignal), 100); 
-          }} 
+          onSwitchSignal={(newSignal) => {
+            setSelectedSignal(null);
+            setTimeout(() => setSelectedSignal(newSignal), 100);
+          }}
         />
       )}
     </div>
