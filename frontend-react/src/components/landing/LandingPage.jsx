@@ -1,5 +1,5 @@
 // src/components/landing/LandingPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
@@ -233,7 +233,195 @@ const TestimonialsCarousel = () => {
   };
 
   return (
-    <TestimonialsCarousel />
+    <section
+      id="testimonials"
+      className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24"
+    >
+      {/* Header — line-label-line pattern */}
+      <div className="text-center mb-10 lg:mb-12">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <span className="h-px w-8 bg-gold-primary/40" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+            Verified Voices
+          </span>
+          <span className="h-px w-8 bg-gold-primary/40" />
+        </div>
+        <h2 className="font-display text-3xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          Trusted by{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-gold-dark">
+            Traders
+          </span>
+        </h2>
+        <p className="text-text-secondary text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
+          Real traders. Real PnL. Real on-chain track records.
+        </p>
+      </div>
+
+      {/* Carousel container */}
+      <div
+        className="relative max-w-3xl mx-auto"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => {
+          setIsPaused(false);
+          handleDragEnd();
+        }}
+      >
+        {/* ── Card stage ── */}
+        <div
+          className="relative h-[340px] sm:h-[300px] lg:h-[280px] overflow-hidden cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={(e) => handleDragStart(e.clientX)}
+          onMouseMove={(e) => handleDragMove(e.clientX)}
+          onMouseUp={handleDragEnd}
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
+          onTouchEnd={handleDragEnd}
+        >
+          {TESTIMONIALS.map((t, idx) => {
+            const isActive = idx === activeIdx;
+            return (
+              <div
+                key={t.id}
+                className={`absolute inset-0 transition-all duration-500 ease-out ${
+                  isActive
+                    ? "opacity-100 translate-x-0 pointer-events-auto"
+                    : "opacity-0 translate-x-8 pointer-events-none"
+                }`}
+              >
+                <div className="relative h-full bg-[#0a0805] rounded-md border border-white/10 p-6 lg:p-8 overflow-hidden">
+                  {/* Hairline gold accent on top */}
+                  <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
+
+                  {/* Header row: avatar (initial) + name/handle/verified + user ID */}
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      {/* Avatar with initial */}
+                      <div
+                        className="w-11 h-11 rounded-md flex items-center justify-center font-display font-bold text-base text-bg-primary flex-shrink-0"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+                        }}
+                      >
+                        {t.name.split(" ").map((n) => n[0]).join("")}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <p className="text-white text-sm font-semibold truncate">
+                            {t.name}
+                          </p>
+                          <VerifiedBadge />
+                          <span className="text-base leading-none flex-shrink-0">
+                            {t.flag}
+                          </span>
+                        </div>
+                        <p className="text-text-muted text-[11px] font-mono">
+                          {t.handle} · {t.role}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* User ID badge (top right) */}
+                    <span className="text-text-muted text-[9px] font-mono tracking-widest bg-white/[0.04] border border-white/10 rounded-sm px-2 py-1 flex-shrink-0">
+                      {t.id}
+                    </span>
+                  </div>
+
+                  {/* Quote */}
+                  <p className="text-text-secondary text-sm lg:text-base leading-relaxed mb-5 italic">
+                    "{t.text}"
+                  </p>
+
+                  {/* Footer stats (mono) */}
+                  <div className="absolute bottom-6 left-6 right-6 lg:bottom-8 lg:left-8 lg:right-8 flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                    <div>
+                      <p className="text-text-muted text-[9px] uppercase tracking-[0.18em] mb-0.5">
+                        Signals Traded
+                      </p>
+                      <p className="text-white font-mono font-bold text-sm tabular-nums">
+                        {t.signalsTraded.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-text-muted text-[9px] uppercase tracking-[0.18em] mb-0.5">
+                        Avg Win Rate
+                      </p>
+                      <p className="text-gold-primary font-mono font-bold text-sm tabular-nums">
+                        {t.avgWinRate.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Arrow controls (desktop) ── */}
+        <button
+          onClick={goPrev}
+          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-9 h-9 items-center justify-center rounded-md text-white/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
+          aria-label="Previous testimonial"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={goNext}
+          className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-9 h-9 items-center justify-center rounded-md text-white/40 hover:text-gold-primary hover:bg-white/[0.03] border border-white/10 hover:border-gold-primary/30 transition-all"
+          aria-label="Next testimonial"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* ── Dot indicators + Mobile arrows ── */}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          {/* Mobile prev arrow */}
+          <button
+            onClick={goPrev}
+            className="lg:hidden w-7 h-7 flex items-center justify-center text-white/40 hover:text-gold-primary transition-colors"
+            aria-label="Previous"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          {TESTIMONIALS.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveIdx(idx)}
+              className={`h-1.5 rounded-sm transition-all duration-300 ${
+                idx === activeIdx
+                  ? "w-8 bg-gold-primary"
+                  : "w-1.5 bg-white/15 hover:bg-white/30"
+              }`}
+              aria-label={`Go to testimonial ${idx + 1}`}
+            />
+          ))}
+
+          {/* Mobile next arrow */}
+          <button
+            onClick={goNext}
+            className="lg:hidden w-7 h-7 flex items-center justify-center text-white/40 hover:text-gold-primary transition-colors"
+            aria-label="Next"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Counter (subtle) */}
+        <div className="text-center mt-3">
+          <span className="font-mono text-[10px] text-text-muted tracking-widest tabular-nums">
+            {String(activeIdx + 1).padStart(2, "0")} / {String(TESTIMONIALS.length).padStart(2, "0")}
+          </span>
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -2101,40 +2289,7 @@ const LandingPage = () => {
       {/* ════════════════════════════════════════
           TESTIMONIALS
       ════════════════════════════════════════ */}
-      <section
-        id="testimonials"
-        className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pb-16 lg:pb-24"
-      >
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-0.5 bg-gradient-to-r from-transparent to-gold-primary" />
-            <h2 className="font-display text-3xl lg:text-4xl font-bold text-white">
-              Trusted by Traders
-            </h2>
-            <div className="w-12 h-0.5 bg-gradient-to-l from-transparent to-gold-primary" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          <TestimonialCard
-            flag="🇮🇩"
-            name="Andi Pratama"
-            role="Day Trader, Jakarta"
-            text="LuxQuant signals are highly accurate. In my first month, my profit increased by 40%. The terminal is incredibly comprehensive."
-          />
-          <TestimonialCard
-            flag="🇹🇼"
-            name="Chen Wei-Lin"
-            role="Swing Trader, Taipei"
-            text="AI Arena feature is amazing. I can see which model performs best and follow the strongest predictions. Game changer."
-          />
-          <TestimonialCard
-            flag="🇸🇬"
-            name="Raj Patel"
-            role="Portfolio Manager, Singapore"
-            text="The combination of whale alerts, macro calendar, and signals gives me an institutional-grade edge. Worth every penny."
-          />
-        </div>
-      </section>
+      <TestimonialsCarousel />
 
       {/* ════════════════════════════════════════
           FAQ
