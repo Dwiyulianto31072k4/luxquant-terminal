@@ -1,15 +1,90 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next'; // <-- Import i18n
+import { useTranslation } from 'react-i18next';
 import TopPerformers from './TopPerformers';
 
 const API_BASE = '/api/v1';
 
-/**
- * OverviewPage - Main dashboard with comprehensive market data
- * RESPONSIVE: All grids adapt to mobile/tablet/desktop
- */
+// ================================================================
+// INLINE SVG ICONS (Lucide-style, no emoji)
+// ================================================================
+
+const IconWallet = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
+const IconChart = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M3 3v18h18" />
+    <path d="m7 14 4-4 4 4 5-5" />
+  </svg>
+);
+
+const IconCrown = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7Z" />
+    <path d="M2 20h20" />
+  </svg>
+);
+
+const IconCoins = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <circle cx="8" cy="8" r="6" />
+    <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+    <path d="M7 6h1v4" />
+    <path d="m16.71 13.88.7.71-2.82 2.82" />
+  </svg>
+);
+
+const IconFlame = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+);
+
+const IconArrowUp = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="m5 12 7-7 7 7" />
+    <path d="M12 19V5" />
+  </svg>
+);
+
+const IconArrowDown = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M12 5v14" />
+    <path d="m19 12-7 7-7-7" />
+  </svg>
+);
+
+const IconActivity = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
+
+const IconPulse = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M3 12h4l3-9 4 18 3-9h4" />
+  </svg>
+);
+
+const IconAlert = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+// ================================================================
+// MAIN COMPONENT
+// ================================================================
+
 const OverviewPage = () => {
-  const { t } = useTranslation(); // <-- Panggil i18n
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState(null);
   const [trending, setTrending] = useState(null);
@@ -83,41 +158,48 @@ const OverviewPage = () => {
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
+    <div className="space-y-5 lg:space-y-7">
       <TopPerformers />
 
+      {/* PAGE TITLE — Flowscan style: line-label-line */}
       <div className="flex items-center gap-3">
-        <div className="w-10 lg:w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-        <h2 className="font-display text-xl lg:text-3xl font-bold text-white">{t('overview.title')}</h2>
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          {t('overview.title')}
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
       </div>
 
       {marketLoading ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="glass-card rounded-xl p-4 lg:p-6 animate-pulse border border-gold-primary/10">
-                <div className="h-3 lg:h-4 bg-gold-primary/20 rounded w-20 lg:w-24 mb-2 lg:mb-3"></div>
-                <div className="h-6 lg:h-8 bg-gold-primary/20 rounded w-24 lg:w-32"></div>
+              <div key={i} className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 animate-pulse">
+                <div className="h-2.5 bg-white/[0.06] rounded w-20 mb-3"></div>
+                <div className="h-px bg-white/[0.06] mb-3"></div>
+                <div className="h-7 bg-white/[0.06] rounded w-28"></div>
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="glass-card rounded-xl p-4 lg:p-6 h-48 lg:h-64 animate-pulse border border-gold-primary/10"></div>
+              <div key={i} className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 h-56 animate-pulse"></div>
             ))}
           </div>
         </>
       ) : (
         <>
-          {/* BANNER ERROR */}
+          {/* ERROR BANNER */}
           {marketError && (
-            <div className="glass-card rounded-xl p-3 lg:p-4 border border-red-500/30 flex items-center justify-between bg-red-500/5">
-              <p className="text-red-400 text-xs lg:text-sm font-medium flex items-center gap-2">
-                <span>⚠️</span> {t('overview.error_api')}
+            <div className="bg-[#0a0805] rounded-md border border-loss/30 px-4 py-3 flex items-center justify-between relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+              <p className="text-loss text-xs font-mono uppercase tracking-wider flex items-center gap-2">
+                <IconAlert className="w-3.5 h-3.5" />
+                {t('overview.error_api')}
               </p>
               <button
                 onClick={() => { setMarketLoading(true); fetchAll(); }}
-                className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-xs font-semibold"
+                className="px-3 py-1 bg-loss/10 text-loss border border-loss/20 hover:bg-loss/15 hover:border-loss/30 transition-all text-[10px] font-mono uppercase tracking-wider rounded"
               >
                 {t('overview.retry')}
               </button>
@@ -126,11 +208,11 @@ const OverviewPage = () => {
 
           {/* KEY METRICS */}
           {data && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon="💰" />
-              <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon="📊" />
-              <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon="👑" color="text-orange-400" />
-              <MetricCard label={t('overview.active_crypto')} value={data.activeCryptos.toLocaleString()} icon="🪙" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon={<IconWallet />} />
+              <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon={<IconChart />} />
+              <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon={<IconCrown />} />
+              <MetricCard label={t('overview.active_crypto')} value={data.activeCryptos.toLocaleString()} icon={<IconCoins />} />
             </div>
           )}
 
@@ -139,71 +221,75 @@ const OverviewPage = () => {
             <SectorPerformance categories={categories} trending={trending} t={t} />
           )}
 
-          {/* GRID 3 KOLOM */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+          {/* GRID 3 KOLOM: Indicators / Fear & Greed / Derivatives */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {data && (
               <>
-                <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-5">{t('overview.indicators')}</h3>
-                  <div className="space-y-3 lg:space-y-4">
-                    <IndicatorRow label={t('overview.eth_dom')} value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} color="bg-blue-500" />
-                    <IndicatorRow label={t('overview.btc_dom')} value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} color="bg-orange-500" />
-                    <IndicatorRow label={t('overview.stable_dom')} value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} color="bg-emerald-500" />
-                    <div className="pt-2 border-t border-gold-primary/10">
+                {/* INDICATORS CARD */}
+                <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden hover:border-gold-primary/20 transition-colors">
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+                  <div className="flex items-center gap-2 mb-5">
+                    <IconActivity className="w-3 h-3 text-gold-primary/70" />
+                    <h3 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+                      {t('overview.indicators')}
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    <IndicatorRow label={t('overview.eth_dom')} value={`${data.ethDominance?.toFixed(1)}%`} pct={data.ethDominance} opacity={0.85} />
+                    <IndicatorRow label={t('overview.btc_dom')} value={`${data.btcDominance?.toFixed(1)}%`} pct={data.btcDominance} opacity={1.0} />
+                    <IndicatorRow label={t('overview.stable_dom')} value={`${data.stablecoinDom?.toFixed(2)}%`} pct={data.stablecoinDom} max={20} opacity={0.55} />
+                    <div className="pt-3 border-t border-white/[0.06] space-y-2.5">
                       <div className="flex justify-between items-center">
-                        <span className="text-text-muted text-xs lg:text-sm">{t('overview.alt_mcap')}</span>
-                        <span className="text-white font-mono text-xs lg:text-sm">{formatLargeNumber(data.altcoinMarketCap)}</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.alt_mcap')}</span>
+                        <span className="text-white font-mono text-sm tabular-nums">{formatLargeNumber(data.altcoinMarketCap)}</span>
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-text-muted text-xs lg:text-sm">{t('overview.eth_btc')}</span>
-                      <span className="text-white font-mono text-xs lg:text-sm">{data.ethBtcRatio?.toFixed(5)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.eth_btc')}</span>
+                        <span className="text-white font-mono text-sm tabular-nums">{data.ethBtcRatio?.toFixed(5)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-                  <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">{t('overview.fg_index')}</h3>
+                {/* FEAR & GREED GAUGE */}
+                <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden hover:border-gold-primary/20 transition-colors">
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+                  <div className="flex items-center gap-2 mb-5">
+                    <IconPulse className="w-3 h-3 text-gold-primary/70" />
+                    <h3 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+                      {t('overview.fg_index')}
+                    </h3>
+                  </div>
                   <div className="flex flex-col items-center">
-                    <div className="relative w-24 h-24 lg:w-32 lg:h-32 mb-2 lg:mb-3">
+                    <div className="relative w-28 h-28 lg:w-32 lg:h-32 mb-4">
                       <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
                         <circle
                           cx="60" cy="60" r="50" fill="none"
-                          stroke={
-                            data.fearGreed.value >= 75 ? '#22c55e' :
-                            data.fearGreed.value >= 50 ? '#84cc16' :
-                            data.fearGreed.value >= 25 ? '#f97316' : '#ef4444'
-                          }
-                          strokeWidth="10"
+                          stroke={fgStroke(data.fearGreed.value)}
+                          strokeWidth="6"
                           strokeLinecap="round"
                           strokeDasharray={`${data.fearGreed.value * 3.14} 314`}
                           className="transition-all duration-1000"
                         />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl lg:text-3xl font-bold text-white">{data.fearGreed.value}</span>
-                        <span className={`text-[10px] lg:text-xs font-semibold ${
-                          data.fearGreed.value >= 75 ? 'text-green-400' :
-                          data.fearGreed.value >= 50 ? 'text-lime-400' :
-                          data.fearGreed.value >= 25 ? 'text-orange-400' : 'text-red-400'
-                        }`}>{data.fearGreed.label}</span>
+                        <span className="font-mono text-3xl lg:text-4xl font-light text-white tabular-nums">{data.fearGreed.value}</span>
+                        <span className="font-mono text-[9px] uppercase tracking-[0.2em] mt-0.5" style={{ color: fgStroke(data.fearGreed.value) }}>
+                          {data.fearGreed.label}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex gap-4 lg:gap-6 mt-1">
+                    <div className="grid grid-cols-3 gap-3 w-full">
+                      <FGStat label={t('overview.yesterday')} value={data.fearGreed.yesterday} />
+                      <FGStat label={t('overview.last_week')} value={data.fearGreed.lastWeek} />
                       <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.yesterday')}</p>
-                        <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.yesterday)}`}>{data.fearGreed.yesterday}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.last_week')}</p>
-                        <p className={`text-xs lg:text-sm font-mono font-semibold ${fgColor(data.fearGreed.lastWeek)}`}>{data.fearGreed.lastWeek}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-text-muted text-[10px] lg:text-xs">{t('overview.trend')}</p>
-                        <p className={`text-xs lg:text-sm font-semibold ${data.fearGreed.value > data.fearGreed.lastWeek ?
-                          'text-green-400' : data.fearGreed.value < data.fearGreed.lastWeek ? 'text-red-400' : 'text-text-muted'}`}>
-                          {data.fearGreed.value > data.fearGreed.lastWeek ? t('overview.up') : data.fearGreed.value < data.fearGreed.lastWeek ? t('overview.down') : t('overview.flat')}
+                        <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted mb-1.5">{t('overview.trend')}</p>
+                        <p className="font-mono text-sm tabular-nums" style={{
+                          color: data.fearGreed.value > data.fearGreed.lastWeek ? '#56c996'
+                            : data.fearGreed.value < data.fearGreed.lastWeek ? '#e07288' : '#6b5c52'
+                        }}>
+                          {data.fearGreed.value > data.fearGreed.lastWeek ? `↑ ${t('overview.up')}` : data.fearGreed.value < data.fearGreed.lastWeek ? `↓ ${t('overview.down')}` : `— ${t('overview.flat')}`}
                         </p>
                       </div>
                     </div>
@@ -216,38 +302,28 @@ const OverviewPage = () => {
             {derivPulse ? (
               <DerivativesPulseCard data={derivPulse} t={t} />
             ) : (
-              <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10 flex items-center justify-center">
-                <span className="text-text-muted text-sm">{t('overview.deriv_pending')}</span>
+              <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 flex items-center justify-center min-h-[200px] relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
+                <span className="text-text-muted font-mono text-xs uppercase tracking-wider">{t('overview.deriv_pending')}</span>
               </div>
             )}
           </div>
 
           {/* GAINERS & LOSERS */}
           {data && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-              <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-                <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
-                  <span>📈</span>
-                  <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.top_gainers_24h')}</h3>
-                </div>
-                <div className="divide-y divide-gold-primary/5">
-                  {data.topGainers.map((coin, idx) => (
-                    <CoinRow key={idx} coin={coin} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-                <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center gap-2">
-                  <span>📉</span>
-                  <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.top_losers_24h')}</h3>
-                </div>
-                <div className="divide-y divide-gold-primary/5">
-                  {data.topLosers.map((coin, idx) => (
-                    <CoinRow key={idx} coin={coin} isLoser />
-                  ))}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CoinListCard
+                title={t('overview.top_gainers_24h')}
+                icon={<IconArrowUp className="w-3 h-3 text-gold-primary/70" />}
+                coins={data.topGainers}
+                isLoser={false}
+              />
+              <CoinListCard
+                title={t('overview.top_losers_24h')}
+                icon={<IconArrowDown className="w-3 h-3 text-gold-primary/70" />}
+                coins={data.topLosers}
+                isLoser={true}
+              />
             </div>
           )}
         </>
@@ -257,7 +333,7 @@ const OverviewPage = () => {
 };
 
 // ================================================================
-// SECTOR PERFORMANCE SECTION
+// SECTOR PERFORMANCE
 // ================================================================
 
 const SectorPerformance = ({ categories, trending, t }) => {
@@ -266,23 +342,30 @@ const SectorPerformance = ({ categories, trending, t }) => {
     .sort((a, b) => a.market_cap_change_24h - b.market_cap_change_24h).slice(0, 5);
 
   return (
-    <div className="glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-      <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-gold-primary/10 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span>🔥</span>
-          <h3 className="text-white font-semibold text-sm lg:text-base">{t('overview.sector_perf')}</h3>
-          <span className="text-text-muted text-[10px] lg:text-xs ml-1 lg:ml-2">{t('overview.change_24h')}</span>
+    <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+
+      {/* HEADER */}
+      <div className="px-5 py-4 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2.5">
+          <IconFlame className="w-3.5 h-3.5 text-gold-primary/70" />
+          <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">
+            {t('overview.sector_perf')}
+          </h3>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            · {t('overview.change_24h')}
+          </span>
         </div>
         {trending?.categories?.length > 0 && (
-          <div className="flex items-center gap-1.5 lg:gap-2 flex-wrap">
-            <span className="text-text-muted text-[10px] lg:text-xs">{t('overview.trending')}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.trending')}</span>
             {trending.categories.slice(0, 3).map((cat, i) => (
               <a
                 key={i}
                 href={`https://www.coingecko.com/en/categories/${cat.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] lg:text-xs px-1.5 lg:px-2 py-0.5 rounded-full bg-gold-primary/10 text-gold-primary border border-gold-primary/20 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all cursor-pointer"
+                className="font-mono text-[10px] px-2 py-0.5 bg-gold-primary/10 text-gold-primary border border-gold-primary/20 hover:bg-gold-primary/15 hover:border-gold-primary/40 transition-all rounded-sm"
               >
                 {cat.name}
               </a>
@@ -291,31 +374,39 @@ const SectorPerformance = ({ categories, trending, t }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gold-primary/10">
-        <div className="p-3 lg:p-4">
-          <p className="text-green-400 text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-2 lg:mb-3 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-            {t('overview.hot')}
-          </p>
-          <div className="space-y-0.5 lg:space-y-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+        {/* HOT */}
+        <div className="p-4 lg:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-profit" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-profit">
+              {t('overview.hot')}
+            </p>
+            <span className="h-px flex-1 bg-gradient-to-r from-profit/30 to-transparent" />
+          </div>
+          <div className="space-y-1">
             {gainers.length > 0 ? gainers.map((cat, idx) => (
               <SectorRow key={idx} cat={cat} rank={idx + 1} />
             )) : (
-              <p className="text-text-muted text-sm py-2">{t('overview.no_gain_sec')}</p>
+              <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">{t('overview.no_gain_sec')}</p>
             )}
           </div>
         </div>
 
-        <div className="p-3 lg:p-4">
-          <p className="text-red-400 text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-2 lg:mb-3 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-            {t('overview.cool')}
-          </p>
-          <div className="space-y-0.5 lg:space-y-1">
+        {/* COOL */}
+        <div className="p-4 lg:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-loss" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-loss">
+              {t('overview.cool')}
+            </p>
+            <span className="h-px flex-1 bg-gradient-to-r from-loss/30 to-transparent" />
+          </div>
+          <div className="space-y-1">
             {losers.length > 0 ? losers.map((cat, idx) => (
               <SectorRow key={idx} cat={cat} rank={idx + 1} isNeg />
             )) : (
-              <p className="text-text-muted text-sm py-2">{t('overview.no_lose_sec')}</p>
+              <p className="text-text-muted font-mono text-xs uppercase tracking-wider py-2">{t('overview.no_lose_sec')}</p>
             )}
           </div>
         </div>
@@ -334,70 +425,82 @@ const DerivativesPulseCard = ({ data, t }) => {
   const oi = data?.openInterest;
 
   return (
-    <div className="glass-card rounded-xl p-4 lg:p-5 border border-gold-primary/10">
-      <h3 className="text-gold-primary text-[10px] lg:text-xs font-semibold uppercase tracking-wider mb-3 lg:mb-4">{t('overview.deriv_pulse')}</h3>
+    <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden hover:border-gold-primary/20 transition-colors">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
+      <div className="flex items-center gap-2 mb-5">
+        <IconPulse className="w-3 h-3 text-gold-primary/70" />
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          {t('overview.deriv_pulse')}
+        </h3>
+      </div>
+
+      {/* LONG/SHORT BARS */}
       {ls && (
-        <div className="mb-3 lg:mb-4 space-y-2 lg:space-y-3">
+        <div className="mb-4 space-y-3">
           {Object.entries(ls).map(([sym, val]) => (
             <div key={sym}>
-              <div className="flex items-center justify-between mb-1 lg:mb-1.5">
-                <span className="text-white text-[10px] lg:text-xs font-semibold">{sym}</span>
-                <div className="flex items-center gap-1.5 lg:gap-2 text-[10px] lg:text-xs">
-                  <span className="flex items-center gap-0.5 lg:gap-1">
-                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-green-500"></span>
-                    <span className="text-green-400 font-mono">{val.long}%</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-mono text-xs text-white">{sym}</span>
+                <div className="flex items-center gap-2 font-mono text-[10px] tabular-nums">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-profit" />
+                    <span className="text-profit">{val.long}%</span>
                   </span>
                   <span className="text-text-muted">/</span>
-                  <span className="flex items-center gap-0.5 lg:gap-1">
-                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-red-500"></span>
-                    <span className="text-red-400 font-mono">{val.short}%</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-loss" />
+                    <span className="text-loss">{val.short}%</span>
                   </span>
                 </div>
               </div>
-              <div className="flex h-2 lg:h-2.5 rounded-full overflow-hidden bg-dark-card/50 border border-white/5">
-                <div className="bg-gradient-to-r from-green-600 to-green-400 transition-all duration-700 rounded-l-full" style={{ width: `${val.long}%` }} />
-                <div className="bg-gradient-to-r from-red-400 to-red-600 transition-all duration-700 rounded-r-full" style={{ width: `${val.short}%` }} />
+              <div className="flex h-1 overflow-hidden bg-white/[0.04]">
+                <div className="bg-profit transition-all duration-700" style={{ width: `${val.long}%` }} />
+                <div className="bg-loss transition-all duration-700" style={{ width: `${val.short}%` }} />
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* OPEN INTEREST */}
       {oi && (
-        <div className="flex justify-between items-center py-2 lg:py-2.5 px-2.5 lg:px-3 rounded-lg bg-white/[0.02] border border-white/5 mb-2 lg:mb-3">
-          <span className="text-text-muted text-[10px] lg:text-xs">{t('overview.total_oi')}</span>
-          <span className="text-white font-mono text-xs lg:text-sm font-semibold">{formatLargeNumber(oi.total_usd)}</span>
+        <div className="flex justify-between items-center py-2.5 px-3 bg-white/[0.02] border border-white/[0.06] mb-3 rounded-sm">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.total_oi')}</span>
+          <span className="text-white font-mono text-sm tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
         </div>
       )}
 
+      {/* FUNDING */}
       {funding && (
-        <div className="pt-2">
-          <p className="text-text-muted text-[10px] lg:text-xs mb-2 lg:mb-2.5 flex items-center justify-between">
-            <span>{t('overview.funding')}</span>
-            <span className={`font-mono ${funding.avg_rate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <div className="pt-2 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.funding')}</span>
+            <span className={`font-mono text-[10px] tabular-nums ${funding.avg_rate >= 0 ? 'text-profit' : 'text-loss'}`}>
               {t('overview.avg')} {funding.avg_rate >= 0 ? '+' : ''}{funding.avg_rate}%
             </span>
-          </p>
-          <div className="grid grid-cols-2 gap-1.5 lg:gap-2">
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
             <div className="space-y-1">
               {(funding.most_long || []).slice(0, 3).map((f, i) => (
-                <div key={`l${i}`} className="flex justify-between items-center text-[10px] lg:text-xs py-1 px-1.5 lg:px-2 rounded bg-green-500/5 border border-green-500/10">
-                  <span className="text-white font-medium">{f.symbol}</span>
-                  <span className="text-green-400 font-mono">+{f.rate_pct}%</span>
+                <div key={`l${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-profit/[0.06] border border-profit/15 rounded-sm">
+                  <span className="font-mono text-white">{f.symbol}</span>
+                  <span className="font-mono text-profit tabular-nums">+{f.rate_pct}%</span>
                 </div>
               ))}
             </div>
             <div className="space-y-1">
               {(funding.most_short || []).slice(0, 3).map((f, i) => (
-                <div key={`s${i}`} className="flex justify-between items-center text-[10px] lg:text-xs py-1 px-1.5 lg:px-2 rounded bg-red-500/5 border border-red-500/10">
-                  <span className="text-white font-medium">{f.symbol}</span>
-                  <span className="text-red-400 font-mono">{f.rate_pct}%</span>
+                <div key={`s${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-loss/[0.06] border border-loss/15 rounded-sm">
+                  <span className="font-mono text-white">{f.symbol}</span>
+                  <span className="font-mono text-loss tabular-nums">{f.rate_pct}%</span>
                 </div>
               ))}
             </div>
           </div>
-          <p className="text-text-muted text-[10px] mt-1.5 lg:mt-2 text-center opacity-60">{funding.total_symbols} {t('overview.pairs_tracked')}</p>
+          <p className="text-text-muted font-mono text-[9px] uppercase tracking-wider mt-2.5 text-center opacity-50">
+            {funding.total_symbols} {t('overview.pairs_tracked')}
+          </p>
         </div>
       )}
     </div>
@@ -405,40 +508,87 @@ const DerivativesPulseCard = ({ data, t }) => {
 };
 
 // ================================================================
+// COIN LIST CARD (Gainers / Losers)
+// ================================================================
+
+const CoinListCard = ({ title, icon, coins, isLoser }) => (
+  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative hover:border-gold-primary/20 transition-colors">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.015] flex items-center gap-2.5">
+      {icon}
+      <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">{title}</h3>
+    </div>
+    <div className="divide-y divide-white/[0.04]">
+      {coins.map((coin, idx) => (
+        <CoinRow key={idx} coin={coin} isLoser={isLoser} />
+      ))}
+    </div>
+  </div>
+);
+
+// ================================================================
 // HELPER COMPONENTS
 // ================================================================
 
-const IndicatorRow = ({ label, value, pct, max = 100, color = 'bg-blue-500' }) => (
+/**
+ * Indicator bar — uses gold opacity gradient instead of multi-color
+ * opacity prop: 1.0 = full gold, 0.85 = light, 0.55 = mid, 0.4 = dark
+ */
+const IndicatorRow = ({ label, value, pct, max = 100, opacity = 1 }) => (
   <div>
-    <div className="flex justify-between items-center mb-1 lg:mb-1.5">
-      <span className="text-text-muted text-xs lg:text-sm">{label}</span>
-      <span className="text-white font-mono text-xs lg:text-sm">{value}</span>
+    <div className="flex justify-between items-baseline mb-1.5">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
+      <span className="text-white font-mono text-sm tabular-nums">{value}</span>
     </div>
-    <div className="h-1 lg:h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+    <div className="h-1 bg-white/[0.04] overflow-hidden">
       <div
-        className={`h-full rounded-full ${color} transition-all duration-700`}
-        style={{ width: `${Math.min((pct / max) * 100, 100)}%` }}
+        className="h-full transition-all duration-700"
+        style={{
+          width: `${Math.min((pct / max) * 100, 100)}%`,
+          backgroundColor: '#d4a853',
+          opacity,
+        }}
       />
     </div>
   </div>
 );
 
-const fgColor = (val) => {
-  if (val >= 75) return 'text-green-400';
-  if (val >= 50) return 'text-lime-400';
-  if (val >= 25) return 'text-orange-400';
-  return 'text-red-400';
+const FGStat = ({ label, value }) => (
+  <div className="text-center">
+    <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted mb-1.5">{label}</p>
+    <p className="font-mono text-sm tabular-nums" style={{ color: fgStroke(value) }}>{value}</p>
+  </div>
+);
+
+/**
+ * Fear & Greed color scale — muted, not neon
+ * Adopted from Flowscan profit/loss palette + amber for warning
+ */
+const fgStroke = (val) => {
+  if (val >= 75) return '#56c996'; // profit (extreme greed)
+  if (val >= 50) return '#d4a853'; // gold (greed/neutral high)
+  if (val >= 25) return '#fbbf24'; // amber muted (fear)
+  return '#e07288'; // loss (extreme fear)
 };
 
-const MetricCard = ({ label, value, change, icon, color = 'text-white' }) => (
-  <div className="glass-card rounded-xl p-3.5 lg:p-5 border border-gold-primary/10">
-    <div className="flex items-center justify-between mb-1 lg:mb-2">
-      <p className="text-text-muted text-[10px] lg:text-xs uppercase tracking-wider">{label}</p>
-      <span className="text-sm lg:text-lg">{icon}</span>
+/**
+ * Metric Card — Flowscan stat card style
+ * - flat bg-card-secondary
+ * - hairline border + inset top highlight
+ * - font-light large numbers (Flowscan signature)
+ * - hover translate-y, no scale
+ */
+const MetricCard = ({ label, value, change, icon }) => (
+  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200 group">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="flex items-center justify-between mb-2.5">
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted">{label}</p>
+      <span className="text-gold-primary/60 group-hover:text-gold-primary/80 transition-colors">{icon}</span>
     </div>
-    <p className={`text-lg lg:text-2xl font-display font-bold ${color}`}>{value}</p>
+    <div className="h-px bg-white/[0.06] mb-3" />
+    <p className="font-mono text-2xl lg:text-3xl font-light text-white tabular-nums leading-none">{value}</p>
     {change !== undefined && (
-      <p className={`text-xs lg:text-sm font-semibold mt-0.5 lg:mt-1 ${change >= 0 ? 'text-positive' : 'text-negative'}`}>
+      <p className={`font-mono text-xs tabular-nums mt-2 ${change >= 0 ? 'text-profit' : 'text-loss'}`}>
         {change >= 0 ? '+' : ''}{change?.toFixed(2)}%
       </p>
     )}
@@ -446,22 +596,22 @@ const MetricCard = ({ label, value, change, icon, color = 'text-white' }) => (
 );
 
 const CoinRow = ({ coin, isLoser }) => (
-  <div className="flex items-center justify-between px-3.5 lg:px-5 py-2.5 lg:py-3 hover:bg-gold-primary/5 transition-colors">
-    <div className="flex items-center gap-2 lg:gap-3">
+  <div className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors group">
+    <div className="flex items-center gap-3">
       <img
         src={coin.image}
         alt={coin.symbol}
-        className="w-6 h-6 lg:w-8 lg:h-8 rounded-full"
+        className="w-7 h-7 rounded-full border border-white/[0.06]"
         onError={(e) => { e.target.style.display = 'none'; }}
       />
       <div>
-        <p className="text-white font-semibold text-xs lg:text-base">{coin.symbol.toUpperCase()}</p>
-        <p className="text-text-muted text-[10px] lg:text-xs hidden sm:block">{coin.name}</p>
+        <p className="font-mono text-sm text-white group-hover:text-gold-primary transition-colors">{coin.symbol.toUpperCase()}</p>
+        <p className="text-text-muted text-[10px] hidden sm:block truncate max-w-[140px]">{coin.name}</p>
       </div>
     </div>
     <div className="text-right">
-      <p className="text-white font-mono text-xs lg:text-base">${coin.current_price?.toLocaleString()}</p>
-      <p className={`text-[10px] lg:text-sm font-semibold ${isLoser ? 'text-negative' : 'text-positive'}`}>
+      <p className="font-mono text-sm text-white tabular-nums">${coin.current_price?.toLocaleString()}</p>
+      <p className={`font-mono text-[11px] tabular-nums ${isLoser ? 'text-loss' : 'text-profit'}`}>
         {(coin.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(coin.price_change_percentage_24h || 0).toFixed(2)}%
       </p>
     </div>
@@ -476,29 +626,29 @@ const SectorRow = ({ cat, rank, isNeg }) => {
       href={cgUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-between py-2 lg:py-2.5 px-2 lg:px-3 rounded-lg hover:bg-gold-primary/8 transition-all cursor-pointer group border border-transparent hover:border-gold-primary/15"
+      className="flex items-center justify-between py-2 px-2 hover:bg-white/[0.02] transition-all cursor-pointer group rounded-sm"
     >
-      <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
-        <span className="text-text-muted text-[10px] lg:text-xs w-3 lg:w-4 text-right font-mono">{rank}</span>
-        <div className="flex -space-x-1 lg:-space-x-1.5 flex-shrink-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="font-mono text-[10px] text-text-muted w-4 text-right tabular-nums">{rank}</span>
+        <div className="flex -space-x-1.5 flex-shrink-0">
           {(cat.top_3_coins || []).map((url, i) => (
             <img
               key={i}
               src={url}
               alt=""
-              className="w-4 h-4 lg:w-5 lg:h-5 rounded-full border border-dark-card bg-dark-card"
+              className="w-4 h-4 rounded-full border border-[#0a0805] bg-[#0a0805]"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           ))}
         </div>
-        <span className="text-white text-xs lg:text-sm truncate group-hover:text-gold-primary transition-colors">{cat.name}</span>
+        <span className="text-white text-sm truncate group-hover:text-gold-primary transition-colors">{cat.name}</span>
       </div>
-      <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
-        <span className="text-text-muted text-[10px] lg:text-xs hidden sm:inline">
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">
           {formatLargeNumber(cat.market_cap)}
         </span>
-        <span className={`text-xs lg:text-sm font-mono font-semibold min-w-[50px] lg:min-w-[60px] text-right ${
-          isNeg ? 'text-red-400' : 'text-green-400'
+        <span className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${
+          isNeg ? 'text-loss' : 'text-profit'
         }`}>
           {change >= 0 ? '+' : ''}{change?.toFixed(2)}%
         </span>
