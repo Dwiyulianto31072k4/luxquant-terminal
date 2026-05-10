@@ -2339,61 +2339,42 @@ const LandingPage = () => {
         <TelegramPromo gainers={topGainers} />
       </section>
 
+
             {/* ════════════════════════════════════════
           FOOTER
       ════════════════════════════════════════ */}
       <footer className="relative z-10 bg-bg-primary overflow-hidden">
-        {/* Ambient gold glow at bottom */}
+        {/* Ambient gold glow */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold-primary/[0.04] blur-[160px] rounded-full pointer-events-none" />
 
-        {/* Top hairline gradient accent */}
+        {/* Top hairline */}
         <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
-        {/* MASSIVE BRAND TEXT — Hyperliquid/Aerodrome style */}
+        {/* BRAND WORDMARK */}
         <div className="relative overflow-hidden border-b border-white/[0.06]">
-          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12 lg:py-16 relative">
-            <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
-              {/* Left: Status + Tagline */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2.5 mb-6">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      background: "radial-gradient(circle at 30% 30%, #fde6a8, #d4a853 60%, #8b6914)",
-                      animation: "goldFlare 2s ease-in-out infinite",
-                    }}
-                  />
-                  <span className="text-gold-primary/80 text-[10px] font-mono uppercase tracking-[0.25em]">
-                    System Online · 24/7 Active
-                  </span>
-                </div>
-                <p className="text-text-muted text-sm lg:text-base font-mono max-w-md leading-relaxed">
-                  Quantitative intelligence for serious traders. Algorithms that don't sleep, signals that don't lie.
-                </p>
-              </div>
-
-              {/* Right: CTA */}
-              <button
-                onClick={isAuthenticated ? goTerminal : goLogin}
-                className="group relative px-7 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)] flex-shrink-0"
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 lg:py-10 relative">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div
+                className="w-2 h-2 rounded-full"
                 style={{
-                  background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-                  color: "#0a0506",
+                  background: "radial-gradient(circle at 30% 30%, #fde6a8, #d4a853 60%, #8b6914)",
+                  animation: "goldFlare 2s ease-in-out infinite",
                 }}
-              >
-                <span className="tracking-wide uppercase text-xs">Launch Terminal</span>
-                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
+              />
+              <span className="text-gold-primary/80 text-[10px] font-mono uppercase tracking-[0.25em]">
+                System Online · 24/7 Active
+              </span>
             </div>
 
-            {/* HUGE BRAND WORDMARK */}
-            <div className="mt-12 lg:mt-16 -mb-2 lg:-mb-4 select-none">
+            <p className="text-text-muted text-sm lg:text-base font-mono max-w-md leading-relaxed mb-6 lg:mb-8">
+              Quantitative intelligence for serious traders. Algorithms that don't sleep, signals that don't lie.
+            </p>
+
+            <div className="select-none -mb-3 lg:-mb-4">
               <h2
-                className="font-display font-black text-white/[0.04] leading-none tracking-tighter"
+                className="font-display font-black text-white/[0.04] leading-[0.85] tracking-tighter"
                 style={{
-                  fontSize: "clamp(4rem, 18vw, 18rem)",
+                  fontSize: "clamp(3.5rem, 14vw, 12rem)",
                   letterSpacing: "-0.04em",
                 }}
               >
@@ -2404,16 +2385,12 @@ const LandingPage = () => {
         </div>
 
         {/* MAIN GRID */}
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-16 pb-8">
-          <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 mb-12">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 lg:pt-12 pb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 mb-10">
             {/* Brand column */}
             <div className="col-span-2 lg:col-span-4">
               <div className="flex items-center gap-2.5 mb-4">
-                <img
-                  src="/logo.png"
-                  alt="LuxQuant"
-                  className="w-9 h-9 rounded-md"
-                />
+                <img src="/logo.png" alt="LuxQuant" className="w-9 h-9 rounded-md" />
                 <div>
                   <p className="font-display text-base font-bold text-white tracking-wide leading-none mb-0.5">
                     LuxQuant
@@ -2423,26 +2400,9 @@ const LandingPage = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Mini stats grid */}
-              <div className="grid grid-cols-2 gap-2 mt-6">
-                <div className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
-                  <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted mb-1">
-                    Running Since
-                  </p>
-                  <p className="font-mono text-sm text-white tabular-nums">
-                    Dec 2023
-                  </p>
-                </div>
-                <div className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
-                  <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted mb-1">
-                    Signals Tracked
-                  </p>
-                  <p className="font-mono text-sm text-white tabular-nums">
-                    47K+
-                  </p>
-                </div>
-              </div>
+              <p className="text-text-muted text-xs lg:text-sm font-mono leading-relaxed mt-4 max-w-xs">
+                Built in Taiwan 🇹🇼 · Running 24/7 since December 2023.
+              </p>
             </div>
 
             {/* Navigate column */}
@@ -2517,7 +2477,6 @@ const LandingPage = () => {
                 Join the Network
               </p>
 
-              {/* Social cards */}
               <div className="space-y-2">
                 {/* Telegram */}
                 <a
@@ -2593,7 +2552,9 @@ const LandingPage = () => {
             <div className="flex items-center gap-3 text-text-muted text-[11px] font-mono">
               <span>© {new Date().getFullYear()} LuxQuant</span>
               <span className="text-white/20">·</span>
-              <span className="flex items-center gap-1">Built in Taiwan <span className="text-sm leading-none">🇹🇼</span></span>
+              <span className="flex items-center gap-1">
+                Built in Taiwan <span className="text-sm leading-none">🇹🇼</span>
+              </span>
               <span className="text-white/20 hidden sm:inline">·</span>
               <span className="hidden sm:inline">All rights reserved</span>
             </div>
@@ -2604,6 +2565,7 @@ const LandingPage = () => {
         </div>
       </footer>
 
+           
       {/* FIX: BALOK KOSONG KHUSUS MOBILE AGAR BISA SCROLL MENTOK KE BAWAH */}
       <div className="h-[120px] w-full bg-bg-primary lg:hidden" />
 
