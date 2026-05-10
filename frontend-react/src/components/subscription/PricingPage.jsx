@@ -13,7 +13,7 @@ const PricingPage = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [creating, setCreating] = useState(false);
   const [subStatus, setSubStatus] = useState(null);
-  const [adminModalPlan, setAdminModalPlan] = useState(null);    // ← NEW: plan untuk admin modal
+  const [adminModalPlan, setAdminModalPlan] = useState(null);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -65,7 +65,6 @@ const PricingPage = () => {
     }
   };
 
-  // ─── NEW: Open admin modal (alternative payment route) ───
   const handleSubscribeViaAdmin = (plan) => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -135,7 +134,7 @@ const PricingPage = () => {
     return base;
   };
 
-  // SVG icon per plan (clean geometric icons instead of emojis)
+  // SVG icon per plan
   const PlanIcon = ({ name, isCurrent }) => {
     const color = isCurrent ? '#22c55e' : '#d4a853';
     if (name === 'monthly') {
@@ -168,6 +167,30 @@ const PricingPage = () => {
 
   return (
     <div className="relative overflow-hidden min-h-screen">
+      {/* ─── Animations for Subscribe via Admin button ─── */}
+      <style>{`
+        @keyframes admin-pulse-glow {
+          0%, 100% {
+            box-shadow:
+              0 0 0 0 rgba(212, 168, 83, 0.30),
+              inset 0 0 0 1px rgba(212, 168, 83, 0.40);
+          }
+          50% {
+            box-shadow:
+              0 0 14px 2px rgba(212, 168, 83, 0.45),
+              inset 0 0 0 1px rgba(212, 168, 83, 0.75);
+          }
+        }
+        @keyframes admin-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+        @keyframes admin-icon-bounce {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-2px); }
+        }
+      `}</style>
+
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div style={{
@@ -336,7 +359,7 @@ const PricingPage = () => {
                         ))}
                       </ul>
 
-                      {/* CTA Button */}
+                      {/* CTA Button (Primary — Get Started / Pay Crypto) */}
                       <button
                         onClick={() => handleSubscribe(plan)}
                         disabled={creating || isCurrent}
@@ -369,17 +392,30 @@ const PricingPage = () => {
                         </span>
                       </button>
 
-                      {/* ─── NEW: Subscribe via Admin (alternative) ─── */}
+                      {/* ─── Subscribe via Admin (Secondary CTA — animated) ─── */}
                       {!isCurrent && (
                         <button
                           onClick={() => handleSubscribeViaAdmin(plan)}
-                          className="w-full mt-2.5 py-2 text-xs font-medium transition-all hover:underline flex items-center justify-center gap-1.5"
-                          style={{ color: '#8a7a6e' }}
+                          className="w-full mt-3 py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                          style={{
+                            background:
+                              'linear-gradient(110deg, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0.18) 50%, rgba(212,168,83,0.05) 100%)',
+                            backgroundSize: '200% 100%',
+                            color: '#e8c578',
+                            borderRadius: '12px',
+                            animation:
+                              'admin-pulse-glow 2.4s ease-in-out infinite, admin-shimmer 3.2s linear infinite',
+                          }}
                         >
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                            style={{ animation: 'admin-icon-bounce 2.4s ease-in-out infinite' }}
+                          >
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                           </svg>
-                          Subscribe via Admin
+                          {t('pricing.subscribe_via_admin', 'Subscribe via Admin')}
                         </button>
                       )}
                     </div>
@@ -439,7 +475,7 @@ const PricingPage = () => {
         )}
       </div>
 
-      {/* ─── NEW: Subscribe via Admin Modal ─── */}
+      {/* ─── Subscribe via Admin Modal ─── */}
       <SubscribeViaAdminModal
         isOpen={!!adminModalPlan}
         onClose={() => setAdminModalPlan(null)}
