@@ -22,12 +22,10 @@ const TopPerformers = () => {
   const [signalDetail, setSignalDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Full SignalModal state (opened via "View Full History" button)
   const [historyModalSignal, setHistoryModalSignal] = useState(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const openHistoryModal = (item) => {
-    // Close current detail modal first, then open SignalModal in History tab
     closeModal();
     setHistoryModalSignal(item);
     setHistoryModalOpen(true);
@@ -86,47 +84,57 @@ const TopPerformers = () => {
   const cleanPair = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') + 'USDT' : '???';
   const coinSymbol = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') : '???';
 
+  // Format period — short Flowscan-style
+  const formatPeriod = (period) => {
+    if (!period) return null;
+    // Backend might return "MAY 03, 2026 - MAY 10, 2026" — keep as-is or shorten
+    return period;
+  };
+
   if (loading && !data) {
     return (
-      <div className="mb-12">
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
-            <span className="font-mono text-[10px] text-gold-primary tracking-[0.2em] font-semibold uppercase">PERFORMANCE OUTPUT</span>
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white">{t('top.title')}</h2>
+      <div className="mb-10">
+        <div className="flex items-center gap-3 mb-5">
+          <span className="h-px w-8 bg-gold-primary/40" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+            {t('top.title')}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
         </div>
-        <div className="bg-bg-card/40 rounded-xl p-5 border border-gold-primary/10 animate-pulse">
-          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-11 bg-bg-primary/30 rounded-lg" />)}</div>
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 animate-pulse">
+          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-11 bg-white/[0.03] rounded" />)}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mb-12 relative">
-      {/* === SECTION HEADER (System Architecture aesthetic) === */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-primary/[0.06] border border-gold-primary/20 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
-            <span className="font-mono text-[10px] text-gold-primary tracking-[0.2em] font-semibold uppercase">PERFORMANCE OUTPUT</span>
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight">
-            {t('top.title')}
-          </h2>
-        </div>
+    <div className="mb-10 relative">
+      {/* === UNIFIED HEADER: line-label-line + date range pills (Flowscan style) === */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          {t('top.title')}
+        </span>
+        <span className="h-px flex-1 min-w-[20px] bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
 
-        {/* Filter pills — refined */}
-        <div className="flex items-center gap-1.5">
+        {/* Period inline pill */}
+        {data?.period && (
+          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted hidden md:inline">
+            {formatPeriod(data.period)}
+          </span>
+        )}
+
+        {/* Date range pills — Flowscan exact pattern */}
+        <div className="flex items-center gap-1.5 ml-auto md:ml-2">
           {presets.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => handlePresetClick(key)}
-              className={`px-3 py-1.5 rounded-md font-mono text-[10px] uppercase tracking-[0.15em] font-semibold transition-all duration-200 ${
+              className={`px-3 py-1.5 rounded font-mono text-[10px] uppercase tracking-wider transition-all ${
                 activeFilter === key
-                  ? 'bg-gold-primary text-bg-primary shadow-md shadow-gold-primary/20'
-                  : 'bg-bg-card/40 text-text-muted/70 border border-gold-primary/15 hover:border-gold-primary/30 hover:text-white'
+                  ? 'bg-white/10 border border-white/[0.08] text-white'
+                  : 'bg-white/[0.03] text-text-muted hover:bg-white/[0.06] hover:text-white border border-transparent'
               }`}
             >
               {label}
@@ -137,62 +145,83 @@ const TopPerformers = () => {
 
       {/* === CUSTOM DATE PICKER === */}
       {showCustom && (
-        <div className="flex flex-wrap items-center gap-3 mb-5 p-3 bg-bg-card/40 rounded-xl border border-gold-primary/15">
-          <span className="font-mono text-[10px] text-text-muted/70 uppercase tracking-wider">{t('top.from')}</span>
-          <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50 [color-scheme:dark]" />
-          <span className="font-mono text-[10px] text-text-muted/70 uppercase tracking-wider">{t('top.to')}</span>
-          <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-bg-primary border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50 [color-scheme:dark]" />
-          <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="px-4 py-1.5 bg-gold-primary text-bg-primary rounded-lg text-xs font-bold hover:bg-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{t('top.apply')}</button>
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-[#0a0805] rounded-md border border-white/[0.06]">
+          <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.from')}</span>
+          <input
+            type="date"
+            value={customFrom}
+            onChange={e => setCustomFrom(e.target.value)}
+            className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
+          />
+          <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.to')}</span>
+          <input
+            type="date"
+            value={customTo}
+            onChange={e => setCustomTo(e.target.value)}
+            className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
+          />
+          <button
+            onClick={handleCustomApply}
+            disabled={!customFrom || !customTo}
+            className="px-4 py-1.5 bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 transition-all rounded font-mono text-[10px] uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('top.apply')}
+          </button>
         </div>
       )}
 
-      {/* === PERIOD BADGE === */}
-      {data?.period && (
-        <div className="mb-5">
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-bg-card/40 border border-gold-primary/15 rounded-md">
-            <span className="w-1 h-1 rounded-full bg-gold-primary" />
-            <span className="font-mono text-[10px] text-gold-primary/80 tracking-wider uppercase">PERIOD: {data.period}</span>
-          </span>
-        </div>
-      )}
-
-      {/* === STATS CARDS === */}
+      {/* === STATS CARDS — Flowscan style: flat hairline + font-light numbers === */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <StatCard label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')} />
-          <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} valueClass="text-gold-primary" />
-          <StatCard label={t('top.avg_gain')} value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`} sub={t('top.gain_sub')} valueClass="text-green-400" />
-          <StatCard label={t('top.avg_dur')} value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'} sub={t('top.dur_sub')} />
+          <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} />
+          <StatCard
+            label={t('top.avg_gain')}
+            value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`}
+            sub={t('top.gain_sub')}
+            isProfit
+          />
+          <StatCard
+            label={t('top.avg_dur')}
+            value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'}
+            sub={t('top.dur_sub')}
+          />
         </div>
       )}
 
       {data && (data.total_tp_hits || data.total_tp4) === 0 && !loading && (
-        <div className="text-center py-8 mb-5 bg-bg-card/40 rounded-xl border border-gold-primary/10">
-          <p className="text-text-muted text-sm">{t('top.no_tp')}</p>
+        <div className="text-center py-8 mb-3 bg-[#0a0805] rounded-md border border-white/[0.06]">
+          <p className="text-text-muted font-mono text-xs uppercase tracking-wider">{t('top.no_tp')}</p>
         </div>
       )}
 
-      {/* === TOP GAINERS LIST === */}
+      {/* === TABLE: Top Gainers — Flowscan flat table style (no redundant title) === */}
       {data && data.top_gainers?.length > 0 && (
         <div className={loading ? 'opacity-50' : ''}>
-          <div className="bg-[#0d0708] rounded-xl border border-gold-primary/15 overflow-hidden">
-            {/* List header */}
-            <div className="px-5 py-3 border-b border-gold-primary/10 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold-primary" />
-                <h3 className="font-mono text-[11px] text-gold-primary tracking-[0.2em] font-semibold uppercase">
-                  {t('top.top_gainers')}
-                </h3>
-              </div>
-              <div className="hidden sm:flex items-center gap-8 font-mono text-[9px] text-text-muted/40 uppercase tracking-[0.2em]">
-                <span className="w-24 text-right">{t('top.first_entry')}</span>
-                <span className="w-20 text-right">Duration</span>
-                <span className="w-28 text-right">Gain</span>
-              </div>
+          <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+
+            {/* Column headers ONLY — no redundant title here */}
+            <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-3 sm:gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
+              <span className="text-right">#</span>
+              <span>{t('top.top_gainers') || 'Pair'}</span>
+              <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
+              <span className="text-right">{t('top.duration') || 'Duration'}</span>
+              <span className="text-right">Gain</span>
             </div>
 
-            {/* Rows — UNIFORM size, no condong gede */}
-            <div className="divide-y divide-gold-primary/[0.05]">
+            {/* Mobile mini header */}
+            <div className="sm:hidden px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between">
+              <span className="font-mono text-[10px] text-text-muted uppercase tracking-[0.2em]">
+                {t('top.top_gainers') || 'Top Gainers'}
+              </span>
+              <span className="font-mono text-[9px] text-text-muted uppercase tracking-wider">
+                {data.top_gainers.length} pairs
+              </span>
+            </div>
+
+            {/* Rows */}
+            <div className="divide-y divide-white/[0.04]">
               {data.top_gainers.map((item, idx) => {
                 const rank = idx + 1;
                 const isPodium = idx < 3;
@@ -201,58 +230,86 @@ const TopPerformers = () => {
                   <div
                     key={idx}
                     onClick={() => handleItemClick(item)}
-                    className="relative flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                    className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
                   >
-                    {/* Rank — top 3 gold, rest muted, all SAME size */}
-                    <div
-                      className={`w-7 flex-shrink-0 font-mono text-sm tracking-wider text-right tabular-nums ${
-                        isPodium ? 'text-gold-primary font-semibold' : 'text-text-muted/40'
-                      }`}
-                    >
-                      {String(rank).padStart(2, '0')}
-                    </div>
+                    {/* Desktop: grid layout */}
+                    <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 items-center">
+                      {/* Rank */}
+                      <div className={`font-mono text-xs tabular-nums text-right ${
+                        isPodium ? 'text-gold-primary' : 'text-text-muted/50'
+                      }`}>
+                        {String(rank).padStart(2, '0')}
+                      </div>
 
-                    {/* Coin */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <CoinLogo pair={cleanPair(item.pair)} size={28} />
-                      <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-semibold text-sm tracking-wide group-hover:text-gold-primary transition-colors">
+                      {/* Coin */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <CoinLogo pair={cleanPair(item.pair)} size={26} />
+                        <span className="text-white font-mono text-sm group-hover:text-gold-primary transition-colors truncate">
                           {coinSymbol(item.pair)}
                         </span>
                         {item.signal_count > 1 && (
-                          <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none">
+                          <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded-sm leading-none flex-shrink-0">
                             ×{item.signal_count}
                           </span>
                         )}
                       </div>
-                    </div>
 
-                    {/* Mobile: combined entry + duration */}
-                    <div className="sm:hidden text-right flex-shrink-0">
-                      <div className="font-mono text-[10px] text-text-muted/60">${formatPrice(item.entry)}</div>
-                      <div className="font-mono text-[9px] text-text-muted/40 mt-0.5">{item.duration_display}</div>
-                    </div>
-
-                    {/* Desktop: entry */}
-                    <div className="hidden sm:block w-24 text-right font-mono text-xs text-text-muted/70 flex-shrink-0 tabular-nums">
-                      ${formatPrice(item.entry)}
-                    </div>
-
-                    {/* Desktop: duration */}
-                    <div className="hidden sm:block w-20 text-right font-mono text-[11px] text-text-muted/50 flex-shrink-0">
-                      {item.duration_display}
-                    </div>
-
-                    {/* Gain — same size for all rows */}
-                    <div className="w-28 sm:w-32 text-right flex-shrink-0">
-                      <div className="font-mono font-bold tracking-tight text-green-400 text-base sm:text-lg tabular-nums">
-                        +{formatGainDisplay(item.gain_pct)}
+                      {/* Entry */}
+                      <div className="text-right font-mono text-xs text-text-muted tabular-nums">
+                        ${formatPrice(item.entry)}
                       </div>
-                      {item.tp_price > 0 && (
-                        <div className="font-mono text-[9px] text-text-muted/40 mt-0.5 tabular-nums">
-                          peak ${formatPrice(item.tp_price)}
+
+                      {/* Duration */}
+                      <div className="text-right font-mono text-[11px] text-text-muted/70">
+                        {item.duration_display}
+                      </div>
+
+                      {/* Gain */}
+                      <div className="text-right">
+                        <div className="font-mono text-base text-profit tabular-nums">
+                          +{formatGainDisplay(item.gain_pct)}
                         </div>
-                      )}
+                        {item.tp_price > 0 && (
+                          <div className="font-mono text-[9px] text-text-muted/40 tabular-nums mt-0.5">
+                            peak ${formatPrice(item.tp_price)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile: stacked layout */}
+                    <div className="sm:hidden flex items-center gap-3 px-4 py-3">
+                      <div className={`w-7 font-mono text-xs tabular-nums text-right flex-shrink-0 ${
+                        isPodium ? 'text-gold-primary' : 'text-text-muted/50'
+                      }`}>
+                        {String(rank).padStart(2, '0')}
+                      </div>
+                      <CoinLogo pair={cleanPair(item.pair)} size={24} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-mono text-sm group-hover:text-gold-primary transition-colors">
+                            {coinSymbol(item.pair)}
+                          </span>
+                          {item.signal_count > 1 && (
+                            <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded-sm">
+                              ×{item.signal_count}
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-mono text-[10px] text-text-muted/60 tabular-nums mt-0.5">
+                          ${formatPrice(item.entry)} · {item.duration_display}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-mono text-sm text-profit tabular-nums">
+                          +{formatGainDisplay(item.gain_pct)}
+                        </div>
+                        {item.tp_price > 0 && (
+                          <div className="font-mono text-[8px] text-text-muted/40 tabular-nums">
+                            ${formatPrice(item.tp_price)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -260,7 +317,7 @@ const TopPerformers = () => {
             </div>
 
             {(!data.top_gainers || data.top_gainers.length === 0) && (
-              <div className="p-6"><p className="text-text-muted text-sm text-center">{t('top.no_data')}</p></div>
+              <div className="p-6"><p className="text-text-muted font-mono text-xs uppercase tracking-wider text-center">{t('top.no_data')}</p></div>
             )}
           </div>
         </div>
@@ -274,7 +331,6 @@ const TopPerformers = () => {
           onOpenHistory={openHistoryModal} />
       )}
 
-      {/* === FULL SIGNAL MODAL — opened via "View Full History" button === */}
       <SignalModal
         signal={historyModalSignal}
         isOpen={historyModalOpen}
@@ -285,20 +341,28 @@ const TopPerformers = () => {
   );
 };
 
-// === STAT CARD — System Architecture aesthetic ===
-const StatCard = ({ label, value, sub, valueClass = 'text-white' }) => (
-  <div className="bg-[#0d0708] rounded-xl px-4 py-3.5 border border-gold-primary/15 hover:border-gold-primary/25 transition-colors">
-    <p className="font-mono text-[10px] text-text-muted/60 uppercase tracking-[0.15em] font-medium mb-1.5">
+// === STAT CARD — Flowscan flat hairline + font-light numbers ===
+const StatCard = ({ label, value, sub, isProfit = false }) => (
+  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] px-4 py-4 hover:border-gold-primary/20 hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
+    <p className="font-mono text-[10px] text-text-muted uppercase tracking-[0.22em] mb-2">
       {label}
     </p>
-    <p className={`font-mono text-2xl font-bold tabular-nums ${valueClass}`}>{value}</p>
-    <p className="text-text-muted/50 text-[10px] mt-1 tracking-wide">{sub}</p>
+    <div className="h-px bg-white/[0.06] mb-3" />
+    <p className={`font-mono text-2xl font-light tabular-nums leading-none ${isProfit ? 'text-profit' : 'text-white'}`}>
+      {value}
+    </p>
+    <p className="font-mono text-[9px] text-text-muted/60 uppercase tracking-wider mt-2">{sub}</p>
   </div>
 );
 
 function formatDuration(s) { if (!s || s <= 0) return 'N/A'; const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60); if (d > 0) return `${d}d ${h}h ${m}m`; if (h > 0) return `${h}h ${m}m`; if (m > 0) return `${m}m ${sec}s`; return `${sec}s`; }
 function formatPrice(p) { if (!p || p <= 0) return '0.00'; if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); if (p >= 1) return p.toFixed(4); if (p >= 0.01) return p.toFixed(6); return p.toFixed(8); }
 function formatGainDisplay(pct) { if (pct >= 10000) return (pct / 1000).toFixed(1) + 'K%'; if (pct >= 1000) return pct.toFixed(0) + '%'; return pct.toFixed(2) + '%'; }
+
+// ================================================================
+// SIGNAL DETAIL MODAL — kept intact for compatibility
+// ================================================================
 
 const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onNavigate, onClose, cleanPair, t, onOpenHistory }) => {
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -358,8 +422,8 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
   const status = detail?.status?.toLowerCase() || 'open';
   const isStopped = ['closed_loss', 'sl'].includes(status);
   const sLabel = s => ({ closed_win: 'WIN', closed_loss: 'LOSS', tp1: 'TP1', tp2: 'TP2', tp3: 'TP3', tp4: 'TP4', open: 'OPEN' }[s?.toLowerCase()] || s?.toUpperCase() || 'OPEN');
-  const sColor = s => (s?.toLowerCase() === 'closed_win' || s?.toLowerCase().startsWith('tp')) ? 'bg-green-500' : (s?.toLowerCase() === 'closed_loss' || s?.toLowerCase() === 'sl') ? 'bg-red-500' : 'bg-cyan-500';
-  const themeColors = { gold: { bg: 'bg-gold-primary/10', text: 'text-gold-primary', border: 'border-gold-primary/30', line: 'bg-gold-primary/30', dot: 'bg-gold-primary' }, green: { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/30', line: 'bg-green-500/30', dot: 'bg-green-400' }, red: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/30', line: 'bg-red-500/30', dot: 'bg-red-400' } };
+  const sColor = s => (s?.toLowerCase() === 'closed_win' || s?.toLowerCase().startsWith('tp')) ? 'bg-profit' : (s?.toLowerCase() === 'closed_loss' || s?.toLowerCase() === 'sl') ? 'bg-loss' : 'bg-cyan-500';
+  const themeColors = { gold: { bg: 'bg-gold-primary/10', text: 'text-gold-primary', border: 'border-gold-primary/30', line: 'bg-gold-primary/30', dot: 'bg-gold-primary' }, green: { bg: 'bg-profit/10', text: 'text-profit', border: 'border-profit/30', line: 'bg-profit/30', dot: 'bg-profit' }, red: { bg: 'bg-loss/10', text: 'text-loss', border: 'border-loss/30', line: 'bg-loss/30', dot: 'bg-loss' } };
   const entryImg = detail?.entry_chart_url; const afterImg = detail?.latest_chart_url; const hasAnyImg = entryImg || afterImg;
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
@@ -372,7 +436,7 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
   const modalContent = (
     <div className={`fixed inset-0 z-[100000] flex items-start justify-center px-3 py-4 sm:px-6 md:px-8 pt-[80px] sm:pt-[100px] pb-6 isolation-isolate ${isClosing ? 'animate-[smBO_.2s_ease-in_forwards]' : 'animate-[smBI_.25s_ease-out]'}`}>
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={handleClose} />
-      <div className={`relative w-full max-w-6xl bg-[#0a0506] border border-gold-primary/40 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-110px)] sm:max-h-[calc(100dvh-130px)] ${isClosing ? 'animate-[smDn_.2s_ease-in_forwards] md:animate-[smCO_.2s_ease-in_forwards]' : 'animate-[smUp_.3s_cubic-bezier(.16,1,.3,1)] md:animate-[smCI_.3s_cubic-bezier(.16,1,.3,1)]'}`}>
+      <div className={`relative w-full max-w-6xl bg-[#0a0506] border border-gold-primary/40 rounded-md overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-110px)] sm:max-h-[calc(100dvh-130px)] ${isClosing ? 'animate-[smDn_.2s_ease-in_forwards] md:animate-[smCO_.2s_ease-in_forwards]' : 'animate-[smUp_.3s_cubic-bezier(.16,1,.3,1)] md:animate-[smCI_.3s_cubic-bezier(.16,1,.3,1)]'}`}>
         <div className="md:hidden flex-shrink-0 flex justify-center pt-2 pb-1 bg-[#0a0a0a]"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
         <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
           <div className="flex items-center justify-between gap-2">
@@ -381,14 +445,14 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
               {onOpenHistory && (
                 <button
                   onClick={() => onOpenHistory(item)}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/50 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-md bg-gold-primary/10 border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/50 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
                   title="Open full signal history"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                   Full History
                 </button>
               )}
-              <button onClick={handleClose} className="w-8 h-8 rounded-lg bg-[#0a0a0a] border border-gold-primary/20 hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center text-text-muted hover:text-white transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={handleClose} className="w-8 h-8 rounded-md bg-[#0a0a0a] border border-gold-primary/20 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
           </div>
           {multi && (<div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-gold-primary/10"><button onClick={() => onNavigate(currentIndex - 1)} disabled={currentIndex <= 0} className="px-3 py-1 rounded border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">&larr; {t('top.prev')}</button><div className="flex items-center gap-2"><span className="text-text-muted text-[10px] sm:text-xs hidden sm:inline">{t('top.signal')}</span><div className="flex items-center gap-1">{signalIds.map((_, i) => (<button key={i} onClick={() => onNavigate(i)} className={`w-5 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-[10px] font-bold transition-all ${i === currentIndex ? 'bg-gold-primary text-black' : 'border border-gold-primary/20 text-text-muted hover:text-white hover:bg-white/5'}`}>{i + 1}</button>))}</div></div><button onClick={() => onNavigate(currentIndex + 1)} disabled={currentIndex >= total - 1} className="px-3 py-1 rounded border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">{t('top.next')} &rarr;</button></div>)}
@@ -408,14 +472,14 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
                 <p className="text-white/50 text-xs leading-relaxed mb-6">
                   Subscribe to view live entry, take-profits, stop-loss, charts, and full trade journey.
                 </p>
-                <button onClick={() => { window.location.href = '/pricing'; }} className="px-6 py-3 rounded-lg bg-gold-primary text-black font-bold text-sm hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
-                  🔒 Subscribe to Unlock
+                <button onClick={() => { window.location.href = '/pricing'; }} className="px-6 py-3 rounded-md bg-gold-primary text-black font-bold text-sm hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
+                  Subscribe to Unlock
                 </button>
                 <p className="text-[11px] text-white/40 mt-4">
                   Closed signals are visible for free as track record proof.
                 </p>
                 {detail.pair && (
-                  <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+                  <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white/5 border border-white/10">
                     <span className="text-text-muted text-xs">Pair:</span>
                     <span className="text-white font-mono font-semibold text-sm">{detail.pair}</span>
                     <span className="text-text-muted text-xs">·</span>
@@ -427,48 +491,47 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
           ) : detail ? (
             <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
               <div className="w-full">
-                <div className="flex items-center justify-between mb-3"><span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">📸 {t('top.trade_proof')}</span></div>
-                {!hasAnyImg ? (<div className="w-full h-[350px] sm:h-[450px] md:h-[500px] bg-[#0d0d0d] rounded-xl border border-gold-primary/20 overflow-hidden relative shadow-lg"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>
+                <div className="flex items-center justify-between mb-3"><span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">{t('top.trade_proof')}</span></div>
+                {!hasAnyImg ? (<div className="w-full h-[350px] sm:h-[450px] md:h-[500px] bg-[#0d0d0d] rounded-md border border-gold-primary/20 overflow-hidden relative shadow-lg"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>
                 ) : (
                   <div className="flex flex-col md:flex-row items-stretch gap-4 sm:gap-5 w-full">
                     <div className="flex-1 w-full min-w-0 flex flex-col">
                       <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]"><span className="text-blue-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase">{t('top.before')}</span>{detail?.entry > 0 && (<span className="text-[10px] sm:text-[11px] font-mono text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5">Entry: <span className="text-white ml-1">${formatPrice(detail.entry)}</span></span>)}</div>
-                      {entryImg ? (<div className="relative group rounded-xl overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full cursor-zoom-in shadow-md" onClick={() => setLightboxImg(entryImg)}><img src={entryImg} alt="Entry" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" /><div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none"><span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-3 py-1.5 rounded font-medium backdrop-blur-sm">🔍 {t('top.fullscreen')}</span></div></div>) : (<div className="rounded-xl border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[350px] md:h-[400px] w-full text-text-muted"><span className="text-2xl mb-2">&#x23F3;</span><p className="text-xs">{t('top.waiting_ss')}</p></div>)}
+                      {entryImg ? (<div className="relative group rounded-md overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full cursor-zoom-in shadow-md" onClick={() => setLightboxImg(entryImg)}><img src={entryImg} alt="Entry" className="absolute inset-0 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" /><div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none"><span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-xs px-3 py-1.5 rounded font-medium backdrop-blur-sm">{t('top.fullscreen')}</span></div></div>) : (<div className="rounded-md border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[350px] md:h-[400px] w-full text-text-muted"><p className="text-xs">{t('top.waiting_ss')}</p></div>)}
                     </div>
-                    <div className="hidden md:flex flex-col items-center justify-center w-10 shrink-0 relative mt-6"><div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-green-500/30 -translate-y-1/2 z-0" /><div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-white/50 w-8 h-8 rounded-full flex items-center justify-center"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></div></div>
-                    <div className="md:hidden flex justify-center py-1"><div className="w-[2px] h-6 bg-gradient-to-b from-blue-500/30 via-white/10 to-green-500/30 relative"><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-green-500/50" /></div></div>
+                    <div className="hidden md:flex flex-col items-center justify-center w-10 shrink-0 relative mt-6"><div className="absolute top-1/2 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/30 via-white/10 to-profit/30 -translate-y-1/2 z-0" /><div className="relative z-10 bg-[#0a0a0a] border border-white/10 text-white/50 w-8 h-8 rounded-full flex items-center justify-center"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></div></div>
+                    <div className="md:hidden flex justify-center py-1"><div className="w-[2px] h-6 bg-gradient-to-b from-blue-500/30 via-white/10 to-profit/30 relative"><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-profit/50" /></div></div>
                     <div className="flex-1 w-full min-w-0 flex flex-col">
-                      <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]"><span className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase ${isStopped ? 'text-red-400' : 'text-green-400'}`}>{t('top.after')} ({status === 'open' ? t('top.latest') : sLabel(status)})</span><div className="flex items-center gap-2">{showInteractiveRight && afterImg && (<button onClick={() => setShowTV(false)} className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded border border-white/5"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>{t('top.back_img')}</button>)}{detail?.updates?.length > 0 && (<span className="text-[10px] sm:text-[11px] font-mono text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5 flex items-center gap-1">Last: <span className="text-white">${formatPrice(detail.updates[detail.updates.length - 1].price)}</span>{detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (<span className={`ml-1 font-bold ${isStopped ? 'text-red-400' : 'text-green-400'}`}>{(((Math.abs(detail.updates[detail.updates.length - 1].price - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span>)}</span>)}</div></div>
-                      {showInteractiveRight ? (<div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full shadow-md"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>) : (<div className={`relative group rounded-xl overflow-hidden border bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full shadow-md ${isStopped ? 'border-red-500/20' : 'border-white/10'}`}><img src={afterImg} alt="Latest" className="absolute inset-0 w-full h-full object-contain" loading="lazy" /><div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10"><button onClick={() => setShowTV(true)} className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg font-bold text-xs border border-white/20 flex items-center gap-2"><span>{t('top.interactive')}</span><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button><button onClick={() => setLightboxImg(afterImg)} className="text-white/60 hover:text-white text-[10px] underline">🔍 {t('top.view_full')}</button></div></div>)}
+                      <div className="flex items-center justify-between mb-2 px-1 min-h-[28px]"><span className={`text-[10px] sm:text-xs font-bold tracking-wide uppercase ${isStopped ? 'text-loss' : 'text-profit'}`}>{t('top.after')} ({status === 'open' ? t('top.latest') : sLabel(status)})</span><div className="flex items-center gap-2">{showInteractiveRight && afterImg && (<button onClick={() => setShowTV(false)} className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded border border-white/5"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>{t('top.back_img')}</button>)}{detail?.updates?.length > 0 && (<span className="text-[10px] sm:text-[11px] font-mono text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5 flex items-center gap-1">Last: <span className="text-white">${formatPrice(detail.updates[detail.updates.length - 1].price)}</span>{detail.entry > 0 && detail.updates[detail.updates.length - 1].price > 0 && (<span className={`ml-1 font-bold ${isStopped ? 'text-loss' : 'text-profit'}`}>{(((Math.abs(detail.updates[detail.updates.length - 1].price - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span>)}</span>)}</div></div>
+                      {showInteractiveRight ? (<div className="relative rounded-md overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full shadow-md"><div id="tv_chart_modal_topperf" className="absolute inset-0 w-full h-full" /></div>) : (<div className={`relative group rounded-md overflow-hidden border bg-[#0d0d0d] h-[250px] sm:h-[350px] md:h-[400px] w-full shadow-md ${isStopped ? 'border-loss/20' : 'border-white/10'}`}><img src={afterImg} alt="Latest" className="absolute inset-0 w-full h-full object-contain" loading="lazy" /><div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10"><button onClick={() => setShowTV(true)} className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded font-bold text-xs border border-white/20 flex items-center gap-2"><span>{t('top.interactive')}</span><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button><button onClick={() => setLightboxImg(afterImg)} className="text-white/60 hover:text-white text-[10px] underline">{t('top.view_full')}</button></div></div>)}
                     </div>
                   </div>
                 )}
-                {peakPrice && detail?.entry > 0 && (<div className="mt-5 bg-[#0d0d0d] border border-white/5 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6"><div className="flex flex-col items-center sm:items-end"><span className="text-white text-xs sm:text-sm font-bold uppercase tracking-widest">Highest Price After Called</span></div><div className="hidden sm:block h-8 w-px bg-white/10" /><div className="flex items-center gap-3 sm:gap-4"><span className="text-lg sm:text-xl font-mono font-bold text-white">${formatPrice(peakPrice)}</span><span className="text-sm sm:text-base font-bold text-green-400 bg-green-500/10 px-2.5 py-1 rounded border border-green-500/20 font-mono">{(((Math.abs(peakPrice - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span></div></div>)}
+                {peakPrice && detail?.entry > 0 && (<div className="mt-5 bg-[#0d0d0d] border border-white/5 rounded-md p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6"><div className="flex flex-col items-center sm:items-end"><span className="text-white text-xs sm:text-sm font-bold uppercase tracking-widest">Highest Price After Called</span></div><div className="hidden sm:block h-8 w-px bg-white/10" /><div className="flex items-center gap-3 sm:gap-4"><span className="text-lg sm:text-xl font-mono font-bold text-white">${formatPrice(peakPrice)}</span><span className="text-sm sm:text-base font-bold text-profit bg-profit/10 px-2.5 py-1 rounded border border-profit/20 font-mono">{(((Math.abs(peakPrice - detail.entry)) / detail.entry) * 100).toFixed(2)}%</span></div></div>)}
               </div>
               <div className="space-y-6">
-                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">&#x23F1;&#xFE0F; {t('top.journey')}</h4><div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 sm:p-5 w-full"><div className="flex justify-between items-start w-full relative"><div className="absolute top-[13px] sm:top-[15px] left-0 right-0 h-[2px] bg-white/5 z-0" />{events.map((ev, i) => { const isLast = i === events.length - 1; return (<div key={i} className="relative flex flex-col items-center flex-1 w-0 group z-10">{!isLast && (<div className={`absolute top-[13px] sm:top-[15px] left-[50%] w-full h-[2px] ${ev.colors.line} z-0`} />)}<div className={`relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-solid flex items-center justify-center bg-[#111] ${ev.colors.border}`}><div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ev.colors.dot} ${ev.colors.bg.replace('/10', '')}`} /></div><div className="mt-2.5 text-center flex flex-col items-center px-0.5 sm:px-1 w-full max-w-full"><span className={`text-[9px] sm:text-[11px] font-bold tracking-wide truncate w-full ${ev.colors.text}`} title={ev.label}>{ev.label}</span><span className="text-[8px] sm:text-[9px] font-mono font-medium px-1 sm:px-1.5 py-0.5 mt-1 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>{ev.sub && <span className="text-[7px] sm:text-[8px] text-text-muted mt-1 truncate w-full" title={ev.sub}>{ev.sub}</span>}{ev.detail && (<span className={`text-[8px] sm:text-[9px] font-mono mt-0.5 sm:mt-1 truncate w-full ${ev.isSL ? 'text-red-400' : 'text-green-400'}`} title={ev.detail}>{ev.detail}</span>)}</div></div>); })}</div></div></div>
+                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">{t('top.journey')}</h4><div className="bg-[#0d0d0d] rounded-md border border-white/5 p-4 sm:p-5 w-full"><div className="flex justify-between items-start w-full relative"><div className="absolute top-[13px] sm:top-[15px] left-0 right-0 h-[2px] bg-white/5 z-0" />{events.map((ev, i) => { const isLast = i === events.length - 1; return (<div key={i} className="relative flex flex-col items-center flex-1 w-0 group z-10">{!isLast && (<div className={`absolute top-[13px] sm:top-[15px] left-[50%] w-full h-[2px] ${ev.colors.line} z-0`} />)}<div className={`relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-solid flex items-center justify-center bg-[#111] ${ev.colors.border}`}><div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ev.colors.dot} ${ev.colors.bg.replace('/10', '')}`} /></div><div className="mt-2.5 text-center flex flex-col items-center px-0.5 sm:px-1 w-full max-w-full"><span className={`text-[9px] sm:text-[11px] font-bold tracking-wide truncate w-full ${ev.colors.text}`} title={ev.label}>{ev.label}</span><span className="text-[8px] sm:text-[9px] font-mono font-medium px-1 sm:px-1.5 py-0.5 mt-1 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>{ev.sub && <span className="text-[7px] sm:text-[8px] text-text-muted mt-1 truncate w-full" title={ev.sub}>{ev.sub}</span>}{ev.detail && (<span className={`text-[8px] sm:text-[9px] font-mono mt-0.5 sm:mt-1 truncate w-full ${ev.isSL ? 'text-loss' : 'text-profit'}`} title={ev.detail}>{ev.detail}</span>)}</div></div>); })}</div></div></div>
 
-                {/* === DETAILED JOURNEY (Layer 6) === */}
                 {detail.signal_id && (
                   <div>
-                    <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">📊 Detailed Journey</h4>
+                    <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">Detailed Journey</h4>
                     <SignalJourneyExtended signalId={detail.signal_id} />
                   </div>
                 )}
 
-                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">📊 {t('top.sig_data')}</h4><div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"><StatBlock label={t('top.duration')} value={detail.updates?.length > 0 ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at) : 'Active'} /><StatBlock label={t('top.vol_rank')} value={detail.volume_rank_num && detail.volume_rank_den ? `#${detail.volume_rank_num} / ${detail.volume_rank_den}` : 'N/A'} /><StatBlock label={t('top.risk')} value={detail.risk_level || 'N/A'} valueClass={detail.risk_level === 'High' ? 'text-red-400' : detail.risk_level === 'Medium' ? 'text-yellow-400' : 'text-green-400'} /></div></div>
+                <div><h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">{t('top.sig_data')}</h4><div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"><StatBlock label={t('top.duration')} value={detail.updates?.length > 0 ? fmtDiff(created, detail.updates[detail.updates.length - 1].update_at) : 'Active'} /><StatBlock label={t('top.vol_rank')} value={detail.volume_rank_num && detail.volume_rank_den ? `#${detail.volume_rank_num} / ${detail.volume_rank_den}` : 'N/A'} /><StatBlock label={t('top.risk')} value={detail.risk_level || 'N/A'} valueClass={detail.risk_level === 'High' ? 'text-loss' : detail.risk_level === 'Medium' ? 'text-yellow-400' : 'text-profit'} /></div></div>
               </div>
             </div>
           ) : (<div className="flex items-center justify-center py-20"><p className="text-text-muted text-sm">{t('top.failed')}</p></div>)}
         </div>
       </div>
-      {lightboxImg && (<div className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightboxImg(null)}><img src={lightboxImg} alt="Full" className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl border border-white/10" onClick={e => e.stopPropagation()} /><button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm" onClick={() => setLightboxImg(null)}><svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
+      {lightboxImg && (<div className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightboxImg(null)}><img src={lightboxImg} alt="Full" className="max-w-full max-h-[95vh] object-contain rounded-md shadow-2xl border border-white/10" onClick={e => e.stopPropagation()} /><button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm" onClick={() => setLightboxImg(null)}><svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
       <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px;height:6px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}@keyframes smBI{from{opacity:0}to{opacity:1}}@keyframes smBO{from{opacity:1}to{opacity:0}}@keyframes smCI{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes smCO{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.97)}}@keyframes smUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}@keyframes smDn{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}`}</style>
     </div>
   );
   return createPortal(modalContent, document.body);
 };
 
-const StatBlock = ({ label, value, valueClass = 'text-white' }) => (<div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-3 sm:p-4 flex flex-col justify-center items-center text-center hover:border-white/10 transition-colors"><span className="text-text-muted text-[9px] sm:text-[10px] uppercase tracking-wider mb-1.5">{label}</span><span className={`font-mono font-bold text-sm sm:text-base ${valueClass}`}>{value}</span></div>);
+const StatBlock = ({ label, value, valueClass = 'text-white' }) => (<div className="bg-[#0d0d0d] rounded-md border border-white/5 p-3 sm:p-4 flex flex-col justify-center items-center text-center hover:border-white/10 transition-colors"><span className="text-text-muted text-[9px] sm:text-[10px] uppercase tracking-wider mb-1.5">{label}</span><span className={`font-mono font-bold text-sm sm:text-base ${valueClass}`}>{value}</span></div>);
 
 export default TopPerformers;
