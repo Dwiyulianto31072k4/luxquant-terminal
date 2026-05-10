@@ -2339,49 +2339,268 @@ const LandingPage = () => {
         <TelegramPromo gainers={topGainers} />
       </section>
 
-      {/* ════════════════════════════════════════
+            {/* ════════════════════════════════════════
           FOOTER
       ════════════════════════════════════════ */}
-      <footer className="relative z-10 border-t border-gold-primary/10 bg-bg-primary">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <img
-                src="/logo.png"
-                alt="LuxQuant"
-                className="w-8 h-8 rounded-lg"
-              />
-              <span className="font-display text-sm font-semibold text-white">
-                LuxQuant
-              </span>
-              <span className="text-text-muted text-xs ml-2">
-                © {new Date().getFullYear()}
-              </span>
+      <footer className="relative z-10 bg-bg-primary overflow-hidden">
+        {/* Ambient gold glow at bottom */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gold-primary/[0.04] blur-[160px] rounded-full pointer-events-none" />
+
+        {/* Top hairline gradient accent */}
+        <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+
+        {/* MASSIVE BRAND TEXT — Hyperliquid/Aerodrome style */}
+        <div className="relative overflow-hidden border-b border-white/[0.06]">
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12 lg:py-16 relative">
+            <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
+              {/* Left: Status + Tagline */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2.5 mb-6">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background: "radial-gradient(circle at 30% 30%, #fde6a8, #d4a853 60%, #8b6914)",
+                      animation: "goldFlare 2s ease-in-out infinite",
+                    }}
+                  />
+                  <span className="text-gold-primary/80 text-[10px] font-mono uppercase tracking-[0.25em]">
+                    System Online · 24/7 Active
+                  </span>
+                </div>
+                <p className="text-text-muted text-sm lg:text-base font-mono max-w-md leading-relaxed">
+                  Quantitative intelligence for serious traders. Algorithms that don't sleep, signals that don't lie.
+                </p>
+              </div>
+
+              {/* Right: CTA */}
+              <button
+                onClick={isAuthenticated ? goTerminal : goLogin}
+                className="group relative px-7 py-3.5 rounded-md font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center gap-2.5 shadow-[0_4px_14px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_18px_rgba(212,168,83,0.35)] flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+                  color: "#0a0506",
+                }}
+              >
+                <span className="tracking-wide uppercase text-xs">Launch Terminal</span>
+                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
             </div>
-            <div className="flex items-center gap-6">
-              <a
-                href="https://t.me/luxquant"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-text-muted hover:text-gold-primary transition-colors text-sm"
+
+            {/* HUGE BRAND WORDMARK */}
+            <div className="mt-12 lg:mt-16 -mb-2 lg:-mb-4 select-none">
+              <h2
+                className="font-display font-black text-white/[0.04] leading-none tracking-tighter"
+                style={{
+                  fontSize: "clamp(4rem, 18vw, 18rem)",
+                  letterSpacing: "-0.04em",
+                }}
               >
-                Telegram
-              </a>
-              <a
-                href="https://x.com/luxquantcrypto"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-text-muted hover:text-gold-primary transition-colors text-sm"
-              >
-                Twitter
-              </a>
+                LUXQUANT
+              </h2>
             </div>
           </div>
-          <p className="text-text-muted text-xs text-center mt-8 mb-4 max-w-2xl mx-auto leading-relaxed">
-            Disclaimer: Trading cryptocurrency involves significant risk. Past
-            performance does not guarantee future results. LuxQuant provides
-            tools and signals for informational purposes only.
-          </p>
+        </div>
+
+        {/* MAIN GRID */}
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-16 pb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 mb-12">
+            {/* Brand column */}
+            <div className="col-span-2 lg:col-span-4">
+              <div className="flex items-center gap-2.5 mb-4">
+                <img
+                  src="/logo.png"
+                  alt="LuxQuant"
+                  className="w-9 h-9 rounded-md"
+                />
+                <div>
+                  <p className="font-display text-base font-bold text-white tracking-wide leading-none mb-0.5">
+                    LuxQuant
+                  </p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/70">
+                    The Quantitative Terminal
+                  </p>
+                </div>
+              </div>
+
+              {/* Mini stats grid */}
+              <div className="grid grid-cols-2 gap-2 mt-6">
+                <div className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+                  <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted mb-1">
+                    Running Since
+                  </p>
+                  <p className="font-mono text-sm text-white tabular-nums">
+                    Dec 2023
+                  </p>
+                </div>
+                <div className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+                  <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted mb-1">
+                    Signals Tracked
+                  </p>
+                  <p className="font-mono text-sm text-white tabular-nums">
+                    47K+
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigate column */}
+            <div className="col-span-1 lg:col-span-2 lg:col-start-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-5 flex items-center gap-2">
+                <span className="h-px w-4 bg-gold-primary/40" />
+                Navigate
+              </p>
+              <ul className="space-y-3">
+                {[
+                  ["Home", "hero"],
+                  ["Terminal", "features"],
+                  ["Architecture", "how-it-works"],
+                  ["Performance", "performance-top"],
+                  ["FAQ", "faq"],
+                ].map(([label, id]) => (
+                  <li key={id}>
+                    <button
+                      onClick={() => scrollTo(id)}
+                      className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Resources column */}
+            <div className="col-span-1 lg:col-span-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-5 flex items-center gap-2">
+                <span className="h-px w-4 bg-gold-primary/40" />
+                Resources
+              </p>
+              <ul className="space-y-3">
+                {[
+                  { label: "Open Terminal", action: () => (isAuthenticated ? goTerminal() : goLogin()) },
+                  { label: "View Performance", action: () => scrollTo("performance-top") },
+                  { label: "System Pipeline", action: () => scrollTo("how-it-works") },
+                  { label: "Try Free Tier", href: "https://t.me/LuxQuantSignal" },
+                ].map((item, i) => (
+                  <li key={i}>
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                      >
+                        <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
+                        {item.label}
+                      </a>
+                    ) : (
+                      <button
+                        onClick={item.action}
+                        className="text-text-muted hover:text-white text-sm font-mono transition-colors group inline-flex items-center gap-2"
+                      >
+                        <span className="w-1 h-1 rounded-full bg-gold-primary/30 group-hover:bg-gold-primary transition-colors" />
+                        {item.label}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Connect column */}
+            <div className="col-span-2 lg:col-span-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80 mb-5 flex items-center gap-2">
+                <span className="h-px w-4 bg-gold-primary/40" />
+                Join the Network
+              </p>
+
+              {/* Social cards */}
+              <div className="space-y-2">
+                {/* Telegram */}
+                <a
+                  href="https://t.me/LuxQuantSignal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                >
+                  <div className="w-9 h-9 rounded-md bg-[#229ED9]/10 border border-[#229ED9]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#229ED9]/20 transition-colors">
+                    <svg className="w-4 h-4 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.36 8.629-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold leading-none mb-1">Telegram</p>
+                    <p className="text-text-muted text-[11px] font-mono truncate">@LuxQuantSignal</p>
+                  </div>
+                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
+
+                {/* Twitter / X */}
+                <a
+                  href="https://x.com/luxquantcrypto"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                >
+                  <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/10 transition-colors">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold leading-none mb-1">Twitter / X</p>
+                    <p className="text-text-muted text-[11px] font-mono truncate">@luxquantcrypto</p>
+                  </div>
+                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
+
+                {/* Instagram */}
+                <a
+                  href="https://instagram.com/luxquant.tw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-3 p-3 rounded-md bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/30 transition-all"
+                >
+                  <div className="w-9 h-9 rounded-md bg-gradient-to-br from-[#833AB4]/20 via-[#FD1D1D]/20 to-[#FCB045]/20 border border-[#FD1D1D]/20 flex items-center justify-center flex-shrink-0 group-hover:from-[#833AB4]/30 group-hover:via-[#FD1D1D]/30 group-hover:to-[#FCB045]/30 transition-colors">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1112.324 0 6.162 6.162 0 01-12.324 0zM12 16a4 4 0 110-8 4 4 0 010 8zm4.965-10.405a1.44 1.44 0 112.881.001 1.44 1.44 0 01-2.881-.001z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold leading-none mb-1">Instagram</p>
+                    <p className="text-text-muted text-[11px] font-mono truncate">@luxquant.tw</p>
+                  </div>
+                  <svg className="w-3.5 h-3.5 text-white/30 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Hairline divider */}
+          <div className="h-px bg-white/[0.06] mb-6" />
+
+          {/* Bottom row: copyright + disclaimer */}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-text-muted text-[11px] font-mono">
+              <span>© {new Date().getFullYear()} LuxQuant</span>
+              <span className="text-white/20">·</span>
+              <span className="flex items-center gap-1">Built in Taiwan <span className="text-sm leading-none">🇹🇼</span></span>
+              <span className="text-white/20 hidden sm:inline">·</span>
+              <span className="hidden sm:inline">All rights reserved</span>
+            </div>
+            <p className="text-text-muted text-[10px] font-mono text-center lg:text-right max-w-xl leading-relaxed">
+              Trading cryptocurrency involves significant risk. Past performance does not guarantee future results.
+            </p>
+          </div>
         </div>
       </footer>
 
