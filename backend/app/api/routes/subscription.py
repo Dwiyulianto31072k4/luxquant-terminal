@@ -18,6 +18,10 @@ TX Hash Rules:
 Upgrade:
   - Already subscriber? Pass is_upgrade=true to /subscribe
   - New plan activates immediately from now
+
+Layer 4 (Referral commission):
+  - /subscribe: auto-apply 10% discount if user is referred & first payment
+  - /verify (on confirm): auto-credit 10% commission to referrer
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -39,6 +43,10 @@ from app.schemas.subscription import (
 )
 from app.schemas.user import UserResponse
 from app.services.bscscan import verify_bep20_tx
+from app.services.commission_service import (
+    apply_referral_discount,
+    process_commission_for_payment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,11 +124,22 @@ async def create_subscription(
             synchronize_session=False
         )
 
+    # ── Layer 4: Apply referral discount (first payment only) ──
+    gross_amount = Decimal(str(plan.price_usdt))
+    discount_amount, final_amount, referral_use_id = apply_referral_discount(
+        user=current_user,
+        gross_amount=gross_amount,
+        db=db,
+    )
+
     # Create new payment
     payment = Payment(
         user_id=current_user.id,
         plan_id=plan.id,
-        amount_usdt=plan.price_usdt,
+        amount_usdt=gross_amount,
+        discount_amount=discount_amount,
+        final_amount=final_amount,
+        referral_use_id=referral_use_id,
         wallet_to=RECEIVING_WALLET,
         network="BSC",
         status="pending",
@@ -130,7 +149,14 @@ async def create_subscription(
     db.commit()
     db.refresh(payment)
 
-    return _invoice_response(payment, plan, f"Transfer {plan.price_usdt} USDT (BEP-20) ke wallet di bawah")
+    msg = f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"
+    if discount_amount > 0:
+        msg = (
+            f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah "
+            f"(setelah diskon referral {discount_amount} USDT)"
+        )
+
+    return _invoice_response(payment, plan, msg)
 
 
 # ============================================
@@ -186,9 +212,12 @@ async def verify_payment(
     logger.info(f"🔍 Verifying payment #{payment.id} tx={tx_hash_clean}")
 
     # ── On-chain verification ──
+    # Use final_amount (post-discount) if available, else amount_usdt
+    expected_amount = Decimal(str(payment.final_amount or payment.amount_usdt))
+
     result = await verify_bep20_tx(
         tx_hash=data.tx_hash,
-        expected_amount=Decimal(str(payment.amount_usdt)),
+        expected_amount=expected_amount,
         expected_wallet_to=payment.wallet_to
     )
 
@@ -204,6 +233,9 @@ async def verify_payment(
 
         current_user.role = "subscriber"
         current_user.subscription_granted_at = now
+        # Mark source as 'payment' for cross-OAuth protection (Layer 3 role_resolver)
+        if hasattr(current_user, "subscription_source"):
+            current_user.subscription_source = "payment"
 
         if plan and plan.duration_days:
             current_user.subscription_expires_at = now + timedelta(days=plan.duration_days)
@@ -213,12 +245,31 @@ async def verify_payment(
         plan_label = plan.label if plan else "unknown"
         current_user.subscription_note = f"Plan: {plan_label}"
 
+        # ── Layer 4: Credit commission to referrer ──
+        commission_summary = None
+        try:
+            commission_summary = process_commission_for_payment(payment, db)
+        except Exception as e:
+            # If commission fails, log but DON'T fail the payment confirmation.
+            # User's subscription is more important than commission tracking.
+            # Admin can manually credit via SQL/admin panel if needed.
+            logger.error(
+                f"⚠️  Commission processing failed for payment #{payment.id}: {e}. "
+                f"Payment still confirmed. Manual credit may be needed.",
+                exc_info=True,
+            )
+
         db.commit()
         db.refresh(current_user)
 
-        logger.info(f"✅ Payment #{payment.id} confirmed. User {current_user.id} → subscriber ({plan_label})")
+        logger.info(
+            f"✅ Payment #{payment.id} confirmed. "
+            f"User {current_user.id} → subscriber ({plan_label})"
+            + (f" | Commission: +{commission_summary['commission_amount']} USDT "
+               f"to user_id={commission_summary['referrer_id']}" if commission_summary else "")
+        )
 
-        return {
+        response = {
             "status": "confirmed",
             "message": "Pembayaran berhasil! Subscription aktif.",
             "subscription": {
@@ -230,6 +281,15 @@ async def verify_payment(
             # Return updated user for frontend to refresh state without re-login
             "user": UserResponse.model_validate(current_user).model_dump(mode='json')
         }
+
+        if commission_summary:
+            response["referral"] = {
+                "commission_credited": True,
+                "referrer_id": commission_summary["referrer_id"],
+                "commission_amount": commission_summary["commission_amount"],
+            }
+
+        return response
     else:
         # ── FAILED — Reset to pending for retry ──
         payment.status = "pending"
@@ -359,7 +419,9 @@ def _invoice_response(payment: Payment, plan: SubscriptionPlan, message: str):
     return {
         "payment": _payment_to_dict(payment),
         "wallet_to": RECEIVING_WALLET,
-        "amount_usdt": float(payment.amount_usdt),
+        "amount_usdt": float(payment.final_amount or payment.amount_usdt),
+        "gross_amount_usdt": float(payment.amount_usdt),
+        "discount_amount_usdt": float(payment.discount_amount or 0),
         "plan": {
             "id": plan.id,
             "name": plan.name,
@@ -379,6 +441,9 @@ def _payment_to_dict(p: Payment) -> dict:
         "user_id": p.user_id,
         "plan_id": p.plan_id,
         "amount_usdt": float(p.amount_usdt),
+        "discount_amount": float(p.discount_amount or 0),
+        "final_amount": float(p.final_amount or p.amount_usdt),
+        "referral_use_id": p.referral_use_id,
         "tx_hash": p.tx_hash,
         "wallet_from": p.wallet_from,
         "wallet_to": p.wallet_to,
