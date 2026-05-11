@@ -304,10 +304,10 @@ function AppShell({ children }) {
       <div className="luxury-bg" />
 
       {/* ══════════════════════════════════════════════
-          HEADER — Solid bg matching page + thin hairline divider
-          Pattern Flowscan: bg merges, only separated by 1px line
+          HEADER — Transparent bg so .luxury-bg shows through
+          Pattern Flowscan: only separated by 1px hairline divider
           ══════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-bg-primary border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 bg-transparent border-b border-white/[0.06]">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
             <div className="flex items-center gap-2 lg:gap-6">
