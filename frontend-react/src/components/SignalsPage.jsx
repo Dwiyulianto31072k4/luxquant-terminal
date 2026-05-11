@@ -8,7 +8,7 @@ import CoinIntelligence from './CoinIntelligence';
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ================================================================
-// INLINE SVG ICONS (Lucide-style)
+// INLINE SVG ICONS (Lucide-style) — unchanged
 // ================================================================
 const Icon = {
   filter: (className = 'w-3.5 h-3.5') => (
@@ -86,7 +86,7 @@ const Icon = {
 };
 
 // ================================================================
-// SECTION HEADER (line-label-line, Flowscan signature)
+// SECTION HEADER — unchanged
 // ================================================================
 const SectionHeader = ({ label, hint }) => (
   <div className="flex items-center gap-3 mb-4">
@@ -98,8 +98,7 @@ const SectionHeader = ({ label, hint }) => (
 );
 
 // ================================================================
-// STAT CARD — flat hairline + font-light numbers + inset top accent
-// (consistent with OverviewPage MetricCard + TopPerformers StatCard)
+// STAT CARD — enhanced colors
 // ================================================================
 const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
   <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
@@ -112,7 +111,7 @@ const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
 );
 
 // ================================================================
-// MAIN PAGE
+// MAIN PAGE — REVISED COLORS ONLY
 // ================================================================
 const SignalsPage = () => {
   const { t } = useTranslation();
@@ -377,24 +376,22 @@ const SignalsPage = () => {
     else { setSortBy(field); setSortOrder("desc"); }
   };
 
-  // ─── Status filter options with SVG icons (no emoji) ───
   const statusOptions = [
     { value: "all", label: "All Status" },
     { value: "updated", label: "Recently Hit", icon: Icon.bell, accent: 'gold' },
     { value: "open", label: "Open" },
-    { value: "tp1", label: "TP1", icon: Icon.check, accent: 'profit' },
-    { value: "tp2", label: "TP2", icon: Icon.check, accent: 'profit' },
-    { value: "tp3", label: "TP3", icon: Icon.check, accent: 'profit' },
-    { value: "closed_win", label: "TP4", icon: Icon.trophy, accent: 'profit' },
-    { value: "closed_loss", label: "Loss", icon: Icon.x, accent: 'loss' },
+    { value: "tp1", label: "TP1", icon: Icon.check, accent: 'emerald' },
+    { value: "tp2", label: "TP2", icon: Icon.check, accent: 'emerald' },
+    { value: "tp3", label: "TP3", icon: Icon.check, accent: 'emerald' },
+    { value: "closed_win", label: "TP4", icon: Icon.trophy, accent: 'emerald' },
+    { value: "closed_loss", label: "Loss", icon: Icon.x, accent: 'red' },
   ];
 
-  // ─── Risk options with 3-color palette ───
   const riskOptions = [
     { value: "all", label: "All" },
-    { value: "low", label: "Low", dotColor: 'bg-profit' },
-    { value: "normal", label: "Normal", dotColor: 'bg-gold-primary' },
-    { value: "high", label: "High", dotColor: 'bg-loss' },
+    { value: "low", label: "Low", dotColor: 'bg-emerald-400' },
+    { value: "normal", label: "Normal", dotColor: 'bg-amber-400' },
+    { value: "high", label: "High", dotColor: 'bg-red-400' },
   ];
 
   const sortOptions = [
@@ -413,20 +410,15 @@ const SignalsPage = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* ════════ 1. PAGE HEADER ════════ */}
+      {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="min-w-0 flex-1">
-          {/* Line-label-line title (Flowscan signature) */}
           <div className="flex items-center gap-3 mb-3">
             <span className="h-px w-8 bg-gold-primary/40" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-              Terminal Signals
-            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal Signals</span>
             <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
-          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">
-            Last 7 Days Activity
-          </h1>
+          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">Last 7 Days Activity</h1>
           <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1.5">
             <span className="text-white tabular-nums">{allSignals.length}</span> signals generated
             {updatedCount > 0 && (
@@ -438,16 +430,15 @@ const SignalsPage = () => {
           </p>
         </div>
 
-        {/* Status indicator — flat dot + soft glow (no ping) */}
         <div className="flex items-center gap-2.5 bg-[#0a0805] px-3.5 py-2 rounded-sm border border-white/[0.06] relative overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <span
             className="w-1.5 h-1.5 rounded-full"
             style={{
-              backgroundColor: loading ? '#fbbf24' : '#56c996',
+              backgroundColor: loading ? '#fbbf24' : '#10b981',
               boxShadow: loading
                 ? '0 0 6px rgba(251,191,36,0.7), 0 0 12px rgba(251,191,36,0.35)'
-                : '0 0 6px rgba(86,201,150,0.7), 0 0 12px rgba(86,201,150,0.35)',
+                : '0 0 6px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.35)',
             }}
           />
           <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
@@ -460,7 +451,7 @@ const SignalsPage = () => {
         </div>
       </div>
 
-      {/* ════════ 2. PERFORMANCE STATS ════════ */}
+      {/* PERFORMANCE STATS — enhanced colors */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="Today's Activity"
@@ -470,13 +461,13 @@ const SignalsPage = () => {
         <StatCard
           label="Today's Win Rate"
           value={`${todayStats.wr}%`}
-          valueColor="text-profit"
+          valueColor="text-emerald-400"
           sub={`${todayStats.closedCount} signals closed`}
         />
         <StatCard
           label="Overall Win Rate"
           value={stats?.win_rate ? `${stats.win_rate}%` : '—'}
-          valueColor="text-gold-primary"
+          valueColor="text-amber-400"
           sub={stats ? `${(stats.total_signals || 0).toLocaleString()} total signals` : '—'}
         />
         <StatCard
@@ -486,17 +477,14 @@ const SignalsPage = () => {
         />
       </div>
 
-      {/* ════════ 3. FILTER CONSOLE ════════ */}
+      {/* FILTER CONSOLE — stronger colors */}
       <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-5">
           <div className="flex items-center gap-2.5">
             {Icon.filter('w-3.5 h-3.5 text-gold-primary/70')}
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">
-              Signal Scanner
-            </h2>
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">Signal Scanner</h2>
           </div>
           {hasActiveFilters && (
             <button
@@ -509,9 +497,7 @@ const SignalsPage = () => {
           )}
         </div>
 
-        {/* Top row: Search · Sort · Order */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
-          {/* Search */}
           <div className="md:col-span-7 relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/60 pointer-events-none">
               {Icon.search('w-3.5 h-3.5')}
@@ -525,7 +511,6 @@ const SignalsPage = () => {
             />
           </div>
 
-          {/* Sort By */}
           <div className="md:col-span-3 relative">
             <select
               value={sortBy}
@@ -541,7 +526,6 @@ const SignalsPage = () => {
             </span>
           </div>
 
-          {/* Order toggle */}
           <div className="md:col-span-2">
             <button
               onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
@@ -553,7 +537,6 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        {/* Bottom: Timeline · Status · Risk */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Timeline */}
           <div className="lg:col-span-5">
@@ -588,7 +571,7 @@ const SignalsPage = () => {
             </div>
           </div>
 
-          {/* Status */}
+          {/* Status — stronger active colors */}
           <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
             <div className="flex items-center justify-between mb-2.5">
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Signal Status</span>
@@ -596,10 +579,9 @@ const SignalsPage = () => {
             <div className="flex flex-wrap gap-1.5">
               {statusOptions.map((opt) => {
                 const isActive = statusFilter === opt.value;
-                const isUpdated = opt.value === "updated";
                 const accentColor =
-                  opt.accent === 'profit' ? 'text-profit' :
-                  opt.accent === 'loss' ? 'text-loss' :
+                  opt.accent === 'emerald' ? 'text-emerald-400' :
+                  opt.accent === 'red' ? 'text-red-400' :
                   opt.accent === 'gold' ? 'text-gold-primary' :
                   'text-text-muted';
                 return (
@@ -607,7 +589,7 @@ const SignalsPage = () => {
                     key={opt.value}
                     onClick={() => {
                       setStatusFilter(opt.value);
-                      if (isUpdated && sortBy === "created_at") setSortBy("last_update");
+                      if (opt.value === "updated" && sortBy === "created_at") setSortBy("last_update");
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                       isActive
@@ -617,7 +599,7 @@ const SignalsPage = () => {
                   >
                     {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
                     <span>{opt.label}</span>
-                    {isUpdated && updatedCount > 0 && !isActive && (
+                    {opt.value === "updated" && updatedCount > 0 && !isActive && (
                       <span className="px-1 py-0 bg-gold-primary/10 text-gold-primary text-[9px] tabular-nums rounded-sm">
                         {updatedCount}
                       </span>
@@ -628,7 +610,7 @@ const SignalsPage = () => {
             </div>
           </div>
 
-          {/* Risk */}
+          {/* Risk — stronger dots */}
           <div className="lg:col-span-3 lg:border-l lg:border-white/[0.06] lg:pl-5">
             <div className="flex items-center justify-between mb-2.5">
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Risk Profile</span>
@@ -647,9 +629,7 @@ const SignalsPage = () => {
                     }`}
                   >
                     {opt.dotColor && (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? '' : 'opacity-50'}`}
-                      />
+                      <span className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? '' : 'opacity-50'}`} />
                     )}
                     {opt.label}
                   </button>
@@ -660,7 +640,7 @@ const SignalsPage = () => {
         </div>
       </div>
 
-      {/* ════════ 4. ACCORDIONS ════════ */}
+      {/* ACCORDIONS — enhanced open state */}
       <div className="space-y-3">
         {/* Coin Intelligence */}
         <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
@@ -675,20 +655,14 @@ const SignalsPage = () => {
               </div>
               <div className="text-left">
                 <h3 className="font-mono text-sm text-white">Coin Intelligence</h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">
-                  AI-powered deep analysis & streaks
-                </p>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">AI-powered deep analysis & streaks</p>
               </div>
             </div>
-            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${
-              isIntelOpen ? 'rotate-180 text-gold-primary border-gold-primary/30' : ''
-            }`}>
+            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${isIntelOpen ? 'rotate-180 text-gold-primary border-gold-primary/30' : ''}`}>
               {Icon.chevronDown('w-3 h-3')}
             </div>
           </button>
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
-            isIntelOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}>
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isIntelOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="p-5 border-t border-white/[0.06]">
               <CoinIntelligence selectedDates={selectedDates} />
             </div>
@@ -703,25 +677,19 @@ const SignalsPage = () => {
             className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-loss/[0.06] border border-loss/20 flex items-center justify-center text-loss/80">
+              <div className="w-9 h-9 rounded-sm bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400/80">
                 {Icon.alert('w-4 h-4')}
               </div>
               <div className="text-left">
                 <h3 className="font-mono text-sm text-white">BTC Dominance Alert</h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">
-                  Macro market condition warning
-                </p>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">Macro market condition warning</p>
               </div>
             </div>
-            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${
-              isAlertOpen ? 'rotate-180 text-loss border-loss/30' : ''
-            }`}>
+            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${isAlertOpen ? 'rotate-180 text-red-400 border-red-500/30' : ''}`}>
               {Icon.chevronDown('w-3 h-3')}
             </div>
           </button>
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
-            isAlertOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}>
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isAlertOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="p-5 border-t border-white/[0.06]">
               <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
             </div>
@@ -729,19 +697,19 @@ const SignalsPage = () => {
         </div>
       </div>
 
-      {/* ════════ 5. ERROR / TABLE ════════ */}
+      {/* ERROR / TABLE */}
       {error && (
-        <div className="bg-[#0a0805] rounded-md p-6 border border-loss/30 text-center relative overflow-hidden">
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+        <div className="bg-[#0a0805] rounded-md p-6 border border-red-500/30 text-center relative overflow-hidden">
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
           <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-loss/[0.06] border border-loss/20 flex items-center justify-center text-loss">
+            <div className="w-12 h-12 rounded-full bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400">
               {Icon.alert('w-5 h-5')}
             </div>
             <h3 className="font-mono text-sm text-white">Failed to load signals</h3>
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{error}</p>
             <button
               onClick={() => fetchBulkSignals(true)}
-              className="px-4 py-2 mt-1 bg-loss/10 text-loss border border-loss/20 hover:bg-loss/15 hover:border-loss/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
+              className="px-4 py-2 mt-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
             >
               Try Again
             </button>
@@ -749,7 +717,6 @@ const SignalsPage = () => {
         </div>
       )}
 
-      {/* Direct table render — no double wrapper (SignalsTable handles its own container) */}
       {!error && (
         <SignalsTable
           signals={signals}
@@ -765,7 +732,6 @@ const SignalsPage = () => {
         />
       )}
 
-      {/* ════════ 6. MODAL ════════ */}
       {selectedSignal && (
         <SignalModal
           key={selectedSignal.signal_id}
