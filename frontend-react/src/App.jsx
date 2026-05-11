@@ -175,6 +175,7 @@ function AppShell({ children }) {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMoreFeatures, setShowMoreFeatures] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -184,6 +185,11 @@ function AppShell({ children }) {
   const isPremiumUser = () => user && (user.role === "admin" || user.role === "premium" || user.role === "subscriber" || user.is_admin);
   const isActive = (path) => location.pathname === path;
 
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", h, { passive: true });
+    return () => window.removeEventListener("scroll", h);
+  }, []);
   useEffect(() => {
     const h = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false); };
     window.addEventListener("resize", h);
@@ -304,10 +310,16 @@ function AppShell({ children }) {
       <div className="luxury-bg" />
 
       {/* ══════════════════════════════════════════════
-          HEADER — Transparent bg so .luxury-bg shows through
-          Pattern Flowscan: only separated by 1px hairline divider
+          HEADER — Dynamic bg based on scroll:
+          - At top (scrollY ≤ 8): transparent, merges with luxury-bg
+          - Scrolled: solid bg-bg-primary + backdrop-blur for readability
+          Hairline divider always present (Flowscan style)
           ══════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-transparent border-b border-white/[0.06]">
+      <header className={`sticky top-0 z-50 border-b border-white/[0.06] transition-colors duration-200 ${
+        scrolled
+          ? "bg-bg-primary/95 backdrop-blur-md"
+          : "bg-transparent"
+      }`}>
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
             <div className="flex items-center gap-2 lg:gap-6">
