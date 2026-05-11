@@ -48,6 +48,8 @@ from app.services.commission_service import (
     process_commission_for_payment,
 )
 
+from app.services.wallet_pool import pick_wallet, increment_usage
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/subscription", tags=["Subscription"])
@@ -132,6 +134,16 @@ async def create_subscription(
         db=db,
     )
 
+    # ── Layer Multi-Wallet: rotate receiving wallet per-invoice ──
+    try:
+        rotated_wallet = pick_wallet(db, network="BSC")
+    except RuntimeError as e:
+        logger.error(f"Wallet pool empty: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Sistem pembayaran sementara tidak tersedia. Coba lagi nanti."
+        )
+
     # Create new payment
     payment = Payment(
         user_id=current_user.id,
@@ -140,7 +152,7 @@ async def create_subscription(
         discount_amount=discount_amount,
         final_amount=final_amount,
         referral_use_id=referral_use_id,
-        wallet_to=RECEIVING_WALLET,
+        wallet_to=rotated_wallet,
         network="BSC",
         status="pending",
         expires_at=datetime.now(timezone.utc) + timedelta(hours=PAYMENT_WINDOW_HOURS)
@@ -148,6 +160,13 @@ async def create_subscription(
     db.add(payment)
     db.commit()
     db.refresh(payment)
+
+    # Mark wallet as used (separate commit, so rollback above doesn't double-count)
+    try:
+        increment_usage(db, rotated_wallet)
+    except Exception as e:
+        # Non-critical: payment is already created. Just log.
+        logger.warning(f"Failed to increment wallet usage for {rotated_wallet}: {e}")
 
     msg = f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"
     if discount_amount > 0:
@@ -418,7 +437,7 @@ async def get_payment_history(
 def _invoice_response(payment: Payment, plan: SubscriptionPlan, message: str):
     return {
         "payment": _payment_to_dict(payment),
-        "wallet_to": RECEIVING_WALLET,
+        "wallet_to": payment.wallet_to,
         "amount_usdt": float(payment.final_amount or payment.amount_usdt),
         "gross_amount_usdt": float(payment.amount_usdt),
         "discount_amount_usdt": float(payment.discount_amount or 0),
