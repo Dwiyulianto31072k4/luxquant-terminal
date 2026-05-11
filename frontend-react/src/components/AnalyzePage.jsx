@@ -2,28 +2,46 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ResponsiveContainer,
   Tooltip,
-  BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  AreaChart,
   Area,
   ReferenceLine,
-  Cell,
   LineChart,
   Line,
   Legend,
   ComposedChart,
 } from "recharts";
-import { useTranslation } from "react-i18next"; // <-- 1. Import i18n
+import { useTranslation } from "react-i18next";
 import SignalModal from "./SignalModal";
 import CoinLogo from "./CoinLogo";
 
 const API_BASE = "/api/v1";
 
+/* ──────────────────────────────────────────────────────────────
+   AnalyzePage — Web3 Flowscan-minimal reskin
+   • Gold accent retained (LuxQuant brand)
+   • profit (#56c996) / loss (#e07288) muted functional only
+   • Flat hairline cards, sharp rounded-md, font-mono font-light numbers
+   • Chart colors muted (no neon green/lime/yellow/orange rainbow)
+   • Line-label-line section headers + SVG icons
+   ────────────────────────────────────────────────────────────── */
+
+// Muted Flowscan color palette
+const C = {
+  profit: "#56c996",
+  loss: "#e07288",
+  gold: "#d4a853",
+  goldLight: "#f0d890",
+  white: "#ffffff",
+  muted: "#9a8a7d",
+  // gold opacity gradient (for outcome/RR bars)
+  goldStep: ["rgba(212, 168, 83, 1)", "rgba(212, 168, 83, 0.85)", "rgba(212, 168, 83, 0.7)", "rgba(212, 168, 83, 0.55)"],
+};
+
 const AnalyzePage = () => {
-  const { t } = useTranslation(); // <-- 2. Panggil i18n
+  const { t } = useTranslation();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -117,26 +135,17 @@ const AnalyzePage = () => {
   if (error)
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
-          <svg
-            className="w-8 h-8 text-red-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-            />
+        <div className="w-12 h-12 rounded-md bg-loss/10 border border-loss/25 flex items-center justify-center mb-4">
+          <svg className="w-6 h-6 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <p className="text-red-400 text-lg mb-2">Failed to load analysis</p>
-        <p className="text-text-muted text-sm mb-4">{error}</p>
+        <p className="font-mono text-[12px] uppercase tracking-wider text-loss mb-2">Failed to load analysis</p>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-4">{error}</p>
         <button
           onClick={fetchAnalyzeData}
-          className="px-5 py-2.5 bg-gold-primary/20 text-gold-primary rounded-xl hover:bg-gold-primary/30 transition-all font-medium text-sm"
+          className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-gold-primary/25"
         >
           Retry
         </button>
@@ -167,30 +176,30 @@ const AnalyzePage = () => {
   })();
 
   return (
-    <div className="space-y-4 lg:space-y-5">
-      {/* HEADER + TIME RANGE */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <div>
-            <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">
-              {t("perf.title")}
-            </h2>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {data.stats.total_signals.toLocaleString()}{" "}
-              {t("perf.signals_analyzed")}
-            </p>
-          </div>
-        </div>
-        <div className="flex bg-bg-card/80 rounded-xl p-1 border border-gold-primary/10">
+    <div className="space-y-5">
+      {/* ── PAGE TITLE — line-label-line ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          {t("perf.title")}
+        </span>
+        <span className="h-px flex-1 bg-white/[0.06]" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70 tabular-nums">
+          {data.stats.total_signals.toLocaleString()} {t("perf.signals_analyzed")}
+        </span>
+      </div>
+
+      {/* ── TIME RANGE PILLS ── */}
+      <div className="flex justify-end">
+        <div className="flex gap-1 p-1 bg-[#0a0805] rounded-sm border border-white/[0.06]">
           {timeRangeOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setTimeRange(opt.value)}
-              className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[10px] lg:text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                 timeRange === opt.value
-                  ? "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-lg shadow-gold-primary/20"
-                  : "text-text-muted hover:text-white"
+                  ? "bg-white/10 text-white border border-white/[0.08]"
+                  : "text-text-muted hover:text-white border border-transparent hover:bg-white/[0.03]"
               }`}
             >
               <span className="sm:hidden">{opt.short}</span>
@@ -200,17 +209,15 @@ const AnalyzePage = () => {
         </div>
       </div>
 
-      {/* KPI STRIP */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
+      {/* ── KPI STRIP ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <KPICard
           label={t("perf.win_rate")}
           value={`${data.stats.win_rate.toFixed(1)}%`}
           color={
-            data.stats.win_rate >= 75
-              ? "green"
-              : data.stats.win_rate >= 55
-                ? "yellow"
-                : "red"
+            data.stats.win_rate >= 75 ? "profit"
+              : data.stats.win_rate >= 55 ? "gold"
+                : "loss"
           }
           accent
         />
@@ -222,12 +229,12 @@ const AnalyzePage = () => {
         <KPICard
           label={t("perf.winners")}
           value={data.stats.total_winners.toLocaleString()}
-          color="green"
+          color="profit"
         />
         <KPICard
           label={t("perf.losses")}
           value={data.stats.sl_count.toLocaleString()}
-          color="red"
+          color="loss"
         />
         <KPICard
           label={`${t("perf.avg_rr")} (${maxTpRR.level})`}
@@ -242,27 +249,30 @@ const AnalyzePage = () => {
         />
       </div>
 
-      {/* WIN RATE TREND */}
-      <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-        <div className="flex items-center justify-between mb-4 lg:mb-5 flex-wrap gap-3">
-          <div>
-            <h3 className="text-white font-semibold text-base lg:text-lg">
-              {t("perf.wr_trend")}
-            </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {t("perf.wr_trend_desc")}
-            </p>
+      {/* ── WIN RATE TREND ── */}
+      <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <IconTrend />
+            <div>
+              <h3 className="text-white text-sm font-normal tracking-tight">
+                {t("perf.wr_trend")}
+              </h3>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                {t("perf.wr_trend_desc")}
+              </p>
+            </div>
           </div>
-          <div className="flex bg-bg-card/60 rounded-lg p-0.5 border border-gold-primary/10">
+          <div className="flex gap-1 p-1 bg-[#120809] rounded-sm border border-white/[0.04]">
             {["daily", "weekly"].map((m) => (
               <button
                 key={m}
                 onClick={() => setTrendMode(m)}
-                className={`px-3 py-1.5 rounded-md text-[10px] lg:text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
                   trendMode === m
-                    ? "bg-gold-primary/20 text-gold-primary"
-                    : "text-text-muted hover:text-white"
+                    ? "bg-white/10 text-white border border-white/[0.08]"
+                    : "text-text-muted hover:text-white border border-transparent"
                 }`}
               >
                 {m === "daily" ? t("perf.daily") : t("perf.weekly")}
@@ -273,162 +283,150 @@ const AnalyzePage = () => {
         <WinRateTrendChart data={data.win_rate_trend} mode={trendMode} t={t} />
       </div>
 
-      {/* OUTCOME & R:R */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
-          <div className="mb-4">
-            <h3 className="text-white font-semibold text-base lg:text-lg">
-              {t("perf.outcome_dist")}
-            </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {data.stats.closed_trades.toLocaleString()}{" "}
-              {t("perf.closed_trades")}
-            </p>
+      {/* ── OUTCOME & R:R ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconOutcome />
+            <div>
+              <h3 className="text-white text-sm font-normal tracking-tight">
+                {t("perf.outcome_dist")}
+              </h3>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5 tabular-nums">
+                {data.stats.closed_trades.toLocaleString()} {t("perf.closed_trades")}
+              </p>
+            </div>
           </div>
           <OutcomeDistribution data={data.stats} t={t} />
         </div>
 
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
-          <div className="mb-4">
-            <h3 className="text-white font-semibold text-base lg:text-lg">
-              {t("perf.risk_reward")}
-            </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {t("perf.rr_desc")} · Best{" "}
-              <span className="text-gold-primary font-mono font-semibold">
-                {maxTpRR.rr.toFixed(2)}R
-              </span>
-            </p>
+        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconRR />
+            <div>
+              <h3 className="text-white text-sm font-normal tracking-tight">
+                {t("perf.risk_reward")}
+              </h3>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                {t("perf.rr_desc")} · Best{" "}
+                <span className="text-gold-primary tabular-nums">{maxTpRR.rr.toFixed(2)}R</span>
+              </p>
+            </div>
           </div>
           <RiskRewardChart data={data.risk_reward} t={t} />
         </div>
       </div>
 
-      {/* RISK LEVEL ANALYSIS */}
-      <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
-        <div className="mb-4 lg:mb-5">
-          <h3 className="text-white font-semibold text-base lg:text-lg">
-            {t("perf.risk_analysis")}
-          </h3>
-          <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-            {t("perf.risk_desc")}
-          </p>
+      {/* ── RISK LEVEL ANALYSIS ── */}
+      <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="flex items-center gap-2 mb-4">
+          <IconRisk />
+          <div>
+            <h3 className="text-white text-sm font-normal tracking-tight">
+              {t("perf.risk_analysis")}
+            </h3>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+              {t("perf.risk_desc")}
+            </p>
+          </div>
         </div>
 
         {!data.risk_distribution || data.risk_distribution.length === 0 ? (
-          <div className="text-center py-8 text-text-muted text-sm">
+          <div className="text-center py-8 font-mono text-[11px] uppercase tracking-wider text-text-muted">
             No risk data available
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {data.risk_distribution.map((rd) => {
                 const colorMap = {
                   Low: {
-                    border: "border-green-500/20",
-                    bg: "from-green-500/[0.06] to-transparent",
-                    text: "text-green-400",
-                    dot: "bg-green-500",
-                    ring: "ring-green-500/20",
+                    border: "border-profit/20",
+                    bg: "from-profit/[0.05] to-transparent",
+                    text: "text-profit",
+                    dot: "bg-profit",
                   },
                   Normal: {
-                    border: "border-yellow-500/20",
-                    bg: "from-yellow-500/[0.06] to-transparent",
-                    text: "text-yellow-400",
-                    dot: "bg-yellow-500",
-                    ring: "ring-yellow-500/20",
+                    border: "border-gold-primary/20",
+                    bg: "from-gold-primary/[0.05] to-transparent",
+                    text: "text-gold-primary",
+                    dot: "bg-gold-primary",
                   },
                   High: {
-                    border: "border-red-500/20",
-                    bg: "from-red-500/[0.06] to-transparent",
-                    text: "text-red-400",
-                    dot: "bg-red-500",
-                    ring: "ring-red-500/20",
+                    border: "border-loss/20",
+                    bg: "from-loss/[0.05] to-transparent",
+                    text: "text-loss",
+                    dot: "bg-loss",
                   },
                 };
                 const c = colorMap[rd.risk_level] || colorMap["Normal"];
-                const winPct =
-                  rd.closed_trades > 0
-                    ? (rd.winners / rd.closed_trades) * 100
-                    : 0;
+                const winPct = rd.closed_trades > 0 ? (rd.winners / rd.closed_trades) * 100 : 0;
                 const totalSig = data.risk_distribution.reduce(
-                  (s, r) => s + r.total_signals,
-                  0,
+                  (s, r) => s + r.total_signals, 0
                 );
-                const pct =
-                  totalSig > 0
-                    ? ((rd.total_signals / totalSig) * 100).toFixed(1)
-                    : "0";
-
-                // Mencegah Crash! Fallback aman jika risk_level kosong
-                const safeRiskKey = rd.risk_level
-                  ? String(rd.risk_level).toLowerCase()
-                  : "normal";
+                const pct = totalSig > 0 ? ((rd.total_signals / totalSig) * 100).toFixed(1) : "0";
+                const safeRiskKey = rd.risk_level ? String(rd.risk_level).toLowerCase() : "normal";
 
                 return (
                   <div
                     key={rd.risk_level}
-                    className={`rounded-xl p-4 lg:p-5 bg-gradient-to-b ${c.bg} border ${c.border}`}
+                    className={`rounded-sm p-4 bg-gradient-to-b ${c.bg} border ${c.border}`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${c.dot} ring-4 ${c.ring}`}
-                        />
-                        <span className={`font-bold text-sm ${c.text}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                        <span className={`font-mono text-[11px] uppercase tracking-wider ${c.text}`}>
                           {t(`perf.${safeRiskKey}`)}
                         </span>
                       </div>
-                      <span className="text-text-muted text-[10px] font-mono">
+                      <span className="font-mono text-[10px] text-text-muted tabular-nums">
                         {pct}%
                       </span>
                     </div>
 
-                    <p
-                      className={`text-3xl lg:text-4xl font-bold font-mono ${c.text} leading-none`}
-                    >
+                    <p className={`text-3xl font-mono font-light tabular-nums leading-none ${c.text}`}>
                       {rd.win_rate.toFixed(1)}%
                     </p>
-                    <p className="text-text-muted text-[10px] mt-1 mb-3">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1 mb-3">
                       {t("perf.win_rate")}
                     </p>
 
-                    <div className="h-1.5 rounded-full overflow-hidden flex bg-bg-card/50 mb-2">
+                    <div className="h-1 rounded-sm overflow-hidden flex bg-white/[0.04] mb-2">
                       <div
-                        className="h-full bg-green-500/70 rounded-l-full transition-all duration-700"
+                        className="h-full bg-profit/70 transition-all duration-700"
                         style={{ width: `${winPct}%` }}
                       />
                       <div
-                        className="h-full bg-red-500/70 rounded-r-full transition-all duration-700"
+                        className="h-full bg-loss/70 transition-all duration-700"
                         style={{ width: `${100 - winPct}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] mb-3">
-                      <span className="text-green-400/80 font-mono">
+                    <div className="flex justify-between font-mono text-[10px] tabular-nums mb-3">
+                      <span className="text-profit/80">
                         {rd.winners.toLocaleString()} W
                       </span>
-                      <span className="text-red-400/80 font-mono">
+                      <span className="text-loss/80">
                         {rd.losers.toLocaleString()} L
                       </span>
                     </div>
 
-                    <div className="pt-3 border-t border-white/5 grid grid-cols-2 gap-2">
+                    <div className="pt-3 border-t border-white/[0.04] grid grid-cols-2 gap-2">
                       <div>
-                        <p className="text-text-muted text-[9px] uppercase tracking-wider">
+                        <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.signals")}
                         </p>
-                        <p className="text-white text-sm font-bold font-mono">
+                        <p className="font-mono text-sm text-white font-light tabular-nums mt-0.5">
                           {rd.total_signals.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-text-muted text-[9px] uppercase tracking-wider">
+                        <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                           {t("perf.avg_rr")}
                         </p>
-                        <p className="text-white text-sm font-bold font-mono">
+                        <p className="font-mono text-sm text-white font-light tabular-nums mt-0.5">
                           {rd.avg_rr > 0 ? `${rd.avg_rr.toFixed(2)}R` : "-"}
                         </p>
                       </div>
@@ -441,18 +439,17 @@ const AnalyzePage = () => {
             {/* Distribution bar */}
             {(() => {
               const totalSig = data.risk_distribution.reduce(
-                (s, r) => s + r.total_signals,
-                0,
+                (s, r) => s + r.total_signals, 0
               );
               const colors = {
-                Low: "#22C55E",
-                Normal: "#EAB308",
-                High: "#EF4444",
+                Low: C.profit,
+                Normal: C.gold,
+                High: C.loss,
               };
               if (totalSig === 0) return null;
               return (
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-xl bg-bg-card/20 border border-white/[0.03]">
-                  <div className="w-full sm:w-64 h-2.5 rounded-full overflow-hidden flex bg-bg-card/80 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 p-3 rounded-sm bg-[#120809] border border-white/[0.04]">
+                  <div className="w-full sm:w-64 h-1 rounded-sm overflow-hidden flex bg-white/[0.04] flex-shrink-0">
                     {data.risk_distribution.map((rd, i) => (
                       <div
                         key={i}
@@ -460,28 +457,24 @@ const AnalyzePage = () => {
                         style={{
                           width: `${(rd.total_signals / totalSig) * 100}%`,
                           backgroundColor: colors[rd.risk_level],
+                          opacity: 0.75,
                         }}
                       />
                     ))}
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     {data.risk_distribution.map((rd) => {
-                      const safeRiskKey = rd.risk_level
-                        ? String(rd.risk_level).toLowerCase()
-                        : "normal";
+                      const safeRiskKey = rd.risk_level ? String(rd.risk_level).toLowerCase() : "normal";
                       return (
-                        <div
-                          key={rd.risk_level}
-                          className="flex items-center gap-1.5"
-                        >
+                        <div key={rd.risk_level} className="flex items-center gap-1.5">
                           <div
-                            className="w-2 h-2 rounded-full"
+                            className="w-1.5 h-1.5 rounded-full"
                             style={{ backgroundColor: colors[rd.risk_level] }}
                           />
-                          <span className="text-text-muted text-[10px]">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {t(`perf.${safeRiskKey}`)}
                           </span>
-                          <span className="text-white text-[10px] font-mono font-semibold">
+                          <span className="font-mono text-[10px] text-white tabular-nums">
                             {((rd.total_signals / totalSig) * 100).toFixed(0)}%
                           </span>
                         </div>
@@ -495,136 +488,121 @@ const AnalyzePage = () => {
         )}
       </div>
 
-      {/* WIN RATE TREND BY RISK LEVEL */}
+      {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-          <div className="mb-4">
-            <h3 className="text-white font-semibold text-base lg:text-lg">
-              {t("perf.wr_by_risk")}
-            </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {t("perf.wr_by_risk_desc")}
-            </p>
+        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconRiskTrend />
+            <div>
+              <h3 className="text-white text-sm font-normal tracking-tight">
+                {t("perf.wr_by_risk")}
+              </h3>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                {t("perf.wr_by_risk_desc")}
+              </p>
+            </div>
           </div>
           <RiskTrendChart data={data.risk_trend} mode={trendMode} t={t} />
         </div>
       )}
 
-      {/* TOP PERFORMING PAIRS */}
+      {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-          <div className="p-4 lg:p-6 pb-0">
-            <h3 className="text-white font-semibold text-base lg:text-lg">
-              {t("perf.top_pairs")}
-            </h3>
-            <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              {t("perf.top_pairs_desc")}
-            </p>
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="p-5 pb-0">
+            <div className="flex items-center gap-2">
+              <IconPairs />
+              <div>
+                <h3 className="text-white text-sm font-normal tracking-tight">
+                  {t("perf.top_pairs")}
+                </h3>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                  {t("perf.top_pairs_desc")}
+                </p>
+              </div>
+            </div>
           </div>
           <TopPairsTable pairs={data.pair_metrics} t={t} />
         </div>
       )}
 
-      {/* FULL SIGNAL HISTORY */}
-      <div className="glass-card rounded-2xl border border-gold-primary/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
+      {/* ── FULL SIGNAL HISTORY ── */}
+      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-        <div className="p-4 lg:p-6 pb-0 lg:pb-0">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-white font-semibold text-base lg:text-lg">
-                  {t("perf.sig_history")}
-                </h3>
-                <span className="px-2 py-0.5 rounded-md bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-[9px] lg:text-[10px] font-semibold uppercase tracking-wider">
-                  Proof of Calls
-                </span>
+        <div className="p-5 pb-0">
+          <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <IconHistory />
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-white text-sm font-normal tracking-tight">
+                    {t("perf.sig_history")}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-sm bg-gold-primary/10 border border-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider">
+                    Proof of Calls
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-1 tabular-nums">
+                  {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
+                </p>
               </div>
-              <p className="text-text-muted text-[10px] lg:text-xs mt-1">
-                {sigTotal.toLocaleString()} {t("perf.total_signals")} · {t("perf.history_desc")}
-              </p>
             </div>
-            
-              <a href="/signals"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-[10px] lg:text-xs font-semibold hover:bg-gold-primary/20 transition-all group"
+
+            <a
+              href="/signals"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-gold-primary/10 border border-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider hover:bg-gold-primary/15 transition-colors group"
             >
-              <svg className="w-3 h-3 lg:w-3.5 lg:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+              <IconBolt />
               {t("perf.view_latest")}
-              <span className="text-[8px] lg:text-[9px] px-1.5 py-0.5 rounded bg-gold-primary/20 text-gold-primary/80">PRO</span>
+              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-sm bg-gold-primary/15 text-gold-primary/80 border border-gold-primary/20">
+                PRO
+              </span>
             </a>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="px-4 lg:px-6">
+        <div className="px-5">
           <button
             onClick={() => setShowSigFilters(!showSigFilters)}
             className="lg:hidden w-full flex items-center justify-between py-2.5 mb-2"
           >
             <div className="flex items-center gap-2">
-              <svg
-                className="w-4 h-4 text-gold-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              <span className="text-white text-xs font-medium">Filters</span>
+              <IconFilter />
+              <span className="font-mono text-[11px] uppercase tracking-wider text-white">Filters</span>
               {sigActiveFilters > 0 && (
-                <span className="bg-gold-primary text-bg-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                <span className="bg-gold-primary/15 text-gold-primary border border-gold-primary/30 font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm">
                   {sigActiveFilters}
                 </span>
               )}
             </div>
             <svg
-              className={`w-4 h-4 text-text-muted transition-transform ${showSigFilters ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              className={`w-3.5 h-3.5 text-text-muted transition-transform ${showSigFilters ? "rotate-180" : ""}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
-          <div
-            className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-gold-primary/10`}
-          >
-            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-2 lg:gap-3">
-              <div className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[160px]">
-                <label className="text-gold-primary text-[10px] font-semibold uppercase tracking-wider mb-1 block">
-                  {t("perf.search_pair")}
-                </label>
+          <div className={`${showSigFilters ? "block" : "hidden"} lg:block pb-4 border-b border-white/[0.04]`}>
+            <div className="flex flex-col sm:flex-row flex-wrap items-end gap-2">
+              <FilterField label={t("perf.search_pair")} className="flex-1 min-w-0 w-full sm:w-auto sm:min-w-[160px]">
                 <input
                   type="text"
                   placeholder="BTC, ETH, SOL..."
                   value={sigSearch}
                   onChange={(e) => setSigSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-gold-primary/50 transition-colors"
+                  className="w-full px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono placeholder-text-muted/70 focus:outline-none focus:border-gold-primary/40 transition-colors"
                 />
-              </div>
-              <div className="w-full sm:w-auto">
-                <label className="text-gold-primary text-[10px] font-semibold uppercase tracking-wider mb-1 block">
-                  {t("perf.status")}
-                </label>
+              </FilterField>
+              <FilterField label={t("perf.status")} className="w-full sm:w-auto">
                 <select
                   value={sigStatus}
                   onChange={(e) => setSigStatus(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_status")}</option>
                   <option value="open">Not Hit</option>
@@ -634,45 +612,37 @@ const AnalyzePage = () => {
                   <option value="closed_win">TP4 (Win)</option>
                   <option value="closed_loss">Loss</option>
                 </select>
-              </div>
-              <div className="w-full sm:w-auto">
-                <label className="text-gold-primary text-[10px] font-semibold uppercase tracking-wider mb-1 block">
-                  {t("perf.risk")}
-                </label>
+              </FilterField>
+              <FilterField label={t("perf.risk")} className="w-full sm:w-auto">
                 <select
                   value={sigRisk}
                   onChange={(e) => setSigRisk(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="all">{t("perf.all_risk")}</option>
                   <option value="low">Low</option>
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
                 </select>
-              </div>
-              <div className="w-full sm:w-auto">
-                <label className="text-gold-primary text-[10px] font-semibold uppercase tracking-wider mb-1 block">
-                  {t("perf.sort")}
-                </label>
+              </FilterField>
+              <FilterField label={t("perf.sort")} className="w-full sm:w-auto">
                 <select
                   value={sigSort}
                   onChange={(e) => setSigSort(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm focus:outline-none focus:border-gold-primary/50"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm font-mono focus:outline-none focus:border-gold-primary/40"
                 >
                   <option value="created_at">{t("perf.date")}</option>
                   <option value="pair">Pair</option>
                   <option value="entry">Entry</option>
                   <option value="risk_level">Risk</option>
                 </select>
-              </div>
+              </FilterField>
               <button
-                onClick={() =>
-                  setSigOrder(sigOrder === "desc" ? "asc" : "desc")
-                }
-                className="px-3 py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-white text-sm hover:border-gold-primary/40 transition-colors flex items-center gap-1.5"
+                onClick={() => setSigOrder(sigOrder === "desc" ? "asc" : "desc")}
+                className="px-3 py-2 bg-[#120809] border border-white/[0.06] rounded-sm text-white text-sm hover:border-gold-primary/30 transition-colors flex items-center gap-1.5"
               >
-                <span>{sigOrder === "desc" ? "↓" : "↑"}</span>
-                <span className="text-xs">
+                {sigOrder === "desc" ? <IconArrowDown /> : <IconArrowUp />}
+                <span className="font-mono text-[11px] uppercase tracking-wider">
                   {sigOrder === "desc" ? t("perf.newest") : "Oldest"}
                 </span>
               </button>
@@ -680,7 +650,7 @@ const AnalyzePage = () => {
           </div>
         </div>
 
-        <div className="px-4 lg:px-6 py-4">
+        <div className="px-5 py-4">
           <FullSignalTable
             signals={signals}
             loading={sigLoading}
@@ -690,27 +660,35 @@ const AnalyzePage = () => {
         </div>
 
         {sigTotalPages > 1 && (
-          <div className="flex items-center justify-between px-4 lg:px-6 py-3 lg:py-4 border-t border-gold-primary/10">
-            <p className="text-text-muted text-xs lg:text-sm">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.04]">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted tabular-nums">
               <span className="hidden sm:inline">{t("table.page")} </span>
               {sigPage} / {sigTotalPages}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => setSigPage((p) => Math.max(1, p - 1))}
                 disabled={sigPage <= 1}
-                className="px-3 lg:px-4 py-1.5 lg:py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs lg:text-sm transition-colors"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                  sigPage <= 1
+                    ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
+                    : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                }`}
               >
-                ← {t("table.prev")}
+                <IconChevronLeft />
+                {t("table.prev")}
               </button>
               <button
-                onClick={() =>
-                  setSigPage((p) => Math.min(sigTotalPages, p + 1))
-                }
+                onClick={() => setSigPage((p) => Math.min(sigTotalPages, p + 1))}
                 disabled={sigPage >= sigTotalPages}
-                className="px-3 lg:px-4 py-1.5 lg:py-2 bg-bg-card border border-gold-primary/20 rounded-lg text-text-secondary hover:text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs lg:text-sm transition-colors"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                  sigPage >= sigTotalPages
+                    ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
+                    : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                }`}
               >
-                {t("table.next")} →
+                {t("table.next")}
+                <IconChevronRight />
               </button>
             </div>
           </div>
@@ -726,14 +704,27 @@ const AnalyzePage = () => {
   );
 };
 
-// ============================================
-// KPI CARD
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   FILTER FIELD WRAPPER
+   ────────────────────────────────────────────────────────────── */
+
+const FilterField = ({ label, children, className }) => (
+  <div className={className}>
+    <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted/80 mb-1.5 block">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+/* ──────────────────────────────────────────────────────────────
+   KPI CARD — Flowscan flat hairline pattern
+   ────────────────────────────────────────────────────────────── */
+
 const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
   const colorStyles = {
-    green: "text-green-400",
-    red: "text-red-400",
-    yellow: "text-yellow-400",
+    profit: "text-profit",
+    loss: "text-loss",
     gold: "text-gold-primary",
     muted: "text-text-secondary",
     default: "text-white",
@@ -741,80 +732,59 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
 
   return (
     <div
-      className={`rounded-xl p-3 lg:p-4 border transition-all ${
+      className={`rounded-sm p-4 border transition-all relative overflow-hidden ${
         accent
-          ? "bg-gradient-to-b from-gold-primary/[0.08] to-transparent border-gold-primary/20"
-          : "bg-bg-card/30 border-white/[0.04] hover:border-gold-primary/10"
+          ? "bg-[#0a0805] border-gold-primary/25"
+          : "bg-[#0a0805] border-white/[0.06] hover:border-gold-primary/20 hover:-translate-y-0.5"
       }`}
     >
-      <p className="text-text-muted text-[9px] lg:text-[10px] uppercase tracking-wider font-medium mb-1 truncate">
+      {accent && (
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+      )}
+      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80 mb-2 truncate">
         {label}
       </p>
-      <p
-        className={`text-xl lg:text-2xl font-bold font-mono leading-none ${colorStyles[color]}`}
-      >
+      <div className="h-px bg-white/[0.04] mb-2.5" />
+      <p className={`font-mono text-2xl font-light tabular-nums leading-none ${colorStyles[color]}`}>
         {value}
       </p>
       {sub && (
-        <p className="text-text-muted text-[9px] lg:text-[10px] mt-1">{sub}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1.5 tabular-nums">
+          {sub}
+        </p>
       )}
     </div>
   );
 };
 
-// ============================================
-// OUTCOME DISTRIBUTION
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   OUTCOME DISTRIBUTION — Gold opacity gradient + loss
+   (consistent with OverviewPage outcome bars pattern)
+   ────────────────────────────────────────────────────────────── */
+
 const OutcomeDistribution = ({ data, t }) => {
   const total =
-    data.tp1_count +
-    data.tp2_count +
-    data.tp3_count +
-    data.tp4_count +
-    data.sl_count;
+    data.tp1_count + data.tp2_count + data.tp3_count + data.tp4_count + data.sl_count;
   if (total === 0)
     return (
-      <div className="h-40 flex items-center justify-center text-text-muted text-sm">
+      <div className="h-40 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
         No closed trades
       </div>
     );
 
+  // Gold opacity gradient for TPs, loss for SL
   const items = [
-    {
-      label: "TP1",
-      count: data.tp1_count,
-      color: "#22C55E",
-      text: "text-green-400",
-    },
-    {
-      label: "TP2",
-      count: data.tp2_count,
-      color: "#84CC16",
-      text: "text-lime-400",
-    },
-    {
-      label: "TP3",
-      count: data.tp3_count,
-      color: "#EAB308",
-      text: "text-yellow-400",
-    },
-    {
-      label: "TP4",
-      count: data.tp4_count,
-      color: "#F97316",
-      text: "text-orange-400",
-    },
-    {
-      label: "SL",
-      count: data.sl_count,
-      color: "#EF4444",
-      text: "text-red-400",
-    },
+    { label: "TP1", count: data.tp1_count, color: "rgba(212, 168, 83, 1)" },
+    { label: "TP2", count: data.tp2_count, color: "rgba(212, 168, 83, 0.85)" },
+    { label: "TP3", count: data.tp3_count, color: "rgba(212, 168, 83, 0.7)" },
+    { label: "TP4", count: data.tp4_count, color: "rgba(212, 168, 83, 0.55)" },
+    { label: "SL", count: data.sl_count, color: C.loss },
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="h-3 rounded-full overflow-hidden flex bg-bg-card/80 border border-white/5">
+    <div className="space-y-3">
+      {/* Stack bar */}
+      <div className="h-2 rounded-sm overflow-hidden flex bg-white/[0.04] border border-white/[0.04]">
         {items
           .filter((i) => i.count > 0)
           .map((item, idx) => (
@@ -824,10 +794,10 @@ const OutcomeDistribution = ({ data, t }) => {
                 width: `${(item.count / total) * 100}%`,
                 backgroundColor: item.color,
               }}
-              className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full relative group"
+              className="h-full transition-all duration-700 relative group"
             >
               {(item.count / total) * 100 > 10 && (
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white/90 drop-shadow">
+                <span className="absolute inset-0 flex items-center justify-center font-mono text-[8px] text-white/80 tabular-nums">
                   {((item.count / total) * 100).toFixed(0)}%
                 </span>
               )}
@@ -835,28 +805,34 @@ const OutcomeDistribution = ({ data, t }) => {
           ))}
       </div>
 
+      {/* Detail rows */}
       <div className="space-y-2">
         {items.map((item) => {
           const pct = (item.count / total) * 100;
+          const isLoss = item.label === "SL";
           return (
             <div key={item.label} className="flex items-center gap-2.5">
-              <span className={`text-[10px] font-bold w-6 ${item.text}`}>
+              <span
+                className={`font-mono text-[10px] uppercase tracking-wider w-7 ${
+                  isLoss ? "text-loss" : "text-gold-primary"
+                }`}
+              >
                 {item.label}
               </span>
-              <div className="flex-1 h-2 rounded-full bg-bg-card/60 overflow-hidden">
+              <div className="flex-1 h-1 rounded-sm bg-white/[0.04] overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-700"
+                  className="h-full transition-all duration-700"
                   style={{
                     width: `${Math.max(pct, 1)}%`,
                     backgroundColor: item.color,
                   }}
                 />
               </div>
-              <div className="flex items-center gap-1.5 min-w-[75px] justify-end">
-                <span className="text-white text-[11px] font-mono font-semibold">
+              <div className="flex items-center gap-2 min-w-[80px] justify-end font-mono tabular-nums">
+                <span className="text-white text-[11px]">
                   {item.count.toLocaleString()}
                 </span>
-                <span className="text-text-muted text-[9px] font-mono w-[32px] text-right">
+                <span className="text-text-muted/70 text-[10px] w-[36px] text-right">
                   {pct.toFixed(1)}%
                 </span>
               </div>
@@ -868,18 +844,18 @@ const OutcomeDistribution = ({ data, t }) => {
   );
 };
 
-// ============================================
-// WIN RATE TREND CHART
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   WIN RATE TREND CHART — muted profit color
+   ────────────────────────────────────────────────────────────── */
+
 const WinRateTrendChart = ({ data, mode, t }) => {
   if (!data || data.length === 0)
     return (
-      <div className="h-72 lg:h-96 flex items-center justify-center text-text-muted text-sm">
+      <div className="h-72 lg:h-96 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
         No trend data available
       </div>
     );
 
-  // Build chart data
   const chartData = data.map((item) => {
     const d = (() => {
       try {
@@ -901,65 +877,48 @@ const WinRateTrendChart = ({ data, mode, t }) => {
     };
   });
 
-  // Stats
   const validRates = chartData.map((d) => d.winRate).filter((v) => v > 0);
-  const avgWR =
-    validRates.length > 0
-      ? validRates.reduce((s, v) => s + v, 0) / validRates.length
-      : 0;
+  const avgWR = validRates.length > 0
+    ? validRates.reduce((s, v) => s + v, 0) / validRates.length
+    : 0;
 
-  // Max volume for bar scaling
   const maxVol = Math.max(...chartData.map((d) => d.total), 1);
 
-  // Find best and worst periods
   const bestPeriod = chartData.reduce(
     (best, d) => (d.winRate > (best?.winRate || 0) ? d : best),
-    chartData[0],
+    chartData[0]
   );
   const worstPeriod = chartData
     .filter((d) => d.winRate > 0)
     .reduce(
       (worst, d) => (d.winRate < (worst?.winRate || 100) ? d : worst),
-      chartData[0],
+      chartData[0]
     );
 
-  // Current win rate (latest period)
-  const currentWR =
-    chartData.length > 0 ? chartData[chartData.length - 1].winRate : 0;
-  const prevWR =
-    chartData.length > 1 ? chartData[chartData.length - 2].winRate : currentWR;
-  const wrTrend =
-    currentWR > prevWR ? "up" : currentWR < prevWR ? "down" : "flat";
+  const currentWR = chartData.length > 0 ? chartData[chartData.length - 1].winRate : 0;
+  const prevWR = chartData.length > 1 ? chartData[chartData.length - 2].winRate : currentWR;
+  const wrTrend = currentWR > prevWR ? "up" : currentWR < prevWR ? "down" : "flat";
+
+  const currentColor = currentWR >= 70 ? "text-profit" : currentWR >= 55 ? "text-gold-primary" : "text-loss";
 
   return (
     <div className="space-y-3">
-      {/* Top bar: Current WR info */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-6 h-[2px] bg-green-400 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
-              <span className="text-text-muted text-[10px]">
-                {t("perf.win_rate")}
-              </span>
-            </div>
-            <span
-              className={`text-sm font-mono font-bold ${currentWR >= 70 ? "text-green-400" : currentWR >= 55 ? "text-yellow-400" : "text-red-400"}`}
-            >
-              {currentWR.toFixed(1)}%
+      {/* Top bar */}
+      <div className="flex items-center gap-3 flex-wrap font-mono text-[11px] uppercase tracking-wider">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-5 h-px bg-profit" />
+          <span className="text-text-muted/80">{t("perf.win_rate")}</span>
+          <span className={`tabular-nums ${currentColor}`}>{currentWR.toFixed(1)}%</span>
+          {wrTrend !== "flat" && (
+            <span className={wrTrend === "up" ? "text-profit" : "text-loss"}>
+              {wrTrend === "up" ? <IconArrowUpMini /> : <IconArrowDownMini />}
             </span>
-            <span
-              className={`text-[10px] ${wrTrend === "up" ? "text-green-400" : wrTrend === "down" ? "text-red-400" : "text-text-muted"}`}
-            >
-              {wrTrend === "up" ? "↑" : wrTrend === "down" ? "↓" : "→"}
-            </span>
-          </div>
-          <span className="text-text-muted text-[9px]">·</span>
-          <span className="text-text-muted text-[10px]">
-            Avg{" "}
-            <span className="text-white font-mono">{avgWR.toFixed(1)}%</span>
-          </span>
+          )}
         </div>
+        <span className="text-text-muted/40">·</span>
+        <span className="text-text-muted/80">
+          Avg <span className="text-white tabular-nums">{avgWR.toFixed(1)}%</span>
+        </span>
       </div>
 
       {/* Chart */}
@@ -970,37 +929,20 @@ const WinRateTrendChart = ({ data, mode, t }) => {
             margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
           >
             <defs>
-              <linearGradient id="winRateGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22C55E" stopOpacity={0.2} />
-                <stop offset="50%" stopColor="#22C55E" stopOpacity={0.06} />
-                <stop offset="100%" stopColor="#22C55E" stopOpacity={0.01} />
+              <linearGradient id="winRateArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={C.profit} stopOpacity={0.18} />
+                <stop offset="50%" stopColor={C.profit} stopOpacity={0.05} />
+                <stop offset="100%" stopColor={C.profit} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="volBarGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4a853" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#d4a853" stopOpacity={0.05} />
+                <stop offset="0%" stopColor={C.gold} stopOpacity={0.25} />
+                <stop offset="100%" stopColor={C.gold} stopOpacity={0.04} />
               </linearGradient>
-              <filter
-                id="lineGlow"
-                x="-20%"
-                y="-20%"
-                width="140%"
-                height="140%"
-              >
-                <feGaussianBlur
-                  in="SourceGraphic"
-                  stdDeviation="2"
-                  result="blur"
-                />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
 
             <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(212,168,83,0.04)"
+              strokeDasharray="2 4"
+              stroke="rgba(255,255,255,0.04)"
               vertical={false}
             />
 
@@ -1008,13 +950,12 @@ const WinRateTrendChart = ({ data, mode, t }) => {
               dataKey="period"
               stroke="#6b5c52"
               fontSize={9}
+              fontFamily="JetBrains Mono, monospace"
               tickLine={false}
               axisLine={false}
               interval={Math.max(
                 0,
-                Math.floor(
-                  chartData.length / (window.innerWidth < 640 ? 5 : 10),
-                ),
+                Math.floor(chartData.length / (typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 10))
               )}
               dy={4}
             />
@@ -1023,12 +964,13 @@ const WinRateTrendChart = ({ data, mode, t }) => {
               yAxisId="rate"
               stroke="#6b5c52"
               fontSize={10}
+              fontFamily="JetBrains Mono, monospace"
               domain={[0, 100]}
-              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
+              ticks={[0, 20, 40, 60, 80, 100]}
               tickFormatter={(v) => `${v}%`}
               tickLine={false}
               axisLine={false}
-              width={42}
+              width={36}
             />
 
             <YAxis
@@ -1041,16 +983,16 @@ const WinRateTrendChart = ({ data, mode, t }) => {
             <ReferenceLine
               yAxisId="rate"
               y={avgWR}
-              stroke="rgba(212,168,83,0.15)"
-              strokeDasharray="6 4"
+              stroke="rgba(212,168,83,0.2)"
+              strokeDasharray="4 4"
             />
 
             <Bar
               yAxisId="vol"
               dataKey="total"
               fill="url(#volBarGrad)"
-              radius={[1, 1, 0, 0]}
-              maxBarSize={8}
+              radius={[0, 0, 0, 0]}
+              maxBarSize={6}
               isAnimationActive={false}
             />
 
@@ -1059,7 +1001,7 @@ const WinRateTrendChart = ({ data, mode, t }) => {
               type="monotone"
               dataKey="winRate"
               stroke="none"
-              fill="url(#winRateGlow)"
+              fill="url(#winRateArea)"
               fillOpacity={1}
               dot={false}
               activeDot={false}
@@ -1071,102 +1013,72 @@ const WinRateTrendChart = ({ data, mode, t }) => {
               yAxisId="rate"
               type="monotone"
               dataKey="winRate"
-              stroke="#22C55E"
-              strokeWidth={2}
+              stroke={C.profit}
+              strokeWidth={1.5}
               dot={false}
               activeDot={{
-                r: 5,
-                fill: "#22C55E",
-                stroke: "#0a0506",
-                strokeWidth: 2.5,
+                r: 4,
+                fill: C.profit,
+                stroke: "#0a0805",
+                strokeWidth: 2,
               }}
-              filter="url(#lineGlow)"
               connectNulls
             />
 
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
-                const d =
-                  payload.find((p) => p.dataKey === "winRate")?.payload ||
-                  payload[0]?.payload;
+                const d = payload.find((p) => p.dataKey === "winRate")?.payload || payload[0]?.payload;
                 if (!d) return null;
+                const wrColor = d.winRate >= 70 ? "text-profit" : d.winRate >= 55 ? "text-gold-primary" : "text-loss";
                 return (
-                  <div className="bg-bg-primary/95 backdrop-blur-xl border border-gold-primary/25 rounded-xl p-3 shadow-2xl min-w-[160px]">
-                    <p className="text-gold-primary text-[10px] font-semibold mb-2 pb-1.5 border-b border-gold-primary/10">
+                  <div className="bg-[#0a0506] border border-white/[0.06] rounded-sm p-3 min-w-[180px] relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-2 pb-2 border-b border-white/[0.04]">
                       {d.fullDate || label}
                     </p>
-
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center justify-between mb-1.5 font-mono text-[10px] uppercase tracking-wider">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
-                        <span className="text-text-muted text-[10px]">
-                          {t("perf.win_rate")}
-                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-profit" />
+                        <span className="text-text-muted">{t("perf.win_rate")}</span>
                       </div>
-                      <span
-                        className={`text-sm font-mono font-bold ${d.winRate >= 70 ? "text-green-400" : d.winRate >= 55 ? "text-yellow-400" : "text-red-400"}`}
-                      >
-                        {d.winRate.toFixed(1)}%
-                      </span>
+                      <span className={`tabular-nums ${wrColor}`}>{d.winRate.toFixed(1)}%</span>
                     </div>
-
-                    <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
-                      <span className="text-text-muted text-[10px]">
-                        {d.total} {t("perf.trades")}
-                      </span>
+                    <div className="flex items-center justify-between pt-1.5 border-t border-white/[0.04] font-mono text-[10px] tabular-nums">
+                      <span className="text-text-muted uppercase tracking-wider">{d.total} {t("perf.trades")}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-green-400 text-[10px] font-mono">
-                          {d.winners}W
-                        </span>
-                        <span className="text-text-muted text-[8px]">·</span>
-                        <span className="text-red-400 text-[10px] font-mono">
-                          {d.losers}L
-                        </span>
+                        <span className="text-profit/80">{d.winners}W</span>
+                        <span className="text-text-muted/40">·</span>
+                        <span className="text-loss/80">{d.losers}L</span>
                       </div>
                     </div>
                   </div>
                 );
               }}
-              cursor={{ stroke: "rgba(212,168,83,0.15)", strokeWidth: 1 }}
+              cursor={{ stroke: "rgba(212,168,83,0.2)", strokeWidth: 1 }}
             />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="flex items-center justify-between px-1 flex-wrap gap-2">
-        <div className="flex items-center gap-3 lg:gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 font-mono text-[10px] uppercase tracking-wider tabular-nums">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-text-muted uppercase tracking-wider">
-              {t("perf.best")}
-            </span>
-            <span className="text-green-400 text-[10px] font-mono font-bold">
-              {bestPeriod.winRate.toFixed(0)}%
-            </span>
-            <span className="text-text-muted text-[9px]">
-              ({bestPeriod.period})
-            </span>
+            <span className="text-text-muted/70">{t("perf.best")}</span>
+            <span className="text-profit">{bestPeriod.winRate.toFixed(0)}%</span>
+            <span className="text-text-muted/50">({bestPeriod.period})</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-text-muted uppercase tracking-wider">
-              {t("perf.worst")}
-            </span>
-            <span className="text-red-400 text-[10px] font-mono font-bold">
-              {worstPeriod.winRate.toFixed(0)}%
-            </span>
-            <span className="text-text-muted text-[9px]">
-              ({worstPeriod.period})
-            </span>
+            <span className="text-text-muted/70">{t("perf.worst")}</span>
+            <span className="text-loss">{worstPeriod.winRate.toFixed(0)}%</span>
+            <span className="text-text-muted/50">({worstPeriod.period})</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-text-muted text-[9px]">
-            {chartData.length} periods
-          </span>
-          <span className="text-text-muted text-[8px]">·</span>
-          <span className="text-text-muted text-[9px]">
-            {chartData.reduce((s, d) => s + d.total, 0).toLocaleString()}{" "}
-            {t("perf.trades")}
+          <span className="text-text-muted/70">{chartData.length} periods</span>
+          <span className="text-text-muted/40">·</span>
+          <span className="text-text-muted/70">
+            {chartData.reduce((s, d) => s + d.total, 0).toLocaleString()} {t("perf.trades")}
           </span>
         </div>
       </div>
@@ -1174,58 +1086,54 @@ const WinRateTrendChart = ({ data, mode, t }) => {
   );
 };
 
-// ============================================
-// RISK:REWARD CHART
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   RISK:REWARD CHART — Gold opacity gradient (Flowscan-consistent)
+   ────────────────────────────────────────────────────────────── */
+
 const RiskRewardChart = ({ data, t }) => {
   if (!data || data.length === 0)
     return (
-      <div className="h-44 flex items-center justify-center text-text-muted text-sm">
+      <div className="h-44 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
         No data
       </div>
     );
 
-  const colors = {
-    TP1: "#22C55E",
-    TP2: "#84CC16",
-    TP3: "#EAB308",
-    TP4: "#F97316",
-    SL: "#EF4444",
-  };
   const allItems = data.filter((d) => d.level !== "SL");
   const maxRR = Math.max(...allItems.map((d) => d.avg_rr), 1);
 
+  // Gold opacity gradient (TP1 most opaque → TP4 most faded)
+  const goldOpacity = [1, 0.85, 0.7, 0.55];
+
   return (
     <div className="space-y-3">
-      {allItems.map((item) => {
+      {allItems.map((item, idx) => {
         const pct = (item.avg_rr / maxRR) * 100;
-        const color = colors[item.level] || "#d4a853";
+        const alpha = goldOpacity[idx] || 0.5;
         return (
           <div key={item.level}>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: color }}
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: `rgba(212, 168, 83, ${alpha})` }}
                 />
-                <span className="text-white text-xs font-semibold">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-white">
                   {item.level}
                 </span>
-                <span className="text-text-muted text-[10px]">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted tabular-nums">
                   ({item.count.toLocaleString()} {t("perf.trades")})
                 </span>
               </div>
-              <span className="text-white text-sm font-mono font-bold">
+              <span className="font-mono text-sm text-white font-light tabular-nums">
                 {item.avg_rr.toFixed(2)}R
               </span>
             </div>
-            <div className="h-2.5 rounded-full bg-bg-card/60 overflow-hidden">
+            <div className="h-1.5 rounded-sm bg-white/[0.04] overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-700"
+                className="h-full transition-all duration-700"
                 style={{
                   width: `${Math.max(pct, 2)}%`,
-                  backgroundColor: color,
-                  opacity: 0.8,
+                  backgroundColor: `rgba(212, 168, 83, ${alpha})`,
                 }}
               />
             </div>
@@ -1234,17 +1142,16 @@ const RiskRewardChart = ({ data, t }) => {
       })}
 
       {data.find((d) => d.level === "SL") && (
-        <div className="pt-2 border-t border-white/5">
+        <div className="pt-2 border-t border-white/[0.04]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-red-400 text-xs font-semibold">SL</span>
-              <span className="text-text-muted text-[10px]">
-                ({data.find((d) => d.level === "SL").count.toLocaleString()}{" "}
-                {t("perf.trades")})
+              <div className="w-1.5 h-1.5 rounded-full bg-loss" />
+              <span className="font-mono text-[11px] uppercase tracking-wider text-loss">SL</span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted tabular-nums">
+                ({data.find((d) => d.level === "SL").count.toLocaleString()} {t("perf.trades")})
               </span>
             </div>
-            <span className="text-red-400 text-sm font-mono font-bold">
+            <span className="font-mono text-sm text-loss font-light tabular-nums">
               -1.00R
             </span>
           </div>
@@ -1254,13 +1161,14 @@ const RiskRewardChart = ({ data, t }) => {
   );
 };
 
-// ============================================
-// RISK TREND CHART
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   RISK TREND CHART — muted profit/gold/loss palette
+   ────────────────────────────────────────────────────────────── */
+
 const RiskTrendChart = ({ data, mode, t }) => {
   if (!data || data.length === 0)
     return (
-      <div className="h-48 lg:h-64 flex items-center justify-center text-text-muted text-sm">
+      <div className="h-48 lg:h-64 flex items-center justify-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
         Not enough data
       </div>
     );
@@ -1285,7 +1193,6 @@ const RiskTrendChart = ({ data, mode, t }) => {
     highCount: item.high_count,
   }));
 
-  // Auto-range
   const allRates = chartData
     .flatMap((d) => [d.low, d.normal, d.high])
     .filter((v) => v != null && v > 0);
@@ -1298,19 +1205,13 @@ const RiskTrendChart = ({ data, mode, t }) => {
   return (
     <div className="h-48 lg:h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="rgba(212,168,83,0.05)"
-            vertical={false}
-          />
+        <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
           <XAxis
             dataKey="period"
             stroke="#6b5c52"
             fontSize={9}
+            fontFamily="JetBrains Mono, monospace"
             tickLine={false}
             axisLine={false}
             interval={Math.max(0, Math.floor(chartData.length / 10))}
@@ -1318,6 +1219,7 @@ const RiskTrendChart = ({ data, mode, t }) => {
           <YAxis
             stroke="#6b5c52"
             fontSize={10}
+            fontFamily="JetBrains Mono, monospace"
             domain={[yMin, yMax]}
             tickFormatter={(v) => `${v}%`}
             tickLine={false}
@@ -1329,26 +1231,27 @@ const RiskTrendChart = ({ data, mode, t }) => {
               if (!active || !payload?.length) return null;
               const d = payload[0]?.payload;
               return (
-                <div className="bg-bg-primary/95 backdrop-blur-md border border-gold-primary/30 rounded-xl p-3 shadow-2xl">
-                  <p className="text-gold-primary text-[10px] font-semibold mb-1.5">
+                <div className="bg-[#0a0506] border border-white/[0.06] rounded-sm p-3 relative overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 mb-1.5">
                     {d?.fullDate || label}
                   </p>
                   {d?.low != null && (
-                    <p className="text-green-400 text-xs">
-                      {t("perf.low")}: {d.low.toFixed(1)}%{" "}
-                      <span className="text-text-muted">({d.lowCount})</span>
+                    <p className="font-mono text-[11px] text-profit tabular-nums">
+                      <span className="uppercase tracking-wider text-[10px]">{t("perf.low")}</span>: {d.low.toFixed(1)}%{" "}
+                      <span className="text-text-muted/70">({d.lowCount})</span>
                     </p>
                   )}
                   {d?.normal != null && (
-                    <p className="text-yellow-400 text-xs">
-                      {t("perf.normal")}: {d.normal.toFixed(1)}%{" "}
-                      <span className="text-text-muted">({d.normalCount})</span>
+                    <p className="font-mono text-[11px] text-gold-primary tabular-nums">
+                      <span className="uppercase tracking-wider text-[10px]">{t("perf.normal")}</span>: {d.normal.toFixed(1)}%{" "}
+                      <span className="text-text-muted/70">({d.normalCount})</span>
                     </p>
                   )}
                   {d?.high != null && (
-                    <p className="text-red-400 text-xs">
-                      {t("perf.high")}: {d.high.toFixed(1)}%{" "}
-                      <span className="text-text-muted">({d.highCount})</span>
+                    <p className="font-mono text-[11px] text-loss tabular-nums">
+                      <span className="uppercase tracking-wider text-[10px]">{t("perf.high")}</span>: {d.high.toFixed(1)}%{" "}
+                      <span className="text-text-muted/70">({d.highCount})</span>
                     </p>
                   )}
                 </div>
@@ -1357,36 +1260,42 @@ const RiskTrendChart = ({ data, mode, t }) => {
           />
           <Legend
             iconType="circle"
-            wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }}
+            wrapperStyle={{
+              fontSize: "10px",
+              paddingTop: "8px",
+              fontFamily: "JetBrains Mono, monospace",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
           />
           <Line
             type="monotone"
             dataKey="low"
             name={t("perf.low")}
-            stroke="#22C55E"
+            stroke={C.profit}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3 }}
+            activeDot={{ r: 3, fill: C.profit, stroke: "#0a0805", strokeWidth: 2 }}
             connectNulls
           />
           <Line
             type="monotone"
             dataKey="normal"
             name={t("perf.normal")}
-            stroke="#EAB308"
+            stroke={C.gold}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3 }}
+            activeDot={{ r: 3, fill: C.gold, stroke: "#0a0805", strokeWidth: 2 }}
             connectNulls
           />
           <Line
             type="monotone"
             dataKey="high"
             name={t("perf.high")}
-            stroke="#EF4444"
+            stroke={C.loss}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3 }}
+            activeDot={{ r: 3, fill: C.loss, stroke: "#0a0805", strokeWidth: 2 }}
             connectNulls
           />
         </LineChart>
@@ -1395,53 +1304,41 @@ const RiskTrendChart = ({ data, mode, t }) => {
   );
 };
 
-// ============================================
-// TOP PAIRS TABLE
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   TOP PAIRS TABLE — Flowscan table pattern
+   ────────────────────────────────────────────────────────────── */
+
 const TopPairsTable = ({ pairs, t }) => {
   const filtered = pairs
     .filter((p) => p.closed_trades >= 5)
     .sort(
       (a, b) =>
-        b.win_rate - a.win_rate || b.performance_score - a.performance_score,
+        b.win_rate - a.win_rate || b.performance_score - a.performance_score
     )
     .slice(0, 10);
 
   if (filtered.length === 0)
     return (
-      <div className="p-6 text-center text-text-muted text-sm">
+      <div className="p-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted">
         Not enough data (min 5 closed trades per pair)
       </div>
     );
 
+  // Best TP → gold opacity hierarchy (no rainbow)
+  const bestTpAlpha = { TP1: 1, TP2: 0.85, TP3: 0.7, TP4: 0.55 };
+
   return (
-    <div className="px-4 lg:px-6 py-4">
+    <div className="px-5 py-4">
       {/* Desktop */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gold-primary/10">
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.rank")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.pair")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.win_rate")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.closed")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.wl")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.best_tp")}
-              </th>
-              <th className="py-2 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.score")}
-              </th>
+            <tr className="border-b border-white/[0.06]">
+              {[t("perf.rank"), t("perf.pair"), t("perf.win_rate"), t("perf.closed"), t("perf.wl"), t("perf.best_tp"), t("perf.score")].map((h) => (
+                <th key={h} className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -1449,71 +1346,56 @@ const TopPairsTable = ({ pairs, t }) => {
               const pair = (p.pair || "").replace("USDT", "");
               const winPct = p.closed_trades > 0 ? p.win_rate : 0;
               const bestTp =
-                p.tp4_count > 0
-                  ? "TP4"
-                  : p.tp3_count > 0
-                    ? "TP3"
-                    : p.tp2_count > 0
-                      ? "TP2"
-                      : p.tp1_count > 0
-                        ? "TP1"
+                p.tp4_count > 0 ? "TP4"
+                  : p.tp3_count > 0 ? "TP3"
+                    : p.tp2_count > 0 ? "TP2"
+                      : p.tp1_count > 0 ? "TP1"
                         : "-";
-              const bestTpColor = {
-                TP4: "text-orange-400",
-                TP3: "text-yellow-400",
-                TP2: "text-lime-400",
-                TP1: "text-green-400",
-              };
-              const winners =
-                p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
+              const tpAlpha = bestTpAlpha[bestTp] || 0.5;
+              const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
+              const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
               return (
-                <tr
-                  key={i}
-                  className="border-b border-white/[0.03] hover:bg-gold-primary/[0.02] transition-colors"
-                >
-                  <td className="py-2.5 px-3 text-text-muted text-xs font-mono">
-                    {i + 1}
+                <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted/70 tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
                   </td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={p.pair} size={18} />
-                      <span className="text-white text-xs font-semibold">
-                        {pair}
-                      </span>
+                      <span className="text-white text-[12px]">{pair}</span>
                     </div>
                   </td>
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 rounded-full bg-bg-card/60 overflow-hidden">
+                      <div className="w-16 h-1 rounded-sm bg-white/[0.04] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-green-500/70 transition-all duration-500"
+                          className="h-full bg-profit/70 transition-all duration-500"
                           style={{ width: `${winPct}%` }}
                         />
                       </div>
-                      <span
-                        className={`text-xs font-mono font-bold ${winPct >= 80 ? "text-green-400" : winPct >= 60 ? "text-yellow-400" : "text-red-400"}`}
-                      >
+                      <span className={`font-mono text-[12px] tabular-nums ${wrColor}`}>
                         {winPct.toFixed(1)}%
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 text-white text-xs font-mono">
+                  <td className="py-2.5 px-3 font-mono text-[12px] text-white tabular-nums">
                     {p.closed_trades}
                   </td>
-                  <td className="py-2.5 px-3 text-xs font-mono">
-                    <span className="text-green-400">{winners}</span>
-                    <span className="text-text-muted mx-1">/</span>
-                    <span className="text-red-400">{p.sl_count}</span>
+                  <td className="py-2.5 px-3 font-mono text-[11px] tabular-nums">
+                    <span className="text-profit/80">{winners}</span>
+                    <span className="text-text-muted/40 mx-1">/</span>
+                    <span className="text-loss/80">{p.sl_count}</span>
                   </td>
                   <td className="py-2.5 px-3">
                     <span
-                      className={`text-xs font-bold ${bestTpColor[bestTp] || "text-text-muted"}`}
+                      className="font-mono text-[11px] uppercase tracking-wider"
+                      style={{ color: bestTp === "-" ? C.muted : `rgba(212, 168, 83, ${tpAlpha})` }}
                     >
                       {bestTp}
                     </span>
                   </td>
                   <td className="py-2.5 px-3">
-                    <span className="text-gold-primary text-xs font-mono font-bold">
+                    <span className="font-mono text-[12px] text-gold-primary tabular-nums">
                       {p.performance_score.toFixed(0)}
                     </span>
                   </td>
@@ -1530,26 +1412,22 @@ const TopPairsTable = ({ pairs, t }) => {
           const pair = (p.pair || "").replace("USDT", "");
           const winPct = p.closed_trades > 0 ? p.win_rate : 0;
           const winners = p.tp1_count + p.tp2_count + p.tp3_count + p.tp4_count;
+          const wrColor = winPct >= 80 ? "text-profit" : winPct >= 60 ? "text-gold-primary" : "text-loss";
           return (
-            <div
-              key={i}
-              className="flex items-center gap-3 py-2 border-b border-white/[0.03]"
-            >
-              <span className="text-text-muted text-[10px] font-mono w-4">
-                {i + 1}
+            <div key={i} className="flex items-center gap-3 py-2 border-b border-white/[0.03]">
+              <span className="font-mono text-[10px] text-text-muted/70 tabular-nums w-5">
+                {String(i + 1).padStart(2, "0")}
               </span>
               <CoinLogo pair={p.pair} size={20} />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-semibold">{pair}</p>
-                <p className="text-text-muted text-[9px] font-mono">
+                <p className="text-white text-[12px]">{pair}</p>
+                <p className="font-mono text-[10px] text-text-muted/70 tabular-nums">
                   {p.closed_trades} trades ·{" "}
-                  <span className="text-green-400">{winners}W</span>{" "}
-                  <span className="text-red-400">{p.sl_count}L</span>
+                  <span className="text-profit/80">{winners}W</span>{" "}
+                  <span className="text-loss/80">{p.sl_count}L</span>
                 </p>
               </div>
-              <span
-                className={`text-sm font-mono font-bold ${winPct >= 80 ? "text-green-400" : winPct >= 60 ? "text-yellow-400" : "text-red-400"}`}
-              >
+              <span className={`font-mono text-sm font-light tabular-nums ${wrColor}`}>
                 {winPct.toFixed(1)}%
               </span>
             </div>
@@ -1560,9 +1438,10 @@ const TopPairsTable = ({ pairs, t }) => {
   );
 };
 
-// ============================================
-// FULL SIGNAL TABLE
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   FULL SIGNAL TABLE — Flowscan pattern (consistent with SignalsTable)
+   ────────────────────────────────────────────────────────────── */
+
 const FullSignalTable = ({ signals, loading, onSelect, t }) => {
   const formatPrice = (p) => {
     if (!p) return "-";
@@ -1584,15 +1463,20 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       pct: (((targ[0] - s.entry) / s.entry) * 100).toFixed(2),
     };
   };
+
+  // Flowscan-consistent: all TPs → profit, OPEN → gold, loss → loss
   const statusBadge = (st) => {
-    const styles = {
-      open: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
-      tp1: "bg-green-500/15 text-green-400 border-green-500/30",
-      tp2: "bg-lime-500/15 text-lime-400 border-lime-500/30",
-      tp3: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-      closed_win: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-      closed_loss: "bg-red-500/15 text-red-400 border-red-500/30",
-    };
+    const key = st?.toLowerCase();
+    const isProfit = ["tp1", "tp2", "tp3", "closed_win"].includes(key);
+    const isLoss = key === "closed_loss";
+    const isOpen = key === "open";
+    const classes = isProfit
+      ? "bg-profit/10 text-profit border-profit/25"
+      : isLoss
+        ? "bg-loss/10 text-loss border-loss/25"
+        : isOpen
+          ? "bg-gold-primary/10 text-gold-primary border-gold-primary/25"
+          : "bg-white/[0.04] text-text-muted border-white/[0.06]";
     const labels = {
       open: t("perf.not_hit_badge"),
       tp1: "TP1",
@@ -1601,34 +1485,29 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       closed_win: "TP4",
       closed_loss: "LOSS",
     };
-    const key = st?.toLowerCase();
     return (
-      <span
-        className={`${styles[key] || "bg-gray-500/15 text-gray-400 border-gray-500/30"} text-[9px] lg:text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap`}
-      >
+      <span className={`${classes} font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm border whitespace-nowrap`}>
         {labels[key] || st}
       </span>
     );
   };
+
   const riskBadge = (r) => {
     const rl = r?.toLowerCase() || "";
     if (rl.startsWith("low"))
-      return "bg-green-500/10 text-green-400 border-green-500/20";
+      return "bg-profit/10 text-profit border-profit/25";
     if (rl.startsWith("nor") || rl.startsWith("med"))
-      return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+      return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
     if (rl.startsWith("high"))
-      return "bg-red-500/10 text-red-400 border-red-500/20";
-    return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+      return "bg-loss/10 text-loss border-loss/25";
+    return "bg-white/[0.04] text-text-muted border-white/[0.06]";
   };
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="h-10 bg-gold-primary/5 rounded-lg animate-pulse"
-          />
+          <div key={i} className="h-10 bg-white/[0.03] rounded-sm animate-pulse" />
         ))}
       </div>
     );
@@ -1636,7 +1515,7 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
 
   if (!signals || signals.length === 0) {
     return (
-      <div className="text-center py-8 text-text-muted text-sm">
+      <div className="text-center py-8 font-mono text-[11px] uppercase tracking-wider text-text-muted">
         No signals found
       </div>
     );
@@ -1648,31 +1527,12 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gold-primary/10">
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.pair")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.entry")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.max_target")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.stop_loss")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.risk")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.status")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.mcap")}
-              </th>
-              <th className="py-2.5 px-3 text-left text-gold-primary/60 text-[9px] uppercase tracking-wider font-bold">
-                {t("perf.date")}
-              </th>
+            <tr className="border-b border-white/[0.06]">
+              {[t("perf.pair"), t("perf.entry"), t("perf.max_target"), t("perf.stop_loss"), t("perf.risk"), t("perf.status"), t("perf.mcap"), t("perf.date")].map((h) => (
+                <th key={h} className="py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -1683,66 +1543,57 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
                 <tr
                   key={i}
                   onClick={() => onSelect(s)}
-                  className="border-b border-white/[0.03] hover:bg-gold-primary/[0.03] cursor-pointer transition-colors group"
+                  className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors group"
                 >
                   <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={s.pair} size={20} />
-                      <span className="text-white text-xs font-semibold group-hover:text-gold-primary transition-colors">
+                      <span className="text-white text-[12px] group-hover:text-gold-primary transition-colors">
                         {pair}
                       </span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 text-white text-xs font-mono">
+                  <td className="py-2.5 px-3 font-mono text-[12px] text-white tabular-nums">
                     ${formatPrice(s.entry)}
                   </td>
                   <td className="py-2.5 px-3">
                     {mt.value ? (
-                      <div>
-                        <span className="text-white text-xs font-mono">
-                          ${formatPrice(mt.value)}
-                        </span>
-                        <span className="text-green-400 text-[10px] ml-1.5 font-mono">
-                          +{mt.pct}%
-                        </span>
+                      <div className="font-mono tabular-nums">
+                        <span className="text-white text-[12px]">${formatPrice(mt.value)}</span>
+                        <span className="text-profit/80 text-[10px] ml-1.5">+{mt.pct}%</span>
                       </div>
                     ) : (
-                      <span className="text-text-muted text-xs">-</span>
+                      <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
                   <td className="py-2.5 px-3">
                     {s.stop1 ? (
-                      <div>
-                        <span className="text-white text-xs font-mono">
-                          ${formatPrice(s.stop1)}
-                        </span>
+                      <div className="font-mono tabular-nums">
+                        <span className="text-white text-[12px]">${formatPrice(s.stop1)}</span>
                         {s.entry && (
-                          <span className="text-red-400 text-[10px] ml-1.5 font-mono">
-                            {(((s.stop1 - s.entry) / s.entry) * 100).toFixed(1)}
-                            %
+                          <span className="text-loss/80 text-[10px] ml-1.5">
+                            {(((s.stop1 - s.entry) / s.entry) * 100).toFixed(1)}%
                           </span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-text-muted text-xs">-</span>
+                      <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
                   <td className="py-2.5 px-3">
                     {s.risk_level ? (
-                      <span
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${riskBadge(s.risk_level)}`}
-                      >
+                      <span className={`px-2 py-0.5 rounded-sm font-mono text-[10px] uppercase tracking-wider border ${riskBadge(s.risk_level)}`}>
                         {s.risk_level}
                       </span>
                     ) : (
-                      "-"
+                      <span className="font-mono text-[11px] text-text-muted">-</span>
                     )}
                   </td>
                   <td className="py-2.5 px-3">{statusBadge(s.status)}</td>
-                  <td className="py-2.5 px-3 text-text-muted text-xs">
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-text-muted">
                     {s.market_cap || "-"}
                   </td>
-                  <td className="py-2.5 px-3 text-text-muted text-[10px] font-mono">
+                  <td className="py-2.5 px-3 font-mono text-[10px] uppercase tracking-wider text-text-muted/70 tabular-nums">
                     {formatDate(s.created_at)}
                   </td>
                 </tr>
@@ -1761,70 +1612,61 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
             <div
               key={i}
               onClick={() => onSelect(s)}
-              className="glass-card rounded-xl p-3 border border-gold-primary/10 active:border-gold-primary/30 transition-all cursor-pointer"
+              className="bg-[#0a0805] rounded-md p-3 border border-white/[0.06] active:border-gold-primary/25 transition-all cursor-pointer relative overflow-hidden"
             >
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <CoinLogo pair={s.pair} size={28} />
                   <div>
-                    <p className="text-white text-xs font-bold">
-                      {pair}
-                      <span className="text-text-muted font-normal">/USDT</span>
+                    <p className="text-white text-[12px]">
+                      {pair}<span className="text-text-muted/70 font-mono text-[10px] ml-0.5">/USDT</span>
                     </p>
-                    <p className="text-text-muted text-[9px] font-mono">
+                    <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70 tabular-nums">
                       {formatDate(s.created_at)}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {s.risk_level && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border ${riskBadge(s.risk_level)}`}
-                    >
+                    <span className={`px-1.5 py-0.5 rounded-sm font-mono text-[9px] uppercase tracking-wider border ${riskBadge(s.risk_level)}`}>
                       {s.risk_level}
                     </span>
                   )}
                   {statusBadge(s.status)}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-white/[0.04]">
                 <div>
-                  <p className="text-text-muted text-[8px] uppercase">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
                     {t("perf.entry")}
                   </p>
-                  <p className="text-white text-[10px] font-mono font-semibold">
+                  <p className="font-mono text-[10px] text-white font-light tabular-nums mt-0.5">
                     ${formatPrice(s.entry)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-text-muted text-[8px] uppercase">Target</p>
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">Target</p>
                   {mt.value ? (
-                    <p className="text-[10px] font-mono font-semibold">
-                      <span className="text-white">
-                        ${formatPrice(mt.value)}
-                      </span>{" "}
-                      <span className="text-green-400">+{mt.pct}%</span>
+                    <p className="font-mono text-[10px] font-light tabular-nums mt-0.5">
+                      <span className="text-white">${formatPrice(mt.value)}</span>{" "}
+                      <span className="text-profit/80">+{mt.pct}%</span>
                     </p>
                   ) : (
-                    <p className="text-text-muted text-[10px]">-</p>
+                    <p className="font-mono text-[10px] text-text-muted">-</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-text-muted text-[8px] uppercase">SL</p>
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/70">SL</p>
                   {s.stop1 ? (
-                    <p className="text-[10px] font-mono font-semibold">
-                      <span className="text-white">
-                        ${formatPrice(s.stop1)}
-                      </span>{" "}
-                      <span className="text-red-400">
-                        {s.entry
-                          ? (((s.stop1 - s.entry) / s.entry) * 100).toFixed(1)
-                          : ""}
-                        %
+                    <p className="font-mono text-[10px] font-light tabular-nums mt-0.5">
+                      <span className="text-white">${formatPrice(s.stop1)}</span>{" "}
+                      <span className="text-loss/80">
+                        {s.entry ? (((s.stop1 - s.entry) / s.entry) * 100).toFixed(1) : ""}%
                       </span>
                     </p>
                   ) : (
-                    <p className="text-text-muted text-[10px]">-</p>
+                    <p className="font-mono text-[10px] text-text-muted">-</p>
                   )}
                 </div>
               </div>
@@ -1836,38 +1678,153 @@ const FullSignalTable = ({ signals, loading, onSelect, t }) => {
   );
 };
 
-// ============================================
-// LOADING SKELETON
-// ============================================
+/* ──────────────────────────────────────────────────────────────
+   SVG ICONS — Lucide-style minimal
+   ────────────────────────────────────────────────────────────── */
+
+const IconTrend = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 14l4-4 4 4 6-6" />
+    </svg>
+  </div>
+);
+
+const IconOutcome = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="14" width="4" height="7" />
+      <rect x="10" y="9" width="4" height="12" />
+      <rect x="17" y="5" width="4" height="16" />
+    </svg>
+  </div>
+);
+
+const IconRR = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 14l4-4" />
+      <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+    </svg>
+  </div>
+);
+
+const IconRisk = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 22h20L12 2z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  </div>
+);
+
+const IconRiskTrend = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 12l3-3 3 3 7-7" />
+      <path d="M14 5h6v6" />
+    </svg>
+  </div>
+);
+
+const IconPairs = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15L5 8h14l-7 7z" />
+      <circle cx="12" cy="3" r="1.5" />
+      <circle cx="5" cy="8" r="1.5" />
+      <circle cx="19" cy="8" r="1.5" />
+    </svg>
+  </div>
+);
+
+const IconHistory = () => (
+  <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  </div>
+);
+
+const IconBolt = () => (
+  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 3 L4 14 H11 L9 21 L20 10 H13 L13 3 Z" />
+  </svg>
+);
+
+const IconFilter = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6">
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  </svg>
+);
+
+const IconArrowUp = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+const IconArrowDown = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const IconArrowUpMini = () => (
+  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+const IconArrowDownMini = () => (
+  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const IconChevronLeft = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+const IconChevronRight = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+/* ──────────────────────────────────────────────────────────────
+   LOADING SKELETON
+   ────────────────────────────────────────────────────────────── */
+
 const LoadingSkeleton = ({ t }) => (
-  <div className="space-y-4">
+  <div className="space-y-5">
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     <div className="flex items-center gap-3">
-      <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-      <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">
-        {t("perf.title")}
-      </h2>
+      <span className="h-px w-8 bg-gold-primary/40" />
+      <div className="skel w-40 h-3" />
+      <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
       {[...Array(6)].map((_, i) => (
-        <div
-          key={i}
-          className="rounded-xl p-3 lg:p-4 bg-bg-card/30 border border-white/[0.04] animate-pulse"
-        >
-          <div className="h-3 bg-gold-primary/10 rounded w-14 mb-2" />
-          <div className="h-6 bg-gold-primary/10 rounded w-16" />
+        <div key={i} className="rounded-sm p-4 bg-[#0a0805] border border-white/[0.06]">
+          <div className="skel w-16 h-3 mb-2" />
+          <div className="skel w-20 h-5" />
         </div>
       ))}
     </div>
-    <div className="glass-card rounded-2xl p-4 lg:p-6 h-72 lg:h-96 animate-pulse border border-gold-primary/10">
-      <div className="h-4 bg-gold-primary/10 rounded w-32 mb-2" />
-      <div className="h-3 bg-gold-primary/10 rounded w-48" />
+    <div className="bg-[#0a0805] rounded-md p-5 h-72 border border-white/[0.06]">
+      <div className="skel w-32 h-3 mb-2" />
+      <div className="skel w-48 h-3" />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
       {[...Array(2)].map((_, i) => (
-        <div
-          key={i}
-          className="glass-card rounded-2xl p-4 lg:p-6 h-56 animate-pulse border border-gold-primary/10"
-        />
+        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-56 border border-white/[0.06]" />
       ))}
     </div>
   </div>
