@@ -36,7 +36,6 @@ class Payment(Base):
     tx_hash = Column(String(100), nullable=True, index=True)
     wallet_from = Column(String(50), nullable=True)
     wallet_to = Column(String(50), nullable=True)
-    currency = Column(String(10), default="usdt")
     network = Column(String(20), default="bsc")
 
     # Status: pending → verifying → confirmed / failed / expired / cancelled
