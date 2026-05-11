@@ -3,6 +3,16 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import calendarApi from '../services/calendarApi';
 
+/* ──────────────────────────────────────────────────────────────
+   MacroCalendarPage — Web3 Flowscan-minimal reskin
+   • Gold accent retained (LuxQuant brand)
+   • profit / loss / amber muted functional only
+   • Flat hairline cards, sharp rounded-md, font-mono font-light numbers
+   • Country flags RETAINED (cultural/sentimental)
+   • Type icons → SVG Lucide-style
+   • Line-label-line section headers
+   ────────────────────────────────────────────────────────────── */
+
 // ── Constants ──
 const FLAG = {
   USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CAD: '🇨🇦',
@@ -18,23 +28,26 @@ const TABS = [
 
 const IMPACTS = ['All', 'High', 'Medium', 'Low', 'Holiday'];
 
+// Muted Flowscan palette — replaces all rainbow rgba constants
 const IMPACT_STYLE = {
-  High:    { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.25)', dot: '#ef4444', bar: '#ef4444' },
-  Medium:  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b', bar: '#f59e0b' },
-  Low:     { color: '#6b7280', bg: 'rgba(107,114,128,0.10)', border: 'rgba(107,114,128,0.20)', dot: '#4b5563', bar: '#4b5563' },
-  Holiday: { color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)', dot: '#a78bfa', bar: '#a78bfa' },
+  High:    { color: '#e07288', bg: 'rgba(224,114,136,0.08)', border: 'rgba(224,114,136,0.25)', dot: '#e07288' },
+  Medium:  { color: '#f0b450', bg: 'rgba(240,180,80,0.08)',  border: 'rgba(240,180,80,0.25)',  dot: '#f0b450' },
+  Low:     { color: '#9a8a7d', bg: 'rgba(154,138,125,0.06)', border: 'rgba(255,255,255,0.06)', dot: '#9a8a7d' },
+  Holiday: { color: '#d4a853', bg: 'rgba(212,168,83,0.06)',  border: 'rgba(212,168,83,0.20)',  dot: '#d4a853' },
 };
 
+// Type styles — all gold-tier (no rainbow), differentiated by opacity & label
 const TYPE_STYLE = {
-  macro:        { color: '#f97316', bg: 'rgba(249,115,22,0.10)', border: 'rgba(249,115,22,0.20)', icon: '🏛️', label: 'Macro', labelZh: '宏观' },
-  unlock:       { color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.20)', icon: '🔓', label: 'Unlock', labelZh: '解锁' },
-  crypto_event: { color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.20)', icon: '⚡', label: 'Event', labelZh: '事件' },
+  macro:        { color: '#d4a853', bg: 'rgba(212,168,83,0.08)',  border: 'rgba(212,168,83,0.20)', label: 'Macro',  labelZh: '宏观' },
+  unlock:       { color: '#56c996', bg: 'rgba(86,201,150,0.06)',  border: 'rgba(86,201,150,0.20)', label: 'Unlock', labelZh: '解锁' },
+  crypto_event: { color: '#f0d890', bg: 'rgba(240,216,144,0.06)', border: 'rgba(240,216,144,0.20)', label: 'Event',  labelZh: '事件' },
 };
 
+// Source badges — unified gold (no brand-rainbow)
 const SOURCE_STYLE = {
-  CoinTelegraph: { color: '#1DA1F2', bg: 'rgba(29,161,242,0.08)', border: 'rgba(29,161,242,0.15)' },
-  CoinDesk:      { color: '#4a90d9', bg: 'rgba(74,144,217,0.08)', border: 'rgba(74,144,217,0.15)' },
-  Decrypt:       { color: '#00d395', bg: 'rgba(0,211,149,0.08)', border: 'rgba(0,211,149,0.15)' },
+  CoinTelegraph: { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
+  CoinDesk:      { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
+  Decrypt:       { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.20)' },
 };
 
 // ── Event Translations (EN → ZH) ──
@@ -79,7 +92,7 @@ const fmtUsd = (v) => {
 // ══════════════════════════════════════
 const MacroCalendarPage = () => {
   const { t, i18n } = useTranslation();
-  const [allEvents, setAllEvents] = useState([]);  // ALL events from unified endpoint
+  const [allEvents, setAllEvents] = useState([]);
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsLoading, setNewsLoading] = useState(true);
@@ -100,11 +113,10 @@ const MacroCalendarPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // ── Fetch ALL events once, filter client-side by tab ──
   const loadEvents = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const data = await calendarApi.getUnified();  // no filter — get everything
+      const data = await calendarApi.getUnified();
       setAllEvents(data.events || []);
       setAllStats(data.stats || null);
     } catch (err) {
@@ -115,7 +127,6 @@ const MacroCalendarPage = () => {
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  // ── Fetch news ──
   useEffect(() => {
     (async () => {
       setNewsLoading(true);
@@ -127,7 +138,6 @@ const MacroCalendarPage = () => {
     })();
   }, []);
 
-  // ── Client-side filtering: tab + impact ──
   const events = useMemo(() => {
     let result = allEvents;
     if (activeTab !== 'all') result = result.filter(e => e.type === activeTab);
@@ -136,7 +146,6 @@ const MacroCalendarPage = () => {
 
   const stats = useMemo(() => {
     if (!allStats) return null;
-    // When filtered by tab, recompute counts from filtered events
     if (activeTab === 'all') return allStats;
     return {
       ...allStats,
@@ -152,7 +161,6 @@ const MacroCalendarPage = () => {
     return result;
   }, [events, selectedImpact]);
 
-  // ── Group by date ──
   const groupedByDate = useMemo(() => {
     const groups = [];
     const map = {};
@@ -183,7 +191,6 @@ const MacroCalendarPage = () => {
     return groups;
   }, [filteredEvents, isZh]);
 
-  // Auto-expand: today + future days, collapse past days
   useEffect(() => {
     const expanded = {};
     groupedByDate.forEach(g => {
@@ -196,17 +203,14 @@ const MacroCalendarPage = () => {
     setExpandedDays(prev => ({ ...prev, [dateLabel]: !prev[dateLabel] }));
   };
 
-  // ── Next high impact ──
   const nextHighImpact = useMemo(() =>
     events.filter(e => e.impact === 'High' && !e.is_past)
       .sort((a, b) => a.seconds_until - b.seconds_until)[0] || null
   , [events]);
 
-  // ── Helpers ──
   const getTitle = (event) => {
     const title = event.title || '';
     if (!isZh) return title;
-    // Only translate macro events
     if (event.type === 'macro') {
       for (const [en, zh] of Object.entries(EVENT_ZH)) {
         if (title.includes(en)) return title.replace(en, zh);
@@ -233,48 +237,66 @@ const MacroCalendarPage = () => {
 
   const cdColor = (sec) => {
     if (!sec || sec <= 0) return '#6b5c52';
-    if (sec < 3600) return '#ef4444';
-    if (sec < 86400) return '#f59e0b';
-    return '#6b5c52';
+    if (sec < 3600) return '#e07288';
+    if (sec < 86400) return '#f0b450';
+    return '#9a8a7d';
   };
 
   // ══════════════════════════════════════
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
-      {/* ─── Header ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <span className="text-lg">📅</span> {t('calendar.title')}
-          </h1>
-          <p className="text-xs mt-1" style={{ color: '#6b5c52' }}>{t('calendar.subtitle')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={loadEvents}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-80"
-            style={{ background: 'rgba(255,255,255,0.03)', color: '#6b5c52', border: '1px solid rgba(255,255,255,0.06)' }}>
-            🔄 {t('calendar.refresh')}
-          </button>
-        </div>
+      {/* ── PAGE TITLE — line-label-line ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          {t('calendar.title')}
+        </span>
+        <span className="h-px flex-1 bg-white/[0.06]" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
+          Economic Events
+        </span>
       </div>
 
-      {/* ─── Type Tabs ─── */}
-      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+      {/* ── Subtitle + Refresh ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
+          {t('calendar.subtitle')}
+        </p>
+        <button
+          onClick={loadEvents}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-text-muted hover:text-white font-mono text-[10px] uppercase tracking-wider transition-colors"
+        >
+          <IconRefresh />
+          {t('calendar.refresh')}
+        </button>
+      </div>
+
+      {/* ── TYPE TABS — Flowscan filter pill ── */}
+      <div className="flex items-center gap-1 p-1 rounded-sm bg-[#0a0805] border border-white/[0.06] overflow-x-auto">
         {TABS.map(tab => {
           const active = activeTab === tab.key;
-          const ts = tab.key !== 'all' ? TYPE_STYLE[tab.key] : null;
+          const Icon = TAB_ICONS[tab.key];
+          const countNum = allStats && tab.key !== 'all'
+            ? (tab.key === 'macro' ? allStats.macro : tab.key === 'unlock' ? allStats.unlocks : allStats.crypto_events)
+            : null;
           return (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
-              style={active
-                ? { background: ts?.bg || 'rgba(212,168,83,0.12)', color: ts?.color || '#d4a853', border: `1px solid ${ts?.border || 'rgba(212,168,83,0.25)'}` }
-                : { background: 'transparent', color: '#5a4d42', border: '1px solid transparent' }}>
-              {ts?.icon || '🌐'} {isZh ? tab.labelZh : tab.label}
-              {/* Show count badge */}
-              {allStats && tab.key !== 'all' && (
-                <span className="text-[9px] px-1 py-0.5 rounded-full font-mono" style={{ background: 'rgba(255,255,255,0.05)', color: active ? (ts?.color || '#d4a853') : '#4a3f36' }}>
-                  {tab.key === 'macro' ? allStats.macro : tab.key === 'unlock' ? allStats.unlocks : allStats.crypto_events}
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap ${
+                active
+                  ? "bg-white/10 text-white border border-white/[0.08]"
+                  : "text-text-muted hover:text-white border border-transparent hover:bg-white/[0.03]"
+              }`}
+            >
+              <Icon active={active} />
+              {isZh ? tab.labelZh : tab.label}
+              {countNum != null && (
+                <span className={`font-mono text-[9px] tabular-nums px-1.5 py-0.5 rounded-sm border ${
+                  active ? 'bg-gold-primary/10 text-gold-primary border-gold-primary/25' : 'bg-white/[0.04] text-text-muted/70 border-white/[0.04]'
+                }`}>
+                  {countNum}
                 </span>
               )}
             </button>
@@ -282,38 +304,36 @@ const MacroCalendarPage = () => {
         })}
       </div>
 
-      {/* ─── Stats Row ─── */}
+      {/* ── STATS ROW ── */}
       {!loading && !error && stats && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex gap-3 flex-1">
-            {[
-              { label: isZh ? '总计' : 'Total', value: stats.total, icon: '📊' },
-              { label: isZh ? '高影响' : 'High Impact', value: stats.high_impact, icon: '🔴', accent: '#ef4444' },
-              { label: isZh ? '代币解锁' : 'Unlocks', value: stats.unlocks, icon: '🔓', accent: '#8b5cf6' },
-              { label: isZh ? '即将' : 'Upcoming', value: stats.upcoming, icon: '⏳', accent: '#f59e0b' },
-            ].map((s, i) => (
-              <div key={i} className="rounded-lg px-3 py-2 flex items-center gap-2 flex-1"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <span className="text-sm">{s.icon}</span>
-                <div>
-                  <p className="text-base font-bold font-mono leading-none" style={{ color: s.accent || '#d4a853' }}>{s.value}</p>
-                  <p className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: '#5a4d42' }}>{s.label}</p>
-                </div>
-              </div>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+          <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <CalendarStat label={isZh ? '总计' : 'Total'} value={stats.total} icon="total" />
+            <CalendarStat label={isZh ? '高影响' : 'High Impact'} value={stats.high_impact} icon="high" color="loss" />
+            <CalendarStat label={isZh ? '代币解锁' : 'Unlocks'} value={stats.unlocks} icon="unlock" color="profit" />
+            <CalendarStat label={isZh ? '即将' : 'Upcoming'} value={stats.upcoming} icon="upcoming" color="gold" />
           </div>
 
           {nextHighImpact && (
-            <div className="rounded-lg px-3 py-2 flex items-center gap-3 sm:min-w-[280px]"
-              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.12)' }}>
-              <span className="text-sm">🔴</span>
+            <div className="lg:col-span-2 relative bg-[#0a0805] rounded-md border border-loss/25 p-3 overflow-hidden flex items-center gap-3">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+              <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-loss/10 border border-loss/25 flex-shrink-0">
+                <svg className="w-3.5 h-3.5 text-loss" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <path d="M12 2L2 22h20L12 2z" />
+                  <path d="M12 9v4M12 17h.01" />
+                </svg>
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-white truncate">{getTitle(nextHighImpact)}</p>
-                <p className="text-[10px] mt-0.5" style={{ color: '#7a6b5b' }}>
-                  {nextHighImpact.type === 'macro' ? FLAG[nextHighImpact.country] : ''} {nextHighImpact.symbol || nextHighImpact.country} · {fmtTime(nextHighImpact.date)}
+                <p className="font-mono text-[9px] uppercase tracking-wider text-loss/80 mb-0.5">
+                  {isZh ? '下个高影响' : 'Next High Impact'}
+                </p>
+                <p className="text-white text-[12px] truncate">{getTitle(nextHighImpact)}</p>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                  {nextHighImpact.type === 'macro' ? FLAG[nextHighImpact.country] : ''}{' '}
+                  <span className="tabular-nums">{nextHighImpact.symbol || nextHighImpact.country} · {fmtTime(nextHighImpact.date)}</span>
                 </p>
               </div>
-              <p className="text-sm font-mono font-bold tabular-nums shrink-0" style={{ color: '#ef4444' }}>
+              <p className="font-mono text-sm font-light text-loss tabular-nums shrink-0">
                 {fmtCountdown(nextHighImpact.seconds_until)}
               </p>
             </div>
@@ -321,27 +341,39 @@ const MacroCalendarPage = () => {
         </div>
       )}
 
-      {/* ─── Impact Filters ─── */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: '#5a4d42' }}>
+      {/* ── IMPACT FILTERS ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
           {t('calendar.impact')}
         </span>
-        {IMPACTS.map(impact => {
-          const active = selectedImpact === impact;
-          const cfg = IMPACT_STYLE[impact];
-          return (
-            <button key={impact} onClick={() => setSelectedImpact(impact)}
-              className="px-2 py-0.5 rounded-md text-[11px] font-medium transition-all duration-200"
-              style={active
-                ? { background: cfg?.bg || 'rgba(212,168,83,0.12)', color: cfg?.color || '#d4a853', border: `1px solid ${cfg?.border || 'rgba(212,168,83,0.25)'}` }
-                : { background: 'transparent', color: '#5a4d42', border: '1px solid rgba(255,255,255,0.04)' }}>
-              {impact === 'All' ? (isZh ? '🌐 全部' : '🌐 All') : impact}
-            </button>
-          );
-        })}
+        <div className="flex items-center gap-1 flex-wrap">
+          {IMPACTS.map(impact => {
+            const active = selectedImpact === impact;
+            const cfg = IMPACT_STYLE[impact];
+            return (
+              <button
+                key={impact}
+                onClick={() => setSelectedImpact(impact)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                  active
+                    ? "bg-white/10 text-white border border-white/[0.08]"
+                    : "bg-white/[0.03] text-text-muted hover:text-white hover:bg-white/[0.06] border border-white/[0.04]"
+                }`}
+              >
+                {cfg && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: cfg.dot }}
+                  />
+                )}
+                {impact === 'All' ? (isZh ? '全部' : 'All') : impact}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ─── Main Content: Calendar (left) + News (right) ─── */}
+      {/* ── MAIN CONTENT: Calendar + News ── */}
       <div className="flex flex-col lg:flex-row gap-4">
 
         {/* ── Calendar Section ── */}
@@ -349,26 +381,49 @@ const MacroCalendarPage = () => {
           {loading ? (
             <CalendarSkeleton />
           ) : error ? (
-            <div className="text-center py-16">
-              <p className="text-3xl mb-3">⚠️</p>
-              <p className="text-red-400 text-sm mb-3">{error}</p>
-              <button onClick={loadEvents}
-                className="px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)' }}>
+            <div className="bg-[#0a0805] rounded-md border border-loss/25 p-8 text-center relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-loss/10 border border-loss/25 flex items-center justify-center">
+                <svg className="w-5 h-5 text-loss" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                </svg>
+              </div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-3">{error}</p>
+              <button
+                onClick={loadEvents}
+                className="px-4 py-2 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/15 font-mono text-[11px] uppercase tracking-wider transition-colors"
+              >
                 {t('calendar.try_again')}
               </button>
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-3xl mb-3">📭</p>
-              <p className="text-sm" style={{ color: '#6b5c52' }}>{t('calendar.no_events')}</p>
+            <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-12 text-center relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+              <div className="w-10 h-10 mx-auto mb-3 rounded-md bg-[#120809] border border-white/[0.06] flex items-center justify-center">
+                <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+              </div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+                {t('calendar.no_events')}
+              </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {groupedByDate.map((group) => (
-                <DaySection key={group.dateLabel} group={group} t={t} isZh={isZh}
-                  getTitle={getTitle} fmtTime={fmtTime} fmtCountdown={fmtCountdown} cdColor={cdColor}
-                  expanded={!!expandedDays[group.dateLabel]} onToggle={() => toggleDay(group.dateLabel)} />
+                <DaySection
+                  key={group.dateLabel}
+                  group={group}
+                  t={t}
+                  isZh={isZh}
+                  getTitle={getTitle}
+                  fmtTime={fmtTime}
+                  fmtCountdown={fmtCountdown}
+                  cdColor={cdColor}
+                  expanded={!!expandedDays[group.dateLabel]}
+                  onToggle={() => toggleDay(group.dateLabel)}
+                />
               ))}
             </div>
           )}
@@ -376,22 +431,34 @@ const MacroCalendarPage = () => {
 
         {/* ── News Sidebar ── */}
         <div className="lg:w-[340px] xl:w-[380px] shrink-0">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-              <span>📰</span> {isZh ? '宏观与加密新闻' : 'Macro & Crypto News'}
-            </h2>
-            <div className="flex-1 h-px" style={{ background: 'rgba(212,168,83,0.12)' }} />
-            <span className="text-[9px] uppercase tracking-wider" style={{ color: '#4a3f36' }}>LIVE</span>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="h-px w-6 bg-gold-primary/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+              {isZh ? '宏观与加密新闻' : 'Macro & Crypto News'}
+            </span>
+            <span className="h-px flex-1 bg-white/[0.06]" />
+            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-profit" />
+              </span>
+              LIVE
+            </span>
           </div>
 
           {newsLoading ? (
             <NewsSkeleton />
           ) : news.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm" style={{ color: '#6b5c52' }}>{isZh ? '暂无新闻' : 'No news available'}</p>
+            <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-6 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">
+                {isZh ? '暂无新闻' : 'No news available'}
+              </p>
             </div>
           ) : (
-            <div className="space-y-2 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto lg:pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(212,168,83,0.15) transparent' }}>
+            <div
+              className="space-y-2 lg:max-h-[calc(100vh-280px)] lg:overflow-y-auto lg:pr-1 scrollbar-thin"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(212,168,83,0.15) transparent' }}
+            >
               {news.map((article, i) => (
                 <NewsItem key={i} article={article} />
               ))}
@@ -400,10 +467,19 @@ const MacroCalendarPage = () => {
         </div>
       </div>
 
-      {/* ─── Footer ─── */}
+      {/* ── Footer ── */}
       <div className="text-center pt-2 pb-4">
-        <p className="text-[10px]" style={{ color: '#3a3030' }}>{t('calendar.footer_info')}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/40">
+          {t('calendar.footer_info')}
+        </p>
       </div>
+
+      <style>{`
+        .scrollbar-thin::-webkit-scrollbar{width:4px}
+        .scrollbar-thin::-webkit-scrollbar-track{background:transparent}
+        .scrollbar-thin::-webkit-scrollbar-thumb{background:rgba(212,168,83,0.15);border-radius:2px}
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,0.3)}
+      `}</style>
     </div>
   );
 };
@@ -419,43 +495,57 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
   const cryptoCount = events.filter(e => e.type === 'crypto_event').length;
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{
-      background: isToday ? 'rgba(212,168,83,0.02)' : 'rgba(255,255,255,0.01)',
-      border: isToday ? '1px solid rgba(212,168,83,0.1)' : '1px solid rgba(255,255,255,0.03)',
-    }}>
-      <button onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2 transition-colors hover:bg-white/[0.01]">
-        <svg className={`w-3 h-3 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#5a4d42' }}>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <div className={`bg-[#0a0805] rounded-md overflow-hidden border relative ${
+      isToday ? 'border-gold-primary/30' : 'border-white/[0.06]'
+    }`}>
+      {isToday && (
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
+      )}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2.5 px-4 py-3 transition-colors hover:bg-white/[0.02]"
+      >
+        <svg
+          className={`w-3 h-3 text-text-muted transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
 
         {isToday && (
-          <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-            style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}>TODAY</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/25">
+            Today
+          </span>
         )}
-        <span className="text-xs font-semibold text-white whitespace-nowrap">
-          {weekday && <span style={{ color: isToday ? '#d4a853' : '#8a7b6b' }}>{weekday}, </span>}
-          {dateLabel}
+        <span className="text-white text-[12px] whitespace-nowrap">
+          {weekday && (
+            <span className={`font-mono uppercase tracking-wider mr-1.5 ${isToday ? 'text-gold-primary' : 'text-text-muted/70'}`}>
+              {weekday},
+            </span>
+          )}
+          <span className="text-white">{dateLabel}</span>
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1.5 shrink-0">
           {highCount > 0 && (
-            <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              {highCount}🔴
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-loss/10 text-loss border border-loss/20">
+              {highCount}
+              <span className="w-1 h-1 rounded-full bg-loss" />
             </span>
           )}
           {unlockCount > 0 && (
-            <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
-              {unlockCount}🔓
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-profit/10 text-profit border border-profit/20">
+              {unlockCount}
+              <IconUnlockMini />
             </span>
           )}
           {cryptoCount > 0 && (
-            <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
-              {cryptoCount}⚡
+            <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary border border-gold-primary/20">
+              {cryptoCount}
+              <IconBoltMini />
             </span>
           )}
-          <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.03)', color: '#5a4d42' }}>
+          <span className="font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04]">
             {events.length}
           </span>
         </div>
@@ -464,17 +554,26 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
       {expanded && (
         <div>
           {/* Desktop header */}
-          <div className="hidden sm:grid grid-cols-[56px_28px_1fr_70px_80px] gap-1.5 px-3 py-1 text-[9px] uppercase tracking-wider font-semibold"
-            style={{ color: '#4a3f36', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-            <span>{t('calendar.th_time')}</span><span></span>
+          <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60 border-t border-white/[0.04] bg-[#120809]">
+            <span>{t('calendar.th_time')}</span>
+            <span></span>
             <span>{t('calendar.th_event')}</span>
             <span className="text-right">{isZh ? '详情' : 'Details'}</span>
             <span className="text-right">{t('calendar.th_status')}</span>
           </div>
 
           {events.map((event, i) => (
-            <EventRow key={`${event.title}-${event.date}-${i}`} event={event} index={i} isZh={isZh}
-              t={t} getTitle={getTitle} fmtTime={fmtTime} fmtCountdown={fmtCountdown} cdColor={cdColor} />
+            <EventRow
+              key={`${event.title}-${event.date}-${i}`}
+              event={event}
+              index={i}
+              isZh={isZh}
+              t={t}
+              getTitle={getTitle}
+              fmtTime={fmtTime}
+              fmtCountdown={fmtCountdown}
+              cdColor={cdColor}
+            />
           ))}
         </div>
       )}
@@ -484,25 +583,24 @@ const DaySection = ({ group, t, isZh, getTitle, fmtTime, fmtCountdown, cdColor, 
 
 
 // ══════════════════════════════════════
-// Event Row — unified for all event types
+// Event Row
 // ══════════════════════════════════════
-const EventRow = ({ event, index, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) => {
+const EventRow = ({ event, isZh, t, getTitle, fmtTime, fmtCountdown, cdColor }) => {
   const impactCfg = IMPACT_STYLE[event.impact] || IMPACT_STYLE.Low;
   const typeCfg = TYPE_STYLE[event.type] || TYPE_STYLE.macro;
   const isPast = event.is_past;
 
-  // Type-specific detail column
   const detailContent = () => {
     if (event.type === 'unlock') {
       return (
-        <div className="flex flex-col items-end gap-0.5">
+        <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
           {event.usd_value ? (
-            <span className="text-[11px] font-mono font-semibold" style={{ color: '#8b5cf6' }}>
+            <span className="text-[11px] text-profit">
               {fmtUsd(event.usd_value)}
             </span>
           ) : null}
           {event.pct_circulating ? (
-            <span className="text-[9px] font-mono" style={{ color: '#6b5c52' }}>
+            <span className="text-[9px] uppercase tracking-wider text-text-muted/70">
               {event.pct_circulating}% circ.
             </span>
           ) : null}
@@ -511,15 +609,21 @@ const EventRow = ({ event, index, isZh, t, getTitle, fmtTime, fmtCountdown, cdCo
     }
     if (event.type === 'macro') {
       return (
-        <div className="flex flex-col items-end gap-0.5">
-          {event.forecast && <span className="text-[10px] font-mono" style={{ color: '#d4a853' }}>{event.forecast}</span>}
-          {event.previous && <span className="text-[9px] font-mono" style={{ color: '#5a4d42' }}>P: {event.previous}</span>}
+        <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
+          {event.forecast && (
+            <span className="text-[10px] text-gold-primary">{event.forecast}</span>
+          )}
+          {event.previous && (
+            <span className="text-[9px] uppercase tracking-wider text-text-muted/70">
+              P: {event.previous}
+            </span>
+          )}
         </div>
       );
     }
     if (event.type === 'crypto_event' && event.category) {
       return (
-        <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: typeCfg.bg, color: typeCfg.color, border: `1px solid ${typeCfg.border}` }}>
+        <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-gold-primary/20">
           {event.category}
         </span>
       );
@@ -527,98 +631,141 @@ const EventRow = ({ event, index, isZh, t, getTitle, fmtTime, fmtCountdown, cdCo
     return null;
   };
 
-  // Icon/flag for the event
+  // Event icon — flags retained, type icons → SVG
   const eventIcon = () => {
     if (event.type === 'macro') return FLAG[event.country] || '🌐';
-    if (event.type === 'unlock') return '🔓';
-    if (event.type === 'crypto_event') return '⚡';
-    return '📌';
+    return null;
+  };
+  const TypeIcon = () => {
+    if (event.type === 'unlock') return <IconUnlockMini className="text-profit" />;
+    if (event.type === 'crypto_event') return <IconBoltMini className="text-gold-primary" />;
+    return null;
   };
 
   return (
-    <div className={`relative transition-colors duration-150 ${isPast ? 'opacity-30' : 'hover:bg-white/[0.015]'}`}
-      style={{ borderTop: '1px solid rgba(255,255,255,0.02)' }}>
+    <div
+      className={`relative transition-colors duration-150 border-t border-white/[0.03] ${
+        isPast ? 'opacity-30' : 'hover:bg-white/[0.02]'
+      }`}
+    >
       {/* Left bar — color by type */}
-      <div className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: isPast ? 'transparent' : typeCfg.color, opacity: 0.5 }} />
+      {!isPast && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[2px]"
+          style={{ background: typeCfg.color, opacity: 0.5 }}
+        />
+      )}
 
       {/* Desktop */}
-      <div className="hidden sm:grid grid-cols-[56px_28px_1fr_70px_80px] gap-1.5 items-center px-3 pl-4 py-2">
-        <span className="text-[11px] font-mono tabular-nums" style={{ color: isPast ? '#3a3030' : '#8a7b6b' }}>
+      <div className="hidden sm:grid grid-cols-[64px_28px_1fr_90px_100px] gap-2 items-center px-4 pl-5 py-2.5">
+        <span className={`font-mono text-[11px] tabular-nums ${isPast ? 'text-text-muted/30' : 'text-text-muted/80'}`}>
           {fmtTime(event.date)}
         </span>
-        <span className="text-sm">{eventIcon()}</span>
+        <span className="text-base flex items-center justify-center">
+          {event.type === 'macro' ? (
+            <span>{eventIcon()}</span>
+          ) : (
+            <TypeIcon />
+          )}
+        </span>
         <div className="min-w-0 flex items-center gap-2">
           {/* Type badge */}
-          <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0"
-            style={{ background: typeCfg.bg, color: typeCfg.color, border: `0.5px solid ${typeCfg.border}` }}>
+          <span
+            className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border shrink-0"
+            style={{ background: typeCfg.bg, color: typeCfg.color, borderColor: typeCfg.border }}
+          >
             {isZh ? typeCfg.labelZh : typeCfg.label}
           </span>
           {/* Impact dot */}
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: impactCfg.dot }} />
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ background: impactCfg.dot }}
+          />
           {/* Title */}
-          <p className="text-[13px] font-medium truncate" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>
+          <p className={`text-[12px] truncate ${isPast ? 'text-text-muted/40' : 'text-white'}`}>
             {getTitle(event)}
           </p>
-          {/* Symbol badge for crypto events */}
+          {/* Symbol */}
           {event.type !== 'macro' && event.symbol && (
-            <span className="text-[9px] font-mono font-semibold px-1 py-0.5 rounded shrink-0"
-              style={{ background: 'rgba(255,255,255,0.04)', color: '#8a7b6b' }}>
+            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04] shrink-0">
               {event.symbol}
             </span>
           )}
         </div>
         <div className="flex justify-end">{detailContent()}</div>
-        <span className="text-[11px] text-right font-mono tabular-nums">
+        <span className="font-mono text-[11px] text-right tabular-nums">
           {isPast
-            ? <span style={{ color: '#3a3030' }}>{t('calendar.status_done')}</span>
+            ? <span className="uppercase tracking-wider text-[10px] text-text-muted/40">{t('calendar.status_done')}</span>
             : <span style={{ color: cdColor(event.seconds_until) }}>{fmtCountdown(event.seconds_until)}</span>}
         </span>
       </div>
 
       {/* Mobile */}
-      <div className="sm:hidden px-3 pl-4 py-2">
+      <div className="sm:hidden px-4 pl-5 py-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[11px] font-mono tabular-nums" style={{ color: '#8a7b6b' }}>{fmtTime(event.date)}</span>
-              <span className="text-xs">{eventIcon()}</span>
-              <span className="text-[8px] font-bold uppercase px-1 py-0.5 rounded"
-                style={{ background: typeCfg.bg, color: typeCfg.color }}>
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className={`font-mono text-[10px] tabular-nums ${isPast ? 'text-text-muted/30' : 'text-text-muted/80'}`}>
+                {fmtTime(event.date)}
+              </span>
+              {event.type === 'macro' ? (
+                <span className="text-xs">{eventIcon()}</span>
+              ) : (
+                <span className="text-xs"><TypeIcon /></span>
+              )}
+              <span
+                className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
+                style={{ background: typeCfg.bg, color: typeCfg.color }}
+              >
                 {isZh ? typeCfg.labelZh : typeCfg.label}
               </span>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: impactCfg.dot }} />
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: impactCfg.dot }}
+              />
             </div>
-            <p className="text-[13px] font-medium leading-snug" style={{ color: isPast ? '#3a3030' : '#e5e0db' }}>
+            <p className={`text-[12px] leading-snug ${isPast ? 'text-text-muted/40' : 'text-white'}`}>
               {getTitle(event)}
             </p>
-            {/* Inline details for mobile */}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap font-mono tabular-nums">
               {event.type !== 'macro' && event.symbol && (
-                <span className="text-[9px] font-mono font-semibold px-1 py-0.5 rounded"
-                  style={{ background: 'rgba(255,255,255,0.04)', color: '#8a7b6b' }}>
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-text-muted/80 border border-white/[0.04]">
                   {event.symbol}
                 </span>
               )}
               {event.type === 'unlock' && event.usd_value ? (
-                <span className="text-[10px] font-mono" style={{ color: '#8b5cf6' }}>{fmtUsd(event.usd_value)}</span>
+                <span className="text-[10px] text-profit">{fmtUsd(event.usd_value)}</span>
               ) : null}
               {event.type === 'unlock' && event.pct_circulating ? (
-                <span className="text-[9px] font-mono" style={{ color: '#6b5c52' }}>{event.pct_circulating}% circ.</span>
+                <span className="text-[9px] uppercase tracking-wider text-text-muted/70">
+                  {event.pct_circulating}% circ.
+                </span>
               ) : null}
               {event.type === 'macro' && event.forecast && (
-                <span className="text-[10px]" style={{ color: '#6b5c52' }}>F: <span className="font-mono" style={{ color: '#d4a853' }}>{event.forecast}</span></span>
+                <span className="text-[10px] uppercase tracking-wider text-text-muted/70">
+                  F: <span className="text-gold-primary normal-case">{event.forecast}</span>
+                </span>
               )}
               {event.type === 'macro' && event.previous && (
-                <span className="text-[10px]" style={{ color: '#5a4d42' }}>P: <span className="font-mono">{event.previous}</span></span>
+                <span className="text-[10px] uppercase tracking-wider text-text-muted/70">
+                  P: <span className="text-text-muted normal-case">{event.previous}</span>
+                </span>
               )}
               {event.type === 'crypto_event' && event.category && (
-                <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: typeCfg.bg, color: typeCfg.color }}>
+                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/[0.08] text-gold-primary/80 border border-gold-primary/20">
                   {event.category}
                 </span>
               )}
             </div>
           </div>
-          {!isPast && <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: cdColor(event.seconds_until) }}>{fmtCountdown(event.seconds_until)}</span>}
+          {!isPast && (
+            <span
+              className="font-mono text-[10px] tabular-nums shrink-0"
+              style={{ color: cdColor(event.seconds_until) }}
+            >
+              {fmtCountdown(event.seconds_until)}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -630,29 +777,45 @@ const EventRow = ({ event, index, isZh, t, getTitle, fmtTime, fmtCountdown, cdCo
 // News Item
 // ══════════════════════════════════════
 const NewsItem = ({ article }) => {
-  const srcStyle = SOURCE_STYLE[article.source] || { color: '#d4a853', bg: 'rgba(212,168,83,0.08)', border: 'rgba(212,168,83,0.15)' };
+  const srcStyle = SOURCE_STYLE[article.source] || {
+    color: '#d4a853',
+    bg: 'rgba(212,168,83,0.08)',
+    border: 'rgba(212,168,83,0.20)'
+  };
 
   return (
-    <a href={article.link} target="_blank" rel="noopener noreferrer"
-      className="group flex gap-3 rounded-lg p-2 transition-all duration-200 hover:bg-white/[0.02]"
-      style={{ border: '1px solid rgba(255,255,255,0.03)' }}>
+    <a
+      href={article.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex gap-3 rounded-sm p-2.5 bg-[#0a0805] border border-white/[0.06] hover:border-gold-primary/25 hover:bg-white/[0.02] transition-all duration-200"
+    >
       {article.image && (
-        <div className="w-20 h-14 rounded-md overflow-hidden shrink-0">
-          <img src={article.image} alt="" loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
+        <div className="w-20 h-14 rounded-sm overflow-hidden shrink-0 bg-[#120809]">
+          <img
+            src={article.image}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+            onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+          />
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-[9px] font-semibold px-1 py-0.5 rounded"
-            style={{ background: srcStyle.bg, color: srcStyle.color, border: `1px solid ${srcStyle.border}` }}>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span
+            className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border"
+            style={{ background: srcStyle.bg, color: srcStyle.color, borderColor: srcStyle.border }}
+          >
             {article.source}
           </span>
-          {article.time_ago && <span className="text-[9px]" style={{ color: '#4a3f36' }}>{article.time_ago}</span>}
+          {article.time_ago && (
+            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60">
+              · {article.time_ago}
+            </span>
+          )}
         </div>
-        <h3 className="text-xs font-medium leading-snug line-clamp-2 transition-colors group-hover:text-[#d4a853]"
-          style={{ color: '#ccc5be' }}>
+        <h3 className="text-[12px] leading-snug line-clamp-2 transition-colors text-text-secondary group-hover:text-gold-primary">
           {article.title}
         </h3>
       </div>
@@ -662,23 +825,54 @@ const NewsItem = ({ article }) => {
 
 
 // ══════════════════════════════════════
+// Stat Card
+// ══════════════════════════════════════
+const CalendarStat = ({ label, value, icon, color = "default" }) => {
+  const colorStyles = {
+    profit: "text-profit",
+    loss: "text-loss",
+    gold: "text-gold-primary",
+    default: "text-white",
+  };
+  return (
+    <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-3 relative overflow-hidden">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80">
+          {label}
+        </p>
+        <div className="w-6 h-6 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
+          <StatIcon type={icon} />
+        </div>
+      </div>
+      <div className="h-px bg-white/[0.04] mb-2" />
+      <p className={`font-mono text-xl font-light tabular-nums leading-none ${colorStyles[color]}`}>
+        {value}
+      </p>
+    </div>
+  );
+};
+
+
+// ══════════════════════════════════════
 // Skeletons
 // ══════════════════════════════════════
 const CalendarSkeleton = () => (
-  <div className="space-y-2 animate-pulse">
+  <div className="space-y-2.5">
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, di) => (
-      <div key={di} className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)' }}>
-        <div className="px-3 py-2 flex items-center gap-3">
-          <div className="h-3 w-3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div className="h-3.5 w-36 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div key={di} className="bg-[#0a0805] rounded-md overflow-hidden border border-white/[0.06]">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="skel w-3 h-3" />
+          <div className="skel w-36 h-3" />
           <div className="flex-1" />
-          <div className="h-3 w-8 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+          <div className="skel w-8 h-3" />
         </div>
         {di < 2 && [...Array(3)].map((_, ei) => (
-          <div key={ei} className="px-4 py-2 flex items-center gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.02)' }}>
-            <div className="h-3 w-10 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
-            <div className="h-3 w-5 rounded" style={{ background: 'rgba(255,255,255,0.025)' }} />
-            <div className="h-3 flex-1 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+          <div key={ei} className="px-4 py-2.5 flex items-center gap-3 border-t border-white/[0.03]">
+            <div className="skel w-10 h-3" />
+            <div className="skel w-5 h-5" />
+            <div className="skel flex-1 h-3" />
           </div>
         ))}
       </div>
@@ -687,18 +881,110 @@ const CalendarSkeleton = () => (
 );
 
 const NewsSkeleton = () => (
-  <div className="space-y-2 animate-pulse">
+  <div className="space-y-2">
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex gap-3 p-2 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.03)' }}>
-        <div className="w-20 h-14 rounded-md" style={{ background: 'rgba(255,255,255,0.03)' }} />
+      <div key={i} className="flex gap-3 p-2.5 rounded-sm bg-[#0a0805] border border-white/[0.06]">
+        <div className="skel w-20 h-14" />
         <div className="flex-1 space-y-1.5 py-0.5">
-          <div className="h-2.5 w-16 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div className="h-3 w-full rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div className="h-3 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+          <div className="skel w-16 h-2.5" />
+          <div className="skel w-full h-3" />
+          <div className="skel w-3/4 h-3" />
         </div>
       </div>
     ))}
   </div>
 );
+
+
+/* ──────────────────────────────────────────────────────────────
+   SVG ICONS — Lucide-style minimal
+   ────────────────────────────────────────────────────────────── */
+
+const IconGlobe = ({ active }) => (
+  <svg className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+const IconMacro = ({ active }) => (
+  <svg className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 21h18M3 10h18M5 6l7-4 7 4M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
+  </svg>
+);
+
+const IconUnlock = ({ active }) => (
+  <svg className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+const IconBolt = ({ active }) => (
+  <svg className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 3 L4 14 H11 L9 21 L20 10 H13 L13 3 Z" />
+  </svg>
+);
+
+const TAB_ICONS = {
+  all: IconGlobe,
+  macro: IconMacro,
+  unlock: IconUnlock,
+  crypto_event: IconBolt,
+};
+
+const IconUnlockMini = ({ className = "" }) => (
+  <svg className={`w-2.5 h-2.5 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+const IconBoltMini = ({ className = "" }) => (
+  <svg className={`w-2.5 h-2.5 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 3 L4 14 H11 L9 21 L20 10 H13 L13 3 Z" />
+  </svg>
+);
+
+const IconRefresh = () => (
+  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M8 16H3v5" />
+  </svg>
+);
+
+const StatIcon = ({ type }) => {
+  const icons = {
+    total: (
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="14" width="4" height="7" />
+        <rect x="10" y="9" width="4" height="12" />
+        <rect x="17" y="5" width="4" height="16" />
+      </svg>
+    ),
+    high: (
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 22h20L12 2z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+    ),
+    unlock: (
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+      </svg>
+    ),
+    upcoming: (
+      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+    ),
+  };
+  return icons[type] || icons.total;
+};
 
 export default MacroCalendarPage;
