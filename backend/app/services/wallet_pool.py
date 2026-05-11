@@ -81,7 +81,7 @@ def pick_wallet(
         (ReceivingWallet.last_used_at == None) |
         (ReceivingWallet.last_used_at < cooldown_cutoff)
     ).order_by(
-        asc(ReceivingWallet.last_used_at.nulls_first())
+        ReceivingWallet.last_used_at.asc().nulls_first()
     ).limit(TOP_N_CANDIDATES).all()
 
     if eligible:
@@ -97,7 +97,7 @@ def pick_wallet(
         ReceivingWallet.is_active == True,
         ReceivingWallet.network == network,
     ).order_by(
-        asc(ReceivingWallet.last_used_at.nulls_first())
+        ReceivingWallet.last_used_at.asc().nulls_first()
     ).first()
 
     if any_active:
