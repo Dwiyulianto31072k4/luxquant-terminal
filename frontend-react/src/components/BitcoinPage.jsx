@@ -4,6 +4,15 @@ import NewsPreviewModal from "./NewsPreviewModal";
 
 const API_BASE = "/api/v1";
 
+/* ──────────────────────────────────────────────────────────────
+   BitcoinPage — Web3 Flowscan-minimal reskin
+   • Gold accent retained (LuxQuant brand)
+   • profit (#56c996) / loss (#e07288) muted functional only
+   • Flat hairline cards, sharp rounded-md, font-mono font-light numbers
+   • Line-label-line section headers (no decorative emoji)
+   • SVG icons replace all char/emoji decorations
+   ────────────────────────────────────────────────────────────── */
+
 const BitcoinPage = () => {
   const { t } = useTranslation();
 
@@ -85,71 +94,53 @@ const BitcoinPage = () => {
   const { technical, network, onchain, news } = extra;
 
   return (
-    <div className="space-y-6">
-      <style>{`
-        @keyframes pulseGlow{0%,100%{opacity:.4}50%{opacity:.8}}
-        @keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        .hero-glow{position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(212,168,83,.15) 0%,transparent 70%);pointer-events:none;animation:pulseGlow 4s ease-in-out infinite}
-        .hero-glow-left{position:absolute;bottom:-40px;left:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(212,168,83,.08) 0%,transparent 70%);pointer-events:none}
-        .card-hover{transition:all .3s cubic-bezier(.4,0,.2,1)}
-        .card-hover:hover{transform:translateY(-2px);border-color:rgba(212,168,83,.3);box-shadow:0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(212,168,83,.1)}
-        .fade-in{animation:fadeInUp .5s ease-out forwards;opacity:0}
-        .fade-in-1{animation-delay:.05s}.fade-in-2{animation-delay:.1s}.fade-in-3{animation-delay:.15s}.fade-in-4{animation-delay:.2s}
-        .fear-ring{box-shadow:0 0 24px rgba(239,68,68,.35),inset 0 0 18px rgba(239,68,68,.1)}
-        .fear-ring-green{box-shadow:0 0 24px rgba(34,197,94,.35),inset 0 0 18px rgba(34,197,94,.1)}
-        .fear-ring-lime{box-shadow:0 0 24px rgba(132,204,22,.35),inset 0 0 18px rgba(132,204,22,.1)}
-        .fear-ring-orange{box-shadow:0 0 24px rgba(212,168,83,.4),inset 0 0 18px rgba(212,168,83,.12)}
-        .btc-icon-glow{box-shadow:0 0 30px rgba(212,168,83,.5),0 0 60px rgba(212,168,83,.25)}
-        .price-glow{text-shadow:0 0 40px rgba(255,255,255,.15)}
-        .supply-bar-glow{box-shadow:0 0 12px rgba(212,168,83,.5),0 0 4px rgba(212,168,83,.6)}
-        .ath-gradient{background:linear-gradient(135deg,rgba(212,168,83,.06) 0%,rgba(212,168,83,.02) 100%)}
-        .news-featured:hover .news-img{transform:scale(1.05)}
-        .news-img{transition:transform .5s cubic-bezier(.4,0,.2,1)}
-        .icon-tile{
-          background:radial-gradient(circle at 30% 25%, rgba(253,230,168,.18), transparent 65%), rgba(212,168,83,.08);
-          border:1px solid rgba(212,168,83,.2);
-          color:#f5d088;
-        }
-      `}</style>
+    <div className="space-y-5">
+      {/* ── PAGE TITLE — line-label-line Flowscan pattern ── */}
+      <div className="flex items-center gap-3">
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          Asset Overview
+        </span>
+        <span className="h-px flex-1 bg-white/[0.06]" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
+          BTC · Rank #{data.marketCapRank}
+        </span>
+      </div>
 
       {/* ── HERO ── */}
-      <div className="relative glass-card rounded-2xl p-7 border border-gold-primary/20 overflow-hidden fade-in">
-        <div className="hero-glow" />
-        <div className="hero-glow-left" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-
-        <div className="relative flex flex-wrap items-center justify-between gap-5">
-          <div className="flex items-center gap-5">
-            <div className="btc-icon-glow w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-gold-light/20 to-gold-dark/20 border border-gold-primary/30">
+      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+        <div className="relative flex flex-wrap items-center justify-between gap-5 p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-[#120809] border border-white/[0.06]">
               <img
                 src="https://assets.coingecko.com/coins/images/1/standard/bitcoin.png"
                 alt="Bitcoin"
-                className="w-12 h-12 object-contain"
+                className="w-9 h-9 object-contain"
               />
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-display font-bold text-white tracking-tight">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-light text-white tracking-tight">
                   {t('btc.title')}
                 </h1>
-                <span className="px-2.5 py-1 bg-gold-primary/15 text-gold-primary text-[11px] font-bold rounded-md border border-gold-primary/25 tracking-wide">
-                  {t('btc.rank')} #{data.marketCapRank}
+                <span className="px-2 py-0.5 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25">
+                  Rank #{data.marketCapRank}
                 </span>
               </div>
-              <p className="text-text-muted text-[13px] mt-1.5 tracking-wide">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70 mt-2">
                 BTC · {t('btc.network')}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-5xl font-display font-bold text-white price-glow tracking-tight leading-none">
-              $
-              {data.price?.toLocaleString(undefined, {
+            <p className="text-4xl lg:text-5xl font-mono font-light text-white tabular-nums leading-none">
+              ${data.price?.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </p>
-            <div className="flex items-center gap-2 justify-end mt-3">
+            <div className="flex items-center gap-1.5 justify-end mt-3">
               <PriceBadge label="24h" value={data.priceChange24h} />
               <PriceBadge label="7d" value={data.priceChange7d} />
               <PriceBadge label="30d" value={data.priceChange30d} />
@@ -164,192 +155,193 @@ const BitcoinPage = () => {
           label={t('btc.range_24h')}
           value={`$${fmtNum(data.low24h)} – $${fmtNum(data.high24h)}`}
           iconType="range"
-          delay="1"
         />
         <MetricCard
           label={t('btc.mcap')}
           value={`$${fmtLarge(data.marketCap)}`}
           iconType="mcap"
-          delay="2"
         />
         <MetricCard
           label={t('btc.vol_24h')}
           value={`$${fmtLarge(data.volume24h)}`}
           iconType="volume"
-          delay="3"
         />
         <MetricCard
           label={t('btc.dominance')}
           value={`${data.dominance?.toFixed(1)}%`}
           iconType="dominance"
-          delay="4"
         />
       </div>
 
       {/* ── SUPPLY / ATH / FEAR & GREED ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Supply */}
-        <div className="glass-card rounded-xl p-6 border border-gold-primary/12 card-hover fade-in fade-in-1 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <SectionLabel>{t('btc.supply')}</SectionLabel>
-          <div className="space-y-3 mt-3">
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconSupply />
+            <SectionLabel>{t('btc.supply')}</SectionLabel>
+          </div>
+          <div className="space-y-3">
             <div className="flex justify-between items-baseline">
-              <span className="text-text-muted text-[13px]">{t('btc.circulating')}</span>
-              <span className="text-white font-mono text-base font-bold">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                {t('btc.circulating')}
+              </span>
+              <span className="text-white font-mono text-base font-light tabular-nums">
                 {(data.circulatingSupply / 1e6).toFixed(2)}M
               </span>
             </div>
+            <div className="h-px bg-white/[0.04]" />
             <div className="flex justify-between items-baseline">
-              <span className="text-text-muted text-[13px]">{t('btc.max_supply')}</span>
-              <span className="text-white font-mono text-base font-bold">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                {t('btc.max_supply')}
+              </span>
+              <span className="text-white font-mono text-base font-light tabular-nums">
                 21M
               </span>
             </div>
-            <div className="relative pt-1">
-              <div className="w-full bg-white/5 rounded-full h-2.5">
+            <div className="pt-2">
+              <div className="w-full bg-white/[0.04] rounded-sm h-1.5 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-gold-dark via-gold-primary to-gold-light h-2.5 rounded-full supply-bar-glow transition-all duration-1000"
+                  className="bg-gold-primary/70 h-full transition-all duration-1000"
                   style={{ width: `${supplyPct}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-2">
-                <span className="text-text-muted text-[11px]">0%</span>
-                <span className="text-gold-primary text-[12px] font-bold">
+              <div className="flex justify-between mt-2.5">
+                <span className="font-mono text-[10px] text-text-muted/60 tabular-nums">0%</span>
+                <span className="font-mono text-[10px] text-gold-primary tabular-nums tracking-wider">
                   {supplyPct.toFixed(2)}% {t('btc.mined')}
                 </span>
-                <span className="text-text-muted text-[11px]">100%</span>
+                <span className="font-mono text-[10px] text-text-muted/60 tabular-nums">100%</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ATH */}
-        <div className="glass-card rounded-xl p-6 border border-gold-primary/12 card-hover fade-in fade-in-2 relative overflow-hidden ath-gradient">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
-          <SectionLabel>{t('btc.ath')}</SectionLabel>
-          <p className="text-3xl font-display font-bold text-white tracking-tight mt-3">
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconAth />
+            <SectionLabel>{t('btc.ath')}</SectionLabel>
+          </div>
+          <p className="text-3xl font-mono font-light text-white tabular-nums tracking-tight">
             ${data.ath?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
           <div className="flex items-center gap-2 mt-3">
             <div
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-bold ${data.athChange >= 0 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-red-500/15 text-red-400 border border-red-500/25"}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-mono tabular-nums border ${
+                data.athChange >= 0
+                  ? "bg-profit/10 text-profit border-profit/25"
+                  : "bg-loss/10 text-loss border-loss/25"
+              }`}
             >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                {data.athChange >= 0 ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                  />
-                )}
-              </svg>
+              {data.athChange >= 0 ? <IconArrowUp /> : <IconArrowDown />}
               {Math.abs(data.athChange)?.toFixed(2)}%
             </div>
-            <span className="text-text-muted text-[12px]">{t('btc.from_ath')}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              {t('btc.from_ath')}
+            </span>
           </div>
         </div>
 
         {/* Fear & Greed */}
-        <div className="glass-card rounded-xl p-6 border border-gold-primary/12 card-hover fade-in fade-in-3 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <SectionLabel>{t('btc.fg_index')}</SectionLabel>
-          <div className="flex items-center gap-4 mt-3">
-            {(() => {
-              const v = data.fearGreed?.value ?? 0;
-              const ring =
-                v >= 75
-                  ? "fear-ring-green"
-                  : v >= 50
-                    ? "fear-ring-lime"
-                    : v >= 25
-                      ? "fear-ring-orange"
-                      : "fear-ring";
-              const bg =
-                v >= 75
-                  ? "from-emerald-500 to-emerald-600"
-                  : v >= 50
-                    ? "from-lime-500 to-lime-600"
-                    : v >= 25
-                      ? "from-gold-primary to-gold-dark"
-                      : "from-red-500 to-red-600";
-              return (
-                <div
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br ${bg} ${ring}`}
-                >
-                  {v}
-                </div>
-              );
-            })()}
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-lg">
-                {data.fearGreed?.label}
-              </p>
-              <p className="text-text-muted text-[12px] mt-0.5">
-                {t('btc.sentiment')}
-              </p>
-              <div className="flex items-center gap-0.5 mt-2">
-                {[...Array(10)].map((_, i) => {
-                  const v = data.fearGreed?.value ?? 0;
-                  const active = i < Math.ceil(v / 10);
-                  const c =
-                    v >= 75
-                      ? "bg-emerald-500"
-                      : v >= 50
-                        ? "bg-lime-500"
-                        : v >= 25
-                          ? "bg-gold-primary"
-                          : "bg-red-500";
-                  return (
-                    <div
-                      key={i}
-                      className={`w-3 h-1 rounded-full ${active ? c : "bg-white/10"}`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center gap-2 mb-4">
+            <IconGauge />
+            <SectionLabel>{t('btc.fg_index')}</SectionLabel>
           </div>
+          {(() => {
+            const v = data.fearGreed?.value ?? 0;
+            const color =
+              v >= 75 ? "text-profit"
+              : v >= 50 ? "text-gold-primary"
+              : v >= 25 ? "text-amber-500/80"
+              : "text-loss";
+            const dotColor =
+              v >= 75 ? "bg-profit"
+              : v >= 50 ? "bg-gold-primary"
+              : v >= 25 ? "bg-amber-500/80"
+              : "bg-loss";
+            return (
+              <div className="flex items-center gap-4">
+                <div className="relative w-16 h-16 flex-shrink-0">
+                  <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.06)" strokeWidth="3" fill="none" />
+                    <circle
+                      cx="32" cy="32" r="28"
+                      stroke="currentColor" strokeWidth="3" fill="none"
+                      strokeDasharray={`${(v / 100) * 175.9} 175.9`}
+                      strokeLinecap="round"
+                      className={color}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className={`font-mono text-xl font-light tabular-nums ${color}`}>{v}</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-mono text-sm uppercase tracking-wider ${color}`}>
+                    {data.fearGreed?.label}
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-1">
+                    {t('btc.sentiment')}
+                  </p>
+                  <div className="flex items-center gap-0.5 mt-2">
+                    {[...Array(10)].map((_, i) => {
+                      const active = i < Math.ceil(v / 10);
+                      return (
+                        <div
+                          key={i}
+                          className={`w-3 h-0.5 rounded-sm ${active ? dotColor : 'bg-white/[0.06]'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
-      {/* ── BTC CHART (TradingView Advanced) ── */}
-      <div className="glass-card rounded-xl border border-gold-primary/12 overflow-hidden fade-in">
-        <div className="relative">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
-          <BtcTradingViewChart t={t} />
-        </div>
+      {/* ── BTC CHART (TradingView) ── */}
+      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
+        <BtcTradingViewChart t={t} />
       </div>
 
       {/* ── TECHNICAL + NETWORK/ONCHAIN ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Technical Analysis */}
-        <div className="glass-card rounded-xl p-6 border border-gold-primary/12 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-white font-bold text-lg tracking-tight">
-                {t('btc.tech_analysis')}
-              </h3>
-              <p className="text-text-muted text-[12px] mt-1">
-                {t('btc.tech_desc')}
-              </p>
+        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-start justify-between mb-4 gap-3">
+            <div className="flex items-center gap-2">
+              <IconChart />
+              <div>
+                <h3 className="text-sm font-normal text-white tracking-tight">
+                  {t('btc.tech_analysis')}
+                </h3>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                  {t('btc.tech_desc')}
+                </p>
+              </div>
             </div>
             {technical?.summary && (
               <span
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold ${technical.summary.includes("Strong Buy") ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(34,197,94,.15)]" : technical.summary.includes("Buy") ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : technical.summary.includes("Strong Sell") ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,.15)]" : technical.summary.includes("Sell") ? "bg-red-500/15 text-red-400 border border-red-500/25" : "bg-gold-primary/15 text-gold-primary border border-gold-primary/25"}`}
+                className={`px-2.5 py-1 rounded-sm text-[10px] font-mono uppercase tracking-wider border whitespace-nowrap ${
+                  technical.summary.includes("Strong Buy")
+                    ? "bg-profit/15 text-profit border-profit/30"
+                    : technical.summary.includes("Buy")
+                      ? "bg-profit/10 text-profit border-profit/25"
+                      : technical.summary.includes("Strong Sell")
+                        ? "bg-loss/15 text-loss border-loss/30"
+                        : technical.summary.includes("Sell")
+                          ? "bg-loss/10 text-loss border-loss/25"
+                          : "bg-gold-primary/10 text-gold-primary border-gold-primary/25"
+                }`}
               >
                 {getApiTranslation(technical.summary)}
               </span>
@@ -362,51 +354,40 @@ const BitcoinPage = () => {
               {/* RSI */}
               <div>
                 <SectionLabel>RSI (14)</SectionLabel>
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-3 gap-2 mt-2.5">
                   {["1h", "4h", "1d"].map((tf) => {
                     const d = technical.timeframes?.[tf];
                     if (!d)
                       return (
                         <div
                           key={tf}
-                          className="bg-white/[0.02] rounded-lg p-3 text-center border border-white/5"
+                          className="bg-[#120809] rounded-sm p-3 text-center border border-white/[0.04]"
                         >
-                          <span className="text-text-muted text-[12px]">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {tf}
                           </span>
                         </div>
                       );
-                    const rsi = d.rsi,
-                      over = rsi >= 70,
-                      under = rsi <= 30;
-                    const c = under
-                      ? "text-emerald-400"
+                    const rsi = d.rsi, over = rsi >= 70, under = rsi <= 30;
+                    const colorClass = under ? "text-profit" : over ? "text-loss" : "text-white";
+                    const borderClass = under
+                      ? "border-profit/25 bg-profit/[0.04]"
                       : over
-                        ? "text-red-400"
-                        : "text-white";
-                    const bc = under
-                      ? "border-emerald-500/25"
-                      : over
-                        ? "border-red-500/25"
-                        : "border-white/5";
-                    const bgc = under
-                      ? "bg-emerald-500/[0.06]"
-                      : over
-                        ? "bg-red-500/[0.06]"
-                        : "bg-white/[0.02]";
+                        ? "border-loss/25 bg-loss/[0.04]"
+                        : "border-white/[0.04] bg-[#120809]";
                     return (
                       <div
                         key={tf}
-                        className={`rounded-lg p-3 text-center border ${bc} ${bgc}`}
+                        className={`rounded-sm p-3 text-center border ${borderClass}`}
                       >
-                        <p className="text-text-muted text-[11px] mb-1 font-semibold tracking-wider">
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1">
                           {tf.toUpperCase()}
                         </p>
-                        <p className={`text-2xl font-bold font-mono ${c}`}>
+                        <p className={`text-2xl font-mono font-light tabular-nums ${colorClass}`}>
                           {rsi?.toFixed(1)}
                         </p>
                         <p
-                          className={`text-[10px] font-bold uppercase tracking-wide mt-0.5 ${c}`}
+                          className={`font-mono text-[9px] uppercase tracking-wider mt-0.5 ${colorClass}`}
                         >
                           {under ? getApiTranslation("Oversold") : over ? getApiTranslation("Overbought") : getApiTranslation("Neutral")}
                         </p>
@@ -418,16 +399,16 @@ const BitcoinPage = () => {
               {/* MACD */}
               <div>
                 <SectionLabel>MACD (12,26,9)</SectionLabel>
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-3 gap-2 mt-2.5">
                   {["1h", "4h", "1d"].map((tf) => {
                     const d = technical.timeframes?.[tf]?.macd;
                     if (!d)
                       return (
                         <div
                           key={tf}
-                          className="bg-white/[0.02] rounded-lg p-3 text-center border border-white/5"
+                          className="bg-[#120809] rounded-sm p-3 text-center border border-white/[0.04]"
                         >
-                          <span className="text-text-muted text-[12px]">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                             {tf}
                           </span>
                         </div>
@@ -436,17 +417,22 @@ const BitcoinPage = () => {
                     return (
                       <div
                         key={tf}
-                        className={`rounded-lg p-3 text-center border ${bull ? "border-emerald-500/20 bg-emerald-500/[0.05]" : "border-red-500/20 bg-red-500/[0.05]"}`}
+                        className={`rounded-sm p-3 text-center border ${
+                          bull
+                            ? "border-profit/20 bg-profit/[0.04]"
+                            : "border-loss/20 bg-loss/[0.04]"
+                        }`}
                       >
-                        <p className="text-text-muted text-[11px] mb-1 font-semibold tracking-wider">
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1">
                           {tf.toUpperCase()}
                         </p>
-                        <p
-                          className={`text-base font-bold ${bull ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                          {bull ? `▲ ${getApiTranslation("Bullish")}` : `▼ ${getApiTranslation("Bearish")}`}
-                        </p>
-                        <p className="text-text-muted text-[10px] font-mono mt-1">
+                        <div className={`flex items-center justify-center gap-1 ${bull ? "text-profit" : "text-loss"}`}>
+                          {bull ? <IconArrowUp /> : <IconArrowDown />}
+                          <p className="font-mono text-sm uppercase tracking-wider">
+                            {bull ? getApiTranslation("Bullish") : getApiTranslation("Bearish")}
+                          </p>
+                        </div>
+                        <p className="font-mono text-[10px] text-text-muted/70 tabular-nums mt-1">
                           H: {d.histogram?.toFixed(1)}
                         </p>
                       </div>
@@ -455,43 +441,43 @@ const BitcoinPage = () => {
                 </div>
               </div>
               {/* Bollinger + EMA */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {(() => {
                   const bb = technical.timeframes?.["4h"]?.bollinger,
                     pos = technical.timeframes?.["4h"]?.bb_position;
                   if (!bb)
                     return (
-                      <div className="bg-white/[0.02] rounded-lg p-3.5 border border-white/5">
-                        <span className="text-text-muted text-[12px]">
+                      <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                           BB Loading...
                         </span>
                       </div>
                     );
                   return (
-                    <div className="bg-white/[0.02] rounded-lg p-3.5 border border-white/5">
+                    <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
                       <SectionLabel>Bollinger (4H)</SectionLabel>
-                      <div className="space-y-1.5 text-[12px] font-mono mt-2">
+                      <div className="space-y-1.5 text-[11px] font-mono mt-2.5 tabular-nums">
                         <div className="flex justify-between">
-                          <span className="text-red-400/80">{t('btc.upper')}</span>
-                          <span className="text-white font-semibold">
-                            ${fmtNum(bb.upper)}
-                          </span>
+                          <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.upper')}</span>
+                          <span className="text-white">${fmtNum(bb.upper)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gold-primary/80">{t('btc.mid')}</span>
-                          <span className="text-white font-semibold">
-                            ${fmtNum(bb.middle)}
-                          </span>
+                          <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.mid')}</span>
+                          <span className="text-white">${fmtNum(bb.middle)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-emerald-400/80">{t('btc.lower')}</span>
-                          <span className="text-white font-semibold">
-                            ${fmtNum(bb.lower)}
-                          </span>
+                          <span className="text-text-muted uppercase tracking-wider text-[10px]">{t('btc.lower')}</span>
+                          <span className="text-white">${fmtNum(bb.lower)}</span>
                         </div>
                       </div>
                       <div
-                        className={`mt-2.5 flex items-center gap-1.5 text-[11px] font-bold ${pos === "near_lower" ? "text-emerald-400" : pos === "near_upper" ? "text-red-400" : "text-gold-primary"}`}
+                        className={`mt-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                          pos === "near_lower"
+                            ? "text-profit"
+                            : pos === "near_upper"
+                              ? "text-loss"
+                              : "text-gold-primary"
+                        }`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         {pos === "near_lower"
@@ -509,8 +495,8 @@ const BitcoinPage = () => {
                     technical.timeframes?.["4h"];
                   if (!ema?.ema50)
                     return (
-                      <div className="bg-white/[0.02] rounded-lg p-3.5 border border-white/5">
-                        <span className="text-text-muted text-[12px]">
+                      <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                           EMA Loading...
                         </span>
                       </div>
@@ -518,27 +504,29 @@ const BitcoinPage = () => {
                   const g = ema.ema_cross === "golden_cross";
                   return (
                     <div
-                      className={`rounded-lg p-3.5 border ${g ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-red-500/20 bg-red-500/[0.03]"}`}
+                      className={`rounded-sm p-3.5 border ${
+                        g
+                          ? "border-profit/20 bg-profit/[0.03]"
+                          : "border-loss/20 bg-loss/[0.03]"
+                      }`}
                     >
                       <SectionLabel>EMA 50/200 (1D)</SectionLabel>
-                      <div className="space-y-1.5 text-[12px] font-mono mt-2">
+                      <div className="space-y-1.5 text-[11px] font-mono mt-2.5 tabular-nums">
                         <div className="flex justify-between">
-                          <span className="text-text-muted">EMA 50</span>
-                          <span className="text-white font-semibold">
-                            ${fmtNum(ema.ema50)}
-                          </span>
+                          <span className="text-text-muted uppercase tracking-wider text-[10px]">EMA 50</span>
+                          <span className="text-white">${fmtNum(ema.ema50)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gold-primary/80">EMA 200</span>
-                          <span className="text-white font-semibold">
-                            ${fmtNum(ema.ema200)}
-                          </span>
+                          <span className="text-text-muted uppercase tracking-wider text-[10px]">EMA 200</span>
+                          <span className="text-white">${fmtNum(ema.ema200)}</span>
                         </div>
                       </div>
                       <div
-                        className={`mt-2.5 flex items-center gap-1.5 text-[11px] font-bold ${g ? "text-emerald-400" : "text-red-400"}`}
+                        className={`mt-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider ${
+                          g ? "text-profit" : "text-loss"
+                        }`}
                       >
-                        <span className="text-base">✦</span>
+                        <IconCross />
                         {g ? getApiTranslation("Golden Cross") : getApiTranslation("Death Cross")}
                       </div>
                     </div>
@@ -547,33 +535,33 @@ const BitcoinPage = () => {
               </div>
               {/* Signal Meter */}
               {technical.total_signals > 0 && (
-                <div className="pt-4 border-t border-white/5">
+                <div className="pt-4 border-t border-white/[0.04]">
                   <div className="flex justify-between items-center mb-2.5">
-                    <span className="text-emerald-400 font-bold text-[13px]">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-profit tabular-nums">
                       {t('btc.buy')} ({technical.buy_signals})
                     </span>
-                    <span className="text-text-muted text-[11px] uppercase tracking-wider font-bold">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
                       {t('btc.signal_meter')}
                     </span>
-                    <span className="text-red-400 font-bold text-[13px]">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-loss tabular-nums">
                       {t('btc.sell')} ({technical.sell_signals})
                     </span>
                   </div>
-                  <div className="h-3 rounded-full overflow-hidden flex bg-white/5">
+                  <div className="h-1.5 overflow-hidden flex bg-white/[0.04] rounded-sm">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                      className="h-full bg-profit/80 transition-all duration-700"
                       style={{
                         width: `${(technical.buy_signals / technical.total_signals) * 100}%`,
                       }}
                     />
                     <div
-                      className="h-full bg-gray-600/50 transition-all duration-700"
+                      className="h-full bg-white/[0.08] transition-all duration-700"
                       style={{
                         width: `${((technical.total_signals - technical.buy_signals - technical.sell_signals) / technical.total_signals) * 100}%`,
                       }}
                     />
                     <div
-                      className="h-full bg-gradient-to-r from-red-400 to-red-500 transition-all duration-700"
+                      className="h-full bg-loss/80 transition-all duration-700"
                       style={{
                         width: `${(technical.sell_signals / technical.total_signals) * 100}%`,
                       }}
@@ -586,20 +574,23 @@ const BitcoinPage = () => {
         </div>
 
         {/* Right column */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Network Health */}
-          <div className="glass-card rounded-xl p-6 border border-gold-primary/12 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <h3 className="text-white font-bold text-lg tracking-tight">
-              {t('btc.net_health')}
-            </h3>
-            <p className="text-text-muted text-[12px] mt-1 mb-4">
+          <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+            <div className="flex items-center gap-2 mb-1">
+              <IconNetwork />
+              <h3 className="text-sm font-normal text-white tracking-tight">
+                {t('btc.net_health')}
+              </h3>
+            </div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mb-4">
               {t('btc.net_desc')}
             </p>
             {!network ? (
               <EmptyState text={t('btc.loading_net')} />
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <MiniStat
                     label={t('btc.hashrate')}
@@ -623,29 +614,19 @@ const BitcoinPage = () => {
                     <SectionLabel>{t('btc.fees')}</SectionLabel>
                     <div className="grid grid-cols-4 gap-2 mt-2">
                       {[
-                        {
-                          l: t('btc.fast'),
-                          v: network.fees.fastest,
-                        },
-                        {
-                          l: t('btc.min_30'),
-                          v: network.fees.half_hour,
-                        },
-                        {
-                          l: t('btc.hr_1'),
-                          v: network.fees.hour,
-                        },
-                        {
-                          l: t('btc.eco'),
-                          v: network.fees.economy,
-                        },
+                        { l: t('btc.fast'), v: network.fees.fastest },
+                        { l: t('btc.min_30'), v: network.fees.half_hour },
+                        { l: t('btc.hr_1'), v: network.fees.hour },
+                        { l: t('btc.eco'), v: network.fees.economy },
                       ].map((f) => (
                         <div
                           key={f.l}
-                          className="bg-white/[0.02] rounded-lg p-2.5 text-center border border-white/5"
+                          className="bg-[#120809] rounded-sm p-2.5 text-center border border-white/[0.04]"
                         >
-                          <p className="text-text-muted text-[11px] font-medium">{f.l}</p>
-                          <p className="text-base font-bold font-mono text-gold-primary mt-0.5">
+                          <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                            {f.l}
+                          </p>
+                          <p className="font-mono text-sm font-light text-white tabular-nums mt-1">
                             {f.v}
                           </p>
                         </div>
@@ -654,27 +635,31 @@ const BitcoinPage = () => {
                   </div>
                 )}
                 {network.difficulty_adjustment && (
-                  <div className="bg-white/[0.02] rounded-lg p-3.5 border border-white/5">
+                  <div className="bg-[#120809] rounded-sm p-3.5 border border-white/[0.04]">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-text-muted text-[11px] uppercase tracking-wider font-bold">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
                         {t('btc.next_adj')}
                       </span>
                       <span
-                        className={`font-bold text-[13px] ${network.difficulty_adjustment.change >= 0 ? "text-red-400" : "text-emerald-400"}`}
+                        className={`font-mono text-[11px] tabular-nums ${
+                          network.difficulty_adjustment.change >= 0
+                            ? "text-loss"
+                            : "text-profit"
+                        }`}
                       >
                         {network.difficulty_adjustment.change >= 0 ? "+" : ""}
                         {network.difficulty_adjustment.change}%
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-1 rounded-sm bg-white/[0.04] overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-gold-dark via-gold-primary to-gold-light transition-all duration-700"
+                        className="h-full bg-gold-primary/70 transition-all duration-700"
                         style={{
                           width: `${network.difficulty_adjustment.progress}%`,
                         }}
                       />
                     </div>
-                    <div className="flex justify-between text-[11px] text-text-muted mt-2">
+                    <div className="flex justify-between font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-2 tabular-nums">
                       <span>
                         {network.difficulty_adjustment.progress}% {t('btc.complete')}
                       </span>
@@ -689,18 +674,21 @@ const BitcoinPage = () => {
           </div>
 
           {/* On-Chain */}
-          <div className="glass-card rounded-xl p-6 border border-gold-primary/12 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <h3 className="text-white font-bold text-lg tracking-tight">
-              {t('btc.onchain')}
-            </h3>
-            <p className="text-text-muted text-[12px] mt-1 mb-4">
+          <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+            <div className="flex items-center gap-2 mb-1">
+              <IconOnchain />
+              <h3 className="text-sm font-normal text-white tracking-tight">
+                {t('btc.onchain')}
+              </h3>
+            </div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mb-4">
               {t('btc.onchain_desc')}
             </p>
             {!onchain ? (
               <EmptyState text={t('btc.loading_onchain')} />
             ) : (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2">
                 {onchain.mvrv && (
                   <OnChainCard
                     label={t('btc.mvrv')}
@@ -715,9 +703,9 @@ const BitcoinPage = () => {
                     }
                     hintColor={
                       onchain.mvrv.value > 3.5
-                        ? "text-red-400"
+                        ? "text-loss"
                         : onchain.mvrv.value < 1
-                          ? "text-emerald-400"
+                          ? "text-profit"
                           : "text-gold-primary"
                     }
                   />
@@ -736,9 +724,9 @@ const BitcoinPage = () => {
                     }
                     hintColor={
                       onchain.nvt.value > 150
-                        ? "text-red-400"
+                        ? "text-loss"
                         : onchain.nvt.value < 45
-                          ? "text-emerald-400"
+                          ? "text-profit"
                           : "text-gold-primary"
                     }
                   />
@@ -764,19 +752,22 @@ const BitcoinPage = () => {
       </div>
 
       {/* ── NEWS ── */}
-      <div className="glass-card rounded-xl p-6 border border-gold-primary/12 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="text-white font-bold text-lg tracking-tight">
-              {t('btc.latest_news')}
-            </h3>
-            <p className="text-text-muted text-[12px] mt-1">
-              {t('btc.news_desc')}
-            </p>
+      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <div className="flex items-center gap-2">
+            <IconNews />
+            <div>
+              <h3 className="text-sm font-normal text-white tracking-tight">
+                {t('btc.latest_news')}
+              </h3>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
+                {t('btc.news_desc')}
+              </p>
+            </div>
           </div>
           {news?.total > 0 && (
-            <span className="px-3 py-1.5 bg-gold-primary/10 text-gold-primary text-[12px] font-bold rounded-lg border border-gold-primary/20">
+            <span className="px-2.5 py-1 bg-gold-primary/10 text-gold-primary text-[10px] font-mono uppercase tracking-wider rounded-sm border border-gold-primary/25 tabular-nums whitespace-nowrap">
               {news.total} {t('btc.articles')}
             </span>
           )}
@@ -793,7 +784,7 @@ const BitcoinPage = () => {
             );
 
             return (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Featured - top 2 */}
                 {newsPage === 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -801,44 +792,38 @@ const BitcoinPage = () => {
                       <div
                         key={i}
                         onClick={() => setSelectedArticle(a)}
-                        className="group block news-featured cursor-pointer"
+                        className="group cursor-pointer"
                       >
-                        <div className="bg-white/[0.02] rounded-xl overflow-hidden border border-white/5 hover:border-gold-primary/30 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,.3)] h-full">
+                        <div className="bg-[#120809] rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                           {a.image ? (
                             <div className="w-full h-44 overflow-hidden">
                               <img
                                 src={a.image}
                                 alt=""
-                                className="w-full h-full object-cover news-img"
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                                 onError={(e) => {
                                   e.target.parentElement.style.display = "none";
                                 }}
                               />
                             </div>
                           ) : (
-                            <div className="w-full h-44 bg-gradient-to-br from-gold-primary/10 to-gold-dark/10 flex items-center justify-center">
-                              <span className="text-6xl opacity-20 text-gold-primary">₿</span>
+                            <div className="w-full h-44 bg-[#0a0805] flex items-center justify-center border-b border-white/[0.04]">
+                              <IconBtcLarge />
                             </div>
                           )}
                           <div className="p-4">
-                            <p className="text-white font-bold text-[15px] group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
+                            <p className="text-white text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
                               {a.title}
                             </p>
                             <p className="text-text-muted text-[12px] mt-2 line-clamp-2 leading-relaxed">
                               {a.description}
                             </p>
-                            <div className="flex items-center gap-2 mt-3">
-                              <span className="text-gold-primary text-[11px] font-bold">
-                                {a.source}
-                              </span>
+                            <div className="flex items-center gap-2 mt-3 font-mono text-[10px] uppercase tracking-wider">
+                              <span className="text-gold-primary">{a.source}</span>
                               {a.author && (
-                                <span className="text-text-muted text-[11px]">
-                                  · {a.author}
-                                </span>
+                                <span className="text-text-muted/70">· {a.author}</span>
                               )}
-                              <span className="text-text-muted text-[11px]">
-                                · {translateTimeAgo(a.time_ago)}
-                              </span>
+                              <span className="text-text-muted/70">· {translateTimeAgo(a.time_ago)}</span>
                             </div>
                           </div>
                         </div>
@@ -848,14 +833,14 @@ const BitcoinPage = () => {
                 )}
 
                 {/* Paged compact list */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {pagedArticles.map((a, i) => (
                     <div
                       key={i}
                       onClick={() => setSelectedArticle(a)}
-                      className="group block cursor-pointer"
+                      className="group cursor-pointer"
                     >
-                      <div className="flex gap-3 bg-white/[0.015] rounded-lg overflow-hidden border border-white/5 hover:border-gold-primary/25 transition-all duration-300 h-full">
+                      <div className="flex gap-3 bg-[#120809] rounded-sm overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                         {a.image ? (
                           <div className="w-20 h-20 flex-shrink-0 overflow-hidden">
                             <img
@@ -864,26 +849,22 @@ const BitcoinPage = () => {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               onError={(e) => {
                                 e.target.parentElement.innerHTML =
-                                  '<div class="w-full h-full bg-gradient-to-br from-gold-primary/10 to-gold-dark/10 flex items-center justify-center"><span class="text-base text-gold-primary/30">₿</span></div>';
+                                  '<div class="w-full h-full bg-[#0a0805] flex items-center justify-center"><span class="font-mono text-base text-gold-primary/30">₿</span></div>';
                               }}
                             />
                           </div>
                         ) : (
-                          <div className="w-20 h-20 flex-shrink-0 bg-gradient-to-br from-gold-primary/10 to-gold-dark/10 flex items-center justify-center">
-                            <span className="text-base text-gold-primary/30">₿</span>
+                          <div className="w-20 h-20 flex-shrink-0 bg-[#0a0805] flex items-center justify-center">
+                            <span className="font-mono text-base text-gold-primary/30">₿</span>
                           </div>
                         )}
                         <div className="py-2.5 pr-3 flex flex-col justify-center min-w-0">
-                          <p className="text-white text-[12px] font-semibold group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
+                          <p className="text-white text-[12px] group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug">
                             {a.title}
                           </p>
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <span className="text-gold-primary text-[10px] font-bold">
-                              {a.source}
-                            </span>
-                            <span className="text-text-muted text-[10px]">
-                              · {translateTimeAgo(a.time_ago)}
-                            </span>
+                          <div className="flex items-center gap-1.5 mt-1.5 font-mono text-[10px] uppercase tracking-wider">
+                            <span className="text-gold-primary">{a.source}</span>
+                            <span className="text-text-muted/70">· {translateTimeAgo(a.time_ago)}</span>
                           </div>
                         </div>
                       </div>
@@ -891,27 +872,19 @@ const BitcoinPage = () => {
                   ))}
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination — Flowscan pill pattern */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between pt-4 border-t border-white/[0.04]">
                     <button
                       onClick={() => setNewsPage((p) => Math.max(0, p - 1))}
                       disabled={newsPage === 0}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-all ${newsPage === 0 ? "text-text-muted/30 cursor-not-allowed" : "text-gold-primary hover:bg-gold-primary/10 border border-gold-primary/25"}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                        newsPage === 0
+                          ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
+                          : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                      }`}
                     >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 19l-7-7 7-7"
-                        />
-                      </svg>
+                      <IconChevronLeft />
                       {t('btc.prev')}
                     </button>
                     <div className="flex items-center gap-1">
@@ -919,7 +892,11 @@ const BitcoinPage = () => {
                         <button
                           key={i}
                           onClick={() => setNewsPage(i)}
-                          className={`w-8 h-8 rounded-lg text-[12px] font-bold transition-all ${i === newsPage ? "bg-gold-primary/20 text-gold-primary border border-gold-primary/30" : "text-text-muted hover:text-white hover:bg-white/5"}`}
+                          className={`w-7 h-7 rounded-sm font-mono text-[10px] tabular-nums transition-colors ${
+                            i === newsPage
+                              ? "bg-white/10 text-white border border-white/[0.08]"
+                              : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06]"
+                          }`}
                         >
                           {i + 1}
                         </button>
@@ -930,22 +907,14 @@ const BitcoinPage = () => {
                         setNewsPage((p) => Math.min(totalPages - 1, p + 1))
                       }
                       disabled={newsPage === totalPages - 1}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-all ${newsPage === totalPages - 1 ? "text-text-muted/30 cursor-not-allowed" : "text-gold-primary hover:bg-gold-primary/10 border border-gold-primary/25"}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                        newsPage === totalPages - 1
+                          ? "text-text-muted/30 cursor-not-allowed bg-white/[0.02] border border-white/[0.04]"
+                          : "text-text-muted hover:text-white bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                      }`}
                     >
                       {t('btc.next')}
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
+                      <IconChevronRight />
                     </button>
                   </div>
                 )}
@@ -963,6 +932,8 @@ const BitcoinPage = () => {
     </div>
   );
 };
+
+/* ── TradingView Chart ── */
 
 const BtcTradingViewChart = ({ t }) => {
   const chartRef = useRef(null);
@@ -994,12 +965,12 @@ const BtcTradingViewChart = ({ t }) => {
         theme: "dark",
         style: "1",
         locale: "en",
-        toolbar_bg: "#0a0a0f",
+        toolbar_bg: "#0a0805",
         enable_publishing: false,
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: true,
-        backgroundColor: "#0a0a0f",
+        backgroundColor: "#0a0805",
         gridColor: "rgba(212, 168, 83, 0.04)",
         hide_top_toolbar: false,
         hide_legend: false,
@@ -1009,18 +980,18 @@ const BtcTradingViewChart = ({ t }) => {
         calendar: false,
         studies: ["MACD@tv-basicstudies", "StochasticRSI@tv-basicstudies"],
         overrides: {
-          "paneProperties.background": "#0a0a0f",
+          "paneProperties.background": "#0a0805",
           "paneProperties.backgroundType": "solid",
           "paneProperties.vertGridProperties.color": "rgba(212, 168, 83, 0.04)",
           "paneProperties.horzGridProperties.color": "rgba(212, 168, 83, 0.04)",
           "scalesProperties.textColor": "#a0a0a0",
           "scalesProperties.lineColor": "rgba(212, 168, 83, 0.1)",
-          "mainSeriesProperties.candleStyle.upColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.downColor": "#ef4444",
-          "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
-          "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
+          "mainSeriesProperties.candleStyle.upColor": "#56c996",
+          "mainSeriesProperties.candleStyle.downColor": "#e07288",
+          "mainSeriesProperties.candleStyle.borderUpColor": "#56c996",
+          "mainSeriesProperties.candleStyle.borderDownColor": "#e07288",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#56c996",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#e07288",
         },
       });
     };
@@ -1036,9 +1007,9 @@ const BtcTradingViewChart = ({ t }) => {
 
   return (
     <div className="relative">
-      <div className="flex items-center justify-between px-5 py-3.5 bg-bg-primary/80 border-b border-gold-primary/15">
+      <div className="flex items-center justify-between px-5 py-3.5 bg-[#0a0506] border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0">
+          <div className="w-7 h-7 rounded-sm overflow-hidden flex-shrink-0 border border-white/[0.06]">
             <img
               src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
               alt="BTC"
@@ -1046,22 +1017,25 @@ const BtcTradingViewChart = ({ t }) => {
             />
           </div>
           <div>
-            <h3 className="text-white font-bold text-[14px]">
+            <h3 className="text-white text-sm font-normal tracking-tight">
               BTC/USDT {t('btc.perp')}
             </h3>
-            <p className="text-text-muted text-[11px]">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-0.5">
               Binance · Default 4H · MACD + Stoch RSI
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-profit opacity-50" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-profit" />
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-profit">
             {t('btc.live_chart')}
           </span>
         </div>
       </div>
-      <div ref={chartRef} className="w-full h-[560px] bg-[#0a0a0f]" />
+      <div ref={chartRef} className="w-full h-[560px] bg-[#0a0805]" />
     </div>
   );
 };
@@ -1069,7 +1043,7 @@ const BtcTradingViewChart = ({ t }) => {
 /* ── SUB COMPONENTS ── */
 
 const SectionLabel = ({ children }) => (
-  <p className="text-text-muted text-[11px] uppercase tracking-wider font-bold">
+  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
     {children}
   </p>
 );
@@ -1079,79 +1053,41 @@ const PriceBadge = ({ label, value }) => {
   const p = value >= 0;
   return (
     <span
-      className={`text-[12px] font-bold px-2.5 py-1 rounded-md border ${p ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" : "bg-red-500/15 text-red-400 border-red-500/25"}`}
+      className={`inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-sm border tabular-nums ${
+        p
+          ? "bg-profit/10 text-profit border-profit/25"
+          : "bg-loss/10 text-loss border-loss/25"
+      }`}
     >
-      {label}: {p ? "+" : ""}
-      {value?.toFixed(2)}%
+      <span className="opacity-70">{label}:</span> {p ? "+" : ""}{value?.toFixed(2)}%
     </span>
   );
 };
 
-const MetricIcon = ({ type }) => {
-  const icons = {
-    range: (
-      <g>
-        <rect x="3" y="13" width="4" height="8" rx="1" fill="currentColor" opacity="0.25" />
-        <rect x="3" y="13" width="4" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
-        <rect x="10" y="9" width="4" height="12" rx="1" fill="currentColor" opacity="0.4" />
-        <rect x="10" y="9" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
-        <rect x="17" y="5" width="4" height="16" rx="1" fill="currentColor" opacity="0.55" />
-        <rect x="17" y="5" width="4" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      </g>
-    ),
-    mcap: (
-      <g>
-        <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" />
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" fill="none" />
-        <path d="M10 7 V17 M14 7 V17 M9 9 H14.5 a1.8 1.8 0 010 3.5 H9 M9 12.5 H15 a1.8 1.8 0 010 3.5 H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      </g>
-    ),
-    volume: (
-      <g>
-        <path d="M3 17 L8 12 L13 15 L21 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <path d="M16 6 L21 6 L21 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <circle cx="8" cy="12" r="1.5" fill="currentColor" />
-        <circle cx="13" cy="15" r="1.5" fill="currentColor" />
-        <circle cx="21" cy="6" r="1.5" fill="currentColor" />
-      </g>
-    ),
-    dominance: (
-      <g>
-        <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" fill="currentColor" opacity="0.3" />
-        <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
-      </g>
-    ),
-  };
-  return (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-      {icons[type] || icons.range}
-    </svg>
-  );
-};
-
-const MetricCard = ({ label, value, iconType, delay }) => (
-  <div
-    className={`glass-card rounded-xl p-5 border border-gold-primary/12 card-hover fade-in fade-in-${delay} relative overflow-hidden`}
-  >
-    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-    <div className="flex items-center justify-between mb-3">
-      <p className="text-text-muted text-[11px] uppercase tracking-wider font-bold">
+const MetricCard = ({ label, value, iconType }) => (
+  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 relative overflow-hidden hover:-translate-y-0.5 hover:border-gold-primary/25 transition-all duration-200">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="flex items-center justify-between mb-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80">
         {label}
       </p>
-      <div className="icon-tile w-9 h-9 rounded-lg flex items-center justify-center">
+      <div className="w-7 h-7 rounded-sm flex items-center justify-center bg-gold-primary/[0.06] border border-gold-primary/15 text-gold-primary">
         <MetricIcon type={iconType} />
       </div>
     </div>
-    <p className="text-white font-bold text-[15px] tracking-tight">{value}</p>
+    <div className="h-px bg-white/[0.04] mb-2.5" />
+    <p className="font-mono text-base font-light text-white tabular-nums tracking-tight">
+      {value}
+    </p>
   </div>
 );
 
 const MiniStat = ({ label, value }) => (
-  <div className="bg-white/[0.02] rounded-lg p-3 border border-white/5">
-    <p className="text-text-muted text-[11px] uppercase tracking-wider font-bold">
+  <div className="bg-[#120809] rounded-sm p-2.5 border border-white/[0.04]">
+    <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
       {label}
     </p>
-    <p className="text-base font-bold font-mono text-white mt-1">
+    <p className="font-mono text-sm font-light text-white tabular-nums mt-1">
       {value || "-"}
     </p>
   </div>
@@ -1164,35 +1100,37 @@ const OnChainCard = ({
   hint,
   hintColor = "text-text-muted",
 }) => (
-  <div className="bg-white/[0.02] rounded-lg p-3.5 border border-white/5">
-    <p className="text-text-muted text-[11px] uppercase tracking-wider font-bold mb-1">
+  <div className="bg-[#120809] rounded-sm p-3 border border-white/[0.04]">
+    <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-1.5">
       {label}
     </p>
-    <p className="text-white text-lg font-bold font-mono">{value ?? "-"}</p>
-    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+    <p className="font-mono text-base font-light text-white tabular-nums">
+      {value ?? "-"}
+    </p>
+    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap font-mono text-[10px] uppercase tracking-wider">
       {change != null && (
         <span
-          className={`text-[11px] font-bold ${change >= 0 ? "text-emerald-400" : "text-red-400"}`}
+          className={`inline-flex items-center gap-0.5 tabular-nums ${
+            change >= 0 ? "text-profit" : "text-loss"
+          }`}
         >
-          {change >= 0 ? "↑" : "↓"} {Math.abs(change).toFixed(1)}% 7d
+          {change >= 0 ? <IconArrowUpMini /> : <IconArrowDownMini />}
+          {Math.abs(change).toFixed(1)}% 7d
         </span>
       )}
-      {hint && <span className={`text-[11px] ${hintColor}`}>· {hint}</span>}
+      {hint && <span className={hintColor}>· {hint}</span>}
     </div>
   </div>
 );
 
 const EmptyState = ({ text }) => (
-  <div className="flex items-center justify-center py-10">
-    <div className="flex items-center gap-2.5 text-text-muted text-[13px]">
-      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+  <div className="flex items-center justify-center py-8">
+    <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-text-muted">
+      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
         <circle
           className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
+          cx="12" cy="12" r="10"
+          stroke="currentColor" strokeWidth="3"
         />
         <path
           className="opacity-75"
@@ -1206,33 +1144,28 @@ const EmptyState = ({ text }) => (
 );
 
 const ErrorState = ({ error, onRetry, t }) => (
-  <div className="space-y-6">
+  <div className="space-y-5">
     <div className="flex items-center gap-3">
-      <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-      <h2 className="font-display text-2xl font-bold text-white">
-        Bitcoin
-      </h2>
+      <span className="h-px w-8 bg-gold-primary/40" />
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+        Asset Overview
+      </span>
+      <span className="h-px flex-1 bg-white/[0.06]" />
     </div>
-    <div className="glass-card rounded-xl p-8 border border-red-500/30 text-center">
-      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-red-500/10 flex items-center justify-center">
-        <svg
-          className="w-7 h-7 text-red-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-          />
+    <div className="bg-[#0a0805] rounded-md p-8 border border-loss/25 text-center relative overflow-hidden">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-loss/40 to-transparent" />
+      <div className="w-12 h-12 mx-auto mb-4 rounded-md bg-loss/10 flex items-center justify-center border border-loss/25">
+        <svg className="w-6 h-6 text-loss" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
       </div>
-      <p className="text-red-400 mb-5 text-[14px]">{t('btc.failed')}</p>
+      <p className="font-mono text-[11px] uppercase tracking-wider text-loss mb-5">
+        {t('btc.failed')}
+      </p>
       <button
         onClick={onRetry}
-        className="px-6 py-2.5 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors text-[13px] font-bold border border-gold-primary/25"
+        className="px-4 py-2 bg-gold-primary/10 text-gold-primary rounded-sm hover:bg-gold-primary/15 transition-colors font-mono text-[11px] uppercase tracking-wider border border-gold-primary/25"
       >
         {t('btc.retry')}
       </button>
@@ -1241,51 +1174,186 @@ const ErrorState = ({ error, onRetry, t }) => (
 );
 
 const LoadingSkeleton = () => (
-  <div className="space-y-6">
-    <style>{`@keyframes sp{0%,100%{opacity:.05}50%{opacity:.15}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(212,168,83,.1);border-radius:8px}`}</style>
-    <div className="glass-card rounded-2xl p-7 border border-gold-primary/15">
+  <div className="space-y-5">
+    <style>{`@keyframes sp{0%,100%{opacity:.04}50%{opacity:.12}}.skel{animation:sp 2s ease-in-out infinite;background:rgba(255,255,255,.06);border-radius:2px}`}</style>
+    <div className="flex items-center gap-3">
+      <span className="h-px w-8 bg-gold-primary/40" />
+      <div className="skel w-32 h-3" />
+      <span className="h-px flex-1 bg-white/[0.06]" />
+    </div>
+    <div className="bg-[#0a0805] rounded-md p-6 border border-white/[0.06]">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-5">
-          <div className="skel w-16 h-16 rounded-full" />
+        <div className="flex items-center gap-4">
+          <div className="skel w-12 h-12 rounded-md" />
           <div>
-            <div className="skel w-32 h-7 mb-2" />
-            <div className="skel w-20 h-4" />
+            <div className="skel w-32 h-6 mb-2" />
+            <div className="skel w-20 h-3" />
           </div>
         </div>
         <div>
-          <div className="skel w-56 h-12 mb-3" />
-          <div className="skel w-44 h-5 ml-auto" />
+          <div className="skel w-56 h-10 mb-3" />
+          <div className="skel w-44 h-4 ml-auto" />
         </div>
       </div>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {[...Array(4)].map((_, i) => (
-        <div
-          key={i}
-          className="glass-card rounded-xl p-5 border border-gold-primary/12"
-        >
+        <div key={i} className="bg-[#0a0805] rounded-md p-4 border border-white/[0.06]">
           <div className="skel w-20 h-3 mb-3" />
           <div className="skel w-28 h-5" />
         </div>
       ))}
     </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {[...Array(3)].map((_, i) => (
-        <div
-          key={i}
-          className="glass-card rounded-xl p-6 h-36 border border-gold-primary/12"
-        >
+        <div key={i} className="bg-[#0a0805] rounded-md p-5 h-36 border border-white/[0.06]">
           <div className="skel w-16 h-3 mb-3" />
-          <div className="skel w-full h-7 mb-2" />
-          <div className="skel w-3/4 h-4" />
+          <div className="skel w-full h-6 mb-2" />
+          <div className="skel w-3/4 h-3" />
         </div>
       ))}
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="glass-card rounded-xl p-6 h-80 border border-gold-primary/12" />
-      <div className="glass-card rounded-xl p-6 h-80 border border-gold-primary/12" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="bg-[#0a0805] rounded-md p-5 h-80 border border-white/[0.06]" />
+      <div className="bg-[#0a0805] rounded-md p-5 h-80 border border-white/[0.06]" />
     </div>
   </div>
+);
+
+/* ── SVG ICONS — Lucide-style minimal ── */
+
+const MetricIcon = ({ type }) => {
+  const icons = {
+    range: (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="14" width="4" height="7" />
+        <rect x="10" y="9" width="4" height="12" />
+        <rect x="17" y="5" width="4" height="16" />
+      </svg>
+    ),
+    mcap: (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M10 7 V17 M14 7 V17 M9 9 H14.5 a1.8 1.8 0 010 3.5 H9 M9 12.5 H15 a1.8 1.8 0 010 3.5 H9" />
+      </svg>
+    ),
+    volume: (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 17 L8 12 L13 15 L21 6" />
+        <path d="M16 6 L21 6 L21 11" />
+      </svg>
+    ),
+    dominance: (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+        <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" />
+      </svg>
+    ),
+  };
+  return icons[type] || icons.range;
+};
+
+const IconSupply = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="6" rx="8" ry="3" />
+    <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+    <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+  </svg>
+);
+
+const IconAth = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9l6-6 6 6" />
+    <path d="M12 3v18" />
+    <path d="M4 21h16" />
+  </svg>
+);
+
+const IconGauge = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 14l4-4" />
+    <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+  </svg>
+);
+
+const IconChart = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18" />
+    <path d="M7 14l4-4 4 4 6-6" />
+  </svg>
+);
+
+const IconNetwork = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="5" cy="5" r="2" />
+    <circle cx="19" cy="5" r="2" />
+    <circle cx="5" cy="19" r="2" />
+    <circle cx="19" cy="19" r="2" />
+    <path d="M6.5 6.5L10 10M17.5 6.5L14 10M6.5 17.5L10 14M17.5 17.5L14 14" />
+  </svg>
+);
+
+const IconOnchain = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" />
+    <rect x="14" y="3" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" />
+    <rect x="3" y="14" width="7" height="7" />
+    <path d="M10 6.5h4M17.5 10v4M10 17.5h4M6.5 10v4" />
+  </svg>
+);
+
+const IconNews = () => (
+  <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2" />
+    <path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6z" />
+  </svg>
+);
+
+const IconArrowUp = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+  </svg>
+);
+
+const IconArrowDown = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+  </svg>
+);
+
+const IconArrowUpMini = () => (
+  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+const IconArrowDownMini = () => (
+  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const IconCross = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <path d="M12 4v16M4 12h16M6 6l12 12M18 6L6 18" />
+  </svg>
+);
+
+const IconChevronLeft = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
+const IconChevronRight = () => (
+  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const IconBtcLarge = () => (
+  <span className="font-mono text-5xl text-gold-primary/15">₿</span>
 );
 
 /* ── HELPERS ── */
