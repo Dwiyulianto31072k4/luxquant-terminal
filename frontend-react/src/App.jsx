@@ -1,7 +1,9 @@
 // src/App.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — URL-Based Routing v3 + Lazy Loading
-// Web3 Flowscan-Minimal Reskin (UI only, logic preserved)
+// Web3 Flowscan-Minimal Reskin v2:
+//   - Trade center button restored: bigger + gold glow halo
+//   - Contextual icons: Bot for AI Arena, Activity for Pulse, Candlestick for Market
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
@@ -173,7 +175,6 @@ function AppShell({ children }) {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMoreFeatures, setShowMoreFeatures] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -183,11 +184,6 @@ function AppShell({ children }) {
   const isPremiumUser = () => user && (user.role === "admin" || user.role === "premium" || user.role === "subscriber" || user.is_admin);
   const isActive = (path) => location.pathname === path;
 
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", h, { passive: true });
-    return () => window.removeEventListener("scroll", h);
-  }, []);
   useEffect(() => {
     const h = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false); };
     window.addEventListener("resize", h);
@@ -239,13 +235,68 @@ function AppShell({ children }) {
 
   const moreHasActive = moreMenuItems.some((item) => isActive(item.path));
 
-  // Mobile bottom nav — request user: Home, Pulse, Trade, Arena, Market
+  // ════════════════════════════════════════════════════════
+  // Mobile bottom nav — request user:
+  //   Home · Pulse (heart-activity) · Trade (center, glow) · Arena (Bot/Robot) · Market (candlesticks)
+  // ════════════════════════════════════════════════════════
   const bottomNavItems = [
-    { path: "/home", label: t("nav.home"), icon: <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
-    { path: "/market-pulse", label: "Pulse", icon: <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> },
-    { path: "/signals", label: "Trade", isCenter: true, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg> },
-    { path: "/ai-arena", label: "Arena", icon: <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3c0 1.3.9 2.4 2 2.8V10H7a3 3 0 0 0-3 3v1a3 3 0 0 0 2.5 3v3a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-3a3 3 0 0 0 2.5-3v-1a3 3 0 0 0-3-3h-4V7.8c1.1-.4 2-1.5 2-2.8a3 3 0 0 0-3-3Z" /></svg> },
-    { path: "/markets", label: "Market", icon: <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="8" height="8" /><rect x="13" y="3" width="8" height="8" /><rect x="3" y="13" width="8" height="8" /><rect x="13" y="13" width="8" height="8" /></svg> },
+    {
+      path: "/home",
+      label: t("nav.home"),
+      icon: (
+        <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      ),
+    },
+    {
+      path: "/market-pulse",
+      label: "Pulse",
+      icon: (
+        // Lucide "activity" — heartbeat line, sangat nyambung dengan "Pulse"
+        <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.68 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4.44 13H2" />
+        </svg>
+      ),
+    },
+    {
+      path: "/signals",
+      label: "Trade",
+      isCenter: true,
+      icon: (
+        // Arrows-swap — iconic untuk trade
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+        </svg>
+      ),
+    },
+    {
+      path: "/ai-arena",
+      label: "Arena",
+      icon: (
+        // Lucide "bot" — robot face, jelas banget "AI"
+        <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 8V4H8" />
+          <rect width="16" height="12" x="4" y="8" rx="2" />
+          <path d="M2 14h2" />
+          <path d="M20 14h2" />
+          <path d="M15 13v2" />
+          <path d="M9 13v2" />
+        </svg>
+      ),
+    },
+    {
+      path: "/markets",
+      label: "Market",
+      icon: (
+        // Candlestick chart — crypto-market signature
+        <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 4v3M8 17v3M8 7h0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+          <path d="M16 2v4M16 18v4M16 6h0a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -253,14 +304,10 @@ function AppShell({ children }) {
       <div className="luxury-bg" />
 
       {/* ══════════════════════════════════════════════
-          HEADER — Transparent, MERGES with page (Flowscan)
-          No harsh border, blends with bg
+          HEADER — Solid bg matching page + thin hairline divider
+          Pattern Flowscan: bg merges, only separated by 1px line
           ══════════════════════════════════════════════ */}
-      <header className={`sticky top-0 z-50 bg-bg-primary/70 backdrop-blur-md transition-all duration-300 ${
-        scrolled
-          ? "after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-gold-primary/25 after:to-transparent"
-          : ""
-      }`}>
+      <header className="sticky top-0 z-50 bg-bg-primary border-b border-white/[0.06]">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 lg:h-16">
             <div className="flex items-center gap-2 lg:gap-6">
@@ -287,28 +334,35 @@ function AppShell({ children }) {
                 </h1>
               </div>
 
-              {/* Desktop Navigation — Flowscan plain text + underline */}
+              {/* Desktop Navigation — Flowscan exact:
+                    hover → rounded box (border + subtle bg)
+                    active → white underline at header bottom */}
               <nav className="hidden lg:flex items-center gap-1">
-                {navItems.map((item) => (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNav(item.path)}
-                    className={`relative px-3 py-2 text-[13px] transition-colors ${
-                      isActive(item.path)
-                        ? "text-white"
-                        : "text-text-secondary hover:text-white"
-                    }`}
-                  >
-                    {item.label}
-                    {isActive(item.path) && (
-                      <span className="absolute inset-x-2 -bottom-[7px] h-[2px] rounded-full bg-gold-primary/80" />
-                    )}
-                  </button>
-                ))}
+                {navItems.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => handleNav(item.path)}
+                      className={`relative px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
+                        active
+                          ? "text-white border-transparent"
+                          : "text-text-secondary border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]"
+                      }`}
+                    >
+                      {item.label}
+                      {active && (
+                        <span className="absolute left-3 right-3 -bottom-[16px] h-[2px] bg-white" />
+                      )}
+                    </button>
+                  );
+                })}
                 <button
                   onClick={() => setShowMoreFeatures(true)}
-                  className={`relative flex items-center gap-1.5 px-3 py-2 text-[13px] transition-colors ${
-                    moreHasActive ? "text-white" : "text-text-secondary hover:text-white"
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
+                    moreHasActive
+                      ? "text-white border-transparent"
+                      : "text-text-secondary border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]"
                   }`}
                 >
                   <span>{t("nav.more")}</span>
@@ -316,7 +370,7 @@ function AppShell({ children }) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                   {moreHasActive && (
-                    <span className="absolute inset-x-2 -bottom-[7px] h-[2px] rounded-full bg-gold-primary/80" />
+                    <span className="absolute left-3 right-3 -bottom-[16px] h-[2px] bg-white" />
                   )}
                 </button>
               </nav>
@@ -376,8 +430,9 @@ function AppShell({ children }) {
             <SidebarItem active={isActive("/home")} onClick={() => handleNav("/home")} label={t("nav.home")} isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />}
             />
+            {/* Market Pulse — activity/heartbeat (nyambung dgn "Pulse") */}
             <SidebarItem active={isActive("/market-pulse")} onClick={() => handleNav("/market-pulse")} label="Market Pulse" isFreeBadge
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />}
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.68 3.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4.44 13H2" />}
             />
             <SidebarItem active={isActive("/crypto-news")} onClick={() => handleNav("/crypto-news")} label="Crypto News" isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />}
@@ -391,11 +446,13 @@ function AppShell({ children }) {
             <SidebarItem active={isActive("/autotrade")} onClick={() => handleNav("/autotrade")} label="AutoTrade" isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />}
             />
+            {/* AI Arena — Bot icon, jelas banget "AI" */}
             <SidebarItem active={isActive("/ai-arena")} onClick={() => handleNav("/ai-arena")} label="AI Arena" isPremium={!isPremiumUser()}
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L4.2 15.3m15.6 0v1.47a2.25 2.25 0 01-1.372 2.068l-1.57.535A12.04 12.04 0 0112 19.5a12.04 12.04 0 01-4.858-.92l-1.57-.535A2.25 2.25 0 014.2 16.77V15.3m15.6 0v.75m0-1.5v.75m-15.6 0v-.75m0 1.5v-.75" />}
+              icon={<><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 14h2M20 14h2M15 13v2M9 13v2" /></>}
             />
+            {/* Analytics — trending-up chart, lebih "analytics" */}
             <SidebarItem active={isActive("/analytics")} onClick={() => handleNav("/analytics")} label={t("nav.analytics")} isFreeBadge
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122h-1.5a6.023 6.023 0 01-3.52-1.122" />}
+              icon={<><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M22 7l-8.5 8.5-5-5L2 17" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7h6v6" /></>}
             />
             <SidebarItem active={isActive("/journal")} onClick={() => handleNav("/journal")} label="Journal" isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />}
@@ -403,8 +460,9 @@ function AppShell({ children }) {
             <SidebarItem active={isActive("/bitcoin")} onClick={() => handleNav("/bitcoin")} label={t("nav.bitcoin")} isPremium={!isPremiumUser()}
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
             />
+            {/* Markets — candlestick chart, lebih crypto-market */}
             <SidebarItem active={isActive("/markets")} onClick={() => handleNav("/markets")} label={t("nav.markets")} isPremium={!isPremiumUser()}
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />}
+              icon={<><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 4v3M8 17v3" /><rect x="6" y="7" width="4" height="10" rx="1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 2v4M16 18v4" /><rect x="14" y="6" width="4" height="12" rx="1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /></>}
             />
 
             {/* Tools section */}
@@ -472,10 +530,10 @@ function AppShell({ children }) {
         </Suspense>
       </main>
 
-      {/* ══════════════════════════════════════════════
-          MOBILE BOTTOM NAV — Flowscan minimal
-          (Home, Pulse, Trade, Arena, Market — request user)
-          ══════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════
+          MOBILE BOTTOM NAV — Trade center button: BIGGER + GOLD GLOW HALO
+          (Home · Pulse · Trade ✨ · Arena · Market)
+          ══════════════════════════════════════════════════════════════ */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="bg-bg-primary/90 backdrop-blur-xl">
@@ -484,25 +542,47 @@ function AppShell({ children }) {
               const active = isActive(item.path);
 
               if (item.isCenter) {
+                // ════════════════════════════════════════
+                // CENTER BUTTON — bigger + gold glow halo
+                // (animate-pulse always on, intensifies when active)
+                // ════════════════════════════════════════
                 return (
                   <button
                     key={item.path}
                     onClick={() => handleNav(item.path)}
-                    className="relative -mt-5 flex flex-col items-center"
+                    className="relative -mt-6 flex flex-col items-center group"
                   >
-                    <div className={`relative w-12 h-12 rounded-md flex items-center justify-center transition-all duration-200 ${
-                      active
-                        ? 'bg-[#0a0805] border border-gold-primary/40'
-                        : 'bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/25'
-                    }`}>
-                      {active && (
-                        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
-                      )}
-                      <span className={active ? 'text-gold-primary' : 'text-text-secondary'}>{item.icon}</span>
+                    {/* Outer glow halo — always alive, brighter when active */}
+                    <div
+                      className={`absolute -inset-2 rounded-md blur-lg pointer-events-none transition-opacity duration-500 ${
+                        active
+                          ? "bg-gold-primary/35 opacity-100 animate-pulse"
+                          : "bg-gold-primary/18 opacity-70 group-hover:opacity-90"
+                      }`}
+                    />
+                    {/* Inner button — slightly bigger (w-14 h-14) */}
+                    <div
+                      className={`relative w-14 h-14 rounded-md flex items-center justify-center transition-all duration-300 ${
+                        active
+                          ? "bg-gradient-to-br from-gold-light via-gold-primary to-gold-dark border border-gold-primary/70 shadow-lg shadow-gold-primary/40"
+                          : "bg-[#0a0805] border border-gold-primary/40 group-hover:border-gold-primary/60"
+                      }`}
+                    >
+                      {/* Top hairline accent (Flowscan signature) */}
+                      <div
+                        className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
+                          active ? "via-white/50" : "via-gold-primary/50"
+                        } to-transparent`}
+                      />
+                      <span className={active ? "text-bg-primary" : "text-gold-primary"}>
+                        {item.icon}
+                      </span>
                     </div>
-                    <span className={`font-mono text-[9px] uppercase tracking-wider mt-1 transition-colors ${
-                      active ? 'text-gold-primary' : 'text-text-muted'
-                    }`}>
+                    <span
+                      className={`font-mono text-[9px] uppercase tracking-wider mt-1.5 transition-colors ${
+                        active ? "text-gold-primary" : "text-text-muted"
+                      }`}
+                    >
                       {item.label}
                     </span>
                   </button>
