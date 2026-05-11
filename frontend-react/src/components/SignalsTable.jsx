@@ -9,17 +9,14 @@ import { watchlistApi } from '../services/watchlistApi';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 /**
- * SignalsTable — Web3 Flowscan Edition
+ * SignalsTable — Web3 Flowscan Edition (Color Update v2)
  *
- * Design principles:
- * - Functional color palette only: profit (#56c996), loss (#e07288), gold accent
- * - All status/risk/update reduced to 3 functional colors max
- * - Flat hairline borders white/[0.06] consistent everywhere
- * - Sharp rounded-md (6px), no rounded-xl/2xl
- * - Mono uppercase labels tracking-wider, tabular-nums for numbers
- * - SVG icons replace all emoji
- * - No neon glow drop-shadow
- * - Hover: bg-white/[0.02] (Flowscan exact)
+ * Warna baru (lebih informatif & vibrant):
+ * - Current Price: hijau kalau naik dari entry, merah kalau turun
+ * - OPEN → biru (active)
+ * - TP / HIT TP → hijau profit
+ * - SL / HIT SL → merah loss
+ * - Risk: Low = hijau, High = merah, Normal = gold
  */
 const SignalsTable = ({
   signals,
@@ -59,7 +56,7 @@ const SignalsTable = ({
     );
   };
 
-  // ═══ STABLE PRICE FETCHING (unchanged logic) ═══
+  // ═══ STABLE PRICE FETCHING (unchanged) ═══
   useEffect(() => {
     if (!signals || signals.length === 0) return;
 
@@ -206,13 +203,12 @@ const SignalsTable = ({
     return ((current - entry) / entry * 100);
   };
 
-  // ═══ FLAT 3-COLOR RISK SYSTEM ═══
-  // Low → profit, Normal → gold accent, High → loss
+  // ═══ FLAT 3-COLOR RISK SYSTEM (unchanged) ═══
   const getRiskClasses = (risk) => {
     const r = risk?.toLowerCase() || '';
     if (r.startsWith('low')) return 'bg-profit/10 text-profit border-profit/20';
     if (r.startsWith('high')) return 'bg-loss/10 text-loss border-loss/20';
-    return 'bg-gold-primary/10 text-gold-primary border-gold-primary/20'; // normal/med
+    return 'bg-gold-primary/10 text-gold-primary border-gold-primary/20';
   };
 
   const getRiskLabel = (risk) => {
@@ -235,13 +231,14 @@ const SignalsTable = ({
     return `$${num.toFixed(0)}`;
   };
 
-  // ═══ STATUS BADGE — 3 functional colors only ═══
-  // Open → gold accent, TP variants → profit, SL/loss → loss
+  // ═══ STATUS BADGE — UPDATED COLOR (v2) ═══
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase() || '';
     let cls, label;
+
     if (s === 'open') {
-      cls = 'bg-gold-primary/10 text-gold-primary border-gold-primary/25';
+      // Biru untuk status aktif
+      cls = 'bg-blue-500/10 text-blue-400 border-blue-500/25';
       label = 'OPEN';
     } else if (s === 'closed_loss' || s === 'sl') {
       cls = 'bg-loss/10 text-loss border-loss/25';
@@ -256,6 +253,7 @@ const SignalsTable = ({
       cls = 'bg-white/[0.04] text-text-muted border-white/[0.06]';
       label = status || '-';
     }
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${cls}`}>
         {label}
@@ -269,7 +267,7 @@ const SignalsTable = ({
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
 
-  // ═══ UPDATE TYPE — profit/loss only, no rainbow ═══
+  // ═══ UPDATE TYPE (unchanged, sudah bagus) ═══
   const getUpdateTypeBadge = (updateType) => {
     if (!updateType) return null;
     const ut = updateType.toLowerCase();
@@ -297,7 +295,7 @@ const SignalsTable = ({
     return formatDateTimeShort(dt);
   };
 
-  // ═══ SORTABLE HEADER — Flowscan style ═══
+  // ═══ SORTABLE HEADER (unchanged) ═══
   const SortableHeader = ({ field, label, align = 'left' }) => {
     const isActive = sortBy === field;
     const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
@@ -325,7 +323,6 @@ const SignalsTable = ({
     );
   };
 
-  // ─── Empty state SVG (replace emoji) ───
   const EmptyStateIcon = () => (
     <svg className="w-8 h-8 text-text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
@@ -339,15 +336,17 @@ const SignalsTable = ({
     const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
 
+    const currentPriceColor = priceChange !== null 
+      ? (priceChange >= 0 ? 'text-profit' : 'text-loss') 
+      : 'text-white';
+
     return (
       <div
         onClick={() => setSelectedSignal(signal)}
         className="relative bg-[#0a0805] rounded-md border border-white/[0.06] p-4 hover:border-gold-primary/25 active:bg-white/[0.02] transition-all cursor-pointer overflow-hidden group"
       >
-        {/* Hairline top accent (Flowscan signature) */}
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
 
-        {/* Header row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
             <CoinLogo pair={signal.pair} size={32} />
@@ -373,7 +372,6 @@ const SignalsTable = ({
           </div>
         </div>
 
-        {/* Update row */}
         {signal.last_update_at && (
           <div className="flex items-center justify-between mb-3 px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-sm">
             <div className="flex items-center gap-2">
@@ -386,7 +384,7 @@ const SignalsTable = ({
           </div>
         )}
 
-        {/* Price grid: Entry · Current · P&L */}
+        {/* Price grid — Current sekarang berwarna! */}
         <div className="grid grid-cols-3 gap-2 mb-3 bg-white/[0.02] border border-white/[0.06] p-3 rounded-sm">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mb-1">Entry</p>
@@ -397,7 +395,9 @@ const SignalsTable = ({
             {pricesLoading && !currentPrice ? (
               <div className="h-3 w-12 bg-white/[0.04] rounded animate-pulse mx-auto" />
             ) : currentPrice ? (
-              <p className="font-mono text-[12px] tabular-nums text-white">{formatPrice(currentPrice)}</p>
+              <p className={`font-mono text-[12px] tabular-nums ${currentPriceColor}`}>
+                {formatPrice(currentPrice)}
+              </p>
             ) : (
               <p className="text-text-muted/40 text-[12px]">-</p>
             )}
@@ -414,7 +414,6 @@ const SignalsTable = ({
           </div>
         </div>
 
-        {/* TP rows */}
         <div className="grid grid-cols-4 gap-1.5 mb-3">
           {[
             { label: 'TP1', value: signal.target1 },
@@ -429,7 +428,6 @@ const SignalsTable = ({
           ))}
         </div>
 
-        {/* Footer meta */}
         <div className="flex items-center justify-between text-[10px] border-t border-white/[0.06] pt-3">
           <div className="flex items-center gap-3 flex-wrap font-mono">
             {signal.market_cap && <span className="text-text-muted/60">MC <span className="text-text-muted">{formatMarketCap(signal.market_cap)}</span></span>}
@@ -472,7 +470,7 @@ const SignalsTable = ({
 
   return (
     <>
-      {/* ════ MOBILE VIEW ════ */}
+      {/* MOBILE VIEW */}
       <div className="lg:hidden">
         {loading ? (
           <MobileLoadingSkeleton />
@@ -516,10 +514,9 @@ const SignalsTable = ({
         )}
       </div>
 
-      {/* ════ DESKTOP VIEW ════ */}
+      {/* DESKTOP VIEW */}
       <div className="hidden lg:block w-full">
         <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
-          {/* Hairline top accent */}
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
           <div className="overflow-x-auto">
@@ -570,18 +567,20 @@ const SignalsTable = ({
                     const currentVol = getVolume(signal.pair);
                     const priceChange = getPriceChange(signal.entry, currentPrice);
 
+                    const currentPriceColor = priceChange !== null 
+                      ? (priceChange >= 0 ? 'text-profit' : 'text-loss') 
+                      : 'text-white';
+
                     return (
                       <tr
                         key={signal.signal_id || idx}
                         onClick={() => setSelectedSignal(signal)}
                         className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors group"
                       >
-                        {/* Star */}
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
                         </td>
 
-                        {/* Pair */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <CoinLogo pair={signal.pair} size={28} />
@@ -594,13 +593,15 @@ const SignalsTable = ({
                           </div>
                         </td>
 
-                        {/* Current Price */}
+                        {/* Current Price — sekarang berwarna! */}
                         <td className="py-3 px-4 text-right">
                           {pricesLoading && !currentPrice ? (
                             <div className="h-3 w-16 bg-white/[0.04] rounded animate-pulse ml-auto" />
                           ) : currentPrice ? (
                             <div className="flex flex-col items-end">
-                              <span className="text-white font-mono text-sm tabular-nums">{formatPrice(currentPrice)}</span>
+                              <span className={`font-mono text-sm tabular-nums ${currentPriceColor}`}>
+                                {formatPrice(currentPrice)}
+                              </span>
                               {priceChange !== null && (
                                 <span className={`font-mono text-[10px] tabular-nums mt-0.5 ${priceChange >= 0 ? 'text-profit' : 'text-loss'}`}>
                                   {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
@@ -612,12 +613,10 @@ const SignalsTable = ({
                           )}
                         </td>
 
-                        {/* Entry Price */}
                         <td className="py-3 px-4 text-right">
                           <span className="text-text-muted font-mono text-sm tabular-nums">{formatPrice(signal.entry)}</span>
                         </td>
 
-                        {/* Max Target */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="text-profit font-mono text-sm tabular-nums">{maxTarget ? formatPrice(maxTarget) : '-'}</span>
@@ -630,7 +629,6 @@ const SignalsTable = ({
                           </div>
                         </td>
 
-                        {/* Stop Loss */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="text-loss font-mono text-sm tabular-nums">{signal.stop1 ? formatPrice(signal.stop1) : '-'}</span>
@@ -643,14 +641,12 @@ const SignalsTable = ({
                           </div>
                         </td>
 
-                        {/* Risk */}
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
                             {getRiskLabel(signal.risk_level)}
                           </span>
                         </td>
 
-                        {/* Market Cap */}
                         <td className="py-3 px-4 text-right">
                           {signal.market_cap ? (
                             <span className="text-text-muted font-mono text-sm tabular-nums">{formatMarketCap(signal.market_cap)}</span>
@@ -659,7 +655,6 @@ const SignalsTable = ({
                           )}
                         </td>
 
-                        {/* Volume */}
                         <td className="py-3 px-4 text-right">
                           {currentVol ? (
                             <span className="text-text-muted font-mono text-sm tabular-nums">{formatVolume(currentVol)}</span>
@@ -672,12 +667,10 @@ const SignalsTable = ({
                           )}
                         </td>
 
-                        {/* Status */}
                         <td className="py-3 px-4 text-center">
                           {getStatusBadge(signal.status)}
                         </td>
 
-                        {/* Last Update */}
                         <td className="py-3 px-4 text-center">
                           {signal.last_update_at ? (
                             <div className="flex flex-col items-center gap-0.5">
@@ -689,7 +682,6 @@ const SignalsTable = ({
                           )}
                         </td>
 
-                        {/* Called Time */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex flex-col items-end">
                             <span className="text-text-muted font-mono text-[11px] tabular-nums">
@@ -714,7 +706,6 @@ const SignalsTable = ({
             </table>
           </div>
 
-          {/* Desktop Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06] bg-white/[0.015]">
               <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
