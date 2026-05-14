@@ -8,109 +8,22 @@ import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
 
 // ═══════════════════════════════════════════
 // Payment Method Configuration
+// LuxQuant currently only supports USDT BEP-20 (BSC).
+// Other currencies/networks will be added in the future.
 // ═══════════════════════════════════════════
-const CURRENCIES = [
-  { id: "usdt", label: "USDT", icon: "usdt", color: "#26A17B" },
-  { id: "usdc", label: "USDC", icon: "usdc", color: "#2775CA" },
-  { id: "btc", label: "BTC", icon: "btc", color: "#F7931A" },
-];
-
-const NETWORKS = {
-  usdt: [
-    {
-      id: "bsc",
-      label: "BSC (BEP-20)",
-      badge: "recommended",
-      warningKey: "warning_bsc",
-    },
-    {
-      id: "erc20",
-      label: "Ethereum (ERC-20)",
-      badge: null,
-      warningKey: "warning_erc20",
-    },
-    {
-      id: "trc20",
-      label: "TRON (TRC-20)",
-      badge: "lowest_fee",
-      warningKey: "warning_trc20",
-    },
-  ],
-  usdc: [
-    {
-      id: "erc20",
-      label: "Ethereum (ERC-20)",
-      badge: "recommended",
-      warningKey: "warning_erc20",
-    },
-    {
-      id: "bsc",
-      label: "BSC (BEP-20)",
-      badge: null,
-      warningKey: "warning_bsc",
-    },
-    {
-      id: "trc20",
-      label: "TRON (TRC-20)",
-      badge: "lowest_fee",
-      warningKey: "warning_trc20",
-    },
-  ],
-  btc: [
-    { id: "btc", label: "Bitcoin", badge: null, warningKey: "warning_btc" },
-  ],
-};
-
-// Wallet addresses per currency+network (configure these)
-const WALLET_ADDRESSES = {
-  "usdt-bsc": "", // Will be populated from invoice
-  "usdt-erc20": "",
-  "usdt-trc20": "",
-  "usdc-erc20": "",
-  "usdc-bsc": "",
-  "usdc-trc20": "",
-  "btc-btc": "",
-};
 
 // ═══════════════════════════════════════════
-// Currency Icon Components
+// Currency Icon Component (USDT only)
 // ═══════════════════════════════════════════
-const CurrencyIcon = ({ currency, size = 24 }) => {
-  if (currency === "usdt") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="16" fill="#26A17B" />
-        <path
-          d="M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117"
-          fill="#fff"
-        />
-      </svg>
-    );
-  }
-  if (currency === "usdc") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="16" fill="#2775CA" />
-        <path
-          d="M20.4 18.133c0-2.134-1.28-2.867-3.84-3.2-.533-.067-1.067-.133-1.6-.267-1.28-.267-1.6-.667-1.6-1.333 0-.667.533-1.133 1.6-1.133.933 0 1.467.333 1.733 1.067.067.133.2.2.333.2h.8c.2 0 .333-.133.333-.333v-.067c-.267-1.067-1.067-1.867-2.267-2.067V9.867c0-.2-.133-.333-.4-.4h-.8c-.2 0-.333.133-.4.4V11c-1.6.2-2.6 1.267-2.6 2.533 0 2 1.2 2.733 3.76 3.067.533.067 1.067.2 1.6.333 1.067.333 1.4.8 1.4 1.4 0 .8-.667 1.4-1.867 1.4-1.467 0-2-.6-2.2-1.4-.067-.133-.2-.267-.4-.267h-.867c-.2 0-.333.133-.333.333v.067c.267 1.333 1.067 2.2 2.8 2.467v1.133c0 .2.133.333.4.4h.8c.2 0 .333-.133.4-.4V20.6c1.667-.267 2.667-1.333 2.667-2.667"
-          fill="#fff"
-        />
-      </svg>
-    );
-  }
-  if (currency === "btc") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="16" fill="#F7931A" />
-        <path
-          d="M22.5 13.6c.3-2-1.2-3.1-3.4-3.8l.7-2.8-1.7-.4-.7 2.7c-.4-.1-.9-.2-1.4-.3l.7-2.8-1.7-.4-.7 2.8c-.4-.1-.7-.2-1-.2l-2.3-.6-.5 1.8s1.2.3 1.2.3c.7.2.8.6.8 1l-.8 3.2c0 0 .1 0 .1 0l-.1 0-1.1 4.5c-.1.2-.3.5-.7.4 0 0-1.2-.3-1.2-.3l-.8 1.9 2.2.5c.4.1.8.2 1.2.3l-.7 2.8 1.7.4.7-2.8c.5.1.9.2 1.4.3l-.7 2.8 1.7.4.7-2.8c3 .6 5.2.3 6.1-2.4.8-2.1 0-3.4-1.6-4.2 1.1-.3 2-1 2.2-2.6m-3.9 5.5c-.6 2.2-4.3 1-5.5.7l1-4c1.2.3 5.1.9 4.5 3.3m.6-5.5c-.5 2-3.6.9-4.6.7l.9-3.6c1 .3 4.3.7 3.7 2.9"
-          fill="#fff"
-        />
-      </svg>
-    );
-  }
-  return null;
-};
+const UsdtIcon = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="16" fill="#26A17B" />
+    <path
+      d="M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117"
+      fill="#fff"
+    />
+  </svg>
+);
 
 // ═══════════════════════════════════════════
 // Main PaymentPage Component
@@ -122,10 +35,6 @@ const PaymentPage = () => {
   const { refreshUser } = useAuth();
   const { invoice, plan } = location.state || {};
 
-  // Payment method state
-  const [selectedCurrency, setSelectedCurrency] = useState("usdt");
-  const [selectedNetwork, setSelectedNetwork] = useState("bsc");
-
   // Payment flow state
   const [txHash, setTxHash] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -135,7 +44,8 @@ const PaymentPage = () => {
   const [showAdminModal, setShowAdminModal] = useState(false);
 
   // Extract data from invoice response
-  const invoiceWallet = invoice?.wallet_to || invoice?.payment?.wallet_to || "";
+  const walletAddress =
+    invoice?.wallet_to || invoice?.payment?.wallet_to || "";
   const amount = invoice?.amount_usdt || invoice?.payment?.amount_usdt || "";
   const expiresAt = invoice?.expires_at || invoice?.payment?.expires_at || "";
   const paymentId = invoice?.payment?.id || invoice?.id || null;
@@ -144,33 +54,6 @@ const PaymentPage = () => {
     invoice?.plan?.label ||
     invoice?.plan?.name ||
     "Subscription";
-
-  // Derive wallet address based on selection
-  const getWalletAddress = () => {
-    const key = `${selectedCurrency}-${selectedNetwork}`;
-    const configuredWallet = WALLET_ADDRESSES[key];
-    // Fallback to invoice wallet for USDT-BSC (current production flow)
-    if (selectedCurrency === "usdt" && selectedNetwork === "bsc") {
-      return invoiceWallet || configuredWallet;
-    }
-    return configuredWallet || invoiceWallet;
-  };
-
-  const walletAddress = getWalletAddress();
-
-  // Get current network config
-  const currentNetworks = NETWORKS[selectedCurrency] || [];
-  const currentNetworkConfig = currentNetworks.find(
-    (n) => n.id === selectedNetwork,
-  );
-
-  // Auto-select first network when currency changes
-  useEffect(() => {
-    const nets = NETWORKS[selectedCurrency];
-    if (nets && nets.length > 0) {
-      setSelectedNetwork(nets[0].id);
-    }
-  }, [selectedCurrency]);
 
   // If no invoice data, redirect to pricing
   useEffect(() => {
@@ -231,22 +114,6 @@ const PaymentPage = () => {
       setVerifying(false);
     }
   };
-
-  // Get display amount based on selected currency
-  const getDisplayAmount = () => {
-    // For now, amount is always in USDT from backend
-    // BTC conversion would come from backend in future
-    if (selectedCurrency === "btc") {
-      return { value: "—", suffix: "BTC", note: `≈ ${amount} USDT` };
-    }
-    return {
-      value: amount || "—",
-      suffix: selectedCurrency.toUpperCase(),
-      note: null,
-    };
-  };
-
-  const displayAmount = getDisplayAmount();
 
   if (!invoice) return null;
 
@@ -319,7 +186,7 @@ const PaymentPage = () => {
               </span>
             </div>
 
-            {/* ═══ STEP 1: Select Payment Method ═══ */}
+            {/* ═══ STEP 1: Payment Method (USDT BEP-20 only) ═══ */}
             <div className="mb-7">
               <div className="flex items-center gap-2.5 mb-5">
                 <div
@@ -336,7 +203,7 @@ const PaymentPage = () => {
                 </span>
               </div>
 
-              {/* Currency Selector */}
+              {/* Currency Display — USDT only (locked) */}
               <div className="mb-4">
                 <p
                   className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
@@ -344,37 +211,45 @@ const PaymentPage = () => {
                 >
                   {t("payment.currency")}
                 </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {CURRENCIES.map((cur) => {
-                    const isActive = selectedCurrency === cur.id;
-                    return (
-                      <button
-                        key={cur.id}
-                        onClick={() => setSelectedCurrency(cur.id)}
-                        className="relative flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300"
-                        style={{
-                          background: isActive
-                            ? `rgba(${cur.id === "usdt" ? "38,161,123" : cur.id === "usdc" ? "39,117,202" : "247,147,26"},0.08)`
-                            : "rgba(18,8,9,0.6)",
-                          border: isActive
-                            ? `1.5px solid rgba(${cur.id === "usdt" ? "38,161,123" : cur.id === "usdc" ? "39,117,202" : "247,147,26"},0.4)`
-                            : "1px solid rgba(212,168,83,0.06)",
-                        }}
-                      >
-                        <CurrencyIcon currency={cur.id} size={18} />
-                        <span
-                          className="text-xs font-semibold"
-                          style={{ color: isActive ? "#fff" : "#6b5c52" }}
-                        >
-                          {cur.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
+                  style={{
+                    background: "rgba(38,161,123,0.08)",
+                    border: "1.5px solid rgba(38,161,123,0.4)",
+                  }}
+                >
+                  <UsdtIcon size={22} />
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-white">
+                      USDT
+                    </div>
+                    <div
+                      className="text-[10px] mt-0.5"
+                      style={{ color: "#6b5c52" }}
+                    >
+                      Tether USD
+                    </div>
+                  </div>
+                  <span
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                    style={{
+                      background: "rgba(38,161,123,0.15)",
+                      color: "#26A17B",
+                      border: "1px solid rgba(38,161,123,0.25)",
+                    }}
+                  >
+                    Active
+                  </span>
                 </div>
+                <p
+                  className="text-[10px] mt-2 leading-relaxed"
+                  style={{ color: "#534a42" }}
+                >
+                  More currencies (USDC, BTC) coming soon.
+                </p>
               </div>
 
-              {/* Network Selector */}
+              {/* Network Display — BSC only (locked) */}
               <div>
                 <p
                   className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
@@ -382,67 +257,52 @@ const PaymentPage = () => {
                 >
                   {t("payment.network")}
                 </p>
-                <div className="space-y-2">
-                  {currentNetworks.map((net) => {
-                    const isActive = selectedNetwork === net.id;
-                    return (
-                      <button
-                        key={net.id}
-                        onClick={() => setSelectedNetwork(net.id)}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200"
-                        style={{
-                          background: isActive
-                            ? "rgba(212,168,83,0.06)"
-                            : "rgba(18,8,9,0.4)",
-                          border: isActive
-                            ? "1.5px solid rgba(212,168,83,0.25)"
-                            : "1px solid rgba(212,168,83,0.04)",
-                        }}
+                <div
+                  className="flex items-center justify-between px-4 py-3.5 rounded-xl"
+                  style={{
+                    background: "rgba(212,168,83,0.06)",
+                    border: "1.5px solid rgba(212,168,83,0.25)",
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ border: "1.5px solid #d4a853" }}
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: "#d4a853" }}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-white">
+                        BSC (BEP-20)
+                      </div>
+                      <div
+                        className="text-[10px] mt-0.5"
+                        style={{ color: "#6b5c52" }}
                       >
-                        <div className="flex items-center gap-3">
-                          {/* Radio dot */}
-                          <div
-                            className="w-4 h-4 rounded-full flex items-center justify-center"
-                            style={{
-                              border: `1.5px solid ${isActive ? "#d4a853" : "rgba(212,168,83,0.15)"}`,
-                            }}
-                          >
-                            {isActive && (
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ background: "#d4a853" }}
-                              />
-                            )}
-                          </div>
-                          <span
-                            className="text-xs font-medium"
-                            style={{ color: isActive ? "#fff" : "#6b5c52" }}
-                          >
-                            {net.label}
-                          </span>
-                        </div>
-                        {net.badge && (
-                          <span
-                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                            style={{
-                              background:
-                                net.badge === "recommended"
-                                  ? "rgba(212,168,83,0.1)"
-                                  : "rgba(34,197,94,0.1)",
-                              color:
-                                net.badge === "recommended"
-                                  ? "#d4a853"
-                                  : "#22c55e",
-                              border: `1px solid ${net.badge === "recommended" ? "rgba(212,168,83,0.15)" : "rgba(34,197,94,0.15)"}`,
-                            }}
-                          >
-                            {t(`payment.${net.badge}`)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                        BNB Smart Chain
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                    style={{
+                      background: "rgba(212,168,83,0.1)",
+                      color: "#d4a853",
+                      border: "1px solid rgba(212,168,83,0.15)",
+                    }}
+                  >
+                    {t("payment.recommended")}
+                  </span>
                 </div>
+                <p
+                  className="text-[10px] mt-2 leading-relaxed"
+                  style={{ color: "#534a42" }}
+                >
+                  More networks (ERC-20, TRC-20) coming soon.
+                </p>
               </div>
             </div>
 
@@ -493,23 +353,15 @@ const PaymentPage = () => {
                         className="text-2xl font-bold text-white"
                         style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                       >
-                        {displayAmount.value}
+                        {amount || "—"}
                       </span>
                       <span
                         className="text-xs font-semibold"
                         style={{ color: "#d4a853" }}
                       >
-                        {displayAmount.suffix}
+                        USDT
                       </span>
                     </div>
-                    {displayAmount.note && (
-                      <p
-                        className="text-[10px] mt-1"
-                        style={{ color: "#534a42" }}
-                      >
-                        {displayAmount.note}
-                      </p>
-                    )}
                   </div>
                   <button
                     onClick={() => handleCopy(String(amount), "amount")}
@@ -563,37 +415,35 @@ const PaymentPage = () => {
                 </div>
               </div>
 
-              {/* Network Warning */}
-              {currentNetworkConfig && (
-                <div
-                  className="mt-3 flex items-start gap-2.5 p-3.5 rounded-xl"
-                  style={{
-                    background: "rgba(234,179,8,0.04)",
-                    border: "1px solid rgba(234,179,8,0.1)",
-                  }}
+              {/* Network Warning (BSC) */}
+              <div
+                className="mt-3 flex items-start gap-2.5 p-3.5 rounded-xl"
+                style={{
+                  background: "rgba(234,179,8,0.04)",
+                  border: "1px solid rgba(234,179,8,0.1)",
+                }}
+              >
+                <svg
+                  className="w-4 h-4 flex-shrink-0 mt-0.5"
+                  style={{ color: "#d4a853" }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-4 h-4 flex-shrink-0 mt-0.5"
-                    style={{ color: "#d4a853" }}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  <p
-                    className="text-[11px] leading-relaxed"
-                    style={{ color: "#a09080" }}
-                  >
-                    {t(`payment.${currentNetworkConfig.warningKey}`)}
-                  </p>
-                </div>
-              )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+                <p
+                  className="text-[11px] leading-relaxed"
+                  style={{ color: "#a09080" }}
+                >
+                  {t("payment.warning_bsc")}
+                </p>
+              </div>
             </div>
 
             {/* Divider */}
@@ -633,11 +483,7 @@ const PaymentPage = () => {
                 type="text"
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
-                placeholder={
-                  selectedCurrency === "btc"
-                    ? t("payment.tx_placeholder_btc")
-                    : t("payment.tx_placeholder")
-                }
+                placeholder={t("payment.tx_placeholder")}
                 className="w-full px-4 py-3.5 rounded-xl text-white text-xs font-mono focus:outline-none mb-4 transition-all"
                 style={{
                   background: "rgba(10,5,6,0.6)",
