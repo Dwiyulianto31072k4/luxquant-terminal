@@ -317,8 +317,9 @@ def compute_advanced_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Opt
         "is_extended":         False,
         "sample_size":         int(sample_size),
         "daily_sample":        0,
-        "btc_down_days":       0,
-        "btc_up_days":         0,
+        "btc_down_samples":    0,
+        "btc_up_samples":      0,
+        "btc_stress_days":     0,
         "insufficient":        sample_size < MIN_TO_INSERT_LOW,
     }
 
@@ -345,21 +346,31 @@ def compute_advanced_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Opt
         z_score = (corr_short - m) / s if s > 0 else 0.0
 
     # ===== ADVANCED: Tail correlations =====
+    # Best practice (Ang/Chen/Xing 2006, Lee et al. 2023): use mean return as
+    # threshold for downside, not arbitrary absolute %. Use hourly returns for
+    # more reliable inference (Tracking Pure Systematic Risk 2023).
+    btc_mean = float(long_["ret_btc"].mean())
+    btc_down = long_[long_["ret_btc"] < btc_mean]   # below-mean = downside
+    btc_up   = long_[long_["ret_btc"] > btc_mean]
+
+    MIN_TAIL_SAMPLES = 30   # need at least 30 hourly samples per side
+
+    tail_corr_down = float(btc_down["ret_coin"].corr(btc_down["ret_btc"])) if len(btc_down) >= MIN_TAIL_SAMPLES else None
+    tail_corr_up   = float(btc_up["ret_coin"].corr(btc_up["ret_btc"]))     if len(btc_up)   >= MIN_TAIL_SAMPLES else None
+
+    # Downside beta — beta computed only on BTC-below-mean candles
+    downside_beta = None
+    if len(btc_down) >= MIN_TAIL_SAMPLES and btc_down["ret_btc"].var() > 0:
+        downside_beta = float(btc_down["ret_coin"].cov(btc_down["ret_btc"]) / btc_down["ret_btc"].var())
+
+    # Also compute "stress" tail: BTC drops >2% in single day (kept for context)
     merged_d = merged.set_index("timestamp").resample("D").agg({
         "close_coin": "last", "close_btc": "last"
     }).dropna()
     merged_d["ret_coin"] = merged_d["close_coin"].pct_change()
     merged_d["ret_btc"]  = merged_d["close_btc"].pct_change()
     daily = merged_d.dropna()
-
-    btc_down = daily[daily["ret_btc"] < BTC_BIG_DOWN]
-    btc_up   = daily[daily["ret_btc"] > BTC_BIG_UP]
-    tail_corr_down = float(btc_down["ret_coin"].corr(btc_down["ret_btc"])) if len(btc_down) >= 5 else None
-    tail_corr_up   = float(btc_up["ret_coin"].corr(btc_up["ret_btc"]))     if len(btc_up)   >= 5 else None
-
-    downside_beta = None
-    if len(btc_down) >= 5 and btc_down["ret_btc"].var() > 0:
-        downside_beta = float(btc_down["ret_coin"].cov(btc_down["ret_btc"]) / btc_down["ret_btc"].var())
+    btc_stress = daily[daily["ret_btc"] < BTC_BIG_DOWN]   # informational only
 
     lead_lag = compute_lead_lag(long_)
 
@@ -393,8 +404,9 @@ def compute_advanced_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Opt
         "momentum_div_7d": round(mom_div, 2),
         "is_extended":     bool(mom_div > 30.0),
         "daily_sample":    int(len(daily)),
-        "btc_down_days":   int(len(btc_down)),
-        "btc_up_days":     int(len(btc_up)),
+        "btc_down_samples":int(len(btc_down)),   # hourly count
+        "btc_up_samples":  int(len(btc_up)),     # hourly count
+        "btc_stress_days": int(len(btc_stress)), # daily count of >2% drops
         "insufficient":    False,
     }
 
@@ -552,6 +564,11 @@ def generate_interpretation(metrics: dict, btc_ctx: dict, confidence: str,
         observations.append(
             f"🛡️ Resilient downside profile: downside beta ({downside_beta:.2f}) lower than overall beta ({beta:.2f}). "
             f"Coin holds up better than BTC during stress."
+        )
+    elif downside_beta is None and metrics.get("btc_stress_days", 0) == 0:
+        observations.append(
+            f"ℹ️ Limited BTC stress data in lookback period — no major BTC drops to compute downside-specific behavior. "
+            f"Use overall beta ({beta:.2f}) as primary risk indicator."
         )
 
     # 3) Lead/lag
