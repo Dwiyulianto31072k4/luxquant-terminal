@@ -1,6 +1,7 @@
 // src/components/OnchainPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — On-Chain Intelligence Page v3 (Flowscan reskin)
+// LuxQuant Terminal — On-Chain Intelligence Page v3.1 (Flowscan reskin)
+// 100% aligned with backend /api/v1/onchain/{feed,stats,detail,filters}
 // Whale transfers · Smart money · Liquidations
 // ════════════════════════════════════════════════════════════════
 
@@ -25,11 +26,13 @@ const ALERT_TYPES = [
   { key: "security", label: "Security" },
 ];
 
-// ── Sort options ──
-const SORT_OPTIONS = [
-  { key: "latest", label: "Latest" },
-  { key: "amount_desc", label: "Largest $" },
-  { key: "amount_asc", label: "Smallest $" },
+// ── Min USD preset chips ──
+const MIN_USD_PRESETS = [
+  { key: "0", label: "All", value: 0 },
+  { key: "10000", label: "$10K+", value: 10000 },
+  { key: "100000", label: "$100K+", value: 100000 },
+  { key: "1000000", label: "$1M+", value: 1000000 },
+  { key: "10000000", label: "$10M+", value: 10000000 },
 ];
 
 // ── Helpers ──
@@ -58,8 +61,18 @@ const timeAgo = (iso) => {
   return `${Math.floor(diff / 86400)}d`;
 };
 
+// ── Compute p95 from alert amounts (dynamic whale threshold) ──
+const computeWhaleThreshold = (alerts) => {
+  const amounts = alerts
+    .map((a) => a.amount_usd)
+    .filter((v) => v != null && v > 0)
+    .sort((a, b) => a - b);
+  if (amounts.length < 10) return 1_000_000; // fallback
+  const idx = Math.floor(amounts.length * 0.95);
+  return amounts[idx] || 1_000_000;
+};
+
 // ── Semantic 3-tier badge system ──
-// gold = high-signal · red = danger · neutral = info
 const typeStyle = (t) => {
   const gold = "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
   const danger = "bg-red-500/10 text-red-400 border-red-500/25";
@@ -79,7 +92,12 @@ const typeLabel = (t) => {
   return t.replace(/_/g, " ").toUpperCase();
 };
 
-// ── Chain dot color (only tiny 5px dot retains color) ──
+const prettyType = (t) => {
+  if (!t) return "—";
+  return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+// ── Chain dot color (only tiny dot retains color) ──
 const chainDot = (c) => {
   const map = {
     Ethereum: "bg-blue-400",
@@ -98,13 +116,6 @@ const chainDot = (c) => {
   return map[c] || "bg-white/40";
 };
 
-// Highlight threshold: alerts ≥ $1M get accent treatment
-const HIGHLIGHT_THRESHOLD_USD = 1_000_000;
-const isHighlight = (a) =>
-  (a.amount_usd && a.amount_usd >= HIGHLIGHT_THRESHOLD_USD) ||
-  a.alert_type === "liquidation" ||
-  a.alert_type === "security";
-
 
 // ════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -118,36 +129,39 @@ const OnchainPage = () => {
   const [totalAlerts, setTotalAlerts] = useState(0);
   const [alertType, setAlertType] = useState("all");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("latest");
   const [chainFilter, setChainFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [tokenFilter, setTokenFilter] = useState("all");
+  const [minUsd, setMinUsd] = useState(0);
   const [selectedAlert, setSelectedAlert] = useState(null);
-  const [last24h, setLast24h] = useState(0);
   const refreshRef = useRef(null);
 
-  // ── Fetch feed ──
+  // ── Fetch feed (uses ONLY backend-supported params) ──
   const fetchFeed = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: String(page),
         per_page: String(PER_PAGE),
-        sort,
       });
       if (alertType !== "all") params.append("alert_type", alertType);
       if (chainFilter !== "all") params.append("blockchain", chainFilter);
+      if (sourceFilter !== "all") params.append("source", sourceFilter);
+      if (tokenFilter !== "all") params.append("token", tokenFilter);
       if (search.trim()) params.append("search", search.trim());
+      if (minUsd > 0) params.append("min_usd", String(minUsd));
+
       const res = await fetch(`${API}/feed?${params}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setAlerts(data.alerts || []);
       setTotalPages(data.total_pages || 1);
       setTotalAlerts(data.total || 0);
-      setLast24h(data.last_24h || 0);
     } catch {
       console.error("Feed fetch failed");
     } finally {
       setLoading(false);
     }
-  }, [page, alertType, search, sort, chainFilter]);
+  }, [page, alertType, search, chainFilter, sourceFilter, tokenFilter, minUsd]);
 
   // ── Fetch stats ──
   const fetchStats = useCallback(async () => {
@@ -175,68 +189,83 @@ const OnchainPage = () => {
   }, [fetchFeed, fetchStats]);
 
   // ── Filter handlers ──
-  const handleTypeFilter = (t) => {
-    setAlertType(t);
-    setPage(1);
-  };
-  const handleSearch = (e) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
-  const handleSort = (s) => {
-    setSort(s);
-    setPage(1);
-  };
-  const handleChain = (c) => {
-    setChainFilter(c);
-    setPage(1);
-  };
+  const handleTypeFilter = (t) => { setAlertType(t); setPage(1); };
+  const handleSearch = (e) => { setSearch(e.target.value); setPage(1); };
+  const handleChain = (c) => { setChainFilter(c); setPage(1); };
+  const handleSource = (s) => { setSourceFilter(s); setPage(1); };
+  const handleToken = (t) => { setTokenFilter(t); setPage(1); };
+  const handleMinUsd = (v) => { setMinUsd(v); setPage(1); };
 
-  // ── Computed top-line stats ──
-  const headerStats = useMemo(() => {
-    const totalDelta = stats?.delta_24h_pct;
-    const netFlow = stats?.net_flow_24h_usd;
-    const whaleCount = stats?.whale_count_24h;
-    const whaleDelta = stats?.whale_delta_24h;
-    const liqCount = stats?.liquidation_count_24h;
-    const liqVolume = stats?.liquidation_volume_24h_usd;
+  // ── Dynamic whale threshold (p95 of fetched alerts) ──
+  const whaleThreshold = useMemo(() => computeWhaleThreshold(alerts), [alerts]);
+  const isHighlight = useCallback(
+    (a) =>
+      (a.amount_usd && a.amount_usd >= whaleThreshold) ||
+      a.alert_type === "liquidation" ||
+      a.alert_type === "security" ||
+      a.alert_type === "whale_transfer" ||
+      a.alert_type === "smart_money",
+    [whaleThreshold]
+  );
 
-    return [
-      {
-        label: "Total Alerts",
-        value: fmtNum(totalAlerts),
-        sublabel: `${last24h.toLocaleString()} in 24h`,
-        delta: totalDelta,
-      },
-      {
-        label: "Net Flow (24H)",
-        value: fmtUsd(Math.abs(netFlow || 0)),
-        sublabel: netFlow > 0 ? "Inflow" : netFlow < 0 ? "Outflow" : "Balanced",
-        deltaDirection: netFlow > 0 ? "up" : netFlow < 0 ? "down" : null,
-      },
-      {
-        label: "Whale Activity (24H)",
-        value: fmtNum(whaleCount || 0),
-        sublabel: "Alerts ≥ $1M",
-        delta: whaleDelta,
-      },
-      {
-        label: "Liquidations (24H)",
-        value: fmtNum(liqCount || 0),
-        sublabel: liqVolume ? fmtUsd(liqVolume) : "—",
-        isDanger: (liqCount || 0) > 10,
-      },
-    ];
-  }, [stats, totalAlerts, last24h]);
+  // ── Compute top type from by_type ──
+  const topType = useMemo(() => {
+    if (!stats?.by_type?.length) return null;
+    return stats.by_type[0];
+  }, [stats]);
+
+  // ── 4 Header stat cards — ALL from real backend fields ──
+  const headerStats = useMemo(() => [
+    {
+      label: "Total Alerts",
+      value: fmtNum(stats?.total || 0),
+      sublabel: `${(stats?.last_24h || 0).toLocaleString()} in 24h`,
+    },
+    {
+      label: "Last Hour",
+      value: fmtNum(stats?.last_1h || 0),
+      sublabel: stats?.last_1h ? "Active flow" : "Quiet",
+      isLive: (stats?.last_1h || 0) > 0,
+    },
+    {
+      label: "Top Activity",
+      value: topType ? prettyType(topType.type) : "—",
+      sublabel: topType ? `${fmtNum(topType.count)} alerts` : "",
+    },
+    {
+      label: "Whale Threshold",
+      value: whaleThreshold >= 1e6 ? `$${(whaleThreshold / 1e6).toFixed(1)}M` : fmtUsd(whaleThreshold),
+      sublabel: "p95 of page",
+      isGold: true,
+    },
+  ], [stats, topType, whaleThreshold]);
+
+  // ── Active filter count ──
+  const activeFiltersCount = [
+    alertType !== "all",
+    chainFilter !== "all",
+    sourceFilter !== "all",
+    tokenFilter !== "all",
+    minUsd > 0,
+    search.trim().length > 0,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setAlertType("all");
+    setChainFilter("all");
+    setSourceFilter("all");
+    setTokenFilter("all");
+    setMinUsd(0);
+    setSearch("");
+    setPage(1);
+  };
 
   // ════════════════════════════════════════
   // RENDER
   // ════════════════════════════════════════
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
-      {/* ═════════════════════════════════════ */}
       {/* HEADER */}
-      {/* ═════════════════════════════════════ */}
       <div className="space-y-4">
         <SectionHeader label="On-Chain Intelligence" />
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -245,7 +274,10 @@ const OnchainPage = () => {
               On-Chain Intelligence
             </h1>
             <p className="text-text-muted text-sm mt-1.5">
-              Whale transfers · Smart money · Liquidations across {stats?.chain_count || 12} chains
+              Whale transfers · Smart money · Liquidations
+              {stats?.by_blockchain?.length && (
+                <span> across {stats.by_blockchain.length} chains</span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px] font-mono">
@@ -261,26 +293,21 @@ const OnchainPage = () => {
         </div>
       </div>
 
-      {/* ═════════════════════════════════════ */}
-      {/* STATS ROW (4 cards, Flowscan-exact) */}
-      {/* ═════════════════════════════════════ */}
+      {/* STATS ROW */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {headerStats.map((s) => (
           <StatCard key={s.label} {...s} />
         ))}
       </div>
 
-      {/* ═════════════════════════════════════ */}
       {/* FILTER BAR */}
-      {/* ═════════════════════════════════════ */}
       <div className="space-y-3">
-        {/* Type chips — horizontal scroll on mobile */}
+        {/* Type chips */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
           {ALERT_TYPES.map(({ key, label }) => {
-            const count =
-              key === "all"
-                ? totalAlerts
-                : stats?.by_type?.find((t) => t.type === key)?.count;
+            const count = key === "all"
+              ? totalAlerts
+              : stats?.by_type?.find((t) => t.type === key)?.count;
             const active = alertType === key;
             return (
               <button
@@ -303,9 +330,31 @@ const OnchainPage = () => {
           })}
         </div>
 
-        {/* Search + sort + chain row */}
+        {/* Min USD presets */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          <span className="shrink-0 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/60">
+            Min:
+          </span>
+          {MIN_USD_PRESETS.map(({ key, label, value }) => {
+            const active = minUsd === value;
+            return (
+              <button
+                key={key}
+                onClick={() => handleMinUsd(value)}
+                className={`shrink-0 px-2.5 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.15em] transition-all border whitespace-nowrap ${
+                  active
+                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search + dropdowns */}
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* Search */}
           <div className="relative flex-1 min-w-0">
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted"
@@ -322,27 +371,13 @@ const OnchainPage = () => {
             </svg>
             <input
               type="text"
-              placeholder="Search by token, wallet, or text..."
+              placeholder="Search title or raw text..."
               value={search}
               onChange={handleSearch}
               className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
             />
           </div>
 
-          {/* Sort */}
-          <select
-            value={sort}
-            onChange={(e) => handleSort(e.target.value)}
-            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
-          >
-            {SORT_OPTIONS.map((s) => (
-              <option key={s.key} value={s.key} className="bg-[#0a0805] text-white">
-                Sort: {s.label}
-              </option>
-            ))}
-          </select>
-
-          {/* Chain filter */}
           <select
             value={chainFilter}
             onChange={(e) => handleChain(e.target.value)}
@@ -355,14 +390,51 @@ const OnchainPage = () => {
               </option>
             ))}
           </select>
+
+          <select
+            value={sourceFilter}
+            onChange={(e) => handleSource(e.target.value)}
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+          >
+            <option value="all" className="bg-[#0a0805] text-white">Source: All</option>
+            {(stats?.by_source || []).map((s) => (
+              <option key={s.source} value={s.source} className="bg-[#0a0805] text-white">
+                {s.source}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={tokenFilter}
+            onChange={(e) => handleToken(e.target.value)}
+            className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+          >
+            <option value="all" className="bg-[#0a0805] text-white">Token: All</option>
+            {(stats?.by_token || []).slice(0, 15).map((t) => (
+              <option key={t.token} value={t.token} className="bg-[#0a0805] text-white">
+                ${t.token}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {activeFiltersCount > 0 && (
+          <div className="flex items-center gap-3 text-[11px] font-mono">
+            <span className="text-text-muted/70 uppercase tracking-[0.15em]">
+              {activeFiltersCount} filter{activeFiltersCount > 1 ? "s" : ""} active
+            </span>
+            <button
+              onClick={clearFilters}
+              className="text-gold-primary/80 hover:text-gold-primary uppercase tracking-[0.15em] transition-colors"
+            >
+              Clear all →
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ═════════════════════════════════════ */}
-      {/* MAIN GRID: Feed + Sidebar */}
-      {/* ═════════════════════════════════════ */}
+      {/* MAIN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ── Feed column ── */}
         <div className="lg:col-span-9 space-y-3">
           <SectionHeader label="Latest Alerts" small />
 
@@ -377,6 +449,7 @@ const OnchainPage = () => {
                   <AlertRow
                     key={alert.id}
                     alert={alert}
+                    isHighlight={isHighlight(alert)}
                     onClick={() => setSelectedAlert(alert)}
                   />
                 ))}
@@ -391,21 +464,18 @@ const OnchainPage = () => {
           )}
         </div>
 
-        {/* ── Sidebar ── */}
         <div className="lg:col-span-3 space-y-4">
-          <SidebarTrendingTokens stats={stats} />
-          <SidebarBlockchains stats={stats} />
+          <SidebarTrendingTokens stats={stats} onTokenClick={handleToken} activeToken={tokenFilter} />
+          <SidebarBlockchains stats={stats} onChainClick={handleChain} activeChain={chainFilter} />
           <SidebarLargestMoves stats={stats} />
-          <SidebarSmartMoney stats={stats} />
+          <SidebarSources stats={stats} onSourceClick={handleSource} activeSource={sourceFilter} />
         </div>
       </div>
 
-      {/* Modal */}
       {selectedAlert && (
         <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
       )}
 
-      {/* Footer status */}
       <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50">
         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
         <span>Page {page} of {totalPages}</span>
@@ -418,7 +488,7 @@ const OnchainPage = () => {
 
 
 // ════════════════════════════════════════════════════════════════
-// SECTION HEADER — — · LABEL · —
+// SECTION HEADER
 // ════════════════════════════════════════════════════════════════
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
@@ -436,103 +506,71 @@ const SectionHeader = ({ label, small = false }) => (
 
 
 // ════════════════════════════════════════════════════════════════
-// STAT CARD — Flowscan-exact pattern
+// STAT CARD
 // ════════════════════════════════════════════════════════════════
-const StatCard = ({ label, value, sublabel, delta, deltaDirection, isDanger }) => {
-  const showDelta = delta != null && !isNaN(delta);
-  const deltaPositive = showDelta && delta >= 0;
+const StatCard = ({ label, value, sublabel, isLive, isGold }) => (
+  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-  return (
-    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
-      {/* Top hairline accent */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
-            {label}
-          </span>
-        </div>
-
-        <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 ${isDanger ? "text-red-400" : "text-white"}`}>
-          {value}
-        </div>
-
-        <div className="flex items-center gap-2 text-[10px] font-mono">
-          {sublabel && (
-            <span className="text-text-muted/70 tabular-nums">{sublabel}</span>
-          )}
-          {showDelta && (
-            <span
-              className={`inline-flex items-center gap-0.5 tabular-nums ${
-                deltaPositive ? "text-emerald-400" : "text-red-400"
-              }`}
-            >
-              <span>{deltaPositive ? "▲" : "▼"}</span>
-              <span>{Math.abs(delta).toFixed(1)}%</span>
-            </span>
-          )}
-          {deltaDirection && (
-            <span
-              className={`inline-flex items-center gap-0.5 ${
-                deltaDirection === "up" ? "text-emerald-400" : "text-red-400"
-              }`}
-            >
-              <span>{deltaDirection === "up" ? "▲" : "▼"}</span>
-            </span>
-          )}
-        </div>
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
+          {label}
+        </span>
+        {isLive && (
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        )}
       </div>
+
+      <div className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${isGold ? "text-gold-primary" : "text-white"}`}>
+        {value}
+      </div>
+
+      {sublabel && (
+        <div className="text-[10px] font-mono text-text-muted/70 tabular-nums truncate">
+          {sublabel}
+        </div>
+      )}
     </div>
-  );
-};
+  </div>
+);
 
 
 // ════════════════════════════════════════════════════════════════
-// ALERT ROW — Compact single-row, accent for high-signal alerts
+// ALERT ROW
 // ════════════════════════════════════════════════════════════════
-const AlertRow = ({ alert, onClick }) => {
-  const highlight = isHighlight(alert);
-
+const AlertRow = ({ alert, isHighlight, onClick }) => {
   return (
     <div
       onClick={onClick}
       className={`group relative cursor-pointer transition-colors rounded-md border overflow-hidden ${
-        highlight
+        isHighlight
           ? "bg-gradient-to-r from-gold-primary/[0.04] to-transparent border-gold-primary/20 hover:border-gold-primary/40"
           : "bg-[#0a0805] border-white/[0.06] hover:border-white/[0.12]"
       }`}
     >
-      {/* Top hairline for highlighted */}
-      {highlight && (
+      {isHighlight && (
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
       )}
 
       <div className="flex items-center gap-3 p-3 sm:p-3.5">
-        {/* ── Left: Thumbnail (or chain dot fallback) ── */}
         <div className="shrink-0 w-10 h-10 rounded bg-white/[0.03] border border-white/[0.06] flex items-center justify-center overflow-hidden">
           {alert.has_photo && alert.image_url ? (
             <img
               src={alert.image_url}
               alt=""
               className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
+              onError={(e) => { e.target.style.display = "none"; }}
             />
           ) : (
             <span className={`w-2 h-2 rounded-full ${chainDot(alert.blockchain)}`} />
           )}
         </div>
 
-        {/* ── Middle: Content ── */}
         <div className="flex-1 min-w-0">
-          {/* Top row: badges + token */}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span
-              className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${typeStyle(
-                alert.alert_type
-              )}`}
+              className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${typeStyle(alert.alert_type)}`}
             >
               {typeLabel(alert.alert_type)}
             </span>
@@ -547,24 +585,27 @@ const AlertRow = ({ alert, onClick }) => {
                 {alert.blockchain}
               </span>
             )}
+            {alert.source_name && (
+              <span className="hidden md:inline text-[10px] text-text-muted/50 font-mono">
+                · {alert.source_name}
+              </span>
+            )}
           </div>
 
-          {/* Title — single line truncate */}
           <p
             className={`text-sm leading-snug line-clamp-1 transition-colors ${
-              highlight ? "text-white" : "text-white/90"
+              isHighlight ? "text-white" : "text-white/90"
             } group-hover:text-gold-primary`}
           >
-            {alert.title || alert.raw_text?.slice(0, 140)}
+            {alert.title || alert.raw_text?.slice(0, 140) || "—"}
           </p>
         </div>
 
-        {/* ── Right: Amount + time ── */}
         <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[80px]">
           {alert.amount_usd ? (
             <span
               className={`font-mono text-sm tabular-nums font-semibold ${
-                highlight ? "text-gold-primary" : "text-white"
+                isHighlight ? "text-gold-primary" : "text-white"
               }`}
             >
               {fmtUsd(alert.amount_usd)}
@@ -597,43 +638,49 @@ const SidebarCard = ({ label, children }) => (
   </div>
 );
 
-const SidebarTrendingTokens = ({ stats }) => {
-  const tokens = stats?.top_tokens?.slice(0, 8) || [];
+const SidebarTrendingTokens = ({ stats, onTokenClick, activeToken }) => {
+  const tokens = stats?.by_token?.slice(0, 8) || [];
   if (!tokens.length) return null;
   return (
     <SidebarCard label="Trending Tokens">
       <div className="space-y-px">
-        {tokens.map((t, i) => (
-          <div
-            key={t.token}
-            className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/[0.03] transition-colors"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="text-xs text-white font-medium truncate">
-                ${t.token}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {t.total_usd && (
-                <span className="text-[10px] font-mono text-gold-primary/90 tabular-nums">
-                  {fmtUsd(t.total_usd)}
+        {tokens.map((t, i) => {
+          const active = activeToken === t.token;
+          return (
+            <button
+              key={t.token}
+              onClick={() => onTokenClick(active ? "all" : t.token)}
+              className={`w-full flex items-center justify-between py-1.5 px-2 rounded transition-colors ${
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
+                  {String(i + 1).padStart(2, "0")}
                 </span>
-              )}
-              <span className="text-[10px] font-mono text-text-muted/60 tabular-nums w-8 text-right">
-                {t.count}
-              </span>
-            </div>
-          </div>
-        ))}
+                <span className={`text-xs font-medium truncate ${active ? "text-gold-primary" : "text-white"}`}>
+                  ${t.token}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {t.total_usd > 0 && (
+                  <span className="text-[10px] font-mono text-gold-primary/90 tabular-nums">
+                    {fmtUsd(t.total_usd)}
+                  </span>
+                )}
+                <span className="text-[10px] font-mono text-text-muted/60 tabular-nums w-8 text-right">
+                  {t.count}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </SidebarCard>
   );
 };
 
-const SidebarBlockchains = ({ stats }) => {
+const SidebarBlockchains = ({ stats, onChainClick, activeChain }) => {
   const chains = stats?.by_blockchain?.slice(0, 8) || [];
   if (!chains.length) return null;
   const max = Math.max(...chains.map((c) => c.count));
@@ -642,18 +689,21 @@ const SidebarBlockchains = ({ stats }) => {
       <div className="space-y-px">
         {chains.map((c) => {
           const pct = (c.count / max) * 100;
+          const active = activeChain === c.blockchain;
           return (
-            <div
+            <button
               key={c.blockchain}
-              className="relative py-1.5 px-2 rounded hover:bg-white/[0.03] transition-colors"
+              onClick={() => onChainClick(active ? "all" : c.blockchain)}
+              className={`relative w-full py-1.5 px-2 rounded transition-colors ${
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+              }`}
             >
-              {/* Subtle background bar */}
               <div
                 className="absolute inset-y-0 left-0 bg-gold-primary/[0.04] rounded"
                 style={{ width: `${pct}%` }}
               />
               <div className="relative flex items-center justify-between">
-                <span className="flex items-center gap-2 text-xs text-white">
+                <span className={`flex items-center gap-2 text-xs ${active ? "text-gold-primary" : "text-white"}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${chainDot(c.blockchain)}`} />
                   {c.blockchain}
                 </span>
@@ -661,7 +711,7 @@ const SidebarBlockchains = ({ stats }) => {
                   {fmtNum(c.count)}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -670,10 +720,10 @@ const SidebarBlockchains = ({ stats }) => {
 };
 
 const SidebarLargestMoves = ({ stats }) => {
-  const moves = stats?.largest_moves?.slice(0, 5) || [];
+  const moves = stats?.largest?.slice(0, 5) || [];
   if (!moves.length) return null;
   return (
-    <SidebarCard label="Largest Moves (24H)">
+    <SidebarCard label="Largest Moves">
       <div className="space-y-px">
         {moves.map((m, i) => (
           <div
@@ -684,9 +734,16 @@ const SidebarLargestMoves = ({ stats }) => {
               <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-xs text-white truncate">
-                ${m.token || "—"}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs text-white truncate">
+                  {m.token ? `$${m.token}` : "—"}
+                </span>
+                {m.alert_type && (
+                  <span className="text-[9px] font-mono text-text-muted/50 uppercase tracking-[0.1em] truncate">
+                    {m.alert_type.replace(/_/g, " ")}
+                  </span>
+                )}
+              </div>
             </div>
             <span className="text-[10px] font-mono text-gold-primary tabular-nums shrink-0">
               {fmtUsd(m.amount_usd)}
@@ -698,32 +755,39 @@ const SidebarLargestMoves = ({ stats }) => {
   );
 };
 
-const SidebarSmartMoney = ({ stats }) => {
-  const wallets = stats?.smart_money_top?.slice(0, 5) || [];
-  if (!wallets.length) return null;
+const SidebarSources = ({ stats, onSourceClick, activeSource }) => {
+  const sources = stats?.by_source?.slice(0, 6) || [];
+  if (!sources.length) return null;
+  const max = Math.max(...sources.map((s) => s.count));
   return (
-    <SidebarCard label="Smart Money">
+    <SidebarCard label="Sources">
       <div className="space-y-px">
-        {wallets.map((w, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/[0.03] transition-colors"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-mono text-text-muted/50 tabular-nums w-4">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="text-xs text-white font-mono truncate">
-                {w.label || `${w.address?.slice(0, 6)}…${w.address?.slice(-4)}` || "—"}
-              </span>
-            </div>
-            {w.amount_usd && (
-              <span className="text-[10px] font-mono text-gold-primary tabular-nums shrink-0">
-                {fmtUsd(w.amount_usd)}
-              </span>
-            )}
-          </div>
-        ))}
+        {sources.map((s) => {
+          const pct = (s.count / max) * 100;
+          const active = activeSource === s.source;
+          return (
+            <button
+              key={s.source}
+              onClick={() => onSourceClick(active ? "all" : s.source)}
+              className={`relative w-full py-1.5 px-2 rounded transition-colors ${
+                active ? "bg-gold-primary/[0.08]" : "hover:bg-white/[0.03]"
+              }`}
+            >
+              <div
+                className="absolute inset-y-0 left-0 bg-gold-primary/[0.04] rounded"
+                style={{ width: `${pct}%` }}
+              />
+              <div className="relative flex items-center justify-between">
+                <span className={`text-xs truncate ${active ? "text-gold-primary" : "text-white"}`}>
+                  {s.source}
+                </span>
+                <span className="text-[10px] font-mono text-text-muted/70 tabular-nums shrink-0 ml-2">
+                  {fmtNum(s.count)}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </SidebarCard>
   );
@@ -731,13 +795,11 @@ const SidebarSmartMoney = ({ stats }) => {
 
 
 // ════════════════════════════════════════════════════════════════
-// MODAL — full detail view
+// MODAL
 // ════════════════════════════════════════════════════════════════
 const AlertModal = ({ alert, onClose }) => {
   useEffect(() => {
-    const h = (e) => {
-      if (e.key === "Escape") onClose();
-    };
+    const h = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
@@ -753,10 +815,8 @@ const AlertModal = ({ alert, onClose }) => {
         className="relative w-full max-w-xl bg-[#0a0805] border border-white/[0.08] rounded-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top hairline */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
 
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-20 w-8 h-8 rounded-md bg-black/40 border border-white/[0.06] flex items-center justify-center text-text-muted hover:text-white hover:border-white/[0.15] transition-colors font-mono text-sm"
@@ -765,7 +825,6 @@ const AlertModal = ({ alert, onClose }) => {
         </button>
 
         <div className="overflow-y-auto">
-          {/* Image */}
           {alert.image_url && (
             <div
               className="bg-black/60 flex items-center justify-center border-b border-white/[0.04]"
@@ -775,23 +834,17 @@ const AlertModal = ({ alert, onClose }) => {
                 src={alert.image_url}
                 alt=""
                 className="w-full max-h-[400px] object-contain"
-                onError={(e) => {
-                  e.target.parentElement.style.display = "none";
-                }}
+                onError={(e) => { e.target.parentElement.style.display = "none"; }}
               />
             </div>
           )}
 
           <div className="p-5 space-y-5">
-            {/* Section header */}
             <SectionHeader label="Alert Detail" small />
 
-            {/* Badges */}
             <div className="flex flex-wrap gap-1.5">
               <span
-                className={`text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border ${typeStyle(
-                  alert.alert_type
-                )}`}
+                className={`text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border ${typeStyle(alert.alert_type)}`}
               >
                 {typeLabel(alert.alert_type)}
               </span>
@@ -806,9 +859,13 @@ const AlertModal = ({ alert, onClose }) => {
                   ${alert.token}
                 </span>
               )}
+              {alert.source_name && (
+                <span className="text-[10px] font-mono uppercase tracking-[0.1em] px-2 py-1 rounded border bg-white/[0.04] border-white/[0.08] text-white/70">
+                  {alert.source_name}
+                </span>
+              )}
             </div>
 
-            {/* Amount — big */}
             {alert.amount_usd && (
               <div className="relative overflow-hidden bg-white/[0.02] border border-white/[0.06] rounded-md p-5">
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
@@ -826,7 +883,6 @@ const AlertModal = ({ alert, onClose }) => {
               </div>
             )}
 
-            {/* From → To */}
             {(alert.from_entity || alert.to_entity) && (
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
                 {alert.from_entity ? (
@@ -838,9 +894,7 @@ const AlertModal = ({ alert, onClose }) => {
                       {alert.from_entity}
                     </p>
                   </div>
-                ) : (
-                  <div />
-                )}
+                ) : <div />}
                 <span className="text-text-muted/60 text-lg font-mono hidden sm:block">→</span>
                 {alert.to_entity ? (
                   <div className="p-3 rounded-md bg-white/[0.02] border border-white/[0.06]">
@@ -851,31 +905,28 @@ const AlertModal = ({ alert, onClose }) => {
                       {alert.to_entity}
                     </p>
                   </div>
-                ) : (
-                  <div />
-                )}
+                ) : <div />}
               </div>
             )}
 
-            {/* Raw text */}
-            <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.04]">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
-                Raw
-              </p>
-              <p className="text-text-secondary text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
-                {alert.raw_text}
-              </p>
-            </div>
+            {alert.raw_text && (
+              <div className="p-3.5 rounded-md bg-white/[0.02] border border-white/[0.04]">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-mono mb-2">
+                  Raw
+                </p>
+                <p className="text-text-secondary text-xs leading-relaxed whitespace-pre-wrap break-words font-mono">
+                  {alert.raw_text}
+                </p>
+              </div>
+            )}
 
-            {/* Footer info */}
             <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/60">
-              <span>{alert.source_name}</span>
+              <span>{alert.source_name || "Unknown source"}</span>
               <span className="tabular-nums">
                 {alert.created_at ? new Date(alert.created_at).toLocaleString() : ""}
               </span>
             </div>
 
-            {/* CTA */}
             {alert.tx_url && (
               <a
                 href={alert.tx_url}
@@ -994,7 +1045,7 @@ const EmptyState = () => (
     <div className="w-12 h-12 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
       <svg className="w-5 h-5 text-gold-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
+    </svg>
     </div>
     <p className="text-white text-sm font-medium mb-1">No alerts found</p>
     <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em]">
