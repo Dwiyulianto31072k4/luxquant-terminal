@@ -54,6 +54,8 @@ class User(Base):
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     first_login_at = Column(DateTime(timezone=True), nullable=True)
     login_count = Column(Integer, default=0, nullable=False)
+    country_code = Column(String(2), nullable=True)
+    currency_code = Column(String(3), default="USD", nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
