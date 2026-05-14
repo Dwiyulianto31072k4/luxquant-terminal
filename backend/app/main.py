@@ -39,11 +39,13 @@ from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
 from app.api.routes.onchain_endpoint import router as onchain_router
+from app.api.routes.fx import router as fx_router
 
 
 
 # Import AI Worker
 from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
+from app.services.fx_worker import start_fx_worker
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -70,6 +72,7 @@ async def lifespan(app: FastAPI):
         start_cache_workers()
         start_overview_workers()
         start_notification_worker()
+        start_fx_worker()
         
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
@@ -145,6 +148,7 @@ app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["ma
 app.include_router(crypto_news_feed_router, prefix="/api/v1/crypto-news-feed", tags=["crypto-news-feed"])
 app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
 app.include_router(coins.router, prefix="/api/v1/coins", tags=["coins"])
+app.include_router(fx_router, prefix="/api/v1/fx", tags=["fx"])
 
 
 # ═══════════════════════════════════════════
