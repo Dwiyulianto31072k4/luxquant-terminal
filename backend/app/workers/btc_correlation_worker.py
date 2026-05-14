@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """
-LuxQuant BTC Correlation Worker
-================================
-Listens on Postgres channel `signal_created` and, for every new signal call:
+LuxQuant BTC Correlation Worker (v1.0)
+=======================================
+Listens on Postgres channel 'new_signal' (existing trigger trg_new_signal) and
+for every new signal:
   1. Fetches OHLC for BTC + the coin (Binance primary, CoinGecko fallback)
   2. Computes 5 metrics: corr_1h_7d, corr_4h_30d, beta_30d, r_squared_30d, corr_zscore
-  3. Snapshots BTC context (price, trend, RSI, regime)
-  4. Generates rule-based English interpretation (sizing, hedge, bias, warnings)
-  5. Inserts everything into `signal_btc_correlation`
+  3. Snapshots BTC context (price, trend, RSI, regime, dominance)
+  4. Generates rule-based English interpretation
+  5. Upserts into signal_btc_correlation
 
-Run as systemd service `luxquant-btc-correlation-worker.service`.
+Trigger payload (from notify_new_signal):
+    { "signal_id": "uuid-...", "pair": "AINUSDT", "entry": 0.123, "created_at": "..." }
+
+Run as systemd unit `luxquant-btc-correlation-worker.service`.
 """
 import os
+import re
 import json
 import asyncio
 import logging
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Tuple
 
 import asyncpg
 import httpx
@@ -27,19 +31,22 @@ import pandas as pd
 # Configuration
 # ============================================================
 DB_DSN              = os.getenv("DATABASE_URL")
-NOTIFY_CHANNEL      = os.getenv("CORR_CHANNEL", "signal_created")
+NOTIFY_CHANNEL      = os.getenv("CORR_CHANNEL", "new_signal")
 COINGECKO_BASE      = "https://api.coingecko.com/api/v3"
 BINANCE_BASE        = "https://api.binance.com"
 COINGECKO_API_KEY   = os.getenv("COINGECKO_API_KEY")
 REQUEST_TIMEOUT     = float(os.getenv("CORR_HTTP_TIMEOUT", "20"))
+WORKER_VERSION      = "v1.0"
 
 # Lookback windows (in 1h candles)
 SHORT_WINDOW = 168   # 7 days @ 1h
 LONG_WINDOW  = 720   # 30 days @ 1h
-BASELINE_WIN = 60    # rolling correlation window for z-score baseline
+BASELINE_WIN = 60    # rolling correlation window for z-score
 
-# Quality thresholds
 MIN_SAMPLES_TO_COMPUTE = 30
+
+# Strip these quote suffixes from `pair` to derive base symbol (consistent with notify_new_pair)
+QUOTE_RE = re.compile(r"(USDT|USDC|BUSD|USD)$")
 
 logging.basicConfig(
     level=os.getenv("CORR_LOG_LEVEL", "INFO"),
@@ -51,15 +58,14 @@ log = logging.getLogger("btc_correlation")
 # ============================================================
 # Data fetching
 # ============================================================
-async def fetch_binance_klines(client: httpx.AsyncClient, symbol: str,
+async def fetch_binance_klines(client: httpx.AsyncClient, symbol_pair: str,
                                 interval: str = "1h", limit: int = 1000) -> Optional[pd.DataFrame]:
-    """Fetch OHLC from Binance. Returns DataFrame with [timestamp, close] or None."""
+    """Fetch OHLC from Binance. symbol_pair is full pair like 'AINUSDT' or 'BTCUSDT'."""
     url = f"{BINANCE_BASE}/api/v3/klines"
-    pair = f"{symbol.upper()}USDT"
     try:
-        r = await client.get(url, params={"symbol": pair, "interval": interval, "limit": limit})
+        r = await client.get(url, params={"symbol": symbol_pair, "interval": interval, "limit": limit})
         if r.status_code == 400:
-            log.debug(f"Binance: symbol {pair} not listed")
+            log.debug(f"Binance: pair {symbol_pair} not listed")
             return None
         r.raise_for_status()
         data = r.json()
@@ -73,16 +79,16 @@ async def fetch_binance_klines(client: httpx.AsyncClient, symbol: str,
         df["close"]     = df["close"].astype(float)
         return df[["timestamp", "close"]].copy()
     except Exception as e:
-        log.warning(f"Binance fetch failed for {pair}: {e}")
+        log.warning(f"Binance fetch failed for {symbol_pair}: {e}")
         return None
 
 
 async def fetch_coingecko_market_chart(client: httpx.AsyncClient, coin_id: str,
                                         days: int = 30) -> Optional[pd.DataFrame]:
-    """Fetch hourly price from CoinGecko. Returns DataFrame with [timestamp, close] or None."""
+    """Fetch hourly price from CoinGecko by coin_id."""
     url = f"{COINGECKO_BASE}/coins/{coin_id}/market_chart"
     headers = {"x-cg-pro-api-key": COINGECKO_API_KEY} if COINGECKO_API_KEY else {}
-    params = {"vs_currency": "usd", "days": days, "interval": "hourly"}
+    params  = {"vs_currency": "usd", "days": days, "interval": "hourly"}
     try:
         r = await client.get(url, params=params, headers=headers)
         r.raise_for_status()
@@ -99,7 +105,6 @@ async def fetch_coingecko_market_chart(client: httpx.AsyncClient, coin_id: str,
 
 
 async def fetch_btc_dominance(client: httpx.AsyncClient) -> Optional[float]:
-    """Get current BTC dominance % from CoinGecko global endpoint."""
     try:
         r = await client.get(f"{COINGECKO_BASE}/global", timeout=10)
         r.raise_for_status()
@@ -112,7 +117,7 @@ async def fetch_btc_dominance(client: httpx.AsyncClient) -> Optional[float]:
 # Metric computation
 # ============================================================
 def compute_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Optional[dict]:
-    """Compute Pearson corr (short & long), beta, R², and z-score."""
+    """Compute Pearson corr (short & long), beta, R², z-score."""
     merged = pd.merge_asof(
         coin_df.sort_values("timestamp"),
         btc_df.sort_values("timestamp"),
@@ -137,15 +142,12 @@ def compute_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Optional[dic
     corr_short = short["ret_coin"].corr(short["ret_btc"])
     corr_long  = long_["ret_coin"].corr(long_["ret_btc"])
 
-    # Beta = cov(coin, btc) / var(btc)
     var_btc = float(long_["ret_btc"].var())
     cov     = float(long_["ret_coin"].cov(long_["ret_btc"]))
     beta    = cov / var_btc if var_btc > 0 else 0.0
 
-    # R²
     r_sq = float(corr_long) ** 2 if pd.notna(corr_long) else 0.0
 
-    # Z-score vs rolling baseline
     rolling_corr = rets["ret_coin"].rolling(BASELINE_WIN).corr(rets["ret_btc"]).dropna()
     if len(rolling_corr) >= 30:
         baseline_mean = float(rolling_corr.mean())
@@ -165,30 +167,25 @@ def compute_metrics(coin_df: pd.DataFrame, btc_df: pd.DataFrame) -> Optional[dic
 
 
 def compute_btc_context(btc_df: pd.DataFrame, btc_dominance: Optional[float]) -> dict:
-    """Snapshot of BTC state at signal time."""
-    closes = btc_df["close"]
+    closes  = btc_df["close"]
     current = float(closes.iloc[-1])
 
-    # Trend vs EMA200
     if len(closes) >= 200:
         ema_200 = float(closes.ewm(span=200, adjust=False).mean().iloc[-1])
-        trend = "above_ema200" if current > ema_200 else "below_ema200"
+        trend   = "above_ema200" if current > ema_200 else "below_ema200"
     else:
         trend = "insufficient_data"
 
-    # RSI 14
-    delta = closes.diff()
-    gain  = delta.clip(lower=0).rolling(14).mean()
-    loss  = (-delta.clip(upper=0)).rolling(14).mean()
-    rs    = gain / loss.replace(0, np.nan)
-    rsi   = 100 - (100 / (1 + rs))
+    delta  = closes.diff()
+    gain   = delta.clip(lower=0).rolling(14).mean()
+    loss   = (-delta.clip(upper=0)).rolling(14).mean()
+    rs     = gain / loss.replace(0, np.nan)
+    rsi    = 100 - (100 / (1 + rs))
     rsi_14 = float(rsi.iloc[-1]) if pd.notna(rsi.iloc[-1]) else 50.0
 
-    # 24h change
     change_24h = ((current - float(closes.iloc[-24])) / float(closes.iloc[-24]) * 100) \
                  if len(closes) >= 24 else 0.0
 
-    # Regime classification
     if trend == "above_ema200" and rsi_14 < 70:
         regime = "risk_on_healthy"
     elif trend == "above_ema200":
@@ -230,22 +227,22 @@ def generate_interpretation(metrics: dict, btc_ctx: dict) -> dict:
     # ---- Headline & risk_level ----
     if abs_corr > 0.8 and beta > 1.5:
         if "risk_off" in regime:
-            headline = "Highly BTC-driven with amplified downside exposure"
+            headline   = "Highly BTC-driven with amplified downside exposure"
             risk_level = "high"
         else:
-            headline = "Highly BTC-driven with amplified upside potential"
+            headline   = "Highly BTC-driven with amplified upside potential"
             risk_level = "medium"
     elif abs_corr > 0.8 and beta < 0.8:
-        headline = "BTC-aligned but with dampened volatility (safer BTC proxy)"
+        headline   = "BTC-aligned but with dampened volatility (safer BTC proxy)"
         risk_level = "low"
     elif is_decoupled:
-        headline = "Decoupled from BTC — possible idiosyncratic catalyst"
+        headline   = "Decoupled from BTC — possible idiosyncratic catalyst"
         risk_level = "medium"
     elif abs_corr > 0.5:
-        headline = "Normal BTC alignment"
+        headline   = "Normal BTC alignment"
         risk_level = "medium"
     else:
-        headline = "Weak BTC correlation — coin trading independently"
+        headline   = "Weak BTC correlation — coin trading independently"
         risk_level = "medium"
 
     # ---- Summary ----
@@ -256,11 +253,11 @@ def generate_interpretation(metrics: dict, btc_ctx: dict) -> dict:
     )
     if abs_z > 2:
         direction = "weaker" if z < 0 else "stronger"
-        summary += f" Current correlation is significantly {direction} than its 60-period baseline (z-score {z:+.2f})."
+        summary  += f" Current correlation is significantly {direction} than its 60-period baseline (z-score {z:+.2f})."
 
     # ---- Sizing hint ----
     if beta > 1.5:
-        size_pct = max(40, int(100 / beta))
+        size_pct    = max(40, int(100 / beta))
         sizing_hint = f"Reduce position to ~{size_pct}% of standard size — high beta amplifies BTC risk"
     elif beta < 0.8 and abs_corr > 0.6:
         sizing_hint = "Standard or slightly larger position acceptable — low beta dampens volatility"
@@ -309,7 +306,6 @@ def generate_interpretation(metrics: dict, btc_ctx: dict) -> dict:
         trade_bias = "Standard entry — monitor BTC for confirmation"
 
     # ---- Alignment score (0–100) ----
-    # Higher = clearer & more favorable structure
     score = 50 + (abs_corr * 30) - max(0, beta - 1) * 10 - min(abs_z, 5) * 3
     if regime == "risk_on_healthy":
         score += 5
@@ -333,63 +329,65 @@ def generate_interpretation(metrics: dict, btc_ctx: dict) -> dict:
 # ============================================================
 # Signal processing pipeline
 # ============================================================
-async def process_signal(conn: asyncpg.Connection, http: httpx.AsyncClient, signal_id: int):
-    # 1. Fetch signal row — ADJUST column names to your actual schema
+async def fetch_signal_meta(conn: asyncpg.Connection, signal_id: str) -> Optional[dict]:
+    """Resolve pair + coingecko_id from signals + coins."""
     row = await conn.fetchrow("""
-        SELECT id, symbol,
-               COALESCE(coingecko_id, NULL) AS coingecko_id
-        FROM signals
-        WHERE id = $1
+        SELECT s.signal_id, s.pair,
+               co.base_symbol, co.coingecko_id
+        FROM signals s
+        LEFT JOIN coins co ON co.pair = s.pair
+        WHERE s.signal_id = $1
     """, signal_id)
-
     if not row:
-        log.warning(f"Signal {signal_id} not found — skipping")
+        return None
+    return dict(row)
+
+
+async def process_signal(conn: asyncpg.Connection, http: httpx.AsyncClient, signal_id: str):
+    meta = await fetch_signal_meta(conn, signal_id)
+    if not meta or not meta.get("pair"):
+        log.warning(f"Signal {signal_id} not found or has no pair — skipping")
         return
 
-    symbol   = (row["symbol"] or "").upper().lstrip("$")
-    coin_id  = row["coingecko_id"]
+    pair         = meta["pair"]                                      # e.g. "AINUSDT"
+    base_symbol  = (meta.get("base_symbol") or QUOTE_RE.sub("", pair)).upper()
+    coingecko_id = meta.get("coingecko_id")
 
-    if not symbol:
-        log.warning(f"Signal {signal_id} has no symbol — skipping")
-        return
+    log.info(f"📥 Processing signal {signal_id[:8]}… ({pair} / {base_symbol})")
 
-    log.info(f"📥 Processing signal {signal_id} ({symbol})")
-
-    # 2. Fetch BTC + coin OHLC (parallel)
-    btc_task, coin_task = await asyncio.gather(
-        fetch_binance_klines(http, "BTC", "1h", 1000),
-        fetch_binance_klines(http, symbol, "1h", 1000),
-        return_exceptions=False,
+    # 1. Fetch BTC + coin OHLC in parallel
+    btc_df, coin_df = await asyncio.gather(
+        fetch_binance_klines(http, "BTCUSDT", "1h", 1000),
+        fetch_binance_klines(http, pair,      "1h", 1000),
     )
-    btc_df, coin_df = btc_task, coin_task
     data_source = "binance"
 
-    # CoinGecko fallback for the coin only (BTC always on Binance)
+    # CoinGecko fallback for the coin
     if coin_df is None or len(coin_df) < MIN_SAMPLES_TO_COMPUTE:
-        if coin_id:
-            log.info(f"  ↳ Binance miss for {symbol}, falling back to CoinGecko ({coin_id})")
-            coin_df = await fetch_coingecko_market_chart(http, coin_id, days=30)
+        if coingecko_id:
+            log.info(f"  ↳ Binance miss for {pair}, falling back to CoinGecko ({coingecko_id})")
+            coin_df = await fetch_coingecko_market_chart(http, coingecko_id, days=30)
             data_source = "coingecko"
         else:
-            log.warning(f"  ↳ No Binance pair & no coingecko_id for {symbol} — cannot compute")
+            log.warning(f"  ↳ No Binance pair & no coingecko_id for {pair} — cannot compute")
             return
 
     if coin_df is None or btc_df is None:
-        log.warning(f"  ↳ Unable to fetch price data for {symbol}")
+        log.warning(f"  ↳ Unable to fetch price data for {pair}")
         return
 
-    # 3. Compute metrics
+    # 2. Compute metrics
     metrics = compute_metrics(coin_df, btc_df)
     if metrics is None:
-        log.warning(f"  ↳ Insufficient overlap for {symbol}")
+        log.warning(f"  ↳ Insufficient overlap for {pair}")
         return
 
-    # 4. BTC context + interpretation
+    # 3. BTC context + interpretation
     dominance      = await fetch_btc_dominance(http)
     btc_ctx        = compute_btc_context(btc_df, dominance)
     interpretation = generate_interpretation(metrics, btc_ctx)
 
-    # 5. Quality + flags
+    # 4. Quality + flag
     is_decoupled = abs(metrics["z_score"]) > 2 and abs(metrics["corr_long"]) < 0.5
     if metrics["sample_size"] >= 500:
         quality = "high"
@@ -398,14 +396,15 @@ async def process_signal(conn: asyncpg.Connection, http: httpx.AsyncClient, sign
     else:
         quality = "low"
 
-    # 6. Upsert
+    # 5. Upsert
     await conn.execute("""
         INSERT INTO signal_btc_correlation (
-            signal_id, coin_symbol, corr_1h_7d, corr_4h_30d, beta_30d,
+            signal_id, pair, corr_1h_7d, corr_4h_30d, beta_30d,
             r_squared_30d, corr_zscore, btc_context, is_decoupled,
-            interpretation, data_source, sample_quality
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10::jsonb, $11, $12)
+            interpretation, data_source, sample_quality, worker_version, analyzed_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10::jsonb, $11, $12, $13, now())
         ON CONFLICT (signal_id) DO UPDATE SET
+            pair           = EXCLUDED.pair,
             corr_1h_7d     = EXCLUDED.corr_1h_7d,
             corr_4h_30d    = EXCLUDED.corr_4h_30d,
             beta_30d       = EXCLUDED.beta_30d,
@@ -416,42 +415,66 @@ async def process_signal(conn: asyncpg.Connection, http: httpx.AsyncClient, sign
             interpretation = EXCLUDED.interpretation,
             data_source    = EXCLUDED.data_source,
             sample_quality = EXCLUDED.sample_quality,
-            computed_at    = NOW()
+            worker_version = EXCLUDED.worker_version,
+            analyzed_at    = now()
     """,
-        signal_id, symbol,
+        signal_id, pair,
         metrics["corr_short"], metrics["corr_long"], metrics["beta"],
         metrics["r_squared"], metrics["z_score"],
         json.dumps(btc_ctx), is_decoupled,
-        json.dumps(interpretation), data_source, quality,
+        json.dumps(interpretation), data_source, quality, WORKER_VERSION,
     )
 
     log.info(
-        f"✅ signal {signal_id} ({symbol}) — "
+        f"✅ {signal_id[:8]}… {pair} — "
         f"ρ={metrics['corr_long']:+.2f} β={metrics['beta']:.2f} R²={metrics['r_squared']:.2f} "
         f"score={interpretation['alignment_score']} risk={interpretation['risk_level']}"
     )
 
 
 # ============================================================
-# Backfill helper — process signals that have no correlation row yet
+# Backfill: process signals without correlation row
 # ============================================================
-async def backfill_missing(conn: asyncpg.Connection, http: httpx.AsyncClient, limit: int = 50):
+async def backfill_missing(conn: asyncpg.Connection, http: httpx.AsyncClient, limit: int = 30):
     rows = await conn.fetch("""
-        SELECT s.id
+        SELECT s.signal_id
         FROM signals s
-        LEFT JOIN signal_btc_correlation c ON c.signal_id = s.id
+        LEFT JOIN signal_btc_correlation c ON c.signal_id = s.signal_id
         WHERE c.signal_id IS NULL
-        ORDER BY s.id DESC
+          AND s.pair IS NOT NULL
+          AND s.pair <> ''
+        ORDER BY s.created_at DESC
         LIMIT $1
     """, limit)
     if rows:
         log.info(f"🔄 Backfilling {len(rows)} signals without correlation...")
         for r in rows:
             try:
-                await process_signal(conn, http, r["id"])
-                await asyncio.sleep(0.5)  # gentle rate limit
+                await process_signal(conn, http, r["signal_id"])
+                await asyncio.sleep(0.5)
             except Exception as e:
-                log.exception(f"Backfill failed for signal {r['id']}: {e}")
+                log.exception(f"Backfill failed for {r['signal_id']}: {e}")
+
+
+# ============================================================
+# Notification payload parsing
+# ============================================================
+def parse_payload(payload: str) -> Optional[Tuple[str, str]]:
+    """
+    Existing trigger sends JSON: {"signal_id":"...","pair":"...","entry":...,"created_at":"..."}
+    Returns (signal_id, pair) or None.
+    """
+    try:
+        obj = json.loads(payload)
+        sid = obj.get("signal_id")
+        prr = obj.get("pair", "")
+        if sid:
+            return sid, prr
+    except json.JSONDecodeError:
+        # fallback: treat raw payload as signal_id
+        if payload:
+            return payload, ""
+    return None
 
 
 # ============================================================
@@ -461,24 +484,28 @@ async def main():
     if not DB_DSN:
         raise RuntimeError("DATABASE_URL env var required")
 
-    log.info("🚀 LuxQuant BTC Correlation Worker starting")
+    log.info(f"🚀 LuxQuant BTC Correlation Worker {WORKER_VERSION} starting")
     log.info(f"   Channel: {NOTIFY_CHANNEL}")
 
     conn = await asyncpg.connect(DB_DSN)
-    queue: asyncio.Queue[int] = asyncio.Queue()
+    queue: asyncio.Queue[str] = asyncio.Queue()
 
     def on_notify(_connection, _pid, _channel, payload: str):
-        try:
-            queue.put_nowait(int(payload))
-            log.debug(f"📨 notify: signal_id={payload}")
-        except Exception as e:
-            log.error(f"Bad notify payload {payload!r}: {e}")
+        parsed = parse_payload(payload)
+        if parsed:
+            sid, pair = parsed
+            try:
+                queue.put_nowait(sid)
+                log.debug(f"📨 notify: {sid[:8]}… pair={pair}")
+            except Exception as e:
+                log.error(f"queue put failed: {e}")
+        else:
+            log.warning(f"bad notify payload: {payload!r}")
 
     await conn.add_listener(NOTIFY_CHANNEL, on_notify)
     log.info(f"🎧 Listening on '{NOTIFY_CHANNEL}'")
 
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as http:
-        # initial backfill (optional, comment out if not wanted)
         try:
             await backfill_missing(conn, http, limit=20)
         except Exception:
@@ -489,21 +516,19 @@ async def main():
                 signal_id = await asyncio.wait_for(queue.get(), timeout=60)
                 await process_signal(conn, http, signal_id)
             except asyncio.TimeoutError:
-                # heartbeat
                 try:
                     await conn.execute("SELECT 1")
                 except Exception:
                     log.warning("DB heartbeat failed — reconnecting...")
-                    await conn.close()
+                    try: await conn.close()
+                    except Exception: pass
                     conn = await asyncpg.connect(DB_DSN)
                     await conn.add_listener(NOTIFY_CHANNEL, on_notify)
-            except asyncpg.PostgresConnectionError as e:
+            except (asyncpg.PostgresConnectionError, ConnectionError) as e:
                 log.error(f"DB connection lost: {e} — reconnecting in 5s")
                 await asyncio.sleep(5)
-                try:
-                    await conn.close()
-                except Exception:
-                    pass
+                try: await conn.close()
+                except Exception: pass
                 conn = await asyncpg.connect(DB_DSN)
                 await conn.add_listener(NOTIFY_CHANNEL, on_notify)
             except Exception as e:

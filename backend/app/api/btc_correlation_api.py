@@ -1,24 +1,23 @@
 """
 LuxQuant — BTC Correlation API
-Add to your FastAPI app:
-    from app.routes.btc_correlation import router as btc_corr_router
+Mount in your FastAPI app:
+    from app.api.btc_correlation_api import router as btc_corr_router
     app.include_router(btc_corr_router)
 """
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 import asyncpg
 
-# Replace with your actual DB dependency
-# from app.deps import get_db_pool
+# Replace with your project's actual DB pool dependency
+# from app.core.db import get_db_pool
 
 router = APIRouter(prefix="/api/signals", tags=["btc-correlation"])
 
 
 def _row_to_dict(row: asyncpg.Record) -> dict:
-    """Serialize a correlation row for JSON response."""
     return {
         "signal_id":   row["signal_id"],
-        "coin_symbol": row["coin_symbol"],
+        "pair":        row["pair"],
         "metrics": {
             "corr_1h_7d":    float(row["corr_1h_7d"])    if row["corr_1h_7d"]    is not None else None,
             "corr_4h_30d":   float(row["corr_4h_30d"])   if row["corr_4h_30d"]   is not None else None,
@@ -31,23 +30,23 @@ def _row_to_dict(row: asyncpg.Record) -> dict:
         "interpretation": row["interpretation"],
         "data_source":    row["data_source"],
         "sample_quality": row["sample_quality"],
-        "computed_at":    row["computed_at"].isoformat(),
+        "analyzed_at":    row["analyzed_at"].isoformat() if row["analyzed_at"] else None,
     }
 
 
 @router.get("/{signal_id}/btc-correlation")
-async def get_btc_correlation(signal_id: int, pool: asyncpg.Pool = Depends(get_db_pool)):
+async def get_btc_correlation(signal_id: str, pool: asyncpg.Pool = Depends(get_db_pool)):
     """
     Returns BTC correlation metrics + auto-generated interpretation for a single signal.
     404 if correlation hasn't been computed yet (worker may still be processing).
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
-            SELECT signal_id, coin_symbol,
+            SELECT signal_id, pair,
                    corr_1h_7d, corr_4h_30d, beta_30d,
                    r_squared_30d, corr_zscore,
                    btc_context, is_decoupled, interpretation,
-                   data_source, sample_quality, computed_at
+                   data_source, sample_quality, analyzed_at
             FROM signal_btc_correlation
             WHERE signal_id = $1
         """, signal_id)
@@ -67,12 +66,9 @@ async def list_recent_correlations(
     min_score: Optional[int] = None,
     pool: asyncpg.Pool = Depends(get_db_pool),
 ):
-    """
-    List recent correlations. Useful for dashboards showing high-alignment or decoupled signals.
-    """
     limit = max(1, min(limit, 100))
     where = []
-    args = []
+    args  = []
 
     if decoupled_only:
         where.append("is_decoupled = TRUE")
@@ -84,14 +80,14 @@ async def list_recent_correlations(
     args.append(limit)
 
     query = f"""
-        SELECT signal_id, coin_symbol,
+        SELECT signal_id, pair,
                corr_1h_7d, corr_4h_30d, beta_30d,
                r_squared_30d, corr_zscore,
                btc_context, is_decoupled, interpretation,
-               data_source, sample_quality, computed_at
+               data_source, sample_quality, analyzed_at
         FROM signal_btc_correlation
         {where_clause}
-        ORDER BY computed_at DESC
+        ORDER BY analyzed_at DESC
         LIMIT ${len(args)}
     """
 

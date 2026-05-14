@@ -1,5 +1,5 @@
 [Unit]
-Description=LuxQuant BTC Correlation Worker (LISTEN signal_created)
+Description=LuxQuant BTC Correlation Worker (LISTEN new_signal)
 After=network-online.target postgresql.service
 Wants=network-online.target
 
@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root/luxquant-terminal
-EnvironmentFile=/root/luxquant-terminal/.env
-ExecStart=/usr/bin/python3 /root/luxquant-terminal/btc_correlation_worker.py
+EnvironmentFile=/root/luxquant-terminal/backend/.env
+ExecStart=/usr/bin/python3 /root/luxquant-terminal/backend/app/workers/btc_correlation_worker.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
