@@ -7,13 +7,7 @@ import subscriptionApi from "../../services/subscriptionApi";
 import SubscribeViaAdminModal from "./SubscribeViaAdminModal";
 
 // ═══════════════════════════════════════════
-// Payment Method Configuration
-// LuxQuant currently only supports USDT BEP-20 (BSC).
-// Other currencies/networks will be added in the future.
-// ═══════════════════════════════════════════
-
-// ═══════════════════════════════════════════
-// Currency Icon Component (USDT only)
+// Tether icon (USDT)
 // ═══════════════════════════════════════════
 const UsdtIcon = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
@@ -25,8 +19,50 @@ const UsdtIcon = ({ size = 24 }) => (
   </svg>
 );
 
+const BNBIcon = ({ size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="16" fill="#F3BA2F" />
+    <path
+      d="M12.116 14.404l3.884-3.884 3.886 3.886 2.26-2.26L16 6 9.856 12.144l2.26 2.26zM6 16l2.26-2.26L10.52 16l-2.26 2.26L6 16zm6.116 1.596L16 21.48l3.886-3.886 2.26 2.259L16 26l-6.144-6.144-.003-.003 2.263-2.257zM21.48 16l2.26-2.26L26 16l-2.26 2.26L21.48 16zm-3.188-.002h.002V16L16 18.294l-2.291-2.29-.004-.004.004-.003.401-.402.195-.195L16 13.706l2.293 2.293z"
+      fill="#fff"
+    />
+  </svg>
+);
+
+// Section label (pattern from Pulse / Potential Trades pages)
+const SectionLabel = ({ label, accent = "#d4a853" }) => (
+  <div className="flex items-center gap-2 mb-3">
+    <div className="w-1 h-1 rounded-full" style={{ background: accent }} />
+    <span
+      className="text-[10px] font-bold uppercase tracking-[0.15em]"
+      style={{ color: "#534a42" }}
+    >
+      {label}
+    </span>
+  </div>
+);
+
+// Stat card for top metrics row
+const StatCard = ({ label, children }) => (
+  <div
+    className="rounded-xl p-4 sm:p-5"
+    style={{
+      background: "rgba(15,8,10,0.6)",
+      border: "1px solid rgba(212,168,83,0.06)",
+    }}
+  >
+    <p
+      className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
+      style={{ color: "#534a42" }}
+    >
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
 // ═══════════════════════════════════════════
-// Main PaymentPage Component
+// Main PaymentPage
 // ═══════════════════════════════════════════
 const PaymentPage = () => {
   const { t } = useTranslation();
@@ -35,7 +71,6 @@ const PaymentPage = () => {
   const { refreshUser } = useAuth();
   const { invoice, plan } = location.state || {};
 
-  // Payment flow state
   const [txHash, setTxHash] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
@@ -43,7 +78,6 @@ const PaymentPage = () => {
   const [timeLeft, setTimeLeft] = useState("");
   const [showAdminModal, setShowAdminModal] = useState(false);
 
-  // Extract data from invoice response
   const walletAddress =
     invoice?.wallet_to || invoice?.payment?.wallet_to || "";
   const amount = invoice?.amount_usdt || invoice?.payment?.amount_usdt || "";
@@ -55,12 +89,10 @@ const PaymentPage = () => {
     invoice?.plan?.name ||
     "Subscription";
 
-  // If no invoice data, redirect to pricing
   useEffect(() => {
     if (!invoice) navigate("/pricing");
   }, [invoice, navigate]);
 
-  // Countdown timer
   useEffect(() => {
     if (!expiresAt) return;
     const interval = setInterval(() => {
@@ -115,224 +147,207 @@ const PaymentPage = () => {
     }
   };
 
+  const isExpired = timeLeft === t("payment.expired");
+
   if (!invoice) return null;
 
   return (
-    <div className="relative overflow-hidden min-h-screen">
+    <div className="relative min-h-screen overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div
           style={{
             position: "absolute",
             top: "-15%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "700px",
-            height: "500px",
+            left: "30%",
+            width: "900px",
+            height: "600px",
             background:
-              "radial-gradient(ellipse, rgba(212,168,83,0.05) 0%, transparent 70%)",
+              "radial-gradient(ellipse, rgba(212,168,83,0.04) 0%, transparent 70%)",
           }}
         />
       </div>
 
-      <div className="relative z-10 max-w-xl mx-auto px-4 py-12 sm:py-16">
-        {/* ─── Header ─── */}
-        <div className="text-center mb-10">
-          <h1
-            className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            {t("payment.title")}
-          </h1>
-          <p className="text-sm" style={{ color: "#6b5c52" }}>
-            {planLabel} — {amount || "?"} USDT
-          </p>
-        </div>
-
-        {/* ─── Main Payment Card ─── */}
-        <div
-          className="rounded-2xl overflow-hidden mb-6"
-          style={{
-            background: "rgba(15,8,10,0.85)",
-            border: "1px solid rgba(212,168,83,0.12)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
-          {/* Top accent */}
-          <div
-            className="h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, rgba(212,168,83,0.2), transparent)",
-            }}
-          />
-
-          <div className="p-5 sm:p-7">
-            {/* Timer bar */}
-            <div
-              className="flex items-center justify-between mb-7 pb-5"
-              style={{ borderBottom: "1px solid rgba(212,168,83,0.06)" }}
-            >
-              <span className="text-xs" style={{ color: "#534a42" }}>
-                {t("payment.expires_in")}
-              </span>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* ════════════════════════════════════════════════
+            HEADER — adopt Pulse / Potential Trades style
+            ════════════════════════════════════════════════ */}
+        <div className="mb-8 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: isExpired ? "#f87171" : "#d4a853" }}
+              />
               <span
-                className={`text-sm font-mono font-bold tracking-wider ${timeLeft === t("payment.expired") ? "text-red-400" : ""}`}
-                style={
-                  timeLeft !== t("payment.expired") ? { color: "#d4a853" } : {}
-                }
+                className="text-[10px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: "#534a42" }}
               >
-                {timeLeft || t("payment.calculating")}
+                Payment Invoice
               </span>
             </div>
+            <h1
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Complete Your Payment
+            </h1>
+            <p className="text-sm mt-2" style={{ color: "#8a7a6e" }}>
+              <span style={{ color: "#d4a853" }}>{planLabel}</span>
+              <span className="mx-2" style={{ color: "#534a42" }}>·</span>
+              <span className="font-mono font-semibold text-white">
+                {amount || "?"} USDT
+              </span>
+            </p>
+          </div>
 
-            {/* ═══ STEP 1: Payment Method (USDT BEP-20 only) ═══ */}
-            <div className="mb-7">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{
-                    background: "linear-gradient(135deg, #d4a853, #8b6914)",
-                    color: "#0a0506",
-                  }}
-                >
-                  1
-                </div>
-                <span className="text-sm font-medium text-white">
-                  {t("payment.step1")}
-                </span>
-              </div>
+          {/* Status pill */}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{
+                background: isExpired
+                  ? "rgba(239,68,68,0.06)"
+                  : "rgba(212,168,83,0.06)",
+                border: `1px solid ${isExpired ? "rgba(239,68,68,0.2)" : "rgba(212,168,83,0.15)"}`,
+              }}
+            >
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: isExpired ? "#f87171" : "#22c55e" }}
+              />
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider"
+                style={{ color: isExpired ? "#f87171" : "#22c55e" }}
+              >
+                {isExpired ? "Expired" : "Awaiting Payment"}
+              </span>
+            </div>
+          </div>
+        </div>
 
-              {/* Currency Display — USDT only (locked) */}
-              <div className="mb-4">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
-                  style={{ color: "#534a42" }}
-                >
-                  {t("payment.currency")}
-                </p>
-                <div
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
-                  style={{
-                    background: "rgba(38,161,123,0.08)",
-                    border: "1.5px solid rgba(38,161,123,0.4)",
-                  }}
-                >
-                  <UsdtIcon size={22} />
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-white">
-                      USDT
-                    </div>
-                    <div
-                      className="text-[10px] mt-0.5"
-                      style={{ color: "#6b5c52" }}
-                    >
-                      Tether USD
-                    </div>
-                  </div>
-                  <span
-                    className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{
-                      background: "rgba(38,161,123,0.15)",
-                      color: "#26A17B",
-                      border: "1px solid rgba(38,161,123,0.25)",
-                    }}
-                  >
-                    Active
-                  </span>
-                </div>
-                <p
-                  className="text-[10px] mt-2 leading-relaxed"
-                  style={{ color: "#534a42" }}
-                >
-                  More currencies (USDC, BTC) coming soon.
-                </p>
-              </div>
+        {/* ════════════════════════════════════════════════
+            TOP STAT ROW — 4 cards summary
+            ════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <StatCard label="Amount Due">
+            <div className="flex items-baseline gap-2">
+              <span
+                className="text-2xl sm:text-3xl font-bold text-white"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                {amount || "—"}
+              </span>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "#d4a853" }}
+              >
+                USDT
+              </span>
+            </div>
+          </StatCard>
 
-              {/* Network Display — BSC only (locked) */}
+          <StatCard label="Currency">
+            <div className="flex items-center gap-2.5">
+              <UsdtIcon size={26} />
               <div>
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wider mb-2.5"
-                  style={{ color: "#534a42" }}
-                >
-                  {t("payment.network")}
-                </p>
-                <div
-                  className="flex items-center justify-between px-4 py-3.5 rounded-xl"
-                  style={{
-                    background: "rgba(212,168,83,0.06)",
-                    border: "1.5px solid rgba(212,168,83,0.25)",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ border: "1.5px solid #d4a853" }}
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ background: "#d4a853" }}
-                      />
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium text-white">
-                        BSC (BEP-20)
-                      </div>
-                      <div
-                        className="text-[10px] mt-0.5"
-                        style={{ color: "#6b5c52" }}
-                      >
-                        BNB Smart Chain
-                      </div>
-                    </div>
-                  </div>
+                <div className="text-sm font-bold text-white">USDT</div>
+                <div className="text-[10px]" style={{ color: "#6b5c52" }}>
+                  Tether USD
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          <StatCard label="Network">
+            <div className="flex items-center gap-2.5">
+              <BNBIcon size={26} />
+              <div>
+                <div className="text-sm font-bold text-white">BSC</div>
+                <div className="text-[10px]" style={{ color: "#6b5c52" }}>
+                  BEP-20
+                </div>
+              </div>
+            </div>
+          </StatCard>
+
+          <StatCard label="Expires In">
+            <div
+              className={`text-lg sm:text-xl font-mono font-bold tracking-wider ${isExpired ? "text-red-400" : ""}`}
+              style={!isExpired ? { color: "#d4a853" } : {}}
+            >
+              {timeLeft || t("payment.calculating")}
+            </div>
+            <div className="text-[10px] mt-1" style={{ color: "#6b5c52" }}>
+              24h payment window
+            </div>
+          </StatCard>
+        </div>
+
+        {/* ════════════════════════════════════════════════
+            MAIN GRID — 2 col on desktop, stacked mobile
+            ════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+          {/* ═══ LEFT: Transfer Details ═══ */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "rgba(15,8,10,0.6)",
+              border: "1px solid rgba(212,168,83,0.08)",
+            }}
+          >
+            <div
+              className="h-px"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, rgba(212,168,83,0.2), transparent)",
+              }}
+            />
+            <div className="p-5 sm:p-7">
+              <SectionLabel label="Transfer Details" />
+              <h2
+                className="text-lg sm:text-xl font-bold text-white mb-5 tracking-tight"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                Send USDT to wallet
+              </h2>
+
+              {/* Wallet Address */}
+              <div
+                className="rounded-xl p-4 mb-3"
+                style={{
+                  background: "rgba(10,5,6,0.6)",
+                  border: "1px solid rgba(212,168,83,0.06)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-2.5">
                   <span
-                    className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                    className="text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: "#534a42" }}
+                  >
+                    Wallet Address
+                  </span>
+                  <button
+                    onClick={() => handleCopy(walletAddress, "wallet")}
+                    disabled={!walletAddress}
+                    className="px-3 py-1 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
-                      background: "rgba(212,168,83,0.1)",
+                      background: "rgba(212,168,83,0.08)",
                       color: "#d4a853",
                       border: "1px solid rgba(212,168,83,0.15)",
                     }}
                   >
-                    {t("payment.recommended")}
-                  </span>
+                    {copied === "wallet"
+                      ? t("payment.copied")
+                      : t("payment.copy")}
+                  </button>
                 </div>
-                <p
-                  className="text-[10px] mt-2 leading-relaxed"
-                  style={{ color: "#534a42" }}
-                >
-                  More networks (ERC-20, TRC-20) coming soon.
+                <p className="text-sm font-mono text-white/90 break-all leading-relaxed select-all">
+                  {walletAddress || "—"}
                 </p>
               </div>
-            </div>
 
-            {/* Divider */}
-            <div
-              className="h-px mb-7"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, rgba(212,168,83,0.08), transparent)",
-              }}
-            />
-
-            {/* ═══ STEP 2: Transfer Details ═══ */}
-            <div className="mb-7">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{
-                    background: "linear-gradient(135deg, #d4a853, #8b6914)",
-                    color: "#0a0506",
-                  }}
-                >
-                  2
-                </div>
-                <span className="text-sm font-medium text-white">
-                  {t("payment.step2")}
-                </span>
-              </div>
-
-              {/* Amount Box */}
+              {/* Amount mirror */}
               <div
                 className="rounded-xl p-4 mb-3"
                 style={{
@@ -343,10 +358,10 @@ const PaymentPage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p
-                      className="text-[10px] uppercase tracking-wider mb-1.5"
+                      className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
                       style={{ color: "#534a42" }}
                     >
-                      {t("payment.amount")}
+                      Exact Amount
                     </p>
                     <div className="flex items-baseline gap-2">
                       <span
@@ -366,11 +381,11 @@ const PaymentPage = () => {
                   <button
                     onClick={() => handleCopy(String(amount), "amount")}
                     disabled={!amount}
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all disabled:opacity-20"
+                    className="px-3 py-1.5 rounded-md text-[10px] font-semibold transition-all disabled:opacity-20 hover:scale-[1.02]"
                     style={{
-                      background: "rgba(212,168,83,0.06)",
+                      background: "rgba(212,168,83,0.08)",
                       color: "#d4a853",
-                      border: "1px solid rgba(212,168,83,0.12)",
+                      border: "1px solid rgba(212,168,83,0.15)",
                     }}
                   >
                     {copied === "amount"
@@ -380,47 +395,12 @@ const PaymentPage = () => {
                 </div>
               </div>
 
-              {/* Wallet Address Box */}
+              {/* Network warning */}
               <div
-                className="rounded-xl p-4"
-                style={{
-                  background: "rgba(10,5,6,0.6)",
-                  border: "1px solid rgba(212,168,83,0.06)",
-                }}
-              >
-                <p
-                  className="text-[10px] uppercase tracking-wider mb-2"
-                  style={{ color: "#534a42" }}
-                >
-                  {t("payment.wallet_address")}
-                </p>
-                <div className="flex items-start gap-3">
-                  <p className="text-xs font-mono text-white/80 break-all flex-1 leading-relaxed">
-                    {walletAddress || "—"}
-                  </p>
-                  <button
-                    onClick={() => handleCopy(walletAddress, "wallet")}
-                    disabled={!walletAddress}
-                    className="px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all flex-shrink-0 disabled:opacity-20"
-                    style={{
-                      background: "rgba(212,168,83,0.06)",
-                      color: "#d4a853",
-                      border: "1px solid rgba(212,168,83,0.12)",
-                    }}
-                  >
-                    {copied === "wallet"
-                      ? t("payment.copied")
-                      : t("payment.copy")}
-                  </button>
-                </div>
-              </div>
-
-              {/* Network Warning (BSC) */}
-              <div
-                className="mt-3 flex items-start gap-2.5 p-3.5 rounded-xl"
+                className="flex items-start gap-2.5 p-3.5 rounded-xl"
                 style={{
                   background: "rgba(234,179,8,0.04)",
-                  border: "1px solid rgba(234,179,8,0.1)",
+                  border: "1px solid rgba(234,179,8,0.12)",
                 }}
               >
                 <svg
@@ -441,244 +421,218 @@ const PaymentPage = () => {
                   className="text-[11px] leading-relaxed"
                   style={{ color: "#a09080" }}
                 >
-                  {t("payment.warning_bsc")}
+                  <span className="font-semibold text-white/90">
+                    Only send USDT via BSC (BEP-20).
+                  </span>{" "}
+                  Sending other tokens or using other networks (ERC-20, TRC-20)
+                  will result in permanent loss of funds.
                 </p>
               </div>
             </div>
+          </div>
 
-            {/* Divider */}
+          {/* ═══ RIGHT: Submit Transaction ═══ */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "rgba(15,8,10,0.6)",
+              border: "1px solid rgba(212,168,83,0.08)",
+            }}
+          >
             <div
-              className="h-px mb-7"
+              className="h-px"
               style={{
                 background:
-                  "linear-gradient(90deg, transparent, rgba(212,168,83,0.08), transparent)",
+                  "linear-gradient(90deg, transparent, rgba(212,168,83,0.2), transparent)",
               }}
             />
+            <div className="p-5 sm:p-7">
+              <SectionLabel label="Verify Payment" />
+              <h2
+                className="text-lg sm:text-xl font-bold text-white mb-5 tracking-tight"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                Submit transaction hash
+              </h2>
 
-            {/* ═══ STEP 3: Submit TX Hash ═══ */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-5">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+              <div className="space-y-4">
+                <p
+                  className="text-[11px] leading-relaxed"
+                  style={{ color: "#8a7a6e" }}
+                >
+                  After completing the transfer, paste your transaction hash
+                  below to verify and activate your subscription.
+                </p>
+
+                <div>
+                  <label
+                    className="block text-[10px] font-semibold uppercase tracking-wider mb-2"
+                    style={{ color: "#534a42" }}
+                  >
+                    TX Hash
+                  </label>
+                  <input
+                    type="text"
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="0x..."
+                    className="w-full px-4 py-3.5 rounded-xl text-white text-xs font-mono focus:outline-none transition-all"
+                    style={{
+                      background: "rgba(10,5,6,0.6)",
+                      border: "1px solid rgba(212,168,83,0.08)",
+                    }}
+                    onFocus={(e) =>
+                      (e.target.style.borderColor = "rgba(212,168,83,0.3)")
+                    }
+                    onBlur={(e) =>
+                      (e.target.style.borderColor = "rgba(212,168,83,0.08)")
+                    }
+                  />
+                </div>
+
+                <button
+                  onClick={handleVerify}
+                  disabled={
+                    verifying || !txHash.trim() || isExpired || !paymentId
+                  }
+                  className="w-full py-4 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden group"
                   style={{
-                    background: "linear-gradient(135deg, #d4a853, #8b6914)",
+                    background: "linear-gradient(135deg, #d4a853, #a07c2e)",
                     color: "#0a0506",
+                    boxShadow: "0 4px 24px rgba(212,168,83,0.15)",
                   }}
                 >
-                  3
-                </div>
-                <span className="text-sm font-medium text-white">
-                  {t("payment.step3")}
-                </span>
-              </div>
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.1), transparent)",
+                    }}
+                  />
+                  <span className="relative">
+                    {verifying ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          />
+                        </svg>
+                        Verifying on-chain...
+                      </span>
+                    ) : (
+                      "Verify Payment"
+                    )}
+                  </span>
+                </button>
 
-              <p
-                className="text-[11px] mb-3 leading-relaxed"
-                style={{ color: "#534a42" }}
-              >
-                {t("payment.tx_desc")}
-              </p>
-
-              <input
-                type="text"
-                value={txHash}
-                onChange={(e) => setTxHash(e.target.value)}
-                placeholder={t("payment.tx_placeholder")}
-                className="w-full px-4 py-3.5 rounded-xl text-white text-xs font-mono focus:outline-none mb-4 transition-all"
-                style={{
-                  background: "rgba(10,5,6,0.6)",
-                  border: "1px solid rgba(212,168,83,0.08)",
-                }}
-                onFocus={(e) =>
-                  (e.target.style.borderColor = "rgba(212,168,83,0.25)")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderColor = "rgba(212,168,83,0.08)")
-                }
-              />
-
-              <button
-                onClick={handleVerify}
-                disabled={
-                  verifying ||
-                  !txHash.trim() ||
-                  timeLeft === t("payment.expired") ||
-                  !paymentId
-                }
-                className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed relative overflow-hidden group"
-                style={{
-                  background: "linear-gradient(135deg, #d4a853, #a07c2e)",
-                  color: "#0a0506",
-                  boxShadow: "0 4px 24px rgba(212,168,83,0.15)",
-                }}
-              >
-                {/* Hover shine */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(255,255,255,0.1), transparent)",
-                  }}
-                />
-                <span className="relative">
-                  {verifying ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
+                {/* Result inline */}
+                {result && (
+                  <div
+                    className="rounded-xl p-4"
+                    style={{
+                      background:
+                        result.status === "confirmed"
+                          ? "rgba(34,197,94,0.04)"
+                          : "rgba(239,68,68,0.04)",
+                      border: `1px solid ${
+                        result.status === "confirmed"
+                          ? "rgba(34,197,94,0.2)"
+                          : "rgba(239,68,68,0.2)"
+                      }`,
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background:
+                            result.status === "confirmed"
+                              ? "rgba(34,197,94,0.1)"
+                              : "rgba(239,68,68,0.1)",
+                        }}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          style={{
+                            color:
+                              result.status === "confirmed"
+                                ? "#22c55e"
+                                : "#f87171",
+                          }}
                           fill="none"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      {t("payment.verifying")}
-                    </span>
-                  ) : (
-                    t("payment.verify_btn")
-                  )}
-                </span>
-              </button>
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          {result.status === "confirmed" ? (
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          ) : (
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          )}
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4
+                          className="text-sm font-bold mb-1"
+                          style={{
+                            color:
+                              result.status === "confirmed"
+                                ? "#22c55e"
+                                : "#f87171",
+                          }}
+                        >
+                          {result.status === "confirmed"
+                            ? "Payment confirmed!"
+                            : "Verification failed"}
+                        </h4>
+                        <p className="text-xs" style={{ color: "#a09080" }}>
+                          {result.status === "confirmed"
+                            ? `${result.subscription?.plan_label || planLabel} is now active. Redirecting…`
+                            : result.message}
+                        </p>
+                        {result.can_retry && (
+                          <p
+                            className="text-[10px] mt-2"
+                            style={{ color: "#6b5c52" }}
+                          >
+                            You can submit a new TX hash to retry.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ─── Result ─── */}
-        {result && (
-          <div
-            className="rounded-2xl overflow-hidden mb-6"
-            style={{
-              background:
-                result.status === "confirmed"
-                  ? "rgba(34,197,94,0.04)"
-                  : result.status === "failed" || result.status === "error"
-                    ? "rgba(239,68,68,0.04)"
-                    : "rgba(234,179,8,0.04)",
-              border: `1px solid ${
-                result.status === "confirmed"
-                  ? "rgba(34,197,94,0.2)"
-                  : result.status === "failed" || result.status === "error"
-                    ? "rgba(239,68,68,0.2)"
-                    : "rgba(234,179,8,0.2)"
-              }`,
-            }}
-          >
-            <div className="p-6 text-center">
-              {result.status === "confirmed" ? (
-                <>
-                  <div
-                    className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
-                    style={{ background: "rgba(34,197,94,0.1)" }}
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      style={{ color: "#22c55e" }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-base font-bold text-green-400 mb-1">
-                    {t("payment.success_title")}
-                  </h3>
-                  <p className="text-xs text-green-300/60">
-                    {result.subscription?.plan_label}{" "}
-                    {t("payment.success_active")}
-                    {result.subscription?.expires_at
-                      ? ` ${t("payment.success_until")} ${new Date(result.subscription.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                      : ` ${t("payment.success_lifetime")}`}
-                  </p>
-                  <p className="text-[10px] mt-2" style={{ color: "#534a42" }}>
-                    {t("payment.redirecting")}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
-                    style={{
-                      background:
-                        result.status === "failed" || result.status === "error"
-                          ? "rgba(239,68,68,0.1)"
-                          : "rgba(234,179,8,0.1)",
-                    }}
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      style={{
-                        color:
-                          result.status === "failed" ||
-                          result.status === "error"
-                            ? "#f87171"
-                            : "#fbbf24",
-                      }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      {result.status === "failed" ||
-                      result.status === "error" ? (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      ) : (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      )}
-                    </svg>
-                  </div>
-                  <h3
-                    className="text-base font-bold mb-1"
-                    style={{
-                      color:
-                        result.status === "failed" || result.status === "error"
-                          ? "#f87171"
-                          : "#fbbf24",
-                    }}
-                  >
-                    {result.status === "failed" || result.status === "error"
-                      ? t("payment.failed_title")
-                      : t("payment.pending_title")}
-                  </h3>
-                  <p className="text-xs" style={{ color: "#6b5c52" }}>
-                    {result.message}
-                  </p>
-                  {result.can_retry && (
-                    <p
-                      className="text-[10px] mt-2"
-                      style={{ color: "#534a42" }}
-                    >
-                      {t("payment.can_retry")}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── Subscribe via Admin (Alternative) ─── */}
+        {/* ════════════════════════════════════════════════
+            ALTERNATIVE: Subscribe via Admin
+            ════════════════════════════════════════════════ */}
         <div
           className="rounded-2xl overflow-hidden mb-6"
           style={{
@@ -686,8 +640,8 @@ const PaymentPage = () => {
             border: "1px solid rgba(212,168,83,0.1)",
           }}
         >
-          <div className="p-5 sm:p-6">
-            <div className="flex items-start gap-3">
+          <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(212,168,83,0.1)" }}
@@ -695,50 +649,36 @@ const PaymentPage = () => {
                 <svg
                   className="w-5 h-5"
                   style={{ color: "#d4a853" }}
-                  fill="none"
-                  stroke="currentColor"
+                  fill="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-bold text-white mb-1">
-                  Need help with payment?
+                  Prefer manual assistance?
                 </h4>
                 <p
-                  className="text-xs leading-relaxed mb-3"
+                  className="text-xs leading-relaxed"
                   style={{ color: "#8a7a6e" }}
                 >
-                  Prefer manual payment, bank transfer, or have specific
-                  questions? Contact our admin via Telegram for personalized
-                  assistance.
+                  Contact our admin via Telegram for bank transfer, manual
+                  payment, or any payment-related questions.
                 </p>
-                <button
-                  onClick={() => setShowAdminModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02]"
-                  style={{
-                    background: "rgba(212,168,83,0.08)",
-                    border: "1px solid rgba(212,168,83,0.25)",
-                    color: "#d4a853",
-                  }}
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                  </svg>
-                  Subscribe via Admin
-                </button>
               </div>
             </div>
+            <button
+              onClick={() => setShowAdminModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold transition-all hover:scale-[1.02] flex-shrink-0"
+              style={{
+                background: "rgba(212,168,83,0.08)",
+                border: "1px solid rgba(212,168,83,0.25)",
+                color: "#d4a853",
+              }}
+            >
+              Subscribe via Admin
+            </button>
           </div>
         </div>
 
@@ -752,17 +692,18 @@ const PaymentPage = () => {
           paymentId={paymentId}
         />
 
-        {/* ─── Help / Back ─── */}
+        {/* Footer */}
         <div className="text-center space-y-2">
           <p className="text-[10px]" style={{ color: "#534a42" }}>
-            {t("payment.help")}
+            Payment will be verified on-chain via BSCScan. Activation is
+            instant.
           </p>
           <button
             onClick={() => navigate("/pricing")}
             className="text-xs transition-colors hover:text-white"
             style={{ color: "#534a42" }}
           >
-            {t("payment.back_pricing")}
+            ← Back to pricing
           </button>
         </div>
       </div>
