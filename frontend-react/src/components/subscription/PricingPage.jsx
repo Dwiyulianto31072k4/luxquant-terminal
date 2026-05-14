@@ -111,7 +111,6 @@ const PricingPage = () => {
     return t('pricing.one_time');
   };
 
-  // ✅ UPDATED: Button label lebih jelas & berorientasi pembayaran
   const getButtonLabel = (plan) => {
     if (!isPremium) return 'Continue to Payment';
     if (plan.name === currentPlanName) return 'Current Plan';
@@ -123,19 +122,19 @@ const PricingPage = () => {
 
   const isCurrentPlan = (plan) => isPremium && plan.name === currentPlanName;
 
-  const getFeatures = (plan) => {
-    const base = [
-      t('pricing.feat_signals'),
-      t('pricing.feat_analytics'),
-      t('pricing.feat_performance'),
-      t('pricing.feat_market'),
-    ];
-    if (plan.name !== 'monthly') base.push(t('pricing.feat_support'));
-    if (plan.name === 'lifetime') base.push(t('pricing.feat_lifetime'));
-    return base;
-  };
+  // ✅ Normalized to 5 features for every plan — balanced card height
+  const getFeatures = (plan) => [
+    t('pricing.feat_signals'),
+    t('pricing.feat_analytics'),
+    t('pricing.feat_performance'),
+    t('pricing.feat_market'),
+    plan.name === 'monthly'
+      ? t('pricing.feat_basic_support', 'Standard support')
+      : plan.name === 'lifetime'
+        ? t('pricing.feat_lifetime')
+        : t('pricing.feat_support'),
+  ];
 
-  // SVG icon per plan (sama seperti sebelumnya)
   const PlanIcon = ({ name, isCurrent }) => {
     const color = isCurrent ? '#22c55e' : '#d4a853';
     if (name === 'monthly') {
@@ -168,7 +167,6 @@ const PricingPage = () => {
 
   return (
     <div className="relative overflow-hidden min-h-screen">
-      {/* Animations + background (sama seperti sebelumnya) */}
       <style>{`
         @keyframes admin-pulse-glow {
           0%, 100% {
@@ -192,7 +190,7 @@ const PricingPage = () => {
         }
       `}</style>
 
-      {/* Ambient background (sama) */}
+      {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div style={{
           position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)',
@@ -214,8 +212,8 @@ const PricingPage = () => {
           </div>
         ) : (
           <>
-            {/* Header (sama) */}
-            <div className="text-center mb-20">
+            {/* Header */}
+            <div className="text-center mb-16 sm:mb-20">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
                 style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
                 <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#d4a853' }} />
@@ -242,8 +240,10 @@ const PricingPage = () => {
               </p>
             </div>
 
-            {/* Plans Grid */}
-            <div className="grid md:grid-cols-3 gap-5 sm:gap-6 mb-20 max-w-5xl mx-auto">
+            {/* ════════════════════════════════════════════════
+                PLANS GRID — equal-height cards via flex
+                ════════════════════════════════════════════════ */}
+            <div className="grid md:grid-cols-3 gap-5 sm:gap-6 mb-20 max-w-5xl mx-auto items-stretch">
               {plans.map((plan) => {
                 const isHighlighted = getPlanHighlight(plan.name);
                 const badge = getSavingBadge(plan);
@@ -253,7 +253,7 @@ const PricingPage = () => {
                 return (
                   <div
                     key={plan.id}
-                    className={`group relative rounded-2xl transition-all duration-500 ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''}`}
+                    className={`group relative rounded-2xl transition-all duration-500 flex flex-col ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''}`}
                     style={{
                       background: isCurrent
                         ? 'linear-gradient(168deg, rgba(34,197,94,0.08) 0%, rgba(10,5,6,0.95) 40%)'
@@ -268,7 +268,7 @@ const PricingPage = () => {
                       backdropFilter: 'blur(20px)',
                     }}
                   >
-                    {/* Hover glow (sama) */}
+                    {/* Hover glow */}
                     <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                       style={{
                         boxShadow: isCurrent
@@ -276,7 +276,7 @@ const PricingPage = () => {
                           : '0 0 40px rgba(212,168,83,0.06)',
                       }} />
 
-                    {/* Badge (sama) */}
+                    {/* Badge */}
                     {(isCurrent || badge) && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                         <div className="px-4 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase"
@@ -299,8 +299,9 @@ const PricingPage = () => {
                         style={{ background: 'linear-gradient(90deg, transparent, #d4a853, transparent)' }} />
                     )}
 
-                    <div className="relative p-6 sm:p-7">
-                      {/* Icon + Name (sama) */}
+                    {/* Card content — flex-col with grow */}
+                    <div className="relative p-6 sm:p-7 flex flex-col flex-1">
+                      {/* Header section */}
                       <div className="flex items-start justify-between mb-6">
                         <div>
                           <div className="mb-3 opacity-70">
@@ -315,7 +316,7 @@ const PricingPage = () => {
                         </div>
                       </div>
 
-                      {/* Price (sama) */}
+                      {/* Price */}
                       <div className="mb-8">
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-sm" style={{ color: '#6b5c52' }}>$</span>
@@ -339,8 +340,8 @@ const PricingPage = () => {
                             : 'linear-gradient(90deg, rgba(212,168,83,0.1), transparent)'
                         }} />
 
-                      {/* Features (sama) */}
-                      <ul className="space-y-3.5 mb-8">
+                      {/* Features — flex-1 to push CTA section to bottom */}
+                      <ul className="space-y-3.5 mb-8 flex-1">
                         {features.map((feature, i) => (
                           <li key={i} className="flex items-center gap-3 text-sm" style={{ color: '#a09080' }}>
                             <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
@@ -357,86 +358,116 @@ const PricingPage = () => {
                         ))}
                       </ul>
 
-                      {/* ========== PRIMARY BUTTON ========== */}
-                      <button
-                        onClick={() => handleSubscribe(plan)}
-                        disabled={creating || isCurrent}
-                        className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed relative overflow-hidden group/btn"
-                        style={isCurrent ? {
-                          background: 'rgba(34,197,94,0.08)',
-                          color: '#22c55e',
-                          border: '1px solid rgba(34,197,94,0.2)',
-                          cursor: 'default',
-                        } : isHighlighted ? {
-                          background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
-                          color: '#0a0506',
-                          boxShadow: '0 4px 24px rgba(212,168,83,0.2)',
-                        } : {
-                          background: 'transparent',
-                          color: '#d4a853',
-                          border: '1px solid rgba(212,168,83,0.2)',
-                        }}
-                      >
-                        {!isCurrent && isHighlighted && (
-                          <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"
-                            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
-                        )}
-                        <span className="relative">
-                          {creating && selectedPlan === plan.id
-                            ? t('pricing.processing')
-                            : getButtonLabel(plan)
-                          }
-                        </span>
-                      </button>
+                      {/* Bottom CTA section — always at card bottom */}
+                      <div className="mt-auto">
+                        {/* PRIMARY BUTTON */}
+                        <button
+                          onClick={() => handleSubscribe(plan)}
+                          disabled={creating || isCurrent}
+                          className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed relative overflow-hidden group/btn"
+                          style={isCurrent ? {
+                            background: 'rgba(34,197,94,0.08)',
+                            color: '#22c55e',
+                            border: '1px solid rgba(34,197,94,0.2)',
+                            cursor: 'default',
+                          } : isHighlighted ? {
+                            background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
+                            color: '#0a0506',
+                            boxShadow: '0 4px 24px rgba(212,168,83,0.2)',
+                          } : {
+                            background: 'transparent',
+                            color: '#d4a853',
+                            border: '1px solid rgba(212,168,83,0.2)',
+                          }}
+                        >
+                          {!isCurrent && isHighlighted && (
+                            <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"
+                              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.1), transparent)' }} />
+                          )}
+                          <span className="relative">
+                            {creating && selectedPlan === plan.id
+                              ? t('pricing.processing')
+                              : getButtonLabel(plan)
+                            }
+                          </span>
+                        </button>
 
-                      {/* ========== OR + SUBSCRIBE VIA ADMIN ========== */}
-                      {!isCurrent && (
-                        <>
-                          {/* OR Divider */}
-                          <div className="my-4 flex items-center justify-center gap-3">
-                            <div className="h-px flex-1" 
-                              style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
-                            <span className="text-[10px] font-medium tracking-[2px] uppercase px-2" 
-                              style={{ color: '#6b5c52' }}>
-                              or
-                            </span>
-                            <div className="h-px flex-1" 
-                              style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
-                          </div>
+                        {/* OR + SUBSCRIBE VIA ADMIN — only if not current plan */}
+                        {!isCurrent ? (
+                          <>
+                            <div className="my-4 flex items-center justify-center gap-3">
+                              <div className="h-px flex-1"
+                                style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
+                              <span className="text-[10px] font-medium tracking-[2px] uppercase px-2"
+                                style={{ color: '#6b5c52' }}>
+                                or
+                              </span>
+                              <div className="h-px flex-1"
+                                style={{ background: 'linear-gradient(to right, transparent, #6b5c52, transparent)' }} />
+                            </div>
 
-                          {/* Subscribe via Admin Button */}
-                          <button
-                            onClick={() => handleSubscribeViaAdmin(plan)}
-                            className="w-full py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                            style={{
-                              background:
-                                'linear-gradient(110deg, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0.18) 50%, rgba(212,168,83,0.05) 100%)',
-                              backgroundSize: '200% 100%',
-                              color: '#e8c578',
-                              borderRadius: '12px',
-                              animation:
-                                'admin-pulse-glow 2.4s ease-in-out infinite, admin-shimmer 3.2s linear infinite',
-                            }}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                              style={{ animation: 'admin-icon-bounce 2.4s ease-in-out infinite' }}
+                            <button
+                              onClick={() => handleSubscribeViaAdmin(plan)}
+                              className="w-full py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                              style={{
+                                background:
+                                  'linear-gradient(110deg, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0.18) 50%, rgba(212,168,83,0.05) 100%)',
+                                backgroundSize: '200% 100%',
+                                color: '#e8c578',
+                                borderRadius: '12px',
+                                animation:
+                                  'admin-pulse-glow 2.4s ease-in-out infinite, admin-shimmer 3.2s linear infinite',
+                              }}
                             >
-                              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                            </svg>
-                            {t('pricing.subscribe_via_admin', 'Subscribe via Admin')}
-                          </button>
-                        </>
-                      )}
+                              <svg
+                                className="w-4 h-4"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                                style={{ animation: 'admin-icon-bounce 2.4s ease-in-out infinite' }}
+                              >
+                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                              </svg>
+                              {t('pricing.subscribe_via_admin', 'Subscribe via Admin')}
+                            </button>
+                          </>
+                        ) : (
+                          // Current plan: matching-height status placeholder (OR divider + status pill)
+                          <>
+                            <div className="my-4 flex items-center justify-center gap-3">
+                              <div className="h-px flex-1"
+                                style={{ background: 'linear-gradient(to right, transparent, rgba(34,197,94,0.2), transparent)' }} />
+                              <span className="text-[10px] font-medium tracking-[2px] uppercase px-2"
+                                style={{ color: '#22c55e', opacity: 0.7 }}>
+                                Active
+                              </span>
+                              <div className="h-px flex-1"
+                                style={{ background: 'linear-gradient(to right, transparent, rgba(34,197,94,0.2), transparent)' }} />
+                            </div>
+                            <div
+                              className="w-full py-3 px-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2.5"
+                              style={{
+                                background: 'rgba(34,197,94,0.04)',
+                                color: '#22c55e',
+                                border: '1px solid rgba(34,197,94,0.15)',
+                                opacity: 0.85,
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                              </svg>
+                              You're subscribed
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Payment Info (sama) */}
+            {/* Payment Info */}
             <div className="max-w-3xl mx-auto">
               <div className="relative rounded-2xl overflow-hidden"
                 style={{ background: 'rgba(12,7,8,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
@@ -473,7 +504,6 @@ const PricingPage = () => {
               </div>
             </div>
 
-            {/* Back button (sama) */}
             <div className="text-center mt-10">
               <button
                 onClick={() => navigate('/')}
