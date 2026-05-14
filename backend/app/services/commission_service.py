@@ -1,16 +1,22 @@
 """
-Commission Service — Layer 4
+Commission Service — Layer 4 + Layer 8
 
 Responsible for:
-  1. Apply referral discount when creating invoice (first payment only)
-  2. Process commission credit to referrer when payment confirmed
-  3. Maintain audit trail via credit_ledger
+  Layer 4 (Referral commission):
+    1. apply_referral_discount    — 10% off for first payment via ReferralUse
+    2. process_commission_for_payment — credit referrer when referee payment confirmed
+
+  Layer 8 (Credit redemption):
+    3. apply_credit_redeem        — use user's balance as additional discount
+    4. commit_credit_redeem       — actually deduct balance + ledger entry
+    5. refund_credit_redeem       — refund balance when invoice expired/cancelled
+    6. record_referral_discount_audit — audit ledger entry for transparency
 
 Design principles:
-  - Idempotent: safe to call multiple times for same payment (skip if already processed)
-  - Defensive: skip silently for non-referred users (most users)
-  - Transactional: all writes in single transaction, rollback on any failure
-  - Configurable %: use per-code commission_pct, fallback to default
+  - Idempotent: safe to call multiple times for same payment
+  - Defensive: skip silently when user not eligible
+  - Transactional: caller commits, this module only flushes
+  - Stacking allowed: referral discount + credit redeem can combine
 """
 import logging
 from decimal import Decimal, ROUND_HALF_UP
@@ -21,23 +27,27 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.subscription import Payment
 from app.models.referral import ReferralCode, ReferralUse
-from app.models.credit import CreditLedger
+from app.models.credit import (
+    CreditLedger,
+    LEDGER_TYPE_EARN,
+    LEDGER_TYPE_REDEEM,
+    LEDGER_TYPE_REFUND,
+    LEDGER_TYPE_REFERRAL_DISCOUNT,
+)
 
 logger = logging.getLogger(__name__)
 
-# Default percentages (used if not set per-code)
 DEFAULT_DISCOUNT_PCT = Decimal("10.00")
 DEFAULT_COMMISSION_PCT = Decimal("10.00")
 
 
 def _quantize(amount: Decimal) -> Decimal:
-    """Round to 2 decimals (USDT precision)."""
     return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-# ============================================
-# Discount apply — invoice creation
-# ============================================
+# ════════════════════════════════════════════════
+# Layer 4: Referral Discount (invoice creation)
+# ════════════════════════════════════════════════
 
 def apply_referral_discount(
     user: User,
@@ -47,13 +57,7 @@ def apply_referral_discount(
     """
     Apply referral discount for first payment.
 
-    Returns: (discount_amount, final_amount, referral_use_id)
-
-    Rules:
-      - User must have ReferralUse record (referred_id = user.id)
-      - Discount only applies if total_payments = 0 (first payment)
-      - Default 10% off, or use per-code discount_pct
-      - If no eligible discount, returns (0, gross, None)
+    Returns: (discount_amount, after_referral_amount, referral_use_id)
     """
     zero = Decimal("0.00")
 
@@ -64,11 +68,9 @@ def apply_referral_discount(
     if not use:
         return zero, gross_amount, None
 
-    # Only first payment gets discount
     if use.total_payments > 0:
         return zero, gross_amount, use.id
 
-    # Get discount % from referral_code (per-code override) or default
     code = db.query(ReferralCode).filter(
         ReferralCode.id == use.referral_code_id
     ).first()
@@ -80,24 +82,241 @@ def apply_referral_discount(
     )
 
     discount_amount = _quantize(gross_amount * discount_pct / Decimal("100"))
-    final_amount = _quantize(gross_amount - discount_amount)
+    after_amount = _quantize(gross_amount - discount_amount)
 
-    # Defensive: ensure non-negative
+    if after_amount < zero:
+        after_amount = zero
+
+    logger.info(
+        f"💰 Referral discount applied for user {user.id}: "
+        f"{discount_pct}% off → {discount_amount} USDT discount "
+        f"(after referral: {after_amount}, ref_use_id={use.id})"
+    )
+
+    return discount_amount, after_amount, use.id
+
+
+# ════════════════════════════════════════════════
+# Layer 8: Credit Redemption
+# ════════════════════════════════════════════════
+
+def apply_credit_redeem(
+    user: User,
+    after_referral_amount: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """
+    Calculate credit redemption (preview / planning, no DB writes).
+
+    Full credit redeem: if balance >= amount, use balance to cover it.
+                       Otherwise use all balance.
+
+    Returns: (credit_redeemed, final_amount)
+
+    NOTE: This is pure calculation. Use commit_credit_redeem() to actually
+    deduct balance + create ledger entry.
+    """
+    zero = Decimal("0.00")
+    current_balance = Decimal(str(user.referral_credit_usdt or 0))
+
+    if current_balance <= zero:
+        return zero, after_referral_amount
+
+    redeemed = min(current_balance, after_referral_amount)
+    redeemed = _quantize(redeemed)
+    final_amount = _quantize(after_referral_amount - redeemed)
+
     if final_amount < zero:
         final_amount = zero
 
     logger.info(
-        f"💰 Referral discount applied for user {user.id}: "
-        f"{discount_pct}% off → {discount_amount} USDT discount, "
-        f"final={final_amount} USDT (referral_use_id={use.id})"
+        f"💳 Credit redeem preview for user {user.id}: "
+        f"balance={current_balance}, after_ref={after_referral_amount}, "
+        f"redeem={redeemed}, final={final_amount}"
     )
 
-    return discount_amount, final_amount, use.id
+    return redeemed, final_amount
 
 
-# ============================================
-# Commission processing — payment confirmed
-# ============================================
+def commit_credit_redeem(
+    user: User,
+    payment: Payment,
+    credit_amount: Decimal,
+    db: Session,
+) -> Optional[dict]:
+    """
+    Actually deduct balance + create ledger entry for credit redemption.
+
+    Called after payment row is committed and we have payment.id.
+
+    Idempotency: skips if 'redeem' ledger entry already exists for this payment.
+    """
+    if credit_amount <= Decimal("0"):
+        return None
+
+    existing = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == LEDGER_TYPE_REDEEM,
+    ).first()
+
+    if existing:
+        logger.info(
+            f"⚠️  Credit redeem for payment #{payment.id} already processed "
+            f"(ledger #{existing.id}). Skipping."
+        )
+        return None
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    credit_amount = _quantize(Decimal(str(credit_amount)))
+    current_balance = Decimal(str(user.referral_credit_usdt or 0))
+
+    if credit_amount > current_balance:
+        logger.warning(
+            f"⚠️  Credit redeem amount {credit_amount} exceeds balance "
+            f"{current_balance} for user {user.id}. Capping to balance."
+        )
+        credit_amount = current_balance
+
+    new_balance = _quantize(current_balance - credit_amount)
+    user.referral_credit_usdt = new_balance
+
+    ledger = CreditLedger(
+        user_id=user.id,
+        amount=-credit_amount,
+        type=LEDGER_TYPE_REDEEM,
+        ref_payment_id=payment.id,
+        balance_after=new_balance,
+        note=f"Credit redeem for invoice #{payment.id}",
+        created_at=now,
+    )
+    db.add(ledger)
+    db.flush()
+
+    logger.info(
+        f"💳 Credit redeemed: user={user.id} -{credit_amount} USDT "
+        f"(balance: {current_balance} → {new_balance}) for payment #{payment.id}"
+    )
+
+    return {
+        "user_id": user.id,
+        "credit_redeemed": float(credit_amount),
+        "new_balance": float(new_balance),
+        "payment_id": payment.id,
+        "ledger_id": ledger.id,
+    }
+
+
+def refund_credit_redeem(payment: Payment, db: Session) -> Optional[dict]:
+    """
+    Refund credit_redeemed back to user when invoice expires/cancelled.
+
+    Idempotency: skips if a 'refund' ledger entry tied to this payment exists.
+    """
+    if not hasattr(payment, "credit_redeemed") or not payment.credit_redeemed:
+        return None
+
+    refund_amount = _quantize(Decimal(str(payment.credit_redeemed)))
+    if refund_amount <= Decimal("0"):
+        return None
+
+    existing_refund = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == LEDGER_TYPE_REFUND,
+    ).first()
+
+    if existing_refund:
+        logger.debug(
+            f"Refund for payment #{payment.id} already processed. Skipping."
+        )
+        return None
+
+    user = db.query(User).filter(User.id == payment.user_id).first()
+    if not user:
+        logger.warning(
+            f"User #{payment.user_id} not found for refund of payment #{payment.id}"
+        )
+        return None
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    current_balance = Decimal(str(user.referral_credit_usdt or 0))
+    new_balance = _quantize(current_balance + refund_amount)
+    user.referral_credit_usdt = new_balance
+
+    ledger = CreditLedger(
+        user_id=user.id,
+        amount=refund_amount,
+        type=LEDGER_TYPE_REFUND,
+        ref_payment_id=payment.id,
+        balance_after=new_balance,
+        note=f"Refund credit redeem from cancelled/expired invoice #{payment.id}",
+        created_at=now,
+    )
+    db.add(ledger)
+    db.flush()
+
+    logger.info(
+        f"💸 Credit refunded: user={user.id} +{refund_amount} USDT "
+        f"(balance: {current_balance} → {new_balance}) from payment #{payment.id}"
+    )
+
+    return {
+        "user_id": user.id,
+        "refunded": float(refund_amount),
+        "new_balance": float(new_balance),
+    }
+
+
+# ════════════════════════════════════════════════
+# Layer 8: Audit trail for referral discount
+# ════════════════════════════════════════════════
+
+def record_referral_discount_audit(
+    user: User,
+    payment: Payment,
+    discount_amount: Decimal,
+    referral_use_id: Optional[int],
+    db: Session,
+) -> Optional[CreditLedger]:
+    """
+    Create audit-only ledger entry for referral discount.
+    Amount = 0 (no balance change), purely for audit transparency.
+    """
+    if discount_amount <= Decimal("0"):
+        return None
+
+    # Idempotency
+    existing = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == LEDGER_TYPE_REFERRAL_DISCOUNT,
+    ).first()
+    if existing:
+        return existing
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    ledger = CreditLedger(
+        user_id=user.id,
+        amount=Decimal("0"),
+        type=LEDGER_TYPE_REFERRAL_DISCOUNT,
+        ref_payment_id=payment.id,
+        ref_use_id=referral_use_id,
+        balance_after=Decimal(str(user.referral_credit_usdt or 0)),
+        note=f"Referral discount {discount_amount} USDT applied to invoice #{payment.id}",
+        created_at=now,
+    )
+    db.add(ledger)
+    db.flush()
+
+    return ledger
+
+
+# ════════════════════════════════════════════════
+# Layer 4: Commission processing (unchanged)
+# ════════════════════════════════════════════════
 
 def process_commission_for_payment(
     payment: Payment,
@@ -105,36 +324,18 @@ def process_commission_for_payment(
 ) -> Optional[dict]:
     """
     Credit commission to referrer when referee's payment is confirmed.
-
-    Returns: summary dict if commission credited, None if skipped.
-
-    Idempotency:
-      - Skip if payment already has credit_ledger entry with ref_payment_id
-      - This prevents double-credit on /verify being called twice
-
-    Logic:
-      1. Find ReferralUse for this user (must exist)
-      2. Calculate commission = final_amount * commission_pct
-      3. Update ReferralUse: status=subscribed, total_commission_earned, total_payments
-      4. Credit referrer's user.referral_credit_usdt + lifetime_credit_earned
-      5. Insert CreditLedger entry
-      6. Link payment.referral_use_id
-
-    Does NOT commit — caller is responsible for db.commit() so this
-    can be part of the larger payment-confirmation transaction.
+    Idempotent. Does NOT commit — caller does.
     """
-    # ── 1. Find ReferralUse ──
     use = db.query(ReferralUse).filter(
         ReferralUse.referred_id == payment.user_id
     ).first()
 
     if not use:
-        return None  # User not referred, skip silently
+        return None
 
-    # ── 2. Idempotency check ──
     existing_ledger = db.query(CreditLedger).filter(
         CreditLedger.ref_payment_id == payment.id,
-        CreditLedger.type == "earn",
+        CreditLedger.type == LEDGER_TYPE_EARN,
     ).first()
 
     if existing_ledger:
@@ -144,7 +345,6 @@ def process_commission_for_payment(
         )
         return None
 
-    # ── 3. Get referrer + commission % ──
     referrer = db.query(User).filter(User.id == use.referrer_id).first()
     if not referrer:
         logger.warning(
@@ -163,7 +363,6 @@ def process_commission_for_payment(
         else DEFAULT_COMMISSION_PCT
     )
 
-    # ── 4. Calculate commission from FINAL amount (after discount) ──
     base_amount = Decimal(str(payment.final_amount or payment.amount_usdt))
     commission_amount = _quantize(base_amount * commission_pct / Decimal("100"))
 
@@ -174,7 +373,6 @@ def process_commission_for_payment(
         )
         return None
 
-    # ── 5. Update ReferralUse ──
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
 
@@ -187,9 +385,8 @@ def process_commission_for_payment(
     use.commission_amount = (
         Decimal(str(use.commission_amount or 0)) + commission_amount
     )
-    use.payment_id = payment.id  # Link to triggering payment
+    use.payment_id = payment.id
 
-    # ── 6. Credit referrer balance ──
     new_balance = (
         Decimal(str(referrer.referral_credit_usdt or 0)) + commission_amount
     )
@@ -200,11 +397,10 @@ def process_commission_for_payment(
     referrer.referral_credit_usdt = new_balance
     referrer.lifetime_credit_earned = new_lifetime
 
-    # ── 7. Create CreditLedger entry ──
     ledger = CreditLedger(
         user_id=referrer.id,
-        amount=commission_amount,  # positive = earn
-        type="earn",
+        amount=commission_amount,
+        type=LEDGER_TYPE_EARN,
         ref_payment_id=payment.id,
         ref_use_id=use.id,
         balance_after=new_balance,
@@ -215,11 +411,9 @@ def process_commission_for_payment(
         created_at=now,
     )
     db.add(ledger)
-
-    # ── 8. Link payment ↔ referral_use ──
     payment.referral_use_id = use.id
 
-    db.flush()  # ensure ledger.id populated
+    db.flush()
 
     logger.info(
         f"💸 Commission credited: referrer user_id={referrer.id} "
