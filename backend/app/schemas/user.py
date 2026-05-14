@@ -133,6 +133,10 @@ class UserResponse(BaseModel):
     first_login_at: Optional[datetime] = None
     login_count: Optional[int] = 0
 
+    # Display preferences
+    country_code: Optional[str] = None
+    currency_code: Optional[str] = 'USD'
+
     created_at: datetime
 
     class Config:
@@ -167,6 +171,10 @@ class AdminUserResponse(BaseModel):
     last_login_at: Optional[datetime] = None
     first_login_at: Optional[datetime] = None
     login_count: Optional[int] = 0
+
+    # Display preferences
+    country_code: Optional[str] = None
+    currency_code: Optional[str] = 'USD'
 
     created_at: datetime
     updated_at: Optional[datetime] = None

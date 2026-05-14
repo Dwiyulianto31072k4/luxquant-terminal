@@ -67,12 +67,13 @@ async def update_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update username"""
+    """Update username and/or display preferences (country & currency)"""
 
+    # ─── Username ───
     if data.username is not None:
         new_username = data.username.strip().lower()
 
-        # Validate format
+        # Validate format (Pydantic already validated, but double-check)
         if len(new_username) < 3:
             raise HTTPException(status_code=400, detail="Username minimal 3 karakter")
         if len(new_username) > 50:
@@ -86,6 +87,25 @@ async def update_profile(
             if existing:
                 raise HTTPException(status_code=400, detail="Username sudah dipakai")
             current_user.username = new_username
+
+    # ─── Country & Currency (multi-currency support) ───
+    # data.country_code: None=no change, ""=clear, "XX"=set
+    # data.currency_code: None=auto-resolve from country (if country provided)
+    #                     "XXX"=explicit user override
+
+    if data.country_code is not None:
+        if data.country_code == "":
+            current_user.country_code = None
+        else:
+            current_user.country_code = data.country_code  # already uppercased by validator
+
+    if data.currency_code is not None:
+        # Explicit currency choice — use as-is
+        current_user.currency_code = data.currency_code
+    elif data.country_code:
+        # Country changed but no explicit currency → auto-resolve
+        from app.services.currency_mapping import get_currency_for_country
+        current_user.currency_code = get_currency_for_country(data.country_code)
 
     db.commit()
     db.refresh(current_user)
