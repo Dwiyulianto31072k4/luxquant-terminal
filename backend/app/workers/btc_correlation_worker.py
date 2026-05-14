@@ -189,15 +189,12 @@ async def fetch_btc_ohlc_cached() -> Optional[pd.DataFrame]:
 
 async def fetch_coingecko_market_chart(coin_id: str, days: int = 30,
                                         max_retries: int = 3) -> Optional[pd.DataFrame]:
-    cache_key = f"{CACHE_COIN_PREFIX}{coin_id}"
-    if is_redis_available():
-        cached = cache_get(cache_key)
-        if cached:
-            try:
-                return _df_from_records(cached)
-            except Exception:
-                pass
-
+    """Fetch hourly price from CoinGecko.
+    NOTE: We intentionally DO NOT cache per-coin OHLC to Redis. CoinGecko
+    timestamps are sub-second precision; the int64 ms round-trip through JSON
+    can shift them just enough to break merge_asof. BTC cache (which has
+    hour-aligned timestamps) stays — that's where most savings are anyway.
+    """
     client  = get_coingecko_client()
     url     = f"{COINGECKO_BASE}/coins/{coin_id}/market_chart"
     headers = _coingecko_headers()
@@ -217,13 +214,7 @@ async def fetch_coingecko_market_chart(coin_id: str, days: int = 30,
             prices = r.json().get("prices", [])
             if not prices:
                 return None
-            df = _df_from_records(prices)
-            if is_redis_available():
-                try:
-                    cache_set(cache_key, _df_to_records(df), ttl=CACHE_COIN_TTL)
-                except Exception:
-                    pass
-            return df
+            return _df_from_records(prices)
         except httpx.HTTPStatusError as e:
             log.warning(f"CoinGecko HTTP error for {coin_id}: {e}")
             return None
