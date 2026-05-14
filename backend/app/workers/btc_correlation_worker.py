@@ -170,21 +170,13 @@ async def fetch_binance_klines(symbol_pair: str, interval: str = "1h",
 
 
 async def fetch_btc_ohlc_cached() -> Optional[pd.DataFrame]:
-    if is_redis_available():
-        cached = cache_get(CACHE_BTC_1H_KEY)
-        if cached:
-            try:
-                return _df_from_records(cached)
-            except Exception:
-                pass
-
-    df = await fetch_binance_klines("BTCUSDT", "1h", 1000)
-    if df is not None and len(df) > 0 and is_redis_available():
-        try:
-            cache_set(CACHE_BTC_1H_KEY, _df_to_records(df), ttl=CACHE_BTC_1H_TTL)
-        except Exception:
-            pass
-    return df
+    """Fetch BTC 1h OHLC from Binance.
+    NOTE: Despite the name, we no longer cache to Redis — JSON round-trip
+    of int64 timestamps causes subtle precision loss that breaks merge_asof.
+    Shared Binance client (connection pool) makes raw fetch already fast (~150ms).
+    Name kept for compatibility.
+    """
+    return await fetch_binance_klines("BTCUSDT", "1h", 1000)
 
 
 async def fetch_coingecko_market_chart(coin_id: str, days: int = 30,
