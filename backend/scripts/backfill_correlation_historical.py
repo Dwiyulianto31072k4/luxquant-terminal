@@ -45,8 +45,9 @@ import httpx
 import numpy as np
 import pandas as pd
 
-# Allow running as standalone
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Allow running as standalone — script is at backend/scripts/<this>.py
+# We need backend/ on sys.path so `app.*` imports resolve.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # CRITICAL: Set dummy env vars for Telegram/Discord BEFORE importing anything
 # from `app.*`. The app config module validates these at import time
