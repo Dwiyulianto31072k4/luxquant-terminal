@@ -111,8 +111,8 @@ def generate_qr_png(code: str, size: int = 256) -> bytes:
     qr.make(fit=True)
 
     img = qr.make_image(
-        fill_color=(212, 175, 55),
-        back_color=(10, 5, 6),
+        fill_color="black",
+        back_color="white",
     )
 
     buf = io.BytesIO()
