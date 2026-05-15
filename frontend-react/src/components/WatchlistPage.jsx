@@ -1,5 +1,11 @@
 // src/components/WatchlistPage.jsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+// ════════════════════════════════════════════════════════════════
+// LuxQuant Terminal — Watchlist Page v2 (Flowscan reskin)
+// 100% aligned with backend /api/v1/watchlist/ + /api/v1/market/prices
+// Tabel dense + expandable row + filter/sort/group
+// ════════════════════════════════════════════════════════════════
+
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,17 +15,44 @@ import CoinLogo from './CoinLogo';
 import SignalModal from './SignalModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const PRICE_REFRESH_INTERVAL = 15000;
 
+// ── Filter options ──
+const STATUS_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'open', label: 'Open' },
+  { key: 'tp_hit', label: 'TP Hit' },
+  { key: 'closed_win', label: 'Closed Win' },
+  { key: 'closed_loss', label: 'Closed Loss' },
+];
+
+const SORT_OPTIONS = [
+  { key: 'recent', label: 'Recently Added' },
+  { key: 'pnl_desc', label: 'P&L: High → Low' },
+  { key: 'pnl_asc', label: 'P&L: Low → High' },
+  { key: 'pair_asc', label: 'Pair: A → Z' },
+];
+
+
+// ════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════
 const WatchlistPage = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [expandedRow, setExpandedRow] = useState(null);
 
-  // Refs for stable price fetching
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortKey, setSortKey] = useState('recent');
+  const [search, setSearch] = useState('');
+
   const pairsRef = useRef('');
   const intervalRef = useRef(null);
 
@@ -38,7 +71,7 @@ const WatchlistPage = () => {
     fetchWatchlist();
   }, []);
 
-  // ─── Fetch prices via backend proxy (stable, no infinite loop) ───
+  // ─── Fetch prices ───
   useEffect(() => {
     if (watchlist.length === 0) return;
 
@@ -72,8 +105,7 @@ const WatchlistPage = () => {
 
     setPricesLoading(true);
     fetchPrices().finally(() => setPricesLoading(false));
-
-    intervalRef.current = setInterval(fetchPrices, 15000);
+    intervalRef.current = setInterval(fetchPrices, PRICE_REFRESH_INTERVAL);
 
     return () => {
       if (intervalRef.current) {
@@ -88,18 +120,18 @@ const WatchlistPage = () => {
     setWatchlist(prev => prev.filter(item => item.signal_id !== signalId));
   };
 
-  const getPrice = (pair) => {
+  const getPrice = useCallback((pair) => {
     const data = currentPrices[pair];
     if (!data) return null;
     if (typeof data === 'number') return data;
     return data.price ?? null;
-  };
+  }, [currentPrices]);
 
-  const getVolume = (pair) => {
+  const getVolume = useCallback((pair) => {
     const data = currentPrices[pair];
     if (!data || typeof data === 'number') return null;
     return data.volume ?? null;
-  };
+  }, [currentPrices]);
 
   const calcPct = (target, entry) => {
     if (!target || !entry) return null;
@@ -120,9 +152,9 @@ const WatchlistPage = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price && price !== 0) return '-';
+    if (!price && price !== 0) return '—';
     const num = parseFloat(price);
-    if (isNaN(num)) return '-';
+    if (isNaN(num)) return '—';
     if (num < 0.001) return num.toFixed(8);
     if (num < 1) return num.toFixed(6);
     if (num < 10) return num.toFixed(4);
@@ -130,471 +162,390 @@ const WatchlistPage = () => {
   };
 
   const formatVolume = (vol) => {
-    if (!vol) return '-';
+    if (!vol) return '—';
     const num = parseFloat(vol);
-    if (isNaN(num)) return '-';
+    if (isNaN(num)) return '—';
     if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
     if (num >= 1e6) return `$${(num / 1e6).toFixed(0)}M`;
     if (num >= 1e3) return `$${(num / 1e3).toFixed(0)}K`;
     return `$${num.toFixed(0)}`;
   };
 
-  const getVolumeStyle = (vol) => {
-    if (!vol) return 'text-text-muted';
-    const num = parseFloat(vol);
-    if (num >= 1e9) return 'text-green-400';
-    if (num >= 100e6) return 'text-yellow-400';
-    if (num >= 10e6) return 'text-orange-400';
-    return 'text-text-muted';
-  };
-
   const formatDateTime = (dt) => {
-    if (!dt) return '-';
+    if (!dt) return '—';
     const d = new Date(dt);
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const formatDateTimeShort = (dt) => {
-    if (!dt) return '-';
+    if (!dt) return '—';
     const d = new Date(dt);
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
 
   const getCoinName = (pair) => pair ? pair.replace(/USDT$/i, '') : '';
 
-  const getRiskBadge = (risk) => {
+  // ── Semantic 3-tier badge style ──
+  const riskStyle = (risk) => {
     const r = risk?.toLowerCase() || '';
-    if (r.startsWith('low')) return 'bg-green-500/20 text-green-400 border-green-500/30';
-    if (r.startsWith('med') || r.startsWith('nor')) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    if (r.startsWith('high')) return 'bg-red-500/20 text-red-400 border-red-500/30';
-    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    if (r.startsWith('low')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25';
+    if (r.startsWith('med') || r.startsWith('nor')) return 'bg-gold-primary/10 text-gold-primary border-gold-primary/25';
+    if (r.startsWith('high')) return 'bg-red-500/10 text-red-400 border-red-500/25';
+    return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
   };
 
-  const getRiskLabel = (risk) => {
+  const riskLabel = (risk) => {
     const r = risk?.toLowerCase() || '';
     if (r.startsWith('low')) return 'Low';
     if (r.startsWith('med') || r.startsWith('nor')) return 'Normal';
     if (r.startsWith('high')) return 'High';
-    return risk || '-';
+    return risk || '—';
   };
 
-  const getStatusBadge = (status) => {
-    const config = {
-      'open': { bg: 'bg-cyan-500', text: 'OPEN' },
-      'tp1': { bg: 'bg-green-500', text: '✓ TP1' },
-      'tp2': { bg: 'bg-lime-500', text: '✓ TP2' },
-      'tp3': { bg: 'bg-yellow-500', text: '✓ TP3' },
-      'tp4': { bg: 'bg-orange-500', text: '✓ TP4' },
-      'closed_win': { bg: 'bg-green-600', text: '🏆 TP4' },
-      'closed_loss': { bg: 'bg-red-500', text: '✗ LOSS' },
-      'sl': { bg: 'bg-red-500', text: '✗ SL' },
+  // ── Status: 3-tier (open=neutral, profit=gold, loss=red) ──
+  const statusStyle = (status) => {
+    const s = status?.toLowerCase() || '';
+    if (s.includes('loss') || s === 'sl') return 'bg-red-500/10 text-red-400 border-red-500/25';
+    if (s === 'open') return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
+    if (s.startsWith('tp') || s.includes('win')) return 'bg-gold-primary/10 text-gold-primary border-gold-primary/25';
+    return 'bg-white/[0.04] text-white/70 border-white/[0.08]';
+  };
+
+  const statusLabel = (status) => {
+    const s = status?.toLowerCase() || '';
+    const map = {
+      open: 'OPEN',
+      tp1: 'TP1', tp2: 'TP2', tp3: 'TP3', tp4: 'TP4',
+      closed_win: 'WIN',
+      closed_loss: 'LOSS',
+      sl: 'SL',
     };
-    const c = config[status?.toLowerCase()] || { bg: 'bg-gray-500', text: status || '-' };
-    return (
-      <span className={`${c.bg} text-white text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1`}>
-        {c.text}
-      </span>
-    );
+    return map[s] || (status || '—').toUpperCase();
   };
 
-  // ─── Loading State ───
+  // ── Filter + sort logic (frontend compute, no backend change) ──
+  const filteredWatchlist = useMemo(() => {
+    let list = [...watchlist];
+
+    // Search filter
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(item =>
+        (item.pair || '').toLowerCase().includes(q) ||
+        getCoinName(item.pair).toLowerCase().includes(q)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      list = list.filter(item => {
+        const s = item.status?.toLowerCase() || '';
+        if (statusFilter === 'open') return s === 'open';
+        if (statusFilter === 'tp_hit') return s.startsWith('tp');
+        if (statusFilter === 'closed_win') return s === 'closed_win';
+        if (statusFilter === 'closed_loss') return s === 'closed_loss' || s === 'sl';
+        return true;
+      });
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (sortKey === 'recent') {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }
+      if (sortKey === 'pair_asc') {
+        return (a.pair || '').localeCompare(b.pair || '');
+      }
+      if (sortKey === 'pnl_desc' || sortKey === 'pnl_asc') {
+        const aPnl = getPriceChange(a.entry, getPrice(a.pair)) ?? -Infinity;
+        const bPnl = getPriceChange(b.entry, getPrice(b.pair)) ?? -Infinity;
+        return sortKey === 'pnl_desc' ? bPnl - aPnl : aPnl - bPnl;
+      }
+      return 0;
+    });
+
+    return list;
+  }, [watchlist, search, statusFilter, sortKey, getPrice]);
+
+  // ── Summary stats ──
+  const summary = useMemo(() => {
+    const open = watchlist.filter(w => w.status?.toLowerCase() === 'open').length;
+    let inProfit = 0;
+    let inLoss = 0;
+    let totalPnl = 0;
+    let pnlCount = 0;
+    watchlist.forEach(w => {
+      const cp = getPrice(w.pair);
+      if (cp && w.entry) {
+        if (cp > w.entry) inProfit++;
+        else if (cp < w.entry) inLoss++;
+        const pct = getPriceChange(w.entry, cp);
+        if (pct !== null) {
+          totalPnl += pct;
+          pnlCount++;
+        }
+      }
+    });
+    return {
+      total: watchlist.length,
+      open,
+      inProfit,
+      inLoss,
+      avgPnl: pnlCount > 0 ? totalPnl / pnlCount : null,
+    };
+  }, [watchlist, getPrice]);
+
+  // ── Loading state ──
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-          <h1 className="text-2xl font-display font-bold text-white">{t('watchlist.title')}</h1>
-        </div>
-        {/* Skeleton */}
-        <div className="lg:hidden space-y-2.5">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="glass-card rounded-xl p-3.5 border border-gold-primary/10 animate-pulse">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5"><div className="w-9 h-9 bg-bg-card rounded-full" /><div><div className="h-4 w-16 bg-bg-card rounded mb-1" /><div className="h-3 w-10 bg-bg-card rounded" /></div></div>
-                <div className="h-6 w-16 bg-bg-card rounded-full" />
-              </div>
-              <div className="grid grid-cols-3 gap-2 mb-2.5">{[...Array(3)].map((_, j) => <div key={j}><div className="h-3 w-10 bg-bg-card rounded mb-1" /><div className="h-4 w-16 bg-bg-card rounded" /></div>)}</div>
-              <div className="h-10 w-full bg-bg-card rounded-lg mb-2" />
-            </div>
-          ))}
-        </div>
-        <div className="hidden lg:block glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead><tr className="border-b border-gold-primary/10 bg-gold-primary/5"><th colSpan={10} className="py-4 px-4"><div className="h-4 w-20 bg-bg-card rounded animate-pulse" /></th></tr></thead>
-              <tbody>{[...Array(6)].map((_, i) => <tr key={i} className="border-b border-gold-primary/5">{[...Array(10)].map((_, j) => <td key={j} className="py-4 px-4"><div className="h-5 bg-bg-card rounded animate-pulse" /></td>)}</tr>)}</tbody>
-            </table>
-          </div>
-        </div>
+      <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
+        <SectionHeader label="Watchlist" />
+        <LoadingSkeleton />
       </div>
     );
   }
 
-  // ─── Summaries ───
-  const openCount = watchlist.filter(w => w.status?.toLowerCase() === 'open').length;
-  const inProfitCount = watchlist.filter(w => {
-    const cp = getPrice(w.pair);
-    return cp && w.entry && cp > w.entry;
-  }).length;
-  const inLossCount = watchlist.filter(w => {
-    const cp = getPrice(w.pair);
-    return cp && w.entry && cp < w.entry;
-  }).length;
-
   // ════════════════════════════════════════
-  // MOBILE CARD (matches SignalsTable style)
-  // ════════════════════════════════════════
-  const MobileWatchlistCard = ({ item }) => {
-    const currentPrice = getPrice(item.pair);
-    const currentVol = getVolume(item.pair);
-    const priceChange = getPriceChange(item.entry, currentPrice);
-    const tpList = [
-      { label: 'TP1', value: item.target1 },
-      { label: 'TP2', value: item.target2 },
-      { label: 'TP3', value: item.target3 },
-      { label: 'TP4', value: item.target4 },
-    ].filter(tp => tp.value);
-
-    return (
-      <div
-        onClick={() => setSelectedSignal(item)}
-        className="glass-card rounded-xl p-3.5 border border-gold-primary/10 hover:border-gold-primary/25 active:bg-gold-primary/5 transition-all cursor-pointer"
-      >
-        {/* Top Row: Coin + Status + Star */}
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-2.5">
-            <CoinLogo pair={item.pair} size={36} />
-            <div>
-              <p className="text-white font-semibold text-sm">{getCoinName(item.pair)}</p>
-              <p className="text-text-muted text-[10px]">USDT</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(item.status)}
-            <div onClick={(e) => e.stopPropagation()}>
-              <StarButton signalId={item.signal_id} isStarred={true} onToggle={() => handleRemove(item.signal_id)} />
-            </div>
-          </div>
-        </div>
-
-        {/* Price Row */}
-        <div className="grid grid-cols-3 gap-2 mb-2.5">
-          <div>
-            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">{t('signals.entry_price')}</p>
-            <p className="text-white font-mono text-xs font-medium">{formatPrice(item.entry)}</p>
-          </div>
-          <div>
-            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">{t('signals.current_price')}</p>
-            {pricesLoading && !currentPrice ? (
-              <div className="h-4 w-14 bg-bg-card rounded animate-pulse" />
-            ) : currentPrice ? (
-              <p className="font-mono text-xs font-medium text-white">{formatPrice(currentPrice)}</p>
-            ) : (
-              <p className="text-text-muted text-xs">-</p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-text-muted text-[10px] uppercase tracking-wider mb-0.5">P&L</p>
-            {priceChange !== null ? (
-              <p className={`font-mono text-xs font-bold ${priceChange >= 0 ? 'text-positive' : 'text-negative'}`}>
-                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-              </p>
-            ) : (
-              <p className="text-text-muted text-xs">-</p>
-            )}
-          </div>
-        </div>
-
-        {/* Targets */}
-        {tpList.length > 0 && (
-          <div className="bg-green-500/5 rounded-lg px-2.5 py-2 border border-green-500/10 mb-2">
-            <p className="text-green-400/70 text-[9px] uppercase tracking-wider mb-1.5">🎯 Targets</p>
-            <div className={`grid gap-1.5 ${tpList.length <= 2 ? 'grid-cols-2' : 'grid-cols-4'}`}>
-              {[
-                { label: 'TP1', value: item.target1 },
-                { label: 'TP2', value: item.target2 },
-                { label: 'TP3', value: item.target3 },
-                { label: 'TP4', value: item.target4 },
-              ].map((tp, i) => {
-                if (!tp.value) return null;
-                const pct = calcPct(tp.value, item.entry);
-                return (
-                  <div key={i} className="text-center bg-green-500/5 rounded-md py-1 px-1">
-                    <p className="text-green-400/50 text-[8px] font-bold">{tp.label}</p>
-                    <p className="text-green-400 font-mono text-[10px] font-medium leading-tight">{formatPrice(tp.value)}</p>
-                    {pct !== null && <p className="text-green-300 font-mono text-[9px] font-bold">+{pct.toFixed(1)}%</p>}
-                  </div>
-                );
-              }).filter(Boolean)}
-            </div>
-          </div>
-        )}
-
-        {/* Stop Loss */}
-        {item.stop1 && (
-          <div className="bg-red-500/5 rounded-lg px-2.5 py-1.5 border border-red-500/10 mb-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-red-400/70 text-[9px] uppercase tracking-wider font-semibold">🛑 {t('signals.stop_loss')}</p>
-                <p className="text-red-400 font-mono text-[11px] font-medium">{formatPrice(item.stop1)}</p>
-              </div>
-              {(() => {
-                const pct = calcPct(item.stop1, item.entry);
-                return pct !== null ? <span className="text-red-400 font-mono text-[11px] font-bold">{pct.toFixed(1)}%</span> : null;
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Bottom: Risk + Vol + Date */}
-        <div className="flex items-center justify-between text-[10px]">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${getRiskBadge(item.risk_level)}`}>
-              {getRiskLabel(item.risk_level)}
-            </span>
-            {currentVol ? (
-              <span className={`font-semibold ${getVolumeStyle(currentVol)}`}>Vol {formatVolume(currentVol)}</span>
-            ) : item.volume_rank_num && item.volume_rank_den ? (
-              <span className="text-text-muted">Vol <span className="text-white font-semibold">{item.volume_rank_num}</span>/{item.volume_rank_den}</span>
-            ) : null}
-          </div>
-          <span className="text-text-muted font-mono flex-shrink-0">{formatDateTimeShort(item.created_at)}</span>
-        </div>
-      </div>
-    );
-  };
-
-  // ════════════════════════════════════════
-  // MAIN RENDER
+  // RENDER
   // ════════════════════════════════════════
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
-            <h1 className="text-2xl font-display font-bold text-white">{t('watchlist.title')}</h1>
+    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-8">
+      {/* HEADER */}
+      <div className="space-y-4">
+        <SectionHeader label="Watchlist" />
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+              {t('watchlist.title') || 'Watchlist'}
+            </h1>
+            <p className="text-text-muted text-sm mt-1.5 font-mono">
+              {watchlist.length} {watchlist.length === 1 ? 'signal' : 'signals'} tracked
+              {filteredWatchlist.length !== watchlist.length && (
+                <span className="text-gold-primary/80"> · {filteredWatchlist.length} showing</span>
+              )}
+            </p>
           </div>
-          <p className="text-text-secondary mt-2 ml-[76px]">
-            {watchlist.length} {watchlist.length !== 1 ? t('watchlist.signals_in_watchlist') : t('watchlist.signal_in_watchlist')}
-          </p>
+          {watchlist.length > 0 && (
+            <div className="flex items-center gap-2 text-[11px] font-mono">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  pricesLoading ? 'bg-gold-primary animate-pulse' :
+                  Object.keys(currentPrices).length > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'
+                }`} />
+                <span className="uppercase tracking-[0.15em]">
+                  {pricesLoading ? 'Updating' :
+                   Object.keys(currentPrices).length > 0 ? 'Live' : 'Offline'}
+                </span>
+              </span>
+              <span className="px-3 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-text-muted">
+                <span className="uppercase tracking-[0.15em] text-[10px]">Refresh</span>
+                <span className="ml-2 text-white tabular-nums">15s</span>
+              </span>
+            </div>
+          )}
         </div>
-        {watchlist.length > 0 && (
-          <div className="flex items-center gap-2 text-text-muted text-sm">
-            <span className={`w-2 h-2 rounded-full ${
-              pricesLoading ? 'bg-yellow-400 animate-pulse' :
-              Object.keys(currentPrices).length > 0 ? 'bg-green-400' : 'bg-red-400'
-            }`} />
-            <span>
-              {pricesLoading ? t('watchlist.updating') :
-               Object.keys(currentPrices).length > 0 ? t('watchlist.live_refresh') : t('watchlist.connecting')}
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Empty State */}
       {watchlist.length === 0 ? (
-        <div className="text-center py-16 glass-card rounded-2xl border border-gold-primary/10">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gold-primary/10 flex items-center justify-center">
-            <svg className="w-10 h-10 text-gold-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">{t('watchlist.empty_title')}</h3>
-          <p className="text-text-muted mb-4">{t('watchlist.empty_desc')}</p>
-          <button
-            onClick={() => navigate('/signals')}
-            className="px-4 py-2 bg-gold-primary/20 text-gold-primary rounded-lg hover:bg-gold-primary/30 transition-colors"
-          >
-            {t('watchlist.browse_signals')}
-          </button>
-        </div>
+        <EmptyState onBrowse={() => navigate('/signals')} />
       ) : (
         <>
-          {/* ════════════════════════════════════════ */}
-          {/* MOBILE VIEW (< 1024px): Card Layout     */}
-          {/* ════════════════════════════════════════ */}
-          <div className="lg:hidden space-y-2.5">
-            {watchlist.map(item => (
-              <MobileWatchlistCard key={item.id} item={item} />
-            ))}
+          {/* SUMMARY STATS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard label="Total" value={summary.total} sublabel="Tracked signals" />
+            <StatCard label="Open" value={summary.open} sublabel="Active signals" isLive={summary.open > 0} />
+            <StatCard label="In Profit" value={summary.inProfit} sublabel={`vs ${summary.inLoss} in loss`} isGold={summary.inProfit > summary.inLoss} />
+            <StatCard
+              label="Avg P&L"
+              value={summary.avgPnl !== null ? `${summary.avgPnl >= 0 ? '+' : ''}${summary.avgPnl.toFixed(1)}%` : '—'}
+              sublabel="Across all signals"
+              isGold={summary.avgPnl !== null && summary.avgPnl >= 0}
+              isDanger={summary.avgPnl !== null && summary.avgPnl < 0}
+            />
+          </div>
 
-            {/* Summary Footer for Mobile */}
-            <div className="p-4 mt-2 border border-gold-primary/10 rounded-xl bg-gold-primary/5">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-text-muted text-xs">{t('watchlist.summary_open')}</span>
-                  <span className="text-cyan-400 font-semibold text-xs">{openCount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-text-muted text-xs">{t('watchlist.summary_in_profit')}</span>
-                  <span className="text-green-400 font-semibold text-xs">{inProfitCount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-text-muted text-xs">{t('watchlist.summary_in_loss')}</span>
-                  <span className="text-red-400 font-semibold text-xs">{inLossCount}</span>
-                </div>
-                <div className="h-px bg-gold-primary/10 my-1" />
-                <p className="text-text-muted text-[10px] text-center">{t('watchlist.hint_remove')}</p>
+          {/* FILTER BAR */}
+          <div className="space-y-3">
+            {/* Status chips */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              {STATUS_FILTERS.map(({ key, label }) => {
+                const count = key === 'all'
+                  ? watchlist.length
+                  : watchlist.filter(item => {
+                      const s = item.status?.toLowerCase() || '';
+                      if (key === 'open') return s === 'open';
+                      if (key === 'tp_hit') return s.startsWith('tp');
+                      if (key === 'closed_win') return s === 'closed_win';
+                      if (key === 'closed_loss') return s === 'closed_loss' || s === 'sl';
+                      return false;
+                    }).length;
+                const active = statusFilter === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
+                      active
+                        ? 'bg-gold-primary/15 text-gold-primary border-gold-primary/40'
+                        : 'bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]'
+                    }`}
+                  >
+                    {label}
+                    <span className={`ml-1.5 tabular-nums ${active ? 'text-gold-primary/70' : 'text-text-muted/60'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search + sort */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1 min-w-0">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by pair..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/40 transition-colors font-mono"
+                />
               </div>
+
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value)}
+                className="px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-xs font-mono uppercase tracking-[0.1em] text-text-muted hover:text-white focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.key} value={opt.key} className="bg-[#0a0805] text-white">
+                    Sort: {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* ════════════════════════════════════════ */}
-          {/* DESKTOP VIEW (≥ 1024px): Table Layout    */}
+          {/* MOBILE VIEW (<lg): Card Layout            */}
           {/* ════════════════════════════════════════ */}
-          <div className="hidden lg:block glass-card rounded-xl border border-gold-primary/10 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gold-primary/10 bg-gold-primary/5">
-                    <th className="py-4 px-4 text-gold-primary/70 text-xs font-semibold uppercase tracking-wider text-center w-10"></th>
-                    <th className="py-4 px-4 text-left text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_pair')}</th>
-                    <th className="py-4 px-4 text-right text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('signals.current_price')}</th>
-                    <th className="py-4 px-4 text-right text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_entry')}</th>
-                    <th className="py-4 px-4 text-right text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_max_target')}</th>
-                    <th className="py-4 px-4 text-right text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_stop_loss')}</th>
-                    <th className="py-4 px-4 text-center text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('signals.risk_level')}</th>
-                    <th className="py-4 px-4 text-center text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">VOL 24H</th>
-                    <th className="py-4 px-4 text-center text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_status')}</th>
-                    <th className="py-4 px-4 text-right text-gold-primary/70 text-xs font-semibold uppercase tracking-wider">{t('watchlist.th_added')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {watchlist.map((item) => {
-                    const currentPrice = getPrice(item.pair);
-                    const currentVol = getVolume(item.pair);
-                    const priceChange = getPriceChange(item.entry, currentPrice);
-                    const maxTarget = getMaxTarget(item);
+          <div className="lg:hidden space-y-1.5">
+            <SectionHeader label="Signals" small />
+            {filteredWatchlist.length === 0 ? (
+              <NoMatch />
+            ) : (
+              filteredWatchlist.map(item => (
+                <MobileCard
+                  key={item.id}
+                  item={item}
+                  currentPrice={getPrice(item.pair)}
+                  currentVol={getVolume(item.pair)}
+                  pricesLoading={pricesLoading}
+                  formatPrice={formatPrice}
+                  formatVolume={formatVolume}
+                  formatDateTimeShort={formatDateTimeShort}
+                  calcPct={calcPct}
+                  getPriceChange={getPriceChange}
+                  getCoinName={getCoinName}
+                  riskStyle={riskStyle}
+                  riskLabel={riskLabel}
+                  statusStyle={statusStyle}
+                  statusLabel={statusLabel}
+                  onClick={() => setSelectedSignal(item)}
+                  onRemove={() => handleRemove(item.signal_id)}
+                />
+              ))
+            )}
+          </div>
 
-                    return (
-                      <tr
-                        key={item.id}
-                        className="border-b border-gold-primary/5 hover:bg-gold-primary/5 cursor-pointer transition-colors group"
-                        onClick={() => setSelectedSignal(item)}
-                      >
-                        {/* Star */}
-                        <td className="py-4 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <StarButton signalId={item.signal_id} isStarred={true} onToggle={() => handleRemove(item.signal_id)} />
-                        </td>
+          {/* ════════════════════════════════════════ */}
+          {/* DESKTOP VIEW (lg+): Tabel Dense           */}
+          {/* ════════════════════════════════════════ */}
+          <div className="hidden lg:block space-y-3">
+            <SectionHeader label="Signals" small />
 
-                        {/* Pair */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <CoinLogo pair={item.pair} size={40} />
-                            <div>
-                              <p className="text-white font-semibold group-hover:text-gold-primary transition-colors">{getCoinName(item.pair)}</p>
-                              <p className="text-text-muted text-xs">USDT</p>
-                            </div>
-                          </div>
-                        </td>
+            {filteredWatchlist.length === 0 ? (
+              <NoMatch />
+            ) : (
+              <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
-                        {/* Current Price + P/L */}
-                        <td className="py-4 px-4 text-right">
-                          {pricesLoading && !currentPrice ? (
-                            <div className="h-5 w-20 bg-bg-card rounded animate-pulse ml-auto" />
-                          ) : currentPrice ? (
-                            <div>
-                              <p className="text-white font-mono font-medium">{formatPrice(currentPrice)}</p>
-                              {priceChange !== null && (
-                                <p className={`text-xs font-mono ${priceChange >= 0 ? 'text-positive' : 'text-negative'}`}>
-                                  {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-text-muted">-</span>
-                          )}
-                        </td>
-
-                        {/* Entry */}
-                        <td className="py-4 px-4 text-right">
-                          <span className="text-white font-mono">{formatPrice(item.entry)}</span>
-                        </td>
-
-                        {/* Max Target */}
-                        <td className="py-4 px-4 text-right">
-                          {maxTarget ? (
-                            <div>
-                              <span className="text-positive font-mono">{formatPrice(maxTarget)}</span>
-                              {(() => { const pct = calcPct(maxTarget, item.entry); return pct !== null ? <p className="text-positive/70 text-xs font-mono">+{pct.toFixed(1)}%</p> : null; })()}
-                            </div>
-                          ) : (
-                            <span className="text-text-muted">-</span>
-                          )}
-                        </td>
-
-                        {/* Stop Loss */}
-                        <td className="py-4 px-4 text-right">
-                          {item.stop1 ? (
-                            <div>
-                              <span className="text-negative font-mono">{formatPrice(item.stop1)}</span>
-                              {(() => { const pct = calcPct(item.stop1, item.entry); return pct !== null ? <p className="text-negative/70 text-xs font-mono">{pct.toFixed(1)}%</p> : null; })()}
-                            </div>
-                          ) : (
-                            <span className="text-text-muted">-</span>
-                          )}
-                        </td>
-
-                        {/* Risk */}
-                        <td className="py-4 px-4 text-center">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getRiskBadge(item.risk_level)}`}>
-                            {getRiskLabel(item.risk_level)}
-                          </span>
-                        </td>
-
-                        {/* Volume */}
-                        <td className="py-4 px-4 text-center">
-                          {currentVol ? (
-                            <span className={`text-xs font-semibold font-mono ${getVolumeStyle(currentVol)}`}>{formatVolume(currentVol)}</span>
-                          ) : item.volume_rank_num && item.volume_rank_den ? (
-                            <span className="text-white text-xs"><span className="font-semibold">{item.volume_rank_num}</span><span className="text-text-muted">/{item.volume_rank_den}</span></span>
-                          ) : (
-                            <span className="text-text-muted text-xs">-</span>
-                          )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-4 px-4 text-center">{getStatusBadge(item.status)}</td>
-
-                        {/* Added Date */}
-                        <td className="py-4 px-4 text-right">
-                          <span className="text-text-muted font-mono text-sm">{formatDateTime(item.created_at)}</span>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/[0.06]">
+                        <Th align="center" width="40">
+                          <span className="sr-only">Star</span>
+                        </Th>
+                        <Th align="left">Pair</Th>
+                        <Th align="right">Current</Th>
+                        <Th align="right">Entry</Th>
+                        <Th align="right">P&L</Th>
+                        <Th align="right">Max Target</Th>
+                        <Th align="right">Stop Loss</Th>
+                        <Th align="center">Risk</Th>
+                        <Th align="center">Status</Th>
+                        <Th align="right">Added</Th>
+                        <Th align="center" width="40">
+                          <span className="sr-only">Expand</span>
+                        </Th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {filteredWatchlist.map((item) => {
+                        const currentPrice = getPrice(item.pair);
+                        const currentVol = getVolume(item.pair);
+                        const priceChange = getPriceChange(item.entry, currentPrice);
+                        const maxTarget = getMaxTarget(item);
+                        const isExpanded = expandedRow === item.id;
 
-            {/* Summary Footer */}
-            <div className="p-4 border-t border-gold-primary/10 bg-gold-primary/5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-muted text-sm">{t('watchlist.summary_open')}</span>
-                    <span className="text-cyan-400 font-semibold">{openCount}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-muted text-sm">{t('watchlist.summary_in_profit')}</span>
-                    <span className="text-green-400 font-semibold">{inProfitCount}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-text-muted text-sm">{t('watchlist.summary_in_loss')}</span>
-                    <span className="text-red-400 font-semibold">{inLossCount}</span>
-                  </div>
+                        return (
+                          <DesktopRow
+                            key={item.id}
+                            item={item}
+                            currentPrice={currentPrice}
+                            currentVol={currentVol}
+                            priceChange={priceChange}
+                            maxTarget={maxTarget}
+                            isExpanded={isExpanded}
+                            pricesLoading={pricesLoading}
+                            formatPrice={formatPrice}
+                            formatVolume={formatVolume}
+                            formatDateTime={formatDateTime}
+                            calcPct={calcPct}
+                            getCoinName={getCoinName}
+                            riskStyle={riskStyle}
+                            riskLabel={riskLabel}
+                            statusStyle={statusStyle}
+                            statusLabel={statusLabel}
+                            onToggle={() => setExpandedRow(isExpanded ? null : item.id)}
+                            onOpenModal={() => setSelectedSignal(item)}
+                            onRemove={() => handleRemove(item.signal_id)}
+                          />
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <p className="text-text-muted text-xs">{t('watchlist.hint_remove')}</p>
               </div>
-            </div>
+            )}
           </div>
+
+          {/* Hint */}
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50 text-center">
+            Click ★ to remove · Click row to expand
+          </p>
         </>
       )}
 
-      {/* Signal Detail Modal — opens on row/card click */}
+      {/* Modal */}
       {selectedSignal && (
         <SignalModal
           signal={selectedSignal}
@@ -605,5 +556,593 @@ const WatchlistPage = () => {
     </div>
   );
 };
+
+
+// ════════════════════════════════════════════════════════════════
+// SECTION HEADER
+// ════════════════════════════════════════════════════════════════
+const SectionHeader = ({ label, small = false }) => (
+  <div className="flex items-center gap-3">
+    <span className="h-px w-8 bg-gold-primary/40" />
+    <span
+      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+        small ? 'text-[10px]' : 'text-[11px]'
+      }`}
+    >
+      {label}
+    </span>
+    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// STAT CARD
+// ════════════════════════════════════════════════════════════════
+const StatCard = ({ label, value, sublabel, isLive, isGold, isDanger }) => (
+  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-text-muted font-mono">
+          {label}
+        </span>
+        {isLive && (
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        )}
+      </div>
+      <div
+        className={`text-xl sm:text-2xl font-mono tabular-nums mb-1.5 truncate ${
+          isDanger ? 'text-red-400' : isGold ? 'text-gold-primary' : 'text-white'
+        }`}
+      >
+        {value}
+      </div>
+      {sublabel && (
+        <div className="text-[10px] font-mono text-text-muted/70 truncate">
+          {sublabel}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// DESKTOP TABLE HELPERS
+// ════════════════════════════════════════════════════════════════
+const Th = ({ children, align = 'left', width }) => (
+  <th
+    className={`py-3 px-3 text-${align} text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/80 font-normal`}
+    style={width ? { width: `${width}px` } : undefined}
+  >
+    {children}
+  </th>
+);
+
+const Td = ({ children, align = 'left', className = '' }) => (
+  <td className={`py-3 px-3 text-${align} ${className}`}>{children}</td>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// DESKTOP ROW (with expandable detail)
+// ════════════════════════════════════════════════════════════════
+const DesktopRow = ({
+  item, currentPrice, currentVol, priceChange, maxTarget, isExpanded, pricesLoading,
+  formatPrice, formatVolume, formatDateTime, calcPct, getCoinName,
+  riskStyle, riskLabel, statusStyle, statusLabel,
+  onToggle, onOpenModal, onRemove,
+}) => {
+  const tpList = [
+    { label: 'TP1', value: item.target1 },
+    { label: 'TP2', value: item.target2 },
+    { label: 'TP3', value: item.target3 },
+    { label: 'TP4', value: item.target4 },
+  ].filter(tp => tp.value);
+
+  return (
+    <>
+      {/* Main row */}
+      <tr
+        onClick={onToggle}
+        className={`group cursor-pointer transition-colors border-b border-white/[0.04] ${
+          isExpanded ? 'bg-gold-primary/[0.03]' : 'hover:bg-white/[0.02]'
+        }`}
+      >
+        {/* Star */}
+        <Td align="center" className="w-10">
+          <div onClick={(e) => e.stopPropagation()}>
+            <StarButton signalId={item.signal_id} isStarred={true} onToggle={onRemove} />
+          </div>
+        </Td>
+
+        {/* Pair */}
+        <Td>
+          <div className="flex items-center gap-2.5">
+            <CoinLogo pair={item.pair} size={32} />
+            <div className="min-w-0">
+              <p className="text-white text-sm font-semibold group-hover:text-gold-primary transition-colors font-mono">
+                {getCoinName(item.pair)}
+              </p>
+              <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
+            </div>
+          </div>
+        </Td>
+
+        {/* Current price */}
+        <Td align="right">
+          {pricesLoading && !currentPrice ? (
+            <div className="h-4 w-20 bg-white/[0.04] rounded animate-pulse ml-auto" />
+          ) : currentPrice ? (
+            <span className="text-white font-mono text-sm tabular-nums">
+              {formatPrice(currentPrice)}
+            </span>
+          ) : (
+            <span className="text-text-muted/40 font-mono text-sm">—</span>
+          )}
+        </Td>
+
+        {/* Entry */}
+        <Td align="right">
+          <span className="text-white/80 font-mono text-sm tabular-nums">
+            {formatPrice(item.entry)}
+          </span>
+        </Td>
+
+        {/* P&L */}
+        <Td align="right">
+          {priceChange !== null ? (
+            <span className={`font-mono text-sm tabular-nums font-semibold ${
+              priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+            }`}>
+              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+            </span>
+          ) : (
+            <span className="text-text-muted/40 font-mono text-sm">—</span>
+          )}
+        </Td>
+
+        {/* Max Target */}
+        <Td align="right">
+          {maxTarget ? (
+            <div className="flex flex-col items-end">
+              <span className="text-gold-primary/90 font-mono text-sm tabular-nums">
+                {formatPrice(maxTarget)}
+              </span>
+              {(() => {
+                const pct = calcPct(maxTarget, item.entry);
+                return pct !== null ? (
+                  <span className="text-gold-primary/60 font-mono text-[10px] tabular-nums">
+                    +{pct.toFixed(1)}%
+                  </span>
+                ) : null;
+              })()}
+            </div>
+          ) : (
+            <span className="text-text-muted/40 font-mono text-sm">—</span>
+          )}
+        </Td>
+
+        {/* Stop Loss */}
+        <Td align="right">
+          {item.stop1 ? (
+            <div className="flex flex-col items-end">
+              <span className="text-red-400/90 font-mono text-sm tabular-nums">
+                {formatPrice(item.stop1)}
+              </span>
+              {(() => {
+                const pct = calcPct(item.stop1, item.entry);
+                return pct !== null ? (
+                  <span className="text-red-400/60 font-mono text-[10px] tabular-nums">
+                    {pct.toFixed(1)}%
+                  </span>
+                ) : null;
+              })()}
+            </div>
+          ) : (
+            <span className="text-text-muted/40 font-mono text-sm">—</span>
+          )}
+        </Td>
+
+        {/* Risk */}
+        <Td align="center">
+          <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-0.5 rounded border ${riskStyle(item.risk_level)}`}>
+            {riskLabel(item.risk_level)}
+          </span>
+        </Td>
+
+        {/* Status */}
+        <Td align="center">
+          <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-0.5 rounded border ${statusStyle(item.status)}`}>
+            {statusLabel(item.status)}
+          </span>
+        </Td>
+
+        {/* Added */}
+        <Td align="right">
+          <span className="text-text-muted/70 font-mono text-[11px] tabular-nums">
+            {formatDateTime(item.created_at)}
+          </span>
+        </Td>
+
+        {/* Expand chevron */}
+        <Td align="center" className="w-10">
+          <svg
+            className={`w-3.5 h-3.5 mx-auto transition-all ${
+              isExpanded ? 'rotate-180 text-gold-primary' : 'text-text-muted/40'
+            }`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </Td>
+      </tr>
+
+      {/* Expanded detail row */}
+      {isExpanded && (
+        <tr className="bg-gradient-to-r from-gold-primary/[0.03] to-transparent border-b border-white/[0.04]">
+          <td colSpan={11} className="px-4 py-4">
+            <ExpandedDetail
+              item={item}
+              tpList={tpList}
+              currentPrice={currentPrice}
+              currentVol={currentVol}
+              formatPrice={formatPrice}
+              formatVolume={formatVolume}
+              calcPct={calcPct}
+              onOpenModal={onOpenModal}
+            />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
+
+
+// ════════════════════════════════════════════════════════════════
+// EXPANDED DETAIL (in-row, Flowscan signature)
+// ════════════════════════════════════════════════════════════════
+const ExpandedDetail = ({ item, tpList, currentPrice, currentVol, formatPrice, formatVolume, calcPct, onOpenModal }) => (
+  <div className="space-y-4">
+    {/* Targets grid */}
+    {tpList.length > 0 && (
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="h-px w-6 bg-gold-primary/30" />
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/70">
+            Targets
+          </span>
+          <span className="h-px flex-1 bg-gold-primary/10" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {tpList.map((tp, i) => {
+            const pct = calcPct(tp.value, item.entry);
+            return (
+              <div
+                key={i}
+                className="relative overflow-hidden bg-[#0a0805] border border-gold-primary/15 rounded-md p-3"
+              >
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/60 mb-1">
+                  {tp.label}
+                </p>
+                <p className="text-white font-mono text-sm tabular-nums">
+                  {formatPrice(tp.value)}
+                </p>
+                {pct !== null && (
+                  <p className="text-gold-primary font-mono text-[10px] tabular-nums mt-0.5">
+                    +{pct.toFixed(1)}%
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    {/* Stop Loss + Volume row */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+      {/* Stop Loss */}
+      {item.stop1 && (
+        <div className="relative overflow-hidden bg-[#0a0805] border border-red-500/15 rounded-md p-3">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
+            Stop Loss
+          </p>
+          <p className="text-white font-mono text-sm tabular-nums">
+            {formatPrice(item.stop1)}
+          </p>
+          {(() => {
+            const pct = calcPct(item.stop1, item.entry);
+            return pct !== null ? (
+              <p className="text-red-400 font-mono text-[10px] tabular-nums mt-0.5">
+                {pct.toFixed(1)}%
+              </p>
+            ) : null;
+          })()}
+        </div>
+      )}
+
+      {/* Stop Loss 2 (if exists) */}
+      {item.stop2 && (
+        <div className="relative overflow-hidden bg-[#0a0805] border border-red-500/15 rounded-md p-3">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-red-400/70 mb-1">
+            Stop Loss 2
+          </p>
+          <p className="text-white font-mono text-sm tabular-nums">
+            {formatPrice(item.stop2)}
+          </p>
+          {(() => {
+            const pct = calcPct(item.stop2, item.entry);
+            return pct !== null ? (
+              <p className="text-red-400 font-mono text-[10px] tabular-nums mt-0.5">
+                {pct.toFixed(1)}%
+              </p>
+            ) : null;
+          })()}
+        </div>
+      )}
+
+      {/* Volume */}
+      {currentVol ? (
+        <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
+            24H Volume
+          </p>
+          <p className="text-white font-mono text-sm tabular-nums">
+            {formatVolume(currentVol)}
+          </p>
+        </div>
+      ) : item.volume_rank_num && item.volume_rank_den ? (
+        <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted mb-1">
+            Volume Rank
+          </p>
+          <p className="text-white font-mono text-sm tabular-nums">
+            <span className="text-gold-primary">#{item.volume_rank_num}</span>
+            <span className="text-text-muted/60"> / {item.volume_rank_den}</span>
+          </p>
+        </div>
+      ) : null}
+    </div>
+
+    {/* Action button */}
+    <div className="flex justify-end pt-2">
+      <button
+        onClick={onOpenModal}
+        className="group inline-flex items-center gap-2 px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
+        style={{
+          background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+        }}
+      >
+        View Full Detail
+        <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+      </button>
+    </div>
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// MOBILE CARD
+// ════════════════════════════════════════════════════════════════
+const MobileCard = ({
+  item, currentPrice, currentVol, pricesLoading,
+  formatPrice, formatVolume, formatDateTimeShort,
+  calcPct, getPriceChange, getCoinName,
+  riskStyle, riskLabel, statusStyle, statusLabel,
+  onClick, onRemove,
+}) => {
+  const priceChange = getPriceChange(item.entry, currentPrice);
+  const tpList = [
+    { label: 'TP1', value: item.target1 },
+    { label: 'TP2', value: item.target2 },
+    { label: 'TP3', value: item.target3 },
+    { label: 'TP4', value: item.target4 },
+  ].filter(tp => tp.value);
+
+  return (
+    <div
+      onClick={onClick}
+      className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 cursor-pointer transition-all hover:border-white/[0.12] active:bg-white/[0.02]"
+    >
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+
+      {/* Top: Coin + Status + Star */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <CoinLogo pair={item.pair} size={32} />
+          <div>
+            <p className="text-white font-semibold text-sm font-mono">{getCoinName(item.pair)}</p>
+            <p className="text-text-muted/60 text-[10px] font-mono uppercase tracking-wider">USDT</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-2 py-0.5 rounded border ${statusStyle(item.status)}`}>
+            {statusLabel(item.status)}
+          </span>
+          <div onClick={(e) => e.stopPropagation()}>
+            <StarButton signalId={item.signal_id} isStarred={true} onToggle={onRemove} />
+          </div>
+        </div>
+      </div>
+
+      {/* Price row */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div>
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">Entry</p>
+          <p className="text-white font-mono text-xs tabular-nums">{formatPrice(item.entry)}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">Current</p>
+          {pricesLoading && !currentPrice ? (
+            <div className="h-3 w-14 bg-white/[0.04] rounded animate-pulse" />
+          ) : currentPrice ? (
+            <p className="text-white font-mono text-xs tabular-nums">{formatPrice(currentPrice)}</p>
+          ) : (
+            <p className="text-text-muted/40 font-mono text-xs">—</p>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-text-muted mb-0.5">P&amp;L</p>
+          {priceChange !== null ? (
+            <p className={`font-mono text-xs tabular-nums font-semibold ${
+              priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+            }`}>
+              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+            </p>
+          ) : (
+            <p className="text-text-muted/40 font-mono text-xs">—</p>
+          )}
+        </div>
+      </div>
+
+      {/* Targets */}
+      {tpList.length > 0 && (
+        <div className="relative overflow-hidden bg-gold-primary/[0.03] border border-gold-primary/15 rounded p-2 mb-2">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-gold-primary/70 mb-1.5">
+            Targets
+          </p>
+          <div className={`grid gap-1.5 ${tpList.length <= 2 ? 'grid-cols-2' : 'grid-cols-4'}`}>
+            {tpList.map((tp, i) => {
+              const pct = calcPct(tp.value, item.entry);
+              return (
+                <div key={i} className="text-center">
+                  <p className="text-gold-primary/50 text-[8px] font-mono tracking-wider">{tp.label}</p>
+                  <p className="text-white font-mono text-[10px] tabular-nums leading-tight">
+                    {formatPrice(tp.value)}
+                  </p>
+                  {pct !== null && (
+                    <p className="text-gold-primary font-mono text-[9px] tabular-nums">
+                      +{pct.toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Stop Loss */}
+      {item.stop1 && (
+        <div className="relative overflow-hidden bg-red-500/[0.03] border border-red-500/15 rounded p-2 mb-2">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/70">
+                Stop Loss
+              </span>
+              <span className="text-white font-mono text-[11px] tabular-nums">
+                {formatPrice(item.stop1)}
+              </span>
+            </div>
+            {(() => {
+              const pct = calcPct(item.stop1, item.entry);
+              return pct !== null ? (
+                <span className="text-red-400 font-mono text-[11px] tabular-nums">
+                  {pct.toFixed(1)}%
+                </span>
+              ) : null;
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom: Risk + Volume + Date */}
+      <div className="flex items-center justify-between text-[10px] font-mono">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${riskStyle(item.risk_level)}`}>
+            {riskLabel(item.risk_level)}
+          </span>
+          {currentVol ? (
+            <span className="text-text-muted">
+              <span className="uppercase tracking-wider text-[9px]">Vol</span>
+              <span className="ml-1 text-white tabular-nums">{formatVolume(currentVol)}</span>
+            </span>
+          ) : item.volume_rank_num && item.volume_rank_den ? (
+            <span className="text-text-muted">
+              <span className="uppercase tracking-wider text-[9px]">Rank</span>
+              <span className="ml-1 text-white tabular-nums">#{item.volume_rank_num}</span>
+              <span className="text-text-muted/60">/{item.volume_rank_den}</span>
+            </span>
+          ) : null}
+        </div>
+        <span className="text-text-muted/60 tabular-nums uppercase tracking-wider">
+          {formatDateTimeShort(item.created_at)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+
+// ════════════════════════════════════════════════════════════════
+// LOADING / EMPTY / NO-MATCH STATES
+// ════════════════════════════════════════════════════════════════
+const LoadingSkeleton = () => (
+  <div className="space-y-1.5">
+    {[...Array(6)].map((_, i) => (
+      <div
+        key={i}
+        className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
+      >
+        <div className="w-8 h-8 rounded bg-white/[0.03] animate-pulse shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 bg-white/[0.05] rounded w-1/4 animate-pulse" />
+          <div className="h-3 bg-white/[0.03] rounded w-3/4 animate-pulse" />
+        </div>
+        <div className="w-20 space-y-1.5">
+          <div className="h-3 bg-white/[0.05] rounded animate-pulse" />
+          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto animate-pulse" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyState = ({ onBrowse }) => (
+  <div className="relative bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center overflow-hidden">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+    </div>
+    <p className="text-white text-base font-medium mb-1.5">Watchlist is empty</p>
+    <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em] mb-5">
+      Star signals to track them here
+    </p>
+    <button
+      onClick={onBrowse}
+      className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
+      style={{
+        background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+      }}
+    >
+      Browse Signals
+      <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+    </button>
+  </div>
+);
+
+const NoMatch = () => (
+  <div className="relative bg-[#0a0805] border border-white/[0.06] rounded-md p-8 text-center">
+    <p className="text-text-muted text-sm font-mono uppercase tracking-[0.15em]">
+      No matching signals
+    </p>
+    <p className="text-text-muted/50 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">
+      Try adjusting filters
+    </p>
+  </div>
+);
+
 
 export default WatchlistPage;
