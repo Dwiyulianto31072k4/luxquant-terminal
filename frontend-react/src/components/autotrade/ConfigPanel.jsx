@@ -1,44 +1,83 @@
 // src/components/autotrade/ConfigPanel.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade Config Panel v2 (Flowscan reskin)
+// Sections: Position · TP Strategy · Filters · Trailing · Max Loss · Anti-Liq
+// ════════════════════════════════════════════════════════════════
+
 import { useState, useEffect } from "react";
 import { getConfig, updateConfig } from "../../services/autotradeApi";
 
-// Reusable sub-components
-const SectionHeader = ({ title, subtitle }) => (
+
+// ════════════════════════════════════════════════════════════════
+// SECTION LABEL — matches sitewide reskin pattern
+// ════════════════════════════════════════════════════════════════
+const SectionLabel = ({ children, subtitle, step }) => (
   <div className="mb-4">
-    <h3 className="text-sm font-display font-bold text-white">{title}</h3>
-    {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
+    <div className="flex items-center gap-3 mb-1.5">
+      <span className="h-px w-6 bg-gold-primary/40" />
+      {step && (
+        <>
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/60">
+            {step}
+          </span>
+          <span className="h-px w-3 bg-white/[0.08]" />
+        </>
+      )}
+      <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
+    </div>
+    {subtitle && (
+      <p className="text-[11px] font-mono text-text-muted/70 ml-9">{subtitle}</p>
+    )}
   </div>
 );
 
+
+// ════════════════════════════════════════════════════════════════
+// FORM PRIMITIVES
+// ════════════════════════════════════════════════════════════════
 const Toggle = ({ label, hint, checked, onChange, disabled }) => (
-  <label className={`flex items-center justify-between py-2.5 cursor-pointer ${disabled ? "opacity-50" : ""}`}>
-    <div>
-      <p className="text-sm font-medium text-white">{label}</p>
-      {hint && <p className="text-[11px] text-text-muted mt-0.5">{hint}</p>}
+  <div className={`flex items-center justify-between gap-4 py-2.5 ${disabled ? "opacity-50" : ""}`}>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm text-white font-medium">{label}</p>
+      {hint && (
+        <p className="text-[10px] font-mono text-text-muted/70 mt-0.5 leading-relaxed">
+          {hint}
+        </p>
+      )}
     </div>
     <button
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative w-10 h-5.5 rounded-full transition-colors shrink-0 ${
-        checked ? "bg-green-500" : "bg-white/10"
+      className={`relative shrink-0 w-10 h-5 rounded-full transition-colors border ${
+        checked
+          ? "bg-gold-primary/80 border-gold-primary"
+          : "bg-white/[0.04] border-white/[0.08]"
       }`}
-      style={{ height: "22px" }}
     >
       <span
-        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0.5"
+        className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${
+          checked
+            ? "translate-x-[20px] bg-[#0a0805]"
+            : "translate-x-0.5 bg-white/40"
         }`}
       />
     </button>
-  </label>
+  </div>
 );
 
 const NumberField = ({ label, value, onChange, min, max, step = 1, suffix = "", hint }) => (
   <div className="py-2">
     <label className="flex justify-between items-baseline mb-1.5">
-      <span className="text-sm text-white">{label}</span>
-      <span className="text-xs text-gold-primary font-mono">{value}{suffix}</span>
+      <span className="text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted">
+        {label}
+      </span>
+      <span className="text-[11px] font-mono text-gold-primary tabular-nums">
+        {value ?? "—"}{suffix}
+      </span>
     </label>
     <input
       type="number"
@@ -47,30 +86,54 @@ const NumberField = ({ label, value, onChange, min, max, step = 1, suffix = "", 
       min={min}
       max={max}
       step={step}
-      className="w-full px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg text-sm text-white focus:outline-none focus:border-gold-primary/30"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white font-mono tabular-nums focus:outline-none focus:border-gold-primary/40 transition-colors"
     />
-    {hint && <p className="text-[11px] text-text-muted mt-1">{hint}</p>}
+    {hint && (
+      <p className="text-[10px] font-mono text-text-muted/60 mt-1.5 leading-relaxed">
+        {hint}
+      </p>
+    )}
   </div>
 );
 
 const SelectField = ({ label, value, onChange, options, hint }) => (
   <div className="py-2">
-    <label className="block text-sm text-white mb-1.5">{label}</label>
+    <label className="block text-[11px] font-mono uppercase tracking-[0.15em] text-text-muted mb-1.5">
+      {label}
+    </label>
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg text-sm text-white focus:outline-none focus:border-gold-primary/30"
+      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-md text-sm text-white font-mono focus:outline-none focus:border-gold-primary/40 transition-colors cursor-pointer"
     >
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
+        <option key={opt.value} value={opt.value} className="bg-[#0a0805] text-white">
           {opt.label}
         </option>
       ))}
     </select>
-    {hint && <p className="text-[11px] text-text-muted mt-1">{hint}</p>}
+    {hint && (
+      <p className="text-[10px] font-mono text-text-muted/60 mt-1.5 leading-relaxed">
+        {hint}
+      </p>
+    )}
   </div>
 );
 
+
+// ════════════════════════════════════════════════════════════════
+// NESTED FIELDS WRAPPER (indented when toggle is enabled)
+// ════════════════════════════════════════════════════════════════
+const NestedFields = ({ children }) => (
+  <div className="mt-2 ml-1 pl-4 border-l border-gold-primary/15 space-y-1">
+    {children}
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════
 export default function ConfigPanel({ account, onClose }) {
   const [config, setConfig] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -106,69 +169,106 @@ export default function ConfigPanel({ account, onClose }) {
 
   if (!account) return null;
 
+  // ── Loading ──
   if (!config) {
     return (
-      <div className="bg-bg-card border border-white/5 rounded-2xl p-8 text-center">
-        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-text-muted text-sm">Loading config…</p>
+      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
+          Loading config…
+        </p>
       </div>
     );
   }
 
+  // ════════════════════════════════════════
+  // RENDER
+  // ════════════════════════════════════════
   return (
-    <div className="bg-bg-card border border-white/5 rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-bg-card/95 backdrop-blur z-10">
-        <div>
-          <h2 className="text-lg font-display font-bold text-white">
-            Configure {account.exchange_id.toUpperCase()}
-          </h2>
-          <p className="text-xs text-text-muted">{account.label}</p>
-        </div>
-        <div className="flex gap-2">
-          {dirty && (
-            <span className="text-xs text-yellow-400 self-center">Unsaved changes</span>
-          )}
-          <button
-            onClick={onClose}
-            className="px-3 py-2 rounded-lg border border-white/10 text-xs font-semibold text-text-secondary hover:bg-white/5"
-          >
-            Close
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-40"
-            style={{
-              background: "linear-gradient(to right, #d4a853, #8b6914)",
-              color: "#0a0506",
-            }}
-          >
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
+    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+      {/* Top hairline */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
+
+      {/* ── STICKY HEADER ── */}
+      <div className="sticky top-0 z-20 bg-[#0a0805]/95 backdrop-blur border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-white tracking-tight capitalize">
+              Configure {account.exchange_id}
+            </h2>
+            <p className="text-[11px] font-mono text-text-muted/80 mt-0.5">
+              {account.label || "Unnamed"}
+              {account.is_testnet && (
+                <span className="ml-2 text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded border bg-red-500/10 text-red-400 border-red-500/25">
+                  Testnet
+                </span>
+              )}
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2">
+            {dirty && (
+              <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary/80">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-primary animate-pulse" />
+                Unsaved
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              className="px-3 py-2 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
+            >
+              Close
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!dirty || saving}
+              className="group px-4 py-2 rounded-md font-mono text-[10px] uppercase tracking-[0.2em] transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
+              style={
+                dirty && !saving
+                  ? {
+                      background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+                      color: "#0a0506",
+                    }
+                  : {
+                      background: "rgba(255,255,255,0.04)",
+                      color: "rgba(155,155,155,0.5)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                    }
+              }
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* ── BODY (scrollable, max 70vh) ── */}
       <div className="p-5 max-h-[70vh] overflow-y-auto space-y-6">
+        {/* Error */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-            <p className="text-xs text-red-400">{error}</p>
+          <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-3">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+            <p className="text-[11px] font-mono text-red-400 leading-relaxed">{error}</p>
           </div>
         )}
 
-        {/* Master toggle */}
-        <div className="bg-gradient-to-br from-gold-primary/5 to-transparent border border-gold-primary/10 rounded-xl p-4">
+        {/* ── Master toggle ── */}
+        <div className="relative overflow-hidden bg-gold-primary/[0.03] border border-gold-primary/20 rounded-md p-4">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
           <Toggle
             label="AutoTrade Enabled"
-            hint="Master switch. Turn off to pause execution without deleting config."
+            hint="Master switch · turn off to pause execution without deleting config"
             checked={config.enabled}
             onChange={(v) => update({ enabled: v })}
           />
         </div>
 
-        {/* Position sizing */}
+        {/* ── Section 01: Position Sizing & Risk ── */}
         <section>
-          <SectionHeader title="Position Sizing & Risk" />
+          <SectionLabel step="01" subtitle="Position size, leverage, daily loss cap">
+            Position &amp; Risk
+          </SectionLabel>
           <div className="space-y-1">
             <SelectField
               label="Default Market Type"
@@ -191,7 +291,7 @@ export default function ConfigPanel({ account, onClose }) {
               label="Max Leverage"
               value={config.max_leverage}
               onChange={(v) => update({ max_leverage: v })}
-              min={1} max={125} suffix="x"
+              min={1} max={125} suffix="×"
               hint="Leverage cap for futures"
             />
             <NumberField
@@ -219,18 +319,20 @@ export default function ConfigPanel({ account, onClose }) {
           </div>
         </section>
 
-        {/* TP strategy */}
+        {/* ── Section 02: TP Strategy ── */}
         <section>
-          <SectionHeader title="Take Profit Strategy" subtitle="How to split qty across TP1-TP4" />
+          <SectionLabel step="02" subtitle="How to split qty across TP1–TP4">
+            Take Profit Strategy
+          </SectionLabel>
           <SelectField
             label="TP Strategy"
             value={config.tp_strategy}
             onChange={(v) => update({ tp_strategy: v })}
             options={[
-              { value: "equal_split", label: "Equal Split (25/25/25/25)" },
-              { value: "front_loaded", label: "Front Loaded (40/30/20/10)" },
-              { value: "back_loaded", label: "Back Loaded (10/20/30/40)" },
-              { value: "tp1_only", label: "TP1 Only (exit all at TP1)" },
+              { value: "equal_split", label: "Equal Split — 25/25/25/25" },
+              { value: "front_loaded", label: "Front Loaded — 40/30/20/10" },
+              { value: "back_loaded", label: "Back Loaded — 10/20/30/40" },
+              { value: "tp1_only", label: "TP1 Only — exit all at TP1" },
               { value: "custom", label: "Custom" },
             ]}
           />
@@ -247,9 +349,11 @@ export default function ConfigPanel({ account, onClose }) {
           />
         </section>
 
-        {/* Signal filters */}
+        {/* ── Section 03: Signal Filters ── */}
         <section>
-          <SectionHeader title="Signal Filters" subtitle="Which signals to accept for execution" />
+          <SectionLabel step="03" subtitle="Which signals to accept for execution">
+            Signal Filters
+          </SectionLabel>
           <SelectField
             label="Risk Filter"
             value={config.risk_filter}
@@ -265,13 +369,15 @@ export default function ConfigPanel({ account, onClose }) {
             value={config.min_volume_rank}
             onChange={(v) => update({ min_volume_rank: v })}
             min={0} max={1000}
-            hint="Skip signals below this volume rank (0 = no filter)"
+            hint="Skip signals below this volume rank · 0 = no filter"
           />
         </section>
 
-        {/* Trailing stop */}
+        {/* ── Section 04: Trailing Stop ── */}
         <section>
-          <SectionHeader title="Trailing Stop" subtitle="Auto-move SL in favor of profit" />
+          <SectionLabel step="04" subtitle="Auto-move SL in favor of profit">
+            Trailing Stop
+          </SectionLabel>
           <Toggle
             label="Enable Trailing Stop"
             hint="Automatically tightens SL as price moves in your favor"
@@ -279,7 +385,7 @@ export default function ConfigPanel({ account, onClose }) {
             onChange={(v) => update({ trailing_stop_enabled: v })}
           />
           {config.trailing_stop_enabled && (
-            <div className="mt-2 pl-3 border-l-2 border-gold-primary/20 space-y-1">
+            <NestedFields>
               <SelectField
                 label="Trailing Type"
                 value={config.trailing_stop_type}
@@ -312,15 +418,17 @@ export default function ConfigPanel({ account, onClose }) {
                 value={config.trailing_update_interval}
                 onChange={(v) => update({ trailing_update_interval: v })}
                 min={5} max={300} suffix="s"
-                hint="How often to check & update SL"
+                hint="How often to check &amp; update SL"
               />
-            </div>
+            </NestedFields>
           )}
         </section>
 
-        {/* Max loss protection */}
+        {/* ── Section 05: Max Loss Protection ── */}
         <section>
-          <SectionHeader title="Max Loss Protection" subtitle="Hard cap on loss per trade" />
+          <SectionLabel step="05" subtitle="Hard cap on loss per trade">
+            Max Loss Protection
+          </SectionLabel>
           <Toggle
             label="Enable Max Loss Protection"
             hint="Size qty so loss at SL ≤ max_loss_per_trade_pct of balance"
@@ -328,7 +436,7 @@ export default function ConfigPanel({ account, onClose }) {
             onChange={(v) => update({ max_loss_protection_enabled: v })}
           />
           {config.max_loss_protection_enabled && (
-            <div className="mt-2 pl-3 border-l-2 border-gold-primary/20 space-y-1">
+            <NestedFields>
               <NumberField
                 label="Max Loss Per Trade"
                 value={Number(config.max_loss_per_trade_pct)}
@@ -342,13 +450,15 @@ export default function ConfigPanel({ account, onClose }) {
                 min={0.1} max={50} step={0.1} suffix="%"
                 hint="Auto-close if unrealized loss exceeds this"
               />
-            </div>
+            </NestedFields>
           )}
         </section>
 
-        {/* Anti-liquidation (futures only) */}
+        {/* ── Section 06: Anti-Liquidation ── */}
         <section>
-          <SectionHeader title="Anti-Liquidation" subtitle="Futures margin protection" />
+          <SectionLabel step="06" subtitle="Futures margin protection">
+            Anti-Liquidation
+          </SectionLabel>
           <NumberField
             label="Liquidation Buffer"
             value={Number(config.liquidation_buffer_pct)}
@@ -361,14 +471,14 @@ export default function ConfigPanel({ account, onClose }) {
             value={Number(config.liquidation_warning_pct)}
             onChange={(v) => update({ liquidation_warning_pct: v })}
             min={100} max={500} suffix="%"
-            hint="Send warning (must be > buffer)"
+            hint="Send warning · must be greater than buffer"
           />
           <SelectField
             label="Emergency Action"
             value={config.emergency_action}
             onChange={(v) => update({ emergency_action: v })}
             options={[
-              { value: "partial_close", label: "Partial Close (40%)" },
+              { value: "partial_close", label: "Partial Close — 40%" },
               { value: "tighten_sl", label: "Tighten SL" },
               { value: "full_close", label: "Full Close" },
               { value: "add_margin", label: "Add Margin (top-up)" },
@@ -381,34 +491,49 @@ export default function ConfigPanel({ account, onClose }) {
             onChange={(v) => update({ auto_topup_margin: v })}
           />
           {config.auto_topup_margin && (
-            <NumberField
-              label="Max Top-up"
-              value={Number(config.auto_topup_max_pct)}
-              onChange={(v) => update({ auto_topup_max_pct: v })}
-              min={0} max={100} suffix="%"
-              hint="Max % of initial margin to top up"
-            />
+            <NestedFields>
+              <NumberField
+                label="Max Top-up"
+                value={Number(config.auto_topup_max_pct)}
+                onChange={(v) => update({ auto_topup_max_pct: v })}
+                min={0} max={100} suffix="%"
+                hint="Max % of initial margin to top up"
+              />
+            </NestedFields>
           )}
         </section>
 
-        {/* Save button bottom */}
-        <div className="sticky bottom-0 -mx-5 -mb-5 p-5 bg-bg-card/95 backdrop-blur border-t border-white/5 flex gap-2">
+        {/* ── STICKY FOOTER ── */}
+        <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-[#0a0805]/95 backdrop-blur border-t border-white/[0.06] flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-text-secondary text-sm font-semibold"
+            className="flex-1 px-4 py-2.5 rounded-md border border-white/[0.08] text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
           >
             Close
           </button>
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-            style={{
-              background: "linear-gradient(to right, #d4a853, #8b6914)",
-              color: "#0a0506",
-            }}
+            className="group flex-1 px-4 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] transition-all disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
+            style={
+              dirty && !saving
+                ? {
+                    background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+                    color: "#0a0506",
+                  }
+                : {
+                    background: "rgba(255,255,255,0.04)",
+                    color: "rgba(155,155,155,0.5)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }
+            }
           >
-            {saving ? "Saving…" : dirty ? "Save Changes" : "No Changes"}
+            {saving ? "Saving…" : dirty ? (
+              <span className="inline-flex items-center gap-2">
+                Save Changes
+                <span className="inline-block transition-transform group-enabled:group-hover:translate-x-0.5">→</span>
+              </span>
+            ) : "No Changes"}
           </button>
         </div>
       </div>
