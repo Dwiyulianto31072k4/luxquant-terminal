@@ -13,13 +13,14 @@ import logging
 import secrets
 import string
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, List, Tuple
 
 from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.models.subscription import Payment
 from app.models.referral import (
     ReferralCode,
     ReferralUse,
@@ -42,12 +43,10 @@ API_PREFIX = os.getenv("API_PREFIX", "/api/v1")
 
 
 def build_share_link(code: str) -> str:
-    """https://luxquant.tw/?ref=DWI-2026"""
     return f"{REFERRAL_BASE_URL}/?ref={code}"
 
 
 def build_qr_url(code: str) -> str:
-    """https://luxquant.tw/api/v1/referral/qr/DWI-2026"""
     return f"{REFERRAL_BASE_URL}{API_PREFIX}/referral/qr/{code}"
 
 
@@ -56,25 +55,21 @@ def build_qr_url(code: str) -> str:
 # ════════════════════════════════════════════════════════════════════
 
 def generate_random_code() -> str:
-    """Generate random code: LUXQ-XXXXXXXX"""
     chars = string.ascii_uppercase + string.digits
     suffix = ''.join(secrets.choice(chars) for _ in range(8))
     return f"LUXQ-{suffix}"
 
 
 def generate_unique_code(db: Session, max_attempts: int = 10) -> str:
-    """Generate random code yang dijamin unique. Retry sampai max_attempts."""
     for _ in range(max_attempts):
         code = generate_random_code()
         existing = db.query(ReferralCode).filter(ReferralCode.code == code).first()
         if not existing:
             return code
-    # Extreme fallback (collision rate ~ 36^8 = sangat rendah)
     return f"LUXQ-{secrets.token_hex(6).upper()}"
 
 
 def is_code_taken(db: Session, code: str) -> bool:
-    """Check kalau code udah dipake (case-insensitive)"""
     return db.query(ReferralCode).filter(
         func.upper(ReferralCode.code) == code.upper()
     ).first() is not None
@@ -85,16 +80,11 @@ def is_code_taken(db: Session, code: str) -> bool:
 # ════════════════════════════════════════════════════════════════════
 
 def generate_qr_png(code: str, size: int = 256) -> bytes:
-    """
-    Generate QR code PNG sebagai bytes.
-    Returns: PNG bytes ready untuk Response(content=..., media_type="image/png")
-    """
     try:
         import qrcode
         from qrcode.image.styledpil import StyledPilImage
         from qrcode.image.styles.colormasks import SolidFillColorMask
     except ImportError:
-        # Fallback ke basic qrcode kalau styled tidak tersedia
         import qrcode
 
         qr = qrcode.QRCode(
@@ -111,20 +101,18 @@ def generate_qr_png(code: str, size: int = 256) -> bytes:
         img.save(buf, format="PNG")
         return buf.getvalue()
 
-    # Styled version (gold on dark, sesuai theme LuxQuant)
     qr = qrcode.QRCode(
         version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,  # High = bisa di-decorate logo
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=10,
         border=2,
     )
     qr.add_data(build_share_link(code))
     qr.make(fit=True)
 
-    # Color: gold-primary on bg-primary
     img = qr.make_image(
-        fill_color=(212, 175, 55),    # #D4AF37
-        back_color=(10, 5, 6),         # #0a0506
+        fill_color=(212, 175, 55),
+        back_color=(10, 5, 6),
     )
 
     buf = io.BytesIO()
@@ -137,11 +125,6 @@ def generate_qr_png(code: str, size: int = 256) -> bytes:
 # ════════════════════════════════════════════════════════════════════
 
 def calculate_funnel(db: Session, referrer_id: int) -> dict:
-    """
-    Calculate funnel breakdown untuk referrer.
-    Returns dict yang match ReferralFunnelResponse.
-    """
-    # Single query, group by status
     rows = (
         db.query(ReferralUse.status, func.count(ReferralUse.id))
         .filter(ReferralUse.referrer_id == referrer_id)
@@ -156,10 +139,9 @@ def calculate_funnel(db: Session, referrer_id: int) -> dict:
     subscribed = counts.get(REFERRAL_STATUS_SUBSCRIBED, 0)
     churned = counts.get(REFERRAL_STATUS_CHURNED, 0)
 
-    # Funnel cumulative (each stage includes all later stages)
     signed_up = pending + active + subscribed + churned
-    active_total = active + subscribed + churned    # Pernah login = active or beyond
-    subscribed_total = subscribed + churned         # Pernah bayar
+    active_total = active + subscribed + churned
+    subscribed_total = subscribed + churned
 
     activation_rate = (active_total / signed_up * 100) if signed_up > 0 else 0
     subscription_rate = (subscribed_total / active_total * 100) if active_total > 0 else 0
@@ -179,15 +161,10 @@ def calculate_funnel(db: Session, referrer_id: int) -> dict:
 # ════════════════════════════════════════════════════════════════════
 
 def calculate_earnings(db: Session, user: User) -> dict:
-    """
-    Calculate earnings card data.
-    Returns dict yang match ReferralEarningsResponse.
-    """
     available = float(user.referral_credit_usdt or 0)
     lifetime = float(user.lifetime_credit_earned or 0)
     total_redeemed = lifetime - available
 
-    # This month earned (from ledger)
     one_month_ago = datetime.now(timezone.utc) - timedelta(days=30)
     this_month = (
         db.query(func.coalesce(func.sum(CreditLedger.amount), 0))
@@ -199,8 +176,6 @@ def calculate_earnings(db: Session, user: User) -> dict:
         .scalar()
     )
 
-    # Pending commission: estimate dari referee yang status=active tapi belum bayar
-    # (placeholder untuk Layer 4. Sekarang return 0.)
     pending_commission = 0.0
 
     return {
@@ -223,19 +198,12 @@ def get_referee_list(
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[dict], int]:
-    """
-    Paginated list referee + their info.
-
-    Returns: (items, total_count)
-    """
-    # Total count
     total = (
         db.query(func.count(ReferralUse.id))
         .filter(ReferralUse.referrer_id == referrer_id)
         .scalar()
     )
 
-    # Query: join ReferralUse + User
     offset = (page - 1) * page_size
 
     rows = (
@@ -271,10 +239,6 @@ def get_referee_list(
 # ════════════════════════════════════════════════════════════════════
 
 def track_share_event(db: Session, code: str, channel: str) -> Optional[ReferralCode]:
-    """
-    Increment share/qr counter.
-    Returns updated ReferralCode atau None kalau code ga ada.
-    """
     referral = db.query(ReferralCode).filter(
         func.upper(ReferralCode.code) == code.upper(),
         ReferralCode.is_active == True,
@@ -283,11 +247,9 @@ def track_share_event(db: Session, code: str, channel: str) -> Optional[Referral
     if not referral:
         return None
 
-    # Increment counter sesuai channel
     if channel == "qr_download":
         referral.qr_count = (referral.qr_count or 0) + 1
     else:
-        # copy_link, twitter, telegram, whatsapp, other → all count as share
         referral.share_count = (referral.share_count or 0) + 1
 
     referral.last_shared_at = datetime.now(timezone.utc)
@@ -298,8 +260,13 @@ def track_share_event(db: Session, code: str, channel: str) -> Optional[Referral
 
 
 # ════════════════════════════════════════════════════════════════════
-# CREDIT REDEMPTION (stub for Layer 4-5 integration)
+# CREDIT REDEMPTION — Production-ready (Layer 8)
 # ════════════════════════════════════════════════════════════════════
+
+def _quantize(amount: Decimal) -> Decimal:
+    """Round to 2 decimals (USDT precision)."""
+    return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
 
 def preview_redemption(
     db: Session,
@@ -308,46 +275,92 @@ def preview_redemption(
     payment_id: int,
 ) -> dict:
     """
-    Preview redeem credit terhadap invoice.
+    Preview redeem credit terhadap real invoice.
     Tidak commit apapun.
-
-    NOTE: Implementasi real butuh subscription.py yang udah expose
-    invoice info (Layer 4). Untuk sekarang return mock buat UI testing.
     """
-    available = float(user.referral_credit_usdt or 0)
+    available = Decimal(str(user.referral_credit_usdt or 0))
+    requested = Decimal(str(amount))
 
-    # TODO: di Layer 4, ambil real invoice via:
-    #   from app.models.subscription import Payment
-    #   payment = db.query(Payment).filter(Payment.id == payment_id, ...).first()
-    #
-    # Untuk sekarang, mock:
-    invoice_amount = 30.0       # Stub
-    discount_amount = 0.0       # Stub
+    # ── Fetch real payment ──
+    payment = db.query(Payment).filter(
+        Payment.id == payment_id,
+        Payment.user_id == user.id,
+    ).first()
 
-    final_after_credit = max(0, invoice_amount - discount_amount - amount)
-    redeem_amount = min(amount, available, invoice_amount - discount_amount)
-
-    if available < amount:
+    if not payment:
         return {
-            "requested_amount": amount,
-            "available_balance": available,
-            "invoice_amount": invoice_amount,
-            "discount_amount": discount_amount,
-            "final_amount_after_credit": invoice_amount - discount_amount,
-            "redeem_amount": 0,
+            "requested_amount": float(requested),
+            "available_balance": float(available),
+            "invoice_amount": 0.0,
+            "discount_amount": 0.0,
+            "final_amount_after_credit": 0.0,
+            "redeem_amount": 0.0,
             "will_succeed": False,
-            "message": f"Insufficient balance. Available: ${available:.2f}, requested: ${amount:.2f}",
+            "message": f"Payment #{payment_id} tidak ditemukan atau bukan milik kamu.",
         }
 
+    if payment.status != "pending":
+        return {
+            "requested_amount": float(requested),
+            "available_balance": float(available),
+            "invoice_amount": float(payment.amount_usdt),
+            "discount_amount": float(payment.discount_amount or 0),
+            "final_amount_after_credit": float(payment.final_amount or payment.amount_usdt),
+            "redeem_amount": 0.0,
+            "will_succeed": False,
+            "message": f"Invoice tidak bisa di-redeem (status: {payment.status}).",
+        }
+
+    invoice_amount = Decimal(str(payment.amount_usdt))
+    discount_amount = Decimal(str(payment.discount_amount or 0))
+    current_credit = Decimal(str(payment.credit_redeemed or 0))
+
+    # Amount after referral discount, minus any already-redeemed credit
+    remaining = invoice_amount - discount_amount - current_credit
+    if remaining < Decimal("0"):
+        remaining = Decimal("0")
+
+    # User can't redeem more than their balance, and not more than remaining invoice
+    redeemable = min(requested, available, remaining)
+    redeemable = _quantize(redeemable)
+
+    if redeemable <= Decimal("0"):
+        will_succeed = False
+        msg = (
+            f"Tidak bisa redeem. Saldo: ${available:.2f}, "
+            f"sisa invoice: ${remaining:.2f}, diminta: ${requested:.2f}."
+        )
+    elif available < requested:
+        will_succeed = False
+        msg = (
+            f"Saldo tidak cukup. Tersedia: ${available:.2f}, diminta: ${requested:.2f}."
+        )
+    else:
+        will_succeed = True
+        new_final = invoice_amount - discount_amount - current_credit - redeemable
+        if new_final < Decimal("0"):
+            new_final = Decimal("0")
+        msg = (
+            f"Akan redeem ${redeemable:.2f}. "
+            f"Final invoice: ${new_final:.2f}. "
+            f"Sisa saldo: ${(available - redeemable):.2f}."
+        )
+
+    final_after_credit = _quantize(
+        invoice_amount - discount_amount - current_credit - redeemable
+    )
+    if final_after_credit < Decimal("0"):
+        final_after_credit = Decimal("0")
+
     return {
-        "requested_amount": amount,
-        "available_balance": available,
-        "invoice_amount": invoice_amount,
-        "discount_amount": discount_amount,
-        "final_amount_after_credit": final_after_credit,
-        "redeem_amount": redeem_amount,
-        "will_succeed": True,
-        "message": f"Will redeem ${redeem_amount:.2f}, remaining balance ${available - redeem_amount:.2f}",
+        "requested_amount": float(requested),
+        "available_balance": float(available),
+        "invoice_amount": float(invoice_amount),
+        "discount_amount": float(discount_amount),
+        "final_amount_after_credit": float(final_after_credit),
+        "redeem_amount": float(redeemable),
+        "will_succeed": will_succeed,
+        "message": msg,
     }
 
 
@@ -358,44 +371,171 @@ def execute_redemption(
     payment_id: int,
 ) -> dict:
     """
-    Actually redeem credit.
-    NOTE: Real impl butuh Layer 4. Sekarang ini stub yg cuma:
-      - decrement user balance
-      - log ledger entry
-      - return result
+    Actually redeem credit to a real invoice.
 
-    Tidak benerang attach ke payment (akan diisi di Layer 4).
+    Atomic operation:
+      1. Validate payment exists, belongs to user, status=pending
+      2. Validate balance sufficient
+      3. Decrement user.referral_credit_usdt
+      4. Increment payment.credit_redeemed
+      5. Recalculate payment.final_amount
+      6. Create CreditLedger entry (type='redeem', amount=-X)
+
+    Idempotency: caller responsible. To prevent double-redeem on same payment,
+    consider checking existing ledger entries with ref_payment_id before calling.
+
+    Raises ValueError on validation failure.
     """
-    available = Decimal(str(user.referral_credit_usdt or 0))
-    amount_dec = Decimal(str(amount))
+    amount_dec = _quantize(Decimal(str(amount)))
 
+    if amount_dec <= Decimal("0"):
+        raise ValueError("Amount harus lebih besar dari 0.")
+
+    available = Decimal(str(user.referral_credit_usdt or 0))
     if available < amount_dec:
         raise ValueError(
-            f"Insufficient balance. Available: ${available:.2f}, requested: ${amount_dec:.2f}"
+            f"Saldo tidak cukup. Tersedia: ${available:.2f}, diminta: ${amount_dec:.2f}."
         )
 
-    # Decrement balance
-    new_balance = available - amount_dec
+    # ── Fetch real payment ──
+    payment = db.query(Payment).filter(
+        Payment.id == payment_id,
+        Payment.user_id == user.id,
+    ).first()
+
+    if not payment:
+        raise ValueError(f"Payment #{payment_id} tidak ditemukan atau bukan milik kamu.")
+
+    if payment.status != "pending":
+        raise ValueError(
+            f"Invoice tidak bisa di-redeem (status: {payment.status})."
+        )
+
+    invoice_amount = Decimal(str(payment.amount_usdt))
+    discount_amount = Decimal(str(payment.discount_amount or 0))
+    current_credit = Decimal(str(payment.credit_redeemed or 0))
+
+    remaining = invoice_amount - discount_amount - current_credit
+    if remaining < Decimal("0"):
+        remaining = Decimal("0")
+
+    if amount_dec > remaining:
+        raise ValueError(
+            f"Jumlah redeem melebihi sisa invoice. Sisa: ${remaining:.2f}, "
+            f"diminta: ${amount_dec:.2f}."
+        )
+
+    # ── 1. Decrement user balance ──
+    new_balance = _quantize(available - amount_dec)
     user.referral_credit_usdt = new_balance
 
-    # Log ledger entry
+    # ── 2. Update payment ──
+    new_credit_redeemed = _quantize(current_credit + amount_dec)
+    new_final = _quantize(invoice_amount - discount_amount - new_credit_redeemed)
+    if new_final < Decimal("0"):
+        new_final = Decimal("0")
+
+    payment.credit_redeemed = new_credit_redeemed
+    payment.final_amount = new_final
+
+    # ── 3. Ledger entry ──
     entry = CreditLedger(
         user_id=user.id,
-        amount=-amount_dec,           # Negative = redeem
+        amount=-amount_dec,
         type="redeem",
-        ref_payment_id=payment_id,
+        ref_payment_id=payment.id,
         balance_after=new_balance,
-        note=f"Redeem to payment #{payment_id}",
+        note=f"Redeem {amount_dec} USDT to invoice #{payment.id}",
     )
     db.add(entry)
+
     db.commit()
     db.refresh(entry)
     db.refresh(user)
+    db.refresh(payment)
+
+    logger.info(
+        f"💳 Credit redeemed: user_id={user.id} -{amount_dec} USDT "
+        f"(balance: {available} → {new_balance}) to payment #{payment.id} "
+        f"(final: {invoice_amount} → {new_final})"
+    )
 
     return {
-        "redeemed_amount": amount,
+        "redeemed_amount": float(amount_dec),
         "new_balance": float(new_balance),
-        "invoice_amount_after": 0,    # Stub, Layer 4 fills
+        "invoice_amount_after": float(new_final),
+        "payment_credit_redeemed": float(new_credit_redeemed),
         "ledger_id": entry.id,
-        "message": f"Redeemed ${amount:.2f}. New balance: ${new_balance:.2f}",
+        "message": (
+            f"Redeem ${amount_dec:.2f} berhasil. "
+            f"Invoice akhir: ${new_final:.2f}. "
+            f"Sisa saldo: ${new_balance:.2f}."
+        ),
+    }
+
+
+def refund_redemption(
+    db: Session,
+    payment: Payment,
+) -> Optional[dict]:
+    """
+    Refund credit_redeemed to user when invoice expires or cancelled.
+
+    Called by:
+      - Subscription worker on invoice expiration
+      - subscription.py when canceling pending payments
+
+    Idempotent: skip if no credit to refund or refund already processed.
+    """
+    if not payment.credit_redeemed or Decimal(str(payment.credit_redeemed)) <= Decimal("0"):
+        return None
+
+    # Idempotency: check if refund ledger entry already exists
+    existing_refund = db.query(CreditLedger).filter(
+        CreditLedger.ref_payment_id == payment.id,
+        CreditLedger.type == "refund",
+    ).first()
+
+    if existing_refund:
+        logger.debug(f"Refund for payment #{payment.id} already exists, skipping")
+        return None
+
+    user = db.query(User).filter(User.id == payment.user_id).first()
+    if not user:
+        logger.warning(f"User #{payment.user_id} not found for refund of payment #{payment.id}")
+        return None
+
+    refund_amount = _quantize(Decimal(str(payment.credit_redeemed)))
+    current_balance = Decimal(str(user.referral_credit_usdt or 0))
+    new_balance = _quantize(current_balance + refund_amount)
+
+    user.referral_credit_usdt = new_balance
+
+    entry = CreditLedger(
+        user_id=user.id,
+        amount=refund_amount,
+        type="refund",
+        ref_payment_id=payment.id,
+        balance_after=new_balance,
+        note=f"Refund {refund_amount} USDT from cancelled/expired invoice #{payment.id}",
+    )
+    db.add(entry)
+
+    # Reset payment.credit_redeemed to 0 and restore final_amount
+    invoice_amount = Decimal(str(payment.amount_usdt))
+    discount_amount = Decimal(str(payment.discount_amount or 0))
+    payment.credit_redeemed = Decimal("0")
+    payment.final_amount = _quantize(invoice_amount - discount_amount)
+
+    db.flush()
+
+    logger.info(
+        f"💸 Credit refunded: user_id={user.id} +{refund_amount} USDT "
+        f"(balance: {current_balance} → {new_balance}) from payment #{payment.id}"
+    )
+
+    return {
+        "user_id": user.id,
+        "refunded": float(refund_amount),
+        "new_balance": float(new_balance),
     }

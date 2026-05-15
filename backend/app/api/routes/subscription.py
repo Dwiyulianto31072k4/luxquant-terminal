@@ -2,19 +2,17 @@
 """
 Subscription Routes — Payment & subscription management
 
-Pricing flow at /subscribe:
+Flow at /subscribe:
   gross = plan.price_usdt
-  after_referral = gross - referral_discount (10% if first payment via referral)
-  final = after_referral - credit_redeem (full balance, capped at remaining)
+  final = gross - referral_discount (10% if first payment via referral)
+
+Credit redemption is NOT applied here — user must explicitly redeem via
+POST /referral/redeem after invoice creation (PaymentPage UI).
+This separation allows the user to see/confirm the redemption before applying it.
 
 Layer 4 (Referral commission) — on payment confirm:
   - Credit referrer's balance with X% of final_amount
   - Mark ReferralUse status='subscribed'
-
-Layer 8 (Credit redemption):
-  - Auto-redeem full available balance (capped at remaining invoice amount)
-  - Credit deducted at invoice creation (hard reserve)
-  - Refunded automatically if invoice expires/cancelled
 
 Multi-Wallet Rotation:
   - wallet_to picked from receiving_wallets pool per-invoice (privacy)
@@ -41,10 +39,6 @@ from app.schemas.user import UserResponse
 from app.services.bscscan import verify_bep20_tx
 from app.services.commission_service import (
     apply_referral_discount,
-    apply_credit_redeem,
-    commit_credit_redeem,
-    refund_credit_redeem,
-    record_referral_discount_audit,
     process_commission_for_payment,
 )
 from app.services.wallet_pool import pick_wallet, increment_usage
@@ -105,44 +99,27 @@ async def create_subscription(
         if pending.plan_id == data.plan_id:
             return _invoice_response(pending, plan, "Kamu sudah punya invoice untuk paket ini")
         else:
-            # Different plan — cancel old + refund any credit redeemed
-            try:
-                refund_credit_redeem(pending, db)
-            except Exception as e:
-                logger.warning(f"Failed to refund credit on plan switch: {e}")
+            # Different plan — cancel old
             pending.status = "cancelled"
             pending.notes = f"Switched to plan_id={data.plan_id}"
             db.flush()
 
-    # Cancel ALL other pending payments + refund their credit
+    # Cancel ALL other pending payments
     other_pendings = db.query(Payment).filter(
         Payment.user_id == current_user.id,
         Payment.status == "pending"
     ).all()
     for p in other_pendings:
-        try:
-            refund_credit_redeem(p, db)
-        except Exception as e:
-            logger.warning(f"Failed to refund credit for payment #{p.id}: {e}")
         p.status = "cancelled"
         p.notes = "New invoice created"
     db.flush()
 
-    # Refresh current_user from DB (in case credit was refunded above)
-    db.refresh(current_user)
-
     # ── Layer 4: Apply referral discount ──
     gross_amount = Decimal(str(plan.price_usdt))
-    discount_amount, after_referral_amount, referral_use_id = apply_referral_discount(
+    discount_amount, final_amount, referral_use_id = apply_referral_discount(
         user=current_user,
         gross_amount=gross_amount,
         db=db,
-    )
-
-    # ── Layer 8: Calculate credit redeem (preview) ──
-    credit_to_redeem, final_amount = apply_credit_redeem(
-        user=current_user,
-        after_referral_amount=after_referral_amount,
     )
 
     # ── Multi-Wallet: rotate receiving wallet ──
@@ -156,12 +133,13 @@ async def create_subscription(
         )
 
     # ── Create payment ──
+    # credit_redeemed defaults to 0 — user can redeem later via POST /referral/redeem
     payment = Payment(
         user_id=current_user.id,
         plan_id=plan.id,
         amount_usdt=gross_amount,
         discount_amount=discount_amount,
-        credit_redeemed=credit_to_redeem,
+        credit_redeemed=Decimal("0"),
         final_amount=final_amount,
         referral_use_id=referral_use_id,
         wallet_to=rotated_wallet,
@@ -170,57 +148,19 @@ async def create_subscription(
         expires_at=datetime.now(timezone.utc) + timedelta(hours=PAYMENT_WINDOW_HOURS)
     )
     db.add(payment)
-    db.flush()  # populate payment.id
-
-    # ── Layer 8: Actually deduct credit ──
-    if credit_to_redeem > Decimal("0"):
-        try:
-            commit_credit_redeem(
-                user=current_user,
-                payment=payment,
-                credit_amount=credit_to_redeem,
-                db=db,
-            )
-        except Exception as e:
-            logger.error(f"Failed to commit credit redeem for payment #{payment.id}: {e}")
-            db.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail="Gagal proses kredit. Coba lagi atau hubungi support."
-            )
-
-    # ── Layer 8: Audit entry for referral discount ──
-    if discount_amount > Decimal("0"):
-        try:
-            record_referral_discount_audit(
-                user=current_user,
-                payment=payment,
-                discount_amount=discount_amount,
-                referral_use_id=referral_use_id,
-                db=db,
-            )
-        except Exception as e:
-            logger.warning(f"Failed to record referral discount audit: {e}")
-
     db.commit()
     db.refresh(payment)
 
-    # ── Multi-Wallet: increment usage stats (separate commit) ──
+    # ── Multi-Wallet: increment usage stats ──
     try:
         increment_usage(db, rotated_wallet)
     except Exception as e:
         logger.warning(f"Failed to increment wallet usage: {e}")
 
-    # Build user-friendly message
-    msg_parts = [f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"]
-    if discount_amount > 0 or credit_to_redeem > 0:
-        savings = []
-        if discount_amount > 0:
-            savings.append(f"diskon referral {discount_amount} USDT")
-        if credit_to_redeem > 0:
-            savings.append(f"credit redeem {credit_to_redeem} USDT")
-        msg_parts.append(f"(setelah {' + '.join(savings)})")
-    msg = " ".join(msg_parts)
+    msg = (
+        f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"
+        + (f" (diskon referral {discount_amount} USDT)" if discount_amount > 0 else "")
+    )
 
     return _invoice_response(payment, plan, msg)
 
@@ -273,7 +213,7 @@ async def verify_payment(
 
     logger.info(f"🔍 Verifying payment #{payment.id} tx={tx_hash_clean}")
 
-    # On-chain verify: expected amount = final_amount (post all discounts)
+    # On-chain verify: expected amount = final_amount (post discount + credit redeem if any)
     expected_amount = Decimal(str(payment.final_amount or payment.amount_usdt))
 
     result = await verify_bep20_tx(

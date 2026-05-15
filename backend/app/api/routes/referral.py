@@ -16,6 +16,12 @@ POST   /referral/apply                Manual apply (legacy)
 POST   /referral/redeem               Redeem credit ke invoice
 POST   /referral/redeem/preview       Preview redeem (no commit)
 
+# Layer 8 — Cashout (NEW)
+GET    /referral/cashout/balance      Current balance + active cashout info
+POST   /referral/cashout/request      Submit cashout request (hard reserve)
+GET    /referral/cashout/my           My cashout history
+POST   /referral/cashout/{id}/cancel  Cancel pending cashout
+
 DEPRECATED (return 410 Gone):
 POST   /referral/payout
 GET    /referral/payouts
@@ -23,6 +29,7 @@ GET    /referral/payouts
 import logging
 from typing import Optional
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
@@ -74,6 +81,19 @@ from app.services.referral_service import (
     track_share_event,
     preview_redemption,
     execute_redemption,
+)
+
+# Layer 8 — Cashout imports
+from app.models.cashout import CashoutRequest, ACTIVE_STATUSES
+from app.schemas.cashout import (
+    CashoutRequestCreate,
+    CashoutRequestResponse,
+)
+from app.services.cashout_service import (
+    submit_cashout_request,
+    cancel_cashout_request,
+    get_user_cashouts,
+    get_user_active_cashout,
 )
 
 logger = logging.getLogger(__name__)
@@ -147,7 +167,6 @@ async def generate_referral_code(
     - Custom slug optional (kalau ga ada, generate random LUXQ-XXXXXXXX)
     - User cuma boleh punya 1 active code (deactivate yg lama otomatis)
     """
-    # Kalau ada custom_code, validasi unique
     if data.custom_code:
         if is_code_taken(db, data.custom_code):
             raise HTTPException(
@@ -158,7 +177,6 @@ async def generate_referral_code(
     else:
         code_str = generate_unique_code(db)
 
-    # Deactivate existing active codes (soft, bukan delete)
     existing = db.query(ReferralCode).filter(
         ReferralCode.user_id == current_user.id,
         ReferralCode.is_active == True,
@@ -166,7 +184,6 @@ async def generate_referral_code(
     for old_code in existing:
         old_code.is_active = False
 
-    # Create new
     new_code = ReferralCode(
         user_id=current_user.id,
         code=code_str,
@@ -194,7 +211,6 @@ async def get_stats(
 ):
     """One-shot stats endpoint untuk dashboard ReferralPage."""
 
-    # Code (kalau ada)
     code_obj = (
         db.query(ReferralCode)
         .filter(
@@ -206,13 +222,9 @@ async def get_stats(
     )
     code_data = ReferralCodeResponse(**_enrich_code(code_obj)) if code_obj else None
 
-    # Funnel
     funnel_data = calculate_funnel(db, current_user.id)
-
-    # Earnings
     earnings_data = calculate_earnings(db, current_user)
 
-    # Recent referees (last 5)
     recent_items, _total = get_referee_list(db, current_user.id, page=1, page_size=5)
     recent_referees = [RefereeItem(**item) for item in recent_items]
 
@@ -225,7 +237,7 @@ async def get_stats(
 
 
 # ════════════════════════════════════════════════════════════════════
-# 4. FUNNEL (detail breakdown)
+# 4. FUNNEL
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/funnel", response_model=ReferralFunnelResponse)
@@ -233,13 +245,12 @@ async def get_funnel(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Funnel breakdown untuk current user (referrer)."""
     data = calculate_funnel(db, current_user.id)
     return ReferralFunnelResponse(**data)
 
 
 # ════════════════════════════════════════════════════════════════════
-# 5. EARNINGS (card data)
+# 5. EARNINGS
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/earnings", response_model=ReferralEarningsResponse)
@@ -247,13 +258,12 @@ async def get_earnings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Earnings card data."""
     data = calculate_earnings(db, current_user)
     return ReferralEarningsResponse(**data)
 
 
 # ════════════════════════════════════════════════════════════════════
-# 6. REFEREE LIST (paginated, Level 3 disclosure)
+# 6. REFEREE LIST
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/referees", response_model=RefereeListResponse)
@@ -263,12 +273,7 @@ async def get_referees(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Paginated list semua referee user.
-
-    Privacy: Level 3 disclosure — username, avatar, status, last_login timestamp.
-    User-facing: include disclaimer di frontend ToS.
-    """
+    """Paginated list semua referee user."""
     items, total = get_referee_list(db, current_user.id, page=page, page_size=page_size)
 
     return RefereeListResponse(
@@ -281,7 +286,7 @@ async def get_referees(
 
 
 # ════════════════════════════════════════════════════════════════════
-# 7. LEDGER (credit history, paginated)
+# 7. LEDGER
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/ledger", response_model=CreditLedgerResponse)
@@ -331,7 +336,7 @@ async def get_ledger(
 
 
 # ════════════════════════════════════════════════════════════════════
-# 8. QR CODE (public PNG endpoint)
+# 8. QR CODE (public PNG)
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/qr/{code}")
@@ -339,13 +344,9 @@ async def get_qr_code(
     code: str,
     db: Session = Depends(get_db),
 ):
-    """
-    Generate QR code PNG untuk shareable link.
-    Public endpoint (no auth) supaya bisa dipake di OG image / email / etc.
-    """
+    """Generate QR code PNG untuk shareable link. Public endpoint."""
     code_norm = code.strip().upper()
 
-    # Verify code exists & active
     referral = db.query(ReferralCode).filter(
         ReferralCode.code == code_norm,
         ReferralCode.is_active == True,
@@ -363,13 +364,13 @@ async def get_qr_code(
         content=png_bytes,
         media_type="image/png",
         headers={
-            "Cache-Control": "public, max-age=3600",   # 1 hour cache
+            "Cache-Control": "public, max-age=3600",
         },
     )
 
 
 # ════════════════════════════════════════════════════════════════════
-# 9. VALIDATE (public endpoint, untuk LandingPage banner)
+# 9. VALIDATE (public)
 # ════════════════════════════════════════════════════════════════════
 
 @router.get("/validate/{code}", response_model=ReferralValidateResponse)
@@ -377,11 +378,7 @@ async def validate_code(
     code: str,
     db: Session = Depends(get_db),
 ):
-    """
-    Public validate endpoint — frontend pake ini buat:
-    - Show banner di LandingPage: "🎉 You'll be referred by @saptadi"
-    - Validate input field di RegisterPage / LoginPage
-    """
+    """Public validate endpoint untuk LandingPage banner / RegisterPage."""
     referral = find_referral_code(db, code)
     valid, reason = is_referral_code_valid(referral)
 
@@ -391,7 +388,6 @@ async def validate_code(
             message=reason,
         )
 
-    # Get referrer username (for "Referred by @xxx" banner)
     referrer = db.query(User).filter(User.id == referral.user_id).first()
     referrer_username = referrer.username if referrer else None
 
@@ -414,11 +410,7 @@ async def track_share(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Track share event.
-    Frontend call ini saat user klik "Copy Link" / download QR / share to social.
-    """
-    # Defensive: cuma user yg punya code itu yg boleh track
+    """Track share event (frontend pake saat Copy Link / download QR / share to social)."""
     referral = db.query(ReferralCode).filter(
         func.upper(ReferralCode.code) == data.code.upper(),
         ReferralCode.user_id == current_user.id,
@@ -440,7 +432,7 @@ async def track_share(
 
 
 # ════════════════════════════════════════════════════════════════════
-# 11. APPLY (legacy, manual)
+# 11. APPLY (legacy)
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/apply", response_model=ReferralValidateResponse)
@@ -449,13 +441,7 @@ async def apply_code_legacy(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Manual apply referral code (legacy endpoint).
-
-    NOTE: Frontend baru harus pake referral_code di OAuth login flow
-    (Google/Telegram/Discord). Endpoint ini cuma buat backward compat
-    atau power users.
-    """
+    """Manual apply referral code (legacy endpoint)."""
     success, msg, use = apply_referral_to_user(
         db, current_user, data.code, commit=True
     )
@@ -488,16 +474,13 @@ async def preview_redeem(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Preview redemption tanpa commit.
-    Berguna untuk frontend ngitung breakdown sebelum user confirm.
-    """
+    """Preview redemption tanpa commit."""
     result = preview_redemption(db, current_user, data.amount_usdt, data.payment_id)
     return RedeemPreviewResponse(**result)
 
 
 # ════════════════════════════════════════════════════════════════════
-# 13. REDEEM (real execute)
+# 13. REDEEM (execute)
 # ════════════════════════════════════════════════════════════════════
 
 @router.post("/redeem", response_model=RedeemResponse)
@@ -506,12 +489,7 @@ async def redeem_credit(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Execute redemption: potong credit balance, log ledger.
-
-    NOTE: Layer 4 akan extend ini buat benerang attach ke payment + adjust
-    invoice amount. Sekarang masih stub (decrement balance + log only).
-    """
+    """Execute redemption: potong credit balance, log ledger, update payment."""
     try:
         result = execute_redemption(db, current_user, data.amount_usdt, data.payment_id)
         return RedeemResponse(**result)
@@ -520,6 +498,105 @@ async def redeem_credit(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+
+# ════════════════════════════════════════════════════════════════════
+# 14. CASHOUT BALANCE (Layer 8)
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/cashout/balance")
+async def get_cashout_balance(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Current redeemable balance + info about active cashout (if any)."""
+    active = get_user_active_cashout(current_user.id, db)
+
+    return {
+        "balance_usdt": float(current_user.referral_credit_usdt or 0),
+        "lifetime_earned_usdt": float(current_user.lifetime_credit_earned or 0),
+        "active_cashout": (
+            CashoutRequestResponse.from_orm_model(active).model_dump(mode="json")
+            if active else None
+        ),
+        "can_request_cashout": (
+            active is None
+            and Decimal(str(current_user.referral_credit_usdt or 0)) > Decimal("0")
+        ),
+    }
+
+
+# ════════════════════════════════════════════════════════════════════
+# 15. CASHOUT REQUEST (Layer 8)
+# ════════════════════════════════════════════════════════════════════
+
+@router.post("/cashout/request", response_model=CashoutRequestResponse)
+async def create_cashout_request(
+    payload: CashoutRequestCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Submit new cashout request. Hard reserve: balance immediately deducted.
+
+    Constraints (DB-enforced):
+      - 1 active request per user
+      - amount > 0
+      - user must have sufficient balance
+
+    Method: telegram_admin (admin akan DM user untuk koordinasi).
+    """
+    cashout = submit_cashout_request(
+        user=current_user,
+        amount=Decimal(str(payload.amount_usdt)),
+        destination_telegram=payload.destination_telegram,
+        destination_note=payload.destination_note,
+        db=db,
+    )
+
+    return CashoutRequestResponse.from_orm_model(cashout)
+
+
+# ════════════════════════════════════════════════════════════════════
+# 16. CASHOUT HISTORY (Layer 8)
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/cashout/my")
+async def get_my_cashouts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """My cashout history (all statuses, newest first)."""
+    items = get_user_cashouts(current_user.id, db, limit=limit)
+
+    return {
+        "items": [
+            CashoutRequestResponse.from_orm_model(c).model_dump(mode="json")
+            for c in items
+        ],
+        "total": len(items),
+    }
+
+
+# ════════════════════════════════════════════════════════════════════
+# 17. CASHOUT CANCEL (Layer 8)
+# ════════════════════════════════════════════════════════════════════
+
+@router.post("/cashout/{cashout_id}/cancel", response_model=CashoutRequestResponse)
+async def cancel_my_cashout(
+    cashout_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Cancel my own pending cashout. Balance refunded immediately."""
+    cashout = cancel_cashout_request(
+        user=current_user,
+        cashout_id=cashout_id,
+        db=db,
+    )
+
+    return CashoutRequestResponse.from_orm_model(cashout)
 
 
 # ════════════════════════════════════════════════════════════════════
