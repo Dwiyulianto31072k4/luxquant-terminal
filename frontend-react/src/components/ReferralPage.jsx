@@ -518,10 +518,10 @@ const ReferralPage = () => {
               style={{ borderColor: 'rgba(212,168,83,0.2)' }}
             >
               <img
-                src={code.qr_url}
+                src={`${code.qr_url}?v=${encodeURIComponent(code.created_at || code.code)}`}
                 alt={`QR for ${code.code}`}
                 className="w-40 h-40 sm:w-48 sm:h-48 block"
-                style={{ background: '#0a0506' }}
+                style={{ background: '#ffffff' }}
               />
             </div>
             <button

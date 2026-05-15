@@ -364,7 +364,7 @@ async def get_qr_code(
         content=png_bytes,
         media_type="image/png",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "public, max-age=300",
         },
     )
 
