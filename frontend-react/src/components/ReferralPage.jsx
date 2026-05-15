@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { referralApi } from '../services/referralApi';
 
+import CashoutRequestModal from './referral/CashoutRequestModal';
+import CashoutHistoryList from './referral/CashoutHistoryList';
+
 // ════════════════════════════════════════════════════════════════════
 // Helper Components
 // ════════════════════════════════════════════════════════════════════
@@ -327,18 +330,26 @@ const ReferralPage = () => {
   const [refereesPage, setRefereesPage] = useState({ items: [], total: 0, page: 1, has_more: false });
 
   // UI
+  // UI
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('overview'); // overview | referees | history
+  const [tab, setTab] = useState('overview'); // overview | referees | cashouts
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [refereesPageNum, setRefereesPageNum] = useState(1);
+
+  // Cashout state
+  const [cashoutBalance, setCashoutBalance] = useState(null);
+  const [cashoutHistory, setCashoutHistory] = useState([]);
+  const [showCashoutModal, setShowCashoutModal] = useState(false);
 
   // ─── Fetch initial data ───
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, refereesRes] = await Promise.allSettled([
+      const [statsRes, refereesRes, cashoutBalanceRes, cashoutHistoryRes] = await Promise.allSettled([
         referralApi.getStats(),
         referralApi.getReferees(1, 20),
+        referralApi.getCashoutBalance(),
+        referralApi.getCashoutHistory(50),
       ]);
 
       if (statsRes.status === 'fulfilled' && statsRes.value) {
@@ -348,6 +359,12 @@ const ReferralPage = () => {
       }
       if (refereesRes.status === 'fulfilled') {
         setRefereesPage(refereesRes.value);
+      }
+      if (cashoutBalanceRes.status === 'fulfilled') {
+        setCashoutBalance(cashoutBalanceRes.value);
+      }
+      if (cashoutHistoryRes.status === 'fulfilled') {
+        setCashoutHistory(cashoutHistoryRes.value.items || []);
       }
     } catch (err) {
       console.error('Referral data load error:', err);
@@ -619,11 +636,61 @@ const ReferralPage = () => {
         />
       </div>
 
+      {/* CASHOUT ACTION BAR (Layer 8) */}
+      {cashoutBalance && (
+        <div
+          className="rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+          style={{
+            background: 'linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))',
+            border: '1px solid rgba(212,168,83,0.15)',
+          }}
+        >
+          <div className="flex items-start gap-3 flex-1">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(212,168,83,0.1)' }}
+            >
+              <svg className="w-5 h-5" style={{ color: '#d4a853' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold mb-1" style={{ color: '#e8d9c7' }}>
+                Withdraw to USDT
+              </h4>
+              <p className="text-xs leading-relaxed" style={{ color: '#8a7a6e' }}>
+                {cashoutBalance.active_cashout
+                  ? <>You have an active cashout (#{cashoutBalance.active_cashout.id}, status: <span style={{color:'#fbbf24'}}>{cashoutBalance.active_cashout.status}</span>). Check history tab.</>
+                  : cashoutBalance.can_request_cashout
+                    ? 'Convert your referral credit balance to USDT via Telegram admin.'
+                    : 'Earn referral commission first to be able to withdraw.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCashoutModal(true)}
+            disabled={!cashoutBalance.can_request_cashout}
+            className="px-5 py-2.5 rounded-lg text-xs font-bold transition-all hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            style={{
+              background: cashoutBalance.can_request_cashout
+                ? 'linear-gradient(135deg, #d4a853, #a07c2e)'
+                : 'rgba(212,168,83,0.08)',
+              color: cashoutBalance.can_request_cashout ? '#0a0506' : '#6b5c52',
+              boxShadow: cashoutBalance.can_request_cashout ? '0 2px 12px rgba(212,168,83,0.2)' : 'none',
+            }}
+          >
+            Request Cashout
+          </button>
+        </div>
+      )}
+
       {/* TABS */}
       <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
         {[
           { id: 'overview', label: 'Overview' },
           { id: 'referees', label: `Referees (${refereesPage.total})` },
+          { id: 'cashouts', label: `Cashouts (${cashoutHistory.length})` },
         ].map((t) => (
           <button
             key={t.id}
@@ -711,6 +778,41 @@ const ReferralPage = () => {
         </div>
       )}
 
+      {/* TAB: CASHOUTS (Layer 8) */}
+      {tab === 'cashouts' && (
+        <div
+          className="rounded-2xl border p-5 sm:p-6"
+          style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-base font-semibold mb-1" style={{ color: '#e8d9c7' }}>
+                Cashout Requests
+              </h3>
+              <p className="text-xs" style={{ color: '#8a7a6e' }}>
+                History of your USDT withdrawal requests.
+              </p>
+            </div>
+            {cashoutBalance?.can_request_cashout && (
+              <button
+                onClick={() => setShowCashoutModal(true)}
+                className="px-4 py-2 rounded-lg text-xs font-bold transition-transform hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #d4a853, #a07c2e)',
+                  color: '#0a0506',
+                }}
+              >
+                + New Request
+              </button>
+            )}
+          </div>
+          <CashoutHistoryList
+            items={cashoutHistory}
+            onUpdate={fetchAll}
+          />
+        </div>
+      )}
+
       {/* PRIVACY DISCLOSURE */}
       <div className="text-center pt-4 pb-2">
         <p className="text-[11px]" style={{ color: '#6b5c52' }}>
@@ -718,6 +820,14 @@ const ReferralPage = () => {
           and login activity are visible to you.
         </p>
       </div>
+
+      {/* CASHOUT MODAL (Layer 8) */}
+      <CashoutRequestModal
+        isOpen={showCashoutModal}
+        onClose={() => setShowCashoutModal(false)}
+        availableBalance={cashoutBalance?.balance_usdt || 0}
+        onSuccess={() => fetchAll()}
+      />
     </div>
   );
 };
