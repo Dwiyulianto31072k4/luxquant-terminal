@@ -1,4 +1,9 @@
 // src/components/AutoTradePage.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant Terminal — AutoTrade Page v2 (Flowscan reskin)
+// Container: header + engine status + PnL summary + tabs + content
+// ════════════════════════════════════════════════════════════════
+
 import { useState, useEffect } from "react";
 import {
   listAccounts,
@@ -20,17 +25,98 @@ const TABS = [
   { id: "queue", label: "Signals Queue" },
 ];
 
+
+// ════════════════════════════════════════════════════════════════
+// SECTION HEADER
+// ════════════════════════════════════════════════════════════════
+const SectionHeader = ({ label, small = false }) => (
+  <div className="flex items-center gap-3">
+    <span className="h-px w-8 bg-gold-primary/40" />
+    <span
+      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
+        small ? "text-[10px]" : "text-[11px]"
+      }`}
+    >
+      {label}
+    </span>
+    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// ENGINE STATUS STRIP
+// ════════════════════════════════════════════════════════════════
+const EngineStatusStrip = ({ engineStatus }) => {
+  if (!engineStatus) return null;
+  const running = engineStatus.running;
+
+  return (
+    <div className={`relative overflow-hidden rounded-md border ${
+      running
+        ? "bg-emerald-500/[0.04] border-emerald-500/20"
+        : "bg-red-500/[0.04] border-red-500/20"
+    }`}>
+      <div className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
+        running ? "via-emerald-500/40" : "via-red-500/40"
+      } to-transparent`} />
+      <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-2.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            running ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+          }`} />
+          <span className={`font-mono text-[11px] uppercase tracking-[0.2em] font-semibold ${
+            running ? "text-emerald-400" : "text-red-400"
+          }`}>
+            Engine {running ? "Active" : "Stopped"}
+          </span>
+        </div>
+
+        <Divider />
+
+        <StatusItem
+          label="Enabled"
+          value={engineStatus.enabled_configs ?? 0}
+          unit="config"
+        />
+        <StatusItem
+          label="Monitored"
+          value={engineStatus.open_positions_monitored ?? 0}
+          unit="position"
+        />
+      </div>
+    </div>
+  );
+};
+
+const Divider = () => <span className="hidden sm:inline h-3 w-px bg-white/[0.08]" />;
+
+const StatusItem = ({ label, value, unit }) => (
+  <div className="flex items-center gap-2 font-mono text-[11px]">
+    <span className="text-text-muted/70 uppercase tracking-[0.15em] text-[10px]">{label}</span>
+    <span className="text-white tabular-nums font-semibold">{value}</span>
+    {unit && (
+      <span className="text-text-muted/60 lowercase">
+        {unit}{value === 1 ? "" : "s"}
+      </span>
+    )}
+  </div>
+);
+
+
+// ════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════════
 export default function AutoTradePage() {
   const [tab, setTab] = useState("accounts");
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showConnect, setShowConnect] = useState(false);
-  const [configuring, setConfiguring] = useState(null); // account being configured
+  const [configuring, setConfiguring] = useState(null);
   const [positions, setPositions] = useState([]);
   const [engineStatus, setEngineStatus] = useState(null);
 
-  // Load initial accounts
   const loadAccounts = async () => {
     try {
       const r = await listAccounts();
@@ -65,14 +151,13 @@ export default function AutoTradePage() {
     })();
   }, []);
 
-  // Refresh positions every 20s
   useEffect(() => {
     if (tab !== "positions") return;
     const t = setInterval(loadPositions, 20000);
     return () => clearInterval(t);
   }, [tab]);
 
-  const handleConnect = async (account) => {
+  const handleConnect = async () => {
     await loadAccounts();
     setTab("accounts");
   };
@@ -87,113 +172,87 @@ export default function AutoTradePage() {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
+    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
+      {/* ── Section Header ── */}
+      <SectionHeader label="AutoTrade" />
+
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-1 h-6 rounded bg-gradient-to-b from-gold-light to-gold-dark" />
-            <h1 className="text-2xl lg:text-3xl font-display font-bold text-white">
-              AutoTrade
-            </h1>
-            {engineStatus && (
-              <span
-                className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
-                  engineStatus.running
-                    ? "bg-green-500/15 text-green-400 border border-green-500/20"
-                    : "bg-red-500/15 text-red-400 border border-red-500/20"
-                }`}
-                title={`${engineStatus.enabled_configs} enabled · ${engineStatus.open_positions_monitored} monitored`}
-              >
-                {engineStatus.running ? "Engine ON" : "Engine OFF"}
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-text-muted">
-            {accounts.length} exchange{accounts.length === 1 ? "" : "s"} connected ·{" "}
+          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            AutoTrade
+          </h1>
+          <p className="text-text-muted text-sm mt-1.5 font-mono">
+            {accounts.length} exchange{accounts.length === 1 ? "" : "s"} connected
+            <span className="text-text-muted/40"> · </span>
             {positions.length} open position{positions.length === 1 ? "" : "s"}
           </p>
         </div>
 
         <button
           onClick={() => setShowConnect(true)}
-          className="px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2"
+          className="group inline-flex items-center gap-2 px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
           style={{
-            background: "linear-gradient(to right, #d4a853, #8b6914)",
-            color: "#0a0506",
+            background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
           }}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           Connect Exchange
         </button>
       </div>
 
-      {/* PnL Summary — always visible above tabs */}
+      {/* ── Engine Status Strip ── */}
+      <EngineStatusStrip engineStatus={engineStatus} />
+
+      {/* ── PnL Summary (4 stat cards) ── */}
       <PnLSummary />
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-bg-card/50 rounded-xl border border-white/5 w-fit overflow-x-auto">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-              tab === t.id
-                ? "bg-gold-primary/10 text-gold-primary border border-gold-primary/20"
-                : "text-text-secondary hover:text-white border border-transparent"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* ── Tabs (flat hairline) ── */}
+      <div className="flex items-center gap-1 border-b border-white/[0.06]">
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] transition-colors ${
+                active
+                  ? "text-gold-primary"
+                  : "text-text-muted hover:text-white"
+              }`}
+            >
+              {t.label}
+              {active && (
+                <span className="absolute bottom-0 inset-x-2 h-px bg-gold-primary" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
+      {/* ── Error message ── */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-          <p className="text-xs text-red-400">{error}</p>
+        <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-3">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+          <p className="text-[11px] font-mono text-red-400">{error}</p>
         </div>
       )}
 
-      {/* Tab content */}
-      <div>
+      {/* ── Tab Content ── */}
+      <div className="pt-2">
         {loading ? (
-          <div className="text-center py-16">
-            <div className="w-10 h-10 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-text-muted text-sm">Loading…</p>
-          </div>
+          <LoadingState />
         ) : (
           <>
-            {/* Accounts tab */}
+            {/* ── Accounts tab ── */}
             {tab === "accounts" && (
               <>
                 {accounts.length === 0 ? (
-                  <div className="text-center py-16 bg-bg-card rounded-2xl border border-white/5">
-                    <div className="w-16 h-16 rounded-2xl bg-gold-primary/10 border border-gold-primary/20 flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-display font-bold text-white mb-2">
-                      No exchanges connected yet
-                    </h3>
-                    <p className="text-sm text-text-muted max-w-md mx-auto mb-5">
-                      Connect your first exchange to start auto-trading signals. Use Trade-only API keys for security.
-                    </p>
-                    <button
-                      onClick={() => setShowConnect(true)}
-                      className="px-5 py-2.5 rounded-xl font-semibold text-sm"
-                      style={{
-                        background: "linear-gradient(to right, #d4a853, #8b6914)",
-                        color: "#0a0506",
-                      }}
-                    >
-                      Connect Exchange
-                    </button>
-                  </div>
+                  <EmptyAccountsState onConnect={() => setShowConnect(true)} />
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {accounts.map((a) => (
                       <AccountCard
                         key={a.id}
@@ -208,32 +267,38 @@ export default function AutoTradePage() {
               </>
             )}
 
-            {/* Config tab */}
+            {/* ── Config tab ── */}
             {tab === "config" && (
               <>
                 {!configuring ? (
-                  <div className="bg-bg-card border border-white/5 rounded-2xl p-6">
+                  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-6">
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
                     {accounts.length === 0 ? (
-                      <p className="text-text-muted text-center">
+                      <p className="text-text-muted text-sm text-center font-mono">
                         Connect an exchange first to configure autotrade settings.
                       </p>
                     ) : (
                       <div>
-                        <p className="text-sm text-text-secondary mb-3">
-                          Select an account to configure:
+                        <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted mb-3">
+                          Select an account
                         </p>
-                        <div className="grid md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                           {accounts.map((a) => (
                             <button
                               key={a.id}
                               onClick={() => setConfiguring(a)}
-                              className="bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 rounded-xl p-3 text-left transition-all"
+                              className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-gold-primary/30 rounded-md p-3.5 text-left transition-all"
                             >
-                              <p className="text-white font-semibold capitalize">
-                                {a.exchange_id} · {a.label}
+                              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/0 group-hover:via-gold-primary/40 to-transparent transition-all" />
+                              <p className="text-white font-mono text-sm font-semibold capitalize">
+                                {a.exchange_id}
+                                <span className="text-text-muted/50 mx-1.5">·</span>
+                                <span className="text-text-muted">{a.label || "Unnamed"}</span>
                               </p>
-                              <p className="text-xs text-text-muted mt-1 capitalize">
-                                {a.trading_mode} · {a.is_testnet ? "Testnet" : "Live"}
+                              <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/70 mt-1.5">
+                                {a.trading_mode}
+                                <span className="mx-1.5 text-text-muted/30">·</span>
+                                {a.is_testnet ? "Testnet" : "Live"}
                               </p>
                             </button>
                           ))}
@@ -250,18 +315,13 @@ export default function AutoTradePage() {
               </>
             )}
 
-            {/* Positions tab */}
+            {/* ── Positions tab ── */}
             {tab === "positions" && (
               <>
                 {positions.length === 0 ? (
-                  <div className="text-center py-16 bg-bg-card rounded-2xl border border-white/5">
-                    <p className="text-text-muted text-sm">No open positions</p>
-                    <p className="text-xs text-text-muted/70 mt-1">
-                      Positions will appear here when autotrade executes signals.
-                    </p>
-                  </div>
+                  <EmptyPositionsState />
                 ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {positions.map((p) => (
                       <PositionCard
                         key={p.id}
@@ -274,13 +334,13 @@ export default function AutoTradePage() {
               </>
             )}
 
-            {/* Signals queue tab */}
+            {/* ── Signals queue tab ── */}
             {tab === "queue" && <SignalsQueue />}
           </>
         )}
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ── */}
       <ExchangeConnectModal
         isOpen={showConnect}
         onClose={() => setShowConnect(false)}
@@ -289,3 +349,76 @@ export default function AutoTradePage() {
     </div>
   );
 }
+
+
+// ════════════════════════════════════════════════════════════════
+// LOADING / EMPTY STATES
+// ════════════════════════════════════════════════════════════════
+const LoadingState = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {[...Array(3)].map((_, i) => (
+      <div
+        key={i}
+        className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-5"
+      >
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-md bg-white/[0.04] animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-white/[0.05] rounded w-1/2 animate-pulse" />
+            <div className="h-2.5 bg-white/[0.03] rounded w-3/4 animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[...Array(3)].map((_, j) => (
+            <div key={j} className="bg-white/[0.02] rounded p-2.5 space-y-1.5">
+              <div className="h-2 bg-white/[0.04] rounded w-2/3 animate-pulse" />
+              <div className="h-3 bg-white/[0.06] rounded w-3/4 animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="h-20 bg-white/[0.02] rounded animate-pulse mb-3" />
+        <div className="flex gap-2">
+          <div className="h-8 flex-1 bg-white/[0.03] rounded animate-pulse" />
+          <div className="h-8 flex-1 bg-white/[0.03] rounded animate-pulse" />
+          <div className="h-8 w-10 bg-white/[0.03] rounded animate-pulse" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyAccountsState = ({ onConnect }) => (
+  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
+      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+      </svg>
+    </div>
+    <p className="text-white text-base font-medium mb-1.5">No exchanges connected</p>
+    <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em] mb-5 max-w-md mx-auto leading-relaxed">
+      Connect your first exchange to start auto-trading signals · Use Trade-only API keys for security
+    </p>
+    <button
+      onClick={onConnect}
+      className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
+      style={{
+        background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+      }}
+    >
+      Connect Exchange
+      <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+    </button>
+  </div>
+);
+
+const EmptyPositionsState = () => (
+  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <p className="text-white text-sm font-medium mb-1">No open positions</p>
+    <p className="text-text-muted text-[10px] font-mono uppercase tracking-[0.2em]">
+      Positions will appear here when autotrade executes signals
+    </p>
+  </div>
+);
