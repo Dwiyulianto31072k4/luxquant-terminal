@@ -7,6 +7,8 @@ import DeepAnalysis from "./DeepAnalysis";
 import SignalJourneyExtended from "./SignalJourneyExtended";
 import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
+import { useCurrency } from "../context/CurrencyContext";
+import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 
 const SignalModal = ({
   signal,
@@ -16,6 +18,7 @@ const SignalModal = ({
   initialTab = "chart",
 }) => {
   const { t } = useTranslation();
+  const { currency, rates, shouldShowLocal } = useCurrency();
 
   const chartContainerRef = useRef(null);
   const widgetRef = useRef(null);
@@ -980,6 +983,24 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     }
   };
 
+    // === Local currency line helper (multi-currency display) ===
+  // Renders a small secondary price line below USDT prices.
+  // Hidden when user uses USD or rates not loaded — zero visual noise.
+  const LocalPriceLine = ({ usdtValue, size = "sm", align = "left" }) => {
+    if (!shouldShowLocal || usdtValue == null) return null;
+    const localValue = convertPrice(Number(usdtValue), currency, rates);
+    if (localValue == null) return null;
+
+    const sizeClass = size === "lg" ? "text-[10px]" : size === "md" ? "text-[9px]" : "text-[8px]";
+    const alignClass = align === "right" ? "text-right" : "text-left";
+
+    return (
+      <p className={`${sizeClass} ${alignClass} font-mono text-gold-primary/45 leading-tight mt-0.5`}>
+        ≈ {formatLocalPrice(localValue, currency)}
+      </p>
+    );
+  };
+
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
@@ -1047,6 +1068,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               >
                 {formatPrice(signal?.entry)}
               </p>
+              <LocalPriceLine usdtValue={signal?.entry} size={isCompact ? "sm" : "md"} />
             </div>
             <p className="text-[9px] text-gold-primary/70">
               {formatShortDateTime(signal?.created_at)}
@@ -1093,6 +1115,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       >
                         {formatPrice(t.value)}
                       </p>
+                      <LocalPriceLine usdtValue={t.value} size="sm" />
                     </div>
                   </div>
                   <span
@@ -1144,6 +1167,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   >
                     {formatPrice(t.value)}
                   </p>
+                  <LocalPriceLine usdtValue={t.value} size="sm" />
                   {t.hit && t.reachedAt && (
                     <p className="text-[8px] text-green-400/60 mt-0.5">
                       ✓ {formatShortDateTime(t.reachedAt)}
@@ -1160,21 +1184,24 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {stops.map((s, i) => (
                 <div
                   key={i}
-                  className={`flex-1 px-2 py-1.5 rounded-lg flex items-center justify-between ${s.hit ? "bg-red-500/10 border border-red-500/20" : "bg-white/[0.02] border border-white/5"}`}
+                  className={`flex-1 px-2 py-1.5 rounded-lg ${s.hit ? "bg-red-500/10 border border-red-500/20" : "bg-white/[0.02] border border-white/5"}`}
                 >
-                  <span
-                    className={`text-[10px] font-semibold ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                  >
-                    {s.label}{" "}
-                    <span className="font-mono text-[9px]">
-                      {formatPrice(s.value)}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[10px] font-semibold ${s.hit ? "text-red-400" : "text-text-muted"}`}
+                    >
+                      {s.label}{" "}
+                      <span className="font-mono text-[9px]">
+                        {formatPrice(s.value)}
+                      </span>
                     </span>
-                  </span>
-                  <span
-                    className={`text-[10px] font-mono font-bold ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                  >
-                    {s.pct}%
-                  </span>
+                    <span
+                      className={`text-[10px] font-mono font-bold ${s.hit ? "text-red-400" : "text-text-muted"}`}
+                    >
+                      {s.pct}%
+                    </span>
+                  </div>
+                  <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
             </div>
@@ -1201,16 +1228,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {s.pct}%
                       </span>
                     </div>
-                    <p
+                  <p
                       className={`text-[10px] font-mono mt-0.5 ${s.hit ? "text-white" : "text-text-muted"}`}
                     >
                       {formatPrice(s.value)}
                     </p>
+                    <LocalPriceLine usdtValue={s.value} size="sm" />
                   </div>
                 ))}
               </div>
             </div>
-          ))}
+          ))}  
         {!isCompact && (
           <>
             {signal?.volume_rank_num && (
