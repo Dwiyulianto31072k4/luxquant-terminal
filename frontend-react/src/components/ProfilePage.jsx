@@ -1,17 +1,22 @@
 // src/components/ProfilePage.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from 'react-i18next';
 import api from '../services/authApi';
+import CountryCurrencyPicker from './CountryCurrencyPicker';
+import { convertPrice, formatLocalPrice, formatUsdtPrice } from '../utils/currencyHelpers';
 
 const ProfilePage = () => {
   const { t } = useTranslation();
   const { user, setUser } = useAuth();
+  const { rates, supported, refresh: refreshRates } = useCurrency();
   const fileInputRef = useRef(null);
 
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [connections, setConnections] = useState(null);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
@@ -113,6 +118,45 @@ const ProfilePage = () => {
     try { const res = await api.delete('/api/v1/profile/avatar'); setUser(res.data); showToast(t('profile.avatar_removed')); }
     catch { showToast(t('profile.avatar_remove_failed'), 'error'); }
     finally { setUploadingAvatar(false); }
+  };
+
+
+  // ════════════════════════════════════════
+  // DISPLAY PREFERENCES (Country & Currency)
+  // ════════════════════════════════════════
+  const handleCountryChange = async (newCountry) => {
+    setSavingPreferences(true);
+    try {
+      // Empty string clears, null also clears (backend treats both as clear)
+      const payload = newCountry ? { country_code: newCountry } : { country_code: '' };
+      const res = await api.put('/api/v1/profile', payload);
+      setUser(res.data);
+      showToast(
+        newCountry
+          ? t('profile.country_saved', 'Country updated to ') + newCountry
+          : t('profile.country_cleared', 'Country cleared')
+      );
+    } catch (err) {
+      const msg = err.response?.data?.detail || t('profile.country_failed', 'Failed to update country');
+      showToast(typeof msg === 'string' ? msg : 'Update failed', 'error');
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handleCurrencyChange = async (newCurrency) => {
+    if (!newCurrency || newCurrency === user?.currency_code) return;
+    setSavingPreferences(true);
+    try {
+      const res = await api.put('/api/v1/profile', { currency_code: newCurrency });
+      setUser(res.data);
+      showToast(t('profile.currency_saved', 'Currency updated to ') + newCurrency);
+    } catch (err) {
+      const msg = err.response?.data?.detail || t('profile.currency_failed', 'Failed to update currency');
+      showToast(typeof msg === 'string' ? msg : 'Update failed', 'error');
+    } finally {
+      setSavingPreferences(false);
+    }
   };
 
   // ════════════════════════════════════════
@@ -307,6 +351,64 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+
+      {/* ═══ DISPLAY PREFERENCES (Multi-currency) ═══ */}
+      <div className="glass-card rounded-2xl border border-gold-primary/10 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gold-primary/10 bg-gold-primary/[0.03] flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gold-primary/80 uppercase tracking-wider">
+            {t('profile.section_preferences', 'Display Preferences')}
+          </h2>
+          {savingPreferences && (
+            <div className="w-3.5 h-3.5 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+          )}
+        </div>
+        <div className="p-6">
+          <p className="text-text-muted text-xs mb-5">
+            {t('profile.preferences_desc', 'Choose your country to see prices in your local currency alongside USDT in signals and charts.')}
+          </p>
+
+          <CountryCurrencyPicker
+            country={user?.country_code || null}
+            currency={user?.currency_code || 'USD'}
+            supportedCurrencies={supported}
+            onCountryChange={handleCountryChange}
+            onCurrencyChange={handleCurrencyChange}
+            disabled={savingPreferences}
+          />
+
+          {/* Live preview */}
+          {user?.currency_code && user.currency_code !== 'USD' && rates?.[user.currency_code] && (
+            <div className="mt-5 p-4 rounded-xl" style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)' }}>
+              <p className="text-[10px] uppercase tracking-wider text-gold-primary/70 font-semibold mb-3">
+                {t('profile.preview_title', 'Live Preview')}
+              </p>
+              <div className="space-y-2">
+                {[
+                  { label: t('profile.preview_signal', 'Sample signal entry'), usdt: 0.3526 },
+                  { label: 'BTC', usdt: 100000 },
+                  { label: 'Subscription', usdt: 49.99 },
+                ].map((row, i) => {
+                  const local = convertPrice(row.usdt, user.currency_code, rates);
+                  return (
+                    <div key={i} className="flex items-center justify-between text-[12px]">
+                      <span className="text-text-muted/70">{row.label}</span>
+                      <div className="flex items-center gap-2 font-mono">
+                        <span className="text-white">${formatUsdtPrice(row.usdt)}</span>
+                        <span className="text-text-muted/30">≈</span>
+                        <span className="text-gold-primary">{formatLocalPrice(local, user.currency_code)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-text-muted/40 text-[10px] mt-3 italic">
+                {t('profile.preview_note', 'Rates update every 10 minutes from CoinGecko.')}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

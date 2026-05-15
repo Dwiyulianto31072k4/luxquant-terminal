@@ -10,6 +10,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -665,6 +666,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <CurrencyProvider> 
         <Routes>
           {/* Landing */}
           <Route path="/" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
@@ -720,6 +722,7 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </CurrencyProvider>
       </AuthProvider>
     </BrowserRouter>
   );
