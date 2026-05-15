@@ -2,26 +2,22 @@
 """
 Subscription Routes — Payment & subscription management
 
-Flow:
-  GET  /plans         → list active plans
-  POST /subscribe     → create invoice (cancel old if different plan)
-  POST /verify        → submit TX hash, verify on-chain, activate
-  GET  /me            → subscription status + plan info
-  GET  /payments      → payment history
+Pricing flow at /subscribe:
+  gross = plan.price_usdt
+  after_referral = gross - referral_discount (10% if first payment via referral)
+  final = after_referral - credit_redeem (full balance, capped at remaining)
 
-TX Hash Rules:
-  - pending/failed → can retry with new or same TX hash
-  - confirmed for this user → done
-  - confirmed for OTHER user → reject "TX already used"
-  - cancelled/expired invoice → create new one
+Layer 4 (Referral commission) — on payment confirm:
+  - Credit referrer's balance with X% of final_amount
+  - Mark ReferralUse status='subscribed'
 
-Upgrade:
-  - Already subscriber? Pass is_upgrade=true to /subscribe
-  - New plan activates immediately from now
+Layer 8 (Credit redemption):
+  - Auto-redeem full available balance (capped at remaining invoice amount)
+  - Credit deducted at invoice creation (hard reserve)
+  - Refunded automatically if invoice expires/cancelled
 
-Layer 4 (Referral commission):
-  - /subscribe: auto-apply 10% discount if user is referred & first payment
-  - /verify (on confirm): auto-credit 10% commission to referrer
+Multi-Wallet Rotation:
+  - wallet_to picked from receiving_wallets pool per-invoice (privacy)
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -45,9 +41,12 @@ from app.schemas.user import UserResponse
 from app.services.bscscan import verify_bep20_tx
 from app.services.commission_service import (
     apply_referral_discount,
+    apply_credit_redeem,
+    commit_credit_redeem,
+    refund_credit_redeem,
+    record_referral_discount_audit,
     process_commission_for_payment,
 )
-
 from app.services.wallet_pool import pick_wallet, increment_usage
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,6 @@ PAYMENT_WINDOW_HOURS = 24
 
 @router.get("/plans", response_model=list[PlanResponse])
 async def get_plans(db: Session = Depends(get_db)):
-    """Get all active subscription plans"""
     plans = db.query(SubscriptionPlan)\
         .filter(SubscriptionPlan.is_active == True)\
         .order_by(SubscriptionPlan.sort_order)\
@@ -82,8 +80,6 @@ async def create_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create or return existing payment invoice"""
-
     plan = db.query(SubscriptionPlan)\
         .filter(SubscriptionPlan.id == data.plan_id, SubscriptionPlan.is_active == True)\
         .first()
@@ -91,7 +87,6 @@ async def create_subscription(
     if not plan:
         raise HTTPException(status_code=404, detail="Paket tidak ditemukan atau tidak aktif")
 
-    # If already subscribed and NOT upgrading, block
     if current_user.is_premium and not data.is_upgrade:
         raise HTTPException(
             status_code=400,
@@ -108,33 +103,49 @@ async def create_subscription(
 
     if pending:
         if pending.plan_id == data.plan_id:
-            # Same plan — return existing
             return _invoice_response(pending, plan, "Kamu sudah punya invoice untuk paket ini")
         else:
-            # Different plan — cancel old
+            # Different plan — cancel old + refund any credit redeemed
+            try:
+                refund_credit_redeem(pending, db)
+            except Exception as e:
+                logger.warning(f"Failed to refund credit on plan switch: {e}")
             pending.status = "cancelled"
             pending.notes = f"Switched to plan_id={data.plan_id}"
             db.flush()
 
-    # Cancel ALL other pending payments for this user
-    db.query(Payment)\
-        .filter(
-            Payment.user_id == current_user.id,
-            Payment.status == "pending"
-        ).update(
-            {"status": "cancelled", "notes": "New invoice created"},
-            synchronize_session=False
-        )
+    # Cancel ALL other pending payments + refund their credit
+    other_pendings = db.query(Payment).filter(
+        Payment.user_id == current_user.id,
+        Payment.status == "pending"
+    ).all()
+    for p in other_pendings:
+        try:
+            refund_credit_redeem(p, db)
+        except Exception as e:
+            logger.warning(f"Failed to refund credit for payment #{p.id}: {e}")
+        p.status = "cancelled"
+        p.notes = "New invoice created"
+    db.flush()
 
-    # ── Layer 4: Apply referral discount (first payment only) ──
+    # Refresh current_user from DB (in case credit was refunded above)
+    db.refresh(current_user)
+
+    # ── Layer 4: Apply referral discount ──
     gross_amount = Decimal(str(plan.price_usdt))
-    discount_amount, final_amount, referral_use_id = apply_referral_discount(
+    discount_amount, after_referral_amount, referral_use_id = apply_referral_discount(
         user=current_user,
         gross_amount=gross_amount,
         db=db,
     )
 
-    # ── Layer Multi-Wallet: rotate receiving wallet per-invoice ──
+    # ── Layer 8: Calculate credit redeem (preview) ──
+    credit_to_redeem, final_amount = apply_credit_redeem(
+        user=current_user,
+        after_referral_amount=after_referral_amount,
+    )
+
+    # ── Multi-Wallet: rotate receiving wallet ──
     try:
         rotated_wallet = pick_wallet(db, network="BSC")
     except RuntimeError as e:
@@ -144,12 +155,13 @@ async def create_subscription(
             detail="Sistem pembayaran sementara tidak tersedia. Coba lagi nanti."
         )
 
-    # Create new payment
+    # ── Create payment ──
     payment = Payment(
         user_id=current_user.id,
         plan_id=plan.id,
         amount_usdt=gross_amount,
         discount_amount=discount_amount,
+        credit_redeemed=credit_to_redeem,
         final_amount=final_amount,
         referral_use_id=referral_use_id,
         wallet_to=rotated_wallet,
@@ -158,22 +170,57 @@ async def create_subscription(
         expires_at=datetime.now(timezone.utc) + timedelta(hours=PAYMENT_WINDOW_HOURS)
     )
     db.add(payment)
+    db.flush()  # populate payment.id
+
+    # ── Layer 8: Actually deduct credit ──
+    if credit_to_redeem > Decimal("0"):
+        try:
+            commit_credit_redeem(
+                user=current_user,
+                payment=payment,
+                credit_amount=credit_to_redeem,
+                db=db,
+            )
+        except Exception as e:
+            logger.error(f"Failed to commit credit redeem for payment #{payment.id}: {e}")
+            db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail="Gagal proses kredit. Coba lagi atau hubungi support."
+            )
+
+    # ── Layer 8: Audit entry for referral discount ──
+    if discount_amount > Decimal("0"):
+        try:
+            record_referral_discount_audit(
+                user=current_user,
+                payment=payment,
+                discount_amount=discount_amount,
+                referral_use_id=referral_use_id,
+                db=db,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to record referral discount audit: {e}")
+
     db.commit()
     db.refresh(payment)
 
-    # Mark wallet as used (separate commit, so rollback above doesn't double-count)
+    # ── Multi-Wallet: increment usage stats (separate commit) ──
     try:
         increment_usage(db, rotated_wallet)
     except Exception as e:
-        # Non-critical: payment is already created. Just log.
-        logger.warning(f"Failed to increment wallet usage for {rotated_wallet}: {e}")
+        logger.warning(f"Failed to increment wallet usage: {e}")
 
-    msg = f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"
-    if discount_amount > 0:
-        msg = (
-            f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah "
-            f"(setelah diskon referral {discount_amount} USDT)"
-        )
+    # Build user-friendly message
+    msg_parts = [f"Transfer {final_amount} USDT (BEP-20) ke wallet di bawah"]
+    if discount_amount > 0 or credit_to_redeem > 0:
+        savings = []
+        if discount_amount > 0:
+            savings.append(f"diskon referral {discount_amount} USDT")
+        if credit_to_redeem > 0:
+            savings.append(f"credit redeem {credit_to_redeem} USDT")
+        msg_parts.append(f"(setelah {' + '.join(savings)})")
+    msg = " ".join(msg_parts)
 
     return _invoice_response(payment, plan, msg)
 
@@ -188,8 +235,6 @@ async def verify_payment(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Submit TX hash and verify on-chain"""
-
     payment = db.query(Payment)\
         .filter(Payment.id == data.payment_id, Payment.user_id == current_user.id)\
         .first()
@@ -206,7 +251,6 @@ async def verify_payment(
             detail=f"Payment sudah {payment.status}. Silakan buat invoice baru."
         )
 
-    # ── TX hash duplicate check ──
     tx_hash_clean = data.tx_hash.strip().lower()
 
     existing_confirmed = db.query(Payment)\
@@ -222,7 +266,6 @@ async def verify_payment(
             detail="TX hash ini sudah digunakan di transaksi lain yang berhasil"
         )
 
-    # Save TX hash & set verifying
     payment.tx_hash = tx_hash_clean
     payment.status = "verifying"
     payment.updated_at = datetime.now(timezone.utc)
@@ -230,8 +273,7 @@ async def verify_payment(
 
     logger.info(f"🔍 Verifying payment #{payment.id} tx={tx_hash_clean}")
 
-    # ── On-chain verification ──
-    # Use final_amount (post-discount) if available, else amount_usdt
+    # On-chain verify: expected amount = final_amount (post all discounts)
     expected_amount = Decimal(str(payment.final_amount or payment.amount_usdt))
 
     result = await verify_bep20_tx(
@@ -241,7 +283,6 @@ async def verify_payment(
     )
 
     if result.valid:
-        # ── SUCCESS — Activate subscription ──
         now = datetime.now(timezone.utc)
         payment.status = "confirmed"
         payment.verified_at = now
@@ -252,29 +293,24 @@ async def verify_payment(
 
         current_user.role = "subscriber"
         current_user.subscription_granted_at = now
-        # Mark source as 'payment' for cross-OAuth protection (Layer 3 role_resolver)
         if hasattr(current_user, "subscription_source"):
             current_user.subscription_source = "payment"
 
         if plan and plan.duration_days:
             current_user.subscription_expires_at = now + timedelta(days=plan.duration_days)
         else:
-            current_user.subscription_expires_at = None  # lifetime
+            current_user.subscription_expires_at = None
 
         plan_label = plan.label if plan else "unknown"
         current_user.subscription_note = f"Plan: {plan_label}"
 
-        # ── Layer 4: Credit commission to referrer ──
+        # ── Layer 4: Commission to referrer ──
         commission_summary = None
         try:
             commission_summary = process_commission_for_payment(payment, db)
         except Exception as e:
-            # If commission fails, log but DON'T fail the payment confirmation.
-            # User's subscription is more important than commission tracking.
-            # Admin can manually credit via SQL/admin panel if needed.
             logger.error(
-                f"⚠️  Commission processing failed for payment #{payment.id}: {e}. "
-                f"Payment still confirmed. Manual credit may be needed.",
+                f"⚠️  Commission processing failed for payment #{payment.id}: {e}.",
                 exc_info=True,
             )
 
@@ -297,7 +333,6 @@ async def verify_payment(
                 "plan_name": plan.name if plan else None,
                 "expires_at": current_user.subscription_expires_at.isoformat() if current_user.subscription_expires_at else None,
             },
-            # Return updated user for frontend to refresh state without re-login
             "user": UserResponse.model_validate(current_user).model_dump(mode='json')
         }
 
@@ -310,9 +345,8 @@ async def verify_payment(
 
         return response
     else:
-        # ── FAILED — Reset to pending for retry ──
         payment.status = "pending"
-        payment.tx_hash = None  # Clear failed tx_hash so they can submit a new one
+        payment.tx_hash = None
         payment.bscscan_data = result.data if result.data else None
         payment.notes = result.error
         payment.updated_at = datetime.now(timezone.utc)
@@ -336,8 +370,6 @@ async def get_my_subscription(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Current subscription status with plan details"""
-
     base = {
         "is_subscribed": False,
         "tier": "free",
@@ -357,7 +389,6 @@ async def get_my_subscription(
         now = datetime.now(timezone.utc)
         expires = current_user.subscription_expires_at
 
-        # Auto-expire
         if expires and expires < now:
             current_user.role = "free"
             current_user.subscription_note = None
@@ -368,7 +399,6 @@ async def get_my_subscription(
         if expires:
             days_remaining = max(0, (expires - now).days)
 
-        # Get plan info from latest confirmed payment
         plan_label = None
         plan_name = None
         current_plan_order = -1
@@ -383,11 +413,9 @@ async def get_my_subscription(
             plan_name = latest_payment.plan.name
             current_plan_order = latest_payment.plan.sort_order
 
-        # Also check subscription_note for admin-granted subs
         if not plan_label and current_user.subscription_note:
             plan_label = current_user.subscription_note
 
-        # Check upgrade availability
         max_order = db.query(SubscriptionPlan.sort_order)\
             .filter(SubscriptionPlan.is_active == True)\
             .order_by(SubscriptionPlan.sort_order.desc())\
@@ -417,7 +445,6 @@ async def get_payment_history(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Payment history"""
     payments = db.query(Payment)\
         .filter(Payment.user_id == current_user.id)\
         .order_by(Payment.created_at.desc())\
@@ -441,6 +468,8 @@ def _invoice_response(payment: Payment, plan: SubscriptionPlan, message: str):
         "amount_usdt": float(payment.final_amount or payment.amount_usdt),
         "gross_amount_usdt": float(payment.amount_usdt),
         "discount_amount_usdt": float(payment.discount_amount or 0),
+        "credit_redeemed_usdt": float(payment.credit_redeemed or 0),
+        "final_amount_usdt": float(payment.final_amount or payment.amount_usdt),
         "plan": {
             "id": plan.id,
             "name": plan.name,
@@ -461,6 +490,7 @@ def _payment_to_dict(p: Payment) -> dict:
         "plan_id": p.plan_id,
         "amount_usdt": float(p.amount_usdt),
         "discount_amount": float(p.discount_amount or 0),
+        "credit_redeemed": float(p.credit_redeemed or 0),
         "final_amount": float(p.final_amount or p.amount_usdt),
         "referral_use_id": p.referral_use_id,
         "tx_hash": p.tx_hash,
