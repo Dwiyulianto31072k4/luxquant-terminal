@@ -49,9 +49,15 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.core.http_client import init_clients, close_clients, get_binance_client, get_coingecko_client
-from app.config import settings
 
 # Import shared functions from the live worker
+# NOTE: we import these BEFORE we set dummy env vars because the worker module
+# imports app.config.settings which validates required env vars (Telegram etc).
+# Provide harmless defaults so the import doesn't exit(1) when running standalone.
+for _required in ("TELEGRAM_API_ID", "TELEGRAM_API_HASH", "TELEGRAM_SESSION_STRING",
+                   "DISCORD_TOKEN", "FORUM_CHAT_ID"):
+    os.environ.setdefault(_required, "0" if _required.endswith("_ID") else "unused")
+
 from app.workers.btc_correlation_worker import (
     compute_advanced_metrics, compute_btc_context, generate_interpretation,
     determine_confidence, detect_mapping_anomaly, _coingecko_headers,
@@ -60,10 +66,10 @@ from app.workers.btc_correlation_worker import (
 )
 
 # ============================================================
-DB_DSN            = os.getenv("DATABASE_URL") or getattr(settings, "DATABASE_URL", None)
+DB_DSN            = os.getenv("DATABASE_URL")
 BINANCE_BASE      = "https://api.binance.com"
 COINGECKO_BASE    = "https://api.coingecko.com/api/v3"
-COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY") or getattr(settings, "COINGECKO_API_KEY", "")
+COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY", "")
 
 # Pacing
 BINANCE_GAP_S     = float(os.getenv("BACKFILL_BINANCE_GAP", "0.1"))
