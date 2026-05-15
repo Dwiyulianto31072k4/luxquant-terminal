@@ -49,11 +49,12 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # CRITICAL: Set dummy env vars for Telegram/Discord BEFORE importing anything
-# from `app.*`. The app.config.settings module validates these at import time
+# from `app.*`. The app config module validates these at import time
 # and calls sys.exit(1) if missing. Backfill doesn't need them — just bypass.
+# Note: validator rejects "0" as falsy, use truthy non-empty strings.
 for _required in ("TELEGRAM_API_ID", "TELEGRAM_API_HASH", "TELEGRAM_SESSION_STRING",
                    "DISCORD_TOKEN", "FORUM_CHAT_ID"):
-    os.environ.setdefault(_required, "0" if _required.endswith("_ID") else "unused")
+    os.environ.setdefault(_required, "1")
 
 from app.core.http_client import init_clients, close_clients, get_binance_client, get_coingecko_client
 
