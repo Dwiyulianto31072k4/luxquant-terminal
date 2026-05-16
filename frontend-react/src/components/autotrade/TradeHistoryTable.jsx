@@ -1,92 +1,149 @@
 // src/components/autotrade/TradeHistoryTable.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade Trade History Table v2 (Flowscan reskin)
+// Closed orders with PnL, dense table + mobile card
+// ════════════════════════════════════════════════════════════════
+
 import CoinLogo from "../CoinLogo";
 
 function fmtNum(n, d = 4) {
-  if (n === null || n === undefined) return "-";
+  if (n === null || n === undefined) return "—";
   return Number(n).toFixed(d);
 }
 
 function fmtPnl(n) {
-  if (n === null || n === undefined) return "-";
+  if (n === null || n === undefined) return "—";
   const v = Number(n);
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
 }
 
+const sideStyle = (side) =>
+  side === "buy"
+    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+    : "bg-red-500/10 text-red-400 border-red-500/25";
+
+
+// ════════════════════════════════════════════════════════════════
+// TABLE HEADER CELL
+// ════════════════════════════════════════════════════════════════
+const Th = ({ children, align = "left" }) => (
+  <th
+    className={`px-3 py-3 text-${align} text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/80 font-normal`}
+  >
+    {children}
+  </th>
+);
+
+
 export default function TradeHistoryTable({ orders = [], loading }) {
+  // ── Loading ──
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-2" />
-        <p className="text-text-muted text-sm">Loading…</p>
+      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
+          Loading…
+        </p>
       </div>
     );
   }
 
+  // ── Empty ──
   if (orders.length === 0) {
     return (
-      <div className="text-center py-12 bg-bg-card rounded-xl border border-white/5">
-        <p className="text-text-muted text-sm">No trade history yet</p>
+      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+        <p className="text-white text-sm font-medium mb-1">No trade history yet</p>
+        <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
+          Closed trades will appear here
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-bg-card border border-white/5 rounded-xl overflow-hidden">
-      {/* Desktop */}
+    <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+
+      {/* ════════════════════════════════════ */}
+      {/* DESKTOP (md+): Dense table          */}
+      {/* ════════════════════════════════════ */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full">
           <thead>
-            <tr className="border-b border-white/5 text-xs text-text-muted uppercase">
-              <th className="text-left px-4 py-3 font-semibold">Date</th>
-              <th className="text-left px-4 py-3 font-semibold">Pair</th>
-              <th className="text-left px-4 py-3 font-semibold">Exchange</th>
-              <th className="text-center px-4 py-3 font-semibold">Side</th>
-              <th className="text-right px-4 py-3 font-semibold">Entry</th>
-              <th className="text-right px-4 py-3 font-semibold">Exit</th>
-              <th className="text-right px-4 py-3 font-semibold">PnL</th>
-              <th className="text-center px-4 py-3 font-semibold">Reason</th>
+            <tr className="border-b border-white/[0.06]">
+              <Th>Date</Th>
+              <Th>Pair</Th>
+              <Th>Exchange</Th>
+              <Th align="center">Side</Th>
+              <Th align="right">Entry</Th>
+              <Th align="right">Exit</Th>
+              <Th align="right">PnL</Th>
+              <Th align="center">Reason</Th>
             </tr>
           </thead>
           <tbody>
             {orders.map((o) => {
               const pnl = Number(o.realized_pnl || 0);
+              const pnlColor = pnl >= 0 ? "text-emerald-400" : "text-red-400";
+
               return (
-                <tr key={o.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 text-text-secondary text-xs font-mono whitespace-nowrap">
-                    {o.closed_at ? new Date(o.closed_at).toLocaleString() : new Date(o.created_at).toLocaleString()}
+                <tr
+                  key={o.id}
+                  className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                >
+                  {/* Date */}
+                  <td className="px-3 py-3 text-text-muted/70 text-[10px] font-mono tabular-nums whitespace-nowrap">
+                    {o.closed_at
+                      ? new Date(o.closed_at).toLocaleString()
+                      : new Date(o.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3">
+
+                  {/* Pair */}
+                  <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <CoinLogo pair={o.pair} size={24} />
-                      <span className="text-white font-semibold">{o.pair}</span>
+                      <span className="text-white font-mono text-sm font-semibold">{o.pair}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-text-secondary capitalize">{o.exchange_id}</td>
-                  <td className="px-4 py-3 text-center">
+
+                  {/* Exchange */}
+                  <td className="px-3 py-3">
+                    <span className="text-text-muted text-[11px] font-mono uppercase tracking-[0.1em]">
+                      {o.exchange_id}
+                    </span>
+                  </td>
+
+                  {/* Side */}
+                  <td className="px-3 py-3 text-center">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                        o.side === "buy"
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-red-500/15 text-red-400"
-                      }`}
+                      className={`inline-flex items-center text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${sideStyle(o.side)}`}
                     >
                       {o.side}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-text-secondary font-mono text-xs">
+
+                  {/* Entry */}
+                  <td className="px-3 py-3 text-right text-white/80 font-mono text-xs tabular-nums">
                     {fmtNum(o.entry_price, 6)}
                   </td>
-                  <td className="px-4 py-3 text-right text-text-secondary font-mono text-xs">
+
+                  {/* Exit */}
+                  <td className="px-3 py-3 text-right text-white/80 font-mono text-xs tabular-nums">
                     {fmtNum(o.sl_current, 6)}
                   </td>
-                  <td
-                    className="px-4 py-3 text-right font-mono font-semibold"
-                    style={{ color: pnl >= 0 ? "#10b981" : "#ef4444" }}
-                  >
+
+                  {/* PnL */}
+                  <td className={`px-3 py-3 text-right font-mono text-sm font-semibold tabular-nums ${pnlColor}`}>
                     ${fmtPnl(o.realized_pnl)}
                   </td>
-                  <td className="px-4 py-3 text-center text-text-muted text-[11px] uppercase">
-                    {o.close_reason || "-"}
+
+                  {/* Reason */}
+                  <td className="px-3 py-3 text-center">
+                    <span className="text-text-muted/70 text-[10px] font-mono uppercase tracking-[0.1em]">
+                      {o.close_reason || "—"}
+                    </span>
                   </td>
                 </tr>
               );
@@ -95,36 +152,43 @@ export default function TradeHistoryTable({ orders = [], loading }) {
         </table>
       </div>
 
-      {/* Mobile */}
-      <div className="md:hidden divide-y divide-white/5">
+      {/* ════════════════════════════════════ */}
+      {/* MOBILE: Card layout                  */}
+      {/* ════════════════════════════════════ */}
+      <div className="md:hidden divide-y divide-white/[0.04]">
         {orders.map((o) => {
           const pnl = Number(o.realized_pnl || 0);
+          const pnlColor = pnl >= 0 ? "text-emerald-400" : "text-red-400";
+
           return (
             <div key={o.id} className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  <CoinLogo pair={o.pair} size={32} />
-                  <div>
-                    <p className="text-white font-semibold">{o.pair}</p>
-                    <p className="text-xs text-text-muted">
-                      {o.exchange_id} · {new Date(o.closed_at || o.created_at).toLocaleDateString()}
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CoinLogo pair={o.pair} size={28} />
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold text-sm font-mono">{o.pair}</p>
+                    <p className="text-[10px] font-mono text-text-muted/70 mt-0.5">
+                      <span className="uppercase tracking-wider">{o.exchange_id}</span>
+                      <span className="text-text-muted/40 mx-1.5">·</span>
+                      <span className="tabular-nums">
+                        {new Date(o.closed_at || o.created_at).toLocaleDateString()}
+                      </span>
                     </p>
                   </div>
                 </div>
+
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                    o.side === "buy" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
-                  }`}
+                  className={`shrink-0 text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${sideStyle(o.side)}`}
                 >
                   {o.side}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <p className="text-xs text-text-muted uppercase">{o.close_reason || "-"}</p>
-                <p
-                  className="font-mono font-semibold text-sm"
-                  style={{ color: pnl >= 0 ? "#10b981" : "#ef4444" }}
-                >
+
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/70">
+                  {o.close_reason || "—"}
+                </p>
+                <p className={`font-mono text-sm font-semibold tabular-nums ${pnlColor}`}>
                   ${fmtPnl(o.realized_pnl)}
                 </p>
               </div>
