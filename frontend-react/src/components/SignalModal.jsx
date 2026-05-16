@@ -9,6 +9,8 @@ import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import { useCurrency } from "../context/CurrencyContext";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
+import BTCCorrelationBadge from "./BTCCorrelationBadge";     
+import BTCCorrelationModal from "./BTCCorrelationModal";  
 
 const SignalModal = ({
   signal,
@@ -41,6 +43,7 @@ const SignalModal = ({
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
   const [showCoinUtility, setShowCoinUtility] = useState(false);
+  const [showBtcCorrelation, setShowBtcCorrelation] = useState(false);
 
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
@@ -1354,10 +1357,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </div>
 
                     {/* Baris 2: Coin Category Badge (dual pill + tagline) */}
-                    <CoinCategoryBadge
-                      pair={signal?.pair}
-                      onClick={() => setShowCoinUtility(true)}
-                    />
+<CoinCategoryBadge
+  pair={signal?.pair}
+  onClick={() => setShowCoinUtility(true)}
+/>
+
+{/* Baris 2b: BTC Correlation Badge */}
+<div className="mt-1">
+  <BTCCorrelationBadge
+    signalId={signal?.signal_id}
+    onClick={() => setShowBtcCorrelation(true)}
+  />
+</div>
 
                     {/* Baris 3: Timestamp */}
                     <p className="text-text-muted text-[10px] truncate">
@@ -2193,6 +2204,14 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         isOpen={showCoinUtility}
         onClose={() => setShowCoinUtility(false)}
       />
+
+      {/* === BTC Correlation Modal === */}
+<BTCCorrelationModal
+  signalId={signal?.signal_id}
+  pair={signal?.pair}
+  isOpen={showBtcCorrelation}
+  onClose={() => setShowBtcCorrelation(false)}
+/>
 
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
