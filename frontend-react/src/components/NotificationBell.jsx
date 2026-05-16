@@ -12,7 +12,15 @@ import { notificationApi } from "../services/notificationApi";
 
 
 // ── Type-based token (semantic 3-tier, no emoji) ──
-const getTypeToken = (type) => {
+// Smart: price_pump can be pump OR dump based on data.percentage
+const getTypeToken = (type, data) => {
+  if (type === "price_pump" && data?.percentage !== undefined && data?.percentage !== null) {
+    if (data.percentage < 0) {
+      return { tone: "danger", label: "DUMP" };
+    }
+    return { tone: "gold", label: "PUMP" };
+  }
+
   const map = {
     price_pump:       { tone: "gold",    label: "PUMP" },
     daily_results:    { tone: "neutral", label: "DAILY" },
@@ -102,8 +110,10 @@ const NotificationBell = () => {
     e.stopPropagation();
     try {
       await notificationApi.markAllAsRead();
-      setPreview((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      // ✅ Re-fetch from server to get accurate count (don't trust local state)
+      const data = await notificationApi.getNotifications(1, 5, null, false);
+      setPreview(data.items || []);
+      setUnreadCount(data.unread_count || 0);
     } catch {}
   };
 
@@ -234,7 +244,7 @@ const NotificationBell = () => {
 // PREVIEW ROW
 // ════════════════════════════════════════════════════════════════
 const PreviewRow = ({ notif, onClick, formatTimeAgo }) => {
-  const token = getTypeToken(notif.type);
+  const token = getTypeToken(notif.type, notif.data);
   const isUnread = !notif.is_read;
 
   return (

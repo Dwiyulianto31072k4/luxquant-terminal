@@ -1,7 +1,7 @@
 // src/components/NotificationsPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Notifications Page v2 (Flowscan reskin)
-// 100% aligned with notificationApi (no invented fields)
+// LuxQuant Terminal — Notifications Page v3 (Flowscan reskin)
+// Fix: responsive layout, smart pump/dump label, re-fetch after mark-all
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from "react";
@@ -13,7 +13,7 @@ const PAGE_SIZE = 20;
 
 
 // ════════════════════════════════════════════════════════════════
-// SECTION HEADER — — · LABEL · —
+// SECTION HEADER
 // ════════════════════════════════════════════════════════════════
 const SectionHeader = ({ label, small = false }) => (
   <div className="flex items-center gap-3">
@@ -31,10 +31,17 @@ const SectionHeader = ({ label, small = false }) => (
 
 
 // ════════════════════════════════════════════════════════════════
-// TYPE-BASED VISUAL TOKEN — semantic 3-tier (no rainbow)
+// TYPE-BASED VISUAL TOKEN — smart pump/dump detection
 // ════════════════════════════════════════════════════════════════
-const getTypeToken = (type) => {
-  // 3-tier semantic: gold (high-signal), neutral, red (alert)
+const getTypeToken = (type, data) => {
+  // SMART: price_pump can be pump OR dump based on data.percentage
+  if (type === "price_pump" && data?.percentage !== undefined && data?.percentage !== null) {
+    if (data.percentage < 0) {
+      return { tone: "danger", label: "DUMP" };
+    }
+    return { tone: "gold", label: "PUMP" };
+  }
+
   const map = {
     price_pump:       { tone: "gold",    label: "PUMP" },
     daily_results:    { tone: "neutral", label: "DAILY" },
@@ -89,7 +96,7 @@ const NotificationsPage = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("all"); // all | unread
+  const [activeTab, setActiveTab] = useState("all");
   const [typeFilter, setTypeFilter] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
 
@@ -141,12 +148,13 @@ const NotificationsPage = () => {
     }
   };
 
+  // ✅ FIX: Re-fetch from server after mark-all (don't trust local state)
   const handleMarkAllRead = async () => {
     setMarkingAll(true);
     try {
       await notificationApi.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      // Re-fetch from server to get accurate count
+      await fetchNotifications();
     } catch (err) {
       console.error("Failed to mark all as read:", err);
     } finally {
@@ -198,10 +206,10 @@ const NotificationsPage = () => {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   // ════════════════════════════════════════
-  // RENDER
+  // RENDER — adaptive 2-col layout (lg+) / single col (mobile/md)
   // ════════════════════════════════════════
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
       {/* Section Header */}
       <SectionHeader label="Notifications" />
 
@@ -237,130 +245,145 @@ const NotificationsPage = () => {
         )}
       </div>
 
-      {/* Tab + Filter */}
-      <div className="space-y-3">
-        {/* All / Unread tab */}
-        <div className="flex items-center gap-1.5">
-          {["all", "unread"].map((tab) => {
-            const active = activeTab === tab;
-            const count = tab === "unread" ? unreadCount : total;
-            return (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setPage(1);
-                }}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
-                  active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
-                }`}
-              >
-                {tab === "all"
-                  ? t("notifications.all") || "All"
-                  : t("notifications.unread") || "Unread"}
-                <span className={`ml-1.5 tabular-nums ${active ? "text-gold-primary/70" : "text-text-muted/60"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Type filter chips */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-          {typeFilters.map((f) => {
-            const active = typeFilter === f.key;
-            return (
-              <button
-                key={f.key || "all"}
-                onClick={() => {
-                  setTypeFilter(f.key);
-                  setPage(1);
-                }}
-                className={`shrink-0 px-3 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
-                  active
-                    ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
-                    : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
-                }`}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Notification List */}
-      {loading ? (
-        <LoadingSkeleton />
-      ) : notifications.length === 0 ? (
-        <EmptyState t={t} />
-      ) : (
-        <div className="space-y-5">
-          {Object.entries(grouped).map(([dateLabel, items]) => (
-            <div key={dateLabel} className="space-y-2">
-              {/* Date group header */}
-              <div className="flex items-center gap-2 px-1">
-                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70">
-                  {dateLabel}
-                </span>
-                <span className="h-px flex-1 bg-white/[0.04]" />
-                <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
-                  {items.length}
-                </span>
-              </div>
-
-              {/* Notifications in group */}
-              <div className="space-y-1.5">
-                {items.map((notif) => (
-                  <NotificationCard
-                    key={notif.id}
-                    notif={notif}
-                    onClick={() => handleNotificationClick(notif)}
-                    onDelete={() => handleDelete(notif.id)}
-                    t={t}
-                  />
-                ))}
-              </div>
+      {/* ════════════════════════════════════════ */}
+      {/* RESPONSIVE 2-COL LAYOUT                   */}
+      {/* ════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* ── Sidebar (lg+): filters ── */}
+        <aside className="lg:col-span-3 space-y-4">
+          {/* View tabs */}
+          <div className="space-y-2">
+            <SectionHeader label="View" small />
+            <div className="flex lg:flex-col gap-1.5">
+              {["all", "unread"].map((tab) => {
+                const active = activeTab === tab;
+                const count = tab === "unread" ? unreadCount : total;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      setPage(1);
+                    }}
+                    className={`flex-1 lg:flex-initial flex items-center justify-between px-3 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border ${
+                      active
+                        ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                        : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    }`}
+                  >
+                    <span>
+                      {tab === "all"
+                        ? t("notifications.all") || "All"
+                        : t("notifications.unread") || "Unread"}
+                    </span>
+                    <span className={`tabular-nums ${active ? "text-gold-primary/70" : "text-text-muted/60"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
-          >
-            ← Prev
-          </button>
-          <span className="font-mono text-[11px] tabular-nums text-text-muted">
-            {page}<span className="text-text-muted/40 mx-1">/</span>{totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
-          >
-            Next →
-          </button>
-        </div>
-      )}
+          {/* Type filter chips */}
+          <div className="space-y-2">
+            <SectionHeader label="Type" small />
+            <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-x-visible pb-1 lg:pb-0 -mx-1 px-1 scrollbar-hide">
+              {typeFilters.map((f) => {
+                const active = typeFilter === f.key;
+                return (
+                  <button
+                    key={f.key || "all"}
+                    onClick={() => {
+                      setTypeFilter(f.key);
+                      setPage(1);
+                    }}
+                    className={`shrink-0 lg:shrink lg:text-left px-3 py-2 rounded-md text-[11px] font-mono uppercase tracking-[0.1em] transition-all border whitespace-nowrap ${
+                      active
+                        ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+                        : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main: Notification List ── */}
+        <main className="lg:col-span-9 space-y-5">
+          {loading ? (
+            <LoadingSkeleton />
+          ) : notifications.length === 0 ? (
+            <EmptyState t={t} />
+          ) : (
+            <>
+              {Object.entries(grouped).map(([dateLabel, items]) => (
+                <div key={dateLabel} className="space-y-2">
+                  {/* Date group header */}
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/70">
+                      {dateLabel}
+                    </span>
+                    <span className="h-px flex-1 bg-white/[0.04]" />
+                    <span className="font-mono text-[10px] tabular-nums text-text-muted/50">
+                      {items.length}
+                    </span>
+                  </div>
+
+                  {/* Notifications in group */}
+                  <div className="space-y-1.5">
+                    {items.map((notif) => (
+                      <NotificationCard
+                        key={notif.id}
+                        notif={notif}
+                        onClick={() => handleNotificationClick(notif)}
+                        onDelete={() => handleDelete(notif.id)}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-4">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted">
+                    {page}<span className="text-text-muted/40 mx-1">/</span>{totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1.5 rounded-md border border-white/[0.08] text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted hover:text-white hover:border-white/[0.15] disabled:opacity-30 transition-all"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
 
 
 // ════════════════════════════════════════════════════════════════
-// NOTIFICATION CARD
+// NOTIFICATION CARD — smart pump/dump label
 // ════════════════════════════════════════════════════════════════
 const NotificationCard = ({ notif, onClick, onDelete, t }) => {
-  const token = getTypeToken(notif.type);
+  const token = getTypeToken(notif.type, notif.data);
   const isUnread = !notif.is_read;
 
   return (
@@ -402,7 +425,7 @@ const NotificationCard = ({ notif, onClick, onDelete, t }) => {
           </p>
         )}
 
-        {/* Data badges — semantic, mono */}
+        {/* Data badges */}
         {notif.data && (
           <div className="flex flex-wrap gap-1 mt-2">
             {notif.data.pair && (
