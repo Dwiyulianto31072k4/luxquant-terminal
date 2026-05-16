@@ -718,6 +718,49 @@ async def fetch_signal_meta(conn: asyncpg.Connection, signal_id: str) -> Optiona
     return dict(row) if row else None
 
 
+async def _insert_insufficient(conn: asyncpg.Connection, signal_id: str, pair: str,
+                               mapping_warning: Optional[str], reason: str):
+    """
+    Insert a placeholder insufficient_data row so the signal is marked as
+    ATTEMPTED (not 'never processed'). Without this, signals whose price data
+    can't be fetched (non-Binance + CoinGecko rate-limited) would stay forever
+    without a row and the UI would show nothing / retry indefinitely.
+    """
+    interpretation = {
+        "headline":          "Insufficient data for BTC correlation",
+        "summary":           reason,
+        "alignment_score":   None,
+        "risk_level":        "unknown",
+        "key_observations":  [f"ℹ️ {reason}"],
+        "mapping_warning":   mapping_warning,
+    }
+    btc_ctx = {
+        "price": None, "trend": "insufficient_data", "rsi_14": None,
+        "change_24h_pct": None, "regime": "neutral", "dominance": None,
+    }
+    await conn.execute("""
+        INSERT INTO signal_btc_correlation (
+            signal_id, pair, btc_context, is_decoupled, interpretation,
+            data_source, sample_quality, sample_size, confidence, worker_version,
+            is_extended, snapshot_at, analyzed_at
+        ) VALUES (
+            $1, $2, $3::jsonb, FALSE, $4::jsonb,
+            'none', 'low', 0, 'insufficient_data', $5,
+            FALSE, now(), now()
+        )
+        ON CONFLICT (signal_id) DO UPDATE SET
+            pair = EXCLUDED.pair,
+            btc_context = EXCLUDED.btc_context,
+            interpretation = EXCLUDED.interpretation,
+            data_source = EXCLUDED.data_source,
+            sample_size = EXCLUDED.sample_size,
+            confidence = EXCLUDED.confidence,
+            worker_version = EXCLUDED.worker_version,
+            analyzed_at = now()
+    """, signal_id, pair, json.dumps(btc_ctx), json.dumps(interpretation), WORKER_VERSION)
+    log.info(f"⚠️  {signal_id[:8]}… {pair} — recorded insufficient_data ({reason[:40]})")
+
+
 async def process_signal(conn: asyncpg.Connection, signal_id: str):
     meta = await fetch_signal_meta(conn, signal_id)
     if not meta or not meta.get("pair"):
@@ -746,16 +789,22 @@ async def process_signal(conn: asyncpg.Connection, signal_id: str):
             coin_df = await fetch_coingecko_market_chart(coingecko_id, days=30)
             data_source = "coingecko"
         else:
-            log.warning(f"  ↳ No Binance pair & no coingecko_id for {pair}")
+            log.warning(f"  ↳ No Binance pair & no coingecko_id for {pair} — recording insufficient_data")
+            await _insert_insufficient(conn, signal_id, pair, mapping_warning,
+                                       reason="No Binance pair and no CoinGecko mapping available.")
             return
 
     if coin_df is None or btc_df is None:
-        log.warning(f"  ↳ Unable to fetch price data for {pair}")
+        log.warning(f"  ↳ Unable to fetch price data for {pair} — recording insufficient_data")
+        await _insert_insufficient(conn, signal_id, pair, mapping_warning,
+                                   reason="Price data unavailable from Binance and CoinGecko (rate-limited or no history).")
         return
 
     metrics = compute_advanced_metrics(coin_df, btc_df)
     if metrics is None:
-        log.warning(f"  ↳ Computation failed for {pair}")
+        log.warning(f"  ↳ Computation failed for {pair} — recording insufficient_data")
+        await _insert_insufficient(conn, signal_id, pair, mapping_warning,
+                                   reason="Correlation computation failed (insufficient overlapping data).")
         return
 
     confidence = determine_confidence(metrics)
@@ -887,7 +936,7 @@ async def main():
 
     try:
         try:
-            await backfill_missing(conn, limit=20)
+            await backfill_missing(conn, limit=200)
         except Exception:
             log.exception("Initial backfill failed (continuing)")
 
