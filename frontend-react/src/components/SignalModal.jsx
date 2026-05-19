@@ -12,6 +12,14 @@ import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 import BTCCorrelationBadge from "./BTCCorrelationBadge";     
 import BTCCorrelationModal from "./BTCCorrelationModal";  
 
+
+const deriveChartWithCard = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== "string") return null;
+  if (!/_tp[234]_/i.test(rawUrl)) return null;
+  if (/_with_card|_combined/i.test(rawUrl)) return null;
+  return rawUrl.replace(/\.png$/i, "_with_card.png");
+};
+
 const SignalModal = ({
   signal,
   isOpen,
@@ -371,9 +379,10 @@ const SignalModal = ({
   const entryImg = signalDetail?.is_redacted
     ? null
     : signalDetail?.entry_chart_url || signal?.entry_chart_url;
-  const afterImg = signalDetail?.is_redacted
+  const rawAfterImg = signalDetail?.is_redacted
     ? null
     : signalDetail?.latest_chart_url || signal?.latest_chart_url;
+  const afterImg = deriveChartWithCard(rawAfterImg) || rawAfterImg;
   const showInteractiveRight = showTV || (!afterImg && entryImg);
 
   useEffect(() => {
@@ -1632,6 +1641,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 alt="Latest Chart"
                                 className="absolute inset-0 w-full h-full object-contain"
                                 loading="lazy"
+                                onError={(e) => {
+                                  if (rawAfterImg && e.target.src !== rawAfterImg) {
+                                    e.target.onerror = null;
+                                    e.target.src = rawAfterImg;
+                                  }
+                                }}
                               />
                               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10">
                                 <button
