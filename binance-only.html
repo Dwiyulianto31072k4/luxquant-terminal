@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binance PnL Generator</title>
+
+<!-- Reuse the original site stylesheet (contains all .tsg-binance-* rules) -->
+<link rel="stylesheet" href="./Crypto Trading & PnL Screenshot Generator_files/style.css">
+
+<style>
+/* ---------- minimal app shell (replaces the WP page chrome) ---------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Manrope, system-ui, -apple-system, sans-serif;
+  background: #f6f7f9;
+  color: #111;
+}
+.app {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.canvas-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 600px;
+}
+.sidebar {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  height: fit-content;
+  position: sticky;
+  top: 24px;
+}
+.sidebar h2 { margin: 0 0 4px; font-size: 16px; }
+.sidebar .sub { margin: 0 0 16px; font-size: 12px; color: #888; }
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.style-btn {
+  padding: 8px 0;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.style-btn:hover { border-color: #999; }
+.style-btn.active { background: #111; color: #fff; border-color: #111; }
+.action {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+.action:hover { border-color: #999; }
+.action.primary { background: #111; color: #fff; border-color: #111; }
+.hint { font-size: 12px; color: #888; line-height: 1.5; margin-top: 16px; }
+
+/* Only the active design is visible */
+.tsg-trading-history { display: none; }
+.tsg-trading-history.is-active { display: block; }
+
+/* Editable affordance */
+[contenteditable="true"] { outline: none; cursor: text; }
+[contenteditable="true"]:hover { background: rgba(255, 235, 59, .15); }
+[contenteditable="true"]:focus { background: rgba(255, 235, 59, .3); }
+
+/* Make uploadable images clickable */
+.tsg-binance-qr-image,
+.tsg-binance-qr-container,
+.tsg-binance-avatar-img { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="canvas-wrap" id="canvas">
+<!-- =========  Design 1  ========= -->
+                <div class="tsg-trading-history binance-design-1-layout" style="">
+                    <!-- Binance Background with Rocket Right -->
+                    <div class="tsg-binance-background-1">
+                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-bg-fusee-droite.png" alt="Binance Background" class="tsg-binance-bg-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-bg-fusee-droite.png" data-ll-status="loaded">
+                        
+                        <!-- Binance Logo -->
+                        <div class="tsg-binance-logo" style="width:180px">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-futures-logo.png" alt="Binance Futures Logo" class="tsg-binance-logo-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-futures-logo.png" data-ll-status="loaded">
+                        </div>
+                        
+                        <!-- Trading Information -->
+                        <div class="tsg-binance-trading-info">
+                            <!-- Trading Parameters Row -->
+                            <div class="tsg-binance-trading-params">
+                                <span class="tsg-binance-trade-type short" contenteditable="true">Short</span>
+                                <span class="tsg-binance-separator">|</span>
+                                <span class="tsg-binance-leverage" contenteditable="true">2X</span>
+                                <span class="tsg-binance-separator">|</span>
+                                <span class="tsg-binance-symbol" contenteditable="true">ETHUSDT Perpetual</span>
+                            </div>
+                            
+                            <!-- Percentage Change -->
+                            <div class="tsg-binance-percentage" contenteditable="true">+2.44%</div>
+                            
+                            <!-- Price Details -->
+                            <div class="tsg-binance-price-details">
+                                <div class="tsg-binance-price-left">
+                                    <div class="tsg-binance-price-label" contenteditable="true">Entry Price</div>
+                                    <div class="tsg-binance-price-value" contenteditable="true">1,342.66</div>
+                                </div>
+                                <div class="tsg-binance-price-right">
+                                    <div class="tsg-binance-price-label" contenteditable="true">Mark Price</div>
+                                    <div class="tsg-binance-price-value" contenteditable="true">1,326.37</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Section with QR Code and Referral -->
+                        <div class="tsg-binance-bottom-section">
+                            <div class="tsg-binance-qr-section">
+                                <div class="tsg-binance-qr-container" title="Click to upload your own QR code">
+                                    <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/qr-code-kucoin.png" alt="QR Code" class="tsg-binance-qr-image" style="width:100px; height:100px" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/qr-code-kucoin.png" data-ll-status="loaded">
+                                    <input type="file" id="tsg-binance-qr-upload-1" accept="image/*" style="display: none;">
+                                </div>
+                            </div>
+                            <div class="tsg-binance-promo-section">
+                                <div class="tsg-binance-referral-label" contenteditable="true">REFERRAL CODE</div>
+                                <div class="tsg-binance-referral-code" contenteditable="true">lluxx</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 8 (Binance Design 2 - 800x800) -->
+
+<!-- =========  Design 2  ========= -->
+                <div class="tsg-trading-history binance-design-2-layout" style="display: none;">
+                    <!-- Binance Background with Rocket -->
+                    <div class="tsg-binance-background-2">
+                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-bg-fusee-carree.jpg" alt="Binance Background" class="tsg-binance-bg-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-bg-fusee-carree.jpg" data-ll-status="loaded">
+                        
+                        <!-- Binance Logo and Header -->
+                        <div class="tsg-binance-header">
+                            <div class="tsg-binance-logo-section">
+                                <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-futures-logo.png" alt="Binance Logo" class="tsg-binance-logo-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-futures-logo.png" data-ll-status="loaded">
+                                <div class="tsg-binance-logo-text">
+                                    <span class="tsg-binance-separator">|</span>
+                                    <span class="tsg-binance-usds-text">USDⓈ-M</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Main Title -->
+                        <div class="tsg-binance-main-title">
+                            <h1 class="tsg-binance-title-text" contenteditable="true">Check out my Futures PnL on Binance</h1>
+                            <div class="tsg-binance-period">
+                            <span class="tsg-binance-period-text" contenteditable="true">Period: 2021-05-30 - 2021-06-04</span>
+                        </div>
+                        
+                        </div>
+                        
+                        <!-- Period -->
+                      
+                        
+                        <!-- Performance Statistics -->
+                        <div class="tsg-binance-performance-stats">
+                            <div class="tsg-binance-pnl-percentage-section">
+                                <div class="tsg-binance-pnl-percentage-label" contenteditable="true">Cumulative PNL %</div>
+                                <div class="tsg-binance-pnl-percentage" contenteditable="true">+51.43%</div>
+                            </div>
+                            <div class="tsg-binance-pnl-usd-row">
+                                <div class="tsg-binance-pnl-usd-section">
+                                    <div class="tsg-binance-pnl-usd-label" contenteditable="true">Cumulative PNL(USD)</div>
+                                    <div class="tsg-binance-pnl-usd" contenteditable="true">50.95</div>
+                                </div>
+                                <div class="tsg-binance-win-rate-section">
+                                    <div class="tsg-binance-win-rate-label" contenteditable="true">Win Rate%</div>
+                                    <div class="tsg-binance-win-rate" contenteditable="true">63.12%</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Section with QR Code and Referral -->
+                        <div class="tsg-binance-bottom-section">
+                            <div class="tsg-binance-qr-section">
+                                <div class="tsg-binance-qr-container" title="Click to upload your own QR code">
+                                    <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/qr-code-kucoin.png" alt="QR Code" class="tsg-binance-qr-image" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/qr-code-kucoin.png" data-ll-status="loaded">
+                                    <input type="file" id="tsg-binance-qr-upload-2" accept="image/*" style="display: none;">
+                                </div>
+                            </div>
+                            <div class="tsg-binance-promo-section">
+                                <div class="tsg-binance-referral-label" contenteditable="true">Referral Code</div>
+                                <div class="tsg-binance-referral-code" contenteditable="true">150321476</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 9 (Binance Design 3 - 1035x624) -->
+
+<!-- =========  Design 3  ========= -->
+                <div class="tsg-trading-history binance-design-3-layout" style="display: none;">
+                    <!-- Binance Background with Rocket Right -->
+                    <div class="tsg-binance-background-3">
+                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-bg-fusee.png" alt="Binance Background" class="tsg-binance-bg-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-bg-fusee.png" data-ll-status="loaded">
+                        
+                        <!-- Binance Logo -->
+                        <div class="tsg-binance-logo">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-futures-logo.png" alt="Binance Futures Logo" class="tsg-binance-logo-img" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-futures-logo.png" data-ll-status="loaded">
+                        </div>
+                        
+                        <!-- Trading Information -->
+                        <div class="tsg-binance-trading-info">
+                            <!-- Trading Parameters Row -->
+                            <div class="tsg-binance-trading-params">
+                                <span class="tsg-binance-trade-type long" contenteditable="true">Long</span>
+                                <span class="tsg-binance-separator">|</span>
+                                <span class="tsg-binance-leverage" contenteditable="true">10x</span>
+                                <span class="tsg-binance-separator">|</span>
+                                <span class="tsg-binance-symbol" contenteditable="true">ETHUSDT Perpetual</span>
+                            </div>
+                            
+                            <!-- Percentage Change -->
+                            <div class="tsg-binance-percentage" contenteditable="true">+%94,85</div>
+                            
+                            <!-- Price Details -->
+                            <div class="tsg-binance-price-details">
+                                <div class="tsg-binance-price-left">
+                                    <div class="tsg-binance-price-label" contenteditable="true">Entry Price</div>
+                                    <div class="tsg-binance-price-value" contenteditable="true">2.488,40</div>
+                                </div>
+                                <div class="tsg-binance-price-right">
+                                    <div class="tsg-binance-price-label" contenteditable="true">Last Price</div>
+                                    <div class="tsg-binance-price-value" contenteditable="true" style="margin-left: 10px;">2.749,43</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Section with QR Code and Referral -->
+                        <div class="tsg-binance-bottom-section">
+                            <div class="tsg-binance-qr-section">
+                                <div class="tsg-binance-qr-container" title="Click to upload your own QR code">
+                                    <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/qr-code-kucoin.png" alt="QR Code" class="tsg-binance-qr-image" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/qr-code-kucoin.png" data-ll-status="loaded">
+                                    <input type="file" id="tsg-binance-qr-upload-3" accept="image/*" style="display: none;">
+                                </div>
+                            </div>
+                            <div class="tsg-binance-promo-section" style="margin-bottom: -10px;">
+                                <div class="tsg-binance-referral-label" contenteditable="true" style="margin-bottom: -10px;">Referral Code</div>
+                                <div class="tsg-binance-referral-code" contenteditable="true" style="margin-bottom: -10px;">70202363</div>
+                                <div class="tsg-binance-app-text" contenteditable="true">Get the Binance App</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 10 (Binance Design 4 - 980x1340) -->
+
+<!-- =========  Design 4  ========= -->
+                <div class="tsg-trading-history binance-design-4-layout" style="display: none;">
+                    <!-- Binance Background with Diamond Pattern -->
+                    <div class="tsg-binance-background-4">
+                        <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Binance Background" class="tsg-binance-bg-img-4" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/bg-binance-4.png">
+                        
+                        <!-- User Info Section -->
+                        <div class="tsg-binance-user-info-4">
+                            <div class="tsg-binance-avatar-4">
+                                <div class="tsg-binance-avatar-circle-4" title="Click to upload your own avatar">
+                                    <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="User Avatar" class="tsg-binance-avatar-img-4" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/avatar-default-binance.png">
+                                </div>
+                                <input type="file" id="tsg-binance-avatar-upload-4" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="tsg-binance-user-details-4">
+                                <div class="tsg-binance-username-4" contenteditable="true">Anonymous-Trader-02</div>
+                                <div class="tsg-binance-datetime-4" contenteditable="true">2025-08-22 19:34:43</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trading Information -->
+                        <div class="tsg-binance-trading-info-4">
+                            <!-- Trading Pair -->
+                            <div class="tsg-binance-symbol-4" contenteditable="true">ETHUSDT Perpetual</div>
+                            
+                            <!-- Position and Leverage -->
+                            <div class="tsg-binance-position-info-4">
+                                <span class="tsg-binance-trade-type-4 long" contenteditable="true">Long</span>
+                                <span class="tsg-binance-separator-4">|</span>
+                                <span class="tsg-binance-leverage-4" contenteditable="true">20x</span>
+                            </div>
+                            
+                            <!-- Percentage Change -->
+                            <div class="tsg-binance-percentage-4" contenteditable="true">+265,88%</div>
+                            
+                            <!-- Price Details -->
+                            <div class="tsg-binance-price-details-4">
+                                <div class="tsg-binance-price-left-4">
+                                    <div class="tsg-binance-price-label-4" contenteditable="true">Entry Price</div>
+                                    <div class="tsg-binance-price-value-4" contenteditable="true">4.179,23</div>
+                                </div>
+                                <div class="tsg-binance-price-right-4">
+                                    <div class="tsg-binance-price-label-4" contenteditable="true">Mark Price</div>
+                                    <div class="tsg-binance-price-value-4" contenteditable="true">4.820,00</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Section with Logo, Referral and QR Code -->
+                        <div class="tsg-binance-bottom-section-4">
+                            <div class="tsg-binance-logo-section-4">
+                                <div class="tsg-binance-logo-4">
+                                    <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Binance Futures Logo" class="tsg-binance-logo-img-4" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-futures-logo.png">
+                                </div>
+                                <div class="tsg-binance-referral-info-4">
+                                    <div class="tsg-binance-referral-code-4" contenteditable="true">Referral Code 446220465</div>
+                                </div>
+                            </div>
+                            <div class="tsg-binance-qr-section-4">
+                                <div class="tsg-binance-qr-container-4" title="Click to upload your own QR code">
+                                    <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="QR Code" class="tsg-binance-qr-image-4" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/qr-code-kucoin.png">
+                                    <input type="file" id="tsg-binance-qr-upload-4" accept="image/*" style="display: none;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 11 (Binance Design 5 - Positions View - 600x635) -->
+
+<!-- =========  Design 5  ========= -->
+                <div class="tsg-trading-history binance-design-5-layout" style="display: none;">
+                    <!-- Binance Positions Background -->
+                    <div class="tsg-binance-background-5">
+                        <!-- Header with Tabs -->
+                        <div class="tsg-binance-header-5">
+                            <div class="tsg-binance-tabs-5">
+                                <div class="tsg-binance-tab-5 tsg-binance-tab-active-5">
+                                    <span class="tsg-binance-tab-text-5" contenteditable="true">Positions(1)</span>
+                                </div>
+                                <div class="tsg-binance-tab-5">
+                                    <span class="tsg-binance-tab-text-5" contenteditable="true">My Orders(0)</span>
+                                </div>
+                            </div>
+                   <div class="tsg-binance-header-icon-5">
+                       <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/history-binance.jpg" alt="History" class="tsg-binance-history-icon-5" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/history-binance.jpg" data-ll-status="loaded">
+                   </div>
+                        </div>
+                        
+                        <!-- Position Overview Section -->
+                        <div class="tsg-binance-position-overview-5 long">
+                            <div class="tsg-binance-position-header-5">
+                                <div class="tsg-binance-position-badge-5 long">
+                                    <span class="tsg-binance-trade-type-badge-5" contenteditable="true">Long</span>
+                                </div>
+                                <div class="tsg-binance-symbol-info-5">
+                                    <span class="tsg-binance-symbol-text-5" contenteditable="true">ETH Perpetual <span style="color:#8a8a8a">/USDT</span></span>
+                                </div>
+                                <div class="tsg-binance-share-button-5">
+                                    <span class="tsg-binance-share-text-5" contenteditable="true">Share</span>
+                                </div>
+                            </div>
+                            
+                            <div class="tsg-binance-position-details-5">
+                                <div class="tsg-binance-position-size-5">
+                                    <span class="tsg-binance-size-text-5" contenteditable="true">0.40ETH <span style="color:#8a8a8a">|</span> 3.07x</span>
+                                </div>
+                                <div class="tsg-binance-auto-deposit-5">
+                                    <span class="tsg-binance-auto-deposit-text-5" contenteditable="true">Auto-Deposit Margin</span>
+                                    <div class="tsg-binance-toggle-5">
+                                        <div class="tsg-binance-toggle-track-5">
+                                            <div class="tsg-binance-toggle-thumb-5"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Key Metrics Section -->
+                        <div class="tsg-binance-metrics-5">
+                            <div class="tsg-binance-metrics-row-5" style="margin-bottom: 18px;">
+                                <div class="tsg-binance-metric-5">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Entry Price</div>
+                                    <div class="tsg-binance-metric-value-5" contenteditable="true">1,241.55</div>
+                                </div>
+                                <div class="tsg-binance-metric-5">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Liquidation Price</div>
+                                    <div class="tsg-binance-metric-value-5 tsg-binance-metric-danger-5" contenteditable="true">1,009.95</div>
+                                </div>
+                                <div class="tsg-binance-metric-5" style="align-items: flex-end;">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Mark Price</div>
+                                    <div class="tsg-binance-metric-value-5" contenteditable="true">1,407.00</div>
+                                </div>
+                            </div>
+                            
+                            <div class="tsg-binance-metrics-row-5">
+                                <div class="tsg-binance-metric-5">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Margin (USDT)</div>
+                                    <div class="tsg-binance-metric-value-5" contenteditable="true">162.21                  
+                                 <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/icon-edit-binance.jpg" alt="Edit" style="width: 22px;  margin-bottom: -3px;" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/icon-edit-binance.jpg" data-ll-status="loaded" class="entered">
+                                    </div>
+                                    <div class="tsg-binance-metric-subvalue-5" contenteditable="true">$162.29</div>
+                                </div>
+                                <div class="tsg-binance-metric-5">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Realised PNL (USDT)</div>
+                                    <div class="tsg-binance-metric-value-5" contenteditable="true">-3.94</div>
+                                    <div class="tsg-binance-metric-subvalue-5" contenteditable="true">-$3.94</div>
+                                </div>
+                                <div class="tsg-binance-metric-5" style="align-items: flex-end;">
+                                    <div class="tsg-binance-metric-label-5" contenteditable="true">Position PNL (USDT)</div>
+                                    <div class="tsg-binance-metric-value-5 tsg-binance-metric-success-5" contenteditable="true">66.18 (66.63%)</div>
+                                    <div class="tsg-binance-metric-subvalue-5" contenteditable="true">$66.21</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Take Profit / Stop Loss Section -->
+                        <div class="tsg-binance-tp-sl-5">
+                            <div class="tsg-binance-tp-sl-item-5">
+                                <div class="tsg-binance-tp-sl-label-5" contenteditable="true">Take Profit</div>
+                                <div class="tsg-binance-tp-sl-button-5">
+                                    <span class="tsg-binance-set-text-5" contenteditable="true">Set &gt;</span>
+                                </div>
+                            </div>
+                            <div class="tsg-binance-tp-sl-item-5">
+                                <div class="tsg-binance-tp-sl-label-5" contenteditable="true">Stop Loss</div>
+                                <div class="tsg-binance-tp-sl-button-5">
+                                    <span class="tsg-binance-set-text-5" contenteditable="true">Set &gt;</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Action Buttons -->
+                        <div class="tsg-binance-action-buttons-5">
+                            <div class="tsg-binance-action-button-5 tsg-binance-limit-close-5">
+                                <span class="tsg-binance-action-text-5" contenteditable="true">Limit Close</span>
+                            </div>
+                            <div class="tsg-binance-action-button-5 tsg-binance-market-close-5">
+                                <span class="tsg-binance-action-text-5" contenteditable="true">Market Close</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 12 (Binance Design 6 - My Assets - 554x1200px) -->
+
+<!-- =========  Design 6  ========= -->
+                <div class="tsg-trading-history binance-design-6-layout" style="display: none;">
+                    <!-- Binance My Assets Background -->
+                    <div class="tsg-binance-background-6">
+                        <!-- Status Bar -->
+                        <div class="tsg-binance-status-bar-6">
+                            <div class="tsg-binance-time-6" contenteditable="true">12:04</div>
+                            <div class="tsg-binance-status-icons-6">
+                                <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/icone-network-bar.png" alt="Network Icons" class="tsg-binance-network-icons-6" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/icone-network-bar.png" data-ll-status="loaded">
+                                <div class="tsg-binance-battery-icon-6">
+                                    <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/battery.png" alt="Battery" class="tsg-binance-battery-img-6" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/battery.png" data-ll-status="loaded">
+                                    <span class="tsg-binance-battery-text-6" contenteditable="true">27%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Header -->
+                        <div class="tsg-binance-header-6">
+                            <h1 class="tsg-binance-title-6" contenteditable="true">My Assets</h1>
+                        </div>
+                        
+                        <!-- Alert Banner -->
+                        <div class="tsg-binance-alert-banner-6">
+                            <div class="tsg-binance-megaphone-icon-6"><i class="fas fa-bullhorn" style="color: #eda61b;"></i></div>
+                            <div class="tsg-binance-alert-text-6" contenteditable="true">Upgrade completed! Earn Account assets can...</div>
+                            <div class="tsg-binance-chevron-down-6"><i class="fas fa-chevron-down"></i></div>
+                        </div>
+                        
+                        <!-- Total Assets Card -->
+                        <div class="tsg-binance-total-assets-card-6">
+                            <div class="tsg-binance-total-assets-header-6">
+                                <span class="tsg-binance-total-assets-label-6" contenteditable="true">Total Assets</span>
+                                <div class="tsg-binance-eye-icon-6"><i class="fas fa-eye"></i></div>
+                            </div>
+                            <div class="tsg-binance-total-assets-value-6">
+                                <span class="tsg-binance-main-value-6" contenteditable="true">256,584.25 <span style="font-size: 17px; margin-left: 10px; color: #999;">USD</span></span>
+                                <div class="tsg-binance-chevron-down-small-6"><i class="fas fa-chevron-down" style="height: 21px;"></i></div>
+                            </div>
+                            <div class="tsg-binance-btc-equivalent-6">
+                                <span class="tsg-binance-btc-text-6" contenteditable="true">≈ 9.58928904 BTC</span>
+                                <div class="tsg-binance-eye-icon-small-6"><i class="fas fa-info-circle"></i></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="tsg-binance-action-buttons-6">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/btn-binance-1.png" alt="Action Buttons" class="tsg-binance-action-buttons-img-6" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/btn-binance-1.png" data-ll-status="loaded">
+                        </div>
+                        
+                        <!-- My Accounts Section -->
+                        <div class="tsg-binance-accounts-section-6">
+                            <h2 class="tsg-binance-accounts-title-6" contenteditable="true">My Accounts</h2>
+                            
+                            <div class="tsg-binance-account-card-6">
+                                <div class="tsg-binance-account-info-6">
+                                    <span class="tsg-binance-account-name-6" contenteditable="true">Funding</span>
+                                    <div class="tsg-binance-account-value-6" contenteditable="true">0.00<span class="usd-style-6"> USD</span></div>
+                                </div>
+                                <div class="tsg-binance-arrow-right-6"><i class="fa fa-arrow-right"></i></div>
+                            </div>
+                            
+                            <div class="tsg-binance-account-card-6">
+                                <div class="tsg-binance-account-info-6">
+                                    <span class="tsg-binance-account-name-6" contenteditable="true">Spot</span>
+                                    <div class="tsg-binance-account-value-6" contenteditable="true">213,616.14 <span class="usd-style-6"> USD</span></div>
+                                </div>
+                                <div class="tsg-binance-arrow-right-6"><i class="fa fa-arrow-right"></i></div>
+                            </div>
+                            
+                            <div class="tsg-binance-account-card-6">
+                                <div class="tsg-binance-account-info-6">
+                                    <span class="tsg-binance-account-name-6" contenteditable="true">Derivatives</span>
+                                    <div class="tsg-binance-account-value-6" contenteditable="true">42,968.10 <span class="usd-style-6"> USD</span></div>
+                                </div>
+                                <div class="tsg-binance-arrow-right-6"><i class="fa fa-arrow-right"></i></div>
+                            </div>
+                            
+                            <div class="tsg-binance-account-card-6">
+                                <div class="tsg-binance-account-info-6">
+                                    <span class="tsg-binance-account-name-6" contenteditable="true">USDC</span>
+                                    <div class="tsg-binance-account-value-6" contenteditable="true">0.00 <span class="usd-style-6"> USD</span></div>
+                                </div>
+                                <div class="tsg-binance-arrow-right-6"><i class="fa fa-arrow-right"></i></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Navigation -->
+                        <div class="tsg-binance-bottom-nav-6">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/footer-binance-1.png" alt="Bottom Navigation" class="tsg-binance-footer-img-6" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/footer-binance-1.png" data-ll-status="loaded">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 13 (Binance Design 7 - Wallet/Assets - 548x1176px) -->
+
+<!-- =========  Design 7  ========= -->
+                <div class="tsg-trading-history binance-design-7-layout" style="display: none;">
+                    <!-- Binance Wallet Background -->
+                    <div class="tsg-binance-background-7">
+                        <!-- Status Bar -->
+                        <div class="tsg-binance-status-bar-7">
+                            <div class="tsg-binance-time-7" contenteditable="true">17:20</div>
+                            <div class="tsg-binance-status-icons-7">
+                                <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Battery" class="tsg-binance-battery-icon-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-battery-7.png">
+                                <div class="tsg-binance-time-7" contenteditable="true">88%</div>
+
+                            </div>
+
+                        </div>
+                        
+                        <!-- Header with Tabs -->
+                        <div class="tsg-binance-header-7">
+                            <div class="tsg-binance-main-tabs-7">
+                                <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Exchange/Wallet Toggle" class="tsg-binance-toggle-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-toggle-7.png">
+                            </div>
+                            <div class="tsg-binance-sub-tabs-7">
+                                <span class="tsg-binance-sub-tab-7 tsg-binance-sub-tab-active-7" contenteditable="true">Overview</span>
+                                <span class="tsg-binance-sub-tab-7 tsg-binance-sub-tab-inactive-7" contenteditable="true">Funding</span>
+                                <span class="tsg-binance-sub-tab-7 tsg-binance-sub-tab-inactive-7" contenteditable="true">Spot</span>
+                                <span class="tsg-binance-sub-tab-7 tsg-binance-sub-tab-inactive-7" contenteditable="true">Earn</span>
+                                <span class="tsg-binance-sub-tab-7 tsg-binance-sub-tab-inactive-7" contenteditable="true">Futures</span>
+                              
+                            </div>
+                        </div>
+                        
+                        <!-- Total Value Section -->
+                        <div class="tsg-binance-total-value-section-7">
+                        <div style="display: flex;justify-content: space-between;">  
+                             <div class="tsg-binance-total-value-header-7">
+                                <span class="tsg-binance-total-value-label-7" contenteditable="true">Est. Total Value</span>
+                                <i class="fas fa-eye tsg-binance-eye-icon-7" style="color: #bababa;"></i>
+                            </div>
+                            <div class="tsg-binance-header-icons-7">
+                                    <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Graph" class="tsg-binance-header-icon-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-graph-7.png">
+
+                                </div>    </div>
+
+
+
+
+                            <div class="tsg-binance-total-value-main-7">
+                                <div class="tsg-binance-btc-row-7">
+                                    <span class="tsg-binance-btc-value-7" contenteditable="true">0.00010021 <span class="cucusign">BTC</span></span>
+                                    <i class="fas fa-chevron-down tsg-binance-btc-arrow-7" style="height: 30px;"></i>
+                                </div>
+                                <span class="tsg-binance-fiat-equivalent-7" contenteditable="true">≈ $4,514.66</span>
+                            </div>
+                            <div class="tsg-binance-pnl-section-7">
+                                <span class="tsg-binance-pnl-label-7" contenteditable="true">Today's PNL</span>
+                                <span class="tsg-binance-pnl-value-7" contenteditable="true">+$58.67(+1.32%)</span>
+                                <i class="fas fa-chevron-right tsg-binance-pnl-arrow-7"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="tsg-binance-action-buttons-7">
+                            <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Action Buttons" class="tsg-binance-action-buttons-img-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-btn-graph-7.png">
+                        </div>
+                        
+                        <!-- Crypto/Account Tabs -->
+                        <div class="tsg-binance-crypto-tabs-7">
+
+                        <div style=" display: flex; gap: 20px;">
+                            <div class="tsg-binance-crypto-tab-7 tsg-binance-crypto-tab-active-7" contenteditable="true">Crypto</div>
+                            <div class="tsg-binance-crypto-tab-7 tsg-binance-crypto-tab-inactive-7" contenteditable="true">Account</div>
+                            </div>
+                            
+                            <div class="tsg-binance-crypto-icons-7">
+                            <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Action Buttons" class="tsg-binance-header-icon-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-account-7.png">
+
+                            </div>
+                        </div>
+                        
+                        <!-- Asset List -->
+                        <div class="tsg-binance-asset-list-7">
+                     
+                            <!-- USDT Asset -->
+                            <div class="tsg-binance-asset-row-7" style="position: relative;">
+                                <div class="tsg-binance-asset-left-7">
+                                    <div class="tsg-binance-asset-icon-7">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-usdt-icon-7">
+                                        <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\tether.png">
+                                        </div>
+                                    </div>
+                                    <div class="tsg-binance-asset-info-7">
+                                        <div class="tsg-binance-asset-ticker-7" contenteditable="true">USDT</div>
+                                        <div class="tsg-binance-asset-name-7" contenteditable="true">TetherUS</div>
+                                    </div>
+                                </div>
+                                <div class="tsg-binance-asset-right-7">
+                                    <div class="tsg-binance-asset-value-7" contenteditable="true">8.55949793</div>
+                                    <div class="tsg-binance-asset-btc-7" contenteditable="true">$8.56</div>
+                                </div>
+                                <button class="tsg-crypto-edit-btn" style=""><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button>
+                                <button class="tsg-crypto-delete-btn" style="">×</button>
+                            </div>
+                            
+                            <!-- BNB Asset -->
+                            <div class="tsg-binance-asset-row-7" style="position: relative;">
+                                <div class="tsg-binance-asset-left-7">
+                                    <div class="tsg-binance-asset-icon-7">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-bnb-icon-7">
+                                        <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\bnb.png">
+                                        </div>
+                                    </div>
+                                    <div class="tsg-binance-asset-info-7">
+                                        <div class="tsg-binance-asset-ticker-7" contenteditable="true">BNB</div>
+                                        <div class="tsg-binance-asset-name-7" contenteditable="true">BNB</div>
+                                    </div>
+                                </div>
+                                <div class="tsg-binance-asset-right-7">
+                                    <div class="tsg-binance-asset-value-7" contenteditable="true">0.0028014</div>
+                                    <div class="tsg-binance-asset-btc-7" contenteditable="true">$1,680.84</div>
+                                </div>
+                                <button class="tsg-crypto-edit-btn" style=""><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button>
+                                <button class="tsg-crypto-delete-btn" style="">×</button>
+                            </div>
+                            
+                            <!-- ETH Asset -->
+                            <div class="tsg-binance-asset-row-7" style="position: relative;">
+                                <div class="tsg-binance-asset-left-7">
+                                    <div class="tsg-binance-asset-icon-7">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-move-icon-7">
+                                        <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\ethereum.png">
+                                        </div>
+                                    </div>
+                                    <div class="tsg-binance-asset-info-7">
+                                        <div class="tsg-binance-asset-ticker-7" contenteditable="true">ETH</div>
+                                        <div class="tsg-binance-asset-name-7" contenteditable="true">Ethereum</div>
+                                    </div>
+                                </div>
+                                <div class="tsg-binance-asset-right-7">
+                                    <div class="tsg-binance-asset-value-7" contenteditable="true">0.9417874</div>
+                                    <div class="tsg-binance-asset-btc-7" contenteditable="true">$2,825.36</div>
+                                </div>
+                                <button class="tsg-crypto-edit-btn" style=""><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button>
+                                <button class="tsg-crypto-delete-btn" style="">×</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Navigation -->
+                        <div class="tsg-binance-bottom-nav-7">
+                            <img src="data:image/svg+xml,%3Csvg%20xmlns=&#39;http://www.w3.org/2000/svg&#39;%20viewBox=&#39;0%200%200%200&#39;%3E%3C/svg%3E" alt="Bottom Navigation" class="tsg-binance-footer-img-7" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-bottom-7.png">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 14 (Binance Design 8 - DeFi Wallet - 946x1125px) -->
+
+<!-- =========  Design 8  ========= -->
+                <div class="tsg-trading-history binance-design-8-layout" style="display: none;">
+                    <!-- Binance DeFi Wallet Background -->
+                    <div class="tsg-binance-background-8">
+                        <!-- Status Bar -->
+                        <div class="tsg-binance-status-bar-8">
+                            <div class="tsg-binance-time-8" contenteditable="true">20:54</div>
+                            <div class="tsg-binance-status-icons-8">
+                                <span class="tsg-binance-network-text-8" contenteditable="true">4G</span>
+                                <i class="fas tsg-binance-battery-icon-8 fa-battery-half"></i>
+                                <span class="tsg-binance-battery-percentage-8" contenteditable="true">37%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Header -->
+                        <div class="tsg-binance-header-8">
+                            <i class="fas fa-arrow-left tsg-binance-back-arrow-8"></i>
+                            <h1 class="tsg-binance-title-8" contenteditable="true">DeFi Wallet</h1>
+                            <div>  </div>
+                            </div>
+                        
+                        <!-- Wallet Overview Section -->
+                        <div class="tsg-binance-wallet-overview-8">
+                            <div class="tsg-binance-wallet-top-8">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-icon-wallet-8.png" alt="Icon wallet" class="entered" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-wallet-8.png" data-ll-status="loaded">
+
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-icon-plus-8.png" alt="Icon QR code &amp; plus" class="entered" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-plus-8.png" data-ll-status="loaded">
+
+                            </div>
+                            <div class="tsg-binance-balance-section-8">
+                                <div class="tsg-binance-total-balance-8">
+                                    <span class="tsg-binance-balance-value-8" contenteditable="true">$190.71</span>
+                                </div>
+                                <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-icon-btn-8.png" alt="Icon QR code &amp; plus" class="entered" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-btn-8.png" data-ll-status="loaded">
+                            </div>
+                        </div>
+                        
+                        <!-- Assets Section -->
+                        <div class="tsg-binance-assets-section-8">
+                            <div class="tsg-binance-assets-header-8">
+                                <span class="tsg-binance-assets-title-8" contenteditable="true">Assets <span style="color:#9f9f9f">(3)</span></span>
+                                <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-icon-arrow-8.png" alt="Icon right pannel" class="entered" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-icon-arrow-8.png" data-ll-status="loaded">
+                            </div>
+                            
+                            <!-- Asset List -->
+                            <div class="tsg-binance-asset-list-8">
+                                <!-- BNB Asset -->
+                                <div class="tsg-binance-asset-row-8" style="position: relative;">
+                                    <div class="tsg-binance-asset-icon-8" style="position: relative;">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-bnb-icon-8">
+                                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/bnb.png" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\bnb.png" data-ll-status="loaded" class="entered">
+                                        </div>
+                                    <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button></div>
+                                    <div class="tsg-binance-asset-info-8">
+                                        <div class="tsg-binance-asset-quantity-8" contenteditable="true">0.0061 BNB</div>
+                                        <div class="tsg-binance-asset-name-8" contenteditable="true">BNB</div>
+                                    </div>
+                                    <div class="tsg-binance-asset-usd-8" contenteditable="true">$1.91</div>
+                                    
+                                    
+                                <button class="tsg-crypto-delete-btn">×</button></div>
+                                
+                                <!-- ETH Asset -->
+                                <div class="tsg-binance-asset-row-8" style="position: relative;">
+                                    <div class="tsg-binance-asset-icon-8" style="position: relative;">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-eth-icon-8">
+                                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/ethereum.png" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\ethereum.png" data-ll-status="loaded" class="entered">
+                                        </div>
+                                    <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button></div>
+                                    <div class="tsg-binance-asset-info-8">
+                                        <div class="tsg-binance-asset-quantity-8" contenteditable="true">0 ETH</div>
+                                        <div class="tsg-binance-asset-name-8" contenteditable="true">Ethereum</div>
+                                    </div>
+                                    <div class="tsg-binance-asset-usd-8" contenteditable="true">$0.00</div>
+                                    
+                                    
+                                <button class="tsg-crypto-delete-btn">×</button></div>
+                                
+                                <!-- Pulse Asset -->
+                                <div class="tsg-binance-asset-row-8" style="position: relative;">
+                                    <div class="tsg-binance-asset-icon-8" style="position: relative;">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-pulse-icon-8">
+                                        <img style="border-radius: 100% !important;" src="./Crypto Trading &amp; PnL Screenshot Generator_files/ripple.png" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\ripple.png" data-ll-status="loaded" class="entered">
+                                        </div>
+                                    <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button></div>
+                                    <div class="tsg-binance-asset-info-8">
+                                        <div class="tsg-binance-asset-quantity-8" contenteditable="true">8712000 XRP</div>
+                                        <div class="tsg-binance-asset-name-8" contenteditable="true">XRP</div>
+                                    </div>
+                                    <div class="tsg-binance-asset-usd-8" contenteditable="true">$188.80</div>
+                                    
+                                    
+                                <button class="tsg-crypto-delete-btn">×</button></div>
+                            <div class="tsg-binance-asset-row-8 tsg-crypto-add-row" style="position: relative; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;">
+                <div class="tsg-binance-asset-icon-8">
+                    <div class="tsg-crypto-add-icon" style="background: #f0f0f0; color: #666; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; border: 2px dashed #ccc;">+</div>
+                </div>
+                <div class="tsg-binance-asset-info-8">
+                    <div class="tsg-binance-asset-quantity-8" style="color: #666;">Add Crypto</div>
+                    <div class="tsg-binance-asset-name-8" style="color: #999;">Click to add cryptocurrency</div>
+                </div>
+                <div class="tsg-binance-asset-usd-8" style="color: #999;">-</div>
+            <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button><button class="tsg-crypto-delete-btn">×</button></div></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode 15 (Binance Design 9 - My Assets with PNL - 1283x1107px) -->
+
+<!-- =========  Design 9  ========= -->
+                <div class="tsg-trading-history binance-design-9-layout" style="display: none;">
+                    <!-- Binance My Assets Background -->
+                    <div class="tsg-binance-background-9">
+                        <!-- PNL Summary -->
+                        <div class="tsg-binance-pnl-summary-9">
+                            <div class="tsg-binance-pnl-header-9">
+                                <span class="tsg-binance-pnl-label-9" contenteditable="true">Yesterday's PNL</span>
+                                <i class="fas fa-info-circle tsg-binance-info-icon-9"></i>
+                            </div>
+                            <div class="tsg-binance-pnl-value-9">
+                                <span class="tsg-binance-pnl-amount-9" contenteditable="true">+$4,545.55/+0.61%</span>
+                                <i class="fas fa-chevron-right tsg-binance-pnl-arrow-9"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="tsg-binance-action-buttons-9">
+                            <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/binance-btn-9.png" alt="Action Buttons" class="tsg-binance-action-buttons-img-9" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets/binance-btn-9.png" data-ll-status="loaded">
+                        </div>
+                        
+                        <div class="tsg-binance-separate-9">
+                        </div>
+                        <!-- Convert Banner -->
+                        <div class="tsg-binance-convert-banner-9">
+                            <span class="tsg-binance-convert-text-9" contenteditable="true">Convert small assets to BNB</span>
+                            <i class="fas fa-chevron-right tsg-binance-convert-arrow-9"></i>
+                        </div>
+                        
+                        <!-- Display Options -->
+                        <div class="tsg-binance-display-options-9">
+                            <div class="tsg-binance-hide-zero-9">
+                                <input type="checkbox" id="tsg-hide-zero-9" class="tsg-binance-checkbox-9" checked="">
+                                <label for="tsg-hide-zero-9" class="tsg-binance-checkbox-label-9" contenteditable="true">Hide 0 balances</label>
+                            </div>
+                            <i class="fas fa-search tsg-binance-search-icon-9"></i>
+                        </div>
+                        
+                        <!-- Asset List -->
+                        <div class="tsg-binance-asset-list-9">
+                            <!-- USDT Asset -->
+                            <div class="tsg-binance-asset-row-9" style="position: relative;">
+                                <div class="tsg-binance-asset-left-9">
+                                    <div class="tsg-binance-asset-icon-9" style="position: relative;">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-usdt-icon-9">
+                                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/tether.png" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\tether.png" data-ll-status="loaded" class="entered">
+                                        </div>
+                                    <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button></div>
+                                    <div class="tsg-binance-asset-info-9">
+                                        <div class="tsg-binance-asset-name-9" contenteditable="true">USDT</div>
+                                        <div class="tsg-binance-asset-subtitle-9" contenteditable="true">TetherUS</div>
+                                    </div>
+                                </div>
+                                <div class="tsg-binance-asset-right-9">
+                                    <div class="tsg-binance-asset-quantity-9" contenteditable="true">400,208.47254576</div>
+                                    <div class="tsg-binance-asset-usd-9" contenteditable="true">$400,120.21</div>
+                                </div>
+                                
+                                
+                            <button class="tsg-crypto-delete-btn">×</button></div>
+                            
+                            <!-- BNB Asset -->
+                            <div class="tsg-binance-asset-row-9" style="position: relative;">
+                                <div class="tsg-binance-asset-left-9">
+                                    <div class="tsg-binance-asset-icon-9" style="position: relative;">
+                                        <div class="tsg-crypto-asset-icon tsg-binance-bnb-icon-9">
+                                        <img src="./Crypto Trading &amp; PnL Screenshot Generator_files/bnb.png" data-lazy-src="https://trading-screenshot-generator.com/wp-content/plugins/trade-screenshot-generator/assets\crypto-icons\bnb.png" data-ll-status="loaded" class="entered">
+                                        </div>
+                                    <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button></div>
+                                    <div class="tsg-binance-asset-info-9">
+                                        <div class="tsg-binance-asset-name-9" contenteditable="true">BNB</div>
+                                        <div class="tsg-binance-asset-subtitle-9" contenteditable="true">BNB</div>
+                                    </div>
+                                </div>
+                                <div class="tsg-binance-asset-right-9">
+                                    <div class="tsg-binance-asset-quantity-9" contenteditable="true">517.07413722</div>
+                                    <div class="tsg-binance-asset-usd-9" contenteditable="true">$264,308.99</div>
+                                </div>
+                                
+                                
+                            <button class="tsg-crypto-delete-btn">×</button></div>
+                        <div class="tsg-binance-asset-row-9 tsg-crypto-add-row" style="position: relative; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;">
+                <div class="tsg-binance-asset-left-9">
+                    <div class="tsg-binance-asset-icon-9">
+                        <div class="tsg-crypto-add-icon" style="background: #f0f0f0; color: #666; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; border: 2px dashed #ccc;">+</div>
+                    </div>
+                    <div class="tsg-binance-asset-info-9">
+                        <div class="tsg-binance-asset-name-9" style="color: #666;">Add Crypto</div>
+                        <div class="tsg-binance-asset-subtitle-9" style="color: #999;">Click to add cryptocurrency</div>
+                    </div>
+                </div>
+                <div class="tsg-binance-asset-right-9">
+                    <div class="tsg-binance-asset-quantity-9" style="color: #999;">-</div>
+                    <div class="tsg-binance-asset-usd-9" style="color: #999;">-</div>
+                </div>
+            <button class="tsg-crypto-edit-btn"><img draggable="false" role="img" class="emoji" alt="✏️" src="./Crypto Trading &amp; PnL Screenshot Generator_files/270f.svg"></button><button class="tsg-crypto-delete-btn">×</button></div></div>
+                    </div>
+                </div>
+                
+                <!-- Mode 16 (Bybit Design 1 - 900x1133px) -->
+  </div>
+
+  <aside class="sidebar">
+    <h2>Binance PnL</h2>
+    <p class="sub">Pick a style, edit, download.</p>
+
+    <div class="style-grid" id="style-grid">
+      <button class="style-btn is-active" data-style="1">1</button>
+      <button class="style-btn" data-style="2">2</button>
+      <button class="style-btn" data-style="3">3</button>
+      <button class="style-btn" data-style="4">4</button>
+      <button class="style-btn" data-style="5">5</button>
+      <button class="style-btn" data-style="6">6</button>
+      <button class="style-btn" data-style="7">7</button>
+      <button class="style-btn" data-style="8">8</button>
+      <button class="style-btn" data-style="9">9</button>
+    </div>
+
+    <button class="action" id="toggle-side">↕  Toggle Long / Short</button>
+    <button class="action" id="random">🎲  Generate Random Data</button>
+    <button class="action primary" id="download">⬇  Download PNG</button>
+
+    <p class="hint">
+      Click any text on the card to edit. Click the QR or the avatar to upload your own image.
+    </p>
+  </aside>
+</div>
+
+<script src="./Crypto Trading & PnL Screenshot Generator_files/html2canvas.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- show first layout on load ---------- */
+  const layouts = document.querySelectorAll('#canvas .tsg-trading-history');
+  layouts.forEach(l => l.classList.remove('is-active'));
+  const first = document.querySelector('#canvas .binance-design-1-layout');
+  if (first) first.classList.add('is-active');
+
+  /* ---------- style switching ---------- */
+  document.querySelectorAll('.style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const n = btn.dataset.style;
+      layouts.forEach(l => l.classList.remove('is-active'));
+      const target = document.querySelector('.binance-design-' + n + '-layout');
+      if (target) target.classList.add('is-active');
+    });
+  });
+
+  /* ---------- Long / Short toggle (designs 1-4) ---------- */
+  document.getElementById('toggle-side').addEventListener('click', () => {
+    const active = document.querySelector('#canvas .tsg-trading-history.is-active');
+    if (!active) return;
+    active.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      const t = el.textContent.trim();
+      if (t === 'Short') { el.textContent = 'Long';  el.style.color = '#0ECB81'; }
+      else if (t === 'Long')  { el.textContent = 'Short'; el.style.color = '#F6465D'; }
+    });
+  });
+
+  /* ---------- random data ---------- */
+  const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'AVAXUSDT'];
+  const LEVS = [3, 5, 10, 20, 25, 50, 75, 100];
+
+  function rng(min, max, dec = 2) {
+    return (Math.random() * (max - min) + min).toFixed(dec);
+  }
+
+  document.getElementById('random').addEventListener('click', () => {
+    const active = document.querySelector('#canvas .tsg-trading-history.is-active');
+    if (!active) return;
+    const sym  = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)] + ' Perpetual';
+    const lev  = LEVS[Math.floor(Math.random() * LEVS.length)] + 'X';
+    const pnl  = parseFloat(rng(-20, 350, 2));
+    const entry = parseFloat(rng(0.5, 80000, 2));
+    const drift = (1 + (pnl / 100) * (active.querySelector('[contenteditable]')?.textContent.trim() === 'Short' ? -1 : 1) / parseInt(lev));
+    const mark  = (entry * drift).toFixed(2);
+
+    active.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      const txt = el.textContent.trim();
+
+      if (/Perpetual$/i.test(txt))                                           el.textContent = sym;
+      else if (/^\d+\s*X$/i.test(txt) || /^\d+x$/i.test(txt))             el.textContent = lev;
+      else if (/^[+\-]?\d+([.,]\d+)?\s*%$/.test(txt) || /^[+\-]?%\d+/.test(txt)) {
+        const sign = pnl >= 0 ? '+' : '';
+        el.textContent = sign + pnl.toFixed(2) + '%';
+        el.style.color = pnl >= 0 ? '#0ECB81' : '#F6465D';
+      }
+      else if (/^[\d.,]+$/.test(txt) && parseFloat(txt.replace(/,/g, '.')) > 1) {
+        el.textContent = (Math.random() < 0.5 ? entry : parseFloat(mark)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    });
+  });
+
+  /* ---------- click-to-upload for QR + avatar ---------- */
+  function bindUpload(img) {
+    img.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => { img.src = ev.target.result; };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    });
+  }
+  document.querySelectorAll('img').forEach(img => {
+    const isQR     = /qr/i.test(img.className) || /qr/i.test(img.alt || '');
+    const isAvatar = /avatar/i.test(img.className) || /avatar/i.test(img.alt || '');
+    if (isQR || isAvatar) {
+      img.title = 'Click to upload your own image';
+      bindUpload(img);
+    }
+  });
+
+  /* ---------- download ---------- */
+  document.getElementById('download').addEventListener('click', async () => {
+    const active = document.querySelector('#canvas .tsg-trading-history.is-active');
+    if (!active) return;
+
+    // Strip the edit highlight before capture
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '[contenteditable="true"] { background: transparent !important; }';
+    document.head.appendChild(styleEl);
+
+    try {
+      const canvas = await html2canvas(active, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = 'binance-pnl-' + Date.now() + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    } finally {
+      styleEl.remove();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
