@@ -8,13 +8,18 @@ Semantics:
   - WR computed by HIT date (signal_updates.update_at), NOT created_at
   - Bypasses daily_market_regime table (semantically different)
   - BTC context aggregated from signal_enrichment_history v3.0 snapshot JSONB
-  - Per-signal rating/confidence still from signal_enrichment v2.1 (legacy)
+  - Per-signal rating/confidence from signal_enrichment v2.1 (legacy)
+  - Important tags = aggregate of tags_annotated[].important=true
   - Sector data joined from coins table
   - Redis cache 120s per date
 
+Note: top_patterns dropped — snapshot.structure.patterns not consistently
+populated for resolved-today signals. important_tags conveys equivalent
+narrative (PATTERN_CONFLICTING, DEEP_PULLBACK, BB_SQUEEZE_H1, etc).
+
 Mount in main.py:
-    from app.api.routes.daily_dashboard import router as daily_dashboard_router
-    app.include_router(daily_dashboard_router, prefix="/api/v1", tags=["analytics"])
+    from app.api.routes import daily_dashboard
+    app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -176,10 +181,9 @@ async def get_daily_dashboard(
         "important_tag_count": int(r[14]) if r[14] is not None else None,
     } for r in signal_rows]
 
-    # ─── Q3: Day aggregates from v3.0 enrichment_history (BTC context, F&G) ───
+    # ─── Q3: Day aggregates from v3.0 enrichment_history ───
     ctx = db.execute(text("""
-        WITH RECURSIVE _o AS (SELECT 1),
-        final_outcomes AS (
+        WITH final_outcomes AS (
             SELECT signal_id, update_at,
                 CASE 
                     WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
@@ -267,29 +271,7 @@ async def get_daily_dashboard(
         default=None,
     )
 
-    # ─── Q5: Top patterns from v3.0 snapshot.structure.patterns ───
-    pattern_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE},
-        target_signals AS (
-            SELECT s.signal_id FROM resolved r 
-            JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
-        ),
-        latest_enrichment AS (
-            SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
-            FROM signal_enrichment_history h
-            JOIN target_signals t ON t.signal_id = h.signal_id
-            ORDER BY h.signal_id, h.recorded_at DESC
-        )
-        SELECT p->>'type' AS pattern_name, COUNT(*) AS cnt
-        FROM latest_enrichment le,
-        LATERAL jsonb_array_elements(le.snapshot->'structure'->'patterns') AS p
-        WHERE p->>'type' IS NOT NULL
-        GROUP BY p->>'type'
-        ORDER BY cnt DESC LIMIT 5
-    """), {"d": target_str}).fetchall()
-    top_patterns = [{"name": r[0], "count": int(r[1])} for r in pattern_rows]
-
-    # ─── Q6: Important tags from v3.0 (replacement for v2.1 warnings) ───
+    # ─── Q5: Important tags from v3.0 tags_annotated (replaces patterns/warnings) ───
     tag_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -311,7 +293,7 @@ async def get_daily_dashboard(
     """), {"d": target_str}).fetchall()
     important_tags = [{"tag": r[0], "count": int(r[1])} for r in tag_rows]
 
-    # ─── Q7: BTC trend distribution from v3.0 tags ───
+    # ─── Q6: BTC trend distribution from v3.0 tags ───
     dist_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -359,7 +341,6 @@ async def get_daily_dashboard(
                 "fear_greed_avg": fear_greed_avg,
                 "fear_greed_label": fear_greed_label,
                 "sector_breakdown": sectors,
-                "top_patterns": top_patterns,
                 "important_tags": important_tags,
                 "decoupled_count": decoupled_count,
                 "extended_count": extended_count,
