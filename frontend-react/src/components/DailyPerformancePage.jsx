@@ -1,24 +1,26 @@
 // src/components/DailyPerformancePage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Daily Performance (Analytics Tool v4)
+// LuxQuant Terminal — Daily Performance (Analytics Tool v5)
 //
-// Features:
-//   • Cross-filtering: click any segment/bar → adds to active filters
-//   • Filter chips bar at top — see active filters, click ✕ to remove
-//   • 4 tabs: Overview · By Pattern · By Correlation · By Sector
-//   • Sortable Pattern Performance Table (count/WR/avg peak/total peak)
-//   • Scatter plot: confidence × peak (colored by outcome)
-//   • Per-sector color palette (defi=blue, ai=purple, gamefi=pink, etc)
-//   • Click any pair → opens existing SignalModal with full signal data
-//   • "Show all" modal for full filtered signal list
+// v5 changes (over v4):
+//   - Hero donut: win/loss SPLIT (ijo wins + merah losses), bukan flat gold
+//   - BTC Context: 3-tier fallback (enriched donut → summary mode → empty)
+//   - daily_regime fallback rendered everywhere (story, KPI, hero badge)
+//   - Coverage banner when enrichment < 30%
+//   - Empty-state guards untuk semua tabs
+//   - BTC Dominance card added (dom_dist visualization)
+//   - F&G card dengan gradient scale bar
+//   - Decoupled KPI: shows "—" kalau no enrichment (bukan misleading "0")
 //
-// Design principles (research-backed):
-//   • Cross-chart filtering (Databricks/Fusedash 2026)
-//   • Drill-down hierarchy: aggregate → segment → record
-//   • Cleveland-McGill: horizontal bars for multi-category
-//   • Donut only for 2-3 segments with direct labels
-//   • Progressive disclosure
-//   • Filter-aware narrative
+// Features (carried from v4):
+//   - Cross-filtering: click any segment/bar → adds to active filters
+//   - Filter chips bar at top
+//   - 4 tabs: Overview · By Pattern · By Correlation · By Sector
+//   - Sortable Pattern Performance Table
+//   - Scatter plot: confidence × peak
+//   - Per-sector color palette
+//   - SignalModal integration
+//   - "Show all" modal for full list
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -26,31 +28,35 @@ import { analyticsApi } from "../services/analyticsApi";
 import { signalsApi } from "../services/api";
 import SignalModal from "./SignalModal";
 
-// ─── Sector color palette (industry-standard category encoding) ──
+// ─── Sector color palette ────────────────────────────────────────
 
 const SECTOR_COLORS = {
-  defi: "#3b82f6",          // blue
-  ai: "#a855f7",            // purple
-  gamefi: "#ec4899",        // pink
-  infrastructure: "#06b6d4", // cyan
-  hype: "#f97316",          // orange
-  payments: "#10b981",      // emerald
-  rwa: "#f59e0b",           // amber
-  privacy: "#8b5cf6",       // violet
-  socialfi: "#14b8a6",      // teal
-  other: "#64748b",         // slate
-  uncategorized: "#6b7280", // gray
+  defi: "#3b82f6",
+  ai: "#a855f7",
+  gamefi: "#ec4899",
+  infrastructure: "#06b6d4",
+  hype: "#f97316",
+  payments: "#10b981",
+  rwa: "#f59e0b",
+  privacy: "#8b5cf6",
+  socialfi: "#14b8a6",
+  other: "#64748b",
+  uncategorized: "#6b7280",
 };
 
 const sectorColor = (s) => SECTOR_COLORS[s] || SECTOR_COLORS.uncategorized;
 
+// Outcome colors — emerald gradient for wins, red for SL
 const OUTCOME_COLORS = {
   tp4: "#10b981",
   tp3: "#34d399",
   tp2: "#6ee7b7",
   tp1: "#a7f3d0",
-  sl: "#f87171",
+  sl: "#ef4444",
 };
+
+const WIN_COLOR = "#10b981";
+const LOSS_COLOR = "#ef4444";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -103,24 +109,74 @@ const SectionHeader = ({ label }) => (
   </div>
 );
 
-// ─── Donut chart (single value) ──────────────────────────────────
+// ─── Win/Loss Split Donut (HERO — v5 new) ─────────────────────────
 
-const Donut = ({ value, size = 200, stroke = 16, valueColor = "#d4a853", label, sublabel }) => {
+const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
+  const total = wins + losses;
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
-  const offset = circ - (value / 100) * circ;
+
+  const winsPortion = total > 0 ? (wins / total) * circ : 0;
+  const lossesPortion = total > 0 ? (losses / total) * circ : 0;
+  const wr = total > 0 ? (wins / total) * 100 : 0;
+
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={valueColor} strokeWidth={stroke}
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.8s ease-out" }} />
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.04)"
+          strokeWidth={stroke}
+        />
+        {total > 0 && (
+          <>
+            {/* Wins arc — emerald */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={WIN_COLOR}
+              strokeWidth={stroke}
+              strokeDasharray={`${winsPortion} ${circ - winsPortion}`}
+              strokeDashoffset={0}
+              style={{ transition: "stroke-dasharray 0.8s ease-out" }}
+            />
+            {/* Losses arc — red, offset to start where wins end */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={LOSS_COLOR}
+              strokeWidth={stroke}
+              strokeDasharray={`${lossesPortion} ${circ - lossesPortion}`}
+              strokeDashoffset={-winsPortion}
+              style={{ transition: "stroke-dasharray 0.8s ease-out" }}
+            />
+          </>
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="font-mono tabular-nums text-white" style={{ fontSize: size * 0.18 }}>{label}</div>
-        {sublabel && (
-          <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/50 mt-1">{sublabel}</div>
+        <div
+          className="font-mono tabular-nums text-white leading-none"
+          style={{ fontSize: size * 0.2 }}
+        >
+          {wr.toFixed(1)}%
+        </div>
+        <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/50 mt-1.5">
+          win rate
+        </div>
+        {total > 0 && (
+          <div className="flex items-center gap-2 mt-2 font-mono tabular-nums text-[11px]">
+            <span className="text-emerald-400">{wins}W</span>
+            <span className="text-white/20">/</span>
+            <span className="text-red-400">{losses}L</span>
+          </div>
         )}
       </div>
     </div>
@@ -129,7 +185,14 @@ const Donut = ({ value, size = 200, stroke = 16, valueColor = "#d4a853", label, 
 
 // ─── Segmented donut (multi segments, clickable) ─────────────────
 
-const SegmentedDonut = ({ segments, size = 160, stroke = 16, centerLabel, centerSublabel, onSegmentClick }) => {
+const SegmentedDonut = ({
+  segments,
+  size = 160,
+  stroke = 16,
+  centerLabel,
+  centerSublabel,
+  onSegmentClick,
+}) => {
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
   const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
@@ -161,20 +224,31 @@ const SegmentedDonut = ({ segments, size = 160, stroke = 16, centerLabel, center
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.04)"
+          strokeWidth={stroke}
+        />
         {arcs}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="font-mono tabular-nums text-white" style={{ fontSize: size * 0.22 }}>{centerLabel}</div>
+        <div className="font-mono tabular-nums text-white" style={{ fontSize: size * 0.22 }}>
+          {centerLabel}
+        </div>
         {centerSublabel && (
-          <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/45 mt-0.5">{centerSublabel}</div>
+          <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/45 mt-0.5">
+            {centerSublabel}
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-// ─── Horizontal bar chart (clickable rows for cross-filtering) ───
+// ─── Horizontal bar chart (clickable rows) ───────────────────────
 
 const HBar = ({ rows, height = 8, onRowClick, activeFilter }) => {
   const max = Math.max(...rows.map((r) => r.value), 1);
@@ -187,18 +261,30 @@ const HBar = ({ rows, height = 8, onRowClick, activeFilter }) => {
         return (
           <div
             key={i}
-            className={`${clickable ? "cursor-pointer group" : ""} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-2 px-2 -my-1 py-1" : ""}`}
+            className={`${clickable ? "cursor-pointer group" : ""} ${
+              isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-2 px-2 -my-1 py-1" : ""
+            }`}
             onClick={() => clickable && onRowClick(r.label)}
           >
             <div className="flex justify-between items-baseline mb-1.5">
-              <span className={`text-[12px] font-mono uppercase tracking-wider ${isActive ? "text-gold-primary" : "text-white/75 group-hover:text-white"}`}>
+              <span
+                className={`text-[12px] font-mono uppercase tracking-wider ${
+                  isActive ? "text-gold-primary" : "text-white/75 group-hover:text-white"
+                }`}
+              >
                 {r.label}
               </span>
               <span className="flex items-center gap-2">
                 {r.sublabel && (
-                  <span className="text-[10px] font-mono tabular-nums text-white/40">{r.sublabel}</span>
+                  <span className="text-[10px] font-mono tabular-nums text-white/40">
+                    {r.sublabel}
+                  </span>
                 )}
-                <span className={`text-xs font-mono tabular-nums min-w-[3rem] text-right ${isActive ? "text-gold-primary" : "text-white/85"}`}>
+                <span
+                  className={`text-xs font-mono tabular-nums min-w-[3rem] text-right ${
+                    isActive ? "text-gold-primary" : "text-white/85"
+                  }`}
+                >
                   {r.value}
                 </span>
               </span>
@@ -220,7 +306,7 @@ const HBar = ({ rows, height = 8, onRowClick, activeFilter }) => {
   );
 };
 
-// ─── Filter chips bar (active filters display + clear) ───────────
+// ─── Filter chips bar ────────────────────────────────────────────
 
 const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFiltered }) => {
   const entries = Object.entries(filters).filter(([_, v]) => v !== null && v !== undefined);
@@ -268,40 +354,92 @@ const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFilt
   );
 };
 
-// ─── KPI Card (clickable to add filter) ──────────────────────────
+// ─── Coverage banner (warns user about sparse data) ──────────────
 
-const KpiCard = ({ label, value, sub, subColor, onClick }) => (
+const CoverageBanner = ({ coverage, total, dailyRegime, hasFilters }) => {
+  if (hasFilters) return null;
+  const pct = total > 0 ? (coverage / total) * 100 : 0;
+  if (pct >= 30) return null;
+
+  const isPreV3 = coverage === 0;
+
+  return (
+    <Card className="px-4 py-3 mb-5 border-amber-500/20 bg-amber-500/[0.03]">
+      <div className="flex items-start gap-3">
+        <span className="text-amber-400 mt-0.5">⚠</span>
+        <div className="flex-1 text-xs text-white/75">
+          {isPreV3 ? (
+            <>
+              <span className="text-amber-300 font-mono uppercase tracking-wider text-[10px]">
+                Limited enrichment data
+              </span>
+              <div className="mt-1 text-white/55">
+                BTC context, patterns, and per-signal tags unavailable for this date —
+                enrichment v3.0 launched 2026-05-14. Win rate and sector breakdown remain accurate.
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="text-amber-300 font-mono uppercase tracking-wider text-[10px]">
+                Sparse enrichment ({coverage}/{total} signals · {pct.toFixed(0)}%)
+              </span>
+              <div className="mt-1 text-white/55">
+                BTC context and pattern analysis based on partial sample.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+// ─── KPI Card ────────────────────────────────────────────────────
+
+const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
   <div
-    className={`relative rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`}
+    className={`relative rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3.5 transition ${
+      onClick ? "cursor-pointer hover:border-gold-primary/25" : ""
+    }`}
     onClick={onClick}
   >
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <Label>{label}</Label>
-    <div className="text-xl lg:text-2xl font-mono tabular-nums text-white/95 mt-1.5 truncate">{value}</div>
-    <div className={`text-[10px] tracking-[0.15em] font-mono uppercase mt-1 ${subColor || "text-white/40"}`}>{sub}</div>
+    <div
+      className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${
+        valueColor || "text-white/95"
+      }`}
+    >
+      {value}
+    </div>
+    <div
+      className={`text-[10px] tracking-[0.15em] font-mono uppercase mt-1 ${
+        subColor || "text-white/40"
+      }`}
+    >
+      {sub}
+    </div>
   </div>
 );
 
 // ─── Hero Section ────────────────────────────────────────────────
 
-const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, hasFilters }) => {
+const HeroSection = ({ signals, totalUnfiltered, summary, selectedDate, hasFilters }) => {
   const total = signals?.length || 0;
   const wins = signals?.filter((s) => s.outcome?.startsWith("tp")).length || 0;
   const losses = signals?.filter((s) => s.outcome === "sl").length || 0;
   const wr = total > 0 ? (wins / total) * 100 : 0;
 
-  const regimeColors = {
-    strong: { ring: "#d4a853", label: "STRONG" },
-    neutral: { ring: "rgba(255,255,255,0.4)", label: "NEUTRAL" },
-    weak: { ring: "#f87171", label: "WEAK" },
+  const regimeBadge = {
+    strong: { bg: "bg-emerald-500/15", border: "border-emerald-500/30", text: "text-emerald-300", dot: WIN_COLOR },
+    neutral: { bg: "bg-white/[0.06]", border: "border-white/[0.12]", text: "text-white/75", dot: "rgba(255,255,255,0.5)" },
+    weak: { bg: "bg-red-500/15", border: "border-red-500/30", text: "text-red-300", dot: LOSS_COLOR },
+    no_data: { bg: "bg-white/[0.04]", border: "border-white/[0.08]", text: "text-white/40", dot: "rgba(255,255,255,0.2)" },
   };
-  const regime = wr >= 75 ? "strong" : wr >= 50 ? "neutral" : "weak";
-  const rc = total > 0 ? regimeColors[regime] : { ring: "rgba(255,255,255,0.1)", label: "NO DATA" };
+  const regime = wr >= 75 ? "strong" : wr >= 50 ? "neutral" : total > 0 ? "weak" : "no_data";
+  const rb = regimeBadge[regime];
 
-  // Auto-generated narrative
-  const avgPeak = total > 0
-    ? signals.reduce((sum, s) => sum + (s.peak_pct || 0), 0) / total
-    : 0;
+  const avgPeak = total > 0 ? signals.reduce((sum, s) => sum + (s.peak_pct || 0), 0) / total : 0;
 
   const topSector = useMemo(() => {
     if (!signals?.length) return null;
@@ -333,33 +471,55 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
     return arr[0];
   }, [signals]);
 
+  const decoupled = signals?.filter((s) => s.is_decoupled).length || 0;
+  const enrichedCount = signals?.filter((s) => (s.important_tag_count || 0) > 0).length || 0;
+  const hasEnrichment = enrichedCount > 0;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* Hero donut card */}
       <Card className="lg:col-span-5 p-6 flex flex-col items-center justify-center">
-        <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-1">
+        <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-3">
           · {fmtDateLong(selectedDate)} ·
         </div>
-        <Donut
-          value={wr}
-          size={220}
-          stroke={18}
-          valueColor={rc.ring}
-          label={`${wr.toFixed(1)}%`}
-          sublabel={hasFilters ? "filtered wr" : "win rate"}
-        />
+
+        <WinLossDonut wins={wins} losses={losses} size={220} stroke={18} />
+
         <div className="mt-5 flex items-center gap-3">
-          <span className="flex items-center gap-2 px-3 py-1 rounded-sm bg-white/[0.04] border border-white/[0.08]">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: rc.ring }} />
-            <span className="text-[11px] tracking-[0.25em] font-mono uppercase text-white/70">{rc.label}</span>
+          <span
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-sm border ${rb.bg} ${rb.border}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: rb.dot }} />
+            <span className={`text-[11px] tracking-[0.25em] font-mono uppercase ${rb.text}`}>
+              {regime.toUpperCase().replace("_", " ")}
+            </span>
           </span>
         </div>
-        <div className="mt-3 text-[11px] font-mono tabular-nums text-white/55">
-          {wins}W / {losses}L
-          <span className="text-white/30 mx-2">·</span>
-          {total} {hasFilters ? "filtered" : "resolved"}
-        </div>
+
+        {total > 0 && (
+          <div className="mt-3 text-[11px] font-mono tabular-nums text-white/55">
+            {total} {hasFilters ? "filtered" : "resolved"}
+            {summary?.delta_vs_yesterday !== undefined &&
+              summary?.delta_vs_yesterday !== 0 &&
+              !hasFilters && (
+                <>
+                  <span className="text-white/20 mx-2">·</span>
+                  <span
+                    className={
+                      summary.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"
+                    }
+                  >
+                    {summary.delta_vs_yesterday > 0 ? "▲" : "▼"}{" "}
+                    {Math.abs(summary.delta_vs_yesterday).toFixed(2)}
+                  </span>
+                  <span className="text-white/30 ml-1">vs yesterday</span>
+                </>
+              )}
+          </div>
+        )}
       </Card>
 
+      {/* Story card */}
       <Card className="lg:col-span-7 p-6">
         <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-4">
           · Daily Story {hasFilters ? "(filtered)" : ""} ·
@@ -368,27 +528,53 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
         <p className="text-base text-white/85 leading-relaxed">
           {hasFilters ? (
             <>
-              <span className="font-mono tabular-nums text-gold-primary text-lg">{total}</span>
-              {" "}of {totalUnfiltered} signals match current filters with{" "}
-              <span className="font-mono tabular-nums text-white">{fmtPct(wr, 2)}</span>{" "}
-              win rate{total > 0 && (<>, avg peak{" "}
-                <span className={`font-mono ${avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-white/60"}`}>
-                  {avgPeak > 0 ? "+" : ""}{avgPeak.toFixed(2)}%
-                </span></>)}.
+              <span className="font-mono tabular-nums text-gold-primary text-lg">{total}</span> of{" "}
+              {totalUnfiltered} signals match current filters with{" "}
+              <span className="font-mono tabular-nums text-white">{fmtPct(wr, 2)}</span> win rate
+              {total > 0 && (
+                <>
+                  , avg peak{" "}
+                  <span
+                    className={`font-mono ${
+                      avgPeak > 0
+                        ? "text-emerald-400"
+                        : avgPeak < 0
+                        ? "text-red-400"
+                        : "text-white/60"
+                    }`}
+                  >
+                    {avgPeak > 0 ? "+" : ""}
+                    {avgPeak.toFixed(2)}%
+                  </span>
+                </>
+              )}
+              .
             </>
           ) : (
             <>
-              <span className="font-mono tabular-nums text-gold-primary text-lg">{summary?.total_resolved ?? 0}</span>
-              {" "}signals resolved with{" "}
-              <span className="font-mono tabular-nums text-white">{fmtPct(summary?.win_rate, 2)}</span>{" "}
+              <span className="font-mono tabular-nums text-gold-primary text-lg">
+                {summary?.total_resolved ?? 0}
+              </span>{" "}
+              signals resolved with{" "}
+              <span className="font-mono tabular-nums text-white">
+                {fmtPct(summary?.win_rate, 2)}
+              </span>{" "}
               win rate
               {summary?.delta_vs_yesterday !== 0 && (
                 <span className="text-white/60">
-                  ,{" "}<span className={summary?.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"}>
-                    {summary?.delta_vs_yesterday > 0 ? "+" : ""}{(summary?.delta_vs_yesterday || 0).toFixed(2)}
-                  </span>{" "}vs yesterday
+                  ,{" "}
+                  <span
+                    className={
+                      summary?.delta_vs_yesterday > 0 ? "text-emerald-400" : "text-red-400"
+                    }
+                  >
+                    {summary?.delta_vs_yesterday > 0 ? "+" : ""}
+                    {(summary?.delta_vs_yesterday || 0).toFixed(2)}
+                  </span>{" "}
+                  vs yesterday
                 </span>
-              )}.
+              )}
+              .
             </>
           )}
         </p>
@@ -401,10 +587,15 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
                 style={{ background: sectorColor(topSector.sector) }}
               />
               <div className="text-sm text-white/70">
-                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">Best sector</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{topSector.sector}</span>
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">
+                  Best sector
+                </span>
+                <span className="font-mono uppercase tracking-wider text-white/90">
+                  {topSector.sector}
+                </span>
                 <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">
-                  {topSector.wins}/{topSector.total} ({fmtPct((topSector.wins / topSector.total) * 100, 0)})
+                  {topSector.wins}/{topSector.total} (
+                  {fmtPct((topSector.wins / topSector.total) * 100, 0)})
                 </span>
               </div>
             </div>
@@ -414,8 +605,15 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-white/50 mt-2 flex-shrink-0" />
               <div className="text-sm text-white/70">
-                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">BTC context</span>
-                <span className="font-mono uppercase tracking-wider text-white/90">{summary.btc_trend_mode}</span>
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/45 mr-2">
+                  BTC context
+                </span>
+                <span className="font-mono uppercase tracking-wider text-white/90">
+                  {summary.btc_trend_mode}
+                </span>
+                {summary.btc_dom_trend_mode && (
+                  <span className="text-white/40 ml-2 text-xs">· DOM {summary.btc_dom_trend_mode}</span>
+                )}
                 {summary.fear_greed_avg !== null && summary.fear_greed_avg !== undefined && (
                   <span className="text-white/40 ml-2 text-xs">
                     · F&amp;G {summary.fear_greed_avg} {summary.fear_greed_label}
@@ -425,13 +623,45 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
             </div>
           )}
 
-          {topPattern && topPattern.count >= 2 && (
+          {/* Fallback: show daily_regime if BTC mode unavailable */}
+          {!hasFilters && !summary?.btc_trend_mode && summary?.daily_regime && (
+            <div className="flex items-start gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400/70 mt-2 flex-shrink-0" />
+              <div className="text-sm text-white/70">
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-amber-400/70 mr-2">
+                  Daily regime (fallback)
+                </span>
+                <span className="font-mono uppercase tracking-wider text-white/90">
+                  {summary.daily_regime.regime}
+                </span>
+                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">
+                  {summary.daily_regime.wins}/{summary.daily_regime.total_closed} ·{" "}
+                  {fmtPct(summary.daily_regime.win_rate, 1)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {hasEnrichment && topPattern && topPattern.count >= 2 && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-gold-primary mt-2 flex-shrink-0" />
               <div className="text-sm text-white/70">
-                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/70 mr-2">Top flag</span>
+                <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/70 mr-2">
+                  Top flag
+                </span>
                 <span className="font-mono text-white/90">{topPattern.tag}</span>
-                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">in {topPattern.count} signals</span>
+                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">
+                  in {topPattern.count} signals
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!hasEnrichment && !hasFilters && total > 0 && (
+            <div className="flex items-start gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2 flex-shrink-0" />
+              <div className="text-xs text-white/40 italic">
+                Pattern analysis unavailable — signals on this date predate v3.0 enrichment
               </div>
             </div>
           )}
@@ -443,7 +673,7 @@ const HeroSection = ({ signals, totalUnfiltered, summary, detail, selectedDate, 
 
 // ─── KPI Row ─────────────────────────────────────────────────────
 
-const KpiRow = ({ signals, detail, addFilter }) => {
+const KpiRow = ({ signals }) => {
   const bestPeak = useMemo(() => {
     if (!signals?.length) return null;
     let best = null;
@@ -462,8 +692,9 @@ const KpiRow = ({ signals, detail, addFilter }) => {
   const total = signals?.length || 0;
   const wins = signals?.filter((s) => s.outcome?.startsWith("tp")).length || 0;
   const decoupled = signals?.filter((s) => s.is_decoupled).length || 0;
-  const coverage = signals?.filter((s) => (s.important_tag_count || 0) > 0).length || 0;
-  const coveragePct = total ? Math.round((coverage / total) * 100) : 0;
+  const enrichedCount = signals?.filter((s) => (s.important_tag_count || 0) > 0).length || 0;
+  const coveragePct = total ? Math.round((enrichedCount / total) * 100) : 0;
+  const hasAnyEnrichment = enrichedCount > 0;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -472,23 +703,39 @@ const KpiRow = ({ signals, detail, addFilter }) => {
         label="Hit Rate"
         value={total ? `${wins}/${total}` : "—"}
         sub={total ? fmtPct((wins / total) * 100, 1) : "—"}
+        subColor={
+          total
+            ? wins / total >= 0.75
+              ? "text-emerald-400"
+              : wins / total >= 0.5
+              ? "text-white/60"
+              : "text-red-400"
+            : "text-white/40"
+        }
       />
       <KpiCard
         label="Best Pair"
         value={bestPeak?.pair || "—"}
-        sub={bestPeak?.peak_pct !== null && bestPeak?.peak_pct !== undefined ? `+${bestPeak.peak_pct.toFixed(2)}%` : "—"}
+        sub={
+          bestPeak?.peak_pct !== null && bestPeak?.peak_pct !== undefined
+            ? `+${bestPeak.peak_pct.toFixed(2)}%`
+            : "—"
+        }
         subColor="text-emerald-400"
       />
       <KpiCard
         label="Avg Peak"
         value={total ? `${avgPeak >= 0 ? "+" : ""}${avgPeak.toFixed(2)}%` : "—"}
         sub="across filtered"
-        subColor={avgPeak >= 0 ? "text-emerald-400/70" : "text-red-400/70"}
+        valueColor={
+          avgPeak > 0 ? "text-emerald-400" : avgPeak < 0 ? "text-red-400" : "text-white/95"
+        }
       />
       <KpiCard
         label="Decoupled"
-        value={decoupled}
-        sub={`${coveragePct}% enriched`}
+        value={hasAnyEnrichment ? decoupled : "—"}
+        sub={hasAnyEnrichment ? `${coveragePct}% enriched` : "no enrichment"}
+        subColor={hasAnyEnrichment ? "text-white/40" : "text-amber-400/60"}
       />
     </div>
   );
@@ -516,19 +763,262 @@ const TabSwitcher = ({ active, onChange }) => (
           }`}
         >
           {t.label}
-          {isActive && (
-            <span className="absolute bottom-0 inset-x-3 h-[2px] bg-gold-primary" />
-          )}
+          {isActive && <span className="absolute bottom-0 inset-x-3 h-[2px] bg-gold-primary" />}
         </button>
       );
     })}
   </div>
 );
 
+// ─── F&G Gauge ───────────────────────────────────────────────────
+
+const FngGauge = ({ value, label }) => {
+  if (value === null || value === undefined) return null;
+  const color =
+    value < 25
+      ? "text-red-400"
+      : value < 45
+      ? "text-orange-400"
+      : value < 55
+      ? "text-white/80"
+      : value < 75
+      ? "text-emerald-400/85"
+      : "text-emerald-400";
+
+  return (
+    <div className="pt-3 border-t border-white/[0.05]">
+      <Label className="mb-1.5">Fear &amp; Greed</Label>
+      <div className="flex items-baseline gap-3">
+        <span className="font-mono tabular-nums text-2xl text-white/95">{value}</span>
+        <span
+          className={`text-[11px] font-mono uppercase tracking-wider ${color}`}
+        >
+          {label || "—"}
+        </span>
+      </div>
+      <div className="mt-2 h-1.5 bg-gradient-to-r from-red-500 via-orange-400 via-yellow-400 to-emerald-400 rounded-sm relative">
+        <div
+          className="absolute -top-0.5 w-1 h-2.5 bg-white shadow-md"
+          style={{ left: `calc(${value}% - 2px)` }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] font-mono uppercase tracking-wider text-white/30 mt-1">
+        <span>0</span>
+        <span>50</span>
+        <span>100</span>
+      </div>
+    </div>
+  );
+};
+
+// ─── BTC Context Card (3-tier — v5 new) ──────────────────────────
+
+const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
+  // Tier 1: per-signal aggregation from important_tags
+  const btcTrendDist = useMemo(() => {
+    const dist = { BULLISH: 0, RANGING: 0, BEARISH: 0 };
+    for (const s of signals || []) {
+      for (const tag of s.important_tags || []) {
+        if (tag === "BTC_BULLISH") dist.BULLISH++;
+        else if (tag === "BTC_RANGING") dist.RANGING++;
+        else if (tag === "BTC_BEARISH") dist.BEARISH++;
+      }
+    }
+    return dist;
+  }, [signals]);
+
+  // Fall back to backend distribution if per-signal scraping comes up empty
+  // (BTC tags are important:false, so signals[].important_tags won't include them)
+  const backendDist = detail?.btc_trend_distribution || {};
+  const dist = {
+    BULLISH: btcTrendDist.BULLISH || backendDist.BULLISH || 0,
+    RANGING: btcTrendDist.RANGING || backendDist.RANGING || 0,
+    BEARISH: btcTrendDist.BEARISH || backendDist.BEARISH || 0,
+  };
+
+  const btcSegments = [
+    { label: "BULLISH", key: "BULLISH", value: dist.BULLISH, color: OUTCOME_COLORS.tp3 },
+    { label: "RANGING", key: "RANGING", value: dist.RANGING, color: "rgba(255,255,255,0.4)" },
+    { label: "BEARISH", key: "BEARISH", value: dist.BEARISH, color: OUTCOME_COLORS.sl },
+  ];
+  const btcTotal = btcSegments.reduce((s, b) => s + b.value, 0);
+
+  const btcMode = summary?.btc_trend_mode;
+  const btcDomMode = summary?.btc_dom_trend_mode;
+  const fng = summary?.fear_greed_avg;
+  const fngLabel = summary?.fear_greed_label;
+  const dailyRegime = summary?.daily_regime;
+
+  const showInteractiveDonut = btcTotal >= 3;
+  const showSummaryFallback = !showInteractiveDonut && (btcMode || btcDomMode || fng !== null);
+  const showRegimeFallback = !showInteractiveDonut && !showSummaryFallback && dailyRegime;
+  const showEmpty = !showInteractiveDonut && !showSummaryFallback && !showRegimeFallback;
+
+  return (
+    <Card className="p-5">
+      <div className="flex justify-between items-center mb-4">
+        <Label>BTC Context</Label>
+        {showInteractiveDonut && (
+          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+            click to filter
+          </div>
+        )}
+      </div>
+
+      {/* TIER 1: interactive donut */}
+      {showInteractiveDonut && (
+        <div className="flex items-center gap-6">
+          <SegmentedDonut
+            segments={btcSegments}
+            size={140}
+            stroke={14}
+            centerLabel={btcTotal}
+            centerSublabel="enriched"
+            onSegmentClick={(s) => addFilter("btc_trend", s.key)}
+          />
+          <div className="flex-1 space-y-2">
+            {btcSegments.map((s) => {
+              const pct = btcTotal ? (s.value / btcTotal) * 100 : 0;
+              const isActive = filters.btc_trend === s.key;
+              return (
+                <button
+                  key={s.key}
+                  onClick={() => addFilter("btc_trend", s.key)}
+                  className={`w-full flex items-center gap-3 text-left transition ${
+                    s.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"
+                  } ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-sm flex-shrink-0"
+                    style={{ background: s.color }}
+                  />
+                  <span
+                    className={`text-[11px] font-mono uppercase tracking-wider w-16 ${
+                      isActive ? "text-gold-primary" : "text-white/65"
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                  <div className="flex-1 h-1 bg-white/[0.04] rounded-sm overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: s.color }}
+                    />
+                  </div>
+                  <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">
+                    {s.value}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TIER 2: summary mode + F&G */}
+      {showSummaryFallback && (
+        <div className="space-y-4 py-1">
+          <div className="grid grid-cols-2 gap-4">
+            {btcMode && (
+              <div>
+                <Label className="mb-1.5">BTC Trend</Label>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background:
+                        btcMode === "BULLISH"
+                          ? OUTCOME_COLORS.tp3
+                          : btcMode === "BEARISH"
+                          ? OUTCOME_COLORS.sl
+                          : "rgba(255,255,255,0.5)",
+                    }}
+                  />
+                  <span className="font-mono uppercase tracking-wider text-base text-white/90">
+                    {btcMode}
+                  </span>
+                </div>
+              </div>
+            )}
+            {btcDomMode && (
+              <div>
+                <Label className="mb-1.5">BTC.D Trend</Label>
+                <div className="font-mono uppercase tracking-wider text-base text-white/90">
+                  {btcDomMode}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <FngGauge value={fng} label={fngLabel} />
+
+          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30 pt-1">
+            Aggregate mode · {detail?.enrichment_coverage || 0} of {detail?.enrichment_total || 0}{" "}
+            signals enriched
+          </div>
+        </div>
+      )}
+
+      {/* TIER 3: daily_regime fallback only */}
+      {showRegimeFallback && (
+        <div className="space-y-3 py-1">
+          <div className="flex items-center gap-3 p-3 rounded-sm bg-amber-500/[0.04] border border-amber-500/15">
+            <span className="text-amber-400/70 text-lg">ℹ</span>
+            <div className="flex-1 text-xs">
+              <div className="text-amber-300 font-mono uppercase tracking-wider text-[10px] mb-1">
+                Limited data — using daily regime fallback
+              </div>
+              <div className="text-white/60">
+                BTC context unavailable for this date (pre-v3.0 enrichment).
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="mb-1.5">Daily Regime</Label>
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    background:
+                      dailyRegime.regime === "strong"
+                        ? WIN_COLOR
+                        : dailyRegime.regime === "weak"
+                        ? LOSS_COLOR
+                        : "rgba(255,255,255,0.5)",
+                  }}
+                />
+                <span className="font-mono uppercase tracking-wider text-base text-white/90">
+                  {dailyRegime.regime}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1.5">Regime WR</Label>
+              <div className="font-mono tabular-nums text-base text-white/90">
+                {dailyRegime.win_rate?.toFixed(1)}%
+              </div>
+              <div className="text-[10px] font-mono tabular-nums text-white/40 mt-0.5">
+                {dailyRegime.wins}/{dailyRegime.total_closed} closed
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TIER 4: truly empty */}
+      {showEmpty && (
+        <div className="text-xs font-mono text-white/30 py-8 text-center uppercase tracking-wider">
+          No BTC context available
+        </div>
+      )}
+    </Card>
+  );
+};
+
 // ─── Overview Tab ────────────────────────────────────────────────
 
-const OverviewTab = ({ signals, detail, filters, addFilter }) => {
-  // Outcome distribution
+const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
   const outcomes = useMemo(() => {
     const counts = { tp4: 0, tp3: 0, tp2: 0, tp1: 0, sl: 0 };
     for (const s of signals || []) {
@@ -546,7 +1036,6 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
   const outcomeTotal = outcomes.reduce((s, o) => s + o.value, 0);
   const winSegmentTotal = outcomes.filter((o) => o.key !== "sl").reduce((s, o) => s + o.value, 0);
 
-  // Sector breakdown (frontend-computed for filter-awareness)
   const sectors = useMemo(() => {
     const sectorMap = {};
     for (const s of signals || []) {
@@ -557,32 +1046,19 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
       if (s.outcome === "sl") sectorMap[k].losses++;
     }
     return Object.values(sectorMap)
-      .map((s) => ({
-        ...s,
-        win_rate: s.total ? (s.wins / s.total) * 100 : 0,
-      }))
+      .map((s) => ({ ...s, win_rate: s.total ? (s.wins / s.total) * 100 : 0 }))
       .sort((a, b) => b.total - a.total);
   }, [signals]);
 
-  // BTC trend distribution from signals' important_tags
-  const btcTrendDist = useMemo(() => {
-    const dist = { BULLISH: 0, RANGING: 0, BEARISH: 0 };
-    for (const s of signals || []) {
-      for (const tag of s.important_tags || []) {
-        if (tag === "BTC_BULLISH") dist.BULLISH++;
-        else if (tag === "BTC_RANGING") dist.RANGING++;
-        else if (tag === "BTC_BEARISH") dist.BEARISH++;
-      }
-    }
-    return dist;
-  }, [signals]);
-
-  const btcSegments = [
-    { label: "BULLISH", key: "BULLISH", value: btcTrendDist.BULLISH, color: OUTCOME_COLORS.tp3 },
-    { label: "RANGING", key: "RANGING", value: btcTrendDist.RANGING, color: "rgba(255,255,255,0.4)" },
-    { label: "BEARISH", key: "BEARISH", value: btcTrendDist.BEARISH, color: OUTCOME_COLORS.sl },
-  ];
-  const btcTotal = btcSegments.reduce((s, b) => s + b.value, 0);
+  if (!signals?.length) {
+    return (
+      <Card className="p-10 text-center">
+        <div className="text-white/30 text-sm font-mono uppercase tracking-wider">
+          No signals match current filters
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -591,7 +1067,9 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
             <Label>Outcome Distribution</Label>
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click to filter</div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+              click to filter
+            </div>
           </div>
           <div className="flex items-center gap-6">
             <SegmentedDonut
@@ -610,14 +1088,30 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
                   <button
                     key={o.key}
                     onClick={() => addFilter("outcome", o.key)}
-                    className={`w-full flex items-center gap-3 text-left transition ${o.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}
+                    className={`w-full flex items-center gap-3 text-left transition ${
+                      o.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"
+                    } ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}
                   >
-                    <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: o.color }} />
-                    <span className={`text-[11px] font-mono uppercase tracking-wider w-8 ${isActive ? "text-gold-primary" : "text-white/65"}`}>{o.label}</span>
+                    <span
+                      className="w-2 h-2 rounded-sm flex-shrink-0"
+                      style={{ background: o.color }}
+                    />
+                    <span
+                      className={`text-[11px] font-mono uppercase tracking-wider w-8 ${
+                        isActive ? "text-gold-primary" : "text-white/65"
+                      }`}
+                    >
+                      {o.label}
+                    </span>
                     <div className="flex-1 h-1 bg-white/[0.04] rounded-sm overflow-hidden">
-                      <div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: o.color }} />
+                      <div
+                        className="h-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: o.color }}
+                      />
                     </div>
-                    <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">{o.value}</span>
+                    <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">
+                      {o.value}
+                    </span>
                   </button>
                 );
               })}
@@ -625,54 +1119,23 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
           </div>
         </Card>
 
-        {/* BTC Trend Distribution */}
-        <Card className="p-5">
-          <div className="flex justify-between items-center mb-4">
-            <Label>BTC Trend (at enrichment)</Label>
-            <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click to filter</div>
-          </div>
-          {btcTotal > 0 ? (
-            <div className="flex items-center gap-6">
-              <SegmentedDonut
-                segments={btcSegments}
-                size={140}
-                stroke={14}
-                centerLabel={btcTotal}
-                centerSublabel="enriched"
-                onSegmentClick={(s) => addFilter("btc_trend", s.key)}
-              />
-              <div className="flex-1 space-y-2">
-                {btcSegments.map((s) => {
-                  const pct = btcTotal ? (s.value / btcTotal) * 100 : 0;
-                  const isActive = filters.btc_trend === s.key;
-                  return (
-                    <button
-                      key={s.key}
-                      onClick={() => addFilter("btc_trend", s.key)}
-                      className={`w-full flex items-center gap-3 text-left transition ${s.value === 0 ? "opacity-30 pointer-events-none" : "hover:opacity-90"} ${isActive ? "ring-1 ring-gold-primary/40 rounded-sm -mx-1 px-1" : ""}`}
-                    >
-                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: s.color }} />
-                      <span className={`text-[11px] font-mono uppercase tracking-wider w-16 ${isActive ? "text-gold-primary" : "text-white/65"}`}>{s.label}</span>
-                      <div className="flex-1 h-1 bg-white/[0.04] rounded-sm overflow-hidden">
-                        <div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: s.color }} />
-                      </div>
-                      <span className="font-mono tabular-nums text-xs text-white/75 w-8 text-right">{s.value}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs font-mono text-white/30 py-8 text-center">No BTC enrichment data</div>
-          )}
-        </Card>
+        {/* BTC Context — 3-tier fallback */}
+        <BtcContextCard
+          signals={signals}
+          summary={summary}
+          detail={detail}
+          filters={filters}
+          addFilter={addFilter}
+        />
       </div>
 
-      {/* Quick Sector Glance */}
+      {/* Sector Quick Glance */}
       <Card className="p-5">
         <div className="flex justify-between items-center mb-4">
           <Label>Sector Quick Glance</Label>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click bar to filter</div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+            click bar to filter
+          </div>
         </div>
         <HBar
           rows={sectors.map((s) => ({
@@ -689,7 +1152,7 @@ const OverviewTab = ({ signals, detail, filters, addFilter }) => {
   );
 };
 
-// ─── Pattern Performance Tab (sortable table) ────────────────────
+// ─── Pattern Performance Tab ─────────────────────────────────────
 
 const PatternsTab = ({ signals, filters, addFilter }) => {
   const [sortBy, setSortBy] = useState("count");
@@ -702,13 +1165,12 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
       const isWin = s.outcome?.startsWith("tp");
       for (const tag of s.important_tags || []) {
         if (!map[tag]) {
-          map[tag] = { pattern: tag, count: 0, wins: 0, losses: 0, total_peak: 0, peaks: [] };
+          map[tag] = { pattern: tag, count: 0, wins: 0, losses: 0, total_peak: 0 };
         }
         map[tag].count++;
         if (isWin) map[tag].wins++;
         if (s.outcome === "sl") map[tag].losses++;
         map[tag].total_peak += peak;
-        map[tag].peaks.push(peak);
       }
     }
     return Object.values(map).map((m) => ({
@@ -760,7 +1222,7 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
           No pattern data available
         </div>
         <div className="text-white/20 text-xs font-mono mt-2 normal-case">
-          Signals don't have v3.0 enrichment tags
+          Signals on this date don't have v3.0 enrichment tags
         </div>
       </Card>
     );
@@ -785,7 +1247,7 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
               <SortHeader id="win_rate" label="WR %" className="text-right" />
               <SortHeader id="avg_peak" label="Avg Peak" className="text-right" />
               <SortHeader id="total_peak" label="Total Peak" className="text-right" />
-              <th className="px-4 py-3 text-right">{" "}</th>
+              <th className="px-4 py-3 text-right"> </th>
             </tr>
           </thead>
           <tbody>
@@ -801,10 +1263,16 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
                       : "hover:bg-white/[0.02]"
                   }`}
                 >
-                  <td className={`px-4 py-2.5 font-mono text-sm ${isActive ? "text-gold-primary" : "text-white/85"}`}>
+                  <td
+                    className={`px-4 py-2.5 font-mono text-sm ${
+                      isActive ? "text-gold-primary" : "text-white/85"
+                    }`}
+                  >
                     {p.pattern}
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/80">{p.count}</td>
+                  <td className="px-3 py-2.5 text-right font-mono tabular-nums text-white/80">
+                    {p.count}
+                  </td>
                   <td
                     className={`px-3 py-2.5 text-right font-mono tabular-nums ${
                       p.win_rate >= 75
@@ -818,20 +1286,34 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
                   </td>
                   <td
                     className={`px-3 py-2.5 text-right font-mono tabular-nums ${
-                      p.avg_peak > 0 ? "text-emerald-400" : p.avg_peak < 0 ? "text-red-400" : "text-white/40"
+                      p.avg_peak > 0
+                        ? "text-emerald-400"
+                        : p.avg_peak < 0
+                        ? "text-red-400"
+                        : "text-white/40"
                     }`}
                   >
-                    {p.avg_peak > 0 ? "+" : ""}{p.avg_peak.toFixed(2)}%
+                    {p.avg_peak > 0 ? "+" : ""}
+                    {p.avg_peak.toFixed(2)}%
                   </td>
                   <td
                     className={`px-3 py-2.5 text-right font-mono tabular-nums ${
-                      p.total_peak > 0 ? "text-emerald-400/80" : p.total_peak < 0 ? "text-red-400/80" : "text-white/40"
+                      p.total_peak > 0
+                        ? "text-emerald-400/80"
+                        : p.total_peak < 0
+                        ? "text-red-400/80"
+                        : "text-white/40"
                     }`}
                   >
-                    {p.total_peak > 0 ? "+" : ""}{p.total_peak.toFixed(2)}%
+                    {p.total_peak > 0 ? "+" : ""}
+                    {p.total_peak.toFixed(2)}%
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <span className={`text-xs font-mono ${isActive ? "text-gold-primary" : "text-white/30"}`}>
+                    <span
+                      className={`text-xs font-mono ${
+                        isActive ? "text-gold-primary" : "text-white/30"
+                      }`}
+                    >
                       {isActive ? "● filtered" : "→"}
                     </span>
                   </td>
@@ -845,12 +1327,15 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
   );
 };
 
-// ─── Correlation Tab (scatter plot) ──────────────────────────────
+// ─── Correlation Tab ─────────────────────────────────────────────
 
 const CorrelationTab = ({ signals }) => {
-  // Compute axes range
   const validSignals = (signals || []).filter(
-    (s) => s.confidence_score !== null && s.confidence_score !== undefined && s.peak_pct !== null
+    (s) =>
+      s.confidence_score !== null &&
+      s.confidence_score !== undefined &&
+      s.confidence_score > 0 &&
+      s.peak_pct !== null
   );
 
   if (!validSignals.length) {
@@ -860,7 +1345,7 @@ const CorrelationTab = ({ signals }) => {
           No correlation data available
         </div>
         <div className="text-white/20 text-xs font-mono mt-2 normal-case">
-          Signals don't have confidence_score / peak_pct
+          Confidence scores missing — signals predate scoring
         </div>
       </Card>
     );
@@ -896,7 +1381,6 @@ const CorrelationTab = ({ signals }) => {
 
       <div className="overflow-x-auto">
         <svg width={width} height={height} className="block mx-auto">
-          {/* Grid */}
           {[0, 25, 50, 75, 100].map((c) => (
             <line
               key={"vx" + c}
@@ -908,7 +1392,6 @@ const CorrelationTab = ({ signals }) => {
               strokeDasharray="2,4"
             />
           ))}
-          {/* Y grid + labels */}
           {[minPeak, (minPeak + maxPeak) / 2, maxPeak].map((v, i) => (
             <g key={"hy" + i}>
               <line
@@ -932,7 +1415,6 @@ const CorrelationTab = ({ signals }) => {
             </g>
           ))}
 
-          {/* Zero line */}
           {minPeak < 0 && (
             <line
               x1={pad.left}
@@ -944,7 +1426,6 @@ const CorrelationTab = ({ signals }) => {
             />
           )}
 
-          {/* X labels */}
           {[0, 25, 50, 75, 100].map((c) => (
             <text
               key={"xl" + c}
@@ -959,7 +1440,6 @@ const CorrelationTab = ({ signals }) => {
             </text>
           ))}
 
-          {/* Axis labels */}
           <text
             x={pad.left + innerW / 2}
             y={height - 12}
@@ -984,7 +1464,6 @@ const CorrelationTab = ({ signals }) => {
             ← PEAK %
           </text>
 
-          {/* Dots */}
           {validSignals.map((s, i) => (
             <circle
               key={s.signal_id + i}
@@ -996,24 +1475,31 @@ const CorrelationTab = ({ signals }) => {
               stroke={OUTCOME_COLORS[s.outcome] || "rgba(255,255,255,0.5)"}
               strokeWidth={1}
             >
-              <title>{`${s.pair} · ${s.outcome?.toUpperCase()} · conf:${s.confidence_score} · peak:${s.peak_pct.toFixed(2)}%`}</title>
+              <title>{`${s.pair} · ${s.outcome?.toUpperCase()} · conf:${
+                s.confidence_score
+              } · peak:${s.peak_pct.toFixed(2)}%`}</title>
             </circle>
           ))}
         </svg>
       </div>
 
-      {/* Legend */}
       <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-center justify-center gap-4 flex-wrap">
         {Object.entries(OUTCOME_COLORS).map(([key, color]) => (
-          <span key={key} className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-white/50">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color, opacity: 0.7 }} />
+          <span
+            key={key}
+            className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-white/50"
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ background: color, opacity: 0.7 }}
+            />
             {key}
           </span>
         ))}
       </div>
 
       <div className="mt-3 text-xs text-white/40 text-center font-mono">
-        {validSignals.length} signals plotted · Note: rating from legacy v2.1, confidence may be 0 for older signals
+        {validSignals.length} signals plotted
       </div>
     </Card>
   );
@@ -1026,21 +1512,31 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
     const map = {};
     for (const s of signals || []) {
       const k = s.sector || "uncategorized";
-      if (!map[k]) {
-        map[k] = { sector: k, total: 0, wins: 0, losses: 0, peaks: [] };
-      }
+      if (!map[k]) map[k] = { sector: k, total: 0, wins: 0, losses: 0, peaks: [] };
       map[k].total++;
       if (s.outcome?.startsWith("tp")) map[k].wins++;
       if (s.outcome === "sl") map[k].losses++;
       if (s.peak_pct !== null && s.peak_pct !== undefined) map[k].peaks.push(s.peak_pct);
     }
-    return Object.values(map).map((m) => ({
-      ...m,
-      win_rate: m.total ? (m.wins / m.total) * 100 : 0,
-      avg_peak: m.peaks.length ? m.peaks.reduce((a, b) => a + b, 0) / m.peaks.length : 0,
-      max_peak: m.peaks.length ? Math.max(...m.peaks) : 0,
-    })).sort((a, b) => b.total - a.total);
+    return Object.values(map)
+      .map((m) => ({
+        ...m,
+        win_rate: m.total ? (m.wins / m.total) * 100 : 0,
+        avg_peak: m.peaks.length ? m.peaks.reduce((a, b) => a + b, 0) / m.peaks.length : 0,
+        max_peak: m.peaks.length ? Math.max(...m.peaks) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [signals]);
+
+  if (!sectors.length) {
+    return (
+      <Card className="p-10 text-center">
+        <div className="text-white/30 text-sm font-mono uppercase tracking-wider">
+          No sector data
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1057,7 +1553,9 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
             <div
               className="absolute inset-x-0 top-0 h-px"
               style={{
-                background: `linear-gradient(to right, transparent, ${sectorColor(s.sector)}88, transparent)`,
+                background: `linear-gradient(to right, transparent, ${sectorColor(
+                  s.sector
+                )}88, transparent)`,
               }}
             />
             <div className="flex items-center gap-2 mb-3">
@@ -1080,7 +1578,11 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
                 <Label>Win Rate</Label>
                 <div
                   className={`font-mono tabular-nums text-lg mt-1 ${
-                    s.win_rate >= 75 ? "text-emerald-400" : s.win_rate >= 50 ? "text-white/85" : "text-red-400"
+                    s.win_rate >= 75
+                      ? "text-emerald-400"
+                      : s.win_rate >= 50
+                      ? "text-white/85"
+                      : "text-red-400"
                   }`}
                 >
                   {s.win_rate.toFixed(0)}%
@@ -1090,16 +1592,22 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
                 <Label>Avg Peak</Label>
                 <div
                   className={`font-mono tabular-nums text-sm mt-1 ${
-                    s.avg_peak > 0 ? "text-emerald-400/85" : s.avg_peak < 0 ? "text-red-400/85" : "text-white/50"
+                    s.avg_peak > 0
+                      ? "text-emerald-400/85"
+                      : s.avg_peak < 0
+                      ? "text-red-400/85"
+                      : "text-white/50"
                   }`}
                 >
-                  {s.avg_peak > 0 ? "+" : ""}{s.avg_peak.toFixed(2)}%
+                  {s.avg_peak > 0 ? "+" : ""}
+                  {s.avg_peak.toFixed(2)}%
                 </div>
               </div>
               <div>
                 <Label>Max Peak</Label>
                 <div className="font-mono tabular-nums text-sm text-emerald-400/85 mt-1">
-                  {s.max_peak > 0 ? "+" : ""}{s.max_peak.toFixed(2)}%
+                  {s.max_peak > 0 ? "+" : ""}
+                  {s.max_peak.toFixed(2)}%
                 </div>
               </div>
             </div>
@@ -1127,19 +1635,23 @@ const SectorsTab = ({ signals, filters, addFilter }) => {
   );
 };
 
-// ─── Signal Row (used in preview + modal) ────────────────────────
+// ─── Signal Row ──────────────────────────────────────────────────
 
-const SignalRow = ({ s, onClick, dense = false }) => {
+const SignalRow = ({ s, onClick }) => {
   const peakPos = (s.peak_pct ?? 0) > 0;
   const peakNeg = (s.peak_pct ?? 0) < 0;
 
   const outcomeChip = (o) => {
     if (!o) return { cls: "bg-white/[0.04] text-white/50 border-white/[0.08]", label: "—" };
     if (o === "sl") return { cls: "bg-red-500/15 text-red-300 border-red-500/30", label: "SL" };
-    if (o === "tp4") return { cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "TP4" };
-    if (o === "tp3") return { cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25", label: "TP3" };
-    if (o === "tp2") return { cls: "bg-emerald-500/8 text-emerald-400/85 border-emerald-500/20", label: "TP2" };
-    if (o === "tp1") return { cls: "bg-emerald-500/5 text-emerald-400/75 border-emerald-500/15", label: "TP1" };
+    if (o === "tp4")
+      return { cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", label: "TP4" };
+    if (o === "tp3")
+      return { cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25", label: "TP3" };
+    if (o === "tp2")
+      return { cls: "bg-emerald-500/8 text-emerald-400/85 border-emerald-500/20", label: "TP2" };
+    if (o === "tp1")
+      return { cls: "bg-emerald-500/5 text-emerald-400/75 border-emerald-500/15", label: "TP1" };
     return { cls: "bg-white/[0.04] text-white/50 border-white/[0.08]", label: o.toUpperCase() };
   };
 
@@ -1152,7 +1664,9 @@ const SignalRow = ({ s, onClick, dense = false }) => {
     >
       <td className="px-4 py-2.5 font-mono text-sm text-white/90">{s.pair}</td>
       <td className="px-3 py-2.5">
-        <span className={`inline-flex px-2 py-0.5 rounded-sm border text-[10px] font-mono tracking-wider ${ot.cls}`}>
+        <span
+          className={`inline-flex px-2 py-0.5 rounded-sm border text-[10px] font-mono tracking-wider ${ot.cls}`}
+        >
           {ot.label}
         </span>
       </td>
@@ -1167,17 +1681,15 @@ const SignalRow = ({ s, onClick, dense = false }) => {
           </span>
         </span>
       </td>
-      {!dense && (
-        <td className="px-3 py-2.5">
-          {s.signal_direction === "BULLISH" ? (
-            <span className="text-emerald-400 text-xs font-mono">↑ LONG</span>
-          ) : s.signal_direction === "BEARISH" ? (
-            <span className="text-red-400 text-xs font-mono">↓ SHORT</span>
-          ) : (
-            <span className="text-white/20 text-xs">—</span>
-          )}
-        </td>
-      )}
+      <td className="px-3 py-2.5">
+        {s.signal_direction === "BULLISH" ? (
+          <span className="text-emerald-400 text-xs font-mono">↑ LONG</span>
+        ) : s.signal_direction === "BEARISH" ? (
+          <span className="text-red-400 text-xs font-mono">↓ SHORT</span>
+        ) : (
+          <span className="text-white/20 text-xs">—</span>
+        )}
+      </td>
       <td
         className={`px-3 py-2.5 text-right font-mono tabular-nums text-sm ${
           peakPos ? "text-emerald-400" : peakNeg ? "text-red-400" : "text-white/40"
@@ -1200,7 +1712,7 @@ const SignalRow = ({ s, onClick, dense = false }) => {
   );
 };
 
-// ─── Top Signals (filter-aware preview) ──────────────────────────
+// ─── Top Signals List ────────────────────────────────────────────
 
 const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
   const preview = signals.slice(0, 10);
@@ -1210,7 +1722,9 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
         <Label>Top Signals · {signals.length} matching</Label>
-        <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">click any row to view detail</div>
+        <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+          click any row to view detail
+        </div>
       </div>
 
       {preview.length === 0 ? (
@@ -1223,12 +1737,24 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06]">
-                  <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pair</th>
-                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Outcome</th>
-                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Sector</th>
-                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Side</th>
-                  <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Peak %</th>
-                  <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Hit At</th>
+                  <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Pair
+                  </th>
+                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Outcome
+                  </th>
+                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Sector
+                  </th>
+                  <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Side
+                  </th>
+                  <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Peak %
+                  </th>
+                  <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                    Hit At
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1255,12 +1781,15 @@ const TopSignalsList = ({ signals, onPickSignal, onShowAll }) => {
   );
 };
 
-// ─── All Signals Modal (full filtered list) ──────────────────────
+// ─── All Signals Modal ───────────────────────────────────────────
 
 const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <div
         className="relative w-full max-w-5xl max-h-[90vh] rounded-md bg-[#0a0805] border border-white/[0.08] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -1268,7 +1797,9 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
           <div>
-            <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70">· All Filtered Signals ·</div>
+            <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70">
+              · All Filtered Signals ·
+            </div>
             <div className="text-lg text-white/90 mt-0.5">{signals?.length || 0} signals</div>
           </div>
           <button
@@ -1282,17 +1813,36 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-[#0a0805] z-10">
               <tr className="border-b border-white/[0.06]">
-                <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Pair</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Outcome</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Sector</th>
-                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Side</th>
-                <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Peak %</th>
-                <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">Hit At</th>
+                <th className="text-left px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Pair
+                </th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Outcome
+                </th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Sector
+                </th>
+                <th className="text-left px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Side
+                </th>
+                <th className="text-right px-3 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Peak %
+                </th>
+                <th className="text-right px-4 py-3 text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 font-normal">
+                  Hit At
+                </th>
               </tr>
             </thead>
             <tbody>
               {signals?.map((s) => (
-                <SignalRow key={s.signal_id} s={s} onClick={(sig) => { onPickSignal(sig); onClose(); }} />
+                <SignalRow
+                  key={s.signal_id}
+                  s={s}
+                  onClick={(sig) => {
+                    onPickSignal(sig);
+                    onClose();
+                  }}
+                />
               ))}
             </tbody>
           </table>
@@ -1310,7 +1860,6 @@ const DailyPerformancePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Active filters state
   const [filters, setFilters] = useState({
     outcome: null,
     sector: null,
@@ -1320,12 +1869,9 @@ const DailyPerformancePage = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showAllModal, setShowAllModal] = useState(false);
-
-  // SignalModal state
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [loadingSignal, setLoadingSignal] = useState(false);
 
-  // Fetch dashboard
   const fetchData = useCallback(async (date) => {
     setLoading(true);
     setError(null);
@@ -1344,16 +1890,14 @@ const DailyPerformancePage = () => {
     fetchData(selectedDate);
   }, [selectedDate, fetchData]);
 
-  // Reset filters on date change
   useEffect(() => {
     setFilters({ outcome: null, sector: null, pattern: null, btc_trend: null });
   }, [selectedDate]);
 
-  // Filter logic
   const addFilter = useCallback((key, value) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: prev[key] === value ? null : value, // toggle: same value clears
+      [key]: prev[key] === value ? null : value,
     }));
   }, []);
 
@@ -1365,7 +1909,6 @@ const DailyPerformancePage = () => {
     setFilters({ outcome: null, sector: null, pattern: null, btc_trend: null });
   }, []);
 
-  // Compute filtered signals
   const allSignals = data?.day_detail?.signals || [];
 
   const filteredSignals = useMemo(() => {
@@ -1385,7 +1928,6 @@ const DailyPerformancePage = () => {
 
   const hasFilters = Object.values(filters).some((v) => v !== null);
 
-  // SignalModal pick handler
   const handlePickSignal = useCallback(async (signalSummary) => {
     setLoadingSignal(true);
     try {
@@ -1393,14 +1935,12 @@ const DailyPerformancePage = () => {
       setSelectedSignal(full);
     } catch (err) {
       console.error("Failed to load signal detail:", err);
-      // Fallback: open with summary data
       setSelectedSignal(signalSummary);
     } finally {
       setLoadingSignal(false);
     }
   }, []);
 
-  // Date constraints
   const dateMax = todayUTC();
   const dateMin = useMemo(() => {
     const d = new Date(dateMax + "T00:00:00Z");
@@ -1410,15 +1950,19 @@ const DailyPerformancePage = () => {
 
   const summary = data?.today_summary;
   const detail = data?.day_detail;
+  const enrichmentCoverage = detail?.context?.enrichment_coverage || 0;
+  const enrichmentTotal = detail?.context?.enrichment_total || 0;
+  const dailyRegime = summary?.daily_regime;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
       <SectionHeader label="DAILY PERFORMANCE" />
 
-      {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">Daily Performance</h1>
+          <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">
+            Daily Performance
+          </h1>
           <p className="text-sm text-white/45 mt-1">
             Interactive analytics · click any chart to filter · click any pair for detail
           </p>
@@ -1446,7 +1990,6 @@ const DailyPerformancePage = () => {
         </div>
       </div>
 
-      {/* Filter chips bar */}
       <FilterChipsBar
         filters={filters}
         onRemove={removeFilter}
@@ -1455,7 +1998,16 @@ const DailyPerformancePage = () => {
         totalFiltered={filteredSignals.length}
       />
 
-      {/* Error */}
+      {/* Coverage banner */}
+      {data && (
+        <CoverageBanner
+          coverage={enrichmentCoverage}
+          total={enrichmentTotal}
+          dailyRegime={dailyRegime}
+          hasFilters={hasFilters}
+        />
+      )}
+
       {error && (
         <Card className="p-5 mb-6 border-red-500/20">
           <div className="text-sm text-red-300">
@@ -1465,33 +2017,32 @@ const DailyPerformancePage = () => {
         </Card>
       )}
 
-      {/* Loading skeleton */}
       {loading && !data && (
         <div className="space-y-4">
           <div className="h-64 rounded-md bg-[#0a0805] border border-white/[0.06] animate-pulse" />
           <div className="grid grid-cols-5 gap-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 rounded-md bg-[#0a0805] border border-white/[0.06] animate-pulse" />
+              <div
+                key={i}
+                className="h-20 rounded-md bg-[#0a0805] border border-white/[0.06] animate-pulse"
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* Content */}
       {data && (
         <div className="space-y-5">
           <HeroSection
             signals={filteredSignals}
             totalUnfiltered={allSignals.length}
             summary={summary}
-            detail={detail}
             selectedDate={selectedDate}
             hasFilters={hasFilters}
           />
 
-          <KpiRow signals={filteredSignals} detail={detail} addFilter={addFilter} />
+          <KpiRow signals={filteredSignals} />
 
-          {/* Tab switcher */}
           <div className="mt-8">
             <TabSwitcher active={activeTab} onChange={setActiveTab} />
           </div>
@@ -1500,7 +2051,8 @@ const DailyPerformancePage = () => {
             {activeTab === "overview" && (
               <OverviewTab
                 signals={filteredSignals}
-                detail={detail}
+                detail={detail?.context}
+                summary={summary}
                 filters={filters}
                 addFilter={addFilter}
               />
@@ -1512,9 +2064,7 @@ const DailyPerformancePage = () => {
                 addFilter={addFilter}
               />
             )}
-            {activeTab === "correlation" && (
-              <CorrelationTab signals={filteredSignals} />
-            )}
+            {activeTab === "correlation" && <CorrelationTab signals={filteredSignals} />}
             {activeTab === "sectors" && (
               <SectorsTab
                 signals={filteredSignals}
@@ -1533,7 +2083,6 @@ const DailyPerformancePage = () => {
         </div>
       )}
 
-      {/* All signals modal */}
       <AllSignalsModal
         open={showAllModal}
         onClose={() => setShowAllModal(false)}
@@ -1541,7 +2090,6 @@ const DailyPerformancePage = () => {
         onPickSignal={handlePickSignal}
       />
 
-      {/* Signal detail modal (existing component) */}
       {selectedSignal && (
         <SignalModal
           signal={selectedSignal}
@@ -1550,11 +2098,12 @@ const DailyPerformancePage = () => {
         />
       )}
 
-      {/* Loading signal indicator */}
       {loadingSignal && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#0a0805] border border-gold-primary/30 rounded-md px-4 py-2 flex items-center gap-3">
           <div className="w-3 h-3 border border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
-          <span className="text-[11px] font-mono uppercase tracking-wider text-white/70">Loading signal...</span>
+          <span className="text-[11px] font-mono uppercase tracking-wider text-white/70">
+            Loading signal...
+          </span>
         </div>
       )}
     </div>
