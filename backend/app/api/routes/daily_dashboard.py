@@ -1,33 +1,56 @@
 """
-Daily Performance Dashboard endpoint (v5).
+LuxQuant Terminal - Daily Performance Dashboard
+================================================
+Bundled endpoint for the Daily Performance section.
 
-What changed in v5:
-- Fixed BTC trend/dominance mode lookup: read from snapshot.tags_annotated[]
-  (path snapshot->context->btc was wrong; that path doesn't exist in v3.0).
-- Added `daily_regime` field sourced from daily_market_regime table — always
-  populated regardless of enrichment coverage, used as universal fallback
-  for historical dates before v3.0 worker launched (2026-05-14).
-- Cache key bumped to v5 to force fresh data.
+v5 changes (over v4):
+  - FIXED Q3 BTC context path: snapshot.facts.context.btc doesn't exist in
+    real v3.0 snapshots. BTC info lives in snapshot.tags_annotated[] with
+    BTC_* prefix. Path was always returning null silently.
+  - Added BTC dominance distribution from BTC_DOM_* tags
+  - Added daily_market_regime fallback for historical dates pre-v3.0
+    (worker launched 2026-05-14, so anything older had 0% enrichment)
+  - F&G now read from signal_enrichment.fear_greed (v2.1) and label
+    computed Python-side from value
+  - Excluded BTC_* tags from important_tags aggregate (they have own field)
+  - Cache key bumped v4 → v5
+
+v4 changes:
+  - Added important_tags: [string] per signal for pattern×outcome analysis
+
+Semantics:
+  - All dates in UTC
+  - WR computed by HIT date (signal_updates.update_at), NOT created_at
+  - Bypasses daily_market_regime FOR WR (semantically diff), but USES it
+    for context fallback (regime label + WR for pre-v3.0 dates)
+  - BTC context aggregated from signal_enrichment_history v3.0 snapshot JSONB
+  - Per-signal rating/confidence from signal_enrichment v2.1 (legacy)
+  - Important tags = aggregate of tags_annotated[].important=true (non-BTC)
+  - Sector data joined from coins table
+  - Redis cache 120s per date
+
+Mount in main.py:
+    from app.api.routes import daily_dashboard
+    app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
 """
 
-from datetime import datetime, timedelta
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from typing import Optional
+from datetime import datetime, timedelta
 
-from app.api.deps import get_db
+from app.core.database import get_db
 from app.core.redis import cache_get, cache_set
 
 router = APIRouter()
 
 
-# ─── Shared CTE: outcome resolution from signal_updates ──────────
-
+# CTE: derive final outcome per signal from signal_updates (by HIT date, UTC)
 OUTCOMES_CTE = """
 final_outcomes AS (
     SELECT signal_id, update_at,
-        CASE
+        CASE 
             WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
             WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
             WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
@@ -36,7 +59,7 @@ final_outcomes AS (
             ELSE NULL
         END as outcome,
         ROW_NUMBER() OVER (PARTITION BY signal_id ORDER BY
-            CASE
+            CASE 
                 WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
                 WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
                 WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
@@ -58,6 +81,7 @@ resolved AS (
 
 
 def _regime_label(wr: float, total: int) -> str:
+    """Map win rate to regime bucket."""
     if total == 0:
         return "no_data"
     if wr >= 75:
@@ -68,6 +92,7 @@ def _regime_label(wr: float, total: int) -> str:
 
 
 def _fear_greed_label(value: Optional[int]) -> Optional[str]:
+    """Map F&G value to label (consistent with alternative.me)."""
     if value is None:
         return None
     if value < 25:
@@ -81,16 +106,12 @@ def _fear_greed_label(value: Optional[int]) -> Optional[str]:
     return "Extreme Greed"
 
 
-@router.get("/daily/dashboard")
+@router.get("/analytics/daily/dashboard")
 async def get_daily_dashboard(
     date: Optional[str] = Query(None, description="YYYY-MM-DD UTC. Default = today UTC"),
     db: Session = Depends(get_db),
 ):
-    """
-    Daily Performance dashboard bundled in one round-trip.
-    All dates in UTC. WR computed by hit date (signal_updates.update_at).
-    """
-    # Parse target date
+    """Daily Performance dashboard — bundled in one round-trip."""
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -104,7 +125,6 @@ async def get_daily_dashboard(
     if cached:
         return cached
 
-    yesterday = target_date - timedelta(days=1)
     trend_start = target_date - timedelta(days=13)
     target_str = target_date.isoformat()
     trend_start_str = trend_start.isoformat()
@@ -133,9 +153,9 @@ async def get_daily_dashboard(
         })
 
     today_data = trend_14d[-1]
-    yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0}
+    yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0.0}
 
-    # ─── Q2: Day signals (resolved on target_date) ───
+    # ─── Q2: Day signals + legacy v2.1 enrichment + v3.0 direction/important_tag_count + important_tags array ───
     signal_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         latest_enrichment AS (
@@ -145,7 +165,7 @@ async def get_daily_dashboard(
             WHERE r.hit_date = :d
             ORDER BY h.signal_id, h.recorded_at DESC
         )
-        SELECT
+        SELECT 
             s.signal_id, s.pair, r.outcome, r.update_at,
             s.peak_pct,
             COALESCE(e.rating, 'N/A'),
@@ -158,14 +178,15 @@ async def get_daily_dashboard(
                  THEN (bc.interpretation->>'alignment_score')::int
                  ELSE NULL END,
             COALESCE(array_length(e.warnings, 1), 0),
-            le.snapshot->>'signal_direction' AS direction_v3,
-            (le.snapshot->'metadata'->>'important_tag_count')::int AS imp_count_v3,
-            COALESCE(
-                (SELECT array_agg(tag->>'name')
-                 FROM jsonb_array_elements(COALESCE(le.snapshot->'tags_annotated', '[]'::jsonb)) AS tag
-                 WHERE (tag->>'important')::boolean = true),
-                ARRAY[]::text[]
-            ) AS important_tags
+            le.snapshot->>'signal_direction',
+            CASE WHEN le.snapshot->'metadata'->>'important_tag_count' ~ '^[0-9]+$'
+                 THEN (le.snapshot->'metadata'->>'important_tag_count')::int
+                 ELSE NULL END,
+            (
+                SELECT COALESCE(array_agg(tag_obj->>'name' ORDER BY tag_obj->>'name'), ARRAY[]::text[])
+                FROM jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
+                WHERE (tag_obj->>'important')::boolean = true
+            ) AS important_tags_array
         FROM resolved r
         JOIN signals s ON s.signal_id = r.signal_id
         LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
@@ -173,8 +194,8 @@ async def get_daily_dashboard(
         LEFT JOIN coins c ON c.pair = s.pair
         LEFT JOIN latest_enrichment le ON le.signal_id = s.signal_id
         WHERE r.hit_date = :d
-        ORDER BY
-            CASE r.outcome WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
+        ORDER BY 
+            CASE r.outcome WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3 
                           WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1 WHEN 'sl' THEN 0 END DESC,
             r.update_at DESC
     """), {"d": target_str}).fetchall()
@@ -190,12 +211,12 @@ async def get_daily_dashboard(
         "warnings_count": int(r[12]),
         "signal_direction": r[13],
         "important_tag_count": int(r[14]) if r[14] is not None else None,
-        "important_tags": list(r[15]) if r[15] else [],
+        "important_tags": list(r[15]) if r[15] is not None else [],
     } for r in signal_rows]
 
-    # ─── Q3: BTC context from tags_annotated (FIXED — was reading wrong path) ───
-    # BTC trend tags: BTC_BULLISH / BTC_RANGING / BTC_BEARISH (strip BTC_ prefix)
-    # BTC dom tags: BTC_DOM_FLAT / BTC_DOM_UNKNOWN / BTC_DOM_RISING / BTC_DOM_FALLING
+    # ─── Q3: BTC context from tags_annotated (v5 FIX — was reading wrong path) ───
+    # BTC trend: BTC_BULLISH / BTC_RANGING / BTC_BEARISH (strip BTC_ prefix when storing)
+    # BTC dom: BTC_DOM_FLAT / BTC_DOM_UNKNOWN / BTC_DOM_RISING / BTC_DOM_FALLING
     btc_ctx = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -215,11 +236,9 @@ async def get_daily_dashboard(
             WHERE tag->>'name' LIKE 'BTC_%'
         )
         SELECT
-            -- BTC trend distribution (raw counts)
             COUNT(*) FILTER (WHERE tag_name = 'BTC_BULLISH') AS bullish,
             COUNT(*) FILTER (WHERE tag_name = 'BTC_RANGING') AS ranging,
             COUNT(*) FILTER (WHERE tag_name = 'BTC_BEARISH') AS bearish,
-            -- BTC dominance distribution
             COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_RISING') AS dom_rising,
             COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_FALLING') AS dom_falling,
             COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_FLAT') AS dom_flat,
@@ -239,7 +258,6 @@ async def get_daily_dashboard(
         "UNKNOWN": int(btc_ctx[6] or 0),
     }
 
-    # Compute mode (most common) — None if no enrichment
     def _mode(dist: dict) -> Optional[str]:
         non_zero = {k: v for k, v in dist.items() if v > 0}
         if not non_zero:
@@ -249,7 +267,7 @@ async def get_daily_dashboard(
     btc_trend_mode = _mode(btc_trend_dist)
     btc_dom_trend_mode = _mode(btc_dom_dist)
 
-    # ─── Q3b: F&G + decoupled/extended from existing tables ───
+    # ─── Q3b: F&G + decoupled/extended from v2.1 + btc_correlation tables ───
     extra_ctx = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target AS (
@@ -273,7 +291,7 @@ async def get_daily_dashboard(
     sector_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target AS (
-            SELECT s.pair, r.outcome FROM resolved r
+            SELECT s.pair, r.outcome FROM resolved r 
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         )
         SELECT COALESCE(c.sector, 'uncategorized'),
@@ -296,27 +314,26 @@ async def get_daily_dashboard(
         default=None,
     )
 
-    # ─── Q5: Important tags aggregate (NOT BTC tags) ───
+    # ─── Q5: Important tags aggregate (EXCLUDE BTC_* — they have own field) ───
     tag_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
-        target AS (
-            SELECT s.signal_id FROM resolved r
+        target_signals AS (
+            SELECT s.signal_id FROM resolved r 
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         ),
-        latest_snap AS (
+        latest_enrichment AS (
             SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
             FROM signal_enrichment_history h
-            JOIN target t ON t.signal_id = h.signal_id
+            JOIN target_signals t ON t.signal_id = h.signal_id
             ORDER BY h.signal_id, h.recorded_at DESC
         )
-        SELECT tag->>'name' AS tag_name, COUNT(*)
-        FROM latest_snap ls,
-             LATERAL jsonb_array_elements(COALESCE(ls.snapshot->'tags_annotated', '[]'::jsonb)) AS tag
-        WHERE (tag->>'important')::boolean = true
-          AND tag->>'name' NOT LIKE 'BTC_%'
-        GROUP BY tag->>'name'
-        ORDER BY COUNT(*) DESC
-        LIMIT 10
+        SELECT tag_obj->>'name' AS tag, COUNT(*) AS cnt
+        FROM latest_enrichment le,
+        LATERAL jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
+        WHERE (tag_obj->>'important')::boolean = true
+          AND tag_obj->>'name' NOT LIKE 'BTC_%'
+        GROUP BY tag_obj->>'name'
+        ORDER BY cnt DESC LIMIT 10
     """), {"d": target_str}).fetchall()
     important_tags = [{"tag": r[0], "count": int(r[1])} for r in tag_rows]
 
@@ -324,7 +341,7 @@ async def get_daily_dashboard(
     coverage_row = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target AS (
-            SELECT s.signal_id FROM resolved r
+            SELECT s.signal_id FROM resolved r 
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         )
         SELECT
@@ -335,8 +352,8 @@ async def get_daily_dashboard(
     enrichment_total = int(coverage_row[0] or 0)
     enrichment_coverage = int(coverage_row[1] or 0)
 
-    # ─── Q7: Daily regime fallback (always populated from daily_market_regime) ───
-    # NEW in v5: universal context fallback for historical dates pre-v3.0
+    # ─── Q7: Daily regime fallback (v5 NEW — always populated from daily_market_regime) ───
+    # Universal context fallback for historical dates pre-v3.0 launch (2026-05-14)
     regime_row = db.execute(text("""
         SELECT regime, total_closed, wins, losses, win_rate
         FROM daily_market_regime
@@ -354,7 +371,7 @@ async def get_daily_dashboard(
             "win_rate": float(regime_row[4]) if regime_row[4] is not None else 0.0,
         }
 
-    # ─── Assemble ───
+    # ─── Assemble response ───
     response = {
         "selected_date": target_str,
         "today_summary": {
@@ -363,7 +380,9 @@ async def get_daily_dashboard(
             "losses": today_data["losses"],
             "win_rate": today_data["win_rate"],
             "yesterday_win_rate": yesterday_data["win_rate"],
-            "delta_vs_yesterday": round(today_data["win_rate"] - yesterday_data["win_rate"], 2),
+            "delta_vs_yesterday": round(
+                today_data["win_rate"] - yesterday_data["win_rate"], 2
+            ),
             "regime_label": today_data["regime"],
             "btc_trend_mode": btc_trend_mode,
             "btc_dom_trend_mode": btc_dom_trend_mode,
