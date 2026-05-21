@@ -1,9 +1,10 @@
 // src/App.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — URL-Based Routing v3 + Lazy Loading
-// Web3 Flowscan-Minimal Reskin v2:
-//   - Trade center button restored: bigger + gold glow halo
-//   - Contextual icons: Bot for AI Arena, Activity for Pulse, Candlestick for Market
+// Web3 Flowscan-Minimal Reskin v3:
+//   - Mobile drawer fix: bottom-16 (stops above bottom nav, no overlap)
+//   - Admin section moved to TOP (priority access for admin users)
+//   - Added pb-6 breathing room at scroll end
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
@@ -140,19 +141,23 @@ function PremiumGate({ children }) {
 // ════════════════════════════════════════
 // SIDEBAR ITEM — Flowscan flat pattern
 // ════════════════════════════════════════
-const SidebarItem = ({ active, onClick, label, icon, isPremium, isFreeBadge }) => (
+const SidebarItem = ({ active, onClick, label, icon, isPremium, isFreeBadge, isAdminAccent }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-sm transition-all relative ${
       active
-        ? "text-gold-primary bg-gold-primary/[0.08] border border-gold-primary/25"
+        ? isAdminAccent
+          ? "text-loss bg-loss/[0.08] border border-loss/25"
+          : "text-gold-primary bg-gold-primary/[0.08] border border-gold-primary/25"
         : "text-text-secondary hover:text-white bg-transparent hover:bg-white/[0.03] border border-transparent"
     }`}
   >
     {active && (
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+      <div className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
+        isAdminAccent ? "via-loss/40" : "via-gold-primary/40"
+      } to-transparent`} />
     )}
-    <svg className={`w-4 h-4 flex-shrink-0 ${active ? "text-gold-primary" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">{icon}</svg>
+    <svg className={`w-4 h-4 flex-shrink-0 ${active ? (isAdminAccent ? "text-loss" : "text-gold-primary") : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">{icon}</svg>
     <span className="text-[12px] tracking-tight">{label}</span>
     {isPremium && (
       <span className="ml-auto font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
@@ -165,7 +170,7 @@ const SidebarItem = ({ active, onClick, label, icon, isPremium, isFreeBadge }) =
       </span>
     )}
     {active && !isPremium && !isFreeBadge && (
-      <span className="ml-auto w-1 h-1 bg-gold-primary rounded-full" />
+      <span className={`ml-auto w-1 h-1 rounded-full ${isAdminAccent ? "bg-loss" : "bg-gold-primary"}`} />
     )}
   </button>
 );
@@ -186,6 +191,7 @@ function AppShell({ children }) {
 
   const isPremiumUser = () => user && (user.role === "admin" || user.role === "premium" || user.role === "subscriber" || user.is_admin);
   const isActive = (path) => location.pathname === path;
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 8);
@@ -239,7 +245,7 @@ function AppShell({ children }) {
     { path: "/tips", label: t("nav.tips"), icon: "📚", description: t("desc.tips") },
     { path: "/watchlist", label: t("nav.watchlist"), icon: "⭐", description: t("desc.watchlist") },
     { path: "/referral", label: "Referral", icon: "🎟️", description: "Earn commissions by inviting friends" },
-    ...(user?.role === "admin" ? [{ path: "/admin", label: t("nav.admin"), icon: "🛡️", description: t("desc.admin") }] : []),
+    ...(isAdmin ? [{ path: "/admin", label: t("nav.admin"), icon: "🛡️", description: t("desc.admin") }] : []),
   ];
 
   const moreHasActive = moreMenuItems.some((item) => isActive(item.path));
@@ -418,6 +424,11 @@ function AppShell({ children }) {
 
       {/* ══════════════════════════════════════════════
           MOBILE SLIDE MENU
+          v3 FIX:
+          - bottom-16 (NOT bottom-0): stops above bottom nav, no overlap
+          - border-b at bottom edge: visual transition to bottom nav
+          - <nav> pb-6: breathing room so last item easily tappable
+          - Admin section moved to TOP (after Navigation header)
           ══════════════════════════════════════════════ */}
       {mobileMenuOpen && (
         <div
@@ -425,16 +436,40 @@ function AppShell({ children }) {
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-      <div className={`fixed top-14 left-0 bottom-0 w-72 z-50 bg-[#0a0506] backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
+      <div className={`fixed top-14 left-0 bottom-16 w-72 z-50 bg-[#0a0506] backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out lg:hidden ${
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Right edge hairline accent */}
         <div className="absolute top-0 right-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold-primary/30 to-transparent" />
 
+        {/* Bottom edge hairline divider (separates from bottom nav visually) */}
+        <div className="absolute left-0 right-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+
         <div className="flex flex-col h-full">
-          <nav className="flex-1 py-6 px-3 space-y-0.5 overflow-y-auto">
-            {/* Navigation section */}
-            <div className="flex items-center gap-2 px-3 mb-3">
+          <nav className="flex-1 py-6 pb-8 px-3 space-y-0.5 overflow-y-auto">
+
+            {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
+            {isAdmin && (
+              <>
+                <div className="flex items-center gap-2 px-3 mb-3">
+                  <span className="h-px w-4 bg-loss/40" />
+                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-loss/80">
+                    Admin
+                  </span>
+                  <span className="h-px flex-1 bg-white/[0.06]" />
+                </div>
+                <SidebarItem
+                  active={isActive("/admin")}
+                  onClick={() => handleNav("/admin")}
+                  label={t("nav.admin")}
+                  isAdminAccent
+                  icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
+                />
+              </>
+            )}
+
+            {/* ═══════════ Navigation section ═══════════ */}
+            <div className={`flex items-center gap-2 px-3 mb-3 ${isAdmin ? "mt-5" : ""}`}>
               <span className="h-px w-4 bg-gold-primary/40" />
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
                 Navigation
@@ -470,7 +505,7 @@ function AppShell({ children }) {
               icon={<><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M22 7l-8.5 8.5-5-5L2 17" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7h6v6" /></>}
             />
             <SidebarItem active={isActive("/daily-performance")} onClick={() => handleNav("/daily-performance")} label="Daily Performance" isFreeBadge
-              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />}
+              icon={<><rect x="3" y="5" width="18" height="16" rx="1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="3" y1="9" x2="21" y2="9" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="8" y1="3" x2="8" y2="7" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="16" y1="3" x2="16" y2="7" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="7" y1="17" x2="7" y2="15" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="11" y1="17" x2="11" y2="13.5" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="15" y1="17" x2="15" y2="12" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><line x1="19" y1="17" x2="19" y2="11" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /></>}
             />
             <SidebarItem active={isActive("/journal")} onClick={() => handleNav("/journal")} label="Journal" isFreeBadge
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />}
@@ -483,7 +518,7 @@ function AppShell({ children }) {
               icon={<><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 4v3M8 17v3" /><rect x="6" y="7" width="4" height="10" rx="1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 2v4M16 18v4" /><rect x="14" y="6" width="4" height="12" rx="1" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" /></>}
             />
 
-            {/* Tools section */}
+            {/* ═══════════ Tools section ═══════════ */}
             <div className="flex items-center gap-2 px-3 mt-5 mb-3">
               <span className="h-px w-4 bg-gold-primary/40" />
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
@@ -508,7 +543,7 @@ function AppShell({ children }) {
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />}
             />
 
-            {/* Personal section */}
+            {/* ═══════════ Personal section ═══════════ */}
             <div className="flex items-center gap-2 px-3 mt-5 mb-3">
               <span className="h-px w-4 bg-gold-primary/40" />
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-gold-primary/80">
@@ -523,20 +558,6 @@ function AppShell({ children }) {
             <SidebarItem active={isActive("/referral")} onClick={() => handleNav("/referral")} label="Referral"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />}
             />
-            {user?.role === "admin" && (
-              <>
-                <div className="flex items-center gap-2 px-3 mt-5 mb-3">
-                  <span className="h-px w-4 bg-loss/40" />
-                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-loss/80">
-                    Admin
-                  </span>
-                  <span className="h-px flex-1 bg-white/[0.06]" />
-                </div>
-                <SidebarItem active={isActive("/admin")} onClick={() => handleNav("/admin")} label={t("nav.admin")}
-                  icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />}
-                />
-              </>
-            )}
           </nav>
         </div>
       </div>
@@ -642,7 +663,7 @@ function AppShell({ children }) {
         onNavigate={handleNav}
         isActive={isActive}
         isPremium={isPremiumUser()}
-        isAdmin={user?.role === "admin"}
+        isAdmin={isAdmin}
         premiumPaths={PREMIUM_REQUIRED}
       />
     </div>
@@ -671,7 +692,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <CurrencyProvider> 
+        <CurrencyProvider>
         <Routes>
           {/* Landing */}
           <Route path="/" element={<Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
