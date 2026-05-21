@@ -155,6 +155,24 @@ const MoreFeaturesModal = ({
         <rect x="16" y="5" width="3" height="15" />
       </svg>
     ),
+    // Daily Performance — calendar grid + ascending bars inside (per-day performance signature)
+    dailyPerformance: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* Calendar frame */}
+        <rect x="3" y="5" width="18" height="16" rx="1" />
+        <line x1="3" y1="9" x2="21" y2="9" />
+        {/* Calendar binders (top) */}
+        <line x1="8" y1="3" x2="8" y2="7" />
+        <line x1="16" y1="3" x2="16" y2="7" />
+        {/* Ascending bars inside (performance trend) */}
+        <line x1="7" y1="17" x2="7" y2="15" />
+        <line x1="11" y1="17" x2="11" y2="13.5" />
+        <line x1="15" y1="17" x2="15" y2="12" />
+        <line x1="19" y1="17" x2="19" y2="11" />
+        {/* Trend line connecting bar tops */}
+        <path d="M7 15 L11 13.5 L15 12 L19 11" strokeOpacity="0.5" />
+      </svg>
+    ),
     orderbook: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="8" height="16" rx="1" />
@@ -218,24 +236,30 @@ const MoreFeaturesModal = ({
   };
 
   const features = [
-    { path: '/home',         icon: Icon.home,       label: t('mfm.home'),       desc: t('mfm.home_desc') },
-    { path: '/signals',      icon: Icon.signals,    label: t('mfm.signals'),    desc: t('mfm.signals_desc') },
-    { path: '/autotrade',    icon: Icon.autotrade,  label: t('mfm.autotrade'),  desc: t('mfm.autotrade_desc') },
-    { path: '/ai-arena',     icon: Icon.aiArena,    label: t('mfm.ai_arena'),   desc: t('mfm.ai_arena_desc') },
-    { path: '/bitcoin',      icon: Icon.bitcoin,    label: t('mfm.bitcoin'),    desc: t('mfm.bitcoin_desc') },
-    { path: '/market-pulse', icon: Icon.pulse,      label: t('mfm.pulse'),      desc: t('mfm.pulse_desc') },
-    { path: '/crypto-news',  icon: Icon.news,       label: t('mfm.news'),       desc: t('mfm.news_desc') },
-    { path: '/onchain',      icon: Icon.onchain,    label: t('mfm.onchain'),    desc: t('mfm.onchain_desc') },
-    { path: '/markets',      icon: Icon.markets,    label: t('mfm.markets'),    desc: t('mfm.markets_desc') },
-    { path: '/journal',      icon: Icon.journal,    label: t('mfm.journal'),    desc: t('mfm.journal_desc') },
-    { path: '/portfolio',    icon: Icon.portfolio,  label: t('mfm.portfolio'),  desc: t('mfm.portfolio_desc') },
-    { path: '/analytics',    icon: Icon.analytics,  label: t('mfm.analytics'),  desc: t('mfm.analytics_desc') },
-    { path: '/orderbook',    icon: Icon.orderbook,  label: t('mfm.orderbook'),  desc: t('mfm.orderbook_desc') },
-    { path: '/calendar',     icon: Icon.calendar,   label: t('mfm.calendar'),   desc: t('mfm.calendar_desc') },
-    { path: '/whale',        icon: Icon.whale,      label: t('mfm.whale'),      desc: t('mfm.whale_desc') },
-    { path: '/tips',         icon: Icon.tips,       label: t('mfm.tips'),       desc: t('mfm.tips_desc') },
-    { path: '/watchlist',    icon: Icon.watchlist,  label: t('mfm.watchlist'),  desc: t('mfm.watchlist_desc') },
-    { path: '/referral',     icon: Icon.referral,   label: t('mfm.referral'),   desc: t('mfm.referral_desc') },
+    { path: '/home',              icon: Icon.home,             label: t('mfm.home'),       desc: t('mfm.home_desc') },
+    { path: '/signals',           icon: Icon.signals,          label: t('mfm.signals'),    desc: t('mfm.signals_desc') },
+    { path: '/autotrade',         icon: Icon.autotrade,        label: t('mfm.autotrade'),  desc: t('mfm.autotrade_desc') },
+    { path: '/ai-arena',          icon: Icon.aiArena,          label: t('mfm.ai_arena'),   desc: t('mfm.ai_arena_desc') },
+    { path: '/bitcoin',           icon: Icon.bitcoin,          label: t('mfm.bitcoin'),    desc: t('mfm.bitcoin_desc') },
+    { path: '/market-pulse',      icon: Icon.pulse,            label: t('mfm.pulse'),      desc: t('mfm.pulse_desc') },
+    { path: '/crypto-news',       icon: Icon.news,             label: t('mfm.news'),       desc: t('mfm.news_desc') },
+    { path: '/onchain',           icon: Icon.onchain,          label: t('mfm.onchain'),    desc: t('mfm.onchain_desc') },
+    { path: '/markets',           icon: Icon.markets,          label: t('mfm.markets'),    desc: t('mfm.markets_desc') },
+    { path: '/journal',           icon: Icon.journal,          label: t('mfm.journal'),    desc: t('mfm.journal_desc') },
+    { path: '/portfolio',         icon: Icon.portfolio,        label: t('mfm.portfolio'),  desc: t('mfm.portfolio_desc') },
+    { path: '/analytics',         icon: Icon.analytics,        label: t('mfm.analytics'),  desc: t('mfm.analytics_desc') },
+    {
+      path: '/daily-performance',
+      icon: Icon.dailyPerformance,
+      label: t('mfm.daily_perf', { defaultValue: 'Daily Performance' }),
+      desc: t('mfm.daily_perf_desc', { defaultValue: 'Per-day breakdown with BTC context' }),
+    },
+    { path: '/orderbook',         icon: Icon.orderbook,        label: t('mfm.orderbook'),  desc: t('mfm.orderbook_desc') },
+    { path: '/calendar',          icon: Icon.calendar,         label: t('mfm.calendar'),   desc: t('mfm.calendar_desc') },
+    { path: '/whale',             icon: Icon.whale,            label: t('mfm.whale'),      desc: t('mfm.whale_desc') },
+    { path: '/tips',              icon: Icon.tips,             label: t('mfm.tips'),       desc: t('mfm.tips_desc') },
+    { path: '/watchlist',         icon: Icon.watchlist,        label: t('mfm.watchlist'),  desc: t('mfm.watchlist_desc') },
+    { path: '/referral',          icon: Icon.referral,         label: t('mfm.referral'),   desc: t('mfm.referral_desc') },
     ...(isAdmin ? [{
       path: '/admin', icon: Icon.admin, label: t('mfm.admin'), desc: t('mfm.admin_desc'), isAdmin: true,
     }] : []),
