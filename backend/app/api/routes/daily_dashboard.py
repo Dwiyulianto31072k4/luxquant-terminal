@@ -3,6 +3,11 @@ LuxQuant Terminal - Daily Performance Dashboard
 ================================================
 Bundled endpoint for the Daily Performance section.
 
+v4 changes:
+  - Added `important_tags: [string]` per signal (array of tag names)
+    Enables frontend-side pattern×outcome cross-tab analysis
+    Single LATERAL join, negligible cost
+
 Semantics:
   - All dates in UTC
   - WR computed by HIT date (signal_updates.update_at), NOT created_at
@@ -12,10 +17,6 @@ Semantics:
   - Important tags = aggregate of tags_annotated[].important=true
   - Sector data joined from coins table
   - Redis cache 120s per date
-
-Note: top_patterns dropped — snapshot.structure.patterns not consistently
-populated for resolved-today signals. important_tags conveys equivalent
-narrative (PATTERN_CONFLICTING, DEEP_PULLBACK, BB_SQUEEZE_H1, etc).
 
 Mount in main.py:
     from app.api.routes import daily_dashboard
@@ -93,7 +94,7 @@ async def get_daily_dashboard(
     else:
         target_date = datetime.utcnow().date()
 
-    cache_key = f"lq:daily-dashboard:{target_date.isoformat()}"
+    cache_key = f"lq:daily-dashboard:v4:{target_date.isoformat()}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -128,7 +129,8 @@ async def get_daily_dashboard(
     today_data = trend_14d[-1]
     yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0.0}
 
-    # ─── Q2: Day signals + legacy v2.1 enrichment + v3.0 direction/important_tag_count ───
+    # ─── Q2: Day signals + legacy v2.1 enrichment + v3.0 direction/important_tag_count + important_tags array ───
+    # v4: Added LATERAL subquery to aggregate important tag names per signal as text[]
     signal_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         latest_enrichment AS (
@@ -154,7 +156,13 @@ async def get_daily_dashboard(
             le.snapshot->>'signal_direction',
             CASE WHEN le.snapshot->'metadata'->>'important_tag_count' ~ '^[0-9]+$'
                  THEN (le.snapshot->'metadata'->>'important_tag_count')::int
-                 ELSE NULL END
+                 ELSE NULL END,
+            -- v4 NEW: aggregate important tag names into text[]
+            (
+                SELECT COALESCE(array_agg(tag_obj->>'name' ORDER BY tag_obj->>'name'), ARRAY[]::text[])
+                FROM jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
+                WHERE (tag_obj->>'important')::boolean = true
+            ) AS important_tags_array
         FROM resolved r
         JOIN signals s ON s.signal_id = r.signal_id
         LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
@@ -179,6 +187,7 @@ async def get_daily_dashboard(
         "warnings_count": int(r[12]),
         "signal_direction": r[13],
         "important_tag_count": int(r[14]) if r[14] is not None else None,
+        "important_tags": list(r[15]) if r[15] is not None else [],  # v4 NEW
     } for r in signal_rows]
 
     # ─── Q3: Day aggregates from v3.0 enrichment_history ───
@@ -271,7 +280,7 @@ async def get_daily_dashboard(
         default=None,
     )
 
-    # ─── Q5: Important tags from v3.0 tags_annotated (replaces patterns/warnings) ───
+    # ─── Q5: Important tags from v3.0 tags_annotated ───
     tag_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -293,7 +302,7 @@ async def get_daily_dashboard(
     """), {"d": target_str}).fetchall()
     important_tags = [{"tag": r[0], "count": int(r[1])} for r in tag_rows]
 
-    # ─── Q6: BTC trend distribution from v3.0 tags ───
+    # ─── Q6: BTC trend distribution ───
     dist_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
