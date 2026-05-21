@@ -1,45 +1,33 @@
 """
-LuxQuant Terminal - Daily Performance Dashboard
-================================================
-Bundled endpoint for the Daily Performance section.
+Daily Performance Dashboard endpoint (v5).
 
-v4 changes:
-  - Added `important_tags: [string]` per signal (array of tag names)
-    Enables frontend-side pattern×outcome cross-tab analysis
-    Single LATERAL join, negligible cost
-
-Semantics:
-  - All dates in UTC
-  - WR computed by HIT date (signal_updates.update_at), NOT created_at
-  - Bypasses daily_market_regime table (semantically different)
-  - BTC context aggregated from signal_enrichment_history v3.0 snapshot JSONB
-  - Per-signal rating/confidence from signal_enrichment v2.1 (legacy)
-  - Important tags = aggregate of tags_annotated[].important=true
-  - Sector data joined from coins table
-  - Redis cache 120s per date
-
-Mount in main.py:
-    from app.api.routes import daily_dashboard
-    app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
+What changed in v5:
+- Fixed BTC trend/dominance mode lookup: read from snapshot.tags_annotated[]
+  (path snapshot->context->btc was wrong; that path doesn't exist in v3.0).
+- Added `daily_regime` field sourced from daily_market_regime table — always
+  populated regardless of enrichment coverage, used as universal fallback
+  for historical dates before v3.0 worker launched (2026-05-14).
+- Cache key bumped to v5 to force fresh data.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Optional
 from datetime import datetime, timedelta
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.api.deps import get_db
 from app.core.redis import cache_get, cache_set
 
 router = APIRouter()
 
 
-# CTE: derive final outcome per signal from signal_updates (by HIT date, UTC)
+# ─── Shared CTE: outcome resolution from signal_updates ──────────
+
 OUTCOMES_CTE = """
 final_outcomes AS (
     SELECT signal_id, update_at,
-        CASE 
+        CASE
             WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
             WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
             WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
@@ -48,7 +36,7 @@ final_outcomes AS (
             ELSE NULL
         END as outcome,
         ROW_NUMBER() OVER (PARTITION BY signal_id ORDER BY
-            CASE 
+            CASE
                 WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
                 WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
                 WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
@@ -70,7 +58,6 @@ resolved AS (
 
 
 def _regime_label(wr: float, total: int) -> str:
-    """Map win rate to regime bucket."""
     if total == 0:
         return "no_data"
     if wr >= 75:
@@ -80,12 +67,30 @@ def _regime_label(wr: float, total: int) -> str:
     return "weak"
 
 
-@router.get("/analytics/daily/dashboard")
+def _fear_greed_label(value: Optional[int]) -> Optional[str]:
+    if value is None:
+        return None
+    if value < 25:
+        return "Extreme Fear"
+    if value < 45:
+        return "Fear"
+    if value < 55:
+        return "Neutral"
+    if value < 75:
+        return "Greed"
+    return "Extreme Greed"
+
+
+@router.get("/daily/dashboard")
 async def get_daily_dashboard(
     date: Optional[str] = Query(None, description="YYYY-MM-DD UTC. Default = today UTC"),
     db: Session = Depends(get_db),
 ):
-    """Daily Performance dashboard — bundled in one round-trip."""
+    """
+    Daily Performance dashboard bundled in one round-trip.
+    All dates in UTC. WR computed by hit date (signal_updates.update_at).
+    """
+    # Parse target date
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -94,11 +99,12 @@ async def get_daily_dashboard(
     else:
         target_date = datetime.utcnow().date()
 
-    cache_key = f"lq:daily-dashboard:v4:{target_date.isoformat()}"
+    cache_key = f"lq:daily-dashboard:v5:{target_date.isoformat()}"
     cached = cache_get(cache_key)
     if cached:
         return cached
 
+    yesterday = target_date - timedelta(days=1)
     trend_start = target_date - timedelta(days=13)
     target_str = target_date.isoformat()
     trend_start_str = trend_start.isoformat()
@@ -127,10 +133,9 @@ async def get_daily_dashboard(
         })
 
     today_data = trend_14d[-1]
-    yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0.0}
+    yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0}
 
-    # ─── Q2: Day signals + legacy v2.1 enrichment + v3.0 direction/important_tag_count + important_tags array ───
-    # v4: Added LATERAL subquery to aggregate important tag names per signal as text[]
+    # ─── Q2: Day signals (resolved on target_date) ───
     signal_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         latest_enrichment AS (
@@ -140,7 +145,7 @@ async def get_daily_dashboard(
             WHERE r.hit_date = :d
             ORDER BY h.signal_id, h.recorded_at DESC
         )
-        SELECT 
+        SELECT
             s.signal_id, s.pair, r.outcome, r.update_at,
             s.peak_pct,
             COALESCE(e.rating, 'N/A'),
@@ -153,16 +158,14 @@ async def get_daily_dashboard(
                  THEN (bc.interpretation->>'alignment_score')::int
                  ELSE NULL END,
             COALESCE(array_length(e.warnings, 1), 0),
-            le.snapshot->>'signal_direction',
-            CASE WHEN le.snapshot->'metadata'->>'important_tag_count' ~ '^[0-9]+$'
-                 THEN (le.snapshot->'metadata'->>'important_tag_count')::int
-                 ELSE NULL END,
-            -- v4 NEW: aggregate important tag names into text[]
-            (
-                SELECT COALESCE(array_agg(tag_obj->>'name' ORDER BY tag_obj->>'name'), ARRAY[]::text[])
-                FROM jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
-                WHERE (tag_obj->>'important')::boolean = true
-            ) AS important_tags_array
+            le.snapshot->>'signal_direction' AS direction_v3,
+            (le.snapshot->'metadata'->>'important_tag_count')::int AS imp_count_v3,
+            COALESCE(
+                (SELECT array_agg(tag->>'name')
+                 FROM jsonb_array_elements(COALESCE(le.snapshot->'tags_annotated', '[]'::jsonb)) AS tag
+                 WHERE (tag->>'important')::boolean = true),
+                ARRAY[]::text[]
+            ) AS important_tags
         FROM resolved r
         JOIN signals s ON s.signal_id = r.signal_id
         LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
@@ -170,8 +173,8 @@ async def get_daily_dashboard(
         LEFT JOIN coins c ON c.pair = s.pair
         LEFT JOIN latest_enrichment le ON le.signal_id = s.signal_id
         WHERE r.hit_date = :d
-        ORDER BY 
-            CASE r.outcome WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3 
+        ORDER BY
+            CASE r.outcome WHEN 'tp4' THEN 4 WHEN 'tp3' THEN 3
                           WHEN 'tp2' THEN 2 WHEN 'tp1' THEN 1 WHEN 'sl' THEN 0 END DESC,
             r.update_at DESC
     """), {"d": target_str}).fetchall()
@@ -187,77 +190,90 @@ async def get_daily_dashboard(
         "warnings_count": int(r[12]),
         "signal_direction": r[13],
         "important_tag_count": int(r[14]) if r[14] is not None else None,
-        "important_tags": list(r[15]) if r[15] is not None else [],  # v4 NEW
+        "important_tags": list(r[15]) if r[15] else [],
     } for r in signal_rows]
 
-    # ─── Q3: Day aggregates from v3.0 enrichment_history ───
-    ctx = db.execute(text("""
-        WITH final_outcomes AS (
-            SELECT signal_id, update_at,
-                CASE 
-                    WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 'tp4'
-                    WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 'tp3'
-                    WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 'tp2'
-                    WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 'tp1'
-                    WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 'sl'
-                    ELSE NULL
-                END as outcome,
-                ROW_NUMBER() OVER (PARTITION BY signal_id ORDER BY
-                    CASE 
-                        WHEN LOWER(update_type) LIKE '%tp4%' OR LOWER(update_type) LIKE '%target 4%' THEN 4
-                        WHEN LOWER(update_type) LIKE '%tp3%' OR LOWER(update_type) LIKE '%target 3%' THEN 3
-                        WHEN LOWER(update_type) LIKE '%tp2%' OR LOWER(update_type) LIKE '%target 2%' THEN 2
-                        WHEN LOWER(update_type) LIKE '%tp1%' OR LOWER(update_type) LIKE '%target 1%' THEN 1
-                        WHEN LOWER(update_type) LIKE '%sl%' OR LOWER(update_type) LIKE '%stop%' THEN 0
-                        ELSE -1
-                    END DESC, update_at DESC) as rn
-            FROM signal_updates WHERE update_type IS NOT NULL
+    # ─── Q3: BTC context from tags_annotated (FIXED — was reading wrong path) ───
+    # BTC trend tags: BTC_BULLISH / BTC_RANGING / BTC_BEARISH (strip BTC_ prefix)
+    # BTC dom tags: BTC_DOM_FLAT / BTC_DOM_UNKNOWN / BTC_DOM_RISING / BTC_DOM_FALLING
+    btc_ctx = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        target_signals AS (
+            SELECT s.signal_id FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         ),
-        resolved AS (
-            SELECT signal_id, DATE(update_at) as hit_date FROM final_outcomes
-            WHERE rn = 1 AND outcome IS NOT NULL AND DATE(update_at) = :d
-        ),
-        latest_enrichment AS (
+        latest_snap AS (
             SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
             FROM signal_enrichment_history h
-            JOIN resolved r ON r.signal_id = h.signal_id
+            JOIN target_signals t ON t.signal_id = h.signal_id
             ORDER BY h.signal_id, h.recorded_at DESC
+        ),
+        flat_tags AS (
+            SELECT tag->>'name' AS tag_name
+            FROM latest_snap ls,
+                 LATERAL jsonb_array_elements(COALESCE(ls.snapshot->'tags_annotated', '[]'::jsonb)) AS tag
+            WHERE tag->>'name' LIKE 'BTC_%'
         )
         SELECT
-            (SELECT MODE() WITHIN GROUP (ORDER BY REPLACE(tag, 'BTC_', ''))
-             FROM latest_enrichment le,
-             LATERAL jsonb_array_elements_text(le.snapshot->'tags') AS tag
-             WHERE tag IN ('BTC_BULLISH','BTC_BEARISH','BTC_RANGING')),
-            (SELECT MODE() WITHIN GROUP (ORDER BY le.snapshot->'facts'->'context'->'btc'->>'dominance_trend')
-             FROM latest_enrichment le
-             WHERE le.snapshot->'facts'->'context'->'btc'->>'dominance_trend' IS NOT NULL
-               AND le.snapshot->'facts'->'context'->'btc'->>'dominance_trend' != 'UNKNOWN'),
-            (SELECT ROUND(AVG((le.snapshot->'facts'->'context'->'fng'->>'value')::int))::int
-             FROM latest_enrichment le
-             WHERE le.snapshot->'facts'->'context'->'fng'->>'value' ~ '^[0-9]+$'),
-            (SELECT MODE() WITHIN GROUP (ORDER BY le.snapshot->'facts'->'context'->'fng'->>'classification')
-             FROM latest_enrichment le
-             WHERE le.snapshot->'facts'->'context'->'fng'->>'classification' IS NOT NULL),
-            (SELECT COUNT(*) FROM resolved r
-             JOIN signal_btc_correlation bc ON bc.signal_id = r.signal_id WHERE bc.is_decoupled = true),
-            (SELECT COUNT(*) FROM resolved r
-             JOIN signal_btc_correlation bc ON bc.signal_id = r.signal_id WHERE bc.is_extended = true),
-            (SELECT COUNT(DISTINCT signal_id) FROM latest_enrichment)
+            -- BTC trend distribution (raw counts)
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_BULLISH') AS bullish,
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_RANGING') AS ranging,
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_BEARISH') AS bearish,
+            -- BTC dominance distribution
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_RISING') AS dom_rising,
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_FALLING') AS dom_falling,
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_FLAT') AS dom_flat,
+            COUNT(*) FILTER (WHERE tag_name = 'BTC_DOM_UNKNOWN') AS dom_unknown
+        FROM flat_tags
     """), {"d": target_str}).fetchone()
 
-    btc_trend_mode = ctx[0]
-    btc_dom_trend_mode = ctx[1]
-    fear_greed_avg = int(ctx[2]) if ctx[2] is not None else None
-    fear_greed_label = ctx[3]
-    decoupled_count = int(ctx[4] or 0)
-    extended_count = int(ctx[5] or 0)
-    enrichment_coverage = int(ctx[6] or 0)
+    btc_trend_dist = {
+        "BULLISH": int(btc_ctx[0] or 0),
+        "RANGING": int(btc_ctx[1] or 0),
+        "BEARISH": int(btc_ctx[2] or 0),
+    }
+    btc_dom_dist = {
+        "RISING": int(btc_ctx[3] or 0),
+        "FALLING": int(btc_ctx[4] or 0),
+        "FLAT": int(btc_ctx[5] or 0),
+        "UNKNOWN": int(btc_ctx[6] or 0),
+    }
+
+    # Compute mode (most common) — None if no enrichment
+    def _mode(dist: dict) -> Optional[str]:
+        non_zero = {k: v for k, v in dist.items() if v > 0}
+        if not non_zero:
+            return None
+        return max(non_zero, key=non_zero.get)
+
+    btc_trend_mode = _mode(btc_trend_dist)
+    btc_dom_trend_mode = _mode(btc_dom_dist)
+
+    # ─── Q3b: F&G + decoupled/extended from existing tables ───
+    extra_ctx = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        target AS (
+            SELECT s.signal_id FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
+        )
+        SELECT
+            (SELECT ROUND(AVG(e.fear_greed))::int FROM target t
+             JOIN signal_enrichment e ON e.signal_id = t.signal_id WHERE e.fear_greed IS NOT NULL),
+            (SELECT COUNT(*) FROM target t
+             JOIN signal_btc_correlation bc ON bc.signal_id = t.signal_id WHERE bc.is_decoupled = true),
+            (SELECT COUNT(*) FROM target t
+             JOIN signal_btc_correlation bc ON bc.signal_id = t.signal_id WHERE bc.is_extended = true)
+    """), {"d": target_str}).fetchone()
+
+    fear_greed_avg = int(extra_ctx[0]) if extra_ctx[0] is not None else None
+    decoupled_count = int(extra_ctx[1] or 0)
+    extended_count = int(extra_ctx[2] or 0)
 
     # ─── Q4: Sector breakdown ───
     sector_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target AS (
-            SELECT s.pair, r.outcome FROM resolved r 
+            SELECT s.pair, r.outcome FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         )
         SELECT COALESCE(c.sector, 'uncategorized'),
@@ -280,50 +296,65 @@ async def get_daily_dashboard(
         default=None,
     )
 
-    # ─── Q5: Important tags from v3.0 tags_annotated ───
+    # ─── Q5: Important tags aggregate (NOT BTC tags) ───
     tag_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
-        target_signals AS (
-            SELECT s.signal_id FROM resolved r 
+        target AS (
+            SELECT s.signal_id FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
         ),
-        latest_enrichment AS (
+        latest_snap AS (
             SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
             FROM signal_enrichment_history h
-            JOIN target_signals t ON t.signal_id = h.signal_id
+            JOIN target t ON t.signal_id = h.signal_id
             ORDER BY h.signal_id, h.recorded_at DESC
         )
-        SELECT tag_obj->>'name' AS tag, COUNT(*) AS cnt
-        FROM latest_enrichment le,
-        LATERAL jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
-        WHERE (tag_obj->>'important')::boolean = true
-        GROUP BY tag_obj->>'name'
-        ORDER BY cnt DESC LIMIT 10
+        SELECT tag->>'name' AS tag_name, COUNT(*)
+        FROM latest_snap ls,
+             LATERAL jsonb_array_elements(COALESCE(ls.snapshot->'tags_annotated', '[]'::jsonb)) AS tag
+        WHERE (tag->>'important')::boolean = true
+          AND tag->>'name' NOT LIKE 'BTC_%'
+        GROUP BY tag->>'name'
+        ORDER BY COUNT(*) DESC
+        LIMIT 10
     """), {"d": target_str}).fetchall()
     important_tags = [{"tag": r[0], "count": int(r[1])} for r in tag_rows]
 
-    # ─── Q6: BTC trend distribution ───
-    dist_rows = db.execute(text(f"""
+    # ─── Q6: Enrichment coverage ───
+    coverage_row = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
-        target_signals AS (
-            SELECT s.signal_id FROM resolved r 
+        target AS (
+            SELECT s.signal_id FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id WHERE r.hit_date = :d
-        ),
-        latest_enrichment AS (
-            SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
-            FROM signal_enrichment_history h
-            JOIN target_signals t ON t.signal_id = h.signal_id
-            ORDER BY h.signal_id, h.recorded_at DESC
         )
-        SELECT REPLACE(tag, 'BTC_', '') AS bt, COUNT(*) AS cnt
-        FROM latest_enrichment le,
-        LATERAL jsonb_array_elements_text(le.snapshot->'tags') AS tag
-        WHERE tag IN ('BTC_BULLISH','BTC_BEARISH','BTC_RANGING')
-        GROUP BY tag
-    """), {"d": target_str}).fetchall()
-    btc_trend_dist = {r[0]: int(r[1]) for r in dist_rows}
+        SELECT
+            (SELECT COUNT(*) FROM target),
+            (SELECT COUNT(DISTINCT h.signal_id) FROM target t
+             JOIN signal_enrichment_history h ON h.signal_id = t.signal_id)
+    """), {"d": target_str}).fetchone()
+    enrichment_total = int(coverage_row[0] or 0)
+    enrichment_coverage = int(coverage_row[1] or 0)
 
-    # ─── Assemble response ───
+    # ─── Q7: Daily regime fallback (always populated from daily_market_regime) ───
+    # NEW in v5: universal context fallback for historical dates pre-v3.0
+    regime_row = db.execute(text("""
+        SELECT regime, total_closed, wins, losses, win_rate
+        FROM daily_market_regime
+        WHERE date = :d
+        LIMIT 1
+    """), {"d": target_str}).fetchone()
+
+    daily_regime = None
+    if regime_row:
+        daily_regime = {
+            "regime": regime_row[0],
+            "total_closed": int(regime_row[1]) if regime_row[1] is not None else 0,
+            "wins": int(regime_row[2]) if regime_row[2] is not None else 0,
+            "losses": int(regime_row[3]) if regime_row[3] is not None else 0,
+            "win_rate": float(regime_row[4]) if regime_row[4] is not None else 0.0,
+        }
+
+    # ─── Assemble ───
     response = {
         "selected_date": target_str,
         "today_summary": {
@@ -332,29 +363,30 @@ async def get_daily_dashboard(
             "losses": today_data["losses"],
             "win_rate": today_data["win_rate"],
             "yesterday_win_rate": yesterday_data["win_rate"],
-            "delta_vs_yesterday": round(
-                today_data["win_rate"] - yesterday_data["win_rate"], 2
-            ),
+            "delta_vs_yesterday": round(today_data["win_rate"] - yesterday_data["win_rate"], 2),
             "regime_label": today_data["regime"],
             "btc_trend_mode": btc_trend_mode,
             "btc_dom_trend_mode": btc_dom_trend_mode,
             "fear_greed_avg": fear_greed_avg,
-            "fear_greed_label": fear_greed_label,
+            "fear_greed_label": _fear_greed_label(fear_greed_avg),
             "hot_sector": hot_sector,
+            "daily_regime": daily_regime,
         },
         "day_detail": {
             "signals": day_signals,
             "context": {
                 "btc_trend_distribution": btc_trend_dist,
+                "btc_dom_distribution": btc_dom_dist,
                 "btc_dom_trend_mode": btc_dom_trend_mode,
                 "fear_greed_avg": fear_greed_avg,
-                "fear_greed_label": fear_greed_label,
+                "fear_greed_label": _fear_greed_label(fear_greed_avg),
                 "sector_breakdown": sectors,
                 "important_tags": important_tags,
                 "decoupled_count": decoupled_count,
                 "extended_count": extended_count,
                 "enrichment_coverage": enrichment_coverage,
-                "enrichment_total": len(day_signals),
+                "enrichment_total": enrichment_total,
+                "daily_regime": daily_regime,
             },
         },
         "trend_14d": trend_14d,
