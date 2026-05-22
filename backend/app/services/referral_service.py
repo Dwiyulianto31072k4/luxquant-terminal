@@ -239,9 +239,16 @@ def get_referee_list(
 # ════════════════════════════════════════════════════════════════════
 
 def track_share_event(db: Session, code: str, channel: str) -> Optional[ReferralCode]:
+    """
+    Increment share/qr counter for a referral code.
+
+    Filter by code only (no is_active filter) — caller (route handler) is
+    responsible for ownership/validity check. Filtering by is_active here
+    causes tracking to fail when a user regenerates their code (old code
+    is_active=False but should still be discoverable for analytics).
+    """
     referral = db.query(ReferralCode).filter(
         func.upper(ReferralCode.code) == code.upper(),
-        ReferralCode.is_active == True,
     ).first()
 
     if not referral:
