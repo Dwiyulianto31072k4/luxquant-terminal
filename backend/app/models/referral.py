@@ -76,6 +76,9 @@ class ReferralUse(Base):
     last_payment_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    share_count = Column(Integer, nullable=False, server_default="0")
+    qr_count = Column(Integer, nullable=False, server_default="0")
+    last_shared_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     referral_code = relationship("ReferralCode", back_populates="uses")
