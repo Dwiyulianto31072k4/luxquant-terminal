@@ -101,6 +101,66 @@ class UpdateUserRole(BaseModel):
 
 
 # ════════════════════════════════════════════════════════════════════
+# Admin Enrichment (Layer Outreach)
+# ════════════════════════════════════════════════════════════════════
+
+class AdminContactUpdate(BaseModel):
+    """Admin updates a user's outreach contact fields."""
+    admin_telegram_username: Optional[str] = None
+    admin_discord_handle: Optional[str] = None
+    admin_notes: Optional[str] = None
+
+    @field_validator('admin_telegram_username')
+    @classmethod
+    def normalize_tg(cls, v):
+        if v is None or v == '':
+            return None
+        v = v.strip().lstrip('@')
+        if not v:
+            return None
+        if len(v) > 100:
+            raise ValueError('Telegram username terlalu panjang (max 100 karakter)')
+        return v
+
+    @field_validator('admin_discord_handle')
+    @classmethod
+    def normalize_dc(cls, v):
+        if v is None or v == '':
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if len(v) > 100:
+            raise ValueError('Discord handle terlalu panjang (max 100 karakter)')
+        return v
+
+    @field_validator('admin_notes')
+    @classmethod
+    def normalize_notes(cls, v):
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+
+class TemplateRenderRequest(BaseModel):
+    """Render a message template for a specific user."""
+    template_id: str
+    user_id: int
+    custom_message: Optional[str] = None  # for 'custom' template
+
+
+class TemplateRenderResponse(BaseModel):
+    template_id: str
+    channel: str  # telegram | discord | email | generic
+    subject: Optional[str] = None
+    body: str
+    deep_link: Optional[str] = None
+    fallback_link: Optional[str] = None
+    can_send: bool
+
+
+# ════════════════════════════════════════════════════════════════════
 # Response Schemas
 # ════════════════════════════════════════════════════════════════════
 
@@ -175,6 +235,17 @@ class AdminUserResponse(BaseModel):
     # Display preferences
     country_code: Optional[str] = None
     currency_code: Optional[str] = 'USD'
+
+    # ─── Admin enrichment (Layer Outreach) ───
+    admin_telegram_username: Optional[str] = None
+    admin_discord_handle: Optional[str] = None
+    admin_notes: Optional[str] = None
+    admin_enriched_by: Optional[int] = None
+    admin_enriched_at: Optional[datetime] = None
+
+    # Computed effective channels (priority: admin > oauth)
+    effective_telegram_username: Optional[str] = None
+    effective_discord_handle: Optional[str] = None
 
     created_at: datetime
     updated_at: Optional[datetime] = None

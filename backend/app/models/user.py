@@ -42,6 +42,13 @@ class User(Base):
     # Values: lifetime | admin | payment | telegram_vip | discord_premium | NULL
     subscription_source = Column(String(30), nullable=True)
 
+    # ─── Admin enrichment (CRM-style, manually curated for outreach) ───
+    admin_telegram_username = Column(String(100), nullable=True)
+    admin_discord_handle = Column(String(100), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    admin_enriched_by = Column(Integer, nullable=True)
+    admin_enriched_at = Column(DateTime(timezone=True), nullable=True)
+
     # ─── Referral (legacy fields, masih dipake buat backref cepat) ───
     referred_by = Column(Integer, nullable=True)
     referral_code_used = Column(String(20), nullable=True)
@@ -79,6 +86,26 @@ class User(Base):
     @property
     def has_credit(self) -> bool:
         return self.referral_credit_usdt and float(self.referral_credit_usdt) > 0
+
+    @property
+    def effective_telegram_username(self):
+        """Telegram handle for outreach. Priority: admin override > oauth."""
+        if self.admin_telegram_username:
+            v = self.admin_telegram_username.strip().lstrip('@')
+            return v or None
+        if self.telegram_username:
+            return self.telegram_username.strip().lstrip('@') or None
+        return None
+
+    @property
+    def effective_discord_handle(self):
+        """Discord handle/id for outreach. Priority: admin override > oauth discord_id."""
+        if self.admin_discord_handle:
+            v = self.admin_discord_handle.strip()
+            return v or None
+        if self.discord_id:
+            return str(self.discord_id)
+        return None
 
     def __repr__(self):
         return f"<User {self.username} role={self.role} source={self.subscription_source}>"
