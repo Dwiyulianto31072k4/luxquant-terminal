@@ -1,7 +1,10 @@
 // src/components/UserManagementPage.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminApi } from '../services/adminApi';
 import { useAuth } from '../context/AuthContext';
+import { ContactBadgeRow } from './admin/ContactBadge';
+import { FilterPanel } from './admin/FilterPanel';
+import { BulkActionBar, exportUsersToCsv } from './admin/BulkActionBar';
 
 // ════════════════════════════════════════
 // Helper Functions
@@ -13,16 +16,26 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
-
 const daysUntil = (dateStr) => {
   if (!dateStr) return null;
   const diff = new Date(dateStr) - new Date();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+const daysSince = (dateStr) => {
+  if (!dateStr) return null;
+  const diff = new Date() - new Date(dateStr);
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+};
+
+const relativeTime = (dateStr) => {
+  if (!dateStr) return 'Never';
+  const days = daysSince(dateStr);
+  if (days === 0) return 'today';
+  if (days === 1) return '1d ago';
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
 };
 
 const RoleBadge = ({ role }) => {
@@ -40,21 +53,23 @@ const RoleBadge = ({ role }) => {
 
 const ProviderIcon = ({ provider }) => {
   const icons = {
-    google: '🔵',
-    telegram: '✈️',
-    local: '✉️',
+    google: { i: '🔵', label: 'Google' },
+    telegram: { i: '✈️', label: 'Telegram' },
+    discord: { i: '💬', label: 'Discord' },
+    local: { i: '✉️', label: 'Email' },
   };
-  return <span title={provider}>{icons[provider] || '❓'}</span>;
+  const cfg = icons[provider] || { i: '❓', label: provider };
+  return <span title={cfg.label}>{cfg.i}</span>;
 };
 
 const SubscriptionBadge = ({ user }) => {
   if (user.role === 'admin') return <span className="text-[11px] text-purple-400">∞ Admin</span>;
   if (user.role !== 'subscriber') return <span className="text-[11px] text-zinc-500">—</span>;
-  
+
   if (!user.subscription_expires_at) {
     return <span className="text-[11px] text-amber-400 font-semibold">♾️ Lifetime</span>;
   }
-  
+
   const days = daysUntil(user.subscription_expires_at);
   if (days <= 0) {
     return <span className="text-[11px] text-red-400 font-semibold">⚠️ Expired</span>;
@@ -65,9 +80,8 @@ const SubscriptionBadge = ({ user }) => {
   return <span className="text-[11px] text-emerald-400">{days}d left</span>;
 };
 
-
 // ════════════════════════════════════════
-// Stat Card Component
+// Stat Card
 // ════════════════════════════════════════
 
 const StatCard = ({ label, value, icon, color = 'gold', subtext }) => {
@@ -80,19 +94,26 @@ const StatCard = ({ label, value, icon, color = 'gold', subtext }) => {
     orange: { bg: 'rgba(251,146,60,0.08)', border: 'rgba(251,146,60,0.2)', text: '#fb923c' },
   };
   const c = colorMap[color] || colorMap.gold;
-  
+
   return (
     <div className="rounded-xl p-4" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+        <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          {label}
+        </span>
         <span className="text-lg">{icon}</span>
       </div>
-      <p className="text-2xl font-bold" style={{ color: c.text }}>{value ?? '—'}</p>
-      {subtext && <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{subtext}</p>}
+      <p className="text-2xl font-bold" style={{ color: c.text }}>
+        {value ?? '—'}
+      </p>
+      {subtext && (
+        <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          {subtext}
+        </p>
+      )}
     </div>
   );
 };
-
 
 // ════════════════════════════════════════
 // Grant Modal
@@ -122,7 +143,6 @@ const GrantModal = ({ user, onClose, onGrant }) => {
     { value: 'lifetime', label: 'Lifetime', desc: 'Tidak ada batas waktu' },
   ];
 
-  // Preview expiry date
   const getPreviewExpiry = () => {
     if (duration === 'lifetime') return 'Tidak ada batas waktu';
     const start = startDate ? new Date(startDate) : new Date();
@@ -132,8 +152,11 @@ const GrantModal = ({ user, onClose, onGrant }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="w-full max-w-md rounded-2xl p-6" style={{ background: '#12090d', border: '1px solid rgba(212,168,83,0.25)' }}>
         <h3 className="text-lg font-bold text-white mb-1">Grant Subscription</h3>
         <p className="text-sm mb-5" style={{ color: '#8a7a6e' }}>
@@ -143,39 +166,47 @@ const GrantModal = ({ user, onClose, onGrant }) => {
           )}
         </p>
 
-        {/* Start Date (optional) */}
         <div className="mb-4">
           <label className="block text-xs font-medium mb-1.5" style={{ color: '#8a7a6e' }}>
             Tanggal Mulai
-            <span className="text-zinc-600 ml-1">(opsional — untuk user lama)</span>
+            <span className="text-zinc-600 ml-1">(opsional)</span>
           </label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none transition-all"
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none"
             style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)', colorScheme: 'dark' }}
-            onFocus={e => e.target.style.borderColor = 'rgba(212,168,83,0.4)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(212,168,83,0.15)'}
           />
           {!startDate && (
-            <p className="text-[10px] mt-1" style={{ color: '#4a3f39' }}>Kosongkan = mulai dari hari ini</p>
+            <p className="text-[10px] mt-1" style={{ color: '#4a3f39' }}>
+              Kosongkan = mulai dari hari ini
+            </p>
           )}
         </div>
 
-        {/* Duration Selection */}
         <div className="space-y-2 mb-3">
-          {durationOptions.map(opt => (
-            <button key={opt.value} onClick={() => setDuration(opt.value)}
+          {durationOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDuration(opt.value)}
               className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                duration === opt.value
-                  ? 'border-gold-primary/50 bg-gold-primary/10'
-                  : 'border-white/5 bg-white/[0.02] hover:border-white/10'
-              }`}>
+                duration === opt.value ? 'border-gold-primary/50 bg-gold-primary/10' : 'border-white/5 bg-white/[0.02] hover:border-white/10'
+              }`}
+            >
               <div className="text-left">
-                <span className={`text-sm font-semibold ${duration === opt.value ? 'text-gold-primary' : 'text-white'}`}>{opt.label}</span>
-                <p className="text-[11px]" style={{ color: '#6b5c52' }}>{opt.desc}</p>
+                <span className={`text-sm font-semibold ${duration === opt.value ? 'text-gold-primary' : 'text-white'}`}>
+                  {opt.label}
+                </span>
+                <p className="text-[11px]" style={{ color: '#6b5c52' }}>
+                  {opt.desc}
+                </p>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                duration === opt.value ? 'border-gold-primary bg-gold-primary' : 'border-white/20'
-              }`}>
+              <div
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  duration === opt.value ? 'border-gold-primary bg-gold-primary' : 'border-white/20'
+                }`}
+              >
                 {duration === opt.value && (
                   <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -186,7 +217,6 @@ const GrantModal = ({ user, onClose, onGrant }) => {
           ))}
         </div>
 
-        {/* Preview */}
         <div className="mb-4 px-3 py-2 rounded-lg" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.1)' }}>
           <p className="text-[11px] text-gold-primary font-medium">
             {startDate && `Mulai: ${new Date(startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} → `}
@@ -194,27 +224,33 @@ const GrantModal = ({ user, onClose, onGrant }) => {
           </p>
         </div>
 
-        {/* Note */}
         <div className="mb-5">
-          <label className="block text-xs font-medium mb-1.5" style={{ color: '#8a7a6e' }}>Catatan (opsional)</label>
-          <input value={note} onChange={e => setNote(e.target.value)} placeholder="Contoh: Payment via BCA, promo code XYZ"
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none transition-all"
+          <label className="block text-xs font-medium mb-1.5" style={{ color: '#8a7a6e' }}>
+            Catatan (opsional)
+          </label>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Contoh: Payment via BCA, promo code XYZ"
+            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none"
             style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
-            onFocus={e => e.target.style.borderColor = 'rgba(212,168,83,0.4)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(212,168,83,0.15)'}
           />
         </div>
 
-        {/* Buttons */}
         <div className="flex gap-3">
-          <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+            style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
             Batal
           </button>
-          <button onClick={handleGrant} disabled={loading}
+          <button
+            onClick={handleGrant}
+            disabled={loading}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>
+            style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+          >
             {loading ? 'Processing...' : 'Grant Access'}
           </button>
         </div>
@@ -222,7 +258,6 @@ const GrantModal = ({ user, onClose, onGrant }) => {
     </div>
   );
 };
-
 
 // ════════════════════════════════════════
 // Confirm Modal
@@ -244,22 +279,29 @@ const ConfirmModal = ({ title, message, onConfirm, onClose, confirmText = 'Confi
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: '#12090d', border: '1px solid rgba(255,255,255,0.08)' }}>
         <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-sm mb-5" style={{ color: '#8a7a6e' }}>{message}</p>
+        <p className="text-sm mb-5 whitespace-pre-line" style={{ color: '#8a7a6e' }}>
+          {message}
+        </p>
         <div className="flex gap-3">
-          <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-            style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.08)' }}>
             Batal
           </button>
-          <button onClick={handleConfirm} disabled={loading}
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 ${
-              danger ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'
-              : 'text-white border border-white/10 hover:bg-white/5'
-            }`}>
+              danger
+                ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'
+                : 'text-white border border-white/10 hover:bg-white/5'
+            }`}
+          >
             {loading ? '...' : confirmText}
           </button>
         </div>
@@ -268,26 +310,39 @@ const ConfirmModal = ({ title, message, onConfirm, onClose, confirmText = 'Confi
   );
 };
 
-
 // ════════════════════════════════════════
 // Main Page
 // ════════════════════════════════════════
 
+const DEFAULT_FILTERS = {
+  role: null,
+  status: null,
+  provider: null,
+  activity: null,
+  reach: null,
+  sortBy: 'created_at',
+  sortOrder: 'desc',
+};
+
 const UserManagementPage = () => {
   const { user: currentUser } = useAuth();
+
+  // Data state
   const [stats, setStats] = useState(null);
+  const [contactStats, setContactStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [expiringUsers, setExpiringUsers] = useState([]);
+  const [templates, setTemplates] = useState([]);
 
-  // Filters
+  // UI state
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(15);
+  const [pageSize] = useState(20);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Modals
   const [grantModal, setGrantModal] = useState(null);
@@ -297,13 +352,13 @@ const UserManagementPage = () => {
   // Toast auto-dismiss
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
+    const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  // Fetch stats
+  // ── Data fetchers ──
   const fetchStats = useCallback(async () => {
     try {
       const data = await adminApi.getStats();
@@ -313,30 +368,50 @@ const UserManagementPage = () => {
     }
   }, []);
 
-  // Fetch users
+  const fetchContactStats = useCallback(async () => {
+    try {
+      const data = await adminApi.getContactStats();
+      setContactStats(data);
+    } catch (err) {
+      console.error('Failed to fetch contact stats:', err);
+    }
+  }, []);
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const data = await adminApi.getOutreachTemplates();
+      setTemplates(data.templates || []);
+    } catch (err) {
+      console.error('Failed to fetch templates:', err);
+    }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminApi.getUsers({
         search: search || undefined,
-        role: roleFilter || undefined,
-        status: statusFilter || undefined,
+        role: filters.role || undefined,
+        status: filters.status || undefined,
+        provider: filters.provider || undefined,
+        activity: filters.activity || undefined,
+        reach: filters.reach || undefined,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
         page,
         pageSize,
-        sortBy: 'created_at',
-        sortOrder: 'desc',
       });
       setUsers(data.users);
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (err) {
       console.error('Failed to fetch users:', err);
+      showToast('Gagal load users', 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, roleFilter, statusFilter, page, pageSize]);
+  }, [search, filters, page, pageSize]);
 
-  // Fetch expiring
   const fetchExpiring = useCallback(async () => {
     try {
       const data = await adminApi.getExpiringSubscriptions(7);
@@ -346,11 +421,56 @@ const UserManagementPage = () => {
     }
   }, []);
 
-  useEffect(() => { fetchStats(); fetchExpiring(); }, [fetchStats, fetchExpiring]);
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
-  useEffect(() => { setPage(1); }, [search, roleFilter, statusFilter]);
+  // Initial load
+  useEffect(() => {
+    fetchStats();
+    fetchContactStats();
+    fetchExpiring();
+    fetchTemplates();
+  }, [fetchStats, fetchContactStats, fetchExpiring, fetchTemplates]);
 
-  // Actions
+  // Refetch users on filter/search change
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Reset page when filters/search change
+  useEffect(() => {
+    setPage(1);
+    setSelectedIds(new Set());
+  }, [search, filters]);
+
+  // ── Computed ──
+  const selectedUsers = useMemo(() => users.filter((u) => selectedIds.has(u.id)), [users, selectedIds]);
+  const allVisibleSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
+
+  const toggleSelect = (userId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      // Deselect only visible (preserve selection from other pages)
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        users.forEach((u) => next.delete(u.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        users.forEach((u) => next.add(u.id));
+        return next;
+      });
+    }
+  };
+
+  // ── Single-user actions ──
   const handleGrant = async (userId, duration, note, startDate) => {
     try {
       const result = await adminApi.grantSubscription(userId, duration, note, startDate);
@@ -380,7 +500,7 @@ const UserManagementPage = () => {
         } catch (err) {
           showToast(err.response?.data?.detail || 'Gagal revoke', 'error');
         }
-      }
+      },
     });
   };
 
@@ -401,7 +521,7 @@ const UserManagementPage = () => {
         } catch (err) {
           showToast(err.response?.data?.detail || 'Gagal update status', 'error');
         }
-      }
+      },
     });
   };
 
@@ -421,8 +541,110 @@ const UserManagementPage = () => {
         } catch (err) {
           showToast('Gagal cleanup', 'error');
         }
-      }
+      },
     });
+  };
+
+  // ── Bulk actions ──
+  const handleBulkExport = () => {
+    const filename = `users_${new Date().toISOString().slice(0, 10)}.csv`;
+    exportUsersToCsv(selectedUsers, filename);
+    showToast(`Exported ${selectedUsers.length} users to CSV`);
+  };
+
+  const handleBulkGrant = async (duration) => {
+    const targets = selectedUsers.filter((u) => u.role !== 'admin');
+    if (targets.length === 0) {
+      showToast('Tidak ada user yang bisa di-grant (admin di-skip)', 'error');
+      return;
+    }
+
+    const ok = window.confirm(
+      `Grant ${duration.replace('_', ' ')} subscription ke ${targets.length} user?\n\n` +
+        `Admin akan di-skip otomatis. Proceed?`
+    );
+    if (!ok) return;
+
+    let successCount = 0;
+    let failCount = 0;
+    for (const u of targets) {
+      try {
+        await adminApi.grantSubscription(u.id, duration, `Bulk grant ${duration}`, null);
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Failed for ${u.username}:`, err);
+      }
+    }
+    showToast(`✓ ${successCount} granted${failCount > 0 ? `, ✗ ${failCount} failed` : ''}`);
+    setSelectedIds(new Set());
+    fetchUsers();
+    fetchStats();
+    fetchExpiring();
+  };
+
+  const handleBulkRevoke = async () => {
+    const targets = selectedUsers.filter((u) => u.role === 'subscriber');
+    let successCount = 0;
+    let failCount = 0;
+    for (const u of targets) {
+      try {
+        await adminApi.revokeSubscription(u.id);
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Failed for ${u.username}:`, err);
+      }
+    }
+    showToast(`✓ ${successCount} revoked${failCount > 0 ? `, ✗ ${failCount} failed` : ''}`);
+    setSelectedIds(new Set());
+    fetchUsers();
+    fetchStats();
+  };
+
+  const handleBulkSendTemplate = async (templateId) => {
+    // Render template per user, open Telegram/Discord/mailto link in new tab (cap at 10)
+    const reachable = selectedUsers.filter((u) => {
+      const hasTG = u.admin_telegram_username || u.telegram_username;
+      const hasDC = u.admin_discord_handle || u.discord_id;
+      const hasReal =
+        u.email && !u.email.endsWith('@telegram.luxquant.tw') && !u.email.endsWith('@discord.luxquant.tw');
+      return hasTG || hasDC || hasReal;
+    });
+
+    const targets = reachable.slice(0, 10); // safety cap
+
+    let openedCount = 0;
+    let copiedTexts = [];
+
+    for (const u of targets) {
+      try {
+        const rendered = await adminApi.renderOutreachTemplate(templateId, u.id);
+        copiedTexts.push(`=== ${u.username} (${rendered.channel}) ===\n${rendered.body}\n`);
+        if (rendered.deep_link) {
+          window.open(rendered.deep_link, '_blank', 'noopener,noreferrer');
+          openedCount++;
+        }
+      } catch (err) {
+        console.error(`Failed to render for ${u.username}:`, err);
+      }
+    }
+
+    // Copy combined messages to clipboard (so admin can paste serially)
+    if (copiedTexts.length > 0) {
+      try {
+        await navigator.clipboard.writeText(copiedTexts.join('\n'));
+      } catch (e) {
+        // clipboard fail = okay, opened tabs still happen
+      }
+    }
+
+    showToast(
+      `✓ Opened ${openedCount} tab(s). Messages copied to clipboard${
+        reachable.length > 10 ? ` (${reachable.length - 10} skipped, cap=10)` : ''
+      }`
+    );
+    setSelectedIds(new Set());
   };
 
   // Access guard
@@ -432,21 +654,25 @@ const UserManagementPage = () => {
         <div className="text-center">
           <p className="text-4xl mb-3">🔒</p>
           <p className="text-lg font-semibold text-white mb-1">Admin Only</p>
-          <p className="text-sm" style={{ color: '#6b5c52' }}>Halaman ini hanya bisa diakses oleh admin.</p>
+          <p className="text-sm" style={{ color: '#6b5c52' }}>
+            Halaman ini hanya bisa diakses oleh admin.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-24">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-[100000] px-4 py-3 rounded-xl text-sm font-medium shadow-2xl animate-in fade-in slide-in-from-top-2 ${
-          toast.type === 'error'
-            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-        }`}>
+        <div
+          className={`fixed top-4 right-4 z-[100000] px-4 py-3 rounded-xl text-sm font-medium shadow-2xl animate-in fade-in slide-in-from-top-2 ${
+            toast.type === 'error'
+              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          }`}
+        >
           {toast.message}
         </div>
       )}
@@ -457,30 +683,113 @@ const UserManagementPage = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <span className="text-2xl">👥</span> User Management
           </h1>
-          <p className="text-xs mt-1" style={{ color: '#6b5c52' }}>Kelola users, subscription, dan akses platform.</p>
+          <p className="text-xs mt-1" style={{ color: '#6b5c52' }}>
+            Kelola users, subscription, contact enrichment, dan outreach.
+          </p>
         </div>
         <div className="flex gap-2">
           {stats?.expired_not_downgraded > 0 && (
-            <button onClick={handleCleanup}
-              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20">
+            <button
+              onClick={handleCleanup}
+              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+            >
               🧹 Cleanup {stats.expired_not_downgraded} Expired
             </button>
           )}
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Main Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard label="Total Users" value={stats?.total_users} icon="👥" color="blue" />
-        <StatCard label="Subscribers" value={stats?.active_subscribers} icon="⭐" color="green"
-          subtext={stats?.lifetime_subscribers ? `${stats.lifetime_subscribers} lifetime` : undefined} />
+        <StatCard
+          label="Subscribers"
+          value={stats?.active_subscribers}
+          icon="⭐"
+          color="green"
+          subtext={stats?.lifetime_subscribers ? `${stats.lifetime_subscribers} lifetime` : undefined}
+        />
         <StatCard label="Free Users" value={stats?.free_users} icon="👤" color="gold" />
         <StatCard label="Admins" value={stats?.admin_count} icon="🛡️" color="purple" />
-        <StatCard label="Expiring Soon" value={stats?.expiring_soon} icon="⏰" color="orange"
-          subtext="Dalam 7 hari" />
-        <StatCard label="New (30d)" value={stats?.new_users_30d} icon="📈" color="blue"
-          subtext="User baru" />
+        <StatCard label="Expiring Soon" value={stats?.expiring_soon} icon="⏰" color="orange" subtext="Dalam 7 hari" />
+        <StatCard label="New (30d)" value={stats?.new_users_30d} icon="📈" color="blue" subtext="User baru" />
       </div>
+
+      {/* Contact Reach Stats (NEW) */}
+      {contactStats && (
+        <div className="rounded-xl p-4" style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)' }}>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <span>📡</span> Contact Reach
+            </h3>
+            <p className="text-[11px]" style={{ color: '#6b5c52' }}>
+              {Math.round(((contactStats.total - contactStats.unreachable) / contactStats.total) * 100)}% of {contactStats.total} reachable
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div
+              className="rounded-lg p-2.5 cursor-pointer transition-all hover:scale-105"
+              style={{ background: 'rgba(34,158,217,0.08)', border: '1px solid rgba(34,158,217,0.2)' }}
+              onClick={() => setFilters({ ...filters, reach: 'has_tg' })}
+            >
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: '#229ED9' }}>
+                ✈️ Telegram
+              </p>
+              <p className="text-lg font-bold" style={{ color: '#229ED9' }}>
+                {contactStats.telegram_reachable}
+              </p>
+            </div>
+            <div
+              className="rounded-lg p-2.5 cursor-pointer transition-all hover:scale-105"
+              style={{ background: 'rgba(88,101,242,0.08)', border: '1px solid rgba(88,101,242,0.2)' }}
+              onClick={() => setFilters({ ...filters, reach: 'has_dc' })}
+            >
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: '#5865F2' }}>
+                💬 Discord
+              </p>
+              <p className="text-lg font-bold" style={{ color: '#5865F2' }}>
+                {contactStats.discord_reachable}
+              </p>
+            </div>
+            <div
+              className="rounded-lg p-2.5 cursor-pointer transition-all hover:scale-105"
+              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}
+              onClick={() => setFilters({ ...filters, reach: 'has_email' })}
+            >
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: '#fbbf24' }}>
+                ✉️ Email
+              </p>
+              <p className="text-lg font-bold" style={{ color: '#fbbf24' }}>
+                {contactStats.email_reachable}
+              </p>
+            </div>
+            <div
+              className="rounded-lg p-2.5 cursor-pointer transition-all hover:scale-105"
+              style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}
+              onClick={() => setFilters({ ...filters, reach: 'admin_enriched' })}
+            >
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: '#d4a853' }}>
+                ✓ Enriched
+              </p>
+              <p className="text-lg font-bold" style={{ color: '#d4a853' }}>
+                {contactStats.admin_enriched}
+              </p>
+            </div>
+            <div
+              className="rounded-lg p-2.5 cursor-pointer transition-all hover:scale-105"
+              style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
+              onClick={() => setFilters({ ...filters, reach: 'unreachable' })}
+            >
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: '#f87171' }}>
+                ⚠️ Unreachable
+              </p>
+              <p className="text-lg font-bold" style={{ color: '#f87171' }}>
+                {contactStats.unreachable}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Expiring Alert */}
       {expiringUsers.length > 0 && (
@@ -493,64 +802,65 @@ const UserManagementPage = () => {
             {expiringUsers.slice(0, 5).map(({ user: u, days_remaining }) => (
               <div key={u.id} className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)' }}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c' }}>
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c' }}
+                  >
                     {u.username?.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{u.username}</p>
-                    <p className="text-[10px]" style={{ color: '#6b5c52' }}>{u.email}</p>
+                    <p className="text-[10px]" style={{ color: '#6b5c52' }}>
+                      {u.email}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-xs font-bold ${days_remaining <= 3 ? 'text-red-400' : 'text-orange-400'}`}>
                     {days_remaining}d left
                   </span>
-                  <button onClick={() => setGrantModal(u)}
-                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                  <button
+                    onClick={() => setGrantModal(u)}
+                    className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                  >
                     Extend
                   </button>
                 </div>
               </div>
             ))}
             {expiringUsers.length > 5 && (
-              <p className="text-[11px] text-center" style={{ color: '#6b5c52' }}>+{expiringUsers.length - 5} more</p>
+              <p className="text-[11px] text-center" style={{ color: '#6b5c52' }}>
+                +{expiringUsers.length - 5} more
+              </p>
             )}
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="flex-1 min-w-[200px]">
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Cari username, email, telegram..."
-            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none transition-all"
+      {/* Search Bar */}
+      <div className="flex gap-2 items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Cari username, email, telegram, discord, atau admin enrichment..."
+            className="w-full px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-            onFocus={e => e.target.style.borderColor = 'rgba(212,168,83,0.3)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
           />
         </div>
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
-          className="px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none cursor-pointer"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <option value="">All Roles</option>
-          <option value="free">Free</option>
-          <option value="subscriber">Subscriber</option>
-          <option value="admin">Admin</option>
-        </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="px-3 py-2.5 rounded-xl text-sm text-white focus:outline-none cursor-pointer"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Banned</option>
-          <option value="expiring">Expiring Soon</option>
-          <option value="expired">Expired</option>
-        </select>
-        <span className="text-[11px] ml-1" style={{ color: '#6b5c52' }}>
-          {total} user{total !== 1 ? 's' : ''}
+        <span className="text-[11px] whitespace-nowrap" style={{ color: '#6b5c52' }}>
+          {total} user{total !== 1 ? 's' : ''} {selectedIds.size > 0 && `(${selectedIds.size} selected)`}
         </span>
       </div>
+
+      {/* Collapsible Filter Panel */}
+      <FilterPanel
+        filters={filters}
+        onChange={setFilters}
+        onReset={() => setFilters(DEFAULT_FILTERS)}
+        stats={contactStats}
+      />
 
       {/* Users Table */}
       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -558,118 +868,190 @@ const UserManagementPage = () => {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>User</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden sm:table-cell" style={{ color: '#6b5c52' }}>Provider</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>Role</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: '#6b5c52' }}>Subscription</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: '#6b5c52' }}>Joined</th>
-                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>Actions</th>
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded cursor-pointer accent-amber-500"
+                  />
+                </th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                  User
+                </th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: '#6b5c52' }}>
+                  Contact
+                </th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                  Role
+                </th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: '#6b5c52' }}>
+                  Subscription
+                </th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: '#6b5c52' }}>
+                  Last Login
+                </th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="text-center py-12">
-                  <div className="inline-flex items-center gap-2 text-sm" style={{ color: '#6b5c52' }}>
-                    <div className="w-4 h-4 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
-                    Loading...
-                  </div>
-                </td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12">
-                  <p className="text-sm" style={{ color: '#6b5c52' }}>Tidak ada user ditemukan</p>
-                </td></tr>
-              ) : users.map(u => (
-                <tr key={u.id} className="border-t transition-colors hover:bg-white/[0.015]" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                  {/* User Info */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                        style={{
-                          background: u.avatar_url ? 'transparent' : 'rgba(212,168,83,0.15)',
-                          color: '#d4a853',
-                        }}>
-                        {u.avatar_url
-                          ? <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                          : u.username?.charAt(0).toUpperCase()
-                        }
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
-                          {u.username}
-                          {!u.is_active && <span className="text-[9px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">BANNED</span>}
-                        </p>
-                        <p className="text-[11px] truncate" style={{ color: '#6b5c52' }}>{u.email}</p>
-                        {u.telegram_username && (
-                          <p className="text-[10px] text-blue-400">@{u.telegram_username}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Provider */}
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <ProviderIcon provider={u.auth_provider} />
-                  </td>
-
-                  {/* Role */}
-                  <td className="px-4 py-3">
-                    <RoleBadge role={u.role} />
-                  </td>
-
-                  {/* Subscription */}
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <SubscriptionBadge user={u} />
-                    {u.subscription_expires_at && u.role === 'subscriber' && (
-                      <p className="text-[10px] mt-0.5" style={{ color: '#4a3f39' }}>{formatDate(u.subscription_expires_at)}</p>
-                    )}
-                  </td>
-
-                  {/* Joined */}
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-[11px]" style={{ color: '#6b5c52' }}>{formatDate(u.created_at)}</span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {u.role !== 'admin' && (
-                        <>
-                          <button onClick={() => setGrantModal(u)} title="Grant Subscription"
-                            className="p-1.5 rounded-lg text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                          {u.role === 'subscriber' && (
-                            <button onClick={() => handleRevoke(u.id, u.username)} title="Revoke Subscription"
-                              className="p-1.5 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-colors border border-red-500/20">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                              </svg>
-                            </button>
-                          )}
-                          <button onClick={() => handleToggleActive(u.id, u.username, u.is_active)} title={u.is_active ? 'Ban' : 'Unban'}
-                            className={`p-1.5 rounded-lg transition-colors border ${
-                              u.is_active
-                                ? 'text-orange-400 bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
-                                : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'
-                            }`}>
-                            {u.is_active ? (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            )}
-                          </button>
-                        </>
-                      )}
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <div className="inline-flex items-center gap-2 text-sm" style={{ color: '#6b5c52' }}>
+                      <div className="w-4 h-4 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+                      Loading...
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <p className="text-sm" style={{ color: '#6b5c52' }}>
+                      Tidak ada user ditemukan
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => {
+                  const isSelected = selectedIds.has(u.id);
+                  return (
+                    <tr
+                      key={u.id}
+                      className={`border-t transition-colors ${isSelected ? 'bg-amber-500/[0.03]' : 'hover:bg-white/[0.015]'}`}
+                      style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(u.id)}
+                          className="w-4 h-4 rounded cursor-pointer accent-amber-500"
+                        />
+                      </td>
+
+                      {/* User Info */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                            style={{ background: u.avatar_url ? 'transparent' : 'rgba(212,168,83,0.15)', color: '#d4a853' }}
+                          >
+                            {u.avatar_url ? (
+                              <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              u.username?.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                              {u.username}
+                              {!u.is_active && <span className="text-[9px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">BANNED</span>}
+                              <ProviderIcon provider={u.auth_provider} />
+                              {u.admin_enriched_at && (
+                                <span
+                                  className="text-[9px] font-bold px-1 py-0.5 rounded"
+                                  style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}
+                                  title="Admin-enriched contact info"
+                                >
+                                  ✓
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] truncate" style={{ color: '#6b5c52' }}>
+                              {u.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Contact Badges */}
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <ContactBadgeRow user={u} />
+                      </td>
+
+                      {/* Role */}
+                      <td className="px-4 py-3">
+                        <RoleBadge role={u.role} />
+                      </td>
+
+                      {/* Subscription */}
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <SubscriptionBadge user={u} />
+                        {u.subscription_expires_at && u.role === 'subscriber' && (
+                          <p className="text-[10px] mt-0.5" style={{ color: '#4a3f39' }}>
+                            {formatDate(u.subscription_expires_at)}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Last login */}
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <span className="text-[11px]" style={{ color: u.last_login_at ? '#8a7a6e' : '#4a3f39' }}>
+                          {relativeTime(u.last_login_at)}
+                        </span>
+                        {u.login_count > 0 && (
+                          <p className="text-[10px]" style={{ color: '#4a3f39' }}>
+                            {u.login_count}x
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {u.role !== 'admin' && (
+                            <>
+                              <button
+                                onClick={() => setGrantModal(u)}
+                                title="Grant Subscription"
+                                className="p-1.5 rounded-lg text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                              </button>
+                              {u.role === 'subscriber' && (
+                                <button
+                                  onClick={() => handleRevoke(u.id, u.username)}
+                                  title="Revoke Subscription"
+                                  className="p-1.5 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                                  </svg>
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleToggleActive(u.id, u.username, u.is_active)}
+                                title={u.is_active ? 'Ban' : 'Unban'}
+                                className={`p-1.5 rounded-lg border ${
+                                  u.is_active
+                                    ? 'text-orange-400 bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
+                                    : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'
+                                }`}
+                              >
+                                {u.is_active ? (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -678,23 +1060,57 @@ const UserManagementPage = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
             <p className="text-[11px]" style={{ color: '#6b5c52' }}>
-              Page {page} of {totalPages}
+              Page {page} of {totalPages} · {total} total
             </p>
             <div className="flex gap-1.5">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 transition-colors"
-                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                onClick={() => setPage(1)}
+                disabled={page <= 1}
+                className="px-2 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30"
+                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                ⟪
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30"
+                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 ← Prev
               </button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 transition-colors"
-                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30"
+                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 Next →
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page >= totalPages}
+                className="px-2 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30"
+                style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                ⟫
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        selectedUsers={selectedUsers}
+        onClear={() => setSelectedIds(new Set())}
+        onBulkGrant={handleBulkGrant}
+        onBulkRevoke={handleBulkRevoke}
+        onBulkExport={handleBulkExport}
+        onBulkSendTemplate={handleBulkSendTemplate}
+        templates={templates}
+      />
 
       {/* Modals */}
       {grantModal && <GrantModal user={grantModal} onClose={() => setGrantModal(null)} onGrant={handleGrant} />}
