@@ -1,26 +1,23 @@
 // src/components/DailyPerformancePage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Daily Performance (Analytics Tool v5)
+// LuxQuant Terminal — Daily Performance (Analytics Tool v6)
 //
-// v5 changes (over v4):
-//   - Hero donut: win/loss SPLIT (ijo wins + merah losses), bukan flat gold
-//   - BTC Context: 3-tier fallback (enriched donut → summary mode → empty)
-//   - daily_regime fallback rendered everywhere (story, KPI, hero badge)
-//   - Coverage banner when enrichment < 30%
-//   - Empty-state guards untuk semua tabs
-//   - BTC Dominance card added (dom_dist visualization)
-//   - F&G card dengan gradient scale bar
-//   - Decoupled KPI: shows "—" kalau no enrichment (bukan misleading "0")
+// v6 changes (over v5):
+//   - REBUILT CorrelationTab with 4 panels powered by correlation_summary:
+//     1. Decoupled vs Coupled WR comparison (hero insight)
+//     2. Risk distribution (low/medium/high from interpretation.risk_level)
+//     3. BTC Lead/Lag distribution (leads / sync / lags + avg hours)
+//     4. Beta × Peak scatter (replaces confidence × peak, since confidence
+//        was often null pre-v3.0 — beta_30d is always populated)
+//     5. Aggregate averages strip (beta, R², vol ratio, correlation, coin vol)
+//   - Hero Story: added "Correlation edge" line when decoupled vs coupled
+//     advantage is meaningful (≥10pp)
+//   - Graceful empty state when correlation_summary === null (pre-backfill)
+//   - All other tabs unchanged
 //
-// Features (carried from v4):
-//   - Cross-filtering: click any segment/bar → adds to active filters
-//   - Filter chips bar at top
-//   - 4 tabs: Overview · By Pattern · By Correlation · By Sector
-//   - Sortable Pattern Performance Table
-//   - Scatter plot: confidence × peak
-//   - Per-sector color palette
-//   - SignalModal integration
-//   - "Show all" modal for full list
+// v5 changes:
+//   - Hero donut: win/loss SPLIT, BTC Context 3-tier fallback, etc.
+//   - (see git history for full v5 notes)
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -58,6 +55,13 @@ const OUTCOME_COLORS = {
 const WIN_COLOR = "#10b981";
 const LOSS_COLOR = "#ef4444";
 
+// Risk level colors
+const RISK_COLORS = {
+  low: "#10b981",
+  medium: "#f59e0b",
+  high: "#ef4444",
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 const todayUTC = () => {
@@ -82,6 +86,11 @@ const fmtDateLong = (iso) => {
 const fmtPct = (v, d = 2) => {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
   return `${v.toFixed(d)}%`;
+};
+
+const fmtNum = (v, d = 2) => {
+  if (v === null || v === undefined || Number.isNaN(v)) return "—";
+  return v.toFixed(d);
 };
 
 // ─── Reusable Card / Label / Section ─────────────────────────────
@@ -109,7 +118,7 @@ const SectionHeader = ({ label }) => (
   </div>
 );
 
-// ─── Win/Loss Split Donut (HERO — v5 new) ─────────────────────────
+// ─── Win/Loss Split Donut (HERO) ─────────────────────────────────
 
 const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
   const total = wins + losses;
@@ -123,7 +132,6 @@ const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} className="-rotate-90">
-        {/* Background track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -134,7 +142,6 @@ const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
         />
         {total > 0 && (
           <>
-            {/* Wins arc — emerald */}
             <circle
               cx={size / 2}
               cy={size / 2}
@@ -146,7 +153,6 @@ const WinLossDonut = ({ wins, losses, size = 220, stroke = 18 }) => {
               strokeDashoffset={0}
               style={{ transition: "stroke-dasharray 0.8s ease-out" }}
             />
-            {/* Losses arc — red, offset to start where wins end */}
             <circle
               cx={size / 2}
               cy={size / 2}
@@ -354,7 +360,7 @@ const FilterChipsBar = ({ filters, onRemove, onClear, totalUnfiltered, totalFilt
   );
 };
 
-// ─── Coverage banner (warns user about sparse data) ──────────────
+// ─── Coverage banner ─────────────────────────────────────────────
 
 const CoverageBanner = ({ coverage, total, dailyRegime, hasFilters }) => {
   if (hasFilters) return null;
@@ -424,7 +430,7 @@ const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
 
 // ─── Hero Section ────────────────────────────────────────────────
 
-const HeroSection = ({ signals, totalUnfiltered, summary, selectedDate, hasFilters }) => {
+const HeroSection = ({ signals, totalUnfiltered, summary, correlationSummary, selectedDate, hasFilters }) => {
   const total = signals?.length || 0;
   const wins = signals?.filter((s) => s.outcome?.startsWith("tp")).length || 0;
   const losses = signals?.filter((s) => s.outcome === "sl").length || 0;
@@ -471,9 +477,13 @@ const HeroSection = ({ signals, totalUnfiltered, summary, selectedDate, hasFilte
     return arr[0];
   }, [signals]);
 
-  const decoupled = signals?.filter((s) => s.is_decoupled).length || 0;
   const enrichedCount = signals?.filter((s) => (s.important_tag_count || 0) > 0).length || 0;
   const hasEnrichment = enrichedCount > 0;
+
+  // v6 NEW: correlation edge insight
+  const corrAdvantage = correlationSummary?.decoupled_vs_coupled?.advantage;
+  const hasCorrelationInsight =
+    !hasFilters && corrAdvantage !== null && corrAdvantage !== undefined && Math.abs(corrAdvantage) >= 10;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -657,6 +667,33 @@ const HeroSection = ({ signals, totalUnfiltered, summary, selectedDate, hasFilte
             </div>
           )}
 
+          {/* v6 NEW: correlation edge insight */}
+          {hasCorrelationInsight && (
+            <div className="flex items-start gap-3">
+              <div
+                className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"
+                style={{ background: corrAdvantage > 0 ? "#10b981" : "#f59e0b" }}
+              />
+              <div className="text-sm text-white/70">
+                <span
+                  className="text-[10px] tracking-[0.2em] font-mono uppercase mr-2"
+                  style={{ color: corrAdvantage > 0 ? "rgba(16,185,129,0.7)" : "rgba(245,158,11,0.7)" }}
+                >
+                  Correlation edge
+                </span>
+                <span className="font-mono uppercase tracking-wider text-white/90">
+                  {corrAdvantage > 0 ? "Decoupled" : "Coupled"}
+                </span>
+                <span className="text-white/50 ml-2 font-mono tabular-nums text-xs">
+                  outperformed by{" "}
+                  <span className={corrAdvantage > 0 ? "text-emerald-400" : "text-amber-400"}>
+                    +{Math.abs(corrAdvantage).toFixed(1)}%
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+
           {!hasEnrichment && !hasFilters && total > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2 flex-shrink-0" />
@@ -811,10 +848,9 @@ const FngGauge = ({ value, label }) => {
   );
 };
 
-// ─── BTC Context Card (3-tier — v5 new) ──────────────────────────
+// ─── BTC Context Card (3-tier) ───────────────────────────────────
 
 const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
-  // Tier 1: per-signal aggregation from important_tags
   const btcTrendDist = useMemo(() => {
     const dist = { BULLISH: 0, RANGING: 0, BEARISH: 0 };
     for (const s of signals || []) {
@@ -827,8 +863,6 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
     return dist;
   }, [signals]);
 
-  // Fall back to backend distribution if per-signal scraping comes up empty
-  // (BTC tags are important:false, so signals[].important_tags won't include them)
   const backendDist = detail?.btc_trend_distribution || {};
   const dist = {
     BULLISH: btcTrendDist.BULLISH || backendDist.BULLISH || 0,
@@ -865,7 +899,6 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
         )}
       </div>
 
-      {/* TIER 1: interactive donut */}
       {showInteractiveDonut && (
         <div className="flex items-center gap-6">
           <SegmentedDonut
@@ -915,7 +948,6 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
         </div>
       )}
 
-      {/* TIER 2: summary mode + F&G */}
       {showSummaryFallback && (
         <div className="space-y-4 py-1">
           <div className="grid grid-cols-2 gap-4">
@@ -959,7 +991,6 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
         </div>
       )}
 
-      {/* TIER 3: daily_regime fallback only */}
       {showRegimeFallback && (
         <div className="space-y-3 py-1">
           <div className="flex items-center gap-3 p-3 rounded-sm bg-amber-500/[0.04] border border-amber-500/15">
@@ -1006,7 +1037,6 @@ const BtcContextCard = ({ signals, summary, detail, filters, addFilter }) => {
         </div>
       )}
 
-      {/* TIER 4: truly empty */}
       {showEmpty && (
         <div className="text-xs font-mono text-white/30 py-8 text-center uppercase tracking-wider">
           No BTC context available
@@ -1063,7 +1093,6 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Outcome Distribution */}
         <Card className="p-5">
           <div className="flex justify-between items-center mb-4">
             <Label>Outcome Distribution</Label>
@@ -1119,7 +1148,6 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
           </div>
         </Card>
 
-        {/* BTC Context — 3-tier fallback */}
         <BtcContextCard
           signals={signals}
           summary={summary}
@@ -1129,7 +1157,6 @@ const OverviewTab = ({ signals, detail, summary, filters, addFilter }) => {
         />
       </div>
 
-      {/* Sector Quick Glance */}
       <Card className="p-5">
         <div className="flex justify-between items-center mb-4">
           <Label>Sector Quick Glance</Label>
@@ -1327,161 +1354,173 @@ const PatternsTab = ({ signals, filters, addFilter }) => {
   );
 };
 
-// ─── Correlation Tab ─────────────────────────────────────────────
+// ─── BetaScatter (beta × peak, colored by outcome) ───────────────
 
-const CorrelationTab = ({ signals }) => {
-  const validSignals = (signals || []).filter(
-    (s) =>
-      s.confidence_score !== null &&
-      s.confidence_score !== undefined &&
-      s.confidence_score > 0 &&
-      s.peak_pct !== null
-  );
-
-  if (!validSignals.length) {
+const BetaScatter = ({ signals }) => {
+  if (!signals.length) {
     return (
-      <Card className="p-10 text-center">
-        <div className="text-white/30 text-sm font-mono uppercase tracking-wider">
-          No correlation data available
-        </div>
-        <div className="text-white/20 text-xs font-mono mt-2 normal-case">
-          Confidence scores missing — signals predate scoring
-        </div>
-      </Card>
+      <div className="text-white/30 text-sm font-mono uppercase tracking-wider text-center py-8">
+        Not enough data to plot
+      </div>
     );
   }
 
-  const peakValues = validSignals.map((s) => s.peak_pct);
-  const minPeak = Math.min(...peakValues, 0);
-  const maxPeak = Math.max(...peakValues, 0);
-  const maxConf = Math.max(...validSignals.map((s) => s.confidence_score || 0), 100);
+  const betas = signals.map((s) => s.correlation.beta_30d);
+  const peaks = signals.map((s) => s.peak_pct);
+  const minBeta = Math.min(...betas, 0);
+  const maxBeta = Math.max(...betas, 1.5);
+  const minPeak = Math.min(...peaks, 0);
+  const maxPeak = Math.max(...peaks, 0);
 
   const width = 700;
-  const height = 400;
+  const height = 380;
   const pad = { top: 20, right: 30, bottom: 50, left: 60 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
-  const xScale = (v) => pad.left + (v / maxConf) * innerW;
-  const yScale = (v) => {
-    const range = maxPeak - minPeak || 1;
-    return pad.top + innerH - ((v - minPeak) / range) * innerH;
-  };
+  const betaRange = maxBeta - minBeta || 1;
+  const peakRange = maxPeak - minPeak || 1;
+
+  const xScale = (v) => pad.left + ((v - minBeta) / betaRange) * innerW;
+  const yScale = (v) => pad.top + innerH - ((v - minPeak) / peakRange) * innerH;
 
   const zeroY = yScale(0);
+  const oneBetaX = xScale(1);
+
+  const xTicks = [];
+  for (let i = 0; i <= 4; i++) xTicks.push(minBeta + (betaRange / 4) * i);
+
+  const yTicks = [];
+  for (let i = 0; i <= 4; i++) yTicks.push(minPeak + (peakRange / 4) * i);
 
   return (
-    <Card className="p-5">
-      <div className="flex justify-between items-center mb-4">
-        <Label>Confidence × Peak Correlation</Label>
-        <div className="text-[10px] font-mono uppercase tracking-wider text-white/30">
-          colored by outcome
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <svg width={width} height={height} className="block mx-auto">
-          {[0, 25, 50, 75, 100].map((c) => (
+    <div className="overflow-x-auto">
+      <svg width={width} height={height} className="block mx-auto">
+        {xTicks.map((v, i) => (
+          <line
+            key={"vx" + i}
+            x1={xScale(v)}
+            y1={pad.top}
+            x2={xScale(v)}
+            y2={pad.top + innerH}
+            stroke="rgba(255,255,255,0.05)"
+            strokeDasharray="2,4"
+          />
+        ))}
+        {yTicks.map((v, i) => (
+          <g key={"hy" + i}>
             <line
-              key={"vx" + c}
-              x1={xScale(c)}
-              y1={pad.top}
-              x2={xScale(c)}
-              y2={pad.top + innerH}
+              x1={pad.left}
+              y1={yScale(v)}
+              x2={pad.left + innerW}
+              y2={yScale(v)}
               stroke="rgba(255,255,255,0.05)"
               strokeDasharray="2,4"
             />
-          ))}
-          {[minPeak, (minPeak + maxPeak) / 2, maxPeak].map((v, i) => (
-            <g key={"hy" + i}>
-              <line
-                x1={pad.left}
-                y1={yScale(v)}
-                x2={pad.left + innerW}
-                y2={yScale(v)}
-                stroke="rgba(255,255,255,0.05)"
-                strokeDasharray="2,4"
-              />
-              <text
-                x={pad.left - 8}
-                y={yScale(v) + 4}
-                textAnchor="end"
-                fill="rgba(255,255,255,0.4)"
-                fontSize={10}
-                fontFamily="JetBrains Mono"
-              >
-                {v.toFixed(1)}%
-              </text>
-            </g>
-          ))}
-
-          {minPeak < 0 && (
-            <line
-              x1={pad.left}
-              y1={zeroY}
-              x2={pad.left + innerW}
-              y2={zeroY}
-              stroke="rgba(255,255,255,0.15)"
-              strokeDasharray="3,3"
-            />
-          )}
-
-          {[0, 25, 50, 75, 100].map((c) => (
             <text
-              key={"xl" + c}
-              x={xScale(c)}
-              y={pad.top + innerH + 18}
-              textAnchor="middle"
+              x={pad.left - 8}
+              y={yScale(v) + 4}
+              textAnchor="end"
               fill="rgba(255,255,255,0.4)"
               fontSize={10}
               fontFamily="JetBrains Mono"
             >
-              {c}
+              {v.toFixed(1)}%
             </text>
-          ))}
+          </g>
+        ))}
 
-          <text
-            x={pad.left + innerW / 2}
-            y={height - 12}
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.5)"
-            fontSize={10}
-            fontFamily="JetBrains Mono"
-            letterSpacing="0.2em"
-          >
-            CONFIDENCE SCORE →
-          </text>
-          <text
-            x={-pad.top - innerH / 2}
-            y={16}
-            transform="rotate(-90)"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.5)"
-            fontSize={10}
-            fontFamily="JetBrains Mono"
-            letterSpacing="0.2em"
-          >
-            ← PEAK %
-          </text>
+        {minPeak < 0 && (
+          <line
+            x1={pad.left}
+            y1={zeroY}
+            x2={pad.left + innerW}
+            y2={zeroY}
+            stroke="rgba(255,255,255,0.15)"
+            strokeDasharray="3,3"
+          />
+        )}
 
-          {validSignals.map((s, i) => (
-            <circle
-              key={s.signal_id + i}
-              cx={xScale(s.confidence_score || 0)}
-              cy={yScale(s.peak_pct)}
-              r={5}
-              fill={OUTCOME_COLORS[s.outcome] || "rgba(255,255,255,0.3)"}
-              fillOpacity={0.6}
-              stroke={OUTCOME_COLORS[s.outcome] || "rgba(255,255,255,0.5)"}
-              strokeWidth={1}
+        {minBeta < 1 && maxBeta > 1 && (
+          <>
+            <line
+              x1={oneBetaX}
+              y1={pad.top}
+              x2={oneBetaX}
+              y2={pad.top + innerH}
+              stroke="rgba(212,168,83,0.25)"
+              strokeDasharray="3,3"
+            />
+            <text
+              x={oneBetaX}
+              y={pad.top - 5}
+              textAnchor="middle"
+              fill="rgba(212,168,83,0.6)"
+              fontSize={9}
+              fontFamily="JetBrains Mono"
             >
-              <title>{`${s.pair} · ${s.outcome?.toUpperCase()} · conf:${
-                s.confidence_score
-              } · peak:${s.peak_pct.toFixed(2)}%`}</title>
-            </circle>
-          ))}
-        </svg>
-      </div>
+              β=1
+            </text>
+          </>
+        )}
+
+        {xTicks.map((v, i) => (
+          <text
+            key={"xl" + i}
+            x={xScale(v)}
+            y={pad.top + innerH + 18}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.4)"
+            fontSize={10}
+            fontFamily="JetBrains Mono"
+          >
+            {v.toFixed(2)}
+          </text>
+        ))}
+
+        <text
+          x={pad.left + innerW / 2}
+          y={height - 12}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.5)"
+          fontSize={10}
+          fontFamily="JetBrains Mono"
+          letterSpacing="0.2em"
+        >
+          BETA (vs BTC) →
+        </text>
+        <text
+          x={-pad.top - innerH / 2}
+          y={16}
+          transform="rotate(-90)"
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.5)"
+          fontSize={10}
+          fontFamily="JetBrains Mono"
+          letterSpacing="0.2em"
+        >
+          ← PEAK %
+        </text>
+
+        {signals.map((s, i) => (
+          <circle
+            key={s.signal_id + i}
+            cx={xScale(s.correlation.beta_30d)}
+            cy={yScale(s.peak_pct)}
+            r={5}
+            fill={OUTCOME_COLORS[s.outcome] || "rgba(255,255,255,0.3)"}
+            fillOpacity={0.7}
+            stroke={OUTCOME_COLORS[s.outcome] || "rgba(255,255,255,0.5)"}
+            strokeWidth={1}
+          >
+            <title>
+              {`${s.pair} · ${s.outcome?.toUpperCase()} · β:${s.correlation.beta_30d.toFixed(
+                2
+              )} · peak:${s.peak_pct.toFixed(2)}%`}
+            </title>
+          </circle>
+        ))}
+      </svg>
 
       <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-center justify-center gap-4 flex-wrap">
         {Object.entries(OUTCOME_COLORS).map(([key, color]) => (
@@ -1497,11 +1536,343 @@ const CorrelationTab = ({ signals }) => {
           </span>
         ))}
       </div>
+    </div>
+  );
+};
 
-      <div className="mt-3 text-xs text-white/40 text-center font-mono">
-        {validSignals.length} signals plotted
+// ─── Helper: AverageStat block ───────────────────────────────────
+
+const AverageStat = ({ label, value, suffix = "", hint, digits = 2 }) => (
+  <div className="rounded-sm bg-white/[0.02] border border-white/[0.05] px-3 py-2.5">
+    <div className="text-[9px] tracking-[0.2em] font-mono uppercase text-white/40 mb-1">
+      {label}
+    </div>
+    <div className="font-mono tabular-nums text-lg text-white/90">
+      {value === null || value === undefined
+        ? "—"
+        : `${value.toFixed(digits)}${suffix}`}
+    </div>
+    <div className="text-[9px] font-mono text-white/30 mt-0.5">{hint}</div>
+  </div>
+);
+
+// ─── Correlation Tab (v6 REBUILT) ────────────────────────────────
+
+const CorrelationTab = ({ signals, correlationSummary }) => {
+  // Empty state — correlation_summary null means pre-backfill date
+  if (!correlationSummary || correlationSummary.coverage === 0) {
+    return (
+      <Card className="p-10 text-center">
+        <div className="text-white/40 text-sm font-mono uppercase tracking-wider">
+          No correlation data available
+        </div>
+        <div className="text-white/30 text-xs font-mono mt-2 normal-case">
+          Signals predate the v2.0 BTC correlation worker (launched 2026-05-14)
+        </div>
+      </Card>
+    );
+  }
+
+  const sum = correlationSummary;
+  const validSignals = (signals || []).filter(
+    (s) => s.correlation && s.correlation.beta_30d !== null && s.peak_pct !== null
+  );
+
+  const totalRisk =
+    sum.risk_distribution.low + sum.risk_distribution.medium + sum.risk_distribution.high;
+
+  const dec = sum.decoupled_vs_coupled.decoupled;
+  const cou = sum.decoupled_vs_coupled.coupled;
+  const adv = sum.decoupled_vs_coupled.advantage;
+  const decoupledWins = adv !== null && adv > 0;
+  const coupledWins = adv !== null && adv < 0;
+
+  return (
+    <div className="space-y-5">
+      {/* ═══ ROW 1: Decoupled vs Coupled (HERO INSIGHT) ═══ */}
+      <Card className="p-5">
+        <div className="flex justify-between items-center mb-5">
+          <Label>Decoupled vs Coupled — Performance Comparison</Label>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+            {sum.coverage} signals enriched
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Decoupled column */}
+          <div
+            className={`rounded-md border p-4 transition ${
+              decoupledWins
+                ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                : "border-white/[0.06] bg-[#0a0805]"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <Label className={decoupledWins ? "text-emerald-400/80" : ""}>
+                Decoupled
+              </Label>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+                {dec.total} signal{dec.total !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-3xl font-mono tabular-nums ${
+                  dec.win_rate === null
+                    ? "text-white/30"
+                    : dec.win_rate >= 70
+                    ? "text-emerald-400"
+                    : dec.win_rate >= 50
+                    ? "text-white/90"
+                    : "text-red-400"
+                }`}
+              >
+                {dec.win_rate === null ? "—" : `${dec.win_rate.toFixed(1)}%`}
+              </span>
+              <span className="text-xs text-white/40 font-mono">win rate</span>
+            </div>
+            <div className="mt-2 text-[11px] font-mono tabular-nums text-white/50">
+              {dec.wins}W / {dec.total - dec.wins}L
+            </div>
+            <div className="mt-3 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-emerald-400/70 transition-all duration-700"
+                style={{ width: `${dec.win_rate || 0}%` }}
+              />
+            </div>
+            <div className="mt-3 text-[10px] text-white/40 leading-relaxed">
+              Coins trading independently of BTC — low correlation, beta near zero
+            </div>
+          </div>
+
+          {/* Coupled column */}
+          <div
+            className={`rounded-md border p-4 transition ${
+              coupledWins
+                ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                : "border-white/[0.06] bg-[#0a0805]"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <Label className={coupledWins ? "text-emerald-400/80" : ""}>Coupled</Label>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
+                {cou.total} signal{cou.total !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-3xl font-mono tabular-nums ${
+                  cou.win_rate === null
+                    ? "text-white/30"
+                    : cou.win_rate >= 70
+                    ? "text-emerald-400"
+                    : cou.win_rate >= 50
+                    ? "text-white/90"
+                    : "text-red-400"
+                }`}
+              >
+                {cou.win_rate === null ? "—" : `${cou.win_rate.toFixed(1)}%`}
+              </span>
+              <span className="text-xs text-white/40 font-mono">win rate</span>
+            </div>
+            <div className="mt-2 text-[11px] font-mono tabular-nums text-white/50">
+              {cou.wins}W / {cou.total - cou.wins}L
+            </div>
+            <div className="mt-3 h-1.5 bg-white/[0.04] rounded-sm overflow-hidden">
+              <div
+                className="h-full bg-emerald-400/70 transition-all duration-700"
+                style={{ width: `${cou.win_rate || 0}%` }}
+              />
+            </div>
+            <div className="mt-3 text-[10px] text-white/40 leading-relaxed">
+              Coins moving with BTC — standard correlation, beta close to 1
+            </div>
+          </div>
+        </div>
+
+        {/* Advantage banner */}
+        {adv !== null && (
+          <div
+            className={`mt-4 px-4 py-3 rounded-md flex items-center justify-between border ${
+              Math.abs(adv) >= 10
+                ? decoupledWins
+                  ? "bg-emerald-500/[0.06] border-emerald-500/20"
+                  : "bg-amber-500/[0.06] border-amber-500/20"
+                : "bg-white/[0.02] border-white/[0.06]"
+            }`}
+          >
+            <div className="text-xs text-white/70">
+              {Math.abs(adv) < 1 ? (
+                <>
+                  <span className="font-mono uppercase tracking-wider text-[10px] text-white/40 mr-2">
+                    Insight
+                  </span>
+                  No meaningful difference between decoupled and coupled today
+                </>
+              ) : (
+                <>
+                  <span className="font-mono uppercase tracking-wider text-[10px] text-white/40 mr-2">
+                    Today's edge
+                  </span>
+                  {decoupledWins ? "Decoupled" : "Coupled"} coins outperformed by{" "}
+                  <span
+                    className={`font-mono tabular-nums ${
+                      decoupledWins ? "text-emerald-400" : "text-amber-400"
+                    }`}
+                  >
+                    {Math.abs(adv).toFixed(2)}%
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* ═══ ROW 2: Risk Distribution + Lead/Lag ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Risk Distribution */}
+        <Card className="p-5">
+          <Label>Risk Distribution</Label>
+          <div className="mt-4 space-y-3">
+            {[
+              { key: "low", label: "LOW", count: sum.risk_distribution.low },
+              { key: "medium", label: "MEDIUM", count: sum.risk_distribution.medium },
+              { key: "high", label: "HIGH", count: sum.risk_distribution.high },
+            ].map((r) => {
+              const pct = totalRisk > 0 ? (r.count / totalRisk) * 100 : 0;
+              const color = RISK_COLORS[r.key];
+              return (
+                <div key={r.key}>
+                  <div className="flex justify-between items-baseline mb-1.5">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-sm"
+                        style={{ background: color }}
+                      />
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-white/65">
+                        {r.label}
+                      </span>
+                    </span>
+                    <span className="font-mono tabular-nums text-xs text-white/75">
+                      {r.count}{" "}
+                      <span className="text-white/30">({pct.toFixed(0)}%)</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-white/[0.04] rounded-sm overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: color, opacity: 0.75 }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">
+            Risk level inferred from BTC correlation strength, beta volatility, and downside
+            exposure
+          </div>
+        </Card>
+
+        {/* Lead/Lag Distribution */}
+        <Card className="p-5">
+          <div className="flex justify-between items-baseline mb-4">
+            <Label>BTC Lead/Lag</Label>
+            {sum.lead_lag.avg_hours !== null && (
+              <span className="text-[10px] font-mono tabular-nums text-white/40">
+                avg{" "}
+                {sum.lead_lag.avg_hours > 0 ? "+" : ""}
+                {sum.lead_lag.avg_hours.toFixed(1)}h
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/70 mb-1">
+                ↑ Leads
+              </div>
+              <div className="font-mono tabular-nums text-2xl text-white/90">
+                {sum.lead_lag.leads}
+              </div>
+              <div className="text-[9px] font-mono text-white/30 mt-1">moves first</div>
+            </div>
+            <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-white/50 mb-1">
+                ◌ Sync
+              </div>
+              <div className="font-mono tabular-nums text-2xl text-white/90">
+                {sum.lead_lag.sync}
+              </div>
+              <div className="text-[9px] font-mono text-white/30 mt-1">moves with</div>
+            </div>
+            <div className="text-center px-2 py-3 rounded-sm bg-white/[0.02] border border-white/[0.05]">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-red-400/70 mb-1">
+                ↓ Lags
+              </div>
+              <div className="font-mono tabular-nums text-2xl text-white/90">
+                {sum.lead_lag.lags}
+              </div>
+              <div className="text-[9px] font-mono text-white/30 mt-1">moves after</div>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">
+            Coins that lag BTC tend to follow — entry timing tip: wait for BTC confirmation
+          </div>
+        </Card>
       </div>
-    </Card>
+
+      {/* ═══ ROW 3: Beta × Peak scatter ═══ */}
+      <Card className="p-5">
+        <div className="flex justify-between items-center mb-4">
+          <Label>Beta × Peak — Risk vs Reward</Label>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
+            {validSignals.length} signals plotted · colored by outcome
+          </span>
+        </div>
+        <BetaScatter signals={validSignals} />
+        <div className="mt-3 text-[10px] text-white/35 text-center font-mono">
+          Right side = higher beta (moves more than BTC). Up = larger peak gain.
+        </div>
+      </Card>
+
+      {/* ═══ ROW 4: Aggregate averages strip ═══ */}
+      <Card className="p-4">
+        <Label className="mb-3">Aggregate Averages</Label>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <AverageStat
+            label="Beta vs BTC"
+            value={sum.averages.beta_30d}
+            hint="1.0 = matches BTC"
+          />
+          <AverageStat
+            label="R²"
+            value={sum.averages.r_squared_30d !== null ? sum.averages.r_squared_30d * 100 : null}
+            suffix="%"
+            hint="% explained by BTC"
+            digits={1}
+          />
+          <AverageStat
+            label="Vol Ratio"
+            value={sum.averages.volatility_ratio}
+            suffix="×"
+            hint="vs BTC volatility"
+          />
+          <AverageStat
+            label="Correlation"
+            value={sum.averages.corr_4h_30d}
+            hint="4h × 30d window"
+          />
+          <AverageStat
+            label="Coin Vol"
+            value={sum.averages.coin_volatility_pct}
+            suffix="%"
+            hint="annualized"
+            digits={0}
+          />
+        </div>
+      </Card>
+    </div>
   );
 };
 
@@ -1953,6 +2324,7 @@ const DailyPerformancePage = () => {
   const enrichmentCoverage = detail?.context?.enrichment_coverage || 0;
   const enrichmentTotal = detail?.context?.enrichment_total || 0;
   const dailyRegime = summary?.daily_regime;
+  const correlationSummary = detail?.context?.correlation_summary;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
@@ -1998,7 +2370,6 @@ const DailyPerformancePage = () => {
         totalFiltered={filteredSignals.length}
       />
 
-      {/* Coverage banner */}
       {data && (
         <CoverageBanner
           coverage={enrichmentCoverage}
@@ -2037,6 +2408,7 @@ const DailyPerformancePage = () => {
             signals={filteredSignals}
             totalUnfiltered={allSignals.length}
             summary={summary}
+            correlationSummary={correlationSummary}
             selectedDate={selectedDate}
             hasFilters={hasFilters}
           />
@@ -2064,7 +2436,12 @@ const DailyPerformancePage = () => {
                 addFilter={addFilter}
               />
             )}
-            {activeTab === "correlation" && <CorrelationTab signals={filteredSignals} />}
+            {activeTab === "correlation" && (
+              <CorrelationTab
+                signals={filteredSignals}
+                correlationSummary={correlationSummary}
+              />
+            )}
             {activeTab === "sectors" && (
               <SectorsTab
                 signals={filteredSignals}
