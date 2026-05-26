@@ -43,7 +43,6 @@ from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
 from app.api.routes.onchain_endpoint import router as onchain_router
 from app.api.routes.fx import router as fx_router
-app.include_router(workspace.router)
 
 
 
@@ -156,6 +155,7 @@ app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
 app.include_router(coins.router, prefix="/api/v1/coins", tags=["coins"])
 app.include_router(fx_router, prefix="/api/v1/fx", tags=["fx"])
 app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
+app.include_router(workspace.router, tags=["workspace"])
 
 
 # ═══════════════════════════════════════════
