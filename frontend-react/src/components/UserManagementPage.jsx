@@ -26,6 +26,7 @@ import {
   PlusIcon,
   MinusIcon,
   BanIcon,
+  CloseIcon,
   ProviderIcon,
 } from './admin/Icons';
 
@@ -184,168 +185,378 @@ const ReachCard = ({ Icon, label, value, color, onClick, active }) => (
 // ════════════════════════════════════════
 
 const GrantModal = ({ user, onClose, onGrant }) => {
+  const [mode, setMode] = useState('quick'); // 'quick' | 'custom'
   const [duration, setDuration] = useState('1_month');
-  const [note, setNote] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleGrant = async () => {
+    setError(null);
+
+    if (mode === 'custom') {
+      if (!startDate) {
+        setError('Tanggal mulai wajib diisi untuk mode Custom');
+        return;
+      }
+      if (!endDate) {
+        setError('Tanggal berakhir wajib diisi untuk mode Custom');
+        return;
+      }
+      if (new Date(endDate) <= new Date(startDate)) {
+        setError('Tanggal berakhir harus setelah tanggal mulai');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      await onGrant(user.id, duration, note || null, startDate || null);
+      if (mode === 'custom') {
+        await onGrant(user.id, 'custom', note || null, startDate, endDate);
+      } else {
+        await onGrant(user.id, duration, note || null, startDate || null, null);
+      }
       onClose();
     } catch (err) {
-      console.error(err);
+      setError(err.response?.data?.detail || 'Gagal grant');
     } finally {
       setLoading(false);
     }
   };
 
   const durationOptions = [
-    { value: '1_month', label: '1 Bulan', desc: '30 hari' },
-    { value: '1_year', label: '1 Tahun', desc: '365 hari' },
-    { value: 'lifetime', label: 'Lifetime', desc: 'Tidak ada batas waktu' },
+    { value: '1_month', label: '1 Bulan', desc: '30 hari', Icon: ClockIcon },
+    { value: '1_year', label: '1 Tahun', desc: '365 hari', Icon: StarIcon },
+    { value: 'lifetime', label: 'Lifetime', desc: 'No expiry', Icon: SparklesIcon },
   ];
 
-  const getPreviewExpiry = () => {
-    if (duration === 'lifetime') return 'Tidak ada batas waktu';
-    const start = startDate ? new Date(startDate) : new Date();
-    const days = duration === '1_month' ? 30 : 365;
-    const expiry = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
-    return `Expires: ${expiry.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  // Live preview
+  const getPreview = () => {
+    if (mode === 'quick') {
+      if (duration === 'lifetime') return { start: null, end: 'Tidak ada batas waktu', days: '∞' };
+      const start = startDate ? new Date(startDate) : new Date();
+      const days = duration === '1_month' ? 30 : 365;
+      const expiry = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+      return {
+        start: start.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+        end: expiry.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+        days,
+      };
+    } else {
+      if (!startDate || !endDate) return null;
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      if (days <= 0) return null;
+      return {
+        start: start.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+        end: end.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+        days,
+      };
+    }
   };
+
+  const preview = getPreview();
+
+  // Get today's date for min on end_date picker
+  const todayISO = new Date().toISOString().split('T')[0];
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.85)' }}
+      className="fixed inset-0 z-[200000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-md rounded-2xl p-6"
-        style={{ background: '#12090d', border: '1px solid rgba(212,168,83,0.25)' }}
+        className="w-full max-w-md rounded-2xl overflow-hidden"
+        style={{
+          background: '#12090d',
+          border: '1px solid rgba(212,168,83,0.25)',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,168,83,0.1)',
+        }}
       >
-        <h3 className="text-base font-bold text-white mb-1 tracking-tight">Grant Subscription</h3>
-        <p className="text-xs mb-5" style={{ color: '#8a7a6e' }}>
-          User: <span className="text-white font-medium">{user.username}</span>
-          {user.role === 'subscriber' && user.subscription_expires_at && !startDate && (
-            <span className="ml-2 text-orange-400 text-[10px]">(extends existing)</span>
-          )}
-        </p>
-
-        <div className="mb-4">
-          <label
-            className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-            style={{ color: '#8a7a6e' }}
-          >
-            Tanggal Mulai
-            <span className="text-zinc-600 ml-1 normal-case tracking-normal">(opsional)</span>
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-            style={{
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(212,168,83,0.15)',
-              colorScheme: 'dark',
-            }}
-          />
-          {!startDate && (
-            <p className="text-[10px] mt-1" style={{ color: '#4a3f39' }}>
-              Kosongkan = mulai dari hari ini
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2 mb-3">
-          {durationOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setDuration(opt.value)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                duration === opt.value
-                  ? 'bg-amber-500/10'
-                  : 'bg-white/[0.02] hover:bg-white/[0.04]'
-              }`}
-              style={{
-                borderColor: duration === opt.value ? 'rgba(212,168,83,0.5)' : 'rgba(255,255,255,0.05)',
-              }}
-            >
-              <div className="text-left">
-                <span
-                  className={`text-sm font-semibold ${duration === opt.value ? 'text-amber-400' : 'text-white'}`}
-                >
-                  {opt.label}
-                </span>
-                <p className="text-[10px]" style={{ color: '#6b5c52' }}>
-                  {opt.desc}
-                </p>
-              </div>
-              <div
-                className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors"
-                style={{
-                  borderColor: duration === opt.value ? '#d4a853' : 'rgba(255,255,255,0.2)',
-                  background: duration === opt.value ? '#d4a853' : 'transparent',
-                }}
-              >
-                {duration === opt.value && (
-                  <svg
-                    className="w-3 h-3"
-                    style={{ color: '#000' }}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={3}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-
+        {/* Header */}
         <div
-          className="mb-4 px-3 py-2 rounded-lg"
-          style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.1)' }}
+          className="flex items-start justify-between px-5 py-4"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
         >
-          <p className="text-[10px] font-medium" style={{ color: '#d4a853' }}>
-            {startDate &&
-              `Mulai: ${new Date(startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} → `}
-            {getPreviewExpiry()}
-          </p>
-        </div>
-
-        <div className="mb-5">
-          <label
-            className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-            style={{ color: '#8a7a6e' }}
-          >
-            Catatan (opsional)
-          </label>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Contoh: Payment via BCA, promo code XYZ"
-            className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.15)' }}
-          />
-        </div>
-
-        <div className="flex gap-3">
+          <div>
+            <h3 className="text-base font-bold text-white tracking-tight">Grant Subscription</h3>
+            <p className="text-[11px] mt-0.5" style={{ color: '#8a7a6e' }}>
+              User: <span className="text-white font-medium">{user.username}</span>
+              {user.role === 'subscriber' && user.subscription_expires_at && (
+                <span className="ml-1.5 text-[10px]" style={{ color: '#fb923c' }}>
+                  · extends existing
+                </span>
+              )}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider"
+            className="w-7 h-7 rounded-md hover:bg-white/5 flex items-center justify-center transition-colors"
+            style={{ color: '#8a7a6e' }}
+          >
+            <CloseIcon size={14} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto">
+          {/* Mode toggle */}
+          <div
+            className="flex rounded-lg p-0.5"
+            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            {[
+              { id: 'quick', label: 'Quick Preset' },
+              { id: 'custom', label: 'Custom Range' },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setMode(m.id);
+                  setError(null);
+                }}
+                className="flex-1 py-1.5 rounded text-[11px] font-semibold uppercase tracking-wider transition-all"
+                style={{
+                  background: mode === m.id ? 'rgba(212,168,83,0.18)' : 'transparent',
+                  color: mode === m.id ? '#d4a853' : '#6b5c52',
+                  border: mode === m.id ? '1px solid rgba(212,168,83,0.3)' : '1px solid transparent',
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── QUICK MODE ── */}
+          {mode === 'quick' && (
+            <>
+              {/* Start date */}
+              <div>
+                <label
+                  className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Tanggal Mulai
+                  <span className="text-zinc-600 ml-1 normal-case tracking-normal lowercase">
+                    (opsional)
+                  </span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none font-mono"
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    colorScheme: 'dark',
+                  }}
+                />
+                {!startDate && (
+                  <p className="text-[10px] mt-1" style={{ color: '#4a3f39' }}>
+                    Kosongkan = mulai dari hari ini
+                  </p>
+                )}
+              </div>
+
+              {/* Duration options */}
+              <div>
+                <label
+                  className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Durasi
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {durationOptions.map((opt) => {
+                    const Icon = opt.Icon;
+                    const isSelected = duration === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setDuration(opt.value)}
+                        className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border transition-all"
+                        style={{
+                          background: isSelected
+                            ? 'rgba(212,168,83,0.1)'
+                            : 'rgba(255,255,255,0.02)',
+                          borderColor: isSelected
+                            ? 'rgba(212,168,83,0.45)'
+                            : 'rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <Icon
+                          size={14}
+                          style={{ color: isSelected ? '#d4a853' : '#6b5c52' }}
+                        />
+                        <span
+                          className="text-[11px] font-semibold tracking-tight"
+                          style={{ color: isSelected ? '#d4a853' : '#fff' }}
+                        >
+                          {opt.label}
+                        </span>
+                        <span className="text-[9px]" style={{ color: '#6b5c52' }}>
+                          {opt.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── CUSTOM MODE ── */}
+          {mode === 'custom' && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label
+                  className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Tanggal Mulai *
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none font-mono"
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(212,168,83,0.2)',
+                    colorScheme: 'dark',
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
+                >
+                  Tanggal Berakhir *
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || todayISO}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none font-mono"
+                  style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(212,168,83,0.2)',
+                    colorScheme: 'dark',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Preview card */}
+          {preview && (
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{
+                background: 'rgba(212,168,83,0.04)',
+                border: '1px solid rgba(212,168,83,0.18)',
+              }}
+            >
+              <div
+                className="px-3 py-1.5 flex items-center justify-between"
+                style={{ background: 'rgba(212,168,83,0.06)' }}
+              >
+                <span
+                  className="text-[10px] uppercase tracking-wider font-semibold"
+                  style={{ color: '#d4a853' }}
+                >
+                  Preview
+                </span>
+                <span
+                  className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded"
+                  style={{
+                    background: 'rgba(212,168,83,0.15)',
+                    color: '#d4a853',
+                  }}
+                >
+                  {preview.days} hari
+                </span>
+              </div>
+              <div className="px-3 py-2 flex items-center justify-between text-[11px]">
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                    Mulai
+                  </p>
+                  <p className="text-white tabular-nums">{preview.start || 'Hari ini'}</p>
+                </div>
+                <span style={{ color: '#6b5c52' }}>→</span>
+                <div className="text-right">
+                  <p className="text-[9px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                    Berakhir
+                  </p>
+                  <p className="text-white tabular-nums">{preview.end}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Note */}
+          <div>
+            <label
+              className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+            >
+              Catatan{' '}
+              <span className="normal-case tracking-normal lowercase" style={{ color: '#6b5c52' }}>
+                (opsional)
+              </span>
+            </label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Contoh: Payment via BCA, promo code XYZ"
+              className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div
+              className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
+              style={{
+                background: 'rgba(248,113,113,0.08)',
+                color: '#f87171',
+                border: '1px solid rgba(248,113,113,0.25)',
+              }}
+            >
+              <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div
+          className="flex gap-2 px-5 py-3"
+          style={{
+            background: 'rgba(0,0,0,0.3)',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
             style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             Batal
           </button>
           <button
             onClick={handleGrant}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+            disabled={loading || (mode === 'custom' && (!startDate || !endDate))}
+            className="flex-1 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
           >
             {loading ? 'Processing...' : 'Grant Access'}
@@ -377,7 +588,7 @@ const ConfirmModal = ({ title, message, onConfirm, onClose, confirmText = 'Confi
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200000] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.85)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -573,9 +784,9 @@ const UserManagementPage = () => {
   };
 
   // ── Single actions ──
-  const handleGrant = async (userId, duration, note, startDate) => {
+  const handleGrant = async (userId, duration, note, startDate, endDate) => {
     try {
-      const result = await adminApi.grantSubscription(userId, duration, note, startDate);
+      const result = await adminApi.grantSubscription(userId, duration, note, startDate, endDate);
       showToast(result.message);
       fetchUsers();
       fetchStats();

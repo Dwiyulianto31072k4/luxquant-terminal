@@ -347,6 +347,16 @@ async def grant_subscription(
         expires_at = start + timedelta(days=30)
     elif data.duration == '1_year':
         expires_at = start + timedelta(days=365)
+    elif data.duration == 'custom':
+        # end_date validated by Pydantic; must exist
+        expires_at = datetime.strptime(data.end_date, '%Y-%m-%d').replace(
+            hour=23, minute=59, second=59, tzinfo=timezone.utc
+        )
+        if expires_at <= start:
+            raise HTTPException(
+                status_code=400,
+                detail="end_date harus setelah start_date"
+            )
     else:
         raise HTTPException(status_code=400, detail="Duration tidak valid")
 
@@ -359,11 +369,14 @@ async def grant_subscription(
     db.commit()
     db.refresh(user)
 
-    duration_label = {
-        '1_month': '1 Bulan',
-        '1_year': '1 Tahun',
-        'lifetime': 'Lifetime'
-    }[data.duration]
+    if data.duration == 'custom':
+        duration_label = f"sampai {expires_at.strftime('%d %b %Y')}"
+    else:
+        duration_label = {
+            '1_month': '1 Bulan',
+            '1_year': '1 Tahun',
+            'lifetime': 'Lifetime'
+        }[data.duration]
 
     return {
         "success": True,

@@ -1,5 +1,5 @@
 # backend/app/schemas/user.py
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -63,14 +63,15 @@ class TokenRefresh(BaseModel):
 
 class GrantSubscription(BaseModel):
     """Admin grant subscription ke user"""
-    duration: str  # '1_month', '1_year', 'lifetime'
+    duration: str  # '1_month', '1_year', 'lifetime', 'custom'
     note: Optional[str] = None
     start_date: Optional[str] = None
+    end_date: Optional[str] = None  # Required when duration='custom'
 
     @field_validator('duration')
     @classmethod
     def duration_valid(cls, v):
-        valid = ['1_month', '1_year', 'lifetime']
+        valid = ['1_month', '1_year', 'lifetime', 'custom']
         if v not in valid:
             raise ValueError(f'Duration harus salah satu dari: {", ".join(valid)}')
         return v
@@ -85,6 +86,23 @@ class GrantSubscription(BaseModel):
         except ValueError:
             raise ValueError('Format tanggal harus YYYY-MM-DD (contoh: 2025-01-15)')
         return v
+
+    @field_validator('end_date')
+    @classmethod
+    def end_date_valid(cls, v):
+        if v is None:
+            return v
+        try:
+            datetime.strptime(v, '%Y-%m-%d')
+        except ValueError:
+            raise ValueError('Format tanggal harus YYYY-MM-DD (contoh: 2025-12-31)')
+        return v
+
+    @model_validator(mode='after')
+    def check_custom_duration(self):
+        if self.duration == 'custom' and not self.end_date:
+            raise ValueError('end_date wajib diisi saat duration=custom')
+        return self
 
 
 class UpdateUserRole(BaseModel):

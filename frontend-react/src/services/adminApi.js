@@ -41,10 +41,11 @@ export const adminApi = {
   },
 
   // Grant subscription
-  grantSubscription: async (userId, duration, note = null, startDate = null) => {
+  grantSubscription: async (userId, duration, note = null, startDate = null, endDate = null) => {
     const body = { duration };
     if (note) body.note = note;
     if (startDate) body.start_date = startDate;
+    if (endDate) body.end_date = endDate;
     const response = await api.post(`/api/v1/admin/users/${userId}/grant-subscription`, body);
     return response.data;
   },

@@ -11,11 +11,12 @@ import {
   StarIcon,
   TelegramIcon,
   DiscordIcon,
-  EmailIcon,
   SparklesIcon,
   AlertTriangleIcon,
   SendIcon,
   BroadcastIcon,
+  ProviderIcon,
+  ClockIcon,
 } from './Icons';
 
 // ════════════════════════════════════════
@@ -71,23 +72,54 @@ const StatusBadge = ({ status }) => {
 };
 
 // ════════════════════════════════════════
-// Profile tab (with inline edit form)
+// Section wrapper — consistent grouping
 // ════════════════════════════════════════
 
-const InfoRow = ({ label, value }) => (
+const Section = ({ title, Icon, action, children }) => (
+  <section className="space-y-2.5">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5">
+        {Icon && <Icon size={12} style={{ color: '#d4a853' }} />}
+        <h4 className="text-[10px] font-bold tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {title}
+        </h4>
+      </div>
+      {action}
+    </div>
+    {children}
+  </section>
+);
+
+// ════════════════════════════════════════
+// Mini Stat tile — used in hero grid
+// ════════════════════════════════════════
+
+const StatTile = ({ label, value, accent }) => (
   <div
-    className="flex justify-between items-center px-2.5 py-1.5 rounded-md"
-    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}
+    className="relative overflow-hidden rounded-lg px-3 py-2"
+    style={{
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.04)',
+    }}
   >
-    <span
-      className="text-[10px] uppercase tracking-wider"
-      style={{ color: 'rgba(255,255,255,0.4)' }}
+    <p
+      className="text-[9px] uppercase tracking-wider font-semibold mb-0.5"
+      style={{ color: 'rgba(255,255,255,0.35)' }}
     >
       {label}
-    </span>
-    <span className="text-xs text-white font-medium truncate ml-2 tabular-nums">{value}</span>
+    </p>
+    <p
+      className="text-[13px] font-medium tabular-nums tracking-tight truncate"
+      style={{ color: accent || '#fff' }}
+    >
+      {value ?? '—'}
+    </p>
   </div>
 );
+
+// ════════════════════════════════════════
+// Profile Tab
+// ════════════════════════════════════════
 
 const ProfileTab = ({ data, onContactUpdate }) => {
   const { user, reach, enriched_by_user } = data;
@@ -138,22 +170,32 @@ const ProfileTab = ({ data, onContactUpdate }) => {
     adminNotes !== (user.admin_notes || '');
 
   return (
-    <div className="space-y-5">
-      {/* Profile header */}
+    <div className="space-y-6">
+      {/* ── HERO: Avatar + Name + Badges ── */}
       <div className="flex items-start gap-4">
         <div
-          className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden"
-          style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}
+          className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden"
+          style={{
+            background: user.avatar_url ? 'transparent' : 'rgba(212,168,83,0.12)',
+            color: '#d4a853',
+            border: '1px solid rgba(212,168,83,0.2)',
+          }}
         >
           {user.avatar_url ? (
-            <img src={user.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
+            <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
           ) : (
             user.username?.charAt(0).toUpperCase()
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-white tracking-tight">{user.username}</h3>
-          <p className="text-xs font-mono" style={{ color: '#8a7a6e' }}>
+
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold text-white tracking-tight truncate">
+              {user.username}
+            </h3>
+            <ProviderIcon provider={user.auth_provider} size={14} />
+          </div>
+          <p className="text-[11px] font-mono truncate" style={{ color: '#8a7a6e' }}>
             {user.email}
           </p>
           <div className="flex gap-1.5 mt-2 flex-wrap">
@@ -221,58 +263,75 @@ const ProfileTab = ({ data, onContactUpdate }) => {
         </div>
       </div>
 
-      {/* Info grid */}
-      <div className="grid grid-cols-2 gap-1.5">
-        <InfoRow label="User ID" value={`#${user.id}`} />
-        <InfoRow label="Created" value={formatDate(user.created_at)} />
-        <InfoRow label="First Login" value={formatDate(user.first_login_at)} />
-        <InfoRow label="Last Login" value={relativeTime(user.last_login_at)} />
-        <InfoRow label="Login Count" value={user.login_count || 0} />
-        <InfoRow label="Country" value={user.country_code || '—'} />
-        {user.role === 'subscriber' && (
-          <>
-            <InfoRow
-              label="Sub Expires"
+      {/* ── ACCOUNT INFO grid ── */}
+      <Section title="Account Info" Icon={UserIcon}>
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile label="User ID" value={`#${user.id}`} />
+          <StatTile label="Created" value={formatDate(user.created_at)} />
+          <StatTile label="First Login" value={formatDate(user.first_login_at)} />
+          <StatTile label="Last Login" value={relativeTime(user.last_login_at)} />
+          <StatTile label="Login Count" value={user.login_count || 0} />
+          <StatTile label="Country" value={user.country_code || '—'} />
+        </div>
+      </Section>
+
+      {/* ── SUBSCRIPTION info (subscriber only) ── */}
+      {user.role === 'subscriber' && (
+        <Section title="Subscription" Icon={StarIcon}>
+          <div className="grid grid-cols-2 gap-2">
+            <StatTile
+              label="Expires"
               value={
                 user.subscription_expires_at
                   ? formatDate(user.subscription_expires_at)
                   : 'Lifetime'
               }
+              accent={user.subscription_expires_at ? '#34d399' : '#fbbf24'}
             />
-            <InfoRow label="Granted" value={formatDate(user.subscription_granted_at)} />
-          </>
-        )}
-        {user.referral_credit_usdt > 0 && (
-          <>
-            <InfoRow label="Credit Balance" value={`$${user.referral_credit_usdt}`} />
-            <InfoRow label="Lifetime Earned" value={`$${user.lifetime_credit_earned}`} />
-          </>
-        )}
-      </div>
+            <StatTile label="Granted" value={formatDate(user.subscription_granted_at)} />
+          </div>
+        </Section>
+      )}
 
-      {/* Contact channels */}
-      <div>
-        <div className="flex items-center justify-between mb-2.5">
-          <h4 className="text-xs font-bold text-white flex items-center gap-1.5 tracking-tight">
-            <BroadcastIcon size={13} style={{ color: '#d4a853' }} />
-            Contact Channels
-          </h4>
-          {!editing && (
+      {/* ── REFERRAL CREDIT info ── */}
+      {user.referral_credit_usdt > 0 && (
+        <Section title="Referral Credit" Icon={SparklesIcon}>
+          <div className="grid grid-cols-2 gap-2">
+            <StatTile
+              label="Balance"
+              value={`$${user.referral_credit_usdt}`}
+              accent="#34d399"
+            />
+            <StatTile
+              label="Lifetime Earned"
+              value={`$${user.lifetime_credit_earned}`}
+              accent="#fbbf24"
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* ── CONTACT CHANNELS section ── */}
+      <Section
+        title="Contact Channels"
+        Icon={BroadcastIcon}
+        action={
+          !editing && (
             <button
               onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider"
+              className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider transition-colors hover:bg-amber-500/10"
               style={{
                 color: '#d4a853',
-                background: 'rgba(212,168,83,0.08)',
+                background: 'rgba(212,168,83,0.06)',
                 border: '1px solid rgba(212,168,83,0.22)',
               }}
             >
               <EditIcon size={11} />
               Edit
             </button>
-          )}
-        </div>
-
+          )
+        }
+      >
         {!editing ? (
           <div className="space-y-2">
             {reach.telegram.available && (
@@ -303,20 +362,20 @@ const ProfileTab = ({ data, onContactUpdate }) => {
               <div
                 className="text-xs p-3 rounded-lg flex items-start gap-2"
                 style={{
-                  background: 'rgba(248,113,113,0.06)',
+                  background: 'rgba(248,113,113,0.05)',
                   color: '#f87171',
-                  border: '1px solid rgba(248,113,113,0.2)',
+                  border: '1px solid rgba(248,113,113,0.18)',
                 }}
               >
-                <AlertTriangleIcon size={14} className="shrink-0 mt-0.5" />
+                <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
                 <span>
-                  Tidak ada channel kontak yang bisa dipakai. Klik <strong>Edit</strong> untuk tambah TG/Discord manual.
+                  Tidak ada channel kontak. Klik <strong>Edit</strong> untuk tambah TG/Discord manual.
                 </span>
               </div>
             )}
           </div>
         ) : (
-          // ── Edit form ──
+          // ── EDIT FORM ──
           <div
             className="space-y-3 rounded-lg p-3"
             style={{
@@ -326,17 +385,17 @@ const ProfileTab = ({ data, onContactUpdate }) => {
           >
             <div>
               <label
-                className="block text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
+                className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
                 style={{ color: '#d4a853' }}
               >
                 <TelegramIcon size={11} colored />
-                Telegram Username (admin override)
+                Telegram Username
               </label>
               <input
                 type="text"
                 value={adminTg}
                 onChange={(e) => setAdminTg(e.target.value)}
-                placeholder="username (without @)"
+                placeholder="username (tanpa @)"
                 className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none font-mono"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
@@ -352,17 +411,17 @@ const ProfileTab = ({ data, onContactUpdate }) => {
 
             <div>
               <label
-                className="block text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
+                className="text-[10px] uppercase tracking-wider font-semibold mb-1 flex items-center gap-1.5"
                 style={{ color: '#d4a853' }}
               >
                 <DiscordIcon size={11} colored />
-                Discord Handle (admin override)
+                Discord Handle
               </label>
               <input
                 type="text"
                 value={adminDc}
                 onChange={(e) => setAdminDc(e.target.value)}
-                placeholder="username or numeric ID"
+                placeholder="username atau numeric ID"
                 className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none font-mono"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
@@ -410,7 +469,7 @@ const ProfileTab = ({ data, onContactUpdate }) => {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={handleCancel}
                 disabled={saving}
@@ -422,8 +481,11 @@ const ProfileTab = ({ data, onContactUpdate }) => {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasUnsavedChanges}
-                className="flex-1 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+                className="flex-1 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: 'linear-gradient(135deg, #d4a853, #8b6914)',
+                  color: '#0a0506',
+                }}
               >
                 {saving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
               </button>
@@ -431,43 +493,44 @@ const ProfileTab = ({ data, onContactUpdate }) => {
           </div>
         )}
 
-        {/* Audit info */}
+        {/* Audit trail */}
         {user.admin_enriched_at && enriched_by_user && (
           <div
-            className="mt-2 text-[10px] flex items-center gap-1.5"
+            className="mt-1.5 text-[10px] flex items-center gap-1.5"
             style={{ color: '#6b5c52' }}
           >
             <SparklesIcon size={10} style={{ color: '#d4a853' }} />
             <span>
-              Enriched by <strong style={{ color: '#d4a853' }}>@{enriched_by_user.username}</strong>{' '}
-              on {formatDateTime(user.admin_enriched_at)}
+              Enriched by{' '}
+              <strong style={{ color: '#d4a853' }}>@{enriched_by_user.username}</strong> on{' '}
+              {formatDateTime(user.admin_enriched_at)}
             </span>
           </div>
         )}
-      </div>
+      </Section>
 
-      {/* Notes view */}
+      {/* ── ADMIN NOTES (view-only) ── */}
       {!editing && user.admin_notes && (
-        <div>
-          <h4 className="text-xs font-bold text-white mb-2 tracking-tight">Admin Notes</h4>
+        <Section title="Admin Notes" Icon={EditIcon}>
           <div
             className="text-xs p-3 rounded-lg whitespace-pre-wrap"
             style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.05)',
               color: '#c9b59e',
+              lineHeight: '1.5',
             }}
           >
             {user.admin_notes}
           </div>
-        </div>
+        </Section>
       )}
     </div>
   );
 };
 
 // ════════════════════════════════════════
-// Payments tab
+// Payments Tab
 // ════════════════════════════════════════
 
 const PaymentsTab = ({ data }) => {
@@ -475,8 +538,11 @@ const PaymentsTab = ({ data }) => {
 
   if (!payments || payments.length === 0) {
     return (
-      <div className="text-center py-12 text-xs" style={{ color: '#6b5c52' }}>
-        Belum ada history payment.
+      <div className="text-center py-16">
+        <StarIcon size={32} className="mx-auto mb-3" style={{ color: '#4a3f39' }} />
+        <p className="text-xs" style={{ color: '#6b5c52' }}>
+          Belum ada history payment.
+        </p>
       </div>
     );
   }
@@ -486,44 +552,58 @@ const PaymentsTab = ({ data }) => {
     .reduce((sum, p) => sum + (p.final_amount || p.amount_usdt || 0), 0);
 
   return (
-    <div className="space-y-3">
-      {/* Summary */}
-      <div className="flex gap-2">
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-2">
         <div
-          className="flex-1 rounded-lg p-3"
+          className="relative overflow-hidden rounded-lg p-3"
           style={{
-            background: 'rgba(52,211,153,0.06)',
+            background: 'rgba(52,211,153,0.04)',
             border: '1px solid rgba(52,211,153,0.18)',
           }}
         >
+          <div
+            className="absolute inset-x-0 top-0 h-px pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, transparent, rgba(52,211,153,0.4), transparent)',
+            }}
+          />
           <p
-            className="text-[10px] uppercase tracking-wider font-semibold"
+            className="text-[10px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: '#34d399' }}
           >
             Total Paid
           </p>
           <p
-            className="text-xl font-light mt-0.5 tabular-nums tracking-tight"
+            className="text-xl font-light tabular-nums tracking-tight"
             style={{ color: '#34d399' }}
           >
             ${totalConfirmed.toFixed(2)}
           </p>
         </div>
         <div
-          className="flex-1 rounded-lg p-3"
+          className="relative overflow-hidden rounded-lg p-3"
           style={{
             background: 'rgba(212,168,83,0.04)',
             border: '1px solid rgba(212,168,83,0.15)',
           }}
         >
+          <div
+            className="absolute inset-x-0 top-0 h-px pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, transparent, rgba(212,168,83,0.4), transparent)',
+            }}
+          />
           <p
-            className="text-[10px] uppercase tracking-wider font-semibold"
+            className="text-[10px] uppercase tracking-wider font-semibold mb-1"
             style={{ color: '#d4a853' }}
           >
-            Total Records
+            Records
           </p>
           <p
-            className="text-xl font-light mt-0.5 tabular-nums tracking-tight"
+            className="text-xl font-light tabular-nums tracking-tight"
             style={{ color: '#d4a853' }}
           >
             {payments.length}
@@ -532,57 +612,61 @@ const PaymentsTab = ({ data }) => {
       </div>
 
       {/* Payment list */}
-      <div className="space-y-1.5">
-        {payments.map((p) => (
-          <div
-            key={p.id}
-            className="rounded-lg p-2.5"
-            style={{
-              background: 'rgba(255,255,255,0.018)',
-              border: '1px solid rgba(255,255,255,0.05)',
-            }}
-          >
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div>
-                <p className="text-xs font-semibold text-white">{p.plan_label || `Plan #${p.id}`}</p>
-                <p className="text-[11px] tabular-nums" style={{ color: '#8a7a6e' }}>
-                  ${(p.final_amount || p.amount_usdt).toFixed(2)}
-                  {p.credit_redeemed > 0 && (
-                    <span className="text-[10px] ml-1.5" style={{ color: '#fbbf24' }}>
-                      (−${p.credit_redeemed.toFixed(2)} credit)
-                    </span>
-                  )}
-                </p>
-              </div>
-              <StatusBadge status={p.status} />
-            </div>
+      <Section title="Payment History" Icon={ClockIcon}>
+        <div className="space-y-1.5">
+          {payments.map((p) => (
             <div
-              className="flex items-center gap-3 text-[10px]"
-              style={{ color: '#6b5c52' }}
+              key={p.id}
+              className="rounded-lg p-2.5"
+              style={{
+                background: 'rgba(255,255,255,0.018)',
+                border: '1px solid rgba(255,255,255,0.04)',
+              }}
             >
-              <span className="tabular-nums">{formatDateTime(p.created_at)}</span>
-              {p.tx_hash && (
-                <a
-                  href={`https://bscscan.com/tx/${p.tx_hash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 hover:underline font-mono"
-                  style={{ color: '#60a5fa' }}
-                >
-                  {p.tx_hash.slice(0, 8)}...{p.tx_hash.slice(-6)}
-                  <ExternalLinkIcon size={10} />
-                </a>
-              )}
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div>
+                  <p className="text-xs font-semibold text-white">
+                    {p.plan_label || `Plan #${p.id}`}
+                  </p>
+                  <p className="text-[11px] tabular-nums" style={{ color: '#8a7a6e' }}>
+                    ${(p.final_amount || p.amount_usdt).toFixed(2)}
+                    {p.credit_redeemed > 0 && (
+                      <span className="text-[10px] ml-1.5" style={{ color: '#fbbf24' }}>
+                        (−${p.credit_redeemed.toFixed(2)} credit)
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <StatusBadge status={p.status} />
+              </div>
+              <div
+                className="flex items-center gap-3 text-[10px]"
+                style={{ color: '#6b5c52' }}
+              >
+                <span className="tabular-nums">{formatDateTime(p.created_at)}</span>
+                {p.tx_hash && (
+                  <a
+                    href={`https://bscscan.com/tx/${p.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 hover:underline font-mono"
+                    style={{ color: '#60a5fa' }}
+                  >
+                    {p.tx_hash.slice(0, 8)}...{p.tx_hash.slice(-6)}
+                    <ExternalLinkIcon size={10} />
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Section>
     </div>
   );
 };
 
 // ════════════════════════════════════════
-// Referral tab
+// Referral Tab
 // ════════════════════════════════════════
 
 const ReferralTab = ({ data }) => {
@@ -590,8 +674,11 @@ const ReferralTab = ({ data }) => {
 
   if ((!as_referrer || as_referrer.length === 0) && !as_referred) {
     return (
-      <div className="text-center py-12 text-xs" style={{ color: '#6b5c52' }}>
-        Tidak ada aktivitas referral.
+      <div className="text-center py-16">
+        <SparklesIcon size={32} className="mx-auto mb-3" style={{ color: '#4a3f39' }} />
+        <p className="text-xs" style={{ color: '#6b5c52' }}>
+          Tidak ada aktivitas referral.
+        </p>
       </div>
     );
   }
@@ -599,51 +686,43 @@ const ReferralTab = ({ data }) => {
   return (
     <div className="space-y-4">
       {as_referred && (
-        <div
-          className="rounded-lg p-3"
-          style={{
-            background: 'rgba(96,165,250,0.04)',
-            border: '1px solid rgba(96,165,250,0.15)',
-          }}
-        >
-          <p
-            className="text-[10px] uppercase tracking-wider font-semibold mb-2"
-            style={{ color: '#60a5fa' }}
+        <Section title="Referred By" Icon={SparklesIcon}>
+          <div
+            className="rounded-lg p-3 flex items-center justify-between"
+            style={{
+              background: 'rgba(96,165,250,0.04)',
+              border: '1px solid rgba(96,165,250,0.18)',
+            }}
           >
-            ← Referred By
-          </p>
-          <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-white">@{as_referred.referrer_username}</p>
               <p className="text-[10px] tabular-nums" style={{ color: '#6b5c52' }}>
-                {formatDate(as_referred.created_at)}
+                Joined via: {formatDate(as_referred.created_at)}
               </p>
             </div>
             <span
               className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}
+              style={{
+                background: 'rgba(96,165,250,0.15)',
+                color: '#60a5fa',
+                border: '1px solid rgba(96,165,250,0.3)',
+              }}
             >
               {as_referred.status}
             </span>
           </div>
-        </div>
+        </Section>
       )}
 
       {as_referrer && as_referrer.length > 0 && (
-        <div>
-          <p
-            className="text-[10px] uppercase tracking-wider font-semibold mb-2"
-            style={{ color: '#34d399' }}
-          >
-            → Referred ({as_referrer.length})
-          </p>
+        <Section title={`Referred Users (${as_referrer.length})`} Icon={SparklesIcon}>
           <div className="space-y-1.5">
             {as_referrer.map((r) => (
               <div
                 key={r.id}
                 className="rounded-lg p-2.5 flex items-center justify-between"
                 style={{
-                  background: 'rgba(52,211,153,0.04)',
+                  background: 'rgba(52,211,153,0.03)',
                   border: '1px solid rgba(52,211,153,0.15)',
                 }}
               >
@@ -657,28 +736,28 @@ const ReferralTab = ({ data }) => {
                 </div>
                 <div className="text-right shrink-0">
                   {r.total_commission_earned > 0 && (
-                    <p
-                      className="text-xs font-bold tabular-nums"
-                      style={{ color: '#34d399' }}
-                    >
+                    <p className="text-xs font-bold tabular-nums" style={{ color: '#34d399' }}>
                       ${r.total_commission_earned.toFixed(2)}
                     </p>
                   )}
-                  <p className="text-[9px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+                  <p
+                    className="text-[9px] uppercase tracking-wider"
+                    style={{ color: '#6b5c52' }}
+                  >
                     {r.status}
                   </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
     </div>
   );
 };
 
 // ════════════════════════════════════════
-// Outreach tab
+// Outreach Tab
 // ════════════════════════════════════════
 
 const OutreachTab = ({ data, templates }) => {
@@ -688,9 +767,9 @@ const OutreachTab = ({ data, templates }) => {
 
   if (!hasAnyChannel) {
     return (
-      <div className="text-center py-12">
-        <BroadcastIcon size={36} className="mx-auto mb-3" style={{ color: '#6b5c52' }} />
-        <p className="text-sm font-medium text-white mb-1">Tidak ada channel kontak</p>
+      <div className="text-center py-16">
+        <BroadcastIcon size={32} className="mx-auto mb-3" style={{ color: '#4a3f39' }} />
+        <p className="text-sm font-medium text-white mb-1">No contact channels</p>
         <p className="text-xs" style={{ color: '#6b5c52' }}>
           Tambah Telegram/Discord username di tab Profile dulu.
         </p>
@@ -700,10 +779,10 @@ const OutreachTab = ({ data, templates }) => {
 
   return (
     <div>
-      <p className="text-xs mb-3" style={{ color: '#8a7a6e' }}>
+      <p className="text-[11px] mb-3" style={{ color: '#8a7a6e' }}>
         Pick template untuk DM <strong className="text-white">@{user.username}</strong>. Klik{' '}
-        <strong style={{ color: '#d4a853' }}>Send</strong> untuk generate text + copy ke clipboard +
-        buka tab channel.
+        <strong style={{ color: '#d4a853' }}>Send</strong> untuk generate text + copy + buka tab
+        channel.
       </p>
       <QuickSendPopover user={user} templates={templates} reach={reach} inline />
     </div>
@@ -711,7 +790,7 @@ const OutreachTab = ({ data, templates }) => {
 };
 
 // ════════════════════════════════════════
-// Main drawer
+// Main Drawer
 // ════════════════════════════════════════
 
 const TABS = [
@@ -753,6 +832,15 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Lock body scroll while drawer open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   const handleContactUpdate = async (payload) => {
     const result = await adminApi.updateUserContact(userId, payload);
     await fetchData();
@@ -761,51 +849,81 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
 
   return (
     <div
-      className="fixed inset-0 z-[99998] flex justify-end"
+      className="fixed inset-0 flex justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+      style={{
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 200000,
+      }}
     >
       <div
         className="w-full max-w-2xl h-full overflow-hidden flex flex-col animate-in slide-in-from-right"
-        style={{ background: '#0a0506', borderLeft: '1px solid rgba(212,168,83,0.2)' }}
+        style={{
+          background: '#0a0506',
+          borderLeft: '1px solid rgba(212,168,83,0.18)',
+          boxShadow: '-20px 0 50px -10px rgba(0,0,0,0.5)',
+        }}
       >
-        {/* Header */}
+        {/* ── HEADER ── */}
         <div
-          className="flex items-center justify-between px-5 py-3.5 shrink-0"
+          className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"
           style={{
-            background: '#12090d',
+            background: 'linear-gradient(180deg, #14080d, #12090d)',
             borderBottom: '1px solid rgba(255,255,255,0.05)',
           }}
         >
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-white tracking-tight">User Detail</h2>
-            {data?.user && (
-              <span
-                className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded"
-                style={{
-                  color: '#6b5c52',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                }}
-              >
-                #{data.user.id}
-              </span>
-            )}
+          <div
+            className="absolute inset-x-0 top-0 h-px pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, transparent, rgba(212,168,83,0.3), transparent)',
+            }}
+          />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{
+                background: 'rgba(212,168,83,0.1)',
+                border: '1px solid rgba(212,168,83,0.22)',
+              }}
+            >
+              <UserIcon size={14} style={{ color: '#d4a853' }} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-white tracking-tight">User Detail</h2>
+              {data?.user && (
+                <p
+                  className="text-[10px] font-mono tabular-nums"
+                  style={{ color: '#6b5c52' }}
+                >
+                  #{data.user.id} · {data.user.username}
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Big clickable close button — independent z-index */}
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-white/5"
-            style={{ color: '#8a7a6e' }}
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/10 shrink-0 relative"
+            style={{
+              color: '#d4a853',
+              background: 'rgba(212,168,83,0.08)',
+              border: '1px solid rgba(212,168,83,0.22)',
+              zIndex: 1,
+            }}
             title="Close (Esc)"
+            aria-label="Close drawer"
           >
-            <CloseIcon size={14} />
+            <CloseIcon size={16} />
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* ── TABS ── */}
         {data && (
           <div
-            className="flex shrink-0"
+            className="flex shrink-0 px-2 pt-1.5"
             style={{
               background: '#0f070a',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -817,15 +935,22 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex-1 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors relative flex items-center justify-center gap-1.5 ${
-                    isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
+                  className="flex-1 py-2.5 text-[11px] font-semibold uppercase tracking-wider transition-colors relative flex items-center justify-center gap-1.5"
+                  style={{
+                    color: isActive ? '#fff' : '#6b5c52',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.color = '#a89888';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.color = '#6b5c52';
+                  }}
                 >
                   <Icon size={12} />
                   {label}
                   {isActive && (
                     <span
-                      className="absolute bottom-0 left-0 right-0 h-0.5"
+                      className="absolute bottom-0 left-3 right-3 h-0.5 rounded-t"
                       style={{
                         background:
                           'linear-gradient(90deg, transparent, #d4a853, transparent)',
@@ -838,7 +963,7 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
           </div>
         )}
 
-        {/* Body */}
+        {/* ── BODY ── */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {loading && (
             <div className="flex items-center justify-center py-20">
@@ -848,7 +973,10 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
               >
                 <div
                   className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-                  style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
+                  style={{
+                    borderColor: 'rgba(212,168,83,0.3)',
+                    borderTopColor: '#d4a853',
+                  }}
                 />
                 Loading...
               </div>
