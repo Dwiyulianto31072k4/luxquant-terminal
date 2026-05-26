@@ -849,19 +849,20 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
 
   return (
     <div
-      className="fixed inset-0 flex justify-end"
+      className="fixed top-16 sm:top-20 bottom-0 left-0 right-0 flex justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         background: 'rgba(0,0,0,0.65)',
         backdropFilter: 'blur(4px)',
-        zIndex: 200000,
+        zIndex: 9999,
       }}
     >
       <div
-        className="w-full max-w-2xl h-full overflow-hidden flex flex-col animate-in slide-in-from-right"
+        className="w-full max-w-2xl h-full overflow-hidden flex flex-col animate-in slide-in-from-right rounded-tl-xl"
         style={{
           background: '#0a0506',
           borderLeft: '1px solid rgba(212,168,83,0.18)',
+          borderTop: '1px solid rgba(212,168,83,0.18)',
           boxShadow: '-20px 0 50px -10px rgba(0,0,0,0.5)',
         }}
       >
