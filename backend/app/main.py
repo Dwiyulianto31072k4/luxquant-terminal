@@ -16,6 +16,7 @@ from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
 from app.api.routes import coins, daily_dashboard
+from app.api.routes import workspace
 
 
 # Import Router
@@ -42,6 +43,7 @@ from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
 from app.api.routes.onchain_endpoint import router as onchain_router
 from app.api.routes.fx import router as fx_router
+app.include_router(workspace.router)
 
 
 
