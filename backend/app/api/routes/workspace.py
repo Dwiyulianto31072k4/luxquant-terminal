@@ -10,7 +10,7 @@ from sqlalchemy import and_, func, or_
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from app.database import get_db
+from app.core.database import get_db
 from app.api.deps import get_admin_user
 from app.models.user import User
 from app.models.workspace import AdminFollowup, MarketingCampaign, BrandTodo
@@ -26,19 +26,19 @@ router = APIRouter(prefix="/api/v1/workspace", tags=["workspace"])
 
 
 # ════════════════════════════════════════════════════════════════════
-# Helper: serialize Campaign with metadata->metadata key rename
+# Helper: serialize Campaign (extra_data field instead of metadata)
 # ════════════════════════════════════════════════════════════════════
 
 def _serialize_campaign(c: MarketingCampaign) -> dict:
-    """Serialize MarketingCampaign — handle metadata_json -> metadata rename."""
-    d = {
+    """Serialize MarketingCampaign."""
+    return {
         "id": c.id,
         "name": c.name,
         "description": c.description,
         "platform": c.platform,
         "budget_usd": float(c.budget_usd or 0),
         "spent_usd": float(c.spent_usd or 0),
-        "metadata": c.metadata_json or {},
+        "extra_data": c.extra_data or {},
         "line_items": c.line_items or [],
         "start_date": c.start_date,
         "end_date": c.end_date,
@@ -48,7 +48,6 @@ def _serialize_campaign(c: MarketingCampaign) -> dict:
         "created_at": c.created_at,
         "updated_at": c.updated_at,
     }
-    return d
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -303,7 +302,7 @@ def create_campaign(
         platform=data.platform,
         budget_usd=data.budget_usd,
         spent_usd=data.spent_usd,
-        metadata_json=data.metadata or {},
+        extra_data=data.extra_data or {},
         line_items=data.line_items or [],
         start_date=data.start_date,
         end_date=data.end_date,
@@ -329,9 +328,6 @@ def update_campaign(
         raise HTTPException(status_code=404, detail="Campaign tidak ditemukan")
 
     payload = data.model_dump(exclude_unset=True)
-    # Handle metadata key rename
-    if 'metadata' in payload:
-        c.metadata_json = payload.pop('metadata') or {}
 
     for k, v in payload.items():
         setattr(c, k, v)

@@ -1,9 +1,13 @@
 # backend/app/schemas/workspace.py
 """
 Pydantic schemas for Admin Workspace endpoints.
+
+Notes:
+- 'extra_data' is used instead of 'metadata' to avoid SQLAlchemy collision
+  (Base classes already define .metadata). Field accepts free-form JSON.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 
@@ -17,8 +21,7 @@ class UserMini(BaseModel):
     id: int
     username: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -101,8 +104,7 @@ class FollowupResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -114,12 +116,15 @@ VALID_PLATFORM = {'twitter', 'telegram', 'discord', 'influencer', 'other'}
 
 
 class CampaignCreate(BaseModel):
+    # Disable protected_namespaces to allow flexible field names
+    model_config = ConfigDict(protected_namespaces=())
+
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     platform: Optional[str] = None
     budget_usd: float = Field(default=0, ge=0)
     spent_usd: float = Field(default=0, ge=0)
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
     line_items: Optional[List[Dict[str, Any]]] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -141,12 +146,14 @@ class CampaignCreate(BaseModel):
 
 
 class CampaignUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     name: Optional[str] = Field(default=None, max_length=200)
     description: Optional[str] = None
     platform: Optional[str] = None
     budget_usd: Optional[float] = Field(default=None, ge=0)
     spent_usd: Optional[float] = Field(default=None, ge=0)
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
     line_items: Optional[List[Dict[str, Any]]] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -168,13 +175,15 @@ class CampaignUpdate(BaseModel):
 
 
 class CampaignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
+
     id: int
     name: str
     description: Optional[str]
     platform: Optional[str]
     budget_usd: float
     spent_usd: float
-    metadata: Dict[str, Any]
+    extra_data: Dict[str, Any]
     line_items: List[Dict[str, Any]]
     start_date: Optional[date]
     end_date: Optional[date]
@@ -183,9 +192,6 @@ class CampaignResponse(BaseModel):
     creator: Optional[UserMini]
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -267,8 +273,7 @@ class TodoResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ════════════════════════════════════════════════════════════════════

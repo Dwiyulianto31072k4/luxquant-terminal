@@ -2,6 +2,11 @@
 """
 SQLAlchemy models for Admin Workspace (Follow-ups, Marketing, TODO).
 All tables are SHARED — visible by any admin.
+
+Notes:
+- Uses app.core.database.Base (project convention)
+- 'metadata' is RESERVED by SQLAlchemy on Base classes, so we use
+  'extra_data' as the column name (renamed from initial 'metadata').
 """
 
 from sqlalchemy import (
@@ -10,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
-from app.database import Base
+from app.core.database import Base
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -74,9 +79,11 @@ class MarketingCampaign(Base):
     budget_usd = Column(Numeric(12, 2), nullable=False, default=0)
     spent_usd = Column(Numeric(12, 2), nullable=False, default=0)
 
-    # Custom metadata (free-form)
+    # Custom flexible data (free-form JSON)
+    # IMPORTANT: NOT named 'metadata' karena reserved by SQLAlchemy Base.
+    # Renamed: 'metadata' -> 'extra_data' (in DB + Python).
     # e.g. {"impressions": 50000, "conversions": 12, "tags": ["promo", "Q2"]}
-    metadata_json = Column('metadata', JSONB, nullable=False, default=dict)
+    extra_data = Column(JSONB, nullable=False, default=dict)
 
     # Line items (free-form list)
     # e.g. [{"label": "Ad spend", "amount": 100, "date": "2025-05-20", "note": "..."}]
