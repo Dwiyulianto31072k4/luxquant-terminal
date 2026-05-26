@@ -3,30 +3,29 @@ LuxQuant Terminal - Daily Performance Dashboard
 ================================================
 Bundled endpoint for the Daily Performance section.
 
-v5 changes (over v4):
-  - FIXED Q3 BTC context path: snapshot.facts.context.btc doesn't exist in
-    real v3.0 snapshots. BTC info lives in snapshot.tags_annotated[] with
-    BTC_* prefix. Path was always returning null silently.
-  - Added BTC dominance distribution from BTC_DOM_* tags
-  - Added daily_market_regime fallback for historical dates pre-v3.0
-    (worker launched 2026-05-14, so anything older had 0% enrichment)
-  - F&G now read from signal_enrichment.fear_greed (v2.1) and label
-    computed Python-side from value
-  - Excluded BTC_* tags from important_tags aggregate (they have own field)
-  - Cache key bumped v4 → v5
+v6 changes (over v5):
+  - EXPOSED signal_btc_correlation fields per signal (12 new fields):
+    corr_1h_7d, corr_4h_30d, beta_30d, r_squared_30d, lead_lag_hours,
+    volatility_ratio, coin_volatility_pct, downside_beta, tail_corr_btc_down,
+    tail_corr_btc_up, corr_risk_level, corr_headline
+  - NEW correlation_summary aggregate block:
+    - avg/median beta, R², volatility ratio
+    - risk_level distribution (LOW/MEDIUM/HIGH)
+    - decoupled vs coupled win rate (THE killer insight)
+    - lead/sync/lag distribution
+    - correlation_coverage / correlation_total
+  - Cache key bumped v5 → v6
 
-v4 changes:
-  - Added important_tags: [string] per signal for pattern×outcome analysis
+v5 changes:
+  - FIXED Q3 BTC context path: snapshot.facts.context.btc doesn't exist...
+  - (see git history for full v5 notes)
 
 Semantics:
   - All dates in UTC
   - WR computed by HIT date (signal_updates.update_at), NOT created_at
-  - Bypasses daily_market_regime FOR WR (semantically diff), but USES it
-    for context fallback (regime label + WR for pre-v3.0 dates)
-  - BTC context aggregated from signal_enrichment_history v3.0 snapshot JSONB
-  - Per-signal rating/confidence from signal_enrichment v2.1 (legacy)
-  - Important tags = aggregate of tags_annotated[].important=true (non-BTC)
-  - Sector data joined from coins table
+  - Per-signal correlation from signal_btc_correlation (v2.0 schema)
+  - interpretation->>'risk_level' values: 'low' | 'medium' | 'high' (lowercase)
+  - lead_lag_hours: positive = coin leads BTC, negative = coin lags BTC
   - Redis cache 120s per date
 
 Mount in main.py:
@@ -120,7 +119,7 @@ async def get_daily_dashboard(
     else:
         target_date = datetime.utcnow().date()
 
-    cache_key = f"lq:daily-dashboard:v5:{target_date.isoformat()}"
+    cache_key = f"lq:daily-dashboard:v6:{target_date.isoformat()}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -155,7 +154,7 @@ async def get_daily_dashboard(
     today_data = trend_14d[-1]
     yesterday_data = trend_14d[-2] if len(trend_14d) >= 2 else {"win_rate": 0.0}
 
-    # ─── Q2: Day signals + legacy v2.1 enrichment + v3.0 direction/important_tag_count + important_tags array ───
+    # ─── Q2: Day signals + ENRICHED with full correlation fields (v6) ───
     signal_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         latest_enrichment AS (
@@ -186,7 +185,20 @@ async def get_daily_dashboard(
                 SELECT COALESCE(array_agg(tag_obj->>'name' ORDER BY tag_obj->>'name'), ARRAY[]::text[])
                 FROM jsonb_array_elements(le.snapshot->'tags_annotated') AS tag_obj
                 WHERE (tag_obj->>'important')::boolean = true
-            ) AS important_tags_array
+            ) AS important_tags_array,
+            -- v6 NEW: correlation fields
+            bc.corr_1h_7d,
+            bc.corr_4h_30d,
+            bc.beta_30d,
+            bc.r_squared_30d,
+            bc.lead_lag_hours,
+            bc.volatility_ratio,
+            bc.coin_volatility_pct,
+            bc.downside_beta,
+            bc.tail_corr_btc_down,
+            bc.tail_corr_btc_up,
+            LOWER(bc.interpretation->>'risk_level') AS corr_risk_level,
+            bc.interpretation->>'headline' AS corr_headline
         FROM resolved r
         JOIN signals s ON s.signal_id = r.signal_id
         LEFT JOIN signal_enrichment e ON e.signal_id = s.signal_id
@@ -200,10 +212,14 @@ async def get_daily_dashboard(
             r.update_at DESC
     """), {"d": target_str}).fetchall()
 
+    def _f(v):
+        """Safe float cast."""
+        return float(v) if v is not None else None
+
     day_signals = [{
         "signal_id": r[0], "pair": r[1], "outcome": r[2],
         "outcome_at": str(r[3]) if r[3] else None,
-        "peak_pct": float(r[4]) if r[4] is not None else None,
+        "peak_pct": _f(r[4]),
         "rating": r[5], "confidence_score": int(r[6]),
         "sector": r[7], "token_type": r[8],
         "is_decoupled": bool(r[9]), "is_extended": bool(r[10]),
@@ -212,11 +228,24 @@ async def get_daily_dashboard(
         "signal_direction": r[13],
         "important_tag_count": int(r[14]) if r[14] is not None else None,
         "important_tags": list(r[15]) if r[15] is not None else [],
+        # v6 NEW: correlation block — null-safe, frontend can detect missing
+        "correlation": {
+            "corr_1h_7d":          _f(r[16]),
+            "corr_4h_30d":         _f(r[17]),
+            "beta_30d":            _f(r[18]),
+            "r_squared_30d":       _f(r[19]),
+            "lead_lag_hours":      int(r[20]) if r[20] is not None else None,
+            "volatility_ratio":    _f(r[21]),
+            "coin_volatility_pct": _f(r[22]),
+            "downside_beta":       _f(r[23]),
+            "tail_corr_btc_down":  _f(r[24]),
+            "tail_corr_btc_up":    _f(r[25]),
+            "risk_level":          r[26],   # 'low' | 'medium' | 'high'
+            "headline":            r[27],
+        } if r[18] is not None else None,  # use beta_30d as presence sentinel
     } for r in signal_rows]
 
-    # ─── Q3: BTC context from tags_annotated (v5 FIX — was reading wrong path) ───
-    # BTC trend: BTC_BULLISH / BTC_RANGING / BTC_BEARISH (strip BTC_ prefix when storing)
-    # BTC dom: BTC_DOM_FLAT / BTC_DOM_UNKNOWN / BTC_DOM_RISING / BTC_DOM_FALLING
+    # ─── Q3: BTC context from tags_annotated ───
     btc_ctx = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -267,7 +296,7 @@ async def get_daily_dashboard(
     btc_trend_mode = _mode(btc_trend_dist)
     btc_dom_trend_mode = _mode(btc_dom_dist)
 
-    # ─── Q3b: F&G + decoupled/extended from v2.1 + btc_correlation tables ───
+    # ─── Q3b: F&G + decoupled/extended ───
     extra_ctx = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target AS (
@@ -286,6 +315,84 @@ async def get_daily_dashboard(
     fear_greed_avg = int(extra_ctx[0]) if extra_ctx[0] is not None else None
     decoupled_count = int(extra_ctx[1] or 0)
     extended_count = int(extra_ctx[2] or 0)
+
+    # ─── Q3c (v6 NEW): Correlation summary aggregate ───
+    # Insight goldmine: aggregate stats + WR decoupled vs coupled
+    corr_summary_row = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        target AS (
+            SELECT r.signal_id, r.outcome
+            FROM resolved r WHERE r.hit_date = :d
+        ),
+        joined AS (
+            SELECT t.outcome, bc.*
+            FROM target t
+            JOIN signal_btc_correlation bc ON bc.signal_id = t.signal_id
+        )
+        SELECT
+            -- coverage
+            COUNT(*) AS corr_total,
+            -- averages
+            AVG(beta_30d)::float                              AS avg_beta,
+            AVG(r_squared_30d)::float                         AS avg_r_squared,
+            AVG(volatility_ratio)::float                      AS avg_vol_ratio,
+            AVG(corr_4h_30d)::float                           AS avg_corr_4h_30d,
+            AVG(coin_volatility_pct)::float                   AS avg_coin_vol_pct,
+            -- risk distribution
+            COUNT(*) FILTER (WHERE LOWER(interpretation->>'risk_level') = 'low')    AS risk_low,
+            COUNT(*) FILTER (WHERE LOWER(interpretation->>'risk_level') = 'medium') AS risk_medium,
+            COUNT(*) FILTER (WHERE LOWER(interpretation->>'risk_level') = 'high')   AS risk_high,
+            -- decoupled vs coupled WR
+            COUNT(*) FILTER (WHERE is_decoupled = true)                                     AS decoupled_total,
+            COUNT(*) FILTER (WHERE is_decoupled = true AND outcome IN ('tp1','tp2','tp3','tp4')) AS decoupled_wins,
+            COUNT(*) FILTER (WHERE is_decoupled = false)                                    AS coupled_total,
+            COUNT(*) FILTER (WHERE is_decoupled = false AND outcome IN ('tp1','tp2','tp3','tp4')) AS coupled_wins,
+            -- lead/sync/lag distribution
+            COUNT(*) FILTER (WHERE lead_lag_hours > 0)  AS leads_btc,
+            COUNT(*) FILTER (WHERE lead_lag_hours = 0)  AS sync_btc,
+            COUNT(*) FILTER (WHERE lead_lag_hours < 0)  AS lags_btc,
+            AVG(lead_lag_hours)::float                  AS avg_lead_lag
+        FROM joined
+    """), {"d": target_str}).fetchone()
+
+    corr_total = int(corr_summary_row[0] or 0)
+
+    def _wr(wins, total):
+        return round(wins / total * 100, 2) if total else None
+
+    decoupled_total = int(corr_summary_row[9] or 0)
+    decoupled_wins = int(corr_summary_row[10] or 0)
+    coupled_total = int(corr_summary_row[11] or 0)
+    coupled_wins = int(corr_summary_row[12] or 0)
+
+    correlation_summary = {
+        "coverage": corr_total,
+        "averages": {
+            "beta_30d":            round(corr_summary_row[1], 4) if corr_summary_row[1] is not None else None,
+            "r_squared_30d":       round(corr_summary_row[2], 4) if corr_summary_row[2] is not None else None,
+            "volatility_ratio":    round(corr_summary_row[3], 4) if corr_summary_row[3] is not None else None,
+            "corr_4h_30d":         round(corr_summary_row[4], 4) if corr_summary_row[4] is not None else None,
+            "coin_volatility_pct": round(corr_summary_row[5], 2) if corr_summary_row[5] is not None else None,
+        },
+        "risk_distribution": {
+            "low":    int(corr_summary_row[6] or 0),
+            "medium": int(corr_summary_row[7] or 0),
+            "high":   int(corr_summary_row[8] or 0),
+        },
+        "decoupled_vs_coupled": {
+            "decoupled": {"total": decoupled_total, "wins": decoupled_wins, "win_rate": _wr(decoupled_wins, decoupled_total)},
+            "coupled":   {"total": coupled_total,   "wins": coupled_wins,   "win_rate": _wr(coupled_wins, coupled_total)},
+            # advantage = decoupled_wr - coupled_wr (positive = decoupled wins more)
+            "advantage": round(_wr(decoupled_wins, decoupled_total) - _wr(coupled_wins, coupled_total), 2)
+                if decoupled_total and coupled_total else None,
+        },
+        "lead_lag": {
+            "leads":   int(corr_summary_row[13] or 0),
+            "sync":    int(corr_summary_row[14] or 0),
+            "lags":    int(corr_summary_row[15] or 0),
+            "avg_hours": round(corr_summary_row[16], 2) if corr_summary_row[16] is not None else None,
+        },
+    } if corr_total > 0 else None
 
     # ─── Q4: Sector breakdown ───
     sector_rows = db.execute(text(f"""
@@ -314,7 +421,7 @@ async def get_daily_dashboard(
         default=None,
     )
 
-    # ─── Q5: Important tags aggregate (EXCLUDE BTC_* — they have own field) ───
+    # ─── Q5: Important tags aggregate ───
     tag_rows = db.execute(text(f"""
         WITH {OUTCOMES_CTE},
         target_signals AS (
@@ -352,8 +459,7 @@ async def get_daily_dashboard(
     enrichment_total = int(coverage_row[0] or 0)
     enrichment_coverage = int(coverage_row[1] or 0)
 
-    # ─── Q7: Daily regime fallback (v5 NEW — always populated from daily_market_regime) ───
-    # Universal context fallback for historical dates pre-v3.0 launch (2026-05-14)
+    # ─── Q7: Daily regime fallback ───
     regime_row = db.execute(text("""
         SELECT regime, total_closed, wins, losses, win_rate
         FROM daily_market_regime
@@ -406,6 +512,7 @@ async def get_daily_dashboard(
                 "enrichment_coverage": enrichment_coverage,
                 "enrichment_total": enrichment_total,
                 "daily_regime": daily_regime,
+                "correlation_summary": correlation_summary,  # v6 NEW
             },
         },
         "trend_14d": trend_14d,
