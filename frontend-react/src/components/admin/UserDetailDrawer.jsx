@@ -1,5 +1,6 @@
 // src/components/admin/UserDetailDrawer.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { adminApi } from '../../services/adminApi';
 import { ContactBadge } from './ContactBadge';
 import { QuickSendPopover } from './QuickSendPopover';
@@ -847,23 +848,24 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
     if (onUserUpdated) onUserUpdated(result.user);
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed top-16 sm:top-20 bottom-0 left-0 right-0 flex justify-end"
+      className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 9999,
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 2147483646,
       }}
     >
       <div
-        className="w-full max-w-2xl h-full overflow-hidden flex flex-col animate-in slide-in-from-right rounded-tl-xl"
+        className="w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col animate-in zoom-in-95 fade-in duration-200"
         style={{
           background: '#0a0506',
-          borderLeft: '1px solid rgba(212,168,83,0.18)',
-          borderTop: '1px solid rgba(212,168,83,0.18)',
-          boxShadow: '-20px 0 50px -10px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(212,168,83,0.25)',
+          boxShadow:
+            '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
+          maxHeight: 'calc(100vh - 3rem)',
         }}
       >
         {/* ── HEADER ── */}
@@ -878,7 +880,7 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
             className="absolute inset-x-0 top-0 h-px pointer-events-none"
             style={{
               background:
-                'linear-gradient(to right, transparent, rgba(212,168,83,0.3), transparent)',
+                'linear-gradient(to right, transparent, rgba(212,168,83,0.35), transparent)',
             }}
           />
           <div className="flex items-center gap-2.5 min-w-0">
@@ -892,30 +894,31 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
               <UserIcon size={14} style={{ color: '#d4a853' }} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white tracking-tight">User Detail</h2>
+              <h2 className="text-sm font-bold text-white tracking-tight leading-tight">
+                User Detail
+              </h2>
               {data?.user && (
                 <p
-                  className="text-[10px] font-mono tabular-nums"
+                  className="text-[10px] font-mono tabular-nums leading-tight"
                   style={{ color: '#6b5c52' }}
                 >
-                  #{data.user.id} · {data.user.username}
+                  #{data.user.id}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Big clickable close button — independent z-index */}
+          {/* Close button — clearly clickable */}
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/10 shrink-0 relative"
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 shrink-0"
             style={{
               color: '#d4a853',
               background: 'rgba(212,168,83,0.08)',
               border: '1px solid rgba(212,168,83,0.22)',
-              zIndex: 1,
             }}
             title="Close (Esc)"
-            aria-label="Close drawer"
+            aria-label="Close modal"
           >
             <CloseIcon size={16} />
           </button>
@@ -1010,6 +1013,7 @@ export const UserDetailDrawer = ({ userId, onClose, onUserUpdated, templates }) 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
