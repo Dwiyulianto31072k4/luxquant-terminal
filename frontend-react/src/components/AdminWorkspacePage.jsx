@@ -13,6 +13,8 @@ import { useAuth } from '../context/AuthContext';
 import { workspaceApi } from '../services/workspaceApi';
 import UserManagementPage from './UserManagementPage';
 import { FollowupTab } from './admin/workspace/FollowupTab';
+import { MarketingTab } from './admin/workspace/MarketingTab';
+import { TodoTab } from './admin/workspace/TodoTab';
 import {
   UsersIcon,
   ShieldIcon,
@@ -87,26 +89,6 @@ const MiniStat = ({ label, value, accent }) => (
     >
       {value}
     </span>
-  </div>
-);
-
-// ════════════════════════════════════════════════════════════════════
-// Placeholder tabs (Marketing, TODO) — filled in Batch 2B
-// ════════════════════════════════════════════════════════════════════
-
-const PlaceholderTab = ({ name }) => (
-  <div
-    className="rounded-xl p-16 text-center"
-    style={{
-      background: 'rgba(255,255,255,0.015)',
-      border: '1px solid rgba(255,255,255,0.05)',
-    }}
-  >
-    <SparklesIcon size={32} className="mx-auto mb-3" style={{ color: '#4a3f39' }} />
-    <p className="text-sm font-medium text-white mb-1">{name}</p>
-    <p className="text-[11px]" style={{ color: '#6b5c52' }}>
-      Coming in next batch — fitur ini lagi di-build.
-    </p>
   </div>
 );
 
@@ -262,8 +244,8 @@ const AdminWorkspacePage = () => {
           </div>
         )}
         {activeTab === 'followups' && <FollowupTab onRefreshStats={fetchStats} />}
-        {activeTab === 'marketing' && <PlaceholderTab name="Marketing Budget" />}
-        {activeTab === 'todos' && <PlaceholderTab name="Brand TODOs" />}
+        {activeTab === 'marketing' && <MarketingTab onRefreshStats={fetchStats} />}
+        {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
       </div>
     </div>
   );
