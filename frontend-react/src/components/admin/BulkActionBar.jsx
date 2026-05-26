@@ -1,18 +1,16 @@
 // src/components/admin/BulkActionBar.jsx
 import { useState } from 'react';
+import {
+  DownloadIcon,
+  StarIcon,
+  BanIcon,
+  SendIcon,
+  CloseIcon,
+  ChevronDownIcon,
+} from './Icons';
 
 /**
  * Floating bulk action toolbar.
- *
- * Props:
- *   selectedCount: number
- *   selectedUsers: User[]
- *   onClear: () => void
- *   onBulkGrant: (duration) => Promise<void>
- *   onBulkRevoke: () => Promise<void>
- *   onBulkExport: () => void
- *   onBulkSendTemplate: (templateId) => Promise<void>
- *   templates: Array<{id, label}>
  */
 export const BulkActionBar = ({
   selectedCount,
@@ -30,7 +28,6 @@ export const BulkActionBar = ({
 
   if (selectedCount === 0) return null;
 
-  // Quick analysis of selection
   const subscriberCount = selectedUsers.filter((u) => u.role === 'subscriber').length;
   const reachableCount = selectedUsers.filter((u) => {
     const hasTG = u.admin_telegram_username || u.telegram_username;
@@ -54,7 +51,7 @@ export const BulkActionBar = ({
 
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
       style={{
         background: 'rgba(18,9,13,0.95)',
         border: '1px solid rgba(212,168,83,0.3)',
@@ -62,16 +59,23 @@ export const BulkActionBar = ({
       }}
     >
       {/* Selection summary */}
-      <div className="flex items-center gap-2 pr-3" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+      <div
+        className="flex items-center gap-2.5 pr-3"
+        style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
+      >
         <span
-          className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-          style={{ background: 'rgba(212,168,83,0.2)', color: '#d4a853' }}
+          className="flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md text-xs font-bold tabular-nums"
+          style={{
+            background: 'rgba(212,168,83,0.18)',
+            color: '#d4a853',
+            border: '1px solid rgba(212,168,83,0.3)',
+          }}
         >
           {selectedCount}
         </span>
-        <div className="text-xs">
-          <p className="text-white font-semibold">selected</p>
-          <p style={{ color: '#6b5c52' }}>
+        <div className="text-[11px]">
+          <p className="text-white font-semibold leading-tight">selected</p>
+          <p className="leading-tight" style={{ color: '#6b5c52' }}>
             {subscriberCount} subs · {reachableCount} reachable
           </p>
         </div>
@@ -81,18 +85,19 @@ export const BulkActionBar = ({
       <button
         onClick={() => run(async () => onBulkExport())}
         disabled={busy}
-        className="px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
         style={{
-          background: 'rgba(96,165,250,0.1)',
+          background: 'rgba(96,165,250,0.08)',
           color: '#60a5fa',
-          border: '1px solid rgba(96,165,250,0.25)',
+          border: '1px solid rgba(96,165,250,0.22)',
         }}
         title="Export selected users as CSV"
       >
-        📥 CSV
+        <DownloadIcon size={13} />
+        CSV
       </button>
 
-      {/* Bulk grant — dropdown */}
+      {/* Bulk grant */}
       <div className="relative">
         <button
           onClick={() => {
@@ -100,14 +105,16 @@ export const BulkActionBar = ({
             setShowSendMenu(false);
           }}
           disabled={busy}
-          className="px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
           style={{
-            background: 'rgba(52,211,153,0.1)',
+            background: 'rgba(52,211,153,0.08)',
             color: '#34d399',
-            border: '1px solid rgba(52,211,153,0.25)',
+            border: '1px solid rgba(52,211,153,0.22)',
           }}
         >
-          ⭐ Grant Sub ▾
+          <StarIcon size={13} />
+          Grant
+          <ChevronDownIcon size={11} />
         </button>
         {showGrantMenu && (
           <div
@@ -117,35 +124,23 @@ export const BulkActionBar = ({
               border: '1px solid rgba(212,168,83,0.25)',
             }}
           >
-            <button
-              onClick={() => run(() => onBulkGrant('1_month'))}
-              className="w-full px-3 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors"
-            >
-              <span className="font-semibold">1 Month</span>
-              <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
-                30 days each
-              </span>
-            </button>
-            <button
-              onClick={() => run(() => onBulkGrant('1_year'))}
-              className="w-full px-3 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              <span className="font-semibold">1 Year</span>
-              <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
-                365 days each
-              </span>
-            </button>
-            <button
-              onClick={() => run(() => onBulkGrant('lifetime'))}
-              className="w-full px-3 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              <span className="font-semibold">Lifetime</span>
-              <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
-                No expiry
-              </span>
-            </button>
+            {[
+              { key: '1_month', label: '1 Month', sub: '30 days each' },
+              { key: '1_year', label: '1 Year', sub: '365 days each' },
+              { key: 'lifetime', label: 'Lifetime', sub: 'No expiry' },
+            ].map((opt, i) => (
+              <button
+                key={opt.key}
+                onClick={() => run(() => onBulkGrant(opt.key))}
+                className="w-full px-3 py-2.5 text-left text-xs text-white hover:bg-white/5 transition-colors"
+                style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}
+              >
+                <span className="font-semibold">{opt.label}</span>
+                <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
+                  {opt.sub}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -165,14 +160,15 @@ export const BulkActionBar = ({
             })
           }
           disabled={busy}
-          className="px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
           style={{
-            background: 'rgba(248,113,113,0.1)',
+            background: 'rgba(248,113,113,0.08)',
             color: '#f87171',
-            border: '1px solid rgba(248,113,113,0.25)',
+            border: '1px solid rgba(248,113,113,0.22)',
           }}
         >
-          ⛔ Revoke ({subscriberCount})
+          <BanIcon size={13} />
+          Revoke ({subscriberCount})
         </button>
       )}
 
@@ -185,14 +181,16 @@ export const BulkActionBar = ({
               setShowGrantMenu(false);
             }}
             disabled={busy}
-            className="px-3 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
             style={{
-              background: 'rgba(212,168,83,0.1)',
+              background: 'rgba(212,168,83,0.08)',
               color: '#d4a853',
-              border: '1px solid rgba(212,168,83,0.25)',
+              border: '1px solid rgba(212,168,83,0.22)',
             }}
           >
-            📨 Send ({reachableCount}) ▾
+            <SendIcon size={13} />
+            Send ({reachableCount})
+            <ChevronDownIcon size={11} />
           </button>
           {showSendMenu && (
             <div
@@ -241,19 +239,17 @@ export const BulkActionBar = ({
       <button
         onClick={onClear}
         disabled={busy}
-        className="ml-1 w-7 h-7 rounded-full flex items-center justify-center text-sm transition-colors disabled:opacity-50"
+        className="ml-1 w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 hover:bg-white/5"
         style={{ background: 'rgba(255,255,255,0.04)', color: '#6b5c52' }}
         title="Clear selection"
       >
-        ✕
+        <CloseIcon size={13} />
       </button>
     </div>
   );
 };
 
-/**
- * Helper: convert user array to CSV string + trigger download.
- */
+/** Convert user array to CSV + trigger download. */
 export function exportUsersToCsv(users, filename = 'users.csv') {
   if (!users || users.length === 0) return;
 
