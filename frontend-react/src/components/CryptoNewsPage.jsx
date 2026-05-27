@@ -182,6 +182,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
           src={imgUrl}
           alt={domain}
           className="w-full h-full object-cover"
+          style={{ objectPosition: "left center" }}
           loading="lazy"
         />
       </div>
@@ -361,7 +362,7 @@ const NewsModal = ({ item, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-[9999] flex items-start sm:items-center justify-center px-4 pt-20 pb-6 sm:py-8 ${
         closing ? "news-modal-out" : "news-modal-in"
       }`}
       onClick={handleClose}
@@ -382,10 +383,11 @@ const NewsModal = ({ item, onClose }) => {
       `}</style>
 
       <div
-        className="nm-card relative w-full max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
+        className="nm-card relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
         style={{
           background: "linear-gradient(180deg, rgba(20,16,28,0.98), rgba(12,10,16,0.98))",
           border: "1px solid rgba(255,255,255,0.08)",
+          maxHeight: "calc(100vh - 7rem)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -420,12 +422,12 @@ const NewsModal = ({ item, onClose }) => {
         {/* Scrollable content */}
         <div className="nm-scroll overflow-y-auto flex-1">
           {/* Image / Placeholder — object-contain so the full image is visible (no crop) */}
-          <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "60vh", minHeight: "12rem" }}>
+          <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
             {imgSrc ? (
               <img
                 src={imgSrc}
                 alt=""
-                className="w-full h-auto max-h-[60vh] object-contain"
+                className="w-auto h-auto max-w-full max-h-[45vh] object-contain"
                 onError={(e) => {
                   e.target.style.display = "none";
                 }}
