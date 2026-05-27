@@ -1,10 +1,14 @@
 // src/components/NotificationBell.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Notification Bell v2 (Flowscan reskin)
-// Top-nav dropdown with unread badge + preview list
+// LuxQuant Terminal — Notification Bell v3
+// Fixes:
+//   - Badge overflow (99+ now fits properly, no clash with avatar)
+//   - Refresh unread count on dropdown close (catches mark-as-read updates)
+//   - Re-fetch when window regains focus (catches background broadcasts)
+//   - Cleaner polling lifecycle
 // ════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
@@ -12,7 +16,6 @@ import { notificationApi } from "../services/notificationApi";
 
 
 // ── Type-based token (semantic 3-tier, no emoji) ──
-// Smart: price_pump can be pump OR dump based on data.percentage
 const getTypeToken = (type, data) => {
   if (type === "price_pump" && data?.percentage !== undefined && data?.percentage !== null) {
     if (data.percentage < 0) {
@@ -53,23 +56,37 @@ const NotificationBell = () => {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const menuRef = useRef(null);
 
-  // ── Poll unread count every 30s ──
+  // ── Centralized fetch helper ──
+  const fetchCount = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const data = await notificationApi.getUnreadCount();
+      setUnreadCount(data.unread_count || 0);
+    } catch {
+      // Silent fail — keep last known count
+    }
+  }, [isAuthenticated]);
+
+  // ── Poll unread count every 30s + on window focus ──
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const fetchCount = async () => {
-      try {
-        const data = await notificationApi.getUnreadCount();
-        setUnreadCount(data.unread_count || 0);
-      } catch (err) {
-        // Silent fail
-      }
-    };
-
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+
+    // Re-fetch when user comes back to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchCount();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", fetchCount);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", fetchCount);
+    };
+  }, [isAuthenticated, fetchCount]);
 
   // ── Close on outside click ──
   useEffect(() => {
@@ -85,6 +102,8 @@ const NotificationBell = () => {
     setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
+      // FIX: Re-fetch count when dropdown closes — catches any async mark-as-read
+      fetchCount();
     }, 150);
   };
 
@@ -110,7 +129,7 @@ const NotificationBell = () => {
     e.stopPropagation();
     try {
       await notificationApi.markAllAsRead();
-      // ✅ Re-fetch from server to get accurate count (don't trust local state)
+      // Refetch from server to get accurate count
       const data = await notificationApi.getNotifications(1, 5, null, false);
       setPreview(data.items || []);
       setUnreadCount(data.unread_count || 0);
@@ -160,9 +179,12 @@ const NotificationBell = () => {
         <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
         </svg>
-        {/* Badge — flat, no glow */}
+        {/* FIX: Badge — bigger min-width, proper height for 99+, z-index, ring for separation */}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[14px] flex items-center justify-center px-1 bg-gold-primary text-[#0a0805] text-[9px] font-mono font-bold rounded-sm tabular-nums">
+          <span
+            className="absolute -top-1 -right-1 min-w-[18px] h-[16px] flex items-center justify-center px-1 bg-gold-primary text-[#0a0805] text-[9px] font-mono font-bold rounded-full tabular-nums leading-none ring-2 ring-bg-primary z-10"
+            style={{ paddingLeft: 4, paddingRight: 4 }}
+          >
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -254,14 +276,12 @@ const PreviewRow = ({ notif, onClick, formatTimeAgo }) => {
         isUnread ? "bg-gold-primary/[0.03] hover:bg-gold-primary/[0.06]" : "hover:bg-white/[0.02]"
       }`}
     >
-      {/* Type dot */}
       <span
         className={`shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${toneDot(token.tone)} ${
           isUnread ? "animate-pulse" : "opacity-40"
         }`}
       />
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-1.5">
           <p
