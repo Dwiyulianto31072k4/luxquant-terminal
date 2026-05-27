@@ -146,7 +146,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
           src={imgUrl}
           alt={domain}
           className="w-full h-full object-cover"
-          style={{ objectPosition: "15% center" }}
+          style={{ objectPosition: "20% center" }}
           loading="lazy"
         />
       </div>
@@ -196,7 +196,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
             className="text-[9px] font-mono uppercase tracking-[0.25em]"
             style={{ color: "rgba(212,168,83,0.85)" }}
           >
-            LuxQuant
+            LuxQuant News
           </span>
         </div>
       </div>
