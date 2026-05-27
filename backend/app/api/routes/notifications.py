@@ -2,25 +2,23 @@
 """
 LuxQuant Terminal - Notifications API Routes
 
-═══════════════════════════════════════════════════════════════════════
 HYBRID READ TRACKING (v2)
-───────────────────────────────────────────────────────────────────────
-Notifikasi dianggap UNREAD untuk user X jika SEMUA kondisi terpenuhi:
+-------------------------
+A notification is UNREAD for user X if ALL conditions met:
 
   1. Visible: n.user_id = X  OR  n.user_id IS NULL (broadcast)
   2. Newer than cutoff: n.created_at > X.notifications_read_at
-  3. Belum di-click individual:
-       Personal  → n.is_read = false
-       Broadcast → tidak ada row di notification_reads
+  3. Not individually read:
+       Personal  -> n.is_read = false
+       Broadcast -> no row in notification_reads
 
 "Mark all read" = UPDATE users.notifications_read_at = NOW().
-  → Semua notif di bawah cutoff otomatis "read", persistent di DB,
-    aman dari backend restart.
+  All notifs below cutoff become "read", persistent in DB,
+  safe across backend restarts.
 
-"Click 1 notif" = update is_read=true (personal) atau insert
-  notification_reads (broadcast). Tetep per-notif tracking buat
-  granular UX di list.
-═══════════════════════════════════════════════════════════════════════
+"Click single notif" = update is_read=true (personal) or insert
+  notification_reads (broadcast). Per-notif tracking preserved
+  for granular UX in notification list.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -80,7 +78,7 @@ def require_admin(user: User):
 def _get_read_cutoff(db: Session, user_id: int) -> datetime:
     """
     Fetch user's notifications_read_at cutoff timestamp.
-    Defensive: kalau null (legacy edge case), fallback ke epoch.
+    Defensive: if null (legacy edge case), fallback to epoch.
     """
     result = db.execute(
         text("SELECT notifications_read_at FROM users WHERE id = :uid"),
@@ -92,7 +90,7 @@ def _get_read_cutoff(db: Session, user_id: int) -> datetime:
 
 
 # ============ SQL Fragments (DRY) ============
-# Pakai :uid dan :read_at sebagai bound params
+# Use :uid and :read_at as bound params
 
 _VISIBLE = "(n.user_id = :uid OR n.user_id IS NULL)"
 
@@ -148,13 +146,13 @@ async def get_notifications(
 
     where = " AND ".join(conditions)
 
-    # Count total (after filter, sebelum pagination)
+    # Count total (after filter, before pagination)
     total = db.execute(
         text(f"SELECT COUNT(*) FROM notifications n WHERE {where}"),
         params
     ).scalar() or 0
 
-    # Count unread (selalu pakai full unread predicate, bukan filter)
+    # Count unread (always uses full unread predicate, not filter)
     unread_count = db.execute(
         text(f"""
             SELECT COUNT(*) FROM notifications n
@@ -219,8 +217,8 @@ async def mark_as_read(
 ):
     """
     Mark a single notification as read (per-notif granular).
-    Personal  → flip is_read=true
-    Broadcast → insert into notification_reads
+    Personal  -> flip is_read=true
+    Broadcast -> insert into notification_reads
     """
 
     notif = db.execute(text("""
@@ -258,22 +256,22 @@ async def mark_all_as_read(
 
     Strategy:
       1. UPDATE users.notifications_read_at = NOW()
-         → semua notif sebelum NOW() otomatis "read", persistent
-      2. (Bonus) UPDATE personal is_read=true buat konsistensi list view
+         All notifs before NOW() become "read", persistent.
+      2. (Bonus) UPDATE personal is_read=true for list view consistency.
 
-    Catatan: KITA TIDAK INSERT bulk ke notification_reads.
-    Cutoff timestamp menggantikan kebutuhan itu.
-    Notif baru yang dibuat SETELAH NOW() = unread (intended behavior).
+    Note: We do NOT bulk-insert into notification_reads anymore.
+    The cutoff timestamp replaces that need.
+    Notifs created AFTER NOW() = unread (intended behavior).
     """
 
-    # 1. Set cutoff timestamp — INI YANG UTAMA
+    # 1. Set cutoff timestamp - the main mechanism
     db.execute(
         text("UPDATE users SET notifications_read_at = NOW() WHERE id = :uid"),
         {"uid": current_user.id}
     )
 
     # 2. Bonus consistency: flip personal is_read=true
-    #    (gak strictly needed buat unread count, tapi enak buat UI list view)
+    #    (not strictly needed for unread count, but nice for list view)
     db.execute(
         text("""
             UPDATE notifications SET is_read = true
