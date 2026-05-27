@@ -146,7 +146,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
           src={imgUrl}
           alt={domain}
           className="w-full h-full object-cover"
-          style={{ objectPosition: "20% center" }}
+          style={{ objectPosition: "10% center" }}
           loading="lazy"
         />
       </div>
