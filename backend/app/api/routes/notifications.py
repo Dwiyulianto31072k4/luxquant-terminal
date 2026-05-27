@@ -1,6 +1,26 @@
 # backend/app/api/routes/notifications.py
 """
 LuxQuant Terminal - Notifications API Routes
+
+═══════════════════════════════════════════════════════════════════════
+HYBRID READ TRACKING (v2)
+───────────────────────────────────────────────────────────────────────
+Notifikasi dianggap UNREAD untuk user X jika SEMUA kondisi terpenuhi:
+
+  1. Visible: n.user_id = X  OR  n.user_id IS NULL (broadcast)
+  2. Newer than cutoff: n.created_at > X.notifications_read_at
+  3. Belum di-click individual:
+       Personal  → n.is_read = false
+       Broadcast → tidak ada row di notification_reads
+
+"Mark all read" = UPDATE users.notifications_read_at = NOW().
+  → Semua notif di bawah cutoff otomatis "read", persistent di DB,
+    aman dari backend restart.
+
+"Click 1 notif" = update is_read=true (personal) atau insert
+  notification_reads (broadcast). Tetep per-notif tracking buat
+  granular UX di list.
+═══════════════════════════════════════════════════════════════════════
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -47,7 +67,7 @@ class AdminBroadcast(BaseModel):
     type: str = "admin_broadcast"
 
 
-# ============ Helper ============
+# ============ Helpers ============
 
 def require_admin(user: User):
     if not user.is_admin:
@@ -55,6 +75,50 @@ def require_admin(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
+
+
+def _get_read_cutoff(db: Session, user_id: int) -> datetime:
+    """
+    Fetch user's notifications_read_at cutoff timestamp.
+    Defensive: kalau null (legacy edge case), fallback ke epoch.
+    """
+    result = db.execute(
+        text("SELECT notifications_read_at FROM users WHERE id = :uid"),
+        {"uid": user_id}
+    ).scalar()
+    if result is None:
+        return datetime(1970, 1, 1)
+    return result
+
+
+# ============ SQL Fragments (DRY) ============
+# Pakai :uid dan :read_at sebagai bound params
+
+_VISIBLE = "(n.user_id = :uid OR n.user_id IS NULL)"
+
+_UNREAD_PREDICATE = """
+    n.created_at > :read_at
+    AND NOT (
+        (n.user_id = :uid AND n.is_read = true)
+        OR
+        (n.user_id IS NULL AND EXISTS (
+            SELECT 1 FROM notification_reads nr
+            WHERE nr.notification_id = n.id AND nr.user_id = :uid
+        ))
+    )
+"""
+
+_IS_READ_FIELD = """
+    CASE
+        WHEN n.created_at <= :read_at THEN true
+        WHEN n.user_id = :uid AND n.is_read = true THEN true
+        WHEN n.user_id IS NULL AND EXISTS (
+            SELECT 1 FROM notification_reads nr
+            WHERE nr.notification_id = n.id AND nr.user_id = :uid
+        ) THEN true
+        ELSE false
+    END
+"""
 
 
 # ============ User Endpoints ============
@@ -70,72 +134,58 @@ async def get_notifications(
 ):
     """Get notifications for current user (personal + broadcasts)"""
 
-    conditions = ["(n.user_id = :user_id OR n.user_id IS NULL)"]
-    params = {"user_id": current_user.id}
+    read_at = _get_read_cutoff(db, current_user.id)
+
+    conditions = [_VISIBLE]
+    params = {"uid": current_user.id, "read_at": read_at}
 
     if type_filter:
         conditions.append("n.type = :type_filter")
         params["type_filter"] = type_filter
 
     if unread_only:
-        conditions.append("""
-            NOT (
-                (n.user_id = :user_id AND n.is_read = true)
-                OR
-                (n.user_id IS NULL AND EXISTS (
-                    SELECT 1 FROM notification_reads nr
-                    WHERE nr.notification_id = n.id AND nr.user_id = :user_id
-                ))
-            )
-        """)
+        conditions.append(_UNREAD_PREDICATE)
 
     where = " AND ".join(conditions)
 
-    # Count total
-    total = db.execute(text(f"SELECT COUNT(*) FROM notifications n WHERE {where}"), params).scalar() or 0
+    # Count total (after filter, sebelum pagination)
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM notifications n WHERE {where}"),
+        params
+    ).scalar() or 0
 
-    # Count unread
-    unread_count = db.execute(text("""
-        SELECT COUNT(*) FROM notifications n
-        WHERE (n.user_id = :uid OR n.user_id IS NULL)
-        AND NOT (
-            (n.user_id = :uid AND n.is_read = true)
-            OR
-            (n.user_id IS NULL AND EXISTS (
-                SELECT 1 FROM notification_reads nr
-                WHERE nr.notification_id = n.id AND nr.user_id = :uid
-            ))
-        )
-    """), {"uid": current_user.id}).scalar() or 0
+    # Count unread (selalu pakai full unread predicate, bukan filter)
+    unread_count = db.execute(
+        text(f"""
+            SELECT COUNT(*) FROM notifications n
+            WHERE {_VISIBLE}
+            AND {_UNREAD_PREDICATE}
+        """),
+        {"uid": current_user.id, "read_at": read_at}
+    ).scalar() or 0
 
-    # Fetch paginated
+    # Fetch paginated rows
     offset = (page - 1) * page_size
     params["limit"] = page_size
     params["offset"] = offset
 
     rows = db.execute(text(f"""
         SELECT n.id, n.type, n.title, n.body, n.data, n.source_type, n.source_id,
-            CASE
-                WHEN n.user_id = :user_id THEN n.is_read
-                WHEN n.user_id IS NULL THEN EXISTS (
-                    SELECT 1 FROM notification_reads nr
-                    WHERE nr.notification_id = n.id AND nr.user_id = :user_id
-                )
-                ELSE false
-            END as is_read,
-            n.created_at
+               {_IS_READ_FIELD} as is_read,
+               n.created_at
         FROM notifications n
         WHERE {where}
         ORDER BY n.created_at DESC
         LIMIT :limit OFFSET :offset
     """), params).fetchall()
 
-    items = []
-    for r in rows:
-        items.append(NotificationItem(
+    items = [
+        NotificationItem(
             id=r[0], type=r[1], title=r[2], body=r[3], data=r[4],
             source_type=r[5], source_id=r[6], is_read=bool(r[7]), created_at=r[8],
-        ))
+        )
+        for r in rows
+    ]
 
     return NotificationListResponse(items=items, total=total, unread_count=unread_count)
 
@@ -147,18 +197,16 @@ async def get_unread_count(
 ):
     """Get unread notification count (for bell badge)"""
 
-    count = db.execute(text("""
-        SELECT COUNT(*) FROM notifications n
-        WHERE (n.user_id = :uid OR n.user_id IS NULL)
-        AND NOT (
-            (n.user_id = :uid AND n.is_read = true)
-            OR
-            (n.user_id IS NULL AND EXISTS (
-                SELECT 1 FROM notification_reads nr
-                WHERE nr.notification_id = n.id AND nr.user_id = :uid
-            ))
-        )
-    """), {"uid": current_user.id}).scalar() or 0
+    read_at = _get_read_cutoff(db, current_user.id)
+
+    count = db.execute(
+        text(f"""
+            SELECT COUNT(*) FROM notifications n
+            WHERE {_VISIBLE}
+            AND {_UNREAD_PREDICATE}
+        """),
+        {"uid": current_user.id, "read_at": read_at}
+    ).scalar() or 0
 
     return NotificationUnreadCount(unread_count=count)
 
@@ -169,19 +217,28 @@ async def mark_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark a single notification as read"""
+    """
+    Mark a single notification as read (per-notif granular).
+    Personal  → flip is_read=true
+    Broadcast → insert into notification_reads
+    """
 
     notif = db.execute(text("""
         SELECT id, user_id FROM notifications
-        WHERE id = :id AND (user_id = :user_id OR user_id IS NULL)
-    """), {"id": notification_id, "user_id": current_user.id}).fetchone()
+        WHERE id = :id AND (user_id = :uid OR user_id IS NULL)
+    """), {"id": notification_id, "uid": current_user.id}).fetchone()
 
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")
 
     if notif[1] == current_user.id:
-        db.execute(text("UPDATE notifications SET is_read = true WHERE id = :id"), {"id": notification_id})
+        # Personal notif
+        db.execute(
+            text("UPDATE notifications SET is_read = true WHERE id = :id"),
+            {"id": notification_id}
+        )
     else:
+        # Broadcast (user_id IS NULL)
         db.execute(text("""
             INSERT INTO notification_reads (notification_id, user_id)
             VALUES (:nid, :uid) ON CONFLICT (notification_id, user_id) DO NOTHING
@@ -196,22 +253,34 @@ async def mark_all_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark all notifications as read"""
+    """
+    Mark all notifications as read using cutoff timestamp.
 
-    db.execute(text("""
-        UPDATE notifications SET is_read = true
-        WHERE user_id = :uid AND is_read = false
-    """), {"uid": current_user.id})
+    Strategy:
+      1. UPDATE users.notifications_read_at = NOW()
+         → semua notif sebelum NOW() otomatis "read", persistent
+      2. (Bonus) UPDATE personal is_read=true buat konsistensi list view
 
-    db.execute(text("""
-        INSERT INTO notification_reads (notification_id, user_id)
-        SELECT n.id, :uid FROM notifications n
-        WHERE n.user_id IS NULL
-        AND NOT EXISTS (
-            SELECT 1 FROM notification_reads nr
-            WHERE nr.notification_id = n.id AND nr.user_id = :uid
-        )
-    """), {"uid": current_user.id})
+    Catatan: KITA TIDAK INSERT bulk ke notification_reads.
+    Cutoff timestamp menggantikan kebutuhan itu.
+    Notif baru yang dibuat SETELAH NOW() = unread (intended behavior).
+    """
+
+    # 1. Set cutoff timestamp — INI YANG UTAMA
+    db.execute(
+        text("UPDATE users SET notifications_read_at = NOW() WHERE id = :uid"),
+        {"uid": current_user.id}
+    )
+
+    # 2. Bonus consistency: flip personal is_read=true
+    #    (gak strictly needed buat unread count, tapi enak buat UI list view)
+    db.execute(
+        text("""
+            UPDATE notifications SET is_read = true
+            WHERE user_id = :uid AND is_read = false
+        """),
+        {"uid": current_user.id}
+    )
 
     db.commit()
     return {"message": "All notifications marked as read"}
@@ -257,7 +326,10 @@ async def get_channel_messages(
 
     where = " AND ".join(conditions)
 
-    total = db.execute(text(f"SELECT COUNT(*) FROM channel_messages WHERE {where}"), params).scalar() or 0
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM channel_messages WHERE {where}"),
+        params
+    ).scalar() or 0
 
     offset = (page - 1) * page_size
     params["limit"] = page_size
@@ -272,15 +344,16 @@ async def get_channel_messages(
         LIMIT :limit OFFSET :offset
     """), params).fetchall()
 
-    items = []
-    for r in rows:
-        items.append({
+    items = [
+        {
             "id": r[0], "message_type": r[1], "pair": r[2],
             "percentage": r[3], "direction": r[4], "summary_data": r[5],
             "raw_text": r[6],
             "message_date": r[7].isoformat() if r[7] else None,
             "created_at": r[8].isoformat() if r[8] else None,
-        })
+        }
+        for r in rows
+    ]
 
     return {"items": items, "total": total}
 
@@ -328,13 +401,14 @@ async def admin_get_recent_notifications(
 
     total = db.execute(text("SELECT COUNT(*) FROM notifications")).scalar() or 0
 
-    items = []
-    for r in rows:
-        items.append({
+    items = [
+        {
             "id": r[0], "user_id": r[1], "type": r[2], "title": r[3],
             "body": r[4], "data": r[5],
             "created_at": r[6].isoformat() if r[6] else None,
             "username": r[7] or "Broadcast",
-        })
+        }
+        for r in rows
+    ]
 
     return {"items": items, "total": total}
