@@ -1,72 +1,58 @@
 // src/components/admin/FilterPanel.jsx
+//
+// Collapsible filter panel for the Users table.
+// Rebuilt on top of design system primitives.
+//
+
 import { useState } from 'react';
-import { FilterIcon, ChevronDownIcon } from './Icons';
+import { FilterIcon, ChevronDownIcon, XCircleIcon } from './Icons';
+import { Select } from './primitives';
+import { palette, surface, tint, motion } from './designSystem';
 
-const FilterSelect = ({ label, value, onChange, options }) => (
-  <div>
-    <label
-      className="block text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-      style={{ color: 'rgba(255,255,255,0.4)' }}
-    >
-      {label}
-    </label>
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value || null)}
-      className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer transition-colors"
-      style={{
-        background: 'rgba(0,0,0,0.3)',
-        border: `1px solid ${value ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'}`,
-      }}
-    >
-      {options.map((opt) => (
-        <option key={opt.value || '__all'} value={opt.value || ''}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+const FILTER_KEYS = ['role', 'status', 'provider', 'activity', 'reach'];
 
-/**
- * Collapsible filter panel.
- *
- * Props:
- *   filters: { role, status, provider, activity, reach, sortBy, sortOrder }
- *   onChange, onReset, stats?
- */
 export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const activeCount = ['role', 'status', 'provider', 'activity', 'reach'].filter(
-    (k) => filters[k]
-  ).length;
-
+  const activeCount = FILTER_KEYS.filter((k) => filters[k]).length;
   const update = (key) => (value) => onChange({ ...filters, [key]: value });
 
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="relative overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.015)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: surface.base.bg,
+        border: `1px solid ${surface.base.border}`,
+        borderRadius: '12px',
       }}
     >
-      {/* Header */}
+      {/* Top hairline */}
+      <div
+        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent)',
+        }}
+      />
+
+      {/* Toggle header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-white/[0.02]"
+        className="w-full flex items-center justify-between px-4 py-3"
+        style={{ transition: motion.base }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.015)')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         <div className="flex items-center gap-2.5">
-          <FilterIcon size={14} style={{ color: '#8a7a6e' }} />
+          <FilterIcon size={14} style={{ color: activeCount > 0 ? palette.gold[300] : '#8a7a6e' }} />
           <span className="text-xs font-semibold text-white tracking-tight">Filters</span>
           {activeCount > 0 && (
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums"
               style={{
-                background: 'rgba(212,168,83,0.15)',
-                color: '#d4a853',
-                border: '1px solid rgba(212,168,83,0.3)',
+                background: tint(palette.gold[300], 0.15),
+                color: palette.gold[300],
+                border: `1px solid ${tint(palette.gold[300], 0.3)}`,
               }}
             >
               {activeCount} active
@@ -80,14 +66,18 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 e.stopPropagation();
                 onReset();
               }}
-              className="text-[10px] px-2 py-1 rounded font-semibold transition-colors uppercase tracking-wider"
+              className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded font-semibold uppercase tracking-wider"
               style={{
-                color: '#f87171',
-                background: 'rgba(248,113,113,0.06)',
-                border: '1px solid rgba(248,113,113,0.18)',
+                color: palette.red[400],
+                background: tint(palette.red[400], 0.06),
+                border: `1px solid ${tint(palette.red[400], 0.2)}`,
+                transition: motion.base,
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = tint(palette.red[400], 0.14))}
+              onMouseLeave={(e) => (e.currentTarget.style.background = tint(palette.red[400], 0.06))}
             >
-              Reset
+              <XCircleIcon size={10} />
+              Clear all
             </button>
           )}
           <ChevronDownIcon
@@ -101,11 +91,11 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
       {/* Body */}
       {expanded && (
         <div
-          className="px-4 pb-4 pt-1"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+          className="px-4 pb-4 pt-3"
+          style={{ borderTop: `1px solid ${surface.base.border}` }}
         >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
-            <FilterSelect
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <Select
               label="Role"
               value={filters.role}
               onChange={update('role')}
@@ -116,7 +106,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: 'admin', label: 'Admin' },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Status"
               value={filters.status}
               onChange={update('status')}
@@ -128,7 +118,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: 'expired', label: 'Expired' },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Auth Provider"
               value={filters.provider}
               onChange={update('provider')}
@@ -137,26 +127,26 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: 'google', label: 'Google' },
                 { value: 'telegram', label: 'Telegram' },
                 { value: 'discord', label: 'Discord' },
-                { value: 'local', label: 'Local / Email' },
+                { value: 'local', label: 'Email / Local' },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Activity"
               value={filters.activity}
               onChange={update('activity')}
               options={[
-                { value: null, label: 'All' },
-                { value: 'active_7d', label: 'Active (7 days)' },
+                { value: null, label: 'All Activity' },
+                { value: 'active_7d', label: 'Active (last 7d)' },
                 { value: 'dormant_30d', label: 'Dormant (>30d)' },
                 { value: 'never_logged_in', label: 'Never logged in' },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Contact Reach"
               value={filters.reach}
               onChange={update('reach')}
               options={[
-                { value: null, label: 'All' },
+                { value: null, label: 'All Reach' },
                 {
                   value: 'has_tg',
                   label: `Has Telegram${stats ? ` (${stats.telegram_reachable})` : ''}`,
@@ -179,7 +169,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Sort By"
               value={filters.sortBy}
               onChange={update('sortBy')}
@@ -191,7 +181,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: 'role', label: 'Role' },
               ]}
             />
-            <FilterSelect
+            <Select
               label="Order"
               value={filters.sortOrder}
               onChange={update('sortOrder')}
