@@ -1255,7 +1255,7 @@ const CryptoNewsPage = () => {
         </div>
       )}
 
-      {/* FOOTER */}
+      {/* FOOTER NEWS*/}
       <div className="flex items-center justify-center gap-2 py-3 mt-4 border-t border-white/5">
         <span
           className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
