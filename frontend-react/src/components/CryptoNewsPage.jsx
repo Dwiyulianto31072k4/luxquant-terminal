@@ -103,7 +103,7 @@ const categorizeItem = (item) => {
 };
 
 // ════════════════════════════════════════════
-// 2. ATOMS — DomainBadge, CategoryChip, BrandThumbnail
+// 2. ATOMS — DomainBadge, BrandThumbnail
 // ════════════════════════════════════════════
 
 const DomainBadge = ({ domain, size = "sm" }) => {
@@ -122,43 +122,7 @@ const DomainBadge = ({ domain, size = "sm" }) => {
   );
 };
 
-const CategoryChip = ({ catKey, active, onClick, count }) => {
-  const cat = CATEGORY_RULES.find((c) => c.key === catKey);
-  if (!cat) return null;
-  return (
-    <button
-      onClick={onClick}
-      className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all duration-200 ${
-        active
-          ? "border"
-          : "bg-white/[0.02] border border-white/5 text-text-muted hover:bg-white/[0.04] hover:text-white"
-      }`}
-      style={
-        active
-          ? {
-              background: `${cat.color}15`,
-              borderColor: `${cat.color}40`,
-              color: cat.color,
-              boxShadow: `inset 0 0 0 1px ${cat.color}10`,
-            }
-          : undefined
-      }
-    >
-      <span className="text-sm leading-none" style={{ color: active ? cat.color : "currentColor" }}>
-        {cat.icon}
-      </span>
-      <span>{cat.label}</span>
-      {count !== undefined && count > 0 && (
-        <span
-          className="text-[9px] px-1 rounded font-mono"
-          style={{ background: active ? `${cat.color}25` : "rgba(255,255,255,0.05)" }}
-        >
-          {count}
-        </span>
-      )}
-    </button>
-  );
-};
+// Note: Old CategoryChip removed — superseded by FilterChip in section 9
 
 // BrandThumbnail — three modes:
 //   1. FULL-BLEED BRAND IMAGE — for domains in FULL_BLEED_BRAND_IMAGES (e.g. TradingView).
@@ -182,7 +146,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
           src={imgUrl}
           alt={domain}
           className="w-full h-full object-cover"
-          style={{ objectPosition: "25% center" }}
+          style={{ objectPosition: "15% center" }}
           loading="lazy"
         />
       </div>
@@ -232,7 +196,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
             className="text-[9px] font-mono uppercase tracking-[0.25em]"
             style={{ color: "rgba(212,168,83,0.85)" }}
           >
-            LuxQuant News
+            LuxQuant
           </span>
         </div>
       </div>
@@ -909,8 +873,69 @@ const LoadingSkeleton = () => (
 );
 
 // ════════════════════════════════════════════
-// 9. FILTER BAR — search + type + category
+// 9. FILTER BAR — search + type + category (redesigned)
 // ════════════════════════════════════════════
+//
+// Design principles:
+// - Single visual container (1 card unifies all filter controls)
+// - Consistent chip sizing (h-7, all chips identical height)
+// - No inline form-style labels — segments separated by subtle divider
+// - Search dominant at top; filter chips below with visual rhythm
+// - Active state: gold accent (consistent with brand)
+// - Hover state: subtle bg lift, no border flash
+
+const FilterChip = ({ active, onClick, children, color }) => {
+  // Unified chip — same dimensions for type & category filters
+  // `color` optional: overrides active state color (used by category chips for per-category color)
+  const baseClass =
+    "inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-200 whitespace-nowrap";
+  if (active && color) {
+    return (
+      <button
+        onClick={onClick}
+        className={baseClass}
+        style={{
+          background: `${color}18`,
+          color,
+          border: `1px solid ${color}40`,
+          boxShadow: `inset 0 0 0 1px ${color}08`,
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      className={`${baseClass} ${
+        active
+          ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
+          : "bg-white/[0.02] text-text-muted border border-white/5 hover:bg-white/[0.04] hover:text-white hover:border-white/10"
+      }`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const ChipCount = ({ value, active, color }) => {
+  if (value === undefined || value === null) return null;
+  return (
+    <span
+      className="text-[9px] font-mono tabular-nums px-1.5 py-px rounded ml-0.5 opacity-80"
+      style={{
+        background: active
+          ? color
+            ? `${color}25`
+            : "rgba(212, 168, 83, 0.2)"
+          : "rgba(255,255,255,0.05)",
+      }}
+    >
+      {value}
+    </span>
+  );
+};
 
 const FilterBar = ({
   searchInput,
@@ -922,108 +947,118 @@ const FilterBar = ({
   onCategoryChange,
   categoryCounts,
   stats,
-}) => (
-  <div className="space-y-3">
-    {/* Search */}
-    <div className="relative max-w-xl">
-      <svg
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-        />
-      </svg>
-      <input
-        type="text"
-        value={searchInput}
-        onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search news, topics, sources…"
-        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.02] border border-white/10 text-white text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-all"
-      />
-      {searchInput && (
-        <button
-          onClick={onClearSearch}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+}) => {
+  const typeOptions = [
+    { k: "all", label: "All", count: stats?.total },
+    { k: "article", label: "Articles", count: stats?.articles },
+    { k: "photo", label: "Photos", count: stats?.photos },
+    { k: "headline", label: "Headlines", count: stats?.headlines },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl border border-white/[0.06] overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
+      }}
+    >
+      {/* SEARCH ROW */}
+      <div className="p-3 sm:p-4 border-b border-white/[0.04]">
+        <div className="relative">
+          <svg
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/70"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
+              strokeWidth={1.5}
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
             />
           </svg>
-        </button>
-      )}
-    </div>
-
-    {/* Type filters */}
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-text-muted/60 mr-1">
-        Type
-      </span>
-      {[
-        { k: "all", label: "All", count: stats?.total },
-        { k: "article", label: "Articles", count: stats?.articles },
-        { k: "photo", label: "Photos", count: stats?.photos },
-        { k: "headline", label: "Headlines", count: stats?.headlines },
-      ].map((f) => (
-        <button
-          key={f.k}
-          onClick={() => onFilterChange(f.k)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-mono transition-all duration-200 ${
-            activeFilter === f.k
-              ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-              : "bg-white/[0.02] text-text-muted border border-white/5 hover:text-white hover:border-white/15"
-          }`}
-        >
-          {f.label}
-          {f.count !== undefined && (
-            <span
-              className={`text-[9px] px-1 rounded font-mono ${
-                activeFilter === f.k ? "bg-gold-primary/20" : "bg-white/5"
-              }`}
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search news, topics, sources…"
+            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-white text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/30 focus:bg-black/30 transition-all"
+          />
+          {searchInput && (
+            <button
+              onClick={onClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/5 transition-all"
+              title="Clear search"
             >
-              {f.count}
-            </span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           )}
-        </button>
-      ))}
-    </div>
+        </div>
+      </div>
 
-    {/* Category filters */}
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-text-muted/60 mr-1">
-        Category
-      </span>
-      <button
-        onClick={() => onCategoryChange(null)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all ${
-          !activeCategory
-            ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-            : "bg-white/[0.02] border border-white/5 text-text-muted hover:text-white"
-        }`}
-      >
-        ◆ All
-      </button>
-      {CATEGORY_RULES.map((cat) => (
-        <CategoryChip
-          key={cat.key}
-          catKey={cat.key}
-          active={activeCategory === cat.key}
-          onClick={() => onCategoryChange(activeCategory === cat.key ? null : cat.key)}
-          count={categoryCounts[cat.key]}
+      {/* FILTERS ROW — type chips + divider + category chips, all same height */}
+      <div className="px-3 sm:px-4 py-3 flex flex-wrap items-center gap-1.5">
+        {/* Type chips */}
+        {typeOptions.map((f) => {
+          const isActive = activeFilter === f.k;
+          return (
+            <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)}>
+              {f.label}
+              <ChipCount value={f.count} active={isActive} />
+            </FilterChip>
+          );
+        })}
+
+        {/* Subtle vertical divider between type & category */}
+        <span
+          className="h-5 w-px mx-1.5 bg-white/[0.08]"
+          aria-hidden="true"
         />
-      ))}
+
+        {/* Category: All */}
+        <FilterChip
+          active={!activeCategory}
+          onClick={() => onCategoryChange(null)}
+        >
+          <span className="opacity-60">◆</span>
+          <span>All</span>
+        </FilterChip>
+
+        {/* Per-category chips */}
+        {CATEGORY_RULES.map((cat) => {
+          const isActive = activeCategory === cat.key;
+          const count = categoryCounts[cat.key];
+          return (
+            <FilterChip
+              key={cat.key}
+              active={isActive}
+              color={isActive ? cat.color : undefined}
+              onClick={() => onCategoryChange(isActive ? null : cat.key)}
+            >
+              <span
+                className="leading-none text-[13px]"
+                style={{ color: isActive ? cat.color : undefined, opacity: isActive ? 1 : 0.7 }}
+              >
+                {cat.icon}
+              </span>
+              <span>{cat.label}</span>
+              <ChipCount value={count} active={isActive} color={isActive ? cat.color : undefined} />
+            </FilterChip>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ════════════════════════════════════════════
 // 10. MAIN COMPONENT
@@ -1173,48 +1208,17 @@ const CryptoNewsPage = () => {
       {selectedItem && <NewsModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
 
       {/* HEADER */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-2 border-b border-white/5">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
-              Live Feed
-            </span>
-          </div>
-          <h1
-            className="text-3xl sm:text-4xl text-white"
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Crypto News
-          </h1>
-          <p className="text-text-muted text-xs sm:text-sm mt-1">
-            Real-time aggregator · 3-day rolling window · auto-refresh 60s
-          </p>
-        </div>
-        {stats && (
-          <div className="flex flex-wrap gap-2">
-            {[
-              { l: "Total", v: stats.total },
-              { l: "Articles", v: stats.articles },
-              { l: "Photos", v: stats.photos },
-              { l: "1H", v: stats.last_hour },
-            ].map((s) => (
-              <div
-                key={s.l}
-                className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 min-w-[64px]"
-              >
-                <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
-                  {s.l}
-                </span>
-                <span className="text-white text-sm font-mono font-bold tabular-nums">{s.v}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      <header className="pb-3 border-b border-white/5">
+        <h1
+          className="text-3xl sm:text-4xl text-white"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+          }}
+        >
+          Crypto News
+        </h1>
       </header>
 
       {/* PULSE TICKER */}
@@ -1325,16 +1329,6 @@ const CryptoNewsPage = () => {
         </div>
       )}
 
-      {/* FOOTER */}
-      <div className="flex items-center justify-center gap-2 py-3 mt-4 border-t border-white/5">
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-          style={{ boxShadow: "0 0 6px #22c55e" }}
-        />
-        <span className="text-text-muted text-[10px] font-mono uppercase tracking-wider">
-          Auto-refresh 60s · Page {page} of {totalPages || 1}
-        </span>
-      </div>
     </div>
   );
 };
