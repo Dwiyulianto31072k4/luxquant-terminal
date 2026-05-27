@@ -1,19 +1,22 @@
 // src/components/AdminWorkspacePage.jsx
 //
-// Top-level admin workspace with 4 tabs:
+// Top-level admin workspace with 5 tabs:
 //   1. Users (existing UserManagementPage embedded)
 //   2. Follow-ups
 //   3. Marketing
-//   4. TODOs
+//   4. Finance  ← NEW
+//   5. TODOs
 //
-// Persists active tab via URL hash (e.g. /admin/workspace#followups).
+// Persists active tab via URL hash (e.g. /admin/workspace#finance).
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { workspaceApi } from '../services/workspaceApi';
+import { financeApi } from '../services/financeApi';
 import UserManagementPage from './UserManagementPage';
 import { FollowupTab } from './admin/workspace/FollowupTab';
 import { MarketingTab } from './admin/workspace/MarketingTab';
+import { FinanceTab } from './admin/workspace/FinanceTab';
 import { TodoTab } from './admin/workspace/TodoTab';
 import {
   UsersIcon,
@@ -21,6 +24,7 @@ import {
   ClockIcon,
   AlertTriangleIcon,
   SparklesIcon,
+  TrendingUpIcon,
 } from './admin/Icons';
 
 // ════════════════════════════════════════════════════════════════════
@@ -100,12 +104,14 @@ const TABS = [
   { id: 'users', label: 'Users', Icon: UsersIcon },
   { id: 'followups', label: 'Follow-ups', Icon: ClockIcon },
   { id: 'marketing', label: 'Marketing', Icon: SparklesIcon },
+  { id: 'finance', label: 'Finance', Icon: TrendingUpIcon },
   { id: 'todos', label: 'TODOs', Icon: AlertTriangleIcon },
 ];
 
 const AdminWorkspacePage = () => {
   const { user: currentUser } = useAuth();
   const [stats, setStats] = useState(null);
+  const [financeStats, setFinanceStats] = useState(null);
 
   // Read initial tab from URL hash
   const initialTab = (() => {
@@ -129,13 +135,26 @@ const AdminWorkspacePage = () => {
     }
   }, []);
 
+  const fetchFinanceStats = useCallback(async () => {
+    try {
+      const data = await financeApi.getStats();
+      setFinanceStats(data);
+    } catch (e) {
+      console.error('Failed to load finance stats:', e);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 60000); // refresh every 60s
+    fetchFinanceStats();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchFinanceStats();
+    }, 60000);
     return () => clearInterval(interval);
-  }, [fetchStats]);
+  }, [fetchStats, fetchFinanceStats]);
 
-  // Listen for hash changes (browser back/forward)
+  // Listen for hash changes
   useEffect(() => {
     const handler = () => {
       const hash = window.location.hash.replace('#', '');
@@ -165,10 +184,13 @@ const AdminWorkspacePage = () => {
   // Compute badge counts per tab
   const badges = {
     users: null,
-    followups: stats?.followups_overdue || null, // show overdue as urgent badge
+    followups: stats?.followups_overdue || null,
     marketing: null,
-    todos: stats?.todos_urgent || null, // show urgent todos
+    finance: financeStats?.stale_count || null, // stale pending = needs attention
+    todos: stats?.todos_urgent || null,
   };
+
+  const fmtUSDT = (v) => v != null ? `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—';
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:px-8">
@@ -186,35 +208,47 @@ const AdminWorkspacePage = () => {
             Workspace
           </h1>
           <p className="text-xs mt-1.5" style={{ color: '#6b5c52' }}>
-            Kelola users, follow-up penagihan, marketing budget, dan internal todos.
+            Kelola users, follow-up penagihan, marketing budget, finance, dan internal todos.
           </p>
         </div>
 
         {/* Mini stats summary */}
-        {stats && (
-          <div className="flex flex-wrap gap-1.5">
-            {stats.followups_overdue > 0 && (
-              <MiniStat
-                label="Overdue"
-                value={stats.followups_overdue}
-                accent="#f87171"
-              />
-            )}
-            {stats.followups_today > 0 && (
-              <MiniStat label="Today" value={stats.followups_today} accent="#fb923c" />
-            )}
-            {stats.campaigns_active > 0 && (
-              <MiniStat
-                label="Active Campaigns"
-                value={stats.campaigns_active}
-                accent="#34d399"
-              />
-            )}
-            {stats.todos_urgent > 0 && (
-              <MiniStat label="Urgent TODOs" value={stats.todos_urgent} accent="#f87171" />
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-1.5">
+          {stats?.followups_overdue > 0 && (
+            <MiniStat
+              label="Overdue"
+              value={stats.followups_overdue}
+              accent="#f87171"
+            />
+          )}
+          {stats?.followups_today > 0 && (
+            <MiniStat label="Today" value={stats.followups_today} accent="#fb923c" />
+          )}
+          {financeStats?.stale_count > 0 && (
+            <MiniStat
+              label="Stale Pay"
+              value={financeStats.stale_count}
+              accent="#f87171"
+            />
+          )}
+          {financeStats?.revenue_today > 0 && (
+            <MiniStat
+              label="Today Rev"
+              value={fmtUSDT(financeStats.revenue_today)}
+              accent="#34d399"
+            />
+          )}
+          {stats?.campaigns_active > 0 && (
+            <MiniStat
+              label="Campaigns"
+              value={stats.campaigns_active}
+              accent="#a78bfa"
+            />
+          )}
+          {stats?.todos_urgent > 0 && (
+            <MiniStat label="Urgent TODOs" value={stats.todos_urgent} accent="#f87171" />
+          )}
+        </div>
       </div>
 
       {/* Tab navigation */}
@@ -239,12 +273,12 @@ const AdminWorkspacePage = () => {
       <div>
         {activeTab === 'users' && (
           <div className="-mx-4 md:-mx-6 lg:-mx-8 -my-6">
-            {/* UserManagementPage already has its own container; offset our padding */}
             <UserManagementPage />
           </div>
         )}
         {activeTab === 'followups' && <FollowupTab onRefreshStats={fetchStats} />}
         {activeTab === 'marketing' && <MarketingTab onRefreshStats={fetchStats} />}
+        {activeTab === 'finance' && <FinanceTab onRefreshStats={fetchFinanceStats} />}
         {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
       </div>
     </div>
