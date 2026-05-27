@@ -182,7 +182,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
           src={imgUrl}
           alt={domain}
           className="w-full h-full object-cover"
-          style={{ objectPosition: "left center" }}
+          style={{ objectPosition: "25% center" }}
           loading="lazy"
         />
       </div>
@@ -232,7 +232,7 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
             className="text-[9px] font-mono uppercase tracking-[0.25em]"
             style={{ color: "rgba(212,168,83,0.85)" }}
           >
-            LuxQuant
+            LuxQuant News
           </span>
         </div>
       </div>
@@ -634,26 +634,12 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
         )}
 
-        {/* Domain badge — top-left */}
-        <div className="absolute top-2 left-2 z-10">
-          <DomainBadge domain={item.domain} />
-        </div>
-
-        {/* Type badge — top-right */}
-        {(isPhoto || isHeadline) && (
+        {/* NEWS badge — top-right, only for headlines (kept as content type indicator) */}
+        {isHeadline && !isPhoto && (
           <div className="absolute top-2 right-2 z-10">
-            {isPhoto && (
-              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider bg-purple-500/30 text-purple-200 border border-purple-500/40 backdrop-blur-sm">
-                photo
-              </span>
-            )}
-            {isHeadline && !isPhoto && (
-              <span
-                className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-[0.15em] backdrop-blur-sm bg-gold-primary/25 text-gold-primary border border-gold-primary/50"
-              >
-                news
-              </span>
-            )}
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-[0.15em] backdrop-blur-sm bg-gold-primary/25 text-gold-primary border border-gold-primary/50">
+              news
+            </span>
           </div>
         )}
 
