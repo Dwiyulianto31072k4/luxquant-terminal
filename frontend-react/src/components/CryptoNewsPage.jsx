@@ -1,17 +1,17 @@
 // src/components/CryptoNewsPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Crypto News v4 (Bloomberg × Linear redesign)
-// Magazine-grade aggregator with masonry, auto-categorization,
-// branded placeholders, ticker pulse, density toggle, keyboard nav.
+// LuxQuant Terminal — Crypto News v5 (Flowscan-density redesign)
+// Uniform 1:1 dense grid · brand favicons · info-dense
+// Replaces hero/featured/headline-card variants with single UniformCard.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 const API_BASE = "/api/v1";
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 30;
 
 // ════════════════════════════════════════════
-// 1. HELPERS — time, domain colors, categorization
+// 1. HELPERS — time, domain colors, categorization, favicon
 // ════════════════════════════════════════════
 
 const timeAgo = (dateStr) => {
@@ -45,33 +45,10 @@ const DOMAIN_COLORS = {
   "bitget.com": "#00f0ff",
 };
 
-const DOMAIN_ABBREV = {
-  "tradingview.com": "TV",
-  "cointelegraph.com": "CT",
-  "coindesk.com": "CD",
-  "decrypt.co": "DE",
-  "bitcoinworld.co.in": "BW",
-  "bitcoinmagazine.com": "BM",
-  "theblock.co": "TB",
-  "cryptoslate.com": "CS",
-  "newsbtc.com": "NB",
-  "beincrypto.com": "BI",
-  "cryptobriefing.com": "CB",
-  "coinpedia.org": "CP",
-  "u.today": "UT",
-  "bitget.com": "BG",
-};
-
 const getDomainColor = (domain) => {
   if (!domain) return "#d4a24e";
   const key = Object.keys(DOMAIN_COLORS).find((d) => domain.includes(d));
   return key ? DOMAIN_COLORS[key] : "#d4a24e";
-};
-
-const getDomainAbbrev = (domain) => {
-  if (!domain) return "?";
-  const key = Object.keys(DOMAIN_ABBREV).find((d) => domain.includes(d));
-  return key ? DOMAIN_ABBREV[key] : domain.slice(0, 2).toUpperCase();
 };
 
 const shortDomain = (domain) => {
@@ -81,6 +58,12 @@ const shortDomain = (domain) => {
     .replace(".co.in", "")
     .replace(".co", "")
     .replace(".org", "");
+};
+
+// Build favicon URL via Google's favicon service (cached, fast, reliable)
+const getFaviconUrl = (domain, size = 128) => {
+  if (!domain) return null;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 };
 
 const getImageSrc = (item) => {
@@ -110,7 +93,7 @@ const categorizeItem = (item) => {
 };
 
 // ════════════════════════════════════════════
-// 2. ATOMS — DomainBadge, CategoryChip, ImagePlaceholder
+// 2. ATOMS — DomainBadge, CategoryChip, BrandThumbnail
 // ════════════════════════════════════════════
 
 const DomainBadge = ({ domain, size = "sm" }) => {
@@ -167,64 +150,77 @@ const CategoryChip = ({ catKey, active, onClick, count }) => {
   );
 };
 
-const ImagePlaceholder = ({ domain, className = "", size = "md" }) => {
+// BrandThumbnail — favicon-based fallback for items without thumbnails
+const BrandThumbnail = ({ domain }) => {
   const color = getDomainColor(domain);
-  const abbrev = getDomainAbbrev(domain);
-  const fontSize = size === "lg" ? "clamp(3rem, 7vw, 5rem)" : size === "sm" ? "clamp(1.5rem, 4vw, 2.5rem)" : "clamp(2.5rem, 6vw, 4rem)";
+  const faviconUrl = getFaviconUrl(domain, 128);
+  const [faviconFailed, setFaviconFailed] = useState(false);
+
   return (
     <div
-      className={`w-full h-full flex items-center justify-center select-none relative overflow-hidden ${className}`}
+      className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
       style={{
-        background: `radial-gradient(circle at 30% 20%, ${color}30 0%, ${color}08 45%, ${color}18 100%)`,
+        background: `radial-gradient(circle at 35% 25%, ${color}28 0%, ${color}06 55%, ${color}14 100%)`,
       }}
     >
-      {/* Subtle grid overlay for texture */}
+      {/* Subtle grid texture */}
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-25"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
           `,
-          backgroundSize: "20px 20px",
+          backgroundSize: "18px 18px",
         }}
       />
-      {/* Noise overlay */}
+      {/* Corner accent — luxury detail */}
       <div
-        className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+        className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='100' height='100' filter='url(%23n)'/></svg>")`,
+          background: `linear-gradient(135deg, transparent 50%, ${color}25 50%)`,
         }}
       />
-      {/* Brand mark */}
-      <div className="relative flex flex-col items-center gap-1.5 z-10">
+      {/* Favicon centered */}
+      <div className="relative z-10 flex flex-col items-center gap-1.5">
+        {faviconUrl && !faviconFailed ? (
+          <div
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(8px)",
+              border: `1px solid ${color}40`,
+              boxShadow: `0 4px 20px ${color}30`,
+            }}
+          >
+            <img
+              src={faviconUrl}
+              alt={domain}
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
+              onError={() => setFaviconFailed(true)}
+            />
+          </div>
+        ) : (
+          <div
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-bold text-xl"
+            style={{
+              background: `${color}25`,
+              color,
+              border: `1px solid ${color}50`,
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.05em",
+            }}
+          >
+            {shortDomain(domain).slice(0, 2).toUpperCase()}
+          </div>
+        )}
         <span
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize,
-            fontWeight: 700,
-            color: `${color}d6`,
-            letterSpacing: "-0.05em",
-            lineHeight: 1,
-            textShadow: `0 4px 24px ${color}60`,
-          }}
-        >
-          {abbrev}
-        </span>
-        <span
-          className="text-[9px] font-mono uppercase tracking-[0.25em]"
-          style={{ color: `${color}80` }}
+          className="text-[9px] font-mono uppercase tracking-[0.2em] mt-1"
+          style={{ color: `${color}cc` }}
         >
           {shortDomain(domain)}
         </span>
       </div>
-      {/* Corner accent */}
-      <div
-        className="absolute top-0 right-0 w-16 h-16"
-        style={{
-          background: `linear-gradient(135deg, transparent 50%, ${color}20 50%)`,
-        }}
-      />
     </div>
   );
 };
@@ -345,7 +341,7 @@ const NewsModal = ({ item, onClose }) => {
                 }}
               />
             ) : (
-              <ImagePlaceholder domain={item.domain} size="lg" />
+              <BrandThumbnail domain={item.domain} />
             )}
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0c0a10] to-transparent" />
           </div>
@@ -498,234 +494,110 @@ const PulseTicker = ({ items, onSelect }) => {
 };
 
 // ════════════════════════════════════════════
-// 5. NEWS CARDS — variants by importance & content
+// 5. UNIFORM CARD — single card type for all items
 // ════════════════════════════════════════════
+//
+// Layout (square 1:1):
+//   ┌──────────────────────┐
+//   │  [thumbnail or       │  ← image area (object-cover)
+//   │   brand fallback]    │
+//   │  [domain badge TL]   │
+//   │  [photo badge TR]    │
+//   ├──────────────────────┤
+//   │  Title (2-line clamp)│  ← compact footer
+//   │  domain · time       │
+//   └──────────────────────┘
+//
+// All items use this — articles, photos, headlines — visually unified.
 
-// HERO CARD — Top of page, big & dramatic
-const HeroCard = ({ item, onSelect }) => {
-  const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
-  return (
-    <div
-      onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-2xl overflow-hidden border border-white/5 hover:border-gold-primary/30 transition-all duration-500 flex flex-col"
-      style={{
-        background: "linear-gradient(180deg, rgba(20,16,28,0.6), rgba(12,10,16,0.4))",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-      }}
-    >
-      {/* Image area — cinematic aspect, no crop on portrait images */}
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <ImagePlaceholder domain={item.domain} size="lg" />
-        )}
-        {/* Top gradient for badge legibility only */}
-        <div
-          className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)",
-          }}
-        />
-        {/* Top corner badges */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <DomainBadge domain={item.domain} size="lg" />
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.25em] px-2 py-0.5 rounded"
-            style={{
-              background: "rgba(212, 168, 83, 0.15)",
-              color: "#d4a853",
-              border: "1px solid rgba(212, 168, 83, 0.3)",
-            }}
-          >
-            ★ Featured
-          </span>
-        </div>
-        {/* Bottom content — stronger backdrop for legibility */}
-        <div
-          className="absolute inset-x-0 bottom-0 p-6 z-10"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.92) 100%)",
-          }}
-        >
-          <h2
-            className="text-white text-xl sm:text-2xl lg:text-3xl leading-tight line-clamp-3 mb-3 group-hover:text-gold-primary transition-colors duration-300"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
-          >
-            {item.title}
-          </h2>
-          {item.description && (
-            <p className="text-white/70 text-[13px] leading-relaxed line-clamp-2 mb-3">
-              {item.description}
-            </p>
-          )}
-          <div className="flex items-center gap-2 text-[11px] font-mono">
-            <span className="text-text-muted">{timeAgo(item.created_at)}</span>
-            <span className="text-text-muted/50">·</span>
-            <span style={{ color }} className="group-hover:underline underline-offset-2">
-              Read story →
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// FEATURED CARD — second tier, medium prominence
-const FeaturedCard = ({ item, onSelect }) => {
-  const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
-  return (
-    <div
-      onClick={() => onSelect(item)}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.03] transition-all duration-300 flex flex-col h-full"
-    >
-      <div className="relative w-full overflow-hidden flex-shrink-0" style={{ aspectRatio: "16 / 10" }}>
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <ImagePlaceholder domain={item.domain} size="md" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        <div className="absolute top-2 left-2">
-          <DomainBadge domain={item.domain} />
-        </div>
-      </div>
-      <div className="p-3 flex flex-col flex-1">
-        <h3
-          className="text-white text-[13px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-        >
-          {item.title}
-        </h3>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
-          <span
-            className="text-[10px] font-mono group-hover:translate-x-0.5 transition-transform"
-            style={{ color }}
-          >
-            →
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// REGULAR CARD — standard grid item
-const RegularCard = ({ item, onSelect, dense = false }) => {
+const UniformCard = ({ item, onSelect, variant = "default" }) => {
   const imgSrc = getImageSrc(item);
   const color = getDomainColor(item.domain);
   const isPhoto = item.content_type === "photo";
+  const isHeadline = variant === "headline" || item.content_type === "headline";
 
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.035] transition-all duration-300 flex flex-col h-full"
+      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
+      style={{
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      }}
     >
-      <div
-        className="relative w-full overflow-hidden flex-shrink-0"
-        style={{ aspectRatio: dense ? "4 / 3" : "4 / 3" }}
-      >
+      {/* Image / thumbnail area — square aspect */}
+      <div className="relative w-full aspect-square overflow-hidden flex-shrink-0">
         {imgSrc ? (
           <img
             src={imgSrc}
             alt=""
-            className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
+            loading="lazy"
+            className="w-full h-full object-cover"
             onError={(e) => {
               e.target.style.display = "none";
             }}
           />
         ) : (
-          <ImagePlaceholder domain={item.domain} size="md" />
+          <BrandThumbnail domain={item.domain} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        <div className="absolute top-2 left-2">
+
+        {/* Subtle bottom gradient for badge legibility when image present */}
+        {imgSrc && (
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        )}
+
+        {/* Domain badge — top-left */}
+        <div className="absolute top-2 left-2 z-10">
           <DomainBadge domain={item.domain} />
         </div>
-        {isPhoto && (
-          <div className="absolute top-2 right-2">
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider bg-purple-500/30 text-purple-300 border border-purple-500/40">
-              photo
-            </span>
+
+        {/* Type badge — top-right */}
+        {(isPhoto || isHeadline) && (
+          <div className="absolute top-2 right-2 z-10">
+            {isPhoto && (
+              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider bg-purple-500/30 text-purple-200 border border-purple-500/40 backdrop-blur-sm">
+                photo
+              </span>
+            )}
+            {isHeadline && !isPhoto && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider backdrop-blur-sm"
+                style={{
+                  background: `${color}30`,
+                  color: `${color}ee`,
+                  border: `1px solid ${color}50`,
+                }}
+              >
+                ⚡ live
+              </span>
+            )}
           </div>
         )}
+
+        {/* Hover overlay tint */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{
+            background: `linear-gradient(180deg, ${color}00 60%, ${color}15 100%)`,
+          }}
+        />
       </div>
-      <div className={`flex flex-col flex-1 ${dense ? "p-2.5" : "p-3"}`}>
+
+      {/* Footer — title + meta */}
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
         <h4
-          className={`text-white leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1 ${
-            dense ? "text-[11px]" : "text-[12.5px]"
-          }`}
+          className="text-white text-[11.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+          title={item.title}
         >
           {item.title}
         </h4>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
-          <span
-            className="text-[10px] font-mono opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
-            style={{ color }}
-          >
-            Details →
+        <div className="flex items-center justify-between mt-auto pt-1 border-t border-white/5">
+          <span className="text-text-muted text-[9px] font-mono uppercase tracking-wider truncate">
+            {shortDomain(item.domain)}
           </span>
-        </div>
-      </div>
-    </article>
-  );
-};
-
-// HEADLINE CARD — text-only, gold accent, no image
-const HeadlineCard = ({ item, onSelect }) => {
-  const color = getDomainColor(item.domain);
-  return (
-    <article
-      onClick={() => onSelect(item)}
-      className="group cursor-pointer p-4 rounded-xl bg-white/[0.015] border border-white/5 hover:bg-white/[0.03] transition-all duration-300 relative overflow-hidden"
-      style={{ borderLeft: `2px solid ${color}80` }}
-    >
-      {/* Glow on hover */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, ${color}10 0%, transparent 60%)` }}
-      />
-      <div className="relative flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-2">
-            <span
-              className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-[0.15em]"
-              style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}
-            >
-              ⚡ Headline
-            </span>
-            <DomainBadge domain={item.domain} />
-          </div>
-          <h4
-            className="text-white text-[12.5px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-          >
-            {item.title}
-          </h4>
-          <div className="mt-2 text-[10px] font-mono text-text-muted">
+          <span className="text-text-muted/70 text-[9px] font-mono flex-shrink-0 ml-1">
             {timeAgo(item.created_at)}
-          </div>
+          </span>
         </div>
       </div>
     </article>
@@ -944,28 +816,21 @@ const Pagination = ({ page, totalPages, onChange }) => {
 };
 
 // ════════════════════════════════════════════
-// 8. LOADING SKELETON
+// 8. LOADING SKELETON — uniform grid
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
   <div className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div className="md:col-span-2 h-72 rounded-2xl bg-white/[0.02] border border-white/5 animate-pulse" />
-      <div className="space-y-3">
-        <div className="h-[140px] rounded-xl bg-white/[0.02] border border-white/5 animate-pulse" />
-        <div className="h-[140px] rounded-xl bg-white/[0.02] border border-white/5 animate-pulse" />
-      </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-      {[...Array(6)].map((_, i) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+      {[...Array(15)].map((_, i) => (
         <div
           key={i}
           className="rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse"
         >
-          <div className="h-36 bg-white/5" />
-          <div className="p-3 space-y-2">
-            <div className="h-3 bg-white/5 rounded w-3/4" />
-            <div className="h-3 bg-white/5 rounded w-1/2" />
+          <div className="aspect-square bg-white/5" />
+          <div className="p-2.5 space-y-1.5">
+            <div className="h-2.5 bg-white/5 rounded w-3/4" />
+            <div className="h-2 bg-white/5 rounded w-1/2" />
           </div>
         </div>
       ))}
@@ -974,7 +839,7 @@ const LoadingSkeleton = () => (
 );
 
 // ════════════════════════════════════════════
-// 9. FILTER BAR
+// 9. FILTER BAR — search + type + category
 // ════════════════════════════════════════════
 
 const FilterBar = ({
@@ -987,69 +852,45 @@ const FilterBar = ({
   onCategoryChange,
   categoryCounts,
   stats,
-  density,
-  onDensityChange,
 }) => (
   <div className="space-y-3">
-    {/* Top row — search + density toggle */}
-    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-      <div className="relative flex-1 max-w-xl">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search news, topics, sources…"
-          className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.02] border border-white/10 text-white text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-all"
+    {/* Search */}
+    <div className="relative max-w-xl">
+      <svg
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
         />
-        {searchInput && (
-          <button
-            onClick={onClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Density toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-lg bg-white/[0.02] border border-white/5">
-        {[
-          { k: "comfortable", label: "Comfy" },
-          { k: "compact", label: "Dense" },
-        ].map((o) => (
-          <button
-            key={o.k}
-            onClick={() => onDensityChange(o.k)}
-            className={`px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
-              density === o.k
-                ? "bg-gold-primary/15 text-gold-primary"
-                : "text-text-muted hover:text-white"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      </svg>
+      <input
+        type="text"
+        value={searchInput}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="Search news, topics, sources…"
+        className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.02] border border-white/10 text-white text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-all"
+      />
+      {searchInput && (
+        <button
+          onClick={onClearSearch}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      )}
     </div>
 
     {/* Type filters */}
@@ -1132,22 +973,8 @@ const CryptoNewsPage = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [density, setDensity] = useState(() => {
-    try {
-      return localStorage.getItem("luxquant.news.density") || "comfortable";
-    } catch {
-      return "comfortable";
-    }
-  });
 
   const searchTimeout = useRef(null);
-
-  // ── Persist density ────────────────────
-  useEffect(() => {
-    try {
-      localStorage.setItem("luxquant.news.density", density);
-    } catch {}
-  }, [density]);
 
   // ── Fetch ──────────────────────────────
   const fetchFeed = useCallback(
@@ -1250,46 +1077,23 @@ const CryptoNewsPage = () => {
     return itemsWithCategory.filter((item) => item._category === activeCategory);
   }, [itemsWithCategory, activeCategory]);
 
-  // Hero: first article with image + description
-  const heroItem = useMemo(() => {
-    if (page !== 1 || activeFilter !== "all" || searchQuery) return null;
-    return filteredItems.find(
-      (i) =>
-        i.content_type === "article" &&
-        i.description &&
-        getImageSrc(i)
-    );
-  }, [filteredItems, page, activeFilter, searchQuery]);
-
-  // 2 featured: next 2 articles for top-right stack
-  const featuredItems = useMemo(() => {
-    if (!heroItem) return [];
-    return filteredItems
-      .filter((i) => i.id !== heroItem.id && i.content_type === "article")
-      .slice(0, 2);
-  }, [filteredItems, heroItem]);
-
-  // Pulse ticker: 12 latest non-photo
+  // Pulse ticker: 12 latest non-photo (shown only on page 1, no search)
   const pulseItems = useMemo(() => {
     if (page !== 1 || searchQuery) return [];
     return allItems.filter((i) => i.content_type !== "photo").slice(0, 12);
   }, [allItems, page, searchQuery]);
 
-  // Grid items: rest
-  const gridItems = useMemo(() => {
-    const used = new Set([heroItem?.id, ...featuredItems.map((f) => f.id)].filter(Boolean));
-    return filteredItems.filter((i) => !used.has(i.id));
-  }, [filteredItems, heroItem, featuredItems]);
+  // Latest Headlines section (max 5, only when no search/category filter narrowing)
+  const headlinesSection = useMemo(() => {
+    if (page !== 1 || searchQuery || activeCategory || activeFilter === "headline") return [];
+    return filteredItems.filter((i) => i.content_type === "headline").slice(0, 5);
+  }, [filteredItems, page, searchQuery, activeCategory, activeFilter]);
 
-  // Headlines (separate small grid)
-  const headlines = useMemo(
-    () => gridItems.filter((i) => i.content_type === "headline").slice(0, 4),
-    [gridItems]
-  );
-  const nonHeadlineGrid = useMemo(
-    () => gridItems.filter((i) => i.content_type !== "headline"),
-    [gridItems]
-  );
+  // Main grid: everything except items shown in Latest Headlines section
+  const mainGridItems = useMemo(() => {
+    const usedIds = new Set(headlinesSection.map((h) => h.id));
+    return filteredItems.filter((i) => !usedIds.has(i.id));
+  }, [filteredItems, headlinesSection]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -1357,8 +1161,6 @@ const CryptoNewsPage = () => {
         onCategoryChange={handleCategoryChange}
         categoryCounts={categoryCounts}
         stats={stats}
-        density={density}
-        onDensityChange={setDensity}
       />
 
       {/* CONTENT */}
@@ -1386,39 +1188,35 @@ const CryptoNewsPage = () => {
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
           <div className="flex-1 min-w-0 space-y-5">
-            {/* HERO + 2 FEATURED */}
-            {heroItem && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2">
-                  <HeroCard item={heroItem} onSelect={setSelectedItem} />
-                </div>
-                <div className="grid grid-rows-2 gap-3">
-                  {featuredItems.map((item) => (
-                    <FeaturedCard key={item.id} item={item} onSelect={setSelectedItem} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* HEADLINES STRIP */}
-            {headlines.length > 0 && (
+            {/* LATEST HEADLINES — uniform card grid, separate section */}
+            {headlinesSection.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-1 h-3 rounded-full bg-gold-primary" />
-                  <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                    Latest Headlines
-                  </h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-3 rounded-full bg-gold-primary" />
+                    <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
+                      Latest Headlines
+                    </h2>
+                  </div>
+                  <span className="text-[10px] font-mono text-text-muted">
+                    {headlinesSection.length}
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
-                  {headlines.map((item) => (
-                    <HeadlineCard key={item.id} item={item} onSelect={setSelectedItem} />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {headlinesSection.map((item) => (
+                    <UniformCard
+                      key={item.id}
+                      item={item}
+                      onSelect={setSelectedItem}
+                      variant="headline"
+                    />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* MAIN GRID */}
-            {nonHeadlineGrid.length > 0 && (
+            {/* MAIN GRID — uniform 5-column dense */}
+            {mainGridItems.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1430,23 +1228,12 @@ const CryptoNewsPage = () => {
                     </h2>
                   </div>
                   <span className="text-[10px] font-mono text-text-muted">
-                    {nonHeadlineGrid.length} stories
+                    {mainGridItems.length} stories
                   </span>
                 </div>
-                <div
-                  className={`grid gap-3 ${
-                    density === "compact"
-                      ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-                      : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                  }`}
-                >
-                  {nonHeadlineGrid.map((item) => (
-                    <RegularCard
-                      key={item.id}
-                      item={item}
-                      onSelect={setSelectedItem}
-                      dense={density === "compact"}
-                    />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {mainGridItems.map((item) => (
+                    <UniformCard key={item.id} item={item} onSelect={setSelectedItem} />
                   ))}
                 </div>
               </div>
