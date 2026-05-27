@@ -10,6 +10,16 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 const API_BASE = "/api/v1";
 const PAGE_SIZE = 30;
 
+// Brand assets (in /public — referenced by absolute path)
+const LUXQUANT_LOGO = "/logo.png";
+const TRADINGVIEW_IMAGE = "/news-flow-tradingview.jpg";
+
+// Domains that should display their own promo/marketing image as full-bleed thumbnail
+// (instead of the standard favicon-in-glass-card pattern)
+const FULL_BLEED_BRAND_IMAGES = {
+  "tradingview.com": TRADINGVIEW_IMAGE,
+};
+
 // ════════════════════════════════════════════
 // 1. HELPERS — time, domain colors, categorization, favicon
 // ════════════════════════════════════════════
@@ -150,10 +160,91 @@ const CategoryChip = ({ catKey, active, onClick, count }) => {
   );
 };
 
-// BrandThumbnail — favicon-based fallback for items without thumbnails
-const BrandThumbnail = ({ domain }) => {
+// BrandThumbnail — three modes:
+//   1. FULL-BLEED BRAND IMAGE — for domains in FULL_BLEED_BRAND_IMAGES (e.g. TradingView).
+//      Renders the brand image as a cover-fitted thumbnail, no wrapper card.
+//   2. LUXQUANT LOGO — for headline content (no real image, no recognizable domain favicon).
+//      Renders the LuxQuant 量子智引 logo centered on luxury gold gradient.
+//   3. FAVICON GLASS CARD — fallback for all other domains. Fetches favicon from Google,
+//      displays in a glass-effect card with domain name underneath.
+const BrandThumbnail = ({ domain, isHeadline = false }) => {
   const color = getDomainColor(domain);
+
+  // MODE 1: Full-bleed brand promo image (e.g. TradingView)
+  const fullBleedImageKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) =>
+    domain?.includes(d)
+  );
+  if (fullBleedImageKey) {
+    const imgUrl = FULL_BLEED_BRAND_IMAGES[fullBleedImageKey];
+    return (
+      <div className="w-full h-full overflow-hidden bg-black">
+        <img
+          src={imgUrl}
+          alt={domain}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // MODE 2: LuxQuant logo for headlines / aggregated news
+  if (isHeadline) {
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 40%, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.04) 55%, rgba(0,0,0,0.4) 100%)",
+        }}
+      >
+        {/* Subtle grid texture */}
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(212,168,83,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(212,168,83,0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: "18px 18px",
+          }}
+        />
+        {/* Gold corner accent */}
+        <div
+          className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(135deg, transparent 50%, rgba(212,168,83,0.22) 50%)",
+          }}
+        />
+        {/* LuxQuant logo */}
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <img
+            src={LUXQUANT_LOGO}
+            alt="LuxQuant"
+            className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+            style={{
+              filter: "drop-shadow(0 4px 20px rgba(212,168,83,0.35))",
+            }}
+          />
+          <span
+            className="text-[9px] font-mono uppercase tracking-[0.25em]"
+            style={{ color: "rgba(212,168,83,0.85)" }}
+          >
+            LuxQuant
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // MODE 3: Standard favicon-in-glass-card fallback
   const faviconUrl = getFaviconUrl(domain, 128);
+  return <FaviconGlassCard domain={domain} faviconUrl={faviconUrl} color={color} />;
+};
+
+// Helper sub-component for MODE 3 (extracted to keep useState scoped correctly)
+const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
   const [faviconFailed, setFaviconFailed] = useState(false);
 
   return (
@@ -174,14 +265,13 @@ const BrandThumbnail = ({ domain }) => {
           backgroundSize: "18px 18px",
         }}
       />
-      {/* Corner accent — luxury detail */}
+      {/* Corner accent */}
       <div
         className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
         style={{
           background: `linear-gradient(135deg, transparent 50%, ${color}25 50%)`,
         }}
       />
-      {/* Favicon centered */}
       <div className="relative z-10 flex flex-col items-center gap-1.5">
         {faviconUrl && !faviconFailed ? (
           <div
@@ -329,21 +419,22 @@ const NewsModal = ({ item, onClose }) => {
 
         {/* Scrollable content */}
         <div className="nm-scroll overflow-y-auto flex-1">
-          {/* Image / Placeholder */}
-          <div className="relative w-full h-56 sm:h-72 overflow-hidden bg-black/40">
+          {/* Image / Placeholder — object-contain so the full image is visible (no crop) */}
+          <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "60vh", minHeight: "12rem" }}>
             {imgSrc ? (
               <img
                 src={imgSrc}
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-auto max-h-[60vh] object-contain"
                 onError={(e) => {
                   e.target.style.display = "none";
                 }}
               />
             ) : (
-              <BrandThumbnail domain={item.domain} />
+              <div className="w-full" style={{ aspectRatio: "16 / 9" }}>
+                <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
+              </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0c0a10] to-transparent" />
           </div>
 
           {/* Body */}
@@ -406,8 +497,8 @@ const NewsModal = ({ item, onClose }) => {
         </div>
 
         {/* Footer CTA */}
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-white/5 flex-shrink-0">
-          {item.url ? (
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-white/5 flex-shrink-0">
+          {item.url && (
             <a
               href={item.url}
               target="_blank"
@@ -420,10 +511,6 @@ const NewsModal = ({ item, onClose }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-          ) : (
-            <div className="flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl text-sm text-text-muted bg-white/[0.03]">
-              No external link
-            </div>
           )}
           <button
             onClick={handleClose}
@@ -537,7 +624,7 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
             }}
           />
         ) : (
-          <BrandThumbnail domain={item.domain} />
+          <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
         )}
 
         {/* Subtle bottom gradient for badge legibility when image present */}
@@ -560,14 +647,9 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
             )}
             {isHeadline && !isPhoto && (
               <span
-                className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider backdrop-blur-sm"
-                style={{
-                  background: `${color}30`,
-                  color: `${color}ee`,
-                  border: `1px solid ${color}50`,
-                }}
+                className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-[0.15em] backdrop-blur-sm bg-gold-primary/25 text-gold-primary border border-gold-primary/50"
               >
-                ⚡ live
+                news
               </span>
             )}
           </div>
@@ -1255,7 +1337,7 @@ const CryptoNewsPage = () => {
         </div>
       )}
 
-      {/* FOOTER NEWS*/}
+      {/* FOOTER */}
       <div className="flex items-center justify-center gap-2 py-3 mt-4 border-t border-white/5">
         <span
           className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
