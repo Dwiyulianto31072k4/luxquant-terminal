@@ -87,12 +87,15 @@ const PricingPage = () => {
     return null;
   };
 
+  // Maps a plan slug (name) → localized label. Accepts a minimal { name, label }
+  // shape so it can be reused for both full plan objects and the subscription
+  // status payload (which only carries plan_name + plan_label).
   const getPlanLabel = (plan) => {
-    switch (plan.name) {
+    switch (plan?.name) {
       case 'monthly': return t('pricing.monthly');
       case 'yearly': return t('pricing.yearly');
       case 'lifetime': return t('pricing.lifetime');
-      default: return plan.label;
+      default: return plan?.label;
     }
   };
 
@@ -121,6 +124,12 @@ const PricingPage = () => {
   };
 
   const isCurrentPlan = (plan) => isPremium && plan.name === currentPlanName;
+
+  // Localized label for the "Currently on …" header line.
+  // Uses the slug (plan_name) → i18n, falls back to raw plan_label, then "Premium".
+  const getCurrentPlanLabel = () =>
+    getPlanLabel({ name: subStatus?.plan_name, label: subStatus?.plan_label })
+    || t('pricing.premium');
 
   // ✅ Normalized to 5 features for every plan — balanced card height
   const getFeatures = (plan) => [
@@ -234,7 +243,7 @@ const PricingPage = () => {
 
               <p className="text-base sm:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: '#8a7b6b' }}>
                 {isPremium
-                  ? `${t('pricing.subscribing_to')} ${subStatus.plan_label || 'Premium'}${subStatus.days_remaining != null ? ` — ${subStatus.days_remaining} ${t('pricing.days_remaining')}` : ` — ${t('pricing.lifetime_label')}`}`
+                  ? `${t('pricing.subscribing_to')} ${getCurrentPlanLabel()}${subStatus.days_remaining != null ? ` — ${subStatus.days_remaining} ${t('pricing.days_remaining')}` : ` — ${t('pricing.lifetime_label')}`}`
                   : t('pricing.subtitle')
                 }
               </p>
@@ -289,7 +298,7 @@ const PricingPage = () => {
                             color: '#0a0506',
                             boxShadow: '0 2px 12px rgba(212,168,83,0.3)',
                           }}>
-                          {isCurrent ? 'Current Plan' : badge}
+                          {isCurrent ? t('pricing.current_plan') : badge}
                         </div>
                       </div>
                     )}
