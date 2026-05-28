@@ -273,13 +273,13 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
   const handleSubmit = async () => {
     setError(null);
     if (!name.trim()) {
-      setError('Nama campaign wajib diisi');
+      setError('Campaign name is required');
       return;
     }
     const budget = parseFloat(budgetUsd) || 0;
     const spent = parseFloat(spentUsd) || 0;
     if (budget < 0 || spent < 0) {
-      setError('Budget/spent tidak boleh negatif');
+      setError('Budget / spent cannot be negative');
       return;
     }
 
@@ -317,7 +317,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
     try {
       await onSave(payload);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Gagal save');
+      setError(err.response?.data?.detail || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -350,7 +350,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               color: '#0a0506',
             }}
           >
-            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Campaign'}
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Campaign'}
           </button>
         </div>
       }
@@ -373,12 +373,12 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         </Field>
 
         {/* Description */}
-        <Field label="Description" hint="(opsional)">
+        <Field label="Description" hint="(optional)">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            placeholder="Goal, target audience, atau strategy summary..."
+            placeholder="Goal, target audience, or strategy summary…"
             className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none resize-none"
             style={{
               background: 'rgba(0,0,0,0.3)',
@@ -466,7 +466,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
 
         {/* Date range */}
         <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Start Date" hint="(opsional)">
+          <Field label="Start Date" hint="(optional)">
             <input
               type="date"
               value={startDate}
@@ -479,7 +479,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               }}
             />
           </Field>
-          <Field label="End Date" hint="(opsional)">
+          <Field label="End Date" hint="(optional)">
             <input
               type="date"
               value={endDate}
@@ -535,7 +535,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
                 color: '#6b5c52',
               }}
             >
-              Belum ada line item. Klik "Add Item" untuk track breakdown spending.
+              No line items yet. Click "Add Item" to track a spending breakdown.
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -593,7 +593,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
                 color: '#6b5c52',
               }}
             >
-              Custom fields: tambah KPI/metric apa aja (impressions, conversions, ROI, tags, dll).
+              Custom fields: add any KPI/metric (impressions, conversions, ROI, tags, etc.).
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -641,7 +641,7 @@ export const CampaignPanel = ({ isOpen, onClose, editingItem, onSave }) => {
           >
             <p>
               Created{' '}
-              {new Date(editingItem.created_at).toLocaleString('id-ID', {
+              {new Date(editingItem.created_at).toLocaleString('en-GB', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',

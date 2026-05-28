@@ -84,7 +84,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onFocus={() => setShowResults(true)}
-        placeholder="Cari user (min 2 chars)..."
+        placeholder="Search user (min 2 chars)…"
         className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none"
         style={{
           background: 'rgba(0,0,0,0.3)',
@@ -143,7 +143,7 @@ const UserPicker = ({ selectedUser, onChange }) => {
 
       {searching && (
         <p className="text-[10px] mt-1" style={{ color: '#6b5c52' }}>
-          Searching...
+          Searching…
         </p>
       )}
     </div>
@@ -270,11 +270,11 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
     setError(null);
 
     if (!title.trim()) {
-      setError('Title wajib diisi');
+      setError('Title is required');
       return;
     }
     if (!dueDate) {
-      setError('Due date wajib diisi');
+      setError('Due date is required');
       return;
     }
 
@@ -291,7 +291,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
     try {
       await onSave(payload);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Gagal save');
+      setError(err.response?.data?.detail || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -302,7 +302,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? 'Edit Follow-up' : 'New Follow-up'}
-      subtitle={isEdit ? `#${editingItem?.id}` : 'Schedule penagihan / reminder'}
+      subtitle={isEdit ? `#${editingItem?.id}` : 'Schedule a collection / reminder'}
       Icon={ClockIcon}
       width="md"
       footer={
@@ -324,7 +324,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
               color: '#0a0506',
             }}
           >
-            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Follow-up'}
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Follow-up'}
           </button>
         </div>
       }
@@ -336,7 +336,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Tagih renewal @lianprotrader"
+            placeholder="e.g. Chase renewal @lianprotrader"
             maxLength={200}
             className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
             style={{
@@ -398,18 +398,18 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
         {/* Linked user */}
         <Field
           label="Link to User"
-          hint="(optional — kalau follow-up terkait user tertentu)"
+          hint="(optional — if this follow-up is tied to a specific user)"
         >
           <UserPicker selectedUser={linkedUser} onChange={setLinkedUser} />
         </Field>
 
         {/* Note */}
-        <Field label="Note" hint="(opsional)">
+        <Field label="Note" hint="(optional)">
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={5}
-            placeholder="Detail tambahan, context, atau action items..."
+            placeholder="Additional detail, context, or action items…"
             className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none resize-none"
             style={{
               background: 'rgba(0,0,0,0.3)',
@@ -445,7 +445,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
           >
             <p>
               Created{' '}
-              {new Date(editingItem.created_at).toLocaleString('id-ID', {
+              {new Date(editingItem.created_at).toLocaleString('en-GB', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
@@ -457,7 +457,7 @@ export const FollowupPanel = ({ isOpen, onClose, editingItem, onSave }) => {
             {editingItem.completer && (
               <p style={{ color: '#34d399' }}>
                 Completed by @{editingItem.completer.username} on{' '}
-                {new Date(editingItem.completed_at).toLocaleString('id-ID', {
+                {new Date(editingItem.completed_at).toLocaleString('en-GB', {
                   day: '2-digit',
                   month: 'short',
                   hour: '2-digit',

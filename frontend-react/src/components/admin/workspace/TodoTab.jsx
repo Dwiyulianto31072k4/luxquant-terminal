@@ -1,11 +1,14 @@
-// src/components/admin/workspace/TodoTab.jsx
+// ════════════════════════════════════════════════════════════════════
+// TodoTab — redesign batch 5
 //
-// Brand TODO with switchable List ↔ Kanban view.
-// Kanban: drag column to column (backlog → in_progress → done).
+// Brand TODOs with switchable List ↔ Kanban view (List is the default).
+// Kanban: drag card column to column. ConfirmModal for delete. English copy.
+// ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from 'react';
 import { workspaceApi } from '../../../services/workspaceApi';
 import { TodoPanel } from './TodoPanel';
+import { ConfirmModal } from '../users/ConfirmModal';
 import {
   PlusIcon,
   SearchIcon,
@@ -18,13 +21,11 @@ import {
   SparklesIcon,
 } from '../Icons';
 
-// ════════════════════════════════════════════════════════════════════
-// Helpers
-// ════════════════════════════════════════════════════════════════════
+/* ── Helpers ──────────────────────────────────────────────────────── */
 
 const formatDate = (dateStr) => {
   if (!dateStr) return null;
-  return new Date(dateStr).toLocaleDateString('id-ID', {
+  return new Date(dateStr).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -53,9 +54,7 @@ const STATUS_COLUMNS = [
   { id: 'done', label: 'Done', color: '#34d399', Icon: CheckCircleIcon },
 ];
 
-// ════════════════════════════════════════════════════════════════════
-// TODO Card (used in both list and kanban)
-// ════════════════════════════════════════════════════════════════════
+/* ── TODO card ────────────────────────────────────────────────────── */
 
 const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) => {
   const pri = PRIORITY_CONFIG[todo.priority] || PRIORITY_CONFIG.normal;
@@ -66,11 +65,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
   return (
     <div
       className={`rounded-lg p-3 transition-colors ${dragMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      style={{
-        background: 'rgba(255,255,255,0.018)',
-        border: `1px solid rgba(255,255,255,0.05)`,
-        opacity: isDone ? 0.7 : 1,
-      }}
+      style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.05)', opacity: isDone ? 0.7 : 1 }}
       draggable={dragMode}
       onDragStart={(e) => {
         if (dragMode) {
@@ -79,155 +74,73 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
         }
       }}
     >
-      {/* Priority dot + title */}
       <div className="flex items-start gap-2 mb-2">
-        <span
-          className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-          style={{ background: pri.color }}
-          title={`Priority: ${todo.priority}`}
-        />
-        <h4
-          className="text-xs font-semibold tracking-tight flex-1 leading-tight"
-          style={{
-            color: isDone ? '#8a7a6e' : '#fff',
-            textDecoration: todo.status === 'cancelled' ? 'line-through' : 'none',
-          }}
-        >
+        <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: pri.color }} title={`Priority: ${todo.priority}`} />
+        <h4 className="text-xs font-semibold tracking-tight flex-1 leading-tight"
+          style={{ color: isDone ? '#8a7a6e' : '#fff', textDecoration: todo.status === 'cancelled' ? 'line-through' : 'none' }}>
           {todo.title}
         </h4>
       </div>
 
-      {/* Description */}
       {todo.description && (
-        <p
-          className="text-[11px] mb-2 line-clamp-2"
-          style={{ color: '#c9b59e', lineHeight: '1.5' }}
-        >
-          {todo.description}
-        </p>
+        <p className="text-[11px] mb-2 line-clamp-2" style={{ color: '#c9b59e', lineHeight: '1.5' }}>{todo.description}</p>
       )}
 
-      {/* Meta chips */}
       <div className="flex items-center gap-1.5 flex-wrap mb-2 text-[10px]">
-        <span
-          className="px-1.5 py-0.5 rounded font-semibold"
-          style={{
-            background: `${cat.color}10`,
-            color: cat.color,
-            border: `1px solid ${cat.color}25`,
-          }}
-        >
+        <span className="px-1.5 py-0.5 rounded font-semibold" style={{ background: `${cat.color}10`, color: cat.color, border: `1px solid ${cat.color}25` }}>
           {cat.emoji} {cat.label}
         </span>
-        <span
-          className="px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
-          style={{ background: pri.bg, color: pri.color, border: `1px solid ${pri.border}` }}
-        >
+        <span className="px-1.5 py-0.5 rounded font-bold uppercase tracking-wider" style={{ background: pri.bg, color: pri.color, border: `1px solid ${pri.border}` }}>
           {todo.priority}
         </span>
         {due && (
-          <span
-            className="px-1.5 py-0.5 rounded tabular-nums flex items-center gap-1"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              color: '#8a7a6e',
-              border: '1px solid rgba(255,255,255,0.04)',
-            }}
-          >
+          <span className="px-1.5 py-0.5 rounded tabular-nums flex items-center gap-1"
+            style={{ background: 'rgba(255,255,255,0.02)', color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.04)' }}>
             <ClockIcon size={9} /> {due}
           </span>
         )}
       </div>
 
-      {/* Tags */}
       {todo.tags && todo.tags.length > 0 && (
         <div className="flex items-center gap-1 flex-wrap mb-2">
           {todo.tags.map((tag, i) => (
-            <span
-              key={i}
-              className="text-[9px] px-1.5 py-0.5 rounded font-mono"
-              style={{
-                background: 'rgba(212,168,83,0.05)',
-                color: '#d4a853',
-                border: '1px solid rgba(212,168,83,0.15)',
-              }}
-            >
+            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded font-mono"
+              style={{ background: 'rgba(212,168,83,0.05)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.15)' }}>
               #{tag}
             </span>
           ))}
         </div>
       )}
 
-      {/* Footer */}
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px]" style={{ color: '#4a3f39' }}>
           {todo.creator && <>@{todo.creator.username}</>}
         </p>
         <div className="flex items-center gap-1">
           {todo.status === 'backlog' && (
-            <button
-              onClick={() => onStatusChange(todo.id, 'in_progress')}
-              title="Start"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: '#60a5fa',
-                background: 'rgba(96,165,250,0.08)',
-                border: '1px solid rgba(96,165,250,0.2)',
-              }}
-            >
+            <button onClick={() => onStatusChange(todo.id, 'in_progress')} title="Start" className="p-1 rounded transition-colors"
+              style={{ color: '#60a5fa', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
               <SparklesIcon size={10} />
             </button>
           )}
           {todo.status === 'in_progress' && (
-            <button
-              onClick={() => onStatusChange(todo.id, 'done')}
-              title="Mark done"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: '#34d399',
-                background: 'rgba(52,211,153,0.08)',
-                border: '1px solid rgba(52,211,153,0.2)',
-              }}
-            >
+            <button onClick={() => onStatusChange(todo.id, 'done')} title="Mark done" className="p-1 rounded transition-colors"
+              style={{ color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
               <CheckCircleIcon size={10} />
             </button>
           )}
           {(todo.status === 'done' || todo.status === 'cancelled') && (
-            <button
-              onClick={() => onStatusChange(todo.id, 'backlog')}
-              title="Reopen"
-              className="p-1 rounded transition-colors"
-              style={{
-                color: '#fbbf24',
-                background: 'rgba(251,191,36,0.08)',
-                border: '1px solid rgba(251,191,36,0.2)',
-              }}
-            >
+            <button onClick={() => onStatusChange(todo.id, 'backlog')} title="Reopen" className="p-1 rounded transition-colors"
+              style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
               <ClockIcon size={10} />
             </button>
           )}
-          <button
-            onClick={() => onEdit(todo)}
-            title="Edit"
-            className="p-1 rounded transition-colors"
-            style={{
-              color: '#d4a853',
-              background: 'rgba(212,168,83,0.08)',
-              border: '1px solid rgba(212,168,83,0.2)',
-            }}
-          >
+          <button onClick={() => onEdit(todo)} title="Edit" className="p-1 rounded transition-colors"
+            style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)' }}>
             <EditIcon size={10} />
           </button>
-          <button
-            onClick={() => onDelete(todo)}
-            title="Delete"
-            className="p-1 rounded transition-colors"
-            style={{
-              color: '#f87171',
-              background: 'rgba(248,113,113,0.08)',
-              border: '1px solid rgba(248,113,113,0.2)',
-            }}
-          >
+          <button onClick={() => onDelete(todo)} title="Delete" className="p-1 rounded transition-colors"
+            style={{ color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}>
             <TrashIcon size={10} />
           </button>
         </div>
@@ -236,84 +149,53 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
   );
 };
 
-// ════════════════════════════════════════════════════════════════════
-// Kanban Column
-// ════════════════════════════════════════════════════════════════════
+/* ── Kanban column ────────────────────────────────────────────────── */
 
-const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop }) => {
+const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop, onAdd }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const Icon = column.Icon;
 
   return (
-    <div
-      className="flex flex-col rounded-xl"
+    <div className="flex flex-col rounded-xl"
       style={{
-        background: isDragOver
-          ? `${column.color}10`
-          : 'rgba(255,255,255,0.015)',
+        background: isDragOver ? `${column.color}10` : 'rgba(255,255,255,0.015)',
         border: `1px solid ${isDragOver ? `${column.color}45` : 'rgba(255,255,255,0.05)'}`,
         minHeight: 200,
       }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setIsDragOver(true);
-      }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOver(false);
         const todoId = parseInt(e.dataTransfer.getData('text/plain'), 10);
         if (todoId) onDrop(todoId, column.id);
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-      >
+      }}>
+      <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center gap-2">
           <Icon size={12} style={{ color: column.color }} />
-          <span
-            className="text-[10px] uppercase tracking-wider font-bold"
-            style={{ color: column.color }}
-          >
-            {column.label}
-          </span>
+          <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: column.color }}>{column.label}</span>
         </div>
-        <span
-          className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-          style={{
-            background: `${column.color}12`,
-            color: column.color,
-          }}
-        >
-          {todos.length}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full" style={{ background: `${column.color}12`, color: column.color }}>
+            {todos.length}
+          </span>
+          {column.id === 'backlog' && (
+            <button onClick={() => onAdd('backlog')} title="Add to backlog" className="p-0.5 rounded transition-colors"
+              style={{ color: column.color, background: `${column.color}10` }}>
+              <PlusIcon size={11} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Cards */}
       <div className="flex-1 p-2 space-y-2 overflow-y-auto">
         {todos.length === 0 ? (
-          <div
-            className="text-center py-6 text-[10px] rounded-lg"
-            style={{
-              border: '1px dashed rgba(255,255,255,0.06)',
-              color: '#4a3f39',
-            }}
-          >
-            Drop card here
+          <div className="text-center py-6 text-[10px] rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.06)', color: '#4a3f39' }}>
+            Drop a card here
           </div>
         ) : (
           todos.map((t) => (
-            <TodoCard
-              key={t.id}
-              todo={t}
-              onEdit={onEdit}
-              onStatusChange={onStatusChange}
-              onDelete={onDelete}
-              dragMode
-            />
+            <TodoCard key={t.id} todo={t} onEdit={onEdit} onStatusChange={onStatusChange} onDelete={onDelete} dragMode />
           ))
         )}
       </div>
@@ -321,22 +203,37 @@ const KanbanColumn = ({ column, todos, onEdit, onStatusChange, onDelete, onDrop 
   );
 };
 
-// ════════════════════════════════════════════════════════════════════
-// Main Tab
-// ════════════════════════════════════════════════════════════════════
+/* ── Toast ────────────────────────────────────────────────────────── */
+
+const Toast = ({ toast }) => {
+  if (!toast) return null;
+  const isError = toast.type === 'error';
+  const color = isError ? '#f87171' : '#34d399';
+  return (
+    <div className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-[12px] font-medium shadow-2xl"
+      style={{ background: isError ? 'rgba(248,113,113,0.18)' : 'rgba(52,211,153,0.18)', color, border: `1px solid ${color}40`, backdropFilter: 'blur(12px)' }}>
+      {toast.msg}
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   Main
+   ════════════════════════════════════════════════════════════════════ */
 
 export const TodoTab = ({ onRefreshStats }) => {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('kanban'); // 'list' | 'kanban'
+  const [view, setView] = useState('list'); // List is the default
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [defaultStatus, setDefaultStatus] = useState('backlog'); // For "+ Add" in kanban column
+  const [defaultStatus, setDefaultStatus] = useState('backlog');
 
+  const [confirmModal, setConfirmModal] = useState(null);
   const [toast, setToast] = useState(null);
   useEffect(() => {
     if (!toast) return;
@@ -357,7 +254,7 @@ export const TodoTab = ({ onRefreshStats }) => {
       setTodos(data.items || []);
     } catch (e) {
       console.error(e);
-      showToast('Gagal load todos', 'error');
+      showToast('Failed to load todos', 'error');
     } finally {
       setLoading(false);
     }
@@ -398,104 +295,91 @@ export const TodoTab = ({ onRefreshStats }) => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      // Optimistic update
-      setTodos((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
-      );
+      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t)));
       await workspaceApi.updateTodo(id, { status: newStatus });
       if (onRefreshStats) onRefreshStats();
     } catch (e) {
-      showToast('Gagal update status', 'error');
-      fetchTodos(); // rollback
-    }
-  };
-
-  const handleDelete = async (t) => {
-    if (!window.confirm(`Delete "${t.title}"?`)) return;
-    try {
-      await workspaceApi.deleteTodo(t.id);
-      showToast('Todo deleted');
+      showToast('Failed to update status', 'error');
       fetchTodos();
-      if (onRefreshStats) onRefreshStats();
-    } catch (e) {
-      showToast('Gagal delete', 'error');
     }
   };
 
-  // Group todos by status for kanban
+  const handleDelete = (t) => {
+    setConfirmModal({
+      title: 'Delete Todo',
+      message: `Delete "${t.title}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Keep it',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await workspaceApi.deleteTodo(t.id);
+          showToast('Todo deleted');
+          fetchTodos();
+          if (onRefreshStats) onRefreshStats();
+        } catch (e) {
+          showToast('Failed to delete', 'error');
+          throw e;
+        }
+      },
+    });
+  };
+
   const groupedTodos = {
     backlog: todos.filter((t) => t.status === 'backlog'),
     in_progress: todos.filter((t) => t.status === 'in_progress'),
     done: todos.filter((t) => t.status === 'done' || t.status === 'cancelled'),
   };
 
+  const hasFilters = search || categoryFilter || priorityFilter;
+
+  const fieldStyle = (active) => ({
+    background: 'rgba(0,0,0,0.28)',
+    border: `1px solid ${active ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'}`,
+  });
+
   return (
     <div className="space-y-5">
-      {/* Toast */}
-      {toast && (
-        <div
-          className="fixed top-4 right-4 z-[100000] px-4 py-2.5 rounded-xl text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-top-2"
-          style={{
-            background:
-              toast.type === 'error' ? 'rgba(248,113,113,0.18)' : 'rgba(52,211,153,0.18)',
-            color: toast.type === 'error' ? '#f87171' : '#34d399',
-            border: `1px solid ${
-              toast.type === 'error' ? 'rgba(248,113,113,0.3)' : 'rgba(52,211,153,0.3)'
-            }`,
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast} />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-base font-semibold text-white tracking-tight">Brand TODOs</h2>
-          <p className="text-[11px] mt-0.5" style={{ color: '#6b5c52' }}>
-            Internal task list — product, marketing, ops, bugs, ideas.
-          </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
+            <div className="absolute inset-0 rounded-xl" style={{ background: 'rgba(251,146,60,0.18)', filter: 'blur(12px)' }} />
+            <div className="relative w-full h-full rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.20), rgba(251,146,60,0.04))', border: '1px solid rgba(251,146,60,0.30)', color: '#fb923c' }}>
+              <SparklesIcon size={18} />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold" style={{ color: 'rgba(251,146,60,0.7)' }}>
+              Internal Work
+            </p>
+            <h2 className="text-lg font-semibold text-white tracking-tight">Brand TODOs</h2>
+            <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
+              Internal task list — product, marketing, ops, bugs, and ideas.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div
-            className="flex rounded-lg p-0.5"
-            style={{
-              background: 'rgba(0,0,0,0.3)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            {[
-              { id: 'kanban', label: 'Kanban' },
-              { id: 'list', label: 'List' },
-            ].map((v) => (
-              <button
-                key={v.id}
-                onClick={() => setView(v.id)}
+          <div className="flex rounded-lg p-0.5" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {[{ id: 'list', label: 'List' }, { id: 'kanban', label: 'Kanban' }].map((v) => (
+              <button key={v.id} onClick={() => setView(v.id)}
                 className="px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wider transition-all"
                 style={{
-                  background:
-                    view === v.id ? 'rgba(212,168,83,0.18)' : 'transparent',
+                  background: view === v.id ? 'rgba(212,168,83,0.18)' : 'transparent',
                   color: view === v.id ? '#d4a853' : '#6b5c52',
-                  border:
-                    view === v.id
-                      ? '1px solid rgba(212,168,83,0.3)'
-                      : '1px solid transparent',
-                }}
-              >
+                  border: view === v.id ? '1px solid rgba(212,168,83,0.3)' : '1px solid transparent',
+                }}>
                 {v.label}
               </button>
             ))}
           </div>
 
-          <button
-            onClick={() => handleCreate()}
+          <button onClick={() => handleCreate()}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #d4a853, #8b6914)',
-              color: '#0a0506',
-            }}
-          >
+            style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}>
             <PlusIcon size={13} />
             New TODO
           </button>
@@ -505,35 +389,14 @@ export const TodoTab = ({ onRefreshStats }) => {
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <SearchIcon
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: '#6b5c52' }}
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari title atau deskripsi..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          />
+          <SearchIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6b5c52' }} />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search title or description…"
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none" style={fieldStyle(!!search)} />
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: `1px solid ${
-              categoryFilter ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'
-            }`,
-          }}
-        >
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!categoryFilter)}>
           <option value="">All Categories</option>
           <option value="product">⚙️ Product</option>
           <option value="marketing">📣 Marketing</option>
@@ -543,40 +406,21 @@ export const TodoTab = ({ onRefreshStats }) => {
           <option value="other">📌 Other</option>
         </select>
 
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: `1px solid ${
-              priorityFilter ? 'rgba(212,168,83,0.35)' : 'rgba(255,255,255,0.06)'
-            }`,
-          }}
-        >
-          <option value="">All Priority</option>
+        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}
+          className="px-3 py-2 rounded-lg text-xs text-white focus:outline-none cursor-pointer" style={fieldStyle(!!priorityFilter)}>
+          <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
           <option value="high">High</option>
           <option value="normal">Normal</option>
           <option value="low">Low</option>
         </select>
 
-        {(search || categoryFilter || priorityFilter) && (
-          <button
-            onClick={() => {
-              setSearch('');
-              setCategoryFilter('');
-              setPriorityFilter('');
-            }}
+        {hasFilters && (
+          <button onClick={() => { setSearch(''); setCategoryFilter(''); setPriorityFilter(''); }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
-            style={{
-              color: '#f87171',
-              background: 'rgba(248,113,113,0.06)',
-              border: '1px solid rgba(248,113,113,0.2)',
-            }}
-          >
+            style={{ color: '#f87171', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)' }}>
             <CloseIcon size={11} />
-            Reset
+            Clear all
           </button>
         )}
       </div>
@@ -585,82 +429,65 @@ export const TodoTab = ({ onRefreshStats }) => {
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
-            <div
-              className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
-              style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
-            />
-            Loading...
+            <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }} />
+            Loading…
           </div>
         </div>
       ) : todos.length === 0 ? (
-        <div
-          className="text-center py-16 rounded-xl"
-          style={{
-            background: 'rgba(255,255,255,0.015)',
-            border: '1px dashed rgba(255,255,255,0.06)',
-          }}
-        >
-          <AlertTriangleIcon size={28} className="mx-auto mb-3" style={{ color: '#4a3f39' }} />
-          <p className="text-sm font-medium text-white mb-1">Tidak ada TODO</p>
-          <p className="text-[11px] mb-4" style={{ color: '#6b5c52' }}>
-            {search || categoryFilter || priorityFilter
-              ? 'Coba reset filter atau ubah pencarian.'
-              : 'Catat task pertama untuk team LuxQuant.'}
-          </p>
-          {!search && !categoryFilter && !priorityFilter && (
-            <button
-              onClick={() => handleCreate()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider"
-              style={{ background: 'rgba(212,168,83,0.12)', color: '#d4a853' }}
-            >
-              <PlusIcon size={11} /> Add First Task
+        <div className="relative text-center py-16 rounded-2xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.015)', border: '1px dashed rgba(255,255,255,0.08)' }}>
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'rgba(251,146,60,0.08)', filter: 'blur(40px)' }} />
+          <div className="relative">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3"
+              style={{ background: 'rgba(251,146,60,0.10)', border: '1px solid rgba(251,146,60,0.22)', color: '#fb923c' }}>
+              <SparklesIcon size={20} />
+            </div>
+            <p className="text-sm font-semibold text-white mb-1">
+              {hasFilters ? 'No todos match these filters' : 'No todos yet'}
+            </p>
+            <p className="text-[11.5px] mb-4" style={{ color: '#8a7a6e' }}>
+              {hasFilters ? 'Try adjusting the filters or search.' : 'Capture the first task for the LuxQuant team.'}
+            </p>
+            <button onClick={hasFilters ? () => { setSearch(''); setCategoryFilter(''); setPriorityFilter(''); } : () => handleCreate()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10.5px] font-semibold uppercase tracking-wider"
+              style={{ background: 'rgba(212,168,83,0.10)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.28)' }}>
+              {hasFilters ? 'Reset filters' : <><PlusIcon size={11} /> Add first task</>}
             </button>
-          )}
+          </div>
         </div>
       ) : view === 'kanban' ? (
         <>
           <p className="text-[10px]" style={{ color: '#6b5c52' }}>
-            💡 Drag card antar column untuk ubah status.
+            💡 Drag a card between columns to change its status.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {STATUS_COLUMNS.map((col) => (
-              <KanbanColumn
-                key={col.id}
-                column={col}
-                todos={groupedTodos[col.id]}
-                onEdit={handleEdit}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onDrop={handleStatusChange}
-              />
+              <KanbanColumn key={col.id} column={col} todos={groupedTodos[col.id]}
+                onEdit={handleEdit} onStatusChange={handleStatusChange} onDelete={handleDelete}
+                onDrop={handleStatusChange} onAdd={handleCreate} />
             ))}
           </div>
         </>
       ) : (
         <div className="space-y-2">
           {todos.map((t) => (
-            <TodoCard
-              key={t.id}
-              todo={t}
-              onEdit={handleEdit}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-            />
+            <TodoCard key={t.id} todo={t} onEdit={handleEdit} onStatusChange={handleStatusChange} onDelete={handleDelete} />
           ))}
         </div>
       )}
 
-      {/* Slide-in panel */}
       <TodoPanel
         isOpen={panelOpen}
-        onClose={() => {
-          setPanelOpen(false);
-          setEditingItem(null);
-        }}
+        onClose={() => { setPanelOpen(false); setEditingItem(null); }}
         editingItem={editingItem}
         defaultStatus={defaultStatus}
         onSave={handleSave}
       />
+
+      {confirmModal && (
+        <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />
+      )}
     </div>
   );
 };

@@ -139,7 +139,7 @@ const TagsInput = ({ tags, onChange }) => {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKey}
         onBlur={() => addTag(input)}
-        placeholder={tags.length === 0 ? 'Ketik tag + Enter (e.g. frontend, v2)' : ''}
+        placeholder={tags.length === 0 ? 'Type a tag + Enter (e.g. frontend, v2)' : ''}
         className="flex-1 min-w-[120px] bg-transparent text-xs text-white focus:outline-none px-1"
       />
     </div>
@@ -190,7 +190,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
   const handleSubmit = async () => {
     setError(null);
     if (!title.trim()) {
-      setError('Title wajib diisi');
+      setError('Title is required');
       return;
     }
 
@@ -210,7 +210,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
     try {
       await onSave(payload);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Gagal save');
+      setError(err.response?.data?.detail || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -221,7 +221,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? 'Edit TODO' : 'New TODO'}
-      subtitle={isEdit ? `#${editingItem?.id}` : 'Internal task untuk LuxQuant team'}
+      subtitle={isEdit ? `#${editingItem?.id}` : 'Internal task for the LuxQuant team'}
       Icon={SparklesIcon}
       width="md"
       footer={
@@ -243,7 +243,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
               color: '#0a0506',
             }}
           >
-            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create TODO'}
+            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create TODO'}
           </button>
         </div>
       }
@@ -266,12 +266,12 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
         </Field>
 
         {/* Description */}
-        <Field label="Description" hint="(opsional)">
+        <Field label="Description" hint="(optional)">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            placeholder="Detail, context, acceptance criteria..."
+            placeholder="Detail, context, acceptance criteria…"
             className="w-full px-3 py-2 rounded-lg text-xs text-white focus:outline-none resize-none"
             style={{
               background: 'rgba(0,0,0,0.3)',
@@ -332,7 +332,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
         )}
 
         {/* Due date */}
-        <Field label="Due Date" hint="(opsional)">
+        <Field label="Due Date" hint="(optional)">
           <input
             type="date"
             value={dueDate}
@@ -347,7 +347,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
         </Field>
 
         {/* Tags */}
-        <Field label="Tags" hint="(Enter atau koma untuk add)">
+        <Field label="Tags" hint="(Enter or comma to add)">
           <TagsInput tags={tags} onChange={setTags} />
         </Field>
 
@@ -378,7 +378,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
           >
             <p>
               Created{' '}
-              {new Date(editingItem.created_at).toLocaleString('id-ID', {
+              {new Date(editingItem.created_at).toLocaleString('en-GB', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
@@ -390,7 +390,7 @@ export const TodoPanel = ({ isOpen, onClose, editingItem, defaultStatus, onSave 
             {editingItem.completer && (
               <p style={{ color: '#34d399' }}>
                 Completed by @{editingItem.completer.username} on{' '}
-                {new Date(editingItem.completed_at).toLocaleString('id-ID', {
+                {new Date(editingItem.completed_at).toLocaleString('en-GB', {
                   day: '2-digit',
                   month: 'short',
                   hour: '2-digit',
