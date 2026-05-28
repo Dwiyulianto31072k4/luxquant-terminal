@@ -1,9 +1,15 @@
-// src/components/admin/workspace/PaymentDetailPanel.jsx
+// ════════════════════════════════════════════════════════════════════
+// PaymentDetailPanel — redesigned
 //
-// Slide-in panel showing full payment detail with all admin actions:
-// approve / mark-failed / cancel / refund / add note + BSCScan data viewer.
+// • Hero card with focal amount + status indicator
+// • Required note for Fail / Cancel / Refund (audit trail)
+// • Optional standalone "Add note" action
+// • Tidy info sections with copyable values
+// • BSCScan raw data viewer (collapsible)
+// • Full English copy
+// ════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SidePanel } from './SidePanel';
 import { financeApi } from '../../../services/financeApi';
 import {
@@ -13,75 +19,72 @@ import {
   CloseIcon,
   ExternalLinkIcon,
   CopyIcon,
-  UserIcon,
-  ClockIcon,
   EditIcon,
 } from '../Icons';
+import { XCircleIcon } from './finance/icons-supplement';
+import {
+  formatUSDT,
+  formatDateTimeLong,
+  getStatusConfig,
+  roleStyle,
+} from './finance/helpers';
 
-// ════════════════════════════════════════════════════════════════════
-// Helpers
-// ════════════════════════════════════════════════════════════════════
+/* ── Layout primitives (panel-local) ──────────────────────────────── */
 
-const formatUSDT = (val) => {
-  const n = Number(val) || 0;
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-};
-
-const STATUS_CONFIG = {
-  pending:   { color: '#fbbf24', label: 'Pending',   bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.3)' },
-  confirmed: { color: '#34d399', label: 'Confirmed', bg: 'rgba(52,211,153,0.1)',  border: 'rgba(52,211,153,0.3)' },
-  cancelled: { color: '#8a7a6e', label: 'Cancelled', bg: 'rgba(138,122,110,0.1)', border: 'rgba(138,122,110,0.3)' },
-  failed:    { color: '#f87171', label: 'Failed',    bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.3)' },
-  expired:   { color: '#a78bfa', label: 'Expired',   bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.3)' },
-  refunded:  { color: '#fb923c', label: 'Refunded',  bg: 'rgba(251,146,60,0.1)',  border: 'rgba(251,146,60,0.3)' },
-};
-
-// ════════════════════════════════════════════════════════════════════
-// Sub-components
-// ════════════════════════════════════════════════════════════════════
-
-const Section = ({ title, children }) => (
+const Section = ({ title, action, children }) => (
   <div className="space-y-2">
-    <p
-      className="text-[9px] uppercase tracking-wider font-bold"
-      style={{ color: 'rgba(255,255,255,0.35)' }}
-    >
-      {title}
-    </p>
+    <div className="flex items-center justify-between">
+      <p
+        className="text-[9.5px] uppercase tracking-[0.13em] font-bold"
+        style={{ color: 'rgba(255,255,255,0.38)' }}
+      >
+        {title}
+      </p>
+      {action}
+    </div>
+    {children}
+  </div>
+);
+
+const InfoBlock = ({ children }) => (
+  <div
+    className="rounded-lg px-3 py-1"
+    style={{
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.05)',
+    }}
+  >
     {children}
   </div>
 );
 
 const InfoRow = ({ label, value, mono = false, copyable = false, onCopy }) => (
-  <div className="flex items-center justify-between gap-2 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-    <span className="text-[10px] uppercase tracking-wider" style={{ color: '#6b5c52' }}>
+  <div
+    className="flex items-center justify-between gap-3 py-2"
+    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+  >
+    <span
+      className="text-[10px] uppercase tracking-wider shrink-0"
+      style={{ color: '#6b5c52' }}
+    >
       {label}
     </span>
     <div className="flex items-center gap-1.5 min-w-0">
       <span
-        className={`text-xs text-white truncate text-right ${mono ? 'font-mono tabular-nums' : ''}`}
+        className={`text-[11.5px] text-white truncate text-right ${
+          mono ? 'font-mono tabular-nums' : ''
+        }`}
         title={typeof value === 'string' ? value : ''}
       >
         {value ?? '—'}
       </span>
-      {copyable && value && (
+      {copyable && value && value !== '—' && (
         <button
           onClick={() => onCopy(value)}
-          className="p-1 rounded transition-colors shrink-0"
-          style={{ color: '#6b5c52' }}
+          className="p-1 rounded transition-colors shrink-0 hover:bg-white/5"
+          style={{ color: '#8a7a6e' }}
           title="Copy"
+          aria-label={`Copy ${label}`}
         >
           <CopyIcon size={10} />
         </button>
@@ -90,43 +93,245 @@ const InfoRow = ({ label, value, mono = false, copyable = false, onCopy }) => (
   </div>
 );
 
-const ActionButton = ({ Icon, label, color, onClick, disabled }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-    style={{
-      background: `${color}15`,
-      color,
-      border: `1px solid ${color}30`,
-    }}
-  >
-    <Icon size={11} />
-    {label}
-  </button>
-);
+/* ── Action button (panel-local) ──────────────────────────────────── */
 
-// ════════════════════════════════════════════════════════════════════
-// Main Panel
-// ════════════════════════════════════════════════════════════════════
+const TONE = {
+  success: { color: '#34d399', bg: 'rgba(52,211,153,0.10)',  bgHover: 'rgba(52,211,153,0.18)',  border: 'rgba(52,211,153,0.28)' },
+  danger:  { color: '#f87171', bg: 'rgba(248,113,113,0.10)', bgHover: 'rgba(248,113,113,0.18)', border: 'rgba(248,113,113,0.28)' },
+  warn:    { color: '#fb923c', bg: 'rgba(251,146,60,0.10)',  bgHover: 'rgba(251,146,60,0.18)',  border: 'rgba(251,146,60,0.28)' },
+  muted:   { color: '#8a7a6e', bg: 'rgba(138,122,110,0.10)', bgHover: 'rgba(138,122,110,0.18)', border: 'rgba(138,122,110,0.25)' },
+  gold:    { color: '#d4a853', bg: 'rgba(212,168,83,0.10)',  bgHover: 'rgba(212,168,83,0.18)',  border: 'rgba(212,168,83,0.28)' },
+};
 
-export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDone }) => {
+const ActionBtn = ({ Icon, label, tone = 'gold', onClick, disabled, busy }) => {
+  const t = TONE[tone] || TONE.gold;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-[1.02]"
+      style={{
+        background: t.bg,
+        color: t.color,
+        border: `1px solid ${t.border}`,
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) e.currentTarget.style.background = t.bgHover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = t.bg;
+      }}
+    >
+      {busy ? (
+        <span
+          className="w-3 h-3 border-2 rounded-full animate-spin"
+          style={{ borderColor: `${t.color}40`, borderTopColor: t.color }}
+        />
+      ) : (
+        <Icon size={11} />
+      )}
+      {label}
+    </button>
+  );
+};
+
+/* ── Note input panel (required) ──────────────────────────────────── */
+
+const ACTION_META = {
+  fail: {
+    title: 'Mark as Failed',
+    desc: 'Mark this payment as failed. Required to log the reason for audit.',
+    tone: 'danger',
+    confirm: 'Mark Failed',
+  },
+  cancel: {
+    title: 'Cancel Payment',
+    desc: 'Cancel this pending payment. Required to log the reason for audit.',
+    tone: 'muted',
+    confirm: 'Cancel Payment',
+  },
+  refund: {
+    title: 'Refund Payment',
+    desc: 'Refund this confirmed payment. The subscription will be revoked. Required to log the reason.',
+    tone: 'warn',
+    confirm: 'Refund Payment',
+  },
+};
+
+const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => {
+  const meta = ACTION_META[actionType];
+  if (!meta) return null;
+  const t = TONE[meta.tone];
+  const canSubmit = note.trim().length >= 3;
+
+  return (
+    <div
+      className="rounded-xl p-3.5 space-y-2.5"
+      style={{
+        background: t.bg,
+        border: `1px solid ${t.border}`,
+      }}
+    >
+      <div>
+        <p className="text-[12px] font-bold" style={{ color: t.color }}>
+          {meta.title}
+        </p>
+        <p className="text-[10.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          {meta.desc}
+        </p>
+      </div>
+
+      <div>
+        <label
+          className="block text-[9.5px] uppercase tracking-wider font-semibold mb-1"
+          style={{ color: t.color }}
+        >
+          Reason <span style={{ color: '#f87171' }}>*</span>
+        </label>
+        <textarea
+          value={note}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Why are you taking this action? (min. 3 characters)"
+          rows={3}
+          autoFocus
+          className="w-full px-2.5 py-2 rounded text-[11.5px] text-white focus:outline-none resize-none"
+          style={{
+            background: 'rgba(0,0,0,0.35)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        />
+        <p
+          className="text-[9.5px] mt-1 text-right tabular-nums"
+          style={{
+            color:
+              note.trim().length >= 3 ? '#34d399' : 'rgba(255,255,255,0.4)',
+          }}
+        >
+          {note.length} chars
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="flex-1 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50"
+          style={{
+            color: '#8a7a6e',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={!canSubmit || busy}
+          className="flex-1 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+          style={{
+            background: `linear-gradient(135deg, ${t.color}55, ${t.color}30)`,
+            color: '#fff',
+            border: `1px solid ${t.color}`,
+          }}
+        >
+          {busy && (
+            <span
+              className="w-3 h-3 border-2 rounded-full animate-spin"
+              style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+            />
+          )}
+          {busy ? 'Processing…' : meta.confirm}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ── Add note (standalone) ────────────────────────────────────────── */
+
+const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
+  const canSubmit = note.trim().length >= 1;
+  return (
+    <div
+      className="rounded-xl p-3.5 space-y-2.5"
+      style={{
+        background: TONE.gold.bg,
+        border: `1px solid ${TONE.gold.border}`,
+      }}
+    >
+      <div>
+        <p className="text-[12px] font-bold" style={{ color: '#d4a853' }}>
+          Add Note to Audit Trail
+        </p>
+        <p className="text-[10.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          Append a free-form note. Useful for context, follow-ups, or manual corrections.
+        </p>
+      </div>
+      <textarea
+        value={note}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Type your note…"
+        rows={3}
+        autoFocus
+        className="w-full px-2.5 py-2 rounded text-[11.5px] text-white focus:outline-none resize-none"
+        style={{
+          background: 'rgba(0,0,0,0.35)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="flex-1 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wider"
+          style={{
+            color: '#8a7a6e',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={!canSubmit || busy}
+          className="flex-1 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-40"
+          style={{
+            background: 'linear-gradient(135deg, #d4a853, #8b6914)',
+            color: '#0a0506',
+          }}
+        >
+          {busy ? 'Saving…' : 'Save Note'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   Main Panel
+   ════════════════════════════════════════════════════════════════════ */
+
+export const PaymentDetailPanel = ({
+  isOpen,
+  onClose,
+  paymentSummary,
+  onActionDone,
+}) => {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(null); // 'approve' | 'fail' | etc
+  const [actionBusy, setActionBusy] = useState(null);
   const [showBscscan, setShowBscscan] = useState(false);
 
-  // For action note input
-  const [showNoteInput, setShowNoteInput] = useState(null); // type of action requiring note
+  const [showNoteInput, setShowNoteInput] = useState(null); // 'fail' | 'cancel' | 'refund'
   const [actionNote, setActionNote] = useState('');
 
-  // For "add note only" action
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNote, setNewNote] = useState('');
 
   const [error, setError] = useState(null);
 
-  // Reset state on close
+  // Reset when panel closes
   useEffect(() => {
     if (!isOpen) {
       setPayment(null);
@@ -139,10 +344,9 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
     }
   }, [isOpen]);
 
-  // Fetch full payment detail when panel opens
+  // Fetch full detail
   useEffect(() => {
     if (!isOpen || !paymentSummary?.id) return;
-
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -154,7 +358,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e.response?.data?.detail || 'Gagal load detail');
+          setError(e?.response?.data?.detail || 'Failed to load payment detail.');
         }
       })
       .finally(() => {
@@ -166,12 +370,19 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
     };
   }, [isOpen, paymentSummary?.id]);
 
-  // ── Action handlers ──
-  const performAction = async (actionType, note = null) => {
-    if (!payment) return;
-    setActionLoading(actionType);
-    setError(null);
+  const p = payment || paymentSummary;
+  const cfg = useMemo(
+    () => (p ? getStatusConfig(p.status) : null),
+    [p]
+  );
 
+  const isPending = p?.status === 'pending';
+  const isConfirmed = p?.status === 'confirmed';
+
+  const performAction = async (actionType, note) => {
+    if (!payment) return;
+    setActionBusy(actionType);
+    setError(null);
     try {
       let result;
       switch (actionType) {
@@ -195,20 +406,26 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
       setActionNote('');
       if (onActionDone) onActionDone();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Action gagal');
+      setError(e?.response?.data?.detail || 'Action failed. Please try again.');
     } finally {
-      setActionLoading(null);
+      setActionBusy(null);
     }
   };
 
   const handleApprove = () => {
-    if (!window.confirm(`Approve payment #${payment.id}?\n\nUser @${payment.user?.username} akan auto-granted subscription.`)) return;
-    performAction('approve');
+    if (!payment) return;
+    if (
+      !window.confirm(
+        `Approve payment #${payment.id} from @${payment.user?.username}?\n\nThe subscription will be auto-granted.`
+      )
+    )
+      return;
+    performAction('approve', null);
   };
 
   const handleAddNoteOnly = async () => {
     if (!newNote.trim() || !payment) return;
-    setActionLoading('note');
+    setActionBusy('note');
     setError(null);
     try {
       const result = await financeApi.addNote(payment.id, newNote.trim());
@@ -217,21 +434,17 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
       setShowAddNote(false);
       if (onActionDone) onActionDone();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Gagal add note');
+      setError(e?.response?.data?.detail || 'Failed to save note.');
     } finally {
-      setActionLoading(null);
+      setActionBusy(null);
     }
   };
 
   const handleCopy = (text) => {
-    navigator.clipboard.writeText(String(text)).catch(() => {});
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(String(text)).catch(() => {});
+    }
   };
-
-  // Use summary while loading full detail
-  const p = payment || paymentSummary;
-  const stat = p ? STATUS_CONFIG[p.status] || STATUS_CONFIG.pending : null;
-  const isPending = p?.status === 'pending';
-  const isConfirmed = p?.status === 'confirmed';
 
   return (
     <SidePanel
@@ -243,287 +456,238 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
       width="lg"
     >
       {loading && !payment ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-16">
           <div className="inline-flex items-center gap-2 text-xs" style={{ color: '#6b5c52' }}>
             <div
-              className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
+              className="w-4 h-4 border-2 rounded-full animate-spin"
               style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
             />
-            Loading...
+            Loading payment detail…
           </div>
         </div>
       ) : !p ? (
-        <p className="text-center text-xs py-8" style={{ color: '#6b5c52' }}>
-          No payment selected
+        <p className="text-center text-xs py-12" style={{ color: '#6b5c52' }}>
+          No payment selected.
         </p>
       ) : (
-        <div className="space-y-4">
-          {/* Hero: status + amount */}
+        <div className="space-y-5">
+          {/* ════════ HERO ════════ */}
           <div
-            className="rounded-xl p-4 relative overflow-hidden"
+            className="relative overflow-hidden rounded-2xl p-5"
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: `1px solid ${stat.border}`,
+              background: `linear-gradient(135deg, ${cfg.color}0e 0%, rgba(255,255,255,0.02) 60%)`,
+              border: `1px solid ${cfg.border}`,
             }}
           >
+            {/* hairline */}
             <div
-              className="absolute inset-x-0 top-0 h-px pointer-events-none"
+              className="absolute inset-x-0 top-0 h-px"
               style={{
-                background: `linear-gradient(to right, transparent, ${stat.color}50, transparent)`,
+                background: `linear-gradient(to right, transparent, ${cfg.color}60, transparent)`,
               }}
             />
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <span
-                className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                style={{ background: stat.bg, color: stat.color, border: `1px solid ${stat.border}` }}
-              >
-                {stat.label}
-              </span>
-              {p.is_stale && (
+            {/* glow */}
+            <div
+              className="absolute -top-10 -right-10 w-32 h-32 rounded-full pointer-events-none"
+              style={{
+                background: `${cfg.color}20`,
+                filter: 'blur(28px)',
+              }}
+            />
+
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span
-                  className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1"
+                  className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded"
                   style={{
-                    background: 'rgba(248,113,113,0.08)',
-                    color: '#f87171',
-                    border: '1px solid rgba(248,113,113,0.25)',
+                    background: cfg.bg,
+                    color: cfg.color,
+                    border: `1px solid ${cfg.border}`,
                   }}
                 >
-                  <AlertTriangleIcon size={9} /> STALE {p.age_hours}h
+                  {cfg.label}
                 </span>
-              )}
+                {p.is_stale && (
+                  <span
+                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1 animate-pulse"
+                    style={{
+                      background: 'rgba(248,113,113,0.10)',
+                      color: '#f87171',
+                      border: '1px solid rgba(248,113,113,0.30)',
+                    }}
+                  >
+                    <AlertTriangleIcon size={9} />
+                    Stale {p.age_hours}h
+                  </span>
+                )}
+              </div>
+
+              <p
+                className="text-[10px] uppercase tracking-wider mb-1.5"
+                style={{ color: 'rgba(255,255,255,0.45)' }}
+              >
+                Final Amount
+              </p>
+              <p
+                className="text-4xl font-light tabular-nums tracking-tight leading-none"
+                style={{ color: '#fff' }}
+              >
+                {formatUSDT(p.final_amount)}
+              </p>
+              <p className="text-[11px] mt-2" style={{ color: '#8a7a6e' }}>
+                {p.network} · {p.plan?.name || `Plan #${p.plan_id}`}
+              </p>
             </div>
-            <p
-              className="text-3xl font-light tabular-nums tracking-tight"
-              style={{ color: '#fff' }}
-            >
-              {formatUSDT(p.final_amount)}
-            </p>
-            <p className="text-[10px] mt-1" style={{ color: '#6b5c52' }}>
-              {p.network} · {p.plan?.name || `Plan #${p.plan_id}`}
-            </p>
           </div>
 
-          {/* Actions row — for pending */}
-          {isPending && (
-            <Section title="Actions">
-              <div className="grid grid-cols-2 gap-2">
-                <ActionButton
-                  Icon={CheckCircleIcon}
-                  label="Approve"
-                  color="#34d399"
-                  onClick={handleApprove}
-                  disabled={actionLoading != null}
-                />
-                <ActionButton
-                  Icon={AlertTriangleIcon}
-                  label="Mark Failed"
-                  color="#f87171"
-                  onClick={() => setShowNoteInput('fail')}
-                  disabled={actionLoading != null}
-                />
-                <ActionButton
-                  Icon={CloseIcon}
-                  label="Cancel"
-                  color="#8a7a6e"
-                  onClick={() => setShowNoteInput('cancel')}
-                  disabled={actionLoading != null}
-                />
-                <ActionButton
-                  Icon={EditIcon}
-                  label="Add Note"
-                  color="#d4a853"
-                  onClick={() => setShowAddNote(true)}
-                  disabled={actionLoading != null}
-                />
-              </div>
-            </Section>
-          )}
-
-          {/* Actions for confirmed */}
-          {isConfirmed && (
-            <Section title="Actions">
-              <div className="grid grid-cols-2 gap-2">
-                <ActionButton
-                  Icon={CloseIcon}
-                  label="Refund"
-                  color="#fb923c"
-                  onClick={() => setShowNoteInput('refund')}
-                  disabled={actionLoading != null}
-                />
-                <ActionButton
-                  Icon={EditIcon}
-                  label="Add Note"
-                  color="#d4a853"
-                  onClick={() => setShowAddNote(true)}
-                  disabled={actionLoading != null}
-                />
-              </div>
-            </Section>
-          )}
-
-          {/* Actions for terminal status */}
-          {!isPending && !isConfirmed && (
-            <Section title="Actions">
-              <ActionButton
-                Icon={EditIcon}
-                label="Add Note"
-                color="#d4a853"
-                onClick={() => setShowAddNote(true)}
-                disabled={actionLoading != null}
-              />
-            </Section>
-          )}
-
-          {/* Note input for risky actions */}
-          {showNoteInput && (
-            <div
-              className="rounded-lg p-3 space-y-2"
-              style={{
-                background: 'rgba(248,113,113,0.06)',
-                border: '1px solid rgba(248,113,113,0.25)',
-              }}
-            >
-              <p className="text-xs font-semibold" style={{ color: '#f87171' }}>
-                {showNoteInput === 'fail' && 'Mark as Failed — confirm + add note'}
-                {showNoteInput === 'cancel' && 'Cancel Payment — confirm + add note'}
-                {showNoteInput === 'refund' && 'Refund Payment — confirm + add note'}
-              </p>
-              <textarea
-                value={actionNote}
-                onChange={(e) => setActionNote(e.target.value)}
-                placeholder="Alasan (optional)..."
-                rows={2}
-                className="w-full px-2.5 py-1.5 rounded text-xs text-white focus:outline-none resize-none"
-                style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowNoteInput(null);
-                    setActionNote('');
-                  }}
-                  className="flex-1 py-1.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => performAction(showNoteInput, actionNote.trim() || null)}
-                  disabled={actionLoading != null}
-                  className="flex-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
-                  style={{
-                    background: 'rgba(248,113,113,0.25)',
-                    color: '#f87171',
-                    border: '1px solid rgba(248,113,113,0.4)',
-                  }}
-                >
-                  {actionLoading === showNoteInput ? 'Processing...' : 'Confirm'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Add note only */}
-          {showAddNote && (
-            <div
-              className="rounded-lg p-3 space-y-2"
-              style={{
-                background: 'rgba(212,168,83,0.06)',
-                border: '1px solid rgba(212,168,83,0.22)',
-              }}
-            >
-              <p className="text-xs font-semibold" style={{ color: '#d4a853' }}>
-                Add Note
-              </p>
-              <textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Catatan untuk audit trail..."
-                rows={2}
-                className="w-full px-2.5 py-1.5 rounded text-xs text-white focus:outline-none resize-none"
-                style={{
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowAddNote(false);
-                    setNewNote('');
-                  }}
-                  className="flex-1 py-1.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#8a7a6e', border: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddNoteOnly}
-                  disabled={!newNote.trim() || actionLoading === 'note'}
-                  className="flex-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider disabled:opacity-40"
-                  style={{
-                    background: 'linear-gradient(135deg, #d4a853, #8b6914)',
-                    color: '#0a0506',
-                  }}
-                >
-                  {actionLoading === 'note' ? 'Saving...' : 'Save Note'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
+          {/* ════════ ERROR ════════ */}
           {error && (
             <div
-              className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
+              className="text-[11.5px] px-3 py-2.5 rounded-lg flex items-start gap-2"
               style={{
-                background: 'rgba(248,113,113,0.08)',
+                background: 'rgba(248,113,113,0.10)',
                 color: '#f87171',
-                border: '1px solid rgba(248,113,113,0.25)',
+                border: '1px solid rgba(248,113,113,0.28)',
               }}
             >
               <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
-              {error}
+              <span>{error}</span>
             </div>
           )}
 
-          {/* User info */}
+          {/* ════════ ACTIONS ════════ */}
+          {(isPending || isConfirmed || (!isPending && !isConfirmed)) && (
+            <Section title="Actions">
+              {isPending && (
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionBtn
+                    Icon={CheckCircleIcon}
+                    label="Approve"
+                    tone="success"
+                    onClick={handleApprove}
+                    busy={actionBusy === 'approve'}
+                    disabled={actionBusy != null}
+                  />
+                  <ActionBtn
+                    Icon={XCircleIcon}
+                    label="Mark Failed"
+                    tone="danger"
+                    onClick={() => {
+                      setShowNoteInput('fail');
+                      setActionNote('');
+                    }}
+                    disabled={actionBusy != null}
+                  />
+                  <ActionBtn
+                    Icon={CloseIcon}
+                    label="Cancel"
+                    tone="muted"
+                    onClick={() => {
+                      setShowNoteInput('cancel');
+                      setActionNote('');
+                    }}
+                    disabled={actionBusy != null}
+                  />
+                  <ActionBtn
+                    Icon={EditIcon}
+                    label="Add Note"
+                    tone="gold"
+                    onClick={() => setShowAddNote(true)}
+                    disabled={actionBusy != null}
+                  />
+                </div>
+              )}
+
+              {isConfirmed && (
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionBtn
+                    Icon={AlertTriangleIcon}
+                    label="Refund"
+                    tone="warn"
+                    onClick={() => {
+                      setShowNoteInput('refund');
+                      setActionNote('');
+                    }}
+                    disabled={actionBusy != null}
+                  />
+                  <ActionBtn
+                    Icon={EditIcon}
+                    label="Add Note"
+                    tone="gold"
+                    onClick={() => setShowAddNote(true)}
+                    disabled={actionBusy != null}
+                  />
+                </div>
+              )}
+
+              {!isPending && !isConfirmed && (
+                <ActionBtn
+                  Icon={EditIcon}
+                  label="Add Note"
+                  tone="gold"
+                  onClick={() => setShowAddNote(true)}
+                  disabled={actionBusy != null}
+                />
+              )}
+            </Section>
+          )}
+
+          {/* Note input (required) */}
+          {showNoteInput && (
+            <NoteInput
+              actionType={showNoteInput}
+              note={actionNote}
+              onChange={setActionNote}
+              onCancel={() => {
+                setShowNoteInput(null);
+                setActionNote('');
+              }}
+              onSubmit={() => performAction(showNoteInput, actionNote.trim())}
+              busy={actionBusy === showNoteInput}
+            />
+          )}
+
+          {/* Add note standalone */}
+          {showAddNote && (
+            <AddNoteInput
+              note={newNote}
+              onChange={setNewNote}
+              onCancel={() => {
+                setShowAddNote(false);
+                setNewNote('');
+              }}
+              onSubmit={handleAddNoteOnly}
+              busy={actionBusy === 'note'}
+            />
+          )}
+
+          {/* ════════ USER ════════ */}
           <Section title="User">
             <div
-              className="rounded-lg p-2.5 space-y-1"
+              className="rounded-lg p-2.5"
               style={{
                 background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.05)',
               }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
                   style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}
                 >
                   {p.user?.username?.charAt(0).toUpperCase() || '?'}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white truncate">
+                  <p className="text-[13px] font-semibold text-white truncate">
                     @{p.user?.username || 'unknown'}
                   </p>
-                  <p className="text-[10px] truncate" style={{ color: '#6b5c52' }}>
-                    {p.user?.email} · ID #{p.user_id}
+                  <p className="text-[10.5px] truncate" style={{ color: '#6b5c52' }}>
+                    {p.user?.email || '—'} · ID #{p.user_id}
                   </p>
                 </div>
                 <span
-                  className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
-                  style={{
-                    background: p.user?.role === 'subscriber' || p.user?.role === 'premium'
-                      ? 'rgba(52,211,153,0.1)'
-                      : 'rgba(107,92,82,0.12)',
-                    color: p.user?.role === 'subscriber' || p.user?.role === 'premium'
-                      ? '#34d399'
-                      : '#8a7a6e',
-                  }}
+                  className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded shrink-0"
+                  style={roleStyle(p.user?.role)}
                 >
                   {p.user?.role || 'free'}
                 </span>
@@ -531,36 +695,47 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
             </div>
           </Section>
 
-          {/* Financial breakdown */}
+          {/* ════════ FINANCIAL ════════ */}
           <Section title="Financial Breakdown">
-            <div
-              className="rounded-lg px-3 py-1"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-              }}
-            >
+            <InfoBlock>
               <InfoRow label="Plan" value={p.plan?.name || `#${p.plan_id}`} />
               <InfoRow label="Amount USDT" value={formatUSDT(p.amount_usdt)} mono />
               {p.discount_amount > 0 && (
-                <InfoRow label="Discount" value={`-${formatUSDT(p.discount_amount)}`} mono />
+                <InfoRow
+                  label="Discount"
+                  value={`−${formatUSDT(p.discount_amount)}`}
+                  mono
+                />
               )}
               {p.credit_redeemed > 0 && (
-                <InfoRow label="Credit redeemed" value={`-${formatUSDT(p.credit_redeemed)}`} mono />
+                <InfoRow
+                  label="Credit Redeemed"
+                  value={`−${formatUSDT(p.credit_redeemed)}`}
+                  mono
+                />
               )}
-              <InfoRow label="Final amount" value={formatUSDT(p.final_amount)} mono />
-            </div>
+              <InfoRow label="Final Amount" value={formatUSDT(p.final_amount)} mono />
+            </InfoBlock>
           </Section>
 
-          {/* Transaction details */}
-          <Section title="Transaction">
-            <div
-              className="rounded-lg px-3 py-1"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-              }}
-            >
+          {/* ════════ TRANSACTION ════════ */}
+          <Section
+            title="Transaction"
+            action={
+              p.tx_hash && (
+                <a
+                  href={`https://bscscan.com/tx/${p.tx_hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-wider font-semibold hover:underline"
+                  style={{ color: '#60a5fa' }}
+                >
+                  BSCScan <ExternalLinkIcon size={9} />
+                </a>
+              )
+            }
+          >
+            <InfoBlock>
               <InfoRow label="Network" value={p.network} />
               <InfoRow
                 label="TX Hash"
@@ -569,59 +744,48 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                 copyable={!!p.tx_hash}
                 onCopy={handleCopy}
               />
-              {p.tx_hash && (
-                <div className="py-1.5">
-                  <a
-                    href={`https://bscscan.com/tx/${p.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider hover:underline"
-                    style={{ color: '#60a5fa' }}
-                  >
-                    View on BSCScan <ExternalLinkIcon size={10} />
-                  </a>
-                </div>
-              )}
               <InfoRow
-                label="Wallet from"
+                label="Wallet From"
                 value={p.wallet_from || '—'}
                 mono
                 copyable={!!p.wallet_from}
                 onCopy={handleCopy}
               />
               <InfoRow
-                label="Wallet to"
+                label="Wallet To"
                 value={p.wallet_to || '—'}
                 mono
                 copyable={!!p.wallet_to}
                 onCopy={handleCopy}
               />
-            </div>
+            </InfoBlock>
           </Section>
 
-          {/* Timestamps */}
+          {/* ════════ TIMESTAMPS ════════ */}
           <Section title="Timestamps">
-            <div
-              className="rounded-lg px-3 py-1"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.04)',
-              }}
-            >
-              <InfoRow label="Created" value={formatDateTime(p.created_at)} mono />
+            <InfoBlock>
+              <InfoRow label="Created" value={formatDateTimeLong(p.created_at)} mono />
               {p.verified_at && (
-                <InfoRow label="Verified" value={formatDateTime(p.verified_at)} mono />
+                <InfoRow
+                  label="Verified"
+                  value={formatDateTimeLong(p.verified_at)}
+                  mono
+                />
               )}
               {p.expires_at && (
-                <InfoRow label="Expires" value={formatDateTime(p.expires_at)} mono />
+                <InfoRow
+                  label="Expires"
+                  value={formatDateTimeLong(p.expires_at)}
+                  mono
+                />
               )}
-              <InfoRow label="Updated" value={formatDateTime(p.updated_at)} mono />
-            </div>
+              <InfoRow label="Updated" value={formatDateTimeLong(p.updated_at)} mono />
+            </InfoBlock>
           </Section>
 
-          {/* BSCScan data viewer (collapsible) */}
+          {/* ════════ BSCSCAN RAW (collapsible) ════════ */}
           {payment?.bscscan_data && (
-            <Section title="BSCScan Verification Data">
+            <Section title="On-chain Verification">
               <button
                 onClick={() => setShowBscscan(!showBscscan)}
                 className="w-full px-3 py-2 rounded-lg text-[10px] uppercase tracking-wider font-semibold transition-colors text-left flex items-center justify-between"
@@ -631,7 +795,7 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
                   border: '1px solid rgba(96,165,250,0.22)',
                 }}
               >
-                <span>{showBscscan ? 'Hide' : 'Show'} raw response</span>
+                <span>{showBscscan ? 'Hide' : 'Show'} raw BSCScan response</span>
                 <span>{showBscscan ? '▲' : '▼'}</span>
               </button>
               {showBscscan && (
@@ -649,16 +813,16 @@ export const PaymentDetailPanel = ({ isOpen, onClose, paymentSummary, onActionDo
             </Section>
           )}
 
-          {/* Notes / audit trail */}
+          {/* ════════ NOTES / AUDIT ════════ */}
           {p.notes && (
             <Section title="Notes / Audit Trail">
               <pre
-                className="rounded-lg p-2.5 text-[10px] font-mono whitespace-pre-wrap leading-relaxed"
+                className="rounded-lg p-3 text-[10.5px] font-mono whitespace-pre-wrap leading-relaxed"
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
+                  background: 'rgba(0,0,0,0.30)',
                   color: '#c9b59e',
                   border: '1px solid rgba(255,255,255,0.06)',
-                  maxHeight: 200,
+                  maxHeight: 220,
                   overflowY: 'auto',
                 }}
               >
