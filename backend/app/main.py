@@ -49,6 +49,7 @@ from app.api.routes.fx import router as fx_router
 # Import AI Worker
 from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
 from app.services.fx_worker import start_fx_worker
+from app.services.whale_worker import start_whale_worker
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -76,6 +77,7 @@ async def lifespan(app: FastAPI):
         start_overview_workers()
         start_notification_worker()
         start_fx_worker()
+        start_whale_worker()
         
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE

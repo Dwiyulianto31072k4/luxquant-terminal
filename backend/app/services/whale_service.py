@@ -7,6 +7,18 @@ BTC: blockchain.com Blockchain Data API (free, no key, 1 req/10s)
      - /latestblock → get latest block hash
 ETH: Etherscan API v2 proxy (free key, 100K calls/day)
      - eth_getBlockByNumber → parse large ETH transfers
+
+── Caching model (v2.1) ──────────────────────────────────────────
+Upstream data is the SAME regardless of the requested min_usd /
+transfer_type / size — those are applied AFTER fetching. So we keep
+ONE warm "raw pool" in Redis (deduped BTC+ETH, unfiltered by USD) and
+serve every request by filtering that pool in-memory. No request ever
+blocks on an upstream call when the pool is warm.
+
+A background worker calls refresh_whale_cache() on a short interval
+(< RAW_CACHE_TTL) to keep the pool warm. If the pool is ever missing
+(worker not running yet), the first request falls back to a cold
+fetch (stale-while-revalidate safety net).
 """
 import json
 import asyncio
@@ -22,10 +34,18 @@ from app.core.redis import get_redis
 BLOCKCHAIN_COM_BASE = "https://blockchain.info"
 ETHERSCAN_BASE = "https://api.etherscan.io/v2/api"
 
-CACHE_TTL = 120  # 2 minutes
+CACHE_TTL = 120  # 2 minutes (price cache)
+
+# Raw pool cache — single source of truth, served to every request
+WHALE_RAW_KEY = "whale:raw:all"
+RAW_CACHE_TTL = 600   # 10 min — stale-while-revalidate safety net (worker refreshes faster)
+RAW_MIN_BTC = 1.0     # raw pool floor for BTC (~$95k+); requests filter up from here
+RAW_MIN_ETH = 10.0    # raw pool floor for ETH; requests filter up from here
+RAW_LIMIT = 60        # max txs per source kept in the raw pool (headroom for high min_usd)
+
 BTC_PRICE_CACHE_KEY = "whale:btc_price"
 ETH_PRICE_CACHE_KEY = "whale:eth_price"
-WHALE_CACHE_KEY = "whale:transactions"
+WHALE_CACHE_KEY = "whale:transactions"  # legacy per-query key (no longer written)
 
 # Known exchange addresses (BTC - partial match on addr tags)
 KNOWN_EXCHANGE_ADDRS_BTC = {
@@ -439,52 +459,30 @@ def _compute_stats(transactions: list) -> dict:
 
 
 # ════════════════════════════════════════
-# Public API functions
+# Raw pool — fetch once, serve many
 # ════════════════════════════════════════
-async def get_whale_transactions(
-    blockchain: Optional[str] = None,
-    min_usd: int = 500000,
-    transfer_type: Optional[str] = None,
-    size: int = 50,
-) -> dict:
-    """Get whale transactions with caching."""
-    redis = get_redis()
+async def refresh_whale_cache() -> dict:
+    """
+    Fetch BTC + ETH whales once and store the deduped raw pool (unfiltered
+    by USD) in Redis. Called by the background worker on a short interval.
 
-    cache_key = f"{WHALE_CACHE_KEY}:{blockchain or 'all'}:{min_usd}:{size}"
-    if redis:
-        try:
-            cached = redis.get(cache_key)
-            if cached:
-                data = json.loads(cached)
-                if transfer_type:
-                    data["transactions"] = [
-                        tx for tx in data["transactions"]
-                        if tx.get("transfer_type") == transfer_type
-                    ]
-                    data["total"] = len(data["transactions"])
-                print(f"🟢 Whale cache hit: {cache_key}")
-                return data
-        except Exception as e:
-            print(f"⚠️ Whale cache read error: {e}")
-
-    # Fetch from both sources concurrently
-    tasks = []
-    if blockchain == "bitcoin" or blockchain is None:
-        tasks.append(_fetch_btc_whales(min_btc=1.0, limit=30))
-    if blockchain == "ethereum" or blockchain is None:
-        tasks.append(_fetch_eth_whales(min_eth=10.0, limit=30))
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    Returns the raw payload (also used as the cold-fetch fallback result).
+    """
+    btc_res, eth_res = await asyncio.gather(
+        _fetch_btc_whales(min_btc=RAW_MIN_BTC, limit=RAW_LIMIT),
+        _fetch_eth_whales(min_eth=RAW_MIN_ETH, limit=RAW_LIMIT),
+        return_exceptions=True,
+    )
 
     all_transactions = []
     sources_used = set()
-    for result in results:
+    for result in (btc_res, eth_res):
         if isinstance(result, list):
             all_transactions.extend(result)
             for tx in result:
                 sources_used.add(tx.get("source", "unknown"))
         elif isinstance(result, Exception):
-            print(f"⚠️ Whale fetch error: {result}")
+            print(f"⚠️ Whale refresh fetch error: {result}")
 
     # Deduplicate by hash
     seen = set()
@@ -497,38 +495,77 @@ async def get_whale_transactions(
             seen.add(h)
         unique.append(tx)
 
-    # Filter by min_usd
-    unique = [tx for tx in unique if tx.get("amount_usd", 0) >= min_usd]
-
-    # Sort by amount_usd desc
+    # Sort by amount_usd desc (requests slice from the top after filtering)
     unique.sort(key=lambda t: t.get("amount_usd", 0), reverse=True)
-    unique = unique[:size]
 
-    stats = _compute_stats(unique)
-
-    data = {
+    payload = {
         "transactions": unique,
-        "total": len(unique),
-        "stats": stats,
         "sources": list(sources_used),
         "cached_at": datetime.now(timezone.utc).isoformat(),
     }
 
+    redis = get_redis()
     if redis:
         try:
-            redis.setex(cache_key, CACHE_TTL, json.dumps(data, default=str))
-            print(f"✅ Whale cache set: {len(unique)} txs")
+            redis.setex(WHALE_RAW_KEY, RAW_CACHE_TTL, json.dumps(payload, default=str))
+            print(f"✅ Whale raw cache set: {len(unique)} txs (sources={list(sources_used)})")
         except Exception as e:
-            print(f"⚠️ Whale cache write error: {e}")
+            print(f"⚠️ Whale raw cache write error: {e}")
 
+    return payload
+
+
+async def _get_raw_pool() -> dict:
+    """
+    Read the warm raw pool from Redis. If missing (worker not running yet or
+    TTL lapsed), fall back to a cold fetch so the endpoint never returns empty
+    just because the cache wasn't warmed.
+    """
+    redis = get_redis()
+    if redis:
+        try:
+            cached = redis.get(WHALE_RAW_KEY)
+            if cached:
+                return json.loads(cached)
+        except Exception as e:
+            print(f"⚠️ Whale raw cache read error: {e}")
+
+    print("🟡 Whale raw cache miss — cold fetch (worker not warm yet)")
+    return await refresh_whale_cache()
+
+
+# ════════════════════════════════════════
+# Public API functions
+# ════════════════════════════════════════
+async def get_whale_transactions(
+    blockchain: Optional[str] = None,
+    min_usd: int = 500000,
+    transfer_type: Optional[str] = None,
+    size: int = 50,
+) -> dict:
+    """
+    Serve whale transactions by filtering the warm raw pool in-memory.
+    Never blocks on an upstream call when the pool is warm.
+    """
+    pool = await _get_raw_pool()
+    txs = pool.get("transactions", [])
+
+    # Filter (chain → min_usd → transfer_type), then sort + slice
+    if blockchain:
+        txs = [tx for tx in txs if tx.get("blockchain") == blockchain]
+    txs = [tx for tx in txs if tx.get("amount_usd", 0) >= min_usd]
     if transfer_type:
-        data["transactions"] = [
-            tx for tx in data["transactions"]
-            if tx.get("transfer_type") == transfer_type
-        ]
-        data["total"] = len(data["transactions"])
+        txs = [tx for tx in txs if tx.get("transfer_type") == transfer_type]
 
-    return data
+    txs = sorted(txs, key=lambda t: t.get("amount_usd", 0), reverse=True)[:size]
+
+    return {
+        "transactions": txs,
+        "total": len(txs),
+        "stats": _compute_stats(txs),
+        "sources": pool.get("sources", []),
+        "cached_at": pool.get("cached_at"),
+    }
 
 
 async def get_whale_stats() -> dict:
