@@ -11,6 +11,13 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 /**
  * SignalsTable — Full Original + Strong Color Fix (emerald-400 & red-400)
  * Tidak ada yang dihapus. Hanya warna yang diubah.
+ *
+ * VOLUME SORT FIX:
+ * - Prices/volume are now fetched for ALL pairs (via `allPairs` prop), not just
+ *   the current page. Sorting by volume therefore has data for every row.
+ * - The accumulated price map is MERGED (never replaced), so navigating pages or
+ *   the 15s refresh never blanks out previously-fetched pairs → no reshuffle.
+ * - Large symbol sets skip the giant /market/prices URL and use Bybit all-tickers.
  */
 const SignalsTable = ({
   signals,
@@ -22,6 +29,7 @@ const SignalsTable = ({
   sortOrder,
   onSort,
   onPricesUpdate,
+  allPairs,
 }) => {
   const { t } = useTranslation();
 
@@ -34,6 +42,7 @@ const SignalsTable = ({
 
   const pairsRef = useRef('');
   const intervalRef = useRef(null);
+  const pricesAccumRef = useRef({});           // accumulated price map (merge target)
   const onPricesUpdateRef = useRef(onPricesUpdate);
   onPricesUpdateRef.current = onPricesUpdate;
 
@@ -50,10 +59,23 @@ const SignalsTable = ({
     );
   };
 
-  useEffect(() => {
-    if (!signals || signals.length === 0) return;
+  // Merge a freshly-fetched map into the accumulated map and notify the parent.
+  // Merge (not replace) ensures pairs fetched earlier never disappear.
+  const applyMap = (newMap) => {
+    const merged = { ...pricesAccumRef.current, ...newMap };
+    pricesAccumRef.current = merged;
+    setCurrentPrices(merged);
+    if (onPricesUpdateRef.current) onPricesUpdateRef.current(merged);
+  };
 
-    const uniquePairs = [...new Set(signals.map(s => s.pair).filter(Boolean))].sort();
+  useEffect(() => {
+    // Prefer the full set of pairs (all signals) so volume sort has complete data.
+    // Fall back to current-page pairs if allPairs wasn't provided.
+    const sourcePairs = (allPairs && allPairs.length > 0)
+      ? allPairs
+      : (signals || []).map(s => s.pair);
+
+    const uniquePairs = [...new Set(sourcePairs.filter(Boolean))].sort();
     const newKey = uniquePairs.join(',');
 
     if (newKey === pairsRef.current) return;
@@ -66,64 +88,61 @@ const SignalsTable = ({
 
     if (uniquePairs.length === 0) return;
 
-    const fetchPrices = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
-        if (!response.ok) throw new Error('Backend failed');
-        const tickerMap = await response.json();
-        if (Object.keys(tickerMap).length > 0) {
-          setCurrentPrices(tickerMap);
-          if (onPricesUpdateRef.current) onPricesUpdateRef.current(tickerMap);
-          return;
-        }
-        throw new Error('Empty response');
-      } catch (err) {
-        console.warn('[Prices] Backend failed, trying Bybit:', err.message);
-      }
+    const wanted = new Set(uniquePairs);
 
-      try {
-        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
-        if (res.ok) {
-          const json = await res.json();
-          const list = json?.result?.list || [];
-          const bybitMap = {};
-          for (const item of list) {
-            if (uniquePairs.includes(item.symbol)) {
-              bybitMap[item.symbol] = {
-                price: parseFloat(item.lastPrice) || 0,
-                volume: parseFloat(item.turnover24h) || 0,
-              };
+    const fromBybit = async (category) => {
+      const res = await fetch(`https://api.bybit.com/v5/market/tickers?category=${category}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const list = json?.result?.list || [];
+      const map = {};
+      for (const item of list) {
+        if (wanted.has(item.symbol)) {
+          map[item.symbol] = {
+            price: parseFloat(item.lastPrice) || 0,
+            volume: parseFloat(item.turnover24h) || 0,
+          };
+        }
+      }
+      return Object.keys(map).length > 0 ? map : null;
+    };
+
+    const fetchPrices = async () => {
+      // For small sets, use the backend proxy (fresh/normalized).
+      // For large sets, skip the giant symbols= URL (avoids 414) and use
+      // Bybit's all-tickers endpoint (one call, filtered client-side).
+      const TOO_MANY = 80;
+
+      if (uniquePairs.length <= TOO_MANY) {
+        try {
+          const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
+          if (response.ok) {
+            const tickerMap = await response.json();
+            if (tickerMap && Object.keys(tickerMap).length > 0) {
+              applyMap(tickerMap);
+              return;
             }
           }
-          if (Object.keys(bybitMap).length > 0) {
-            setCurrentPrices(bybitMap);
-            if (onPricesUpdateRef.current) onPricesUpdateRef.current(bybitMap);
-            return;
-          }
+        } catch (err) {
+          console.warn('[Prices] Backend failed, trying Bybit:', err.message);
+        }
+      }
+
+      // Bybit linear (perp) — returns all tickers, we filter to ours
+      try {
+        const linear = await fromBybit('linear');
+        if (linear) {
+          applyMap(linear);
+          return;
         }
       } catch (err2) {
         console.warn('[Prices] Bybit linear failed:', err2.message);
       }
 
+      // Bybit spot — covers pairs not on perps
       try {
-        const res = await fetch('https://api.bybit.com/v5/market/tickers?category=spot');
-        if (res.ok) {
-          const json = await res.json();
-          const list = json?.result?.list || [];
-          const spotMap = {};
-          for (const item of list) {
-            if (uniquePairs.includes(item.symbol)) {
-              spotMap[item.symbol] = {
-                price: parseFloat(item.lastPrice) || 0,
-                volume: parseFloat(item.turnover24h) || 0,
-              };
-            }
-          }
-          if (Object.keys(spotMap).length > 0) {
-            setCurrentPrices(spotMap);
-            if (onPricesUpdateRef.current) onPricesUpdateRef.current(spotMap);
-          }
-        }
+        const spot = await fromBybit('spot');
+        if (spot) applyMap(spot);
       } catch (err3) {
         console.warn('[Prices] All providers failed:', err3.message);
       }
@@ -140,7 +159,7 @@ const SignalsTable = ({
         intervalRef.current = null;
       }
     };
-  }, [signals]);
+  }, [allPairs, signals]);
 
   const getPrice = (pair) => {
     const data = currentPrices[pair];

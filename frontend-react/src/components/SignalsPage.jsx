@@ -180,6 +180,13 @@ const SignalsPage = () => {
     return allSignals.filter((s) => s.last_update_at).length;
   }, [allSignals]);
 
+  // All unique pairs across every signal — passed to the table so it can fetch
+  // live price/volume for the WHOLE dataset, not just the current page. This is
+  // what makes "sort by volume" correct & stable across pages.
+  const allPairs = useMemo(() => {
+    return [...new Set(allSignals.map((s) => s.pair).filter(Boolean))];
+  }, [allSignals]);
+
   const todayStats = useMemo(() => {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
@@ -311,13 +318,22 @@ const SignalsPage = () => {
       });
     }
 
+    // Stable tiebreaker — when two rows compare equal (or share missing/0 data),
+    // fall back to a deterministic order (newest call first). This is what stops
+    // rows from reshuffling every refresh, especially on page 2+.
+    const tiebreak = (a, b) => (b.call_message_id || 0) - (a.call_message_id || 0);
+
     filtered.sort((a, b) => {
+      // Pair: alphabetical, with stable tiebreaker for duplicate pairs
+      if (sortBy === "pair") {
+        const pa = (a.pair || "").toLowerCase();
+        const pb = (b.pair || "").toLowerCase();
+        const r = sortOrder === "asc" ? pa.localeCompare(pb) : pb.localeCompare(pa);
+        return r !== 0 ? r : tiebreak(a, b);
+      }
+
       let valA, valB;
       switch (sortBy) {
-        case "pair":
-          valA = (a.pair || "").toLowerCase();
-          valB = (b.pair || "").toLowerCase();
-          return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case "current_price":
           valA = getPriceVal(a.pair); valB = getPriceVal(b.pair); break;
         case "entry":
@@ -359,8 +375,18 @@ const SignalsPage = () => {
         case "created_at": default:
           valA = a.call_message_id || 0; valB = b.call_message_id || 0; break;
       }
-      if (sortBy !== "pair") return sortOrder === "asc" ? valA - valB : valB - valA;
-      return 0;
+
+      // Live-derived metrics (fetched from the price provider): rows with no data
+      // (value 0) always sink to the bottom regardless of asc/desc, so they never
+      // pollute the top of an ascending volume/price sort.
+      if (sortBy === "volume" || sortBy === "current_price") {
+        const hasA = valA > 0;
+        const hasB = valB > 0;
+        if (hasA !== hasB) return hasA ? -1 : 1;
+      }
+
+      const cmp = sortOrder === "asc" ? valA - valB : valB - valA;
+      return cmp !== 0 ? cmp : tiebreak(a, b);
     });
 
     const total = filtered.length;
@@ -729,6 +755,7 @@ const SignalsPage = () => {
           totalPages={totalPages}
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
+          allPairs={allPairs}
         />
       )}
 
