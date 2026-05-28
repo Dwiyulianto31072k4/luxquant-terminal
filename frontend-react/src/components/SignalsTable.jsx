@@ -17,7 +17,12 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
  *   the current page. Sorting by volume therefore has data for every row.
  * - The accumulated price map is MERGED (never replaced), so navigating pages or
  *   the 15s refresh never blanks out previously-fetched pairs → no reshuffle.
- * - Large symbol sets skip the giant /market/prices URL and use Bybit all-tickers.
+ *
+ * PRICE/PNL REGRESSION FIX:
+ * - The browser CANNOT reach api.bybit.com directly in many regions (e.g. ID
+ *   returns net::ERR_CONNECTION_REFUSED). So we fetch through the BACKEND PROXY
+ *   (server-side on the VPS, which can reach Bybit + has .com/.id fallback),
+ *   chunked to avoid HTTP 414 on large symbol sets. Direct Bybit is last-resort.
  */
 const SignalsTable = ({
   signals,
@@ -36,6 +41,8 @@ const SignalsTable = ({
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
+  const [pricesFailed, setPricesFailed] = useState(false);   // true only when NO pair could be fetched at all
+  const [showNotice, setShowNotice] = useState(false);       // the dismissible "data unavailable" toast
 
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
@@ -43,6 +50,7 @@ const SignalsTable = ({
   const pairsRef = useRef('');
   const intervalRef = useRef(null);
   const pricesAccumRef = useRef({});           // accumulated price map (merge target)
+  const noticeShownRef = useRef(false);        // ensures the notice shows at most once per mount
   const onPricesUpdateRef = useRef(onPricesUpdate);
   onPricesUpdateRef.current = onPricesUpdate;
 
@@ -52,6 +60,18 @@ const SignalsTable = ({
       .then(data => setWatchlistIds(data.signal_ids || []))
       .catch(() => {});
   }, [isAuthenticated]);
+
+  // Show a one-time, auto-dismissing notice ONLY when live market data totally
+  // failed to load (proxy returned nothing AND direct Bybit was unreachable) —
+  // the typical cause is a regional/ISP block on the global exchange.
+  useEffect(() => {
+    if (pricesFailed && !noticeShownRef.current) {
+      noticeShownRef.current = true;
+      setShowNotice(true);
+      const tid = setTimeout(() => setShowNotice(false), 9000);
+      return () => clearTimeout(tid);
+    }
+  }, [pricesFailed]);
 
   const handleStarToggle = (signalId, newState) => {
     setWatchlistIds(prev =>
@@ -90,6 +110,35 @@ const SignalsTable = ({
 
     const wanted = new Set(uniquePairs);
 
+    // Fetch all requested symbols THROUGH THE BACKEND PROXY, in chunks.
+    // Why proxy: the browser cannot reach api.bybit.com directly in many
+    // regions (e.g. ID → net::ERR_CONNECTION_REFUSED). The proxy runs
+    // server-side on the VPS, which can reach Bybit (+ has .com/.id fallback).
+    // Why chunk: a single symbols= URL with hundreds of pairs blows past the
+    // server URL limit (HTTP 414). 40/chunk keeps every URL short & safe.
+    const fetchViaProxy = async (symbolList) => {
+      const CHUNK = 40;
+      const batches = [];
+      for (let i = 0; i < symbolList.length; i += CHUNK) {
+        batches.push(symbolList.slice(i, i + CHUNK));
+      }
+      const results = await Promise.allSettled(
+        batches.map((b) =>
+          fetch(`${API_BASE}/api/v1/market/prices?symbols=${b.join(',')}`)
+            .then((r) => (r.ok ? r.json() : null))
+        )
+      );
+      const acc = {};
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value && typeof r.value === 'object') {
+          Object.assign(acc, r.value);
+        }
+      }
+      return Object.keys(acc).length > 0 ? acc : null;
+    };
+
+    // Last-resort only: direct Bybit from the browser. Works where bybit.com is
+    // reachable; will simply fail (and we degrade gracefully) where it isn't.
     const fromBybit = async (category) => {
       const res = await fetch(`https://api.bybit.com/v5/market/tickers?category=${category}`);
       if (!res.ok) return null;
@@ -108,27 +157,18 @@ const SignalsTable = ({
     };
 
     const fetchPrices = async () => {
-      // For small sets, use the backend proxy (fresh/normalized).
-      // For large sets, skip the giant symbols= URL (avoids 414) and use
-      // Bybit's all-tickers endpoint (one call, filtered client-side).
-      const TOO_MANY = 80;
-
-      if (uniquePairs.length <= TOO_MANY) {
-        try {
-          const response = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${uniquePairs.join(',')}`);
-          if (response.ok) {
-            const tickerMap = await response.json();
-            if (tickerMap && Object.keys(tickerMap).length > 0) {
-              applyMap(tickerMap);
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn('[Prices] Backend failed, trying Bybit:', err.message);
+      // 1) Primary: backend proxy (chunked). Server-side, region-proof.
+      try {
+        const proxied = await fetchViaProxy(uniquePairs);
+        if (proxied) {
+          applyMap(proxied);
+          return;
         }
+      } catch (err) {
+        console.warn('[Prices] Backend proxy failed, trying Bybit direct:', err.message);
       }
 
-      // Bybit linear (perp) — returns all tickers, we filter to ours
+      // 2) Fallback: direct Bybit linear (only where reachable from browser)
       try {
         const linear = await fromBybit('linear');
         if (linear) {
@@ -139,7 +179,7 @@ const SignalsTable = ({
         console.warn('[Prices] Bybit linear failed:', err2.message);
       }
 
-      // Bybit spot — covers pairs not on perps
+      // 3) Fallback: direct Bybit spot
       try {
         const spot = await fromBybit('spot');
         if (spot) applyMap(spot);
@@ -148,10 +188,17 @@ const SignalsTable = ({
       }
     };
 
-    setPricesLoading(true);
-    fetchPrices().finally(() => setPricesLoading(false));
+    const runFetch = async () => {
+      await fetchPrices();
+      // "Failed" only when the WHOLE map is still empty after every provider
+      // tried. Individual unlisted coins staying blank is normal, not a failure.
+      setPricesFailed(Object.keys(pricesAccumRef.current).length === 0);
+    };
 
-    intervalRef.current = setInterval(fetchPrices, 15000);
+    setPricesLoading(true);
+    runFetch().finally(() => setPricesLoading(false));
+
+    intervalRef.current = setInterval(runFetch, 15000);
 
     return () => {
       if (intervalRef.current) {
@@ -729,6 +776,41 @@ const SignalsTable = ({
           )}
         </div>
       </div>
+
+      {showNotice && (
+        <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-md z-[60] lq-notice-in">
+          <div className="relative flex items-start gap-3 bg-[#0a0805] border border-gold-primary/25 rounded-md p-4 pr-10 shadow-2xl overflow-hidden">
+            <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+            <span className="absolute left-0 inset-y-0 w-0.5 bg-gold-primary/50" />
+            <div className="w-8 h-8 shrink-0 rounded-sm bg-gold-primary/[0.08] border border-gold-primary/20 flex items-center justify-center text-gold-primary/80">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-xs text-white tracking-wide">Some market data unavailable</p>
+              <p className="font-mono text-[11px] leading-relaxed text-text-muted mt-1">
+                If prices or volume aren't loading, a global crypto exchange may be blocked on your network or region. Connecting through a VPN usually restores live data.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNotice(false)}
+              aria-label="Dismiss"
+              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-sm text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <style>{`
+            @keyframes lqNoticeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+            .lq-notice-in > div { animation: lqNoticeIn 0.25s ease-out; }
+          `}</style>
+        </div>
+      )}
 
       <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />
     </>
