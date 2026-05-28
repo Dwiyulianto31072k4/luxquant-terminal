@@ -1,15 +1,9 @@
 // ════════════════════════════════════════════════════════════════════
-// FinanceTab — orchestrator (redesign batch 4)
+// FinanceTab — orchestrator (redesign batch 4, ConfirmModal-fix)
 //
-// Composes:
-//   • FinanceStatsGrid     — KPIs + secondary info strip
-//   • FinanceFilterBar     — search / status / sort / reset
-//   • PaymentsTable        — hybrid desktop/mobile rows
-//   • FinancePagination    — page nav
-//   • PaymentDetailPanel   — slide-in detail w/ required audit notes
-//   • ConfirmModal         — bulk cancel stale confirmation (replaces window.confirm)
-//
-// Full English copy. Toast for ephemeral feedback.
+// ConfirmModal uses object-payload pattern (matches batch 3 API):
+//   { title, message, confirmText, cancelText, variant, onConfirm }
+//   Hide by setting state back to null.
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from 'react';
@@ -27,7 +21,6 @@ import {
   AlertTriangleIcon,
   TrendingUpIcon,
   CheckCircleIcon,
-  CloseIcon,
 } from '../Icons';
 
 const PAGE_SIZE = 25;
@@ -39,26 +32,15 @@ const FinanceHeader = ({ stats, onBulkCancelStale }) => {
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap">
       <div className="flex items-start gap-3 min-w-0">
-        <div
-          className="relative shrink-0"
-          style={{
-            width: 38,
-            height: 38,
-          }}
-        >
-          {/* glow halo */}
+        <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
           <div
             className="absolute inset-0 rounded-xl"
-            style={{
-              background: 'rgba(52,211,153,0.18)',
-              filter: 'blur(12px)',
-            }}
+            style={{ background: 'rgba(52,211,153,0.18)', filter: 'blur(12px)' }}
           />
           <div
             className="relative w-full h-full rounded-xl flex items-center justify-center"
             style={{
-              background:
-                'linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.04))',
+              background: 'linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.04))',
               border: '1px solid rgba(52,211,153,0.30)',
               color: '#34d399',
             }}
@@ -78,8 +60,7 @@ const FinanceHeader = ({ stats, onBulkCancelStale }) => {
             Finance Hub
           </h2>
           <p className="text-[11px] mt-0.5 max-w-md" style={{ color: '#8a7a6e' }}>
-            Monitor revenue, approve pending payments, and audit the financial
-            trail.
+            Monitor revenue, approve pending payments, and audit the financial trail.
           </p>
         </div>
       </div>
@@ -130,10 +111,7 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
   >
     <div
       className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full pointer-events-none"
-      style={{
-        background: 'rgba(52,211,153,0.08)',
-        filter: 'blur(40px)',
-      }}
+      style={{ background: 'rgba(52,211,153,0.08)', filter: 'blur(40px)' }}
     />
     <div className="relative">
       <div
@@ -202,11 +180,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
   /* ── Data ─────────────────────────────────────────────────────── */
   const [stats, setStats] = useState(null);
   const [payments, setPayments] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    total: 0,
-    total_pages: 1,
-  });
+  const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -220,10 +194,8 @@ export const FinanceTab = ({ onRefreshStats }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const [confirmBulk, setConfirmBulk] = useState(false);
-  const [confirmApprove, setConfirmApprove] = useState(null);
-  const [confirmCancel, setConfirmCancel] = useState(null);
-  const [bulkBusy, setBulkBusy] = useState(false);
+  // Object-payload pattern — same as UserManagementPage
+  const [confirmModal, setConfirmModal] = useState(null);
 
   /* ── Toast ────────────────────────────────────────────────────── */
   const [toast, setToast] = useState(null);
@@ -282,7 +254,6 @@ export const FinanceTab = ({ onRefreshStats }) => {
     fetchPayments();
   }, [fetchPayments]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, [statusFilter, search, sortBy, sortOrder]);
@@ -297,48 +268,10 @@ export const FinanceTab = ({ onRefreshStats }) => {
     setPanelOpen(true);
   };
 
-  const handleQuickApprove = (payment) => {
-    setConfirmApprove(payment);
-  };
-
-  const handleConfirmApprove = async () => {
-    if (!confirmApprove) return;
-    const payment = confirmApprove;
-    setConfirmApprove(null);
-    try {
-      await financeApi.approvePayment(payment.id);
-      showToast(`Payment #${payment.id} approved`);
-      fetchStats();
-      fetchPayments();
-      if (onRefreshStats) onRefreshStats();
-    } catch (e) {
-      showToast(
-        e?.response?.data?.detail || 'Approval failed. Please try again.',
-        'error'
-      );
-    }
-  };
-
-  const handleQuickCancel = (payment) => {
-    setConfirmCancel(payment);
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!confirmCancel) return;
-    const payment = confirmCancel;
-    setConfirmCancel(null);
-    try {
-      await financeApi.cancelPayment(payment.id);
-      showToast(`Payment #${payment.id} cancelled`);
-      fetchStats();
-      fetchPayments();
-      if (onRefreshStats) onRefreshStats();
-    } catch (e) {
-      showToast(
-        e?.response?.data?.detail || 'Cancel failed. Please try again.',
-        'error'
-      );
-    }
+  const handlePanelAction = () => {
+    fetchStats();
+    fetchPayments();
+    if (onRefreshStats) onRefreshStats();
   };
 
   const handleCopyHash = (hash) => {
@@ -350,33 +283,83 @@ export const FinanceTab = ({ onRefreshStats }) => {
     }
   };
 
-  const handlePanelAction = () => {
-    fetchStats();
-    fetchPayments();
-    if (onRefreshStats) onRefreshStats();
+  // ─── Quick approve ───
+  const handleQuickApprove = (payment) => {
+    setConfirmModal({
+      title: 'Approve Payment',
+      message: `Approve payment #${payment.id} from @${payment.user?.username || 'user'}? The subscription will be auto-granted to the user.`,
+      confirmText: 'Approve',
+      cancelText: 'Cancel',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await financeApi.approvePayment(payment.id);
+          showToast(`Payment #${payment.id} approved`);
+          fetchStats();
+          fetchPayments();
+          if (onRefreshStats) onRefreshStats();
+        } catch (e) {
+          showToast(
+            e?.response?.data?.detail || 'Approval failed. Please try again.',
+            'error'
+          );
+          throw e; // let modal stay if it uses thrown error to decide
+        }
+      },
+    });
   };
 
-  const handleConfirmBulkCancel = async () => {
-    if (!stats?.stale_count) {
-      setConfirmBulk(false);
-      return;
-    }
-    setBulkBusy(true);
-    try {
-      const result = await financeApi.bulkCancelStale(24);
-      showToast(`${result.cancelled} stale payments cancelled`);
-      setConfirmBulk(false);
-      fetchStats();
-      fetchPayments();
-      if (onRefreshStats) onRefreshStats();
-    } catch (e) {
-      showToast(
-        e?.response?.data?.detail || 'Bulk cancel failed. Please try again.',
-        'error'
-      );
-    } finally {
-      setBulkBusy(false);
-    }
+  // ─── Quick cancel ───
+  const handleQuickCancel = (payment) => {
+    setConfirmModal({
+      title: 'Cancel Payment',
+      message: `Cancel payment #${payment.id} from @${payment.user?.username || 'user'}? This action cannot be undone.`,
+      confirmText: 'Cancel Payment',
+      cancelText: 'Keep it',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await financeApi.cancelPayment(payment.id);
+          showToast(`Payment #${payment.id} cancelled`);
+          fetchStats();
+          fetchPayments();
+          if (onRefreshStats) onRefreshStats();
+        } catch (e) {
+          showToast(
+            e?.response?.data?.detail || 'Cancel failed. Please try again.',
+            'error'
+          );
+          throw e;
+        }
+      },
+    });
+  };
+
+  // ─── Bulk cancel stale ───
+  const handleBulkCancelStale = () => {
+    if (!stats?.stale_count) return;
+    setConfirmModal({
+      title: 'Bulk Cancel Stale Payments',
+      message: `Cancel ALL ${stats.stale_count} stale pending payments (older than 24 hours)? Value locked: ${formatUSDT(stats.stale_value)}. This action cannot be undone.`,
+      confirmText: `Cancel ${stats.stale_count} Payments`,
+      cancelText: 'Keep them',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const result = await financeApi.bulkCancelStale(24);
+          showToast(`${result.cancelled} stale payments cancelled`);
+          fetchStats();
+          fetchPayments();
+          if (onRefreshStats) onRefreshStats();
+        } catch (e) {
+          showToast(
+            e?.response?.data?.detail || 'Bulk cancel failed. Please try again.',
+            'error'
+          );
+          throw e;
+        }
+      },
+    });
   };
 
   /* ── Render ───────────────────────────────────────────────────── */
@@ -386,10 +369,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
     <div className="space-y-5">
       <Toast toast={toast} />
 
-      <FinanceHeader
-        stats={stats}
-        onBulkCancelStale={() => setConfirmBulk(true)}
-      />
+      <FinanceHeader stats={stats} onBulkCancelStale={handleBulkCancelStale} />
 
       <FinanceStatsGrid
         stats={stats}
@@ -453,54 +433,13 @@ export const FinanceTab = ({ onRefreshStats }) => {
         onActionDone={handlePanelAction}
       />
 
-      {/* Bulk-cancel confirmation modal */}
-      <ConfirmModal
-        isOpen={confirmBulk}
-        variant="danger"
-        title="Bulk Cancel Stale Payments"
-        message={
-          stats?.stale_count
-            ? `Cancel ALL ${stats.stale_count} stale pending payments (older than 24 hours)?\n\nValue locked: ${formatUSDT(stats.stale_value)}\n\nThis action cannot be undone.`
-            : 'No stale payments to cancel.'
-        }
-        confirmLabel={`Cancel ${stats?.stale_count ?? 0} Payments`}
-        cancelLabel="Keep them"
-        loading={bulkBusy}
-        onConfirm={handleConfirmBulkCancel}
-        onCancel={() => setConfirmBulk(false)}
-      />
-
-      {/* Quick approve confirmation */}
-      <ConfirmModal
-        isOpen={!!confirmApprove}
-        variant="default"
-        title="Approve Payment"
-        message={
-          confirmApprove
-            ? `Approve payment #${confirmApprove.id} from @${confirmApprove.user?.username || 'user'}?\n\nThe subscription will be auto-granted to the user.`
-            : ''
-        }
-        confirmLabel="Approve"
-        cancelLabel="Cancel"
-        onConfirm={handleConfirmApprove}
-        onCancel={() => setConfirmApprove(null)}
-      />
-
-      {/* Quick cancel confirmation */}
-      <ConfirmModal
-        isOpen={!!confirmCancel}
-        variant="danger"
-        title="Cancel Payment"
-        message={
-          confirmCancel
-            ? `Cancel payment #${confirmCancel.id} from @${confirmCancel.user?.username || 'user'}?\n\nThis action cannot be undone.`
-            : ''
-        }
-        confirmLabel="Cancel Payment"
-        cancelLabel="Keep it"
-        onConfirm={handleConfirmCancel}
-        onCancel={() => setConfirmCancel(null)}
-      />
+      {/* ConfirmModal — object-payload pattern, only renders when payload is set */}
+      {confirmModal && (
+        <ConfirmModal
+          {...confirmModal}
+          onClose={() => setConfirmModal(null)}
+        />
+      )}
     </div>
   );
 };
