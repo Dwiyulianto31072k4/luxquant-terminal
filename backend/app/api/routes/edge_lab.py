@@ -6,8 +6,11 @@ Endpoint for /daily-performance/edge-lab page.
 Returns 5 aggregate analyses across a date range (7/30/90 days):
   1. pattern_btc_heatmap    : WR per (pattern, BTC context) combination
   2. pattern_ev             : Expected Value per pattern (WR × avgWin − lossRate × avgLoss)
+                              Each entry includes Wilson 95% CI bounds + reliability tier
   3. calendar_wr            : Daily WR per date for heatmap visualization
-  4. confidence_calibration : WR per rating bucket (A/B/C/D from signal_enrichment)
+  4. pattern_calibration    : Per-pattern reliability — Wilson CI on WR, sample-size aware
+                              (replaces legacy confidence_calibration which depended on
+                              signal_enrichment.rating, which v3 worker no longer computes)
   5. hour_dow_heatmap       : WR per (hour_utc, day_of_week) of signal CREATION
                               (used for entry-timing guidance)
 
@@ -29,6 +32,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional
 from datetime import datetime, timedelta
+import math
 
 from app.core.database import get_db
 from app.core.redis import cache_get, cache_set
@@ -78,6 +82,44 @@ def _safe_float(v):
     return float(v) if v is not None else None
 
 
+def _wilson_ci(wins: int, total: int, z: float = 1.96):
+    """
+    Wilson score interval for binomial proportion.
+    Returns (lower_pct, upper_pct, half_width_pct) in percentage units.
+    z=1.96 corresponds to 95% confidence interval.
+
+    More accurate than naive ±sqrt(p(1-p)/n) especially for small n
+    or extreme proportions (p near 0 or 1).
+    Reference: https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+    """
+    if total <= 0:
+        return (None, None, None)
+    p = wins / total
+    denom = 1 + z * z / total
+    center = (p + z * z / (2 * total)) / denom
+    margin = (z / denom) * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total))
+    lo = max(0.0, center - margin) * 100
+    hi = min(1.0, center + margin) * 100
+    half = (hi - lo) / 2
+    return (round(lo, 2), round(hi, 2), round(half, 2))
+
+
+def _reliability_tier(total: int, ci_half_width: Optional[float]) -> str:
+    """
+    Classify pattern reliability based on sample size and CI tightness.
+      reliable   : n >= 30 AND CI half-width <= 5pp  → narrow band, robust evidence
+      moderate   : n >= 10 AND CI half-width <= 12pp → directional signal, take with care
+      unreliable : everything else                   → sample too small / CI too wide
+    """
+    if total < 10 or ci_half_width is None:
+        return "unreliable"
+    if total >= 30 and ci_half_width <= 5:
+        return "reliable"
+    if total >= 10 and ci_half_width <= 12:
+        return "moderate"
+    return "unreliable"
+
+
 @router.get("/analytics/edge-lab")
 async def get_edge_lab(
     days: int = Query(30, ge=7, le=90, description="7, 30, or 90"),
@@ -95,7 +137,7 @@ async def get_edge_lab(
     start_str = start_date.isoformat()
     sector_filter = sector.lower().strip()
 
-    cache_key = f"lq:edge-lab:v1:{days}:{sector_filter}:{end_str}"
+    cache_key = f"lq:edge-lab:v2:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -271,16 +313,40 @@ async def get_edge_lab(
         elif avg_loss is not None:
             ev = round(lr_pct * avg_loss, 3)
 
+        # Wilson 95% CI on win rate
+        ci_lo, ci_hi, ci_half = _wilson_ci(w, cnt)
+        reliability = _reliability_tier(cnt, ci_half)
+
         pattern_ev.append({
             "pattern": r[0],
             "count": cnt,
             "wins": w,
             "losses": l,
             "win_rate": _wr(w, cnt),
+            "win_rate_ci_lower": ci_lo,
+            "win_rate_ci_upper": ci_hi,
+            "win_rate_ci_half_width": ci_half,
+            "reliability": reliability,
             "avg_win_peak": round(avg_win, 3) if avg_win is not None else None,
             "avg_loss_peak": round(avg_loss, 3) if avg_loss is not None else None,
             "expected_value": ev,
         })
+
+    # ─── Q2b: Pattern Calibration (subset of pattern_ev for reliability-focused UI) ───
+    # Replaces legacy confidence_calibration. Sorted by reliability tier then count.
+    _tier_order = {"reliable": 0, "moderate": 1, "unreliable": 2}
+    pattern_calibration = sorted(
+        [{
+            "pattern": p["pattern"],
+            "count": p["count"],
+            "win_rate": p["win_rate"],
+            "win_rate_ci_lower": p["win_rate_ci_lower"],
+            "win_rate_ci_upper": p["win_rate_ci_upper"],
+            "win_rate_ci_half_width": p["win_rate_ci_half_width"],
+            "reliability": p["reliability"],
+        } for p in pattern_ev],
+        key=lambda p: (_tier_order.get(p["reliability"], 99), -p["count"]),
+    )
 
     # ─── Q3: Calendar WR (daily breakdown for heatmap) ───
     calendar_rows = db.execute(text(f"""
@@ -317,37 +383,11 @@ async def get_edge_lab(
         })
         cur += timedelta(days=1)
 
-    # ─── Q4: Confidence calibration (rating bucket WR) ───
-    calibration_rows = db.execute(text(f"""
-        WITH {OUTCOMES_CTE},
-        scoped AS (
-            SELECT r.signal_id, r.outcome, e.rating
-            FROM resolved r
-            JOIN signals s ON s.signal_id = r.signal_id
-            LEFT JOIN coins c ON c.pair = s.pair
-            LEFT JOIN signal_enrichment e ON e.signal_id = r.signal_id
-            WHERE r.hit_date >= :start AND r.hit_date <= :end
-            {sector_clause}
-              AND e.rating IS NOT NULL
-              AND e.rating <> 'N/A'
-        )
-        SELECT
-            rating,
-            COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
-            COUNT(*) FILTER (WHERE outcome = 'sl') AS losses
-        FROM scoped
-        GROUP BY rating
-        ORDER BY rating
-    """), params).fetchall()
-
-    confidence_calibration = [{
-        "rating": r[0],
-        "count": int(r[1]),
-        "wins": int(r[2]),
-        "losses": int(r[3]),
-        "win_rate": _wr(int(r[2]), int(r[1])),
-    } for r in calibration_rows]
+    # ─── Q4 (REMOVED): Confidence calibration via signal_enrichment.rating ───
+    # The v3 enrichment worker no longer computes the legacy `rating` column —
+    # it inserts 'N/A' as a placeholder. So we dropped that panel and built
+    # `pattern_calibration` above instead, derived from pattern_ev with
+    # Wilson 95% CI bounds on each pattern's win rate.
 
     # ─── Q5: Hour × Day-of-Week heatmap (signal CREATION time) ───
     # Use signals.created_at parsed to timestamp; some rows have it as text — cast safely
@@ -392,7 +432,7 @@ async def get_edge_lab(
         "pattern_btc_heatmap": pattern_btc_heatmap,
         "pattern_ev": pattern_ev,
         "calendar_wr": calendar_wr,
-        "confidence_calibration": confidence_calibration,
+        "pattern_calibration": pattern_calibration,
         "hour_dow_heatmap": hour_dow_heatmap,
     }
 
