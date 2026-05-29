@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════
 // Finance Filter Bar — self-contained
-// Search + status select + sort + reset + result count
+// v2: + exchange dropdown (filter by receiving wallet provider)
 // ════════════════════════════════════════════════════════════════════
 
 import { SearchIcon, CloseIcon } from '../../Icons';
@@ -44,7 +44,7 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full pr-${onClear ? '8' : '3'} py-2 rounded-lg text-xs text-white focus:outline-none focus:ring-1 transition-all ${hasIcon ? 'pl-9' : 'pl-3'}`}
+      className={`w-full ${onClear ? 'pr-8' : 'pr-3'} py-2 rounded-lg text-xs text-white focus:outline-none focus:ring-1 transition-all ${hasIcon ? 'pl-9' : 'pl-3'}`}
       style={{
         background: fieldBg,
         border: `1px solid ${value ? fieldBorderActive : fieldBorder}`,
@@ -93,8 +93,12 @@ export const FinanceFilterBar = ({
   sortOrder,
   onSortChange,
   resultCount,
+  // v2: exchange filter
+  exchangeFilter = '',
+  onExchangeChange,
+  exchangeOptions = [],
 }) => {
-  const hasFilters = !!(search || statusFilter);
+  const hasFilters = !!(search || statusFilter || exchangeFilter);
   const sortValue = `${sortBy}:${sortOrder}`;
 
   return (
@@ -118,6 +122,19 @@ export const FinanceFilterBar = ({
           className="min-w-[180px]"
         />
 
+        {exchangeOptions.length > 0 && onExchangeChange && (
+          <SelectBox
+            value={exchangeFilter}
+            onChange={onExchangeChange}
+            options={[
+              { value: '', label: 'All Exchanges' },
+              ...exchangeOptions.map((e) => ({ value: e, label: e })),
+            ]}
+            highlight={!!exchangeFilter}
+            className="min-w-[150px]"
+          />
+        )}
+
         <SelectBox
           value={sortValue}
           onChange={(v) => {
@@ -133,6 +150,7 @@ export const FinanceFilterBar = ({
             onClick={() => {
               onSearchChange('');
               onStatusChange('');
+              if (onExchangeChange) onExchangeChange('');
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 whitespace-nowrap"
             style={{

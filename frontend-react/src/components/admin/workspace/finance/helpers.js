@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════════
 // Finance domain helpers
 // Shared utilities used across FinanceTab + PaymentDetailPanel.
+// v2: + exchangeColor helper for wallet exchange badges.
 // ════════════════════════════════════════════════════════════════════
 
 /* ── Formatting ─────────────────────────────────────────────────── */
@@ -85,4 +86,27 @@ export const roleStyle = (role) => {
     background: isPaid ? 'rgba(52,211,153,0.10)' : 'rgba(107,92,82,0.12)',
     color: isPaid ? '#34d399' : '#8a7a6e',
   };
+};
+
+/* ── Exchange badge color ───────────────────────────────────────── */
+
+const EXCHANGE_PALETTE = [
+  '#f3ba2f', // amber (Binance-ish)
+  '#3375bb', // blue
+  '#34d399', // green
+  '#a78bfa', // violet
+  '#fb923c', // orange
+  '#60a5fa', // sky
+  '#f87171', // red
+  '#d4a853', // gold
+];
+
+// Deterministic color from exchange name (stable per name across renders)
+export const exchangeColor = (name) => {
+  if (!name) return '#8a7a6e';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return EXCHANGE_PALETTE[Math.abs(hash) % EXCHANGE_PALETTE.length];
 };

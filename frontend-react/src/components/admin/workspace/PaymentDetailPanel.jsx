@@ -7,6 +7,7 @@
 // • Tidy info sections with copyable values
 // • BSCScan raw data viewer (collapsible)
 // • Full English copy
+// • v2: + "Received Into" row showing wallet_to exchange (Binance/Indodax/etc)
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo } from 'react';
@@ -27,6 +28,7 @@ import {
   formatDateTimeLong,
   getStatusConfig,
   roleStyle,
+  exchangeColor,
 } from './finance/helpers';
 
 /* ── Layout primitives (panel-local) ──────────────────────────────── */
@@ -58,7 +60,7 @@ const InfoBlock = ({ children }) => (
   </div>
 );
 
-const InfoRow = ({ label, value, mono = false, copyable = false, onCopy }) => (
+const InfoRow = ({ label, value, mono = false, copyable = false, onCopy, valueColor }) => (
   <div
     className="flex items-center justify-between gap-3 py-2"
     style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
@@ -71,9 +73,8 @@ const InfoRow = ({ label, value, mono = false, copyable = false, onCopy }) => (
     </span>
     <div className="flex items-center gap-1.5 min-w-0">
       <span
-        className={`text-[11.5px] text-white truncate text-right ${
-          mono ? 'font-mono tabular-nums' : ''
-        }`}
+        className={`text-[11.5px] truncate text-right ${mono ? 'font-mono tabular-nums' : ''}`}
+        style={{ color: valueColor || '#fff' }}
         title={typeof value === 'string' ? value : ''}
       >
         {value ?? '—'}
@@ -92,6 +93,47 @@ const InfoRow = ({ label, value, mono = false, copyable = false, onCopy }) => (
     </div>
   </div>
 );
+
+/* ── Exchange row (special — shows dot + colored name) ────────────── */
+
+const ExchangeRow = ({ exchangeName, walletLabel }) => {
+  if (!exchangeName) return null;
+  const c = exchangeColor(exchangeName);
+  return (
+    <div
+      className="flex items-center justify-between gap-3 py-2"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    >
+      <span
+        className="text-[10px] uppercase tracking-wider shrink-0"
+        style={{ color: '#6b5c52' }}
+      >
+        Received Into
+      </span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: c }}
+        />
+        <span
+          className="text-[11.5px] font-semibold truncate text-right"
+          style={{ color: c }}
+        >
+          {exchangeName}
+        </span>
+        {walletLabel && (
+          <span
+            className="text-[10px] truncate"
+            style={{ color: '#8a7a6e' }}
+            title={`Internal wallet label: ${walletLabel}`}
+          >
+            ({walletLabel})
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 /* ── Action button (panel-local) ──────────────────────────────────── */
 
@@ -323,7 +365,7 @@ export const PaymentDetailPanel = ({
   const [actionBusy, setActionBusy] = useState(null);
   const [showBscscan, setShowBscscan] = useState(false);
 
-  const [showNoteInput, setShowNoteInput] = useState(null); // 'fail' | 'cancel' | 'refund'
+  const [showNoteInput, setShowNoteInput] = useState(null);
   const [actionNote, setActionNote] = useState('');
 
   const [showAddNote, setShowAddNote] = useState(false);
@@ -331,7 +373,6 @@ export const PaymentDetailPanel = ({
 
   const [error, setError] = useState(null);
 
-  // Reset when panel closes
   useEffect(() => {
     if (!isOpen) {
       setPayment(null);
@@ -344,7 +385,6 @@ export const PaymentDetailPanel = ({
     }
   }, [isOpen]);
 
-  // Fetch full detail
   useEffect(() => {
     if (!isOpen || !paymentSummary?.id) return;
     let cancelled = false;
@@ -471,7 +511,7 @@ export const PaymentDetailPanel = ({
         </p>
       ) : (
         <div className="space-y-5">
-          {/* ════════ HERO ════════ */}
+          {/* HERO */}
           <div
             className="relative overflow-hidden rounded-2xl p-5"
             style={{
@@ -479,14 +519,12 @@ export const PaymentDetailPanel = ({
               border: `1px solid ${cfg.border}`,
             }}
           >
-            {/* hairline */}
             <div
               className="absolute inset-x-0 top-0 h-px"
               style={{
                 background: `linear-gradient(to right, transparent, ${cfg.color}60, transparent)`,
               }}
             />
-            {/* glow */}
             <div
               className="absolute -top-10 -right-10 w-32 h-32 rounded-full pointer-events-none"
               style={{
@@ -520,6 +558,23 @@ export const PaymentDetailPanel = ({
                     Stale {p.age_hours}h
                   </span>
                 )}
+                {p.wallet_to_exchange && (
+                  <span
+                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1.5"
+                    style={{
+                      background: `${exchangeColor(p.wallet_to_exchange)}14`,
+                      color: exchangeColor(p.wallet_to_exchange),
+                      border: `1px solid ${exchangeColor(p.wallet_to_exchange)}33`,
+                    }}
+                    title={`Received into ${p.wallet_to_exchange}`}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ background: exchangeColor(p.wallet_to_exchange) }}
+                    />
+                    {p.wallet_to_exchange}
+                  </span>
+                )}
               </div>
 
               <p
@@ -540,7 +595,7 @@ export const PaymentDetailPanel = ({
             </div>
           </div>
 
-          {/* ════════ ERROR ════════ */}
+          {/* ERROR */}
           {error && (
             <div
               className="text-[11.5px] px-3 py-2.5 rounded-lg flex items-start gap-2"
@@ -555,72 +610,38 @@ export const PaymentDetailPanel = ({
             </div>
           )}
 
-          {/* ════════ ACTIONS ════════ */}
-          {(isPending || isConfirmed || (!isPending && !isConfirmed)) && (
-            <Section title="Actions">
-              {isPending && (
-                <div className="grid grid-cols-2 gap-2">
-                  <ActionBtn
-                    Icon={CheckCircleIcon}
-                    label="Approve"
-                    tone="success"
-                    onClick={handleApprove}
-                    busy={actionBusy === 'approve'}
-                    disabled={actionBusy != null}
-                  />
-                  <ActionBtn
-                    Icon={XCircleIcon}
-                    label="Mark Failed"
-                    tone="danger"
-                    onClick={() => {
-                      setShowNoteInput('fail');
-                      setActionNote('');
-                    }}
-                    disabled={actionBusy != null}
-                  />
-                  <ActionBtn
-                    Icon={CloseIcon}
-                    label="Cancel"
-                    tone="muted"
-                    onClick={() => {
-                      setShowNoteInput('cancel');
-                      setActionNote('');
-                    }}
-                    disabled={actionBusy != null}
-                  />
-                  <ActionBtn
-                    Icon={EditIcon}
-                    label="Add Note"
-                    tone="gold"
-                    onClick={() => setShowAddNote(true)}
-                    disabled={actionBusy != null}
-                  />
-                </div>
-              )}
-
-              {isConfirmed && (
-                <div className="grid grid-cols-2 gap-2">
-                  <ActionBtn
-                    Icon={AlertTriangleIcon}
-                    label="Refund"
-                    tone="warn"
-                    onClick={() => {
-                      setShowNoteInput('refund');
-                      setActionNote('');
-                    }}
-                    disabled={actionBusy != null}
-                  />
-                  <ActionBtn
-                    Icon={EditIcon}
-                    label="Add Note"
-                    tone="gold"
-                    onClick={() => setShowAddNote(true)}
-                    disabled={actionBusy != null}
-                  />
-                </div>
-              )}
-
-              {!isPending && !isConfirmed && (
+          {/* ACTIONS */}
+          <Section title="Actions">
+            {isPending && (
+              <div className="grid grid-cols-2 gap-2">
+                <ActionBtn
+                  Icon={CheckCircleIcon}
+                  label="Approve"
+                  tone="success"
+                  onClick={handleApprove}
+                  busy={actionBusy === 'approve'}
+                  disabled={actionBusy != null}
+                />
+                <ActionBtn
+                  Icon={XCircleIcon}
+                  label="Mark Failed"
+                  tone="danger"
+                  onClick={() => {
+                    setShowNoteInput('fail');
+                    setActionNote('');
+                  }}
+                  disabled={actionBusy != null}
+                />
+                <ActionBtn
+                  Icon={CloseIcon}
+                  label="Cancel"
+                  tone="muted"
+                  onClick={() => {
+                    setShowNoteInput('cancel');
+                    setActionNote('');
+                  }}
+                  disabled={actionBusy != null}
+                />
                 <ActionBtn
                   Icon={EditIcon}
                   label="Add Note"
@@ -628,11 +649,42 @@ export const PaymentDetailPanel = ({
                   onClick={() => setShowAddNote(true)}
                   disabled={actionBusy != null}
                 />
-              )}
-            </Section>
-          )}
+              </div>
+            )}
 
-          {/* Note input (required) */}
+            {isConfirmed && (
+              <div className="grid grid-cols-2 gap-2">
+                <ActionBtn
+                  Icon={AlertTriangleIcon}
+                  label="Refund"
+                  tone="warn"
+                  onClick={() => {
+                    setShowNoteInput('refund');
+                    setActionNote('');
+                  }}
+                  disabled={actionBusy != null}
+                />
+                <ActionBtn
+                  Icon={EditIcon}
+                  label="Add Note"
+                  tone="gold"
+                  onClick={() => setShowAddNote(true)}
+                  disabled={actionBusy != null}
+                />
+              </div>
+            )}
+
+            {!isPending && !isConfirmed && (
+              <ActionBtn
+                Icon={EditIcon}
+                label="Add Note"
+                tone="gold"
+                onClick={() => setShowAddNote(true)}
+                disabled={actionBusy != null}
+              />
+            )}
+          </Section>
+
           {showNoteInput && (
             <NoteInput
               actionType={showNoteInput}
@@ -647,7 +699,6 @@ export const PaymentDetailPanel = ({
             />
           )}
 
-          {/* Add note standalone */}
           {showAddNote && (
             <AddNoteInput
               note={newNote}
@@ -661,7 +712,7 @@ export const PaymentDetailPanel = ({
             />
           )}
 
-          {/* ════════ USER ════════ */}
+          {/* USER */}
           <Section title="User">
             <div
               className="rounded-lg p-2.5"
@@ -695,7 +746,7 @@ export const PaymentDetailPanel = ({
             </div>
           </Section>
 
-          {/* ════════ FINANCIAL ════════ */}
+          {/* FINANCIAL */}
           <Section title="Financial Breakdown">
             <InfoBlock>
               <InfoRow label="Plan" value={p.plan?.name || `#${p.plan_id}`} />
@@ -718,7 +769,7 @@ export const PaymentDetailPanel = ({
             </InfoBlock>
           </Section>
 
-          {/* ════════ TRANSACTION ════════ */}
+          {/* TRANSACTION (with exchange row) */}
           <Section
             title="Transaction"
             action={
@@ -758,10 +809,16 @@ export const PaymentDetailPanel = ({
                 copyable={!!p.wallet_to}
                 onCopy={handleCopy}
               />
+              {p.wallet_to_exchange && (
+                <ExchangeRow
+                  exchangeName={p.wallet_to_exchange}
+                  walletLabel={p.wallet_to_label}
+                />
+              )}
             </InfoBlock>
           </Section>
 
-          {/* ════════ TIMESTAMPS ════════ */}
+          {/* TIMESTAMPS */}
           <Section title="Timestamps">
             <InfoBlock>
               <InfoRow label="Created" value={formatDateTimeLong(p.created_at)} mono />
@@ -770,6 +827,7 @@ export const PaymentDetailPanel = ({
                   label="Verified"
                   value={formatDateTimeLong(p.verified_at)}
                   mono
+                  valueColor="#34d399"
                 />
               )}
               {p.expires_at && (
@@ -783,7 +841,7 @@ export const PaymentDetailPanel = ({
             </InfoBlock>
           </Section>
 
-          {/* ════════ BSCSCAN RAW (collapsible) ════════ */}
+          {/* BSCSCAN RAW */}
           {payment?.bscscan_data && (
             <Section title="On-chain Verification">
               <button
@@ -813,7 +871,7 @@ export const PaymentDetailPanel = ({
             </Section>
           )}
 
-          {/* ════════ NOTES / AUDIT ════════ */}
+          {/* NOTES */}
           {p.notes && (
             <Section title="Notes / Audit Trail">
               <pre

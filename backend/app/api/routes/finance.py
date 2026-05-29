@@ -2,6 +2,8 @@
 """
 Finance management endpoints for admin workspace.
 v2: Uses explicit JOIN + manual hydration, no SQLAlchemy relationship() needed.
+v3: Adds wallet exchange labeling (Binance/Indodax/etc) for wallet_to via
+    receiving_wallets pool, plus filter-by-exchange and exchanges endpoint.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,6 +17,7 @@ from app.core.database import get_db
 from app.api.deps import get_admin_user
 from app.models.user import User
 from app.models.subscription import Payment, SubscriptionPlan
+from app.models.wallet import ReceivingWallet
 
 
 router = APIRouter(prefix="/api/v1/workspace/finance", tags=["finance"])
@@ -36,7 +39,14 @@ class PaymentNotePayload(BaseModel):
 # Helpers
 # ════════════════════════════════════════════════════════════════════
 
-def _serialize_row(payment, user, plan, include_bscscan=False):
+def _serialize_row(payment, user, plan, include_bscscan=False, wallet_map=None):
+    """
+    Serialize a Payment row to dict.
+
+    wallet_map: optional dict { address: { exchange_name, label } } from the
+    receiving_wallets pool. If provided and payment.wallet_to matches, the
+    response will include wallet_to_exchange + wallet_to_label.
+    """
     is_stale = False
     age_hours = None
     if payment.status == 'pending' and payment.created_at:
@@ -66,6 +76,11 @@ def _serialize_row(payment, user, plan, include_bscscan=False):
             "duration_days": getattr(plan, 'duration_days', None),
         }
 
+    # Resolve wallet_to → exchange info (if address is in our pool)
+    wallet_info = (wallet_map or {}).get(payment.wallet_to) if payment.wallet_to else None
+    wallet_to_exchange = wallet_info.get("exchange_name") if wallet_info else None
+    wallet_to_label = wallet_info.get("label") if wallet_info else None
+
     d = {
         "id": payment.id,
         "user_id": payment.user_id,
@@ -80,6 +95,8 @@ def _serialize_row(payment, user, plan, include_bscscan=False):
         "tx_hash": payment.tx_hash,
         "wallet_from": payment.wallet_from,
         "wallet_to": payment.wallet_to,
+        "wallet_to_exchange": wallet_to_exchange,
+        "wallet_to_label": wallet_to_label,
         "network": payment.network,
         "verified_at": payment.verified_at,
         "expires_at": payment.expires_at,
@@ -97,11 +114,28 @@ def _serialize_row(payment, user, plan, include_bscscan=False):
     return d
 
 
+def _build_wallet_map(db: Session, addresses: list) -> dict:
+    """
+    Build address -> { exchange_name, label } map from receiving_wallets.
+    Used to hydrate wallet_to with exchange info.
+    """
+    if not addresses:
+        return {}
+    rows = db.query(ReceivingWallet).filter(
+        ReceivingWallet.address.in_(addresses)
+    ).all()
+    return {
+        w.address: {"exchange_name": w.exchange_name, "label": w.label}
+        for w in rows
+    }
+
+
 def _hydrate(db: Session, payments: list) -> list:
     if not payments:
         return []
     user_ids = list({p.user_id for p in payments if p.user_id is not None})
     plan_ids = list({p.plan_id for p in payments if p.plan_id is not None})
+    wallet_addrs = list({p.wallet_to for p in payments if p.wallet_to})
 
     users_map = {}
     if user_ids:
@@ -113,8 +147,15 @@ def _hydrate(db: Session, payments: list) -> list:
         plans = db.query(SubscriptionPlan).filter(SubscriptionPlan.id.in_(plan_ids)).all()
         plans_map = {p.id: p for p in plans}
 
+    wallet_map = _build_wallet_map(db, wallet_addrs)
+
     return [
-        _serialize_row(p, users_map.get(p.user_id), plans_map.get(p.plan_id))
+        _serialize_row(
+            p,
+            users_map.get(p.user_id),
+            plans_map.get(p.plan_id),
+            wallet_map=wallet_map,
+        )
         for p in payments
     ]
 
@@ -160,6 +201,20 @@ def finance_stats(db: Session = Depends(get_db), admin: User = Depends(get_admin
 
 
 # ════════════════════════════════════════════════════════════════════
+# EXCHANGES — distinct list for filter dropdown
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/exchanges")
+def list_exchanges(db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """Distinct exchange names from the receiving wallet pool."""
+    rows = db.query(ReceivingWallet.exchange_name).filter(
+        ReceivingWallet.is_active == True  # noqa: E712
+    ).distinct().all()
+    exchanges = sorted({r[0] for r in rows if r[0]})
+    return {"exchanges": exchanges}
+
+
+# ════════════════════════════════════════════════════════════════════
 # LIST — explicit JOIN, no relationship() needed
 # ════════════════════════════════════════════════════════════════════
 
@@ -168,6 +223,7 @@ def list_payments(
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     user_id: Optional[int] = Query(None),
+    exchange: Optional[str] = Query(None, description="Filter by receiving wallet exchange (e.g. 'Binance', 'Indodax')"),
     only_stale: bool = Query(False),
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
@@ -191,6 +247,20 @@ def list_payments(
 
     if user_id:
         q = q.filter(Payment.user_id == user_id)
+
+    if exchange:
+        # Restrict to payments whose wallet_to is one of the addresses
+        # owned by the given exchange in the receiving_wallets pool.
+        matching_addrs = [
+            row[0] for row in db.query(ReceivingWallet.address).filter(
+                ReceivingWallet.exchange_name == exchange
+            ).all()
+        ]
+        if matching_addrs:
+            q = q.filter(Payment.wallet_to.in_(matching_addrs))
+        else:
+            # No wallets registered for that exchange → no results
+            q = q.filter(Payment.id == -1)
 
     if search:
         like = f"%{search}%"
@@ -235,12 +305,14 @@ def list_payments(
 def get_payment(payment_id: int, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
 
     user = db.query(User).filter(User.id == p.user_id).first() if p.user_id else None
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
 
-    return _serialize_row(p, user, plan, include_bscscan=True)
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+
+    return _serialize_row(p, user, plan, include_bscscan=True, wallet_map=wallet_map)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -256,16 +328,16 @@ def approve_payment(
 ):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
 
     if p.status != 'pending':
-        raise HTTPException(status_code=400, detail=f"Hanya pending yang bisa di-approve. Status: {p.status}")
+        raise HTTPException(status_code=400, detail=f"Only pending payments can be approved. Current status: {p.status}")
 
     user = db.query(User).filter(User.id == p.user_id).first()
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
 
     if not user:
-        raise HTTPException(status_code=400, detail="User terkait tidak ditemukan")
+        raise HTTPException(status_code=400, detail="Associated user not found")
 
     now = datetime.now(timezone.utc)
     p.status = 'confirmed'
@@ -301,10 +373,12 @@ def approve_payment(
     db.commit()
     db.refresh(p)
 
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+
     return {
         "success": True,
         "message": f"Payment #{p.id} approved. User @{user.username} subscription extended.",
-        "payment": _serialize_row(p, user, plan),
+        "payment": _serialize_row(p, user, plan, wallet_map=wallet_map),
     }
 
 
@@ -316,9 +390,9 @@ def approve_payment(
 def mark_payment_failed(payment_id: int, data: PaymentActionPayload = PaymentActionPayload(), db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
     if p.status != 'pending':
-        raise HTTPException(status_code=400, detail=f"Hanya pending yang bisa di-mark failed. Status: {p.status}")
+        raise HTTPException(status_code=400, detail=f"Only pending payments can be marked failed. Current status: {p.status}")
 
     now = datetime.now(timezone.utc)
     p.status = 'failed'
@@ -332,16 +406,17 @@ def mark_payment_failed(payment_id: int, data: PaymentActionPayload = PaymentAct
 
     user = db.query(User).filter(User.id == p.user_id).first()
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
-    return {"success": True, "message": f"Payment #{p.id} marked as failed", "payment": _serialize_row(p, user, plan)}
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": f"Payment #{p.id} marked as failed", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
 
 
 @router.post("/payments/{payment_id}/cancel")
 def cancel_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPayload(), db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
     if p.status != 'pending':
-        raise HTTPException(status_code=400, detail=f"Hanya pending yang bisa di-cancel. Status: {p.status}")
+        raise HTTPException(status_code=400, detail=f"Only pending payments can be cancelled. Current status: {p.status}")
 
     now = datetime.now(timezone.utc)
     p.status = 'cancelled'
@@ -355,16 +430,17 @@ def cancel_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPa
 
     user = db.query(User).filter(User.id == p.user_id).first()
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
-    return {"success": True, "message": f"Payment #{p.id} cancelled", "payment": _serialize_row(p, user, plan)}
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": f"Payment #{p.id} cancelled", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
 
 
 @router.post("/payments/{payment_id}/refund")
 def refund_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPayload(), db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
     if p.status != 'confirmed':
-        raise HTTPException(status_code=400, detail=f"Hanya confirmed yang bisa di-refund. Status: {p.status}")
+        raise HTTPException(status_code=400, detail=f"Only confirmed payments can be refunded. Current status: {p.status}")
 
     now = datetime.now(timezone.utc)
     p.status = 'refunded'
@@ -385,14 +461,15 @@ def refund_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPa
     db.refresh(p)
 
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
-    return {"success": True, "message": f"Payment #{p.id} flagged as refunded. Manual USDT refund required.", "payment": _serialize_row(p, user, plan)}
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": f"Payment #{p.id} flagged as refunded. Manual USDT refund required.", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
 
 
 @router.post("/payments/{payment_id}/note")
 def add_payment_note(payment_id: int, data: PaymentNotePayload, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
     p = db.query(Payment).filter(Payment.id == payment_id).first()
     if not p:
-        raise HTTPException(status_code=404, detail="Payment tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Payment not found")
 
     now = datetime.now(timezone.utc)
     note = f"[Note by @{admin.username} on {now.strftime('%Y-%m-%d %H:%M UTC')}] {data.note.strip()}"
@@ -403,7 +480,8 @@ def add_payment_note(payment_id: int, data: PaymentNotePayload, db: Session = De
 
     user = db.query(User).filter(User.id == p.user_id).first()
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
-    return {"success": True, "message": "Note added", "payment": _serialize_row(p, user, plan)}
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": "Note added", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
 
 
 @router.post("/payments/bulk-cancel-stale")

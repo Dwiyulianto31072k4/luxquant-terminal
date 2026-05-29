@@ -1,9 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
-// FinanceTab — orchestrator (redesign batch 4, ConfirmModal-fix)
+// FinanceTab — orchestrator (redesign batch 4 + wallet feature)
 //
 // ConfirmModal uses object-payload pattern (matches batch 3 API):
 //   { title, message, confirmText, cancelText, variant, onConfirm }
 //   Hide by setting state back to null.
+//
+// v2: + exchange filter wiring (fetch from /finance/exchanges endpoint).
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from 'react';
@@ -187,14 +189,14 @@ export const FinanceTab = ({ onRefreshStats }) => {
   /* ── Filters ──────────────────────────────────────────────────── */
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [exchangeFilter, setExchangeFilter] = useState('');
+  const [exchangeOptions, setExchangeOptions] = useState([]);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
   /* ── Panels & modals ──────────────────────────────────────────── */
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
-
-  // Object-payload pattern — same as UserManagementPage
   const [confirmModal, setConfirmModal] = useState(null);
 
   /* ── Toast ────────────────────────────────────────────────────── */
@@ -230,6 +232,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
       };
       if (statusFilter) filters.status = statusFilter;
       if (search) filters.search = search;
+      if (exchangeFilter) filters.exchange = exchangeFilter;
 
       const data = await financeApi.listPayments(filters);
       setPayments(data.items || []);
@@ -244,11 +247,22 @@ export const FinanceTab = ({ onRefreshStats }) => {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search, sortBy, sortOrder, pagination.page]);
+  }, [statusFilter, search, exchangeFilter, sortBy, sortOrder, pagination.page]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  // Fetch exchanges list (for filter dropdown) — once on mount.
+  useEffect(() => {
+    financeApi
+      .getExchanges()
+      .then((d) => setExchangeOptions(d?.exchanges || []))
+      .catch((e) => {
+        console.warn('Exchanges fetch failed:', e);
+        setExchangeOptions([]);
+      });
+  }, []);
 
   useEffect(() => {
     fetchPayments();
@@ -256,7 +270,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
 
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [statusFilter, search, sortBy, sortOrder]);
+  }, [statusFilter, search, exchangeFilter, sortBy, sortOrder]);
 
   /* ── Action handlers ──────────────────────────────────────────── */
   const handleFilterToggle = (status) => {
@@ -303,7 +317,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
             e?.response?.data?.detail || 'Approval failed. Please try again.',
             'error'
           );
-          throw e; // let modal stay if it uses thrown error to decide
+          throw e;
         }
       },
     });
@@ -363,7 +377,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
   };
 
   /* ── Render ───────────────────────────────────────────────────── */
-  const hasFilters = !!(search || statusFilter);
+  const hasFilters = !!(search || statusFilter || exchangeFilter);
 
   return (
     <div className="space-y-5">
@@ -390,6 +404,9 @@ export const FinanceTab = ({ onRefreshStats }) => {
           setSortOrder(so);
         }}
         resultCount={pagination.total}
+        exchangeFilter={exchangeFilter}
+        onExchangeChange={setExchangeFilter}
+        exchangeOptions={exchangeOptions}
       />
 
       {loading ? (
@@ -400,6 +417,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
           onReset={() => {
             setSearch('');
             setStatusFilter('');
+            setExchangeFilter('');
           }}
         />
       ) : (
@@ -422,7 +440,6 @@ export const FinanceTab = ({ onRefreshStats }) => {
         </>
       )}
 
-      {/* Detail panel */}
       <PaymentDetailPanel
         isOpen={panelOpen}
         onClose={() => {
@@ -433,7 +450,6 @@ export const FinanceTab = ({ onRefreshStats }) => {
         onActionDone={handlePanelAction}
       />
 
-      {/* ConfirmModal — object-payload pattern, only renders when payload is set */}
       {confirmModal && (
         <ConfirmModal
           {...confirmModal}

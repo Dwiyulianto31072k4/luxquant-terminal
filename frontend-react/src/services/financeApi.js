@@ -1,7 +1,7 @@
 // src/services/financeApi.js
 //
 // Finance management API client.
-// Mirrors workspaceApi pattern — uses shared axios instance from ./authApi.
+// v2: Adds getExchanges() + `exchange` filter in listPayments.
 
 import api from './authApi';
 
@@ -15,6 +15,14 @@ export const financeApi = {
   },
 
   // ════════════════════════════════════
+  // EXCHANGES — distinct list for filter dropdown
+  // ════════════════════════════════════
+  getExchanges: async () => {
+    const response = await api.get('/api/v1/workspace/finance/exchanges');
+    return response.data; // { exchanges: ["Binance", "Indodax", ...] }
+  },
+
+  // ════════════════════════════════════
   // LIST payments
   // ════════════════════════════════════
   listPayments: async (filters = {}) => {
@@ -22,6 +30,7 @@ export const financeApi = {
     if (filters.status) params.status = filters.status;
     if (filters.search) params.search = filters.search;
     if (filters.user_id) params.user_id = filters.user_id;
+    if (filters.exchange) params.exchange = filters.exchange;
     if (filters.only_stale) params.only_stale = true;
     if (filters.sort_by) params.sort_by = filters.sort_by;
     if (filters.sort_order) params.sort_order = filters.sort_order;

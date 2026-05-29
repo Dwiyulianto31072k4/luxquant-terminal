@@ -4,6 +4,7 @@
 // Desktop (≥ md): grid-based table row.
 // Mobile  (<  md): stacked card list.
 // Self-contained Pill / IconButton internals to avoid API drift with primitives.
+// v2: + ExchangeBadge (Binance/Indodax/etc) on wallet_to.
 // ════════════════════════════════════════════════════════════════════
 
 import { Avatar } from '../../primitives';
@@ -21,6 +22,7 @@ import {
   formatDateTime,
   shortHash,
   getStatusConfig,
+  exchangeColor,
 } from './helpers';
 
 /* ── Inline Pill (small status chip) ──────────────────────────────── */
@@ -44,6 +46,32 @@ const Pill = ({ label, color, bg, border, Icon, dense = false, pulse = false }) 
     {label}
   </span>
 );
+
+/* ── Exchange badge — wallet_to provider (Binance/Indodax/etc) ──── */
+
+const ExchangeBadge = ({ exchange, dense = false }) => {
+  if (!exchange) return null;
+  const c = exchangeColor(exchange);
+  return (
+    <span
+      className={`inline-flex items-center gap-1 font-semibold rounded ${
+        dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[9.5px] px-2 py-0.5'
+      }`}
+      style={{
+        background: `${c}14`,
+        color: c,
+        border: `1px solid ${c}33`,
+      }}
+      title={`Received into ${exchange}`}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ background: c }}
+      />
+      {exchange}
+    </span>
+  );
+};
 
 /* ── Inline IconButton ────────────────────────────────────────────── */
 
@@ -253,9 +281,12 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         />
       </div>
 
-      {/* TX hash */}
-      <div className="col-span-2 min-w-0">
+      {/* TX hash + exchange badge stacked */}
+      <div className="col-span-2 min-w-0 space-y-1">
         <TxHashCell hash={payment.tx_hash} onCopy={onCopyHash} />
+        {payment.wallet_to_exchange && (
+          <ExchangeBadge exchange={payment.wallet_to_exchange} dense />
+        )}
       </div>
 
       {/* Date */}
@@ -335,11 +366,16 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
       </div>
 
       <div
-        className="flex items-center justify-between gap-2 pt-2 text-[10.5px]"
+        className="flex items-center justify-between gap-2 pt-2 text-[10.5px] flex-wrap"
         style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}
       >
         <span>{formatRelative(payment.created_at)}</span>
-        <TxHashCell hash={payment.tx_hash} onCopy={onCopyHash} dense />
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {payment.wallet_to_exchange && (
+            <ExchangeBadge exchange={payment.wallet_to_exchange} dense />
+          )}
+          <TxHashCell hash={payment.tx_hash} onCopy={onCopyHash} dense />
+        </div>
       </div>
 
       <div
@@ -377,7 +413,7 @@ export const PaymentsTable = ({
         <div className="col-span-3">User</div>
         <div className="col-span-2">Plan / Amount</div>
         <div className="col-span-2">Status</div>
-        <div className="col-span-2">TX Hash</div>
+        <div className="col-span-2">TX Hash / Wallet</div>
         <div className="col-span-2">Created</div>
         <div className="col-span-1 text-right">Actions</div>
       </div>
