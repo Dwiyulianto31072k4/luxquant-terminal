@@ -59,6 +59,9 @@ const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const DailyPerformancePage = lazy(
   () => import("./components/DailyPerformancePage"),
 );
+const EdgeLabPage = lazy(
+  () => import("./components/EdgeLabPage"),
+);
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -1361,6 +1364,14 @@ function App() {
               element={
                 <AppShell>
                   <DailyPerformancePage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/daily-performance/edge-lab"
+              element={
+                <AppShell>
+                  <EdgeLabPage />
                 </AppShell>
               }
             />

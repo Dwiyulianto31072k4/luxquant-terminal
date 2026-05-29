@@ -15,6 +15,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { analyticsApi } from "../services/analyticsApi";
 import { signalsApi } from "../services/api";
 import SignalModal from "./SignalModal";
@@ -1342,7 +1343,7 @@ const DailyPerformancePage = () => {
         <div className="flex items-center gap-2 flex-wrap">
           {/* v7: Edge Lab button (placeholder until Deliverable B) */}
           <button
-            onClick={() => { alert("Edge Lab — coming soon.\n\nMulti-day analytics across 7/30/90 days:\n• Pattern × BTC heatmap\n• Expected Value per pattern\n• Calendar WR heatmap\n• Confidence calibration\n• Hour-of-day timing"); }}
+            onClick={() => navigate("/daily-performance/edge-lab")}
             className="px-3 py-2 rounded-md bg-gold-primary/[0.06] border border-gold-primary/30 text-[10px] tracking-[0.2em] font-mono uppercase text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition flex items-center gap-2"
             title="Multi-day analytics: pattern × BTC heatmap, EV, calendar WR"
           >
