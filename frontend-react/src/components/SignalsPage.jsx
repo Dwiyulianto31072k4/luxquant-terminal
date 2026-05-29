@@ -83,6 +83,23 @@ const Icon = {
       <path d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
+  flame: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  ),
+  zap: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  target: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  ),
 };
 
 // ================================================================
@@ -123,6 +140,10 @@ const SignalsPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [stats, setStats] = useState(null);
 
+  // Coin Intelligence map { pair: coinObj } — used to join win-streak (and other
+  // anomaly data) onto signal rows for the new column / filter / sort.
+  const [coinIntel, setCoinIntel] = useState({});
+
   const [isIntelOpen, setIsIntelOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
@@ -135,17 +156,29 @@ const SignalsPage = () => {
   const [searchPair, setSearchPair] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [streakFilter, setStreakFilter] = useState("all"); // 'all' | 'hot'
+  const [corrDecoupled, setCorrDecoupled] = useState(false);
+  const [corrHighAlign, setCorrHighAlign] = useState(false);
   const [selectedDates, setSelectedDates] = useState([]);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
+
+  // Min win-streak length to count as a "High Win Streak" (matches the
+  // Coin Intelligence hot-streak heuristic).
+  const HOT_STREAK_MIN = 5;
 
   const fetchBulkSignals = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
-      const [signalsRes, statsRes] = await Promise.allSettled([
+
+      const token = localStorage.getItem("access_token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const [signalsRes, statsRes, intelRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`),
         fetch(`${API_BASE}/api/v1/signals/stats`),
+        fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
       ]);
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
@@ -156,6 +189,17 @@ const SignalsPage = () => {
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
         const statsData = await statsRes.value.json();
         setStats(statsData);
+      }
+      // Coin Intelligence is best-effort: if it fails, the Win Streak column /
+      // filter simply shows nothing — the rest of the page is unaffected.
+      if (intelRes.status === "fulfilled" && intelRes.value.ok) {
+        const intel = await intelRes.value.json();
+        const all = [...(intel.top_coins || []), ...(intel.rest_coins || [])];
+        const map = {};
+        for (const c of all) {
+          if (c && c.pair) map[c.pair] = c;
+        }
+        setCoinIntel(map);
       }
       setLastUpdated(new Date());
     } catch (err) {
@@ -174,10 +218,28 @@ const SignalsPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, riskFilter, selectedDates, sortBy, sortOrder]);
+  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, selectedDates, sortBy, sortOrder]);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;
+  }, [allSignals]);
+
+  // Count of signals currently on a "high" win streak (for the filter badge).
+  const hotStreakCount = useMemo(() => {
+    return allSignals.filter((s) => {
+      const st = coinIntel[s.pair]?.current_streak;
+      return st && st.type === "win" && st.length >= HOT_STREAK_MIN;
+    }).length;
+  }, [allSignals, coinIntel]);
+
+  // Counts for the BTC correlation filter badges.
+  const corrCounts = useMemo(() => {
+    let dec = 0, hi = 0;
+    for (const s of allSignals) {
+      if (s.btc_decoupled) dec++;
+      if ((s.btc_align_score ?? -1) >= 70) hi++;
+    }
+    return { dec, hi };
   }, [allSignals]);
 
   // All unique pairs across every signal — passed to the table so it can fetch
@@ -235,6 +297,14 @@ const SignalsPage = () => {
     return data.volume || 0;
   };
 
+  // Signed win-streak value for sorting: win → +length, loss → −length,
+  // no Coin Intelligence data → null (so it can sink to the bottom).
+  const getStreakVal = (pair) => {
+    const st = coinIntel[pair]?.current_streak;
+    if (!st || !st.length) return null;
+    return st.type === "win" ? st.length : -st.length;
+  };
+
   const getOrderLabel = () => {
     const isTime = ["created_at", "last_update"].includes(sortBy);
     const isAlpha = sortBy === "pair";
@@ -255,12 +325,15 @@ const SignalsPage = () => {
     }
   };
 
-  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at";
+  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || selectedDates.length > 0 || sortBy !== "created_at";
 
   const resetFilters = () => {
     setSearchPair("");
     setStatusFilter("all");
     setRiskFilter("all");
+    setStreakFilter("all");
+    setCorrDecoupled(false);
+    setCorrHighAlign(false);
     setSelectedDates([]);
     setSortBy("created_at");
     setSortOrder("desc");
@@ -318,6 +391,22 @@ const SignalsPage = () => {
       });
     }
 
+    // High Win Streak filter — joins Coin Intelligence by pair.
+    if (streakFilter === "hot") {
+      filtered = filtered.filter((s) => {
+        const st = coinIntel[s.pair]?.current_streak;
+        return st && st.type === "win" && st.length >= HOT_STREAK_MIN;
+      });
+    }
+
+    // BTC correlation filters (data joined onto each row by the backend).
+    if (corrDecoupled) {
+      filtered = filtered.filter((s) => s.btc_decoupled === true);
+    }
+    if (corrHighAlign) {
+      filtered = filtered.filter((s) => (s.btc_align_score ?? -1) >= 70);
+    }
+
     // Stable tiebreaker — when two rows compare equal (or share missing/0 data),
     // fall back to a deterministic order (newest call first). This is what stops
     // rows from reshuffling every refresh, especially on page 2+.
@@ -365,6 +454,10 @@ const SignalsPage = () => {
         }
         case "volume":
           valA = getVolVal(a.pair); valB = getVolVal(b.pair); break;
+        case "win_streak":
+          valA = getStreakVal(a.pair); valB = getStreakVal(b.pair); break;
+        case "btc_corr":
+          valA = a.btc_align_score ?? null; valB = b.btc_align_score ?? null; break;
         case "last_update": {
           const tsA = a.last_update_at ? new Date(a.last_update_at).getTime() : 0;
           const tsB = b.last_update_at ? new Date(b.last_update_at).getTime() : 0;
@@ -385,6 +478,16 @@ const SignalsPage = () => {
         if (hasA !== hasB) return hasA ? -1 : 1;
       }
 
+      // Win streak / BTC alignment: rows without that data (null) always sink,
+      // regardless of direction — valid negatives (loss streaks) must not be
+      // treated as "missing".
+      if (sortBy === "win_streak" || sortBy === "btc_corr") {
+        const hasA = valA !== null && valA !== undefined;
+        const hasB = valB !== null && valB !== undefined;
+        if (hasA !== hasB) return hasA ? -1 : 1;
+        valA = valA ?? 0; valB = valB ?? 0;
+      }
+
       const cmp = sortOrder === "asc" ? valA - valB : valB - valA;
       return cmp !== 0 ? cmp : tiebreak(a, b);
     });
@@ -395,7 +498,7 @@ const SignalsPage = () => {
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
     return { signals: paged, totalPages: pages, totalSignals: total };
-  }, [allSignals, searchPair, statusFilter, riskFilter, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion]);
+  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
@@ -430,6 +533,8 @@ const SignalsPage = () => {
     { value: "stop_loss", label: "Stop Loss %" },
     { value: "status", label: "Signal Status" },
     { value: "risk_level", label: "Risk Level" },
+    { value: "win_streak", label: "Win Streak" },
+    { value: "btc_corr", label: "BTC Alignment" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
   ];
@@ -664,6 +769,69 @@ const SignalsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Intelligence Filters — joined from Coin Intelligence. This is the home
+            for the new analytics filters (Win Streak now; BTC Correlation next). */}
+        <div className="mt-5 pt-5 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Intelligence Filters</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">powered by coin intelligence</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                streakFilter === "hot"
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
+              <span>High Win Streak</span>
+              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥{HOT_STREAK_MIN}</span>
+              {hotStreakCount > 0 && streakFilter !== "hot" && (
+                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                  {hotStreakCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setCorrDecoupled((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                corrDecoupled
+                  ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
+              <span>Decoupled from BTC</span>
+              {corrCounts.dec > 0 && !corrDecoupled && (
+                <span className="px-1 py-0 bg-purple-500/10 text-purple-400 text-[9px] tabular-nums rounded-sm">
+                  {corrCounts.dec}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setCorrHighAlign((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                corrHighAlign
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
+              <span>High BTC Alignment</span>
+              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥70</span>
+              {corrCounts.hi > 0 && !corrHighAlign && (
+                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                  {corrCounts.hi}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ACCORDIONS — enhanced open state */}
@@ -756,6 +924,7 @@ const SignalsPage = () => {
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
           allPairs={allPairs}
+          coinIntel={coinIntel}
         />
       )}
 

@@ -497,7 +497,8 @@ def query_signals_bulk_7d(db):
     """
     Fetch ALL signals from last 7 days in one query (no pagination).
     NOW INCLUDES: last_update_at + last_update_type for "Recently Updated" filter/sort.
-    
+    NOW INCLUDES: BTC correlation (alignment score, beta, corr, risk, decoupled, extended).
+ 
     FIXED: last_updates CTE now orders by level DESC first (TP4 > TP3 > TP2 > TP1 > SL),
     then by update_at DESC. This prevents wrong label when batch scraper inserts
     multiple updates with identical timestamps.
@@ -538,14 +539,19 @@ def query_signals_bulk_7d(db):
             s.market_cap,
             lu.last_update_at,
             lu.last_update_type,
-            s.entry_chart_path, s.latest_chart_path  -- TAMBAHAN
+            s.entry_chart_path, s.latest_chart_path,           -- r[20], r[21]
+            bc.beta_30d, bc.corr_4h_30d,                       -- r[22], r[23]
+            bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
+            (bc.interpretation->>'alignment_score')::int,      -- r[26]
+            bc.interpretation->>'risk_level'                   -- r[27]
         FROM signals s
         LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
+        LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
         WHERE s.created_at >= :date_from
         ORDER BY s.call_message_id DESC
     """), {"date_from": date_7d}).fetchall()
-
+ 
     items = []
     for r in rows:
         items.append({
@@ -558,10 +564,17 @@ def query_signals_bulk_7d(db):
             "created_at": str(r[15]) if r[15] else None, "status": r[16], "market_cap": r[17],
             "last_update_at": str(r[18]) if r[18] else None,
             "last_update_type": r[19],
-            "entry_chart_url": chart_path_to_url(r[20]),   # TAMBAHAN
-            "latest_chart_url": chart_path_to_url(r[21]),  # TAMBAHAN
+            "entry_chart_url": chart_path_to_url(r[20]),
+            "latest_chart_url": chart_path_to_url(r[21]),
+            # ── BTC correlation (TAMBAHAN) ──
+            "btc_beta": float(r[22]) if r[22] is not None else None,
+            "btc_corr": float(r[23]) if r[23] is not None else None,
+            "btc_decoupled": bool(r[24]) if r[24] is not None else False,
+            "btc_extended": bool(r[25]) if r[25] is not None else False,
+            "btc_align_score": r[26],
+            "btc_risk": r[27],
         })
-
+ 
     return {"items": items, "total": len(items), "date_from": date_7d}
 
 

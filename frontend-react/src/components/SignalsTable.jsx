@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
@@ -12,6 +12,15 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
  * SignalsTable — Full Original + Strong Color Fix (emerald-400 & red-400)
  * Tidak ada yang dihapus. Hanya warna yang diubah.
  *
+ * COLUMN PICKER (NEW):
+ * - User bisa pilih kolom mana yang ditampilkan di tabel desktop lewat tombol
+ *   "Columns" di kanan atas. Preferensi disimpan di localStorage, jadi pilihan
+ *   user persist antar-sesi. Kolom Star + Pair selalu tampil (identitas baris).
+ * - Mobile tetap pakai card layout (semua field ringkas), jadi picker hanya
+ *   relevan & aktif di desktop table.
+ * - Set kolom dibuat sebagai registry (SIGNAL_COLUMNS) supaya nambah kolom baru
+ *   (mis. BTC Correlation / Win Streak) cukup tambah 1 entri + 1 header + 1 sel.
+ *
  * VOLUME SORT FIX:
  * - Prices/volume are now fetched for ALL pairs (via `allPairs` prop), not just
  *   the current page. Sorting by volume therefore has data for every row.
@@ -24,6 +33,122 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
  *   (server-side on the VPS, which can reach Bybit + has .com/.id fallback),
  *   chunked to avoid HTTP 414 on large symbol sets. Direct Bybit is last-resort.
  */
+
+// ================================================================
+// COLUMN REGISTRY — toggleable columns (Star + Pair always shown)
+// To add a new column later (e.g. BTC Correlation / Win Streak):
+//   1) add an entry here, 2) add its <SortableHeader> + <td> in the table,
+//      both wrapped in {visibleCols.<key> && (...)}.
+// ================================================================
+const SIGNAL_COLUMNS = [
+  { key: 'current_price', label: 'Price' },
+  { key: 'entry',         label: 'Entry' },
+  { key: 'max_target',    label: 'Target' },
+  { key: 'stop_loss',     label: 'Stop Loss' },
+  { key: 'risk_level',    label: 'Risk' },
+  { key: 'market_cap',    label: 'MCap' },
+  { key: 'volume',        label: 'Vol 24h' },
+  { key: 'win_streak',    label: 'Win Streak' },
+  { key: 'btc_corr',      label: 'BTC Corr' },
+  { key: 'status',        label: 'Status' },
+  { key: 'last_update',   label: 'Update' },
+  { key: 'created_at',    label: 'Called Time' },
+];
+
+const COLS_STORAGE_KEY = 'lq:signals:visible-cols';
+
+const defaultVisibleCols = () =>
+  SIGNAL_COLUMNS.reduce((acc, c) => { acc[c.key] = true; return acc; }, {});
+
+// Load saved prefs, merged over defaults so any newly-added column defaults to
+// visible (and corrupt/missing storage falls back gracefully).
+const loadVisibleCols = () => {
+  const defaults = defaultVisibleCols();
+  try {
+    const raw = localStorage.getItem(COLS_STORAGE_KEY);
+    if (!raw) return defaults;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object') return defaults;
+    return { ...defaults, ...saved };
+  } catch {
+    return defaults;
+  }
+};
+
+// ================================================================
+// COLUMNS MENU — dropdown of checkboxes to toggle visible columns
+// ================================================================
+const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const visibleCount = SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-white"
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="18" rx="1" />
+          <rect x="14" y="3" width="7" height="18" rx="1" />
+        </svg>
+        <span>Columns</span>
+        <span className="text-text-muted/60 tabular-nums">{visibleCount}/{SIGNAL_COLUMNS.length}</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-56 z-50 bg-[#0a0805] border border-white/[0.1] rounded-md shadow-2xl overflow-hidden">
+          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.06]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Visible Columns</span>
+            <button
+              onClick={onReset}
+              className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-gold-primary transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+          <div className="py-1 max-h-72 overflow-y-auto">
+            {SIGNAL_COLUMNS.map((c) => {
+              const active = !!visibleCols[c.key];
+              const isLast = active && visibleCount === 1; // keep at least one column
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => { if (!isLast) onToggle(c.key); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 font-mono text-[11px] transition-colors ${
+                    isLast ? 'cursor-not-allowed opacity-60' : 'hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
+                    active ? 'bg-gold-primary/20 border-gold-primary/50 text-gold-primary' : 'border-white/[0.15] text-transparent'
+                  }`}>
+                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span className={active ? 'text-white' : 'text-text-muted'}>{c.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SignalsTable = ({
   signals,
   loading,
@@ -35,6 +160,7 @@ const SignalsTable = ({
   onSort,
   onPricesUpdate,
   allPairs,
+  coinIntel = {},
 }) => {
   const { t } = useTranslation();
 
@@ -43,6 +169,30 @@ const SignalsTable = ({
   const [pricesLoading, setPricesLoading] = useState(false);
   const [pricesFailed, setPricesFailed] = useState(false);   // true only when NO pair could be fetched at all
   const [showNotice, setShowNotice] = useState(false);       // the dismissible "data unavailable" toast
+
+  // ── Column visibility (desktop table) ──
+  const [visibleCols, setVisibleCols] = useState(loadVisibleCols);
+
+  const toggleCol = (key) => {
+    setVisibleCols((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const resetCols = () => {
+    const d = defaultVisibleCols();
+    setVisibleCols(d);
+    try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(d)); } catch { /* ignore */ }
+  };
+
+  // Total <th>/<td> count = Star (1) + Pair (1) + visible toggleable columns.
+  // Used for the loading skeleton + empty-state colSpan so they stay aligned.
+  const visibleColCount = useMemo(
+    () => 2 + SIGNAL_COLUMNS.filter((c) => visibleCols[c.key]).length,
+    [visibleCols]
+  );
 
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
@@ -220,6 +370,31 @@ const SignalsTable = ({
     if (!data || typeof data === 'number') return null;
     return data.volume ?? null;
   };
+
+  // Win streak from Coin Intelligence (joined by full pair, e.g. "ZKPUSDT").
+  // Returns { type: 'win'|'loss', length } or null when the coin isn't flagged.
+  const getStreak = (pair) => {
+    const s = coinIntel?.[pair]?.current_streak;
+    return (s && s.length) ? s : null;
+  };
+
+  // BTC correlation — joined onto the row by the backend bulk-7d query.
+  // Returns null when the correlation worker hasn't computed this signal yet.
+  const getBtc = (signal) => {
+    const score = signal?.btc_align_score;
+    if (score == null) return null;
+    return {
+      score,
+      beta: signal.btc_beta,
+      corr: signal.btc_corr,
+      risk: signal.btc_risk,
+      decoupled: !!signal.btc_decoupled,
+      extended: !!signal.btc_extended,
+    };
+  };
+  const btcScoreColor = (s) =>
+    s >= 70 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-rose-400';
+  const fmtSigned = (n, d = 2) => (n == null ? '—' : (n >= 0 ? '+' : '') + Number(n).toFixed(d));
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return '-';
@@ -410,6 +585,18 @@ const SignalsTable = ({
                 <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
                   {getRiskLabel(signal.risk_level)}
                 </span>
+                {(() => {
+                  const s = getStreak(signal.pair);
+                  if (!s) return null;
+                  const isWin = s.type === 'win';
+                  return (
+                    <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
+                      isWin ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                    }`}>
+                      {s.length}{isWin ? 'W' : 'L'}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -484,6 +671,13 @@ const SignalsTable = ({
             ) : signal.volume_rank_num && signal.volume_rank_den ? (
               <span className="text-text-muted/60">Vol <span className="text-text-muted">{signal.volume_rank_num}/{signal.volume_rank_den}</span></span>
             ) : null}
+            {(() => {
+              const b = getBtc(signal);
+              if (!b) return null;
+              return (
+                <span className="text-text-muted/60">BTC <span className={btcScoreColor(b.score)}>{b.score}</span>{b.decoupled ? ' ⚡' : ''}</span>
+              );
+            })()}
           </div>
           <div className="text-right">
             <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mr-1.5">Called</span>
@@ -562,6 +756,12 @@ const SignalsTable = ({
       </div>
 
       <div className="hidden lg:block w-full">
+        {/* Toolbar — column picker (sits outside the overflow-hidden card so the
+            dropdown isn't clipped) */}
+        <div className="flex items-center justify-end mb-3">
+          <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
+        </div>
+
         <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent z-10" />
 
@@ -571,23 +771,25 @@ const SignalsTable = ({
                 <tr>
                   <th className="py-3 px-4 w-10 text-center"></th>
                   <SortableHeader field="pair" label="Pair" />
-                  <SortableHeader field="current_price" label="Price" align="right" />
-                  <SortableHeader field="entry" label="Entry" align="right" />
-                  <SortableHeader field="max_target" label="Target" align="right" />
-                  <SortableHeader field="stop_loss" label="Stop Loss" align="right" />
-                  <SortableHeader field="risk_level" label="Risk" align="center" />
-                  <SortableHeader field="market_cap" label="MCap" align="right" />
-                  <SortableHeader field="volume" label="Vol 24h" align="right" />
-                  <SortableHeader field="status" label="Status" align="center" />
-                  <SortableHeader field="last_update" label="Update" align="center" />
-                  <SortableHeader field="created_at" label="Called Time" align="right" />
+                  {visibleCols.current_price && <SortableHeader field="current_price" label="Price" align="right" />}
+                  {visibleCols.entry && <SortableHeader field="entry" label="Entry" align="right" />}
+                  {visibleCols.max_target && <SortableHeader field="max_target" label="Target" align="right" />}
+                  {visibleCols.stop_loss && <SortableHeader field="stop_loss" label="Stop Loss" align="right" />}
+                  {visibleCols.risk_level && <SortableHeader field="risk_level" label="Risk" align="center" />}
+                  {visibleCols.market_cap && <SortableHeader field="market_cap" label="MCap" align="right" />}
+                  {visibleCols.volume && <SortableHeader field="volume" label="Vol 24h" align="right" />}
+                  {visibleCols.win_streak && <SortableHeader field="win_streak" label="Win Streak" align="center" />}
+                  {visibleCols.btc_corr && <SortableHeader field="btc_corr" label="BTC Corr" align="center" />}
+                  {visibleCols.status && <SortableHeader field="status" label="Status" align="center" />}
+                  {visibleCols.last_update && <SortableHeader field="last_update" label="Update" align="center" />}
+                  {visibleCols.created_at && <SortableHeader field="created_at" label="Called Time" align="right" />}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   [...Array(10)].map((_, i) => (
                     <tr key={i} className="border-b border-white/[0.03]">
-                      {[...Array(12)].map((_, j) => (
+                      {[...Array(visibleColCount)].map((_, j) => (
                         <td key={j} className="py-4 px-4">
                           <div className="h-3 bg-white/[0.04] rounded animate-pulse"></div>
                         </td>
@@ -596,7 +798,7 @@ const SignalsTable = ({
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="text-center py-16">
+                    <td colSpan={visibleColCount} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
                           <EmptyStateIcon />
@@ -639,110 +841,168 @@ const SignalsTable = ({
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 text-right">
-                          {pricesLoading && !currentPrice ? (
-                            <div className="h-3 w-16 bg-white/[0.04] rounded animate-pulse ml-auto" />
-                          ) : currentPrice ? (
-                            <div className="flex flex-col items-end">
-                              <span className={`font-mono text-sm tabular-nums font-medium ${currentPriceColor}`}>
-                                {formatPrice(currentPrice)}
-                              </span>
-                              {priceChange !== null && (
-                                <span className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                  {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                        {visibleCols.current_price && (
+                          <td className="py-3 px-4 text-right">
+                            {pricesLoading && !currentPrice ? (
+                              <div className="h-3 w-16 bg-white/[0.04] rounded animate-pulse ml-auto" />
+                            ) : currentPrice ? (
+                              <div className="flex flex-col items-end">
+                                <span className={`font-mono text-sm tabular-nums font-medium ${currentPriceColor}`}>
+                                  {formatPrice(currentPrice)}
                                 </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-text-muted/40">-</span>
-                          )}
-                        </td>
+                                {priceChange !== null && (
+                                  <span className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-text-muted/40">-</span>
+                            )}
+                          </td>
+                        )}
 
-                        <td className="py-3 px-4 text-right">
-                          <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatPrice(signal.entry)}</span>
-                        </td>
+                        {visibleCols.entry && (
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatPrice(signal.entry)}</span>
+                          </td>
+                        )}
 
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="text-emerald-400 font-mono text-sm tabular-nums font-medium">{maxTarget ? formatPrice(maxTarget) : '-'}</span>
-                            {maxTarget && (() => {
-                              const pct = calcPct(maxTarget, signal.entry);
-                              return pct !== null ? (
-                                <span className="text-emerald-400/70 font-mono text-[10px] tabular-nums mt-0.5">+{pct.toFixed(1)}%</span>
-                              ) : null;
-                            })()}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="text-red-400 font-mono text-sm tabular-nums font-medium">{signal.stop1 ? formatPrice(signal.stop1) : '-'}</span>
-                            {signal.stop1 && (() => {
-                              const pct = calcPct(signal.stop1, signal.entry);
-                              return pct !== null ? (
-                                <span className="text-red-400/70 font-mono text-[10px] tabular-nums mt-0.5">{pct.toFixed(1)}%</span>
-                              ) : null;
-                            })()}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
-                            {getRiskLabel(signal.risk_level)}
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-4 text-right">
-                          {signal.market_cap ? (
-                            <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatMarketCap(signal.market_cap)}</span>
-                          ) : (
-                            <span className="text-text-muted/40">-</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-right">
-                          {currentVol ? (
-                            <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatVolume(currentVol)}</span>
-                          ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                            <span className="text-text-muted font-mono text-sm tabular-nums font-medium">
-                              {signal.volume_rank_num}<span className="text-text-muted/40">/{signal.volume_rank_den}</span>
-                            </span>
-                          ) : (
-                            <span className="text-text-muted/40">-</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          {getStatusBadge(signal.status)}
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          {signal.last_update_at ? (
-                            <div className="flex flex-col items-center gap-0.5">
-                              {getUpdateTypeBadge(signal.last_update_type)}
-                              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">{formatTimeAgo(signal.last_update_at)}</span>
-                            </div>
-                          ) : (
-                            <span className="text-text-muted/40 text-xs">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="text-text-muted font-mono text-[11px] tabular-nums font-medium">
-                              {(() => {
-                                const d = new Date(signal.created_at);
-                                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                        {visibleCols.max_target && (
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="text-emerald-400 font-mono text-sm tabular-nums font-medium">{maxTarget ? formatPrice(maxTarget) : '-'}</span>
+                              {maxTarget && (() => {
+                                const pct = calcPct(maxTarget, signal.entry);
+                                return pct !== null ? (
+                                  <span className="text-emerald-400/70 font-mono text-[10px] tabular-nums mt-0.5">+{pct.toFixed(1)}%</span>
+                                ) : null;
                               })()}
-                            </span>
-                            <span className="font-mono text-[10px] tabular-nums text-text-muted/60 mt-0.5 font-medium">
-                              {(() => {
-                                const d = new Date(signal.created_at);
-                                return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                            </div>
+                          </td>
+                        )}
+
+                        {visibleCols.stop_loss && (
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="text-red-400 font-mono text-sm tabular-nums font-medium">{signal.stop1 ? formatPrice(signal.stop1) : '-'}</span>
+                              {signal.stop1 && (() => {
+                                const pct = calcPct(signal.stop1, signal.entry);
+                                return pct !== null ? (
+                                  <span className="text-red-400/70 font-mono text-[10px] tabular-nums mt-0.5">{pct.toFixed(1)}%</span>
+                                ) : null;
                               })()}
+                            </div>
+                          </td>
+                        )}
+
+                        {visibleCols.risk_level && (
+                          <td className="py-3 px-4 text-center">
+                            <span className={`inline-flex items-center px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
+                              {getRiskLabel(signal.risk_level)}
                             </span>
-                          </div>
-                        </td>
+                          </td>
+                        )}
+
+                        {visibleCols.market_cap && (
+                          <td className="py-3 px-4 text-right">
+                            {signal.market_cap ? (
+                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatMarketCap(signal.market_cap)}</span>
+                            ) : (
+                              <span className="text-text-muted/40">-</span>
+                            )}
+                          </td>
+                        )}
+
+                        {visibleCols.volume && (
+                          <td className="py-3 px-4 text-right">
+                            {currentVol ? (
+                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatVolume(currentVol)}</span>
+                            ) : signal.volume_rank_num && signal.volume_rank_den ? (
+                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">
+                                {signal.volume_rank_num}<span className="text-text-muted/40">/{signal.volume_rank_den}</span>
+                              </span>
+                            ) : (
+                              <span className="text-text-muted/40">-</span>
+                            )}
+                          </td>
+                        )}
+
+                        {visibleCols.win_streak && (
+                          <td className="py-3 px-4 text-center">
+                            {(() => {
+                              const s = getStreak(signal.pair);
+                              if (!s) return <span className="text-text-muted/40 text-xs">—</span>;
+                              const isWin = s.type === 'win';
+                              return (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${
+                                  isWin ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                                }`}>
+                                  {isWin ? '▲' : '▼'} {s.length}{isWin ? 'W' : 'L'}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                        )}
+
+                        {visibleCols.btc_corr && (
+                          <td className="py-3 px-4 text-center">
+                            {(() => {
+                              const b = getBtc(signal);
+                              if (!b) return <span className="text-text-muted/40 text-xs">—</span>;
+                              return (
+                                <div className="flex flex-col items-center">
+                                  <div className="flex items-center gap-1">
+                                    {b.decoupled && <span className="text-purple-400 text-[10px]" title="Decoupled from BTC">⚡</span>}
+                                    {b.extended && <span className="text-orange-400 text-[10px]" title="Extended move">🔥</span>}
+                                    <span className={`font-mono text-sm tabular-nums font-medium ${btcScoreColor(b.score)}`}>{b.score}</span>
+                                  </div>
+                                  <span className="font-mono text-[10px] tabular-nums text-text-muted/60 mt-0.5">
+                                    ρ{fmtSigned(b.corr)} · β{fmtSigned(b.beta)}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        )}
+
+                        {visibleCols.status && (
+                          <td className="py-3 px-4 text-center">
+                            {getStatusBadge(signal.status)}
+                          </td>
+                        )}
+
+                        {visibleCols.last_update && (
+                          <td className="py-3 px-4 text-center">
+                            {signal.last_update_at ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                {getUpdateTypeBadge(signal.last_update_type)}
+                                <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">{formatTimeAgo(signal.last_update_at)}</span>
+                              </div>
+                            ) : (
+                              <span className="text-text-muted/40 text-xs">—</span>
+                            )}
+                          </td>
+                        )}
+
+                        {visibleCols.created_at && (
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="text-text-muted font-mono text-[11px] tabular-nums font-medium">
+                                {(() => {
+                                  const d = new Date(signal.created_at);
+                                  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                                })()}
+                              </span>
+                              <span className="font-mono text-[10px] tabular-nums text-text-muted/60 mt-0.5 font-medium">
+                                {(() => {
+                                  const d = new Date(signal.created_at);
+                                  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                })()}
+                              </span>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })

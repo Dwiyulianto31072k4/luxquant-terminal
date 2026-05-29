@@ -572,15 +572,15 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
     cached = cache_get("lq:signals:bulk-7d")
     if cached:
         return cached
-    
+ 
     stale, _ = cache_get_with_stale("lq:signals:bulk-7d")
     if stale:
         return stale
-    
+ 
     try:
         from datetime import datetime, timedelta
         date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
-        
+ 
         rows = db.execute(text(f"""
             WITH {SIGNAL_OUTCOMES_CTE},
             {LAST_UPDATE_CTE}
@@ -593,14 +593,19 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 s.market_cap,
                 lu.last_update_at,
                 lu.last_update_type,
-                s.entry_chart_path, s.latest_chart_path
+                s.entry_chart_path, s.latest_chart_path,           -- r[20], r[21]
+                bc.beta_30d, bc.corr_4h_30d,                       -- r[22], r[23]
+                bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
+                (bc.interpretation->>'alignment_score')::int,      -- r[26]
+                bc.interpretation->>'risk_level'                   -- r[27]
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
+            LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
             WHERE s.created_at >= :date_from
             ORDER BY s.call_message_id DESC
         """), {"date_from": date_7d}).fetchall()
-        
+ 
         items = []
         for r in rows:
             items.append({
@@ -613,8 +618,15 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 "last_update_type": r[19],
                 "entry_chart_url": chart_path_to_url(r[20]),
                 "latest_chart_url": chart_path_to_url(r[21]),
+                # ── BTC correlation (TAMBAHAN) ──
+                "btc_beta": float(r[22]) if r[22] is not None else None,
+                "btc_corr": float(r[23]) if r[23] is not None else None,
+                "btc_decoupled": bool(r[24]) if r[24] is not None else False,
+                "btc_extended": bool(r[25]) if r[25] is not None else False,
+                "btc_align_score": r[26],
+                "btc_risk": r[27],
             })
-        
+ 
         result = {"items": items, "total": len(items), "date_from": date_7d}
         cache_set("lq:signals:bulk-7d", result, ttl=100)
         return result
