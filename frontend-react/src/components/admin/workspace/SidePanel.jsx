@@ -1,8 +1,16 @@
 // src/components/admin/workspace/SidePanel.jsx
 //
-// Reusable slide-in panel from the right.
-// Used for Add/Edit forms in Followup, Campaign, Todo tabs.
+// Centered modal dialog (formerly a slide-in side panel).
+// Name retained for backward compatibility — all 4 callers
+// (FollowupPanel, CampaignPanel, TodoPanel, PaymentDetailPanel)
+// keep the same API: { isOpen, onClose, title, subtitle, Icon, width, footer, children }.
+//
 // Renders via React Portal at document.body — bypasses all stacking contexts.
+//
+// • Adaptive width via the `width` prop (sm | md | lg | xl)
+// • Fullscreen on mobile (< sm breakpoint) for usability
+// • Click backdrop or press Escape to close
+// • Header pinned top, body scrolls, footer (if any) pinned bottom
 
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,9 +23,9 @@ import { CloseIcon } from '../Icons';
  *   title: string
  *   subtitle?: string
  *   Icon?: SVG component
- *   width?: 'sm' | 'md' | 'lg'  (default 'md')
+ *   width?: 'sm' | 'md' | 'lg' | 'xl'  (default 'md')
  *   footer?: React node  (sticky bottom action area)
- *   children: form content
+ *   children: body content
  */
 export const SidePanel = ({
   isOpen,
@@ -39,7 +47,7 @@ export const SidePanel = ({
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  // Lock body scroll
+  // Lock body scroll while modal open
   useEffect(() => {
     if (!isOpen) return;
     const prev = document.body.style.overflow;
@@ -51,15 +59,19 @@ export const SidePanel = ({
 
   if (!isOpen) return null;
 
+  // Width tokens — translated for centered modal usage.
+  // sm = confirm dialogs, md = simple forms, lg = rich forms / detail,
+  // xl = very wide (rare).
   const widthMap = {
-    sm: 'max-w-md',
-    md: 'max-w-xl',
-    lg: 'max-w-2xl',
+    sm: 'max-w-md',     // ~448px
+    md: 'max-w-2xl',    // ~672px
+    lg: 'max-w-3xl',    // ~768px
+    xl: 'max-w-5xl',    // ~896px
   };
 
   return createPortal(
     <div
-      className="fixed inset-0 flex justify-end"
+      className="fixed inset-0 flex items-center justify-center p-0 sm:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         background: 'rgba(0,0,0,0.65)',
@@ -68,14 +80,16 @@ export const SidePanel = ({
       }}
     >
       <div
-        className={`w-full ${widthMap[width]} h-full flex flex-col animate-in slide-in-from-right duration-200`}
+        className={`relative w-full ${widthMap[width] || widthMap.md} flex flex-col animate-in fade-in zoom-in-95 duration-200 h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl overflow-hidden`}
         style={{
           background: '#0a0506',
-          borderLeft: '1px solid rgba(212,168,83,0.22)',
-          boxShadow: '-20px 0 50px -10px rgba(0,0,0,0.6)',
+          border: '1px solid rgba(212,168,83,0.22)',
+          boxShadow:
+            '0 30px 80px -20px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.02)',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* ── HEADER ── */}
+        {/* ── HEADER (pinned top) ── */}
         <div
           className="flex items-center justify-between px-5 py-4 shrink-0 relative"
           style={{
@@ -83,6 +97,7 @@ export const SidePanel = ({
             borderBottom: '1px solid rgba(255,255,255,0.05)',
           }}
         >
+          {/* Gold hairline at top */}
           <div
             className="absolute inset-x-0 top-0 h-px pointer-events-none"
             style={{
@@ -90,6 +105,7 @@ export const SidePanel = ({
                 'linear-gradient(to right, transparent, rgba(212,168,83,0.35), transparent)',
             }}
           />
+
           <div className="flex items-center gap-2.5 min-w-0">
             {Icon && (
               <div
@@ -107,7 +123,10 @@ export const SidePanel = ({
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-[10px] leading-tight" style={{ color: '#6b5c52' }}>
+                <p
+                  className="text-[10px] leading-tight truncate"
+                  style={{ color: '#6b5c52' }}
+                >
                   {subtitle}
                 </p>
               )}
@@ -129,10 +148,12 @@ export const SidePanel = ({
           </button>
         </div>
 
-        {/* ── BODY ── */}
-        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        {/* ── BODY (scrollable) ── */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
+          {children}
+        </div>
 
-        {/* ── FOOTER (sticky) ── */}
+        {/* ── FOOTER (pinned bottom, optional) ── */}
         {footer && (
           <div
             className="px-5 py-3 shrink-0"
