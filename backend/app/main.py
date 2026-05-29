@@ -15,7 +15,7 @@ from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
-from app.api.routes import coins, daily_dashboard
+from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import workspace, finance
 
 
@@ -157,6 +157,7 @@ app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
 app.include_router(coins.router, prefix="/api/v1/coins", tags=["coins"])
 app.include_router(fx_router, prefix="/api/v1/fx", tags=["fx"])
 app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
+app.include_router(edge_lab.router, prefix="/api/v1", tags=["analytics"])
 app.include_router(workspace.router, tags=["workspace"])
 app.include_router(finance.router, tags=["finance"])
 
