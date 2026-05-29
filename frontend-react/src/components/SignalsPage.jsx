@@ -305,6 +305,12 @@ const SignalsPage = () => {
     return st.type === "win" ? st.length : -st.length;
   };
 
+  // Win rate for sorting (null when coin has no Coin Intelligence entry).
+  const getWinRateVal = (pair) => {
+    const wr = coinIntel[pair]?.win_rate;
+    return wr == null ? null : wr;
+  };
+
   const getOrderLabel = () => {
     const isTime = ["created_at", "last_update"].includes(sortBy);
     const isAlpha = sortBy === "pair";
@@ -456,6 +462,8 @@ const SignalsPage = () => {
           valA = getVolVal(a.pair); valB = getVolVal(b.pair); break;
         case "win_streak":
           valA = getStreakVal(a.pair); valB = getStreakVal(b.pair); break;
+        case "win_rate":
+          valA = getWinRateVal(a.pair); valB = getWinRateVal(b.pair); break;
         case "btc_corr":
           valA = a.btc_align_score ?? null; valB = b.btc_align_score ?? null; break;
         case "last_update": {
@@ -481,7 +489,7 @@ const SignalsPage = () => {
       // Win streak / BTC alignment: rows without that data (null) always sink,
       // regardless of direction — valid negatives (loss streaks) must not be
       // treated as "missing".
-      if (sortBy === "win_streak" || sortBy === "btc_corr") {
+      if (sortBy === "win_streak" || sortBy === "btc_corr" || sortBy === "win_rate") {
         const hasA = valA !== null && valA !== undefined;
         const hasB = valB !== null && valB !== undefined;
         if (hasA !== hasB) return hasA ? -1 : 1;
@@ -533,6 +541,7 @@ const SignalsPage = () => {
     { value: "stop_loss", label: "Stop Loss %" },
     { value: "status", label: "Signal Status" },
     { value: "risk_level", label: "Risk Level" },
+    { value: "win_rate", label: "Win Rate" },
     { value: "win_streak", label: "Win Streak" },
     { value: "btc_corr", label: "BTC Alignment" },
     { value: "market_cap", label: "Market Cap" },

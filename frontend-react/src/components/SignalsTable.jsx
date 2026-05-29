@@ -48,7 +48,7 @@ const SIGNAL_COLUMNS = [
   { key: 'risk_level',    label: 'Risk' },
   { key: 'market_cap',    label: 'MCap' },
   { key: 'volume',        label: 'Vol 24h' },
-  { key: 'win_streak',    label: 'Win Streak' },
+  { key: 'track_record',  label: 'Track Record' },
   { key: 'btc_corr',      label: 'BTC Corr' },
   { key: 'status',        label: 'Status' },
   { key: 'last_update',   label: 'Update' },
@@ -378,6 +378,14 @@ const SignalsTable = ({
     return (s && s.length) ? s : null;
   };
 
+  // Win rate from Coin Intelligence (same join as streak).
+  const getWinRate = (pair) => {
+    const wr = coinIntel?.[pair]?.win_rate;
+    return (wr == null) ? null : wr;
+  };
+  const wrColor = (wr) =>
+    wr >= 70 ? 'text-emerald-400' : wr >= 50 ? 'text-amber-400' : 'text-red-400';
+
   // BTC correlation — joined onto the row by the backend bulk-7d query.
   // Returns null when the correlation worker hasn't computed this signal yet.
   const getBtc = (signal) => {
@@ -586,6 +594,19 @@ const SignalsTable = ({
                   {getRiskLabel(signal.risk_level)}
                 </span>
                 {(() => {
+                  const wr = getWinRate(signal.pair);
+                  if (wr == null) return null;
+                  return (
+                    <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
+                      wr >= 70 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      : wr >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      : 'bg-red-500/10 text-red-400 border-red-500/30'
+                    }`}>
+                      {wr}%
+                    </span>
+                  );
+                })()}
+                {(() => {
                   const s = getStreak(signal.pair);
                   if (!s) return null;
                   const isWin = s.type === 'win';
@@ -778,7 +799,35 @@ const SignalsTable = ({
                   {visibleCols.risk_level && <SortableHeader field="risk_level" label="Risk" align="center" />}
                   {visibleCols.market_cap && <SortableHeader field="market_cap" label="MCap" align="right" />}
                   {visibleCols.volume && <SortableHeader field="volume" label="Vol 24h" align="right" />}
-                  {visibleCols.win_streak && <SortableHeader field="win_streak" label="Win Streak" align="center" />}
+                  {visibleCols.track_record && (
+                    <th className="py-3 px-4 font-mono text-[10px] font-medium uppercase tracking-[0.18em] select-none text-center">
+                      <span className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => onSort && onSort('win_rate')}
+                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_rate' ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'}`}
+                        >
+                          WR
+                          <svg className={`w-2.5 h-2.5 transition-all ${sortBy === 'win_rate' ? 'opacity-100 text-amber-400' : 'opacity-0'}`}
+                            style={{ transform: sortBy === 'win_rate' && sortOrder === 'asc' ? 'rotate(180deg)' : 'none' }}
+                            viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
+                          </svg>
+                        </button>
+                        <span className="text-text-muted/30">/</span>
+                        <button
+                          onClick={() => onSort && onSort('win_streak')}
+                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_streak' ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'}`}
+                        >
+                          Streak
+                          <svg className={`w-2.5 h-2.5 transition-all ${sortBy === 'win_streak' ? 'opacity-100 text-amber-400' : 'opacity-0'}`}
+                            style={{ transform: sortBy === 'win_streak' && sortOrder === 'asc' ? 'rotate(180deg)' : 'none' }}
+                            viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
+                          </svg>
+                        </button>
+                      </span>
+                    </th>
+                  )}
                   {visibleCols.btc_corr && <SortableHeader field="btc_corr" label="BTC Corr" align="center" />}
                   {visibleCols.status && <SortableHeader field="status" label="Status" align="center" />}
                   {visibleCols.last_update && <SortableHeader field="last_update" label="Update" align="center" />}
@@ -928,18 +977,25 @@ const SignalsTable = ({
                           </td>
                         )}
 
-                        {visibleCols.win_streak && (
+                        {visibleCols.track_record && (
                           <td className="py-3 px-4 text-center">
                             {(() => {
+                              const wr = getWinRate(signal.pair);
                               const s = getStreak(signal.pair);
-                              if (!s) return <span className="text-text-muted/40 text-xs">—</span>;
-                              const isWin = s.type === 'win';
+                              if (wr == null && !s) return <span className="text-text-muted/40 text-xs">—</span>;
                               return (
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${
-                                  isWin ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                                }`}>
-                                  {isWin ? '▲' : '▼'} {s.length}{isWin ? 'W' : 'L'}
-                                </span>
+                                <div className="flex flex-col items-center">
+                                  {wr != null ? (
+                                    <span className={`font-mono text-sm tabular-nums font-medium ${wrColor(wr)}`}>{wr}%</span>
+                                  ) : (
+                                    <span className="text-text-muted/40 text-xs">—</span>
+                                  )}
+                                  {s && (
+                                    <span className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${s.type === 'win' ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+                                      {s.type === 'win' ? '▲' : '▼'} {s.length}{s.type === 'win' ? 'W' : 'L'}
+                                    </span>
+                                  )}
+                                </div>
                               );
                             })()}
                           </td>
