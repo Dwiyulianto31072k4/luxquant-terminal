@@ -573,3 +573,205 @@ export const ChannelIcon = ({ channel, size = 14, colored = false, className = '
     default:         return null;
   }
 };
+// ════════════════════════════════════════════════════════════════════
+// LuxQuant Shell Icons — premium fintech refinement (1.5px strokes)
+// Added in shell redesign batch.
+// Note: BarChartIcon already exists in Icons.jsx, so the new
+// finance-tab icon is named BarsChartIcon.
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * LambdaGlyph — capital lambda Λ as brand monogram.
+ * The quant symbol. Used in the AdminWorkspacePage hero.
+ */
+export const LambdaGlyph = ({ size = 18, ...props }) => (
+  <Svg size={size} {...props}>
+    <path
+      d="M5 21 L11.2 5.5 Q12 3.8 12.8 5.5 L19 21"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    {/* Inner serif accents — subtle */}
+    <path
+      d="M9.5 17.5 L14.5 17.5"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      opacity="0.45"
+    />
+  </Svg>
+);
+
+/**
+ * UsersRingIcon — silhouette inside subtle ring.
+ * Replaces generic UsersIcon for the shell tab.
+ */
+export const UsersRingIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      opacity="0.35"
+      fill="none"
+    />
+    <circle
+      cx="12"
+      cy="10"
+      r="3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      fill="none"
+    />
+    <path
+      d="M6.5 18.5 Q12 14 17.5 18.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      fill="none"
+    />
+  </Svg>
+);
+
+/**
+ * ArrowTargetIcon — arrow heading toward a target dot.
+ * For Follow-ups tab. Conveys "chase / aim / pursue".
+ */
+export const ArrowTargetIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    {/* Outer target ring */}
+    <circle
+      cx="17"
+      cy="7"
+      r="4"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      opacity="0.4"
+      fill="none"
+    />
+    {/* Inner target dot */}
+    <circle cx="17" cy="7" r="1.5" fill="currentColor" />
+    {/* Arrow shaft + head */}
+    <path
+      d="M4 20 L13.5 10.5"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M4 20 L4 15 M4 20 L9 20"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
+
+/**
+ * BroadcastConeIcon — origin point emitting a signal cone.
+ * For Marketing tab. Conveys "broadcast / reach / amplify".
+ */
+export const BroadcastConeIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    {/* Origin dot */}
+    <circle cx="6" cy="12" r="2" fill="currentColor" />
+    {/* Signal arcs — three layers, fading */}
+    <path
+      d="M10 8.5 Q14 12 10 15.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M13.5 6 Q19 12 13.5 18"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      opacity="0.55"
+      fill="none"
+    />
+    <path
+      d="M17 3.5 Q24 12 17 20.5"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      opacity="0.25"
+      fill="none"
+    />
+  </Svg>
+);
+
+/**
+ * BarsChartIcon — three rising bars on a baseline.
+ * For Finance tab. Conveys "revenue / growth / quant".
+ * (Named BarsChartIcon to avoid collision with existing BarChartIcon.)
+ */
+export const BarsChartIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    {/* Baseline */}
+    <path
+      d="M3 21 L21 21"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      opacity="0.4"
+    />
+    {/* Bar 1 — short */}
+    <path
+      d="M6 21 L6 14"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    {/* Bar 2 — medium */}
+    <path
+      d="M12 21 L12 9"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    {/* Bar 3 — tall */}
+    <path
+      d="M18 21 L18 4"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+/**
+ * CheckSquareIcon — checkmark inside a rounded square.
+ * For TODOs tab. Conveys "task / done / list-item".
+ */
+export const CheckSquareIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <rect
+      x="3"
+      y="3"
+      width="18"
+      height="18"
+      rx="3.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      fill="none"
+    />
+    <path
+      d="M7.5 12.5 L10.5 15.5 L16.5 8.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
