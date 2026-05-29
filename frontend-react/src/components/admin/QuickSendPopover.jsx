@@ -1,4 +1,15 @@
 // src/components/admin/QuickSendPopover.jsx
+//
+// Template-driven message composer.
+//
+// Two modes (preserved from original):
+//   • inline=true   → block element rendered inside the UserDetailDrawer.
+//   • inline=false  → fullscreen floating modal (rare, used when triggered
+//     standalone from elsewhere).
+//
+// • Polished preview card, channel pill, deep-link button.
+// • Full English copy.
+
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../../services/adminApi';
 import {
@@ -14,24 +25,25 @@ import {
 
 const CHANNEL_LABELS = {
   telegram: { Icon: TelegramIcon, label: 'Telegram', color: '#229ED9' },
-  discord: { Icon: DiscordIcon, label: 'Discord', color: '#5865F2' },
-  email: { Icon: EmailIcon, label: 'Email', color: '#fbbf24' },
-  generic: { Icon: CopyIcon, label: 'Copy Only', color: '#6b5c52' },
+  discord:  { Icon: DiscordIcon,  label: 'Discord',  color: '#5865F2' },
+  email:    { Icon: EmailIcon,    label: 'Email',    color: '#fbbf24' },
+  generic:  { Icon: CopyIcon,     label: 'Copy Only', color: '#6b5c52' },
 };
 
-/**
- * QuickSendPopover — template picker + live preview.
- *
- * inline=true → block inside drawer
- * inline=false → floating modal
- */
-export const QuickSendPopover = ({ user, templates, reach, onClose, inline = false }) => {
+export const QuickSendPopover = ({
+  user,
+  templates,
+  reach,
+  onClose,
+  inline = false,
+}) => {
   const [selectedId, setSelectedId] = useState(null);
   const [rendered, setRendered] = useState(null);
   const [loading, setLoading] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Pick first non-custom template by default
   useEffect(() => {
     if (templates && templates.length > 0 && !selectedId) {
       const first = templates.find((t) => t.id !== 'custom');
@@ -44,7 +56,11 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
       if (!templateId || !user?.id) return;
       setLoading(true);
       try {
-        const result = await adminApi.renderOutreachTemplate(templateId, user.id, custom);
+        const result = await adminApi.renderOutreachTemplate(
+          templateId,
+          user.id,
+          custom
+        );
         setRendered(result);
       } catch (err) {
         console.error('Render failed:', err);
@@ -61,6 +77,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
       if (customMessage.trim().length > 0) {
         renderTemplate(selectedId, customMessage);
       } else {
+        // Show an empty shell so the user still sees channel/deep_link
         setRendered({
           template_id: 'custom',
           channel: reach.telegram.available
@@ -72,7 +89,10 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
             : 'generic',
           subject: null,
           body: '',
-          deep_link: reach.telegram.deep_link || reach.discord.deep_link || reach.email.deep_link,
+          deep_link:
+            reach.telegram.deep_link ||
+            reach.discord.deep_link ||
+            reach.email.deep_link,
           fallback_link: null,
           can_send: false,
         });
@@ -110,28 +130,60 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
     : null;
   const ChannelIcon = channelInfo?.Icon;
 
+  /* ── Inner content shared by both modes ── */
   const content = (
     <div
-      className={inline ? '' : 'w-full max-w-2xl rounded-2xl flex flex-col overflow-hidden max-h-[85vh]'}
-      style={inline ? {} : { background: '#12090d', border: '1px solid rgba(212,168,83,0.25)' }}
+      className={
+        inline
+          ? ''
+          : 'w-full max-w-2xl rounded-2xl flex flex-col overflow-hidden max-h-[85vh]'
+      }
+      style={
+        inline
+          ? {}
+          : {
+              background: '#12090d',
+              border: '1px solid rgba(212,168,83,0.25)',
+              boxShadow:
+                '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08)',
+            }
+      }
     >
+      {/* Modal header (floating mode only) */}
       {!inline && (
         <div
-          className="flex items-center justify-between px-5 py-3 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          className="flex items-center justify-between px-5 py-3 shrink-0 relative"
+          style={{
+            background: 'linear-gradient(180deg, #14080d, #12090d)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
         >
-          <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">Quick Send</h3>
+          <div
+            className="absolute inset-x-0 top-0 h-px pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, transparent, rgba(212,168,83,0.35), transparent)',
+            }}
+          />
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-white tracking-tight">
+              Quick Send
+            </h3>
             <p className="text-[10px]" style={{ color: '#6b5c52' }}>
               To: @{user.username}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md hover:bg-white/5 flex items-center justify-center"
-            style={{ color: '#8a7a6e' }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:scale-105 transition-all shrink-0"
+            style={{
+              color: '#d4a853',
+              background: 'rgba(212,168,83,0.08)',
+              border: '1px solid rgba(212,168,83,0.22)',
+            }}
+            title="Close (Esc)"
           >
-            <CloseIcon size={13} />
+            <CloseIcon size={14} />
           </button>
         </div>
       )}
@@ -154,8 +206,12 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                   onClick={() => setSelectedId(t.id)}
                   className="text-left p-2.5 rounded-lg border transition-all"
                   style={{
-                    background: isSelected ? 'rgba(212,168,83,0.08)' : 'rgba(255,255,255,0.02)',
-                    borderColor: isSelected ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.05)',
+                    background: isSelected
+                      ? 'rgba(212,168,83,0.08)'
+                      : 'rgba(255,255,255,0.02)',
+                    borderColor: isSelected
+                      ? 'rgba(212,168,83,0.4)'
+                      : 'rgba(255,255,255,0.05)',
                   }}
                 >
                   <p
@@ -164,7 +220,10 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                   >
                     {t.label}
                   </p>
-                  <p className="text-[10px] truncate" style={{ color: '#6b5c52' }}>
+                  <p
+                    className="text-[10px] truncate"
+                    style={{ color: '#6b5c52' }}
+                  >
                     {t.description}
                   </p>
                 </button>
@@ -173,7 +232,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
           </div>
         </div>
 
-        {/* Custom message input */}
+        {/* Custom message input (only when 'custom' selected) */}
         {selectedId === 'custom' && (
           <div>
             <p
@@ -186,7 +245,10 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
               rows={5}
-              placeholder={`Halo {username},\n\nKamu juga bisa pakai placeholder seperti {plan_name}, {expires_at}, dst.`}
+              placeholder={
+                `Hi {username},\n\n` +
+                `You can also use placeholders like {plan_name}, {expires_at}, etc.`
+              }
               className="w-full px-3 py-2 rounded-md text-xs text-white focus:outline-none resize-none font-mono"
               style={{
                 background: 'rgba(0,0,0,0.3)',
@@ -211,14 +273,17 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
             >
               <div
                 className="w-3 h-3 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'rgba(212,168,83,0.3)', borderTopColor: '#d4a853' }}
+                style={{
+                  borderColor: 'rgba(212,168,83,0.3)',
+                  borderTopColor: '#d4a853',
+                }}
               />
-              Rendering...
+              Rendering…
             </div>
           </div>
         )}
 
-        {/* Preview */}
+        {/* Preview card */}
         {!loading && rendered && (
           <div
             className="rounded-lg overflow-hidden"
@@ -229,23 +294,23 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
           >
             {/* Preview header */}
             <div
-              className="flex items-center justify-between px-3 py-2"
+              className="flex items-center justify-between px-3 py-2 gap-2"
               style={{
                 background: 'rgba(255,255,255,0.02)',
                 borderBottom: '1px solid rgba(255,255,255,0.04)',
               }}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 {ChannelIcon && <ChannelIcon size={12} colored />}
                 <span
-                  className="text-[10px] uppercase tracking-wider font-semibold"
+                  className="text-[10px] uppercase tracking-wider font-semibold shrink-0"
                   style={{ color: channelInfo?.color }}
                 >
                   via {channelInfo?.label}
                 </span>
                 {!rendered.can_send && (
                   <span
-                    className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded ml-1"
+                    className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded ml-1 shrink-0"
                     style={{
                       background: 'rgba(248,113,113,0.12)',
                       color: '#f87171',
@@ -261,7 +326,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
                   href={rendered.deep_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] hover:underline truncate ml-2 max-w-[40%] font-mono"
+                  className="inline-flex items-center gap-1 text-[10px] hover:underline truncate ml-2 max-w-[40%] font-mono shrink-0"
                   style={{ color: '#60a5fa' }}
                 >
                   <span className="truncate">
@@ -272,6 +337,7 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               )}
             </div>
 
+            {/* Email subject */}
             {rendered.subject && (
               <div
                 className="px-3 py-2"
@@ -287,24 +353,32 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
               </div>
             )}
 
+            {/* Body */}
             <div className="px-3 py-2.5 max-h-64 overflow-y-auto">
-              <pre className="text-xs whitespace-pre-wrap font-sans" style={{ color: '#c9b59e' }}>
+              <pre
+                className="text-xs whitespace-pre-wrap font-sans"
+                style={{ color: '#c9b59e', lineHeight: '1.5' }}
+              >
                 {rendered.body || (
-                  <span style={{ color: '#4a3f39' }}>(empty — type your message above)</span>
+                  <span style={{ color: '#4a3f39' }}>
+                    (empty — type your message above)
+                  </span>
                 )}
               </pre>
             </div>
           </div>
         )}
 
-        {/* Actions */}
+        {/* Action buttons */}
         {!loading && rendered && rendered.body && (
           <div className="flex gap-2">
             <button
               onClick={handleCopy}
-              className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02]"
               style={{
-                background: copied ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.04)',
+                background: copied
+                  ? 'rgba(52,211,153,0.12)'
+                  : 'rgba(255,255,255,0.04)',
                 color: copied ? '#34d399' : '#fff',
                 border: `1px solid ${
                   copied ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.1)'
@@ -317,9 +391,10 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
             {rendered.deep_link && (
               <button
                 onClick={handleSend}
-                className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:scale-[1.02] transition-all"
                 style={{
-                  background: 'linear-gradient(135deg, #d4a853, #8b6914)',
+                  background:
+                    'linear-gradient(135deg, #d4a853, #8b6914)',
                   color: '#0a0506',
                 }}
               >
@@ -333,12 +408,17 @@ export const QuickSendPopover = ({ user, templates, reach, onClose, inline = fal
     </div>
   );
 
+  /* ── Inline mode: render block as-is ── */
   if (inline) return content;
 
+  /* ── Floating mode: render as overlay ── */
   return (
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)' }}
+      style={{
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(6px)',
+      }}
       onClick={(e) => e.target === e.currentTarget && onClose && onClose()}
     >
       {content}

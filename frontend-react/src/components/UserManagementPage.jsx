@@ -487,6 +487,7 @@ const UserManagementPage = () => {
         onBulkExport={handleBulkExport}
         onBulkSendTemplate={handleBulkSendTemplate}
         templates={templates}
+        onRequestConfirm={setConfirmModal}
       />
 
       {/* Modals */}

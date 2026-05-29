@@ -1,4 +1,25 @@
 // src/components/admin/BulkActionBar.jsx
+//
+// Floating bulk-action toolbar. Renders when user selection > 0.
+//
+// • Hybrid confirmation: revoke uses ConfirmModal via onRequestConfirm
+//   callback to parent; send-template still uses window.confirm because
+//   it spawns many browser tabs (kept inline for safety reminder).
+// • Full English copy.
+// • All action buttons get tooltips.
+//
+// Props:
+//   selectedCount      : number
+//   selectedUsers      : User[]
+//   onClear            : () => void
+//   onBulkGrant        : (duration: '1_month'|'1_year'|'lifetime') => void
+//   onBulkRevoke       : () => void                — actual revoke call
+//   onBulkExport       : () => void
+//   onBulkSendTemplate : (templateId: string) => void
+//   templates          : Template[]
+//   onRequestConfirm   : ({ title, message, confirmText, cancelText, variant, onConfirm }) => void
+//                        Parent should show its ConfirmModal with the payload.
+
 import { useState } from 'react';
 import {
   DownloadIcon,
@@ -9,9 +30,6 @@ import {
   ChevronDownIcon,
 } from './Icons';
 
-/**
- * Floating bulk action toolbar.
- */
 export const BulkActionBar = ({
   selectedCount,
   selectedUsers,
@@ -21,6 +39,7 @@ export const BulkActionBar = ({
   onBulkExport,
   onBulkSendTemplate,
   templates,
+  onRequestConfirm,
 }) => {
   const [showGrantMenu, setShowGrantMenu] = useState(false);
   const [showSendMenu, setShowSendMenu] = useState(false);
@@ -33,10 +52,13 @@ export const BulkActionBar = ({
     const hasTG = u.admin_telegram_username || u.telegram_username;
     const hasDC = u.admin_discord_handle || u.discord_id;
     const hasReal =
-      u.email && !u.email.endsWith('@telegram.luxquant.tw') && !u.email.endsWith('@discord.luxquant.tw');
+      u.email &&
+      !u.email.endsWith('@telegram.luxquant.tw') &&
+      !u.email.endsWith('@discord.luxquant.tw');
     return hasTG || hasDC || hasReal;
   }).length;
 
+  // Wrap async actions with busy flag + menu close.
   const run = async (action) => {
     if (busy) return;
     setBusy(true);
@@ -49,13 +71,50 @@ export const BulkActionBar = ({
     }
   };
 
+  // ─── Bulk revoke → ConfirmModal via parent ───
+  const handleRevokeClick = () => {
+    if (!onRequestConfirm) {
+      // Defensive fallback if parent forgot to wire the prop.
+      if (
+        window.confirm(
+          `Revoke subscription for ${subscriberCount} user(s)? This cannot be undone.`
+        )
+      ) {
+        run(async () => onBulkRevoke());
+      }
+      return;
+    }
+    onRequestConfirm({
+      title: 'Revoke Subscriptions',
+      message: `Revoke subscription for ${subscriberCount} user(s)? They will be moved back to the free role. This cannot be undone.`,
+      confirmText: `Revoke ${subscriberCount}`,
+      cancelText: 'Keep them',
+      variant: 'danger',
+      onConfirm: async () => {
+        await run(async () => onBulkRevoke());
+      },
+    });
+  };
+
+  // ─── Send template → still window.confirm (it opens many tabs) ───
+  const handleSendTemplateClick = (t) => {
+    const ok = window.confirm(
+      `Send "${t.label}" to ${reachableCount} user(s)?\n\n` +
+        `This will open ${Math.min(reachableCount, 10)} browser tab(s) at once ` +
+        `(capped at 10 for safety).\n\nProceed?`
+    );
+    if (!ok) return;
+    run(async () => onBulkSendTemplate(t.id));
+  };
+
   return (
     <div
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
       style={{
         background: 'rgba(18,9,13,0.95)',
         border: '1px solid rgba(212,168,83,0.3)',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,168,83,0.15)',
+        boxShadow:
+          '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,168,83,0.15)',
       }}
     >
       {/* Selection summary */}
@@ -85,7 +144,7 @@ export const BulkActionBar = ({
       <button
         onClick={() => run(async () => onBulkExport())}
         disabled={busy}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
         style={{
           background: 'rgba(96,165,250,0.08)',
           color: '#60a5fa',
@@ -105,12 +164,13 @@ export const BulkActionBar = ({
             setShowSendMenu(false);
           }}
           disabled={busy}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: 'rgba(52,211,153,0.08)',
             color: '#34d399',
             border: '1px solid rgba(52,211,153,0.22)',
           }}
+          title="Grant subscription to selected users"
         >
           <StarIcon size={13} />
           Grant
@@ -148,24 +208,15 @@ export const BulkActionBar = ({
       {/* Bulk revoke */}
       {subscriberCount > 0 && (
         <button
-          onClick={() =>
-            run(async () => {
-              if (
-                window.confirm(
-                  `Revoke subscription for ${subscriberCount} user(s)?\n\nThis cannot be undone.`
-                )
-              ) {
-                await onBulkRevoke();
-              }
-            })
-          }
+          onClick={handleRevokeClick}
           disabled={busy}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
           style={{
             background: 'rgba(248,113,113,0.08)',
             color: '#f87171',
             border: '1px solid rgba(248,113,113,0.22)',
           }}
+          title="Revoke subscription from selected subscribers"
         >
           <BanIcon size={13} />
           Revoke ({subscriberCount})
@@ -181,12 +232,13 @@ export const BulkActionBar = ({
               setShowGrantMenu(false);
             }}
             disabled={busy}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02]"
             style={{
               background: 'rgba(212,168,83,0.08)',
               color: '#d4a853',
               border: '1px solid rgba(212,168,83,0.22)',
             }}
+            title="Send a template message to selected users"
           >
             <SendIcon size={13} />
             Send ({reachableCount})
@@ -202,7 +254,10 @@ export const BulkActionBar = ({
             >
               <div
                 className="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold"
-                style={{ color: '#6b5c52', background: 'rgba(255,255,255,0.02)' }}
+                style={{
+                  color: '#6b5c52',
+                  background: 'rgba(255,255,255,0.02)',
+                }}
               >
                 Pick template — opens browser tabs
               </div>
@@ -211,18 +266,13 @@ export const BulkActionBar = ({
                 .map((t, idx) => (
                   <button
                     key={t.id}
-                    onClick={() =>
-                      run(async () => {
-                        const ok = window.confirm(
-                          `Send "${t.label}" to ${reachableCount} user(s)?\n\n` +
-                            `This will open ${Math.min(reachableCount, 10)} browser tab(s) at once ` +
-                            `(capped at 10 for safety).\n\nProceed?`
-                        );
-                        if (ok) await onBulkSendTemplate(t.id);
-                      })
-                    }
+                    onClick={() => handleSendTemplateClick(t)}
                     className="w-full px-3 py-2 text-left text-xs text-white hover:bg-white/5 transition-colors"
-                    style={idx > 0 ? { borderTop: '1px solid rgba(255,255,255,0.04)' } : {}}
+                    style={
+                      idx > 0
+                        ? { borderTop: '1px solid rgba(255,255,255,0.04)' }
+                        : {}
+                    }
                   >
                     <span className="font-semibold">{t.label}</span>
                     <span className="block text-[10px]" style={{ color: '#6b5c52' }}>
@@ -235,7 +285,7 @@ export const BulkActionBar = ({
         </div>
       )}
 
-      {/* Clear */}
+      {/* Clear selection */}
       <button
         onClick={onClear}
         disabled={busy}
@@ -248,6 +298,10 @@ export const BulkActionBar = ({
     </div>
   );
 };
+
+/* ─────────────────────────────────────────────────────────────────────
+   CSV Export helper
+   ───────────────────────────────────────────────────────────────────── */
 
 /** Convert user array to CSV + trigger download. */
 export function exportUsersToCsv(users, filename = 'users.csv') {
