@@ -5,6 +5,7 @@ import CoinLogo from './CoinLogo';
 import StarButton from './StarButton';
 import { useAuth } from '../context/AuthContext';
 import { watchlistApi } from '../services/watchlistApi';
+import { classifyCoin, CoinDetailModal } from './coinIntelShared';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -50,6 +51,7 @@ const SIGNAL_COLUMNS = [
   { key: 'volume',        label: 'Vol 24h' },
   { key: 'track_record',  label: 'Track Record' },
   { key: 'btc_corr',      label: 'BTC Corr' },
+  { key: 'verdict',       label: 'Verdict' },
   { key: 'status',        label: 'Status' },
   { key: 'last_update',   label: 'Update' },
   { key: 'created_at',    label: 'Called Time' },
@@ -161,10 +163,13 @@ const SignalsTable = ({
   onPricesUpdate,
   allPairs,
   coinIntel = {},
+  verdictByPair = {},
+  currentFlow = null,
 }) => {
   const { t } = useTranslation();
 
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const [pricesFailed, setPricesFailed] = useState(false);   // true only when NO pair could be fetched at all
@@ -404,6 +409,15 @@ const SignalsTable = ({
     s >= 70 ? 'text-emerald-400' : s >= 50 ? 'text-amber-400' : 'text-rose-400';
   const fmtSigned = (n, d = 2) => (n == null ? '—' : (n >= 0 ? '+' : '') + Number(n).toFixed(d));
 
+  // Verdict (worth_it / avoid / neutral) for a pair, plus its coin-intel object
+  // (needed to open the deep-analysis modal). Returns null when no intel exists.
+  const getVerdict = (pair) => {
+    const coin = coinIntel?.[pair];
+    if (!coin) return null;
+    const v = verdictByPair?.[pair] || classifyCoin(coin);
+    return { verdict: v, coin };
+  };
+
   const formatPrice = (price) => {
     if (!price && price !== 0) return '-';
     const num = parseFloat(price);
@@ -626,6 +640,22 @@ const SignalsTable = ({
               <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
             </div>
             {getStatusBadge(signal.status)}
+            {(() => {
+              const v = getVerdict(signal.pair);
+              if (!v || v.verdict === 'neutral') return null;
+              const isAvoid = v.verdict === 'avoid';
+              return (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedCoinIntel(v.coin); }}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
+                    isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  }`}
+                >
+                  {isAvoid ? '⛔ Avoid' : '✓ Worth'}
+                  {v.coin.risk_score != null && <span className="tabular-nums opacity-70">{v.coin.risk_score}</span>}
+                </button>
+              );
+            })()}
           </div>
         </div>
 
@@ -829,6 +859,7 @@ const SignalsTable = ({
                     </th>
                   )}
                   {visibleCols.btc_corr && <SortableHeader field="btc_corr" label="BTC Corr" align="center" />}
+                  {visibleCols.verdict && <SortableHeader field="verdict" label="Verdict" align="center" />}
                   {visibleCols.status && <SortableHeader field="status" label="Status" align="center" />}
                   {visibleCols.last_update && <SortableHeader field="last_update" label="Update" align="center" />}
                   {visibleCols.created_at && <SortableHeader field="created_at" label="Called Time" align="right" />}
@@ -1022,6 +1053,29 @@ const SignalsTable = ({
                           </td>
                         )}
 
+                        {visibleCols.verdict && (
+                          <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const v = getVerdict(signal.pair);
+                              if (!v || v.verdict === 'neutral') return <span className="text-text-muted/40 text-xs">—</span>;
+                              const isAvoid = v.verdict === 'avoid';
+                              const score = v.coin.risk_score ?? null;
+                              return (
+                                <button
+                                  onClick={() => setSelectedCoinIntel(v.coin)}
+                                  title="View deep analysis"
+                                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 ${
+                                    isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  }`}
+                                >
+                                  <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
+                                  {score != null && <span className="tabular-nums opacity-70">{score}</span>}
+                                </button>
+                              );
+                            })()}
+                          </td>
+                        )}
+
                         {visibleCols.status && (
                           <td className="py-3 px-4 text-center">
                             {getStatusBadge(signal.status)}
@@ -1129,6 +1183,14 @@ const SignalsTable = ({
       )}
 
       <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />
+
+      {selectedCoinIntel && (
+        <CoinDetailModal
+          coin={selectedCoinIntel}
+          currentFlow={currentFlow}
+          onClose={() => setSelectedCoinIntel(null)}
+        />
+      )}
     </>
   );
 };
