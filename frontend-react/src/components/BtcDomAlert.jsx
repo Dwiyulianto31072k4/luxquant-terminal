@@ -2,6 +2,55 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import CoinLogo from './CoinLogo';
 
+// ─── Elegant custom icons (thin 1.5 stroke, characterful) ───────────────────
+const Icon = {
+  // Bitcoin-aware alert mark — a subtle radar/pulse ring, not a generic triangle
+  alert: (cls = 'w-4 h-4') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="2.2" />
+      <path d="M12 5.5v-2M12 20.5v-2M18.5 12h2M3.5 12h2" opacity="0.55" />
+      <path d="M16.95 7.05a7 7 0 0 1 0 9.9M7.05 16.95a7 7 0 0 1 0-9.9" opacity="0.35" />
+    </svg>
+  ),
+  // Layered shield — depth via two offset plates, not a flat lock
+  shield: (cls = 'w-3.5 h-3.5') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3 5 6v5.5c0 4 2.9 6.9 7 8.5 4.1-1.6 7-4.5 7-8.5V6l-7-3Z" />
+      <path d="M9.2 12.2 11 14l3.8-4" opacity="0.7" />
+    </svg>
+  ),
+  // Rebound arc — a single upward bounce, dynamic; replaces the refresh loop
+  rebound: (cls = 'w-3.5 h-3.5') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 16c3-6 6-8 9.5-8H19" />
+      <path d="M15.5 4.5 20 8l-3.5 3.5" opacity="0.85" />
+    </svg>
+  ),
+  // Crosshair target — focused action marker
+  target: (cls = 'w-3.5 h-3.5') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="12" r="2.5" opacity="0.7" />
+      <path d="M12 1.5v3M12 19.5v3M22.5 12h-3M4.5 12h-3" opacity="0.5" />
+    </svg>
+  ),
+  external: (cls = 'w-2.5 h-2.5') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  ),
+  arrowRight: (cls = 'w-3 h-3') => (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  ),
+  chevron: (cls = 'w-2.5 h-2.5') => (
+    <svg className={cls} viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <path d="M2 3.5 5 6.5 8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+};
+
 const BtcDomAlert = ({ allSignals, onSignalClick }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -16,7 +65,6 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
   if (!btcdomSignal) return null;
 
-  const isWinning = ['tp1', 'tp2', 'tp3', 'closed_win', 'tp4'].includes(btcdomSignal.status);
   const isLoss = ['closed_loss', 'sl'].includes(btcdomSignal.status);
 
   const formatPrice = (price) => {
@@ -70,6 +118,9 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
     return 'Normal';
   };
 
+  const riskColor = btcdomSignal.risk_level?.toLowerCase().startsWith('low') ? '#22c55e'
+    : btcdomSignal.risk_level?.toLowerCase().startsWith('high') ? '#ef4444' : '#d4a853';
+
   const tpLevels = [
     { label: 'TP1', value: btcdomSignal.target1, hit: ['tp1','tp2','tp3','closed_win','tp4'].includes(btcdomSignal.status) },
     { label: 'TP2', value: btcdomSignal.target2, hit: ['tp2','tp3','closed_win','tp4'].includes(btcdomSignal.status) },
@@ -79,136 +130,142 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
 
   const hitCount = tpLevels.filter(tp => tp.hit).length;
   const progressWidth = tpLevels.length > 1 ? `${(hitCount / (tpLevels.length - 1)) * 100}%` : '0%';
-  const accentColor = isLoss ? '#ef4444' : '#f59e0b';
+
+  // Refined palette: subtle gold accent throughout; red only when the signal is stopped.
+  const accent = isLoss ? '#ef4444' : '#d4a853';
 
   return (
     <div className="mb-4">
-      {/* ══════════════════════════════════════
-         COLLAPSED BAR (always visible)
-         ══════════════════════════════════════ */}
+      {/* ─────────────────────────────────────
+          COLLAPSED BAR
+          ───────────────────────────────────── */}
       <div
         onClick={() => setExpanded(!expanded)}
-        className="group flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.002]"
+        className="group flex items-center justify-between gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors duration-200"
         style={{
-          background: 'rgba(20, 10, 12, 0.6)',
-          border: `1px solid ${accentColor}20`,
-          borderLeft: `3px solid ${accentColor}60`,
+          background: 'rgba(18, 12, 10, 0.55)',
+          border: '1px solid rgba(212,168,83,0.10)',
+          borderLeft: `2px solid ${accent}55`,
         }}
       >
         {/* Left: Icon + Title */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
-            style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}25` }}>
-            <svg className="w-3.5 h-3.5" style={{ color: accentColor }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+            style={{ background: `${accent}0d`, border: `1px solid ${accent}22`, color: accent }}>
+            {Icon.alert('w-4 h-4')}
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: accentColor }}>
-            BTC Dominance Alert
-          </span>
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold tracking-wide text-white leading-tight">BTC Dominance Alert</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-text-muted/70 leading-tight mt-0.5">Macro Market Condition</p>
+          </div>
         </div>
 
         {/* Center: Timestamps */}
-        <div className="hidden md:flex items-center gap-3 text-[10px] text-text-muted">
-          <span>
-            Called: <strong className="text-white font-mono">{formatExactTime(btcdomSignal.created_at)}</strong>
-            <span className="text-text-muted/60 ml-1">({formatTimeAgo(btcdomSignal.created_at)})</span>
+        <div className="hidden md:flex items-center gap-4 text-[10px] text-text-muted ml-auto mr-2">
+          <span className="flex items-center gap-1.5">
+            <span className="text-text-muted/50 uppercase tracking-wider text-[9px]">Called</span>
+            <strong className="text-white/90 font-mono font-medium">{formatExactTime(btcdomSignal.created_at)}</strong>
+            <span className="text-text-muted/40">· {formatTimeAgo(btcdomSignal.created_at)}</span>
           </span>
           {btcdomSignal.last_update_at && (
             <>
-              <span className="text-white/15">•</span>
-              <span>
-                Update: <strong className="font-mono" style={{ color: sc.text }}>{formatExactTime(btcdomSignal.last_update_at)}</strong>
-                <span className="text-text-muted/60 ml-1">({formatTimeAgo(btcdomSignal.last_update_at)})</span>
+              <span className="w-px h-3 bg-white/10" />
+              <span className="flex items-center gap-1.5">
+                <span className="text-text-muted/50 uppercase tracking-wider text-[9px]">Update</span>
+                <strong className="font-mono font-medium" style={{ color: sc.text }}>{formatExactTime(btcdomSignal.last_update_at)}</strong>
+                <span className="text-text-muted/40">· {formatTimeAgo(btcdomSignal.last_update_at)}</span>
               </span>
             </>
           )}
         </div>
 
-        {/* Right: Status + Arrow */}
-        <div className="flex items-center gap-2.5">
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded"
+        {/* Right: Status + chevron */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"
             style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}` }}>
             {getStatusLabel(btcdomSignal.status)}
           </span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
-            className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} style={{ opacity: 0.3 }}>
-            <path d="M2 3.5L5 6.5L8 3.5" stroke="#8a8577" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <span className={`text-text-muted/40 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}>
+            {Icon.chevron('w-2.5 h-2.5')}
+          </span>
         </div>
       </div>
 
-      {/* ══════════════════════════════════════
-         EXPANDED DETAIL
-         ══════════════════════════════════════ */}
+      {/* ─────────────────────────────────────
+          EXPANDED PANEL — refined minimal
+          ───────────────────────────────────── */}
       {expanded && (
-        <div className="mt-1 rounded-xl overflow-hidden animate-slideDown"
-          style={{ background: 'rgba(10, 5, 6, 0.9)', border: `1px solid ${accentColor}15` }}>
-          
-          <div className="p-4 sm:p-5">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              
-              {/* LEFT: Data */}
-              <div className="lg:col-span-7 flex flex-col gap-4">
-                {/* Coin header */}
-                <div className="flex items-center justify-between">
+        <div className="mt-1.5 rounded-xl overflow-hidden bda-panel"
+          style={{ background: 'rgba(12, 8, 8, 0.92)', border: '1px solid rgba(212,168,83,0.10)' }}>
+
+          {/* faint top hairline accent */}
+          <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${accent}40, transparent)` }} />
+
+          <div className="p-5 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+              {/* LEFT COLUMN ── identity + data */}
+              <div className="lg:col-span-7 flex flex-col gap-5">
+
+                {/* Coin identity row */}
+                <div className="flex items-center justify-between gap-3 bda-stagger" style={{ '--d': '40ms' }}>
                   <div className="flex items-center gap-3">
-                    <CoinLogo pair="BTCUSDT" size={36} />
+                    <CoinLogo pair="BTCUSDT" size={38} />
                     <div>
-                      <h4 className="text-white text-base font-bold">BTCDOMUSDT</h4>
-                      <p className="text-text-muted text-[10px]">Dominance Index</p>
+                      <h4 className="text-white text-[15px] font-bold tracking-tight leading-none">BTCDOMUSDT</h4>
+                      <p className="text-text-muted/70 text-[10px] uppercase tracking-[0.16em] mt-1">Dominance Index</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <a href="https://www.binance.com/en/support/faq/what-is-bitcoin-dominance-btcdom-e3b1ab97a3e24df4b0e41a469ccf7a21"
                       target="_blank" rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text-muted hover:text-white hover:bg-white/10 transition-all text-[9px] font-medium">
-                      Get to know
-                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] text-text-muted hover:text-white hover:border-white/15 transition-all text-[9px] font-medium uppercase tracking-wider">
+                      Learn {Icon.external('w-2.5 h-2.5')}
                     </a>
                     <button
                       onClick={(e) => { e.stopPropagation(); onSignalClick && onSignalClick(btcdomSignal); }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-medium transition-all"
-                      style={{ background: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}25` }}>
-                      Open Chart →
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all hover:brightness-110"
+                      style={{ background: `${accent}12`, color: accent, border: `1px solid ${accent}2a` }}>
+                      Open Chart {Icon.arrowRight('w-3 h-3')}
                     </button>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider">Entry Price</p>
-                    <p className="text-white font-mono text-sm font-bold">{formatPrice(btcdomSignal.entry)}</p>
+                {/* Stat strip — compact inline, divided (secondary data) */}
+                <div className="flex items-stretch rounded-xl overflow-hidden bda-stagger"
+                  style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', '--d': '90ms' }}>
+                  <div className="flex-1 px-4 py-3">
+                    <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Entry</p>
+                    <p className="text-white font-mono text-[15px] font-semibold leading-none">{formatPrice(btcdomSignal.entry)}</p>
                   </div>
-                  <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider">Stop Loss</p>
-                    <p className="text-red-400 font-mono text-sm font-bold">{formatPrice(btcdomSignal.stop1)}</p>
+                  <div className="w-px bg-white/[0.06]" />
+                  <div className="flex-1 px-4 py-3">
+                    <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Stop Loss</p>
+                    <p className="font-mono text-[15px] font-semibold leading-none text-red-400/90">{formatPrice(btcdomSignal.stop1)}</p>
                   </div>
-                  <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider">Risk Level</p>
-                    <p className={`text-sm font-bold ${
-                      btcdomSignal.risk_level?.toLowerCase().startsWith('low') ? 'text-green-400' :
-                      btcdomSignal.risk_level?.toLowerCase().startsWith('high') ? 'text-red-400' : 'text-amber-400'
-                    }`}>{getRiskLabel(btcdomSignal.risk_level)}</p>
+                  <div className="w-px bg-white/[0.06]" />
+                  <div className="flex-1 px-4 py-3">
+                    <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-1">Risk</p>
+                    <p className="text-[15px] font-semibold leading-none" style={{ color: riskColor }}>{getRiskLabel(btcdomSignal.risk_level)}</p>
                   </div>
                 </div>
 
                 {/* Target Journey */}
                 {tpLevels.length > 0 && (
-                  <div>
-                    <p className="text-[8px] text-text-muted uppercase tracking-wider mb-2">Target Journey</p>
-                    <div className="relative w-full">
-                      <div className="absolute top-[5px] left-0 w-full h-[2px] bg-white/5 rounded-full" />
-                      <div className="absolute top-[5px] left-0 h-[2px] bg-green-500 rounded-full transition-all duration-1000 shadow-[0_0_6px_rgba(34,197,94,0.4)]"
-                        style={{ width: progressWidth }} />
+                  <div className="bda-stagger" style={{ '--d': '140ms' }}>
+                    <p className="text-[8px] text-text-muted/60 uppercase tracking-[0.16em] mb-3">Target Journey</p>
+                    <div className="relative w-full px-1">
+                      <div className="absolute top-[4px] left-1 right-1 h-px bg-white/[0.08] rounded-full" />
+                      <div className="absolute top-[4px] left-1 h-px rounded-full transition-all duration-1000"
+                        style={{ width: progressWidth, background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.5)' }} />
                       <div className="relative flex justify-between items-start z-10">
                         {tpLevels.map((tp, idx) => (
-                          <div key={idx} className="flex flex-col items-center">
-                            <div className={`w-2.5 h-2.5 rounded-full outline outline-3 outline-[#0a0506] ${tp.hit ? 'bg-green-400 shadow-[0_0_6px_#4ade80]' : 'bg-gray-700'}`} />
-                            <span className={`text-[9px] font-bold mt-1.5 ${tp.hit ? 'text-green-400' : 'text-gray-600'}`}>{tp.label}</span>
-                            <span className={`text-[8px] font-mono ${tp.hit ? 'text-white' : 'text-text-muted/40'}`}>{formatPrice(tp.value)}</span>
+                          <div key={idx} className="flex flex-col items-center gap-1.5">
+                            <div className={`w-2 h-2 rounded-full ring-4 ring-[#0c0808] transition-all ${tp.hit ? 'bg-green-400' : 'bg-gray-700'}`}
+                              style={tp.hit ? { boxShadow: '0 0 6px #4ade80' } : undefined} />
+                            <span className={`text-[9px] font-semibold tracking-wide ${tp.hit ? 'text-green-400' : 'text-gray-600'}`}>{tp.label}</span>
+                            <span className={`text-[8px] font-mono ${tp.hit ? 'text-white/70' : 'text-text-muted/35'}`}>{formatPrice(tp.value)}</span>
                           </div>
                         ))}
                       </div>
@@ -217,45 +274,48 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
                 )}
               </div>
 
-              {/* RIGHT: Action Plan */}
-              <div className="lg:col-span-5 rounded-xl p-4 relative overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${accentColor}10` }}>
-                <div className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: accentColor }} />
+              {/* RIGHT COLUMN ── action plan */}
+              <div className="lg:col-span-5 flex flex-col gap-4 lg:pl-6 lg:border-l border-white/[0.06] bda-stagger" style={{ '--d': '110ms' }}>
 
-                <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-3.5 h-3.5" style={{ color: accentColor }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <h3 className="text-white text-[10px] font-bold tracking-widest uppercase">Action Plan</h3>
+                {/* Section label */}
+                <div className="flex items-center gap-2" style={{ color: accent }}>
+                  {Icon.target('w-3.5 h-3.5')}
+                  <h3 className="text-[10px] font-bold tracking-[0.18em] uppercase">Action Plan</h3>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="rounded-lg p-2.5" style={{ background: `${accentColor}08`, border: `1px solid ${accentColor}10` }}>
-                    <p className="text-white text-[11px] font-semibold leading-relaxed">
-                      If $BTCDOM is rising, <span className="text-red-400 font-bold">SELL your altcoins</span>.
-                    </p>
-                    <p className="text-text-muted text-[9px] mt-1">
-                      BTC absorbs market liquidity. Even if BTC dumps, altcoins might dump much harder.
-                    </p>
-                  </div>
+                {/* Hero statement — the focus, via size + space (not loud color) */}
+                <div className="relative pl-4">
+                  <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ background: `${accent}80` }} />
+                  <p className="text-white text-[14px] font-semibold leading-snug">
+                    If <span className="font-mono" style={{ color: accent }}>$BTCDOM</span> is rising,
+                    <br className="hidden sm:block" /> <span className="text-red-400">sell your altcoins.</span>
+                  </p>
+                  <p className="text-text-muted/80 text-[10px] leading-relaxed mt-1.5">
+                    BTC absorbs market liquidity. Even if BTC dumps, altcoins tend to dump harder.
+                  </p>
+                </div>
 
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 w-3.5 h-3.5 rounded bg-white/5 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-2 h-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4z" clipRule="evenodd" /></svg>
+                {/* Action items */}
+                <div className="flex flex-col gap-3.5 pt-1">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-text-muted"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      {Icon.shield('w-3.5 h-3.5')}
                     </div>
                     <div>
-                      <p className="text-white text-[9px] font-bold uppercase tracking-wider">Risk Management</p>
-                      <p className="text-text-muted text-[9px]">Reduce position sizes drastically. Keep assets in liquid funds (USDT).</p>
+                      <p className="text-white/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">Risk Management</p>
+                      <p className="text-text-muted/80 text-[10px] leading-relaxed">Reduce position sizes drastically. Keep capital in liquid funds (USDT).</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 w-3.5 h-3.5 rounded bg-white/5 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-2 h-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-green-400/80"
+                      style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)' }}>
+                      {Icon.rebound('w-3.5 h-3.5')}
                     </div>
                     <div>
-                      <p className="text-green-400 text-[9px] font-bold uppercase tracking-wider">Recovery Plan</p>
-                      <p className="text-text-muted text-[9px]">Buy back when reversal signs appear, or repurpose funds for high-probability setups.</p>
+                      <p className="text-green-400/90 text-[10px] font-bold uppercase tracking-[0.14em] leading-none mb-1.5">Recovery Plan</p>
+                      <p className="text-text-muted/80 text-[10px] leading-relaxed">Buy back when reversal signs appear, or redeploy into high-probability setups.</p>
                     </div>
                   </div>
                 </div>
@@ -264,6 +324,13 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes bdaPanelIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .bda-panel { animation: bdaPanelIn 0.28s cubic-bezier(.16,1,.3,1); }
+        @keyframes bdaStaggerIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .bda-stagger { animation: bdaStaggerIn 0.4s cubic-bezier(.16,1,.3,1) backwards; animation-delay: var(--d, 0ms); }
+      `}</style>
     </div>
   );
 };
