@@ -1,14 +1,21 @@
 // src/components/MoneyFlowPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Money Flow Page (v2, polished)
+// LuxQuant Terminal — Money Flow Page (v3)
 // 3-tab (zoom: makro → koin → transaksi):
-//   - Sectors : macro gauges + ranked sector rotation bars   (Dante)
-//   - Coins   : flow intensity bars + visual DEX buy/sell     (Anonymous)
+//   - Sectors : macro gauges + ranked sector rotation          (Dante)
+//   - Coins   : grouped flow intensity + visual DEX buy/sell    (Anonymous)
 //   - Whale   : feed transaksi (reuse WhaleAlertPage)
 //
 // Design: Flowscan-minimal mewah — bg #0a0805, aksen gold-primary,
 // hairline gradient, font-mono label, tabular-nums, staggered reveal.
 // Prinsip "inform, don't decide": semua tag deskriptif (turunan angka).
+//
+// v3 changes (UX):
+//   - Coins dipisah 2 grup: "LuxQuant Calls" (yg di-call) di atas dgn
+//     treatment gold penuh (dot + nama gold + border kiri), lalu
+//     "Other Movers". Pre-attentive: mata langsung nangkep mana relevan.
+//   - Background intensity bar DIBUANG (ambigu) → diganti micro-bar tipis
+//     khusus di kolom Vol/Mcap (jelas maknanya: intensitas turnover).
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,16 +95,27 @@ const Skeleton = ({ rows = 6 }) => (
   </div>
 );
 
-// Staggered row wrapper (fade + slide up)
-const Row = ({ i, children, onClick }) => (
+const Row = ({ i, children }) => (
   <div
-    onClick={onClick}
     className="opacity-0 animate-[mfIn_0.4s_ease-out_forwards]"
-    style={{ animationDelay: `${Math.min(i * 35, 500)}ms` }}
+    style={{ animationDelay: `${Math.min(i * 30, 450)}ms` }}
   >
     {children}
   </div>
 );
+
+// micro intensity bar (kecil, di kolom vol/mcap — makna jelas)
+const IntensityBar = ({ value, max, gold = false }) => {
+  const pct = Math.max(4, Math.min(100, ((value || 0) / (max || 1)) * 100));
+  return (
+    <div className="h-1 w-full rounded-full bg-white/[0.05] overflow-hidden mt-1">
+      <div
+        className={`h-full rounded-full transition-all duration-700 ${gold ? "bg-gold-primary/70" : "bg-white/30"}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+};
 
 // ═══════════════════════════════════════════
 // MACRO — gauge cards
@@ -105,16 +123,10 @@ const Row = ({ i, children, onClick }) => (
 const Gauge = ({ value, label, sub, subColor, accent = "gold" }) => {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   const bar =
-    accent === "gold"
-      ? "bg-gold-primary"
-      : accent === "emerald"
-      ? "bg-emerald-400"
-      : "bg-white/60";
+    accent === "gold" ? "bg-gold-primary" : accent === "emerald" ? "bg-emerald-400" : "bg-white/60";
   return (
     <Card className="p-4">
-      <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70 mb-2">
-        {label}
-      </div>
+      <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70 mb-2">{label}</div>
       <div className="flex items-baseline gap-2 mb-3">
         <span className="font-mono text-2xl tabular-nums text-white leading-none">
           {value != null ? (typeof value === "number" ? value.toFixed(1) : value) : "—"}
@@ -184,8 +196,6 @@ const SectorsTab = () => {
     return () => { alive = false; };
   }, []);
 
-  const maxMcap = Math.max(...sectors.map((s) => s.market_cap || 0), 1);
-
   return (
     <div className="space-y-6">
       <SectionHeader label="Market Compass" />
@@ -193,7 +203,7 @@ const SectorsTab = () => {
 
       <SectionHeader label="Sector Rotation" />
       <Card glow>
-        <div className="grid grid-cols-[2rem_1fr_5rem_5rem] sm:grid-cols-[2.5rem_1fr_6rem_6rem_7rem] gap-3 px-4 py-3 border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
+        <div className="grid grid-cols-[2rem_1fr_5rem_6rem] sm:grid-cols-[2.5rem_1fr_6rem_6rem_7rem] gap-3 px-4 py-3 border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
           <span>#</span>
           <span>Sector</span>
           <span className="text-right">24h</span>
@@ -207,16 +217,14 @@ const SectorsTab = () => {
         {!loading && !err && (
           <div className="divide-y divide-white/[0.04]">
             {sectors.map((s, i) => {
-              const barPct = ((s.market_cap || 0) / maxMcap) * 100;
               const isLeader = i < 3;
               return (
                 <Row key={s.category_id} i={i}>
-                  <div className="group relative grid grid-cols-[2rem_1fr_5rem_5rem] sm:grid-cols-[2.5rem_1fr_6rem_6rem_7rem] gap-3 items-center px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
-                    <div className="absolute inset-y-0 left-0 bg-gold-primary/[0.04] pointer-events-none" style={{ width: `${barPct}%` }} />
-                    <span className={`relative font-mono text-xs tabular-nums ${isLeader ? "text-gold-primary" : "text-text-muted/50"}`}>
+                  <div className="grid grid-cols-[2rem_1fr_5rem_6rem] sm:grid-cols-[2.5rem_1fr_6rem_6rem_7rem] gap-3 items-center px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
+                    <span className={`font-mono text-xs tabular-nums ${isLeader ? "text-gold-primary" : "text-text-muted/50"}`}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <div className="relative flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div className="flex -space-x-1.5 shrink-0">
                         {(s.top_3_coins || []).slice(0, 3).map((url, k) => (
                           <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
@@ -229,13 +237,13 @@ const SectorsTab = () => {
                         </span>
                       )}
                     </div>
-                    <span className={`relative font-mono text-sm tabular-nums text-right font-semibold ${pctColor(s.mcap_change_24h)}`}>
+                    <span className={`font-mono text-sm tabular-nums text-right font-semibold ${pctColor(s.mcap_change_24h)}`}>
                       {fmtPct(s.mcap_change_24h)}
                     </span>
-                    <span className={`relative font-mono text-xs tabular-nums text-right hidden sm:block ${pctColor(s.mcap_change_7d)}`}>
+                    <span className={`font-mono text-xs tabular-nums text-right hidden sm:block ${pctColor(s.mcap_change_7d)}`}>
                       {s.mcap_change_7d != null ? fmtPct(s.mcap_change_7d) : <span className="text-text-muted/30">—</span>}
                     </span>
-                    <span className="relative font-mono text-xs tabular-nums text-right text-text-muted">{fmtUSD(s.market_cap)}</span>
+                    <span className="font-mono text-xs tabular-nums text-right text-text-muted">{fmtUSD(s.market_cap)}</span>
                   </div>
                 </Row>
               );
@@ -244,31 +252,73 @@ const SectorsTab = () => {
         )}
       </Card>
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-        7d delta terisi seiring snapshot terkumpul · bar = market cap relatif · Data: CoinGecko
+        7d delta terisi seiring snapshot terkumpul · Data: CoinGecko
       </p>
     </div>
   );
 };
 
 // ═══════════════════════════════════════════
-// TAB 2 — COINS
+// TAB 2 — COINS  (grouped: Calls → Others)
 // ═══════════════════════════════════════════
+const CoinRow = ({ c, i, max, called }) => {
+  const hi = c.turnover_tag === "high_turnover";
+  return (
+    <Row i={i}>
+      <div
+        className={`grid grid-cols-[1fr_4.5rem_6rem] sm:grid-cols-[1fr_6rem_7rem_6rem] gap-3 items-center px-4 py-3.5 transition-colors ${
+          called ? "border-l-2 border-gold-primary/50 hover:bg-gold-primary/[0.03]" : "border-l-2 border-transparent hover:bg-white/[0.02]"
+        }`}
+      >
+        {/* coin name (+ gold dot kalau di-call) */}
+        <div className="flex items-center gap-2 min-w-0">
+          {called && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-gold-primary shadow-[0_0_6px_rgba(212,175,55,0.6)]" />}
+          <span className={`text-sm font-semibold ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+        </div>
+        {/* 24h change */}
+        <span className={`font-mono text-sm tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
+          {fmtPct(c.price_change_24h)}
+        </span>
+        {/* vol/mcap + micro bar */}
+        <div className="hidden sm:block text-right">
+          <span className="font-mono text-xs tabular-nums text-text-muted">
+            {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
+          </span>
+          <IntensityBar value={c.flow_intensity} max={max} gold={called} />
+        </div>
+        {/* turnover tag */}
+        <span className="text-right">
+          {c.turnover_tag && (
+            <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+              hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+            }`}>
+              {TURNOVER_LABEL[c.turnover_tag]}
+            </span>
+          )}
+        </span>
+      </div>
+    </Row>
+  );
+};
+
 const CoinsTab = () => {
   const [coins, setCoins] = useState([]);
   const [dex, setDex] = useState(null);
-  const [luxOnly, setLuxOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dexLoading, setDexLoading] = useState(true);
 
-  const loadCoins = useCallback(async (lux) => {
-    setLoading(true);
-    try {
-      const c = await moneyFlowApi.getCoins({ limit: 30, luxquant_only: lux });
-      setCoins(c.coins || []);
-    } catch { /* keep */ } finally { setLoading(false); }
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const c = await moneyFlowApi.getCoins({ limit: 40 });
+        if (alive) setCoins(c.coins || []);
+      } catch { /* keep */ } finally { if (alive) setLoading(false); }
+    })();
+    return () => { alive = false; };
   }, []);
 
-  useEffect(() => { loadCoins(luxOnly); }, [luxOnly, loadCoins]);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -279,84 +329,79 @@ const CoinsTab = () => {
   }, []);
 
   const maxIntensity = Math.max(...coins.map((c) => c.flow_intensity || 0), 0.5);
+  const called = coins.filter((c) => c.is_luxquant_signal);
+  const others = coins.filter((c) => !c.is_luxquant_signal);
+
+  const colHeader = (
+    <div className="grid grid-cols-[1fr_4.5rem_6rem] sm:grid-cols-[1fr_6rem_7rem_6rem] gap-3 px-4 py-3 border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
+      <span>Coin</span>
+      <span className="text-right">24h</span>
+      <span className="text-right hidden sm:block">Vol / Mcap</span>
+      <span className="text-right">Turnover</span>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
-      {/* ── Flow intensity ── */}
+      {/* ── Coin flow intensity ── */}
       <div className="space-y-4">
-        <SectionHeader
-          label="Coin Flow Intensity"
-          right={
-            <button
-              onClick={() => setLuxOnly((v) => !v)}
-              className={`shrink-0 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-[0.1em] border transition-all ${
-                luxOnly ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40" : "bg-white/[0.02] text-text-muted border-white/[0.06] hover:text-white hover:border-white/[0.12]"
-              }`}
-            >
-              LuxQuant Only
-            </button>
-          }
-        />
-        <Card glow>
-          <div className="grid grid-cols-[1fr_4.5rem_5.5rem] sm:grid-cols-[1fr_6rem_6rem_6rem] gap-3 px-4 py-3 border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
-            <span>Coin</span>
-            <span className="text-right">24h</span>
-            <span className="text-right hidden sm:block">Vol/Mcap</span>
-            <span className="text-right">Turnover</span>
+        <SectionHeader label="Coin Flow Intensity" />
+
+        {loading && <Card glow><Skeleton rows={10} /></Card>}
+
+        {!loading && coins.length === 0 && (
+          <Card><div className="p-10 text-center text-text-muted text-sm font-mono">No data</div></Card>
+        )}
+
+        {!loading && coins.length > 0 && (
+          <div className="space-y-5">
+            {/* GROUP 1 — LuxQuant Calls */}
+            {called.length > 0 && (
+              <Card glow>
+                <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold-primary shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-primary">
+                    LuxQuant Calls
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-text-muted/60">{called.length}</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal text-text-muted/40 ml-auto">
+                    coin yang lagi di-call
+                  </span>
+                </div>
+                {colHeader}
+                <div className="divide-y divide-white/[0.04]">
+                  {called.map((c, i) => (
+                    <CoinRow key={c.coin_id} c={c} i={i} max={maxIntensity} called />
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* GROUP 2 — Other Movers */}
+            <Card>
+              <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted">
+                  Other Movers
+                </span>
+                <span className="font-mono text-[10px] tabular-nums text-text-muted/60">{others.length}</span>
+              </div>
+              {colHeader}
+              <div className="divide-y divide-white/[0.04]">
+                {others.map((c, i) => (
+                  <CoinRow key={c.coin_id} c={c} i={i} max={maxIntensity} />
+                ))}
+              </div>
+            </Card>
           </div>
+        )}
 
-          {loading && <Skeleton rows={10} />}
-          {!loading && coins.length === 0 && (
-            <div className="p-10 text-center text-text-muted text-sm font-mono">
-              {luxOnly ? "Belum ada koin LuxQuant di top snapshot" : "No data"}
-            </div>
-          )}
-
-          {!loading && (
-            <div className="divide-y divide-white/[0.04]">
-              {coins.map((c, i) => {
-                const barPct = ((c.flow_intensity || 0) / maxIntensity) * 100;
-                const hi = c.turnover_tag === "high_turnover";
-                return (
-                  <Row key={c.coin_id} i={i}>
-                    <div className="group relative grid grid-cols-[1fr_4.5rem_5.5rem] sm:grid-cols-[1fr_6rem_6rem_6rem] gap-3 items-center px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
-                      <div className="absolute inset-y-0 left-0 bg-gold-primary/[0.035] pointer-events-none" style={{ width: `${barPct}%` }} />
-                      <div className="relative flex items-center gap-2 min-w-0">
-                        <span className="text-white text-sm font-semibold">{c.symbol}</span>
-                        {c.is_luxquant_signal && (
-                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
-                            LUX
-                          </span>
-                        )}
-                      </div>
-                      <span className={`relative font-mono text-sm tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
-                        {fmtPct(c.price_change_24h)}
-                      </span>
-                      <span className="relative font-mono text-xs tabular-nums text-right hidden sm:block text-text-muted">
-                        {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
-                      </span>
-                      <span className="relative text-right">
-                        {c.turnover_tag && (
-                          <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                            hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
-                          }`}>
-                            {TURNOVER_LABEL[c.turnover_tag]}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </Row>
-                );
-              })}
-            </div>
-          )}
-        </Card>
         <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-          Flow intensity = volume 24h ÷ market cap · bar = intensitas relatif · LUX = lagi di-call LuxQuant
+          Flow intensity = volume 24h ÷ market cap · dot emas = lagi di-call LuxQuant
         </p>
       </div>
 
-      {/* ── DEX buy/sell pressure (visual bar) ── */}
+      {/* ── DEX buy/sell pressure ── */}
       <div className="space-y-4">
         <SectionHeader label="DEX Buy / Sell Pressure" />
         <Card glow>
@@ -373,7 +418,7 @@ const CoinsTab = () => {
                 const buyPct = (b / total) * 100;
                 return (
                   <Row key={p.pool_address} i={i}>
-                    <div className="group relative px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
+                    <div className="px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-white text-sm font-medium truncate">{p.base_symbol || p.name}</span>
