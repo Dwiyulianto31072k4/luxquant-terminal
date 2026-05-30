@@ -653,6 +653,9 @@ const SignalsTable = ({
                 >
                   {isAvoid ? '⛔ Avoid' : '✓ Worth'}
                   {v.coin.risk_score != null && <span className="tabular-nums opacity-70">{v.coin.risk_score}</span>}
+                  <svg className="w-2.5 h-2.5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
                 </button>
               );
             })()}
@@ -1064,12 +1067,15 @@ const SignalsTable = ({
                                 <button
                                   onClick={() => setSelectedCoinIntel(v.coin)}
                                   title="View deep analysis"
-                                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 ${
+                                  className={`group/vd inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 cursor-pointer ${
                                     isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                                   }`}
                                 >
                                   <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
                                   {score != null && <span className="tabular-nums opacity-70">{score}</span>}
+                                  <svg className="w-2.5 h-2.5 opacity-50 group-hover/vd:opacity-100 group-hover/vd:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M9 18l6-6-6-6" />
+                                  </svg>
                                 </button>
                               );
                             })()}

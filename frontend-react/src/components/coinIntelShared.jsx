@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import CoinLogo from './CoinLogo';
 
 // ═══════════════════════════════════════════
@@ -132,290 +133,363 @@ const StatBox = ({ label, value, color, icon = null }) => (
 // FULL PAGE MODAL (deep analysis)
 // ═══════════════════════════════════════════
 export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
-  if (!coin) return null;
-  const verdict = classifyCoin(coin);
-  const vc = verdict==='avoid' ? '#ef4444' : '#22c55e';
-  const st = SEV[primarySev(coin.anomaly_flags)];
-  const rs = coin.risk_score || 0;
+  const [isClosing, setIsClosing] = useState(false);
 
+  // Lock body scroll while open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // Animated close (mirrors SignalModal)
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => { setIsClosing(false); onClose(); }, 200);
+  };
+
+  // Escape to close
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') handleClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  if (!coin) return null;
+
+  const verdict = classifyCoin(coin);
+  const vc = verdict === 'avoid' ? '#ef4444' : '#22c55e';
+  const st = SEV[primarySev(coin.anomaly_flags)];
+  const rs = coin.risk_score || 0;
 
   const trendIcon = coin.win_rate_30d_trend === 'up' ?
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 7L5 4L8 7" stroke="#22c55e" strokeWidth="1.5"/><path d="M2 3L5 6L8 3" stroke="#22c55e" strokeWidth="1.5"/></svg> :
     coin.win_rate_30d_trend === 'down' ?
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3L5 6L8 3" stroke="#ef4444" strokeWidth="1.5"/><path d="M2 7L5 4L8 7" stroke="#ef4444" strokeWidth="1.5"/></svg> : null;
 
-  return (
+  const statCards = [
+    { l:'Win Rate', v:`${coin.win_rate}%`, c:wrc(coin.win_rate), i: trendIcon },
+    { l:'SL Rate', v:`${coin.sl_rate}%`, c:coin.sl_rate>=30?'#ef4444':'#8a8577' },
+    { l:'Avg Outcome', v:coin.avg_outcome, c:coin.avg_outcome==='SL'?'#ef4444':'#d4a853' },
+    { l:'Streak', v:`${coin.current_streak?.length||0}${coin.current_streak?.type==='win'?'W':'L'}`, c:coin.current_streak?.type==='win'?'#22c55e':'#ef4444' },
+    { l:'R:R Ratio', v:coin.volatility?.rr_ratio?`${coin.volatility.rr_ratio}x`:'—', c:(coin.volatility?.rr_ratio||0)>=2?'#22c55e':(coin.volatility?.rr_ratio||0)>=1?'#eab308':'#ef4444' },
+    { l:'30d WR', v:coin.win_rate_30d!=null?`${coin.win_rate_30d}%`:'—', c:coin.win_rate_30d!=null?wrc(coin.win_rate_30d):'#8a8577' },
+  ];
+
+  const content = (
     <>
-      <style>{`
-        .modal-body-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .modal-body-scroll::-webkit-scrollbar-track { background: transparent; }
-        .modal-body-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
-        .modal-body-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
-      `}</style>
+      <div className={`cdm-overlay ${isClosing ? 'cdm-closing' : ''}`}>
+        <div className="cdm-backdrop" onClick={handleClose} />
+        <div className="cdm-container">
+          <div className="cdm-content" style={{ '--vc': vc }}>
+            {/* Drag handle (mobile) */}
+            <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
 
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-10">
-        <div className="absolute inset-0 bg-[#060304]/85 backdrop-blur-md" onClick={onClose} />
-
-        <div className="relative w-full max-w-[960px] max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-white/10 z-10 overflow-hidden bg-gradient-to-b from-[#140a0c] to-[#0a0506] animate-in fade-in zoom-in-95 duration-200">
-          <div className="absolute top-0 left-0 right-0 h-1 z-30" style={{ background: `linear-gradient(90deg, transparent 0%, ${vc} 50%, transparent 100%)`, opacity: 0.8 }} />
-
-          {/* 1. HEADER AREA */}
-          <div className="flex-shrink-0 relative z-20 px-6 py-5 border-b border-white/[0.06] bg-[#0a0506]/95 backdrop-blur">
-            <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors z-30">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 1l12 12m0-12L1 13"/></svg>
-            </button>
-
-            <div className="flex items-center gap-5 pr-12">
-              <CoinLogo pair={coin.pair} size={54} />
-              <div className="flex-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-mono font-bold text-3xl text-white tracking-tight drop-shadow-md">{coin.pair.replace('USDT','')}</span>
-                  <span className="text-gray-500 font-mono text-sm mt-1">USDT</span>
-                  <span className="text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-widest ml-1 shadow-sm"
-                    style={{ background:`${vc}15`, color:vc, border:`1px solid ${vc}30` }}>
-                    {verdict==='avoid' ? '⛔ Avoid' : '✅ Worth It'}
-                  </span>
+            {/* ── HEADER (sticky) ── */}
+            <div className="flex-shrink-0 relative bg-[#0a0506] border-b border-white/[0.06] px-4 py-3.5 z-10">
+              <div className="absolute top-0 inset-x-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${vc}, transparent)`, opacity: 0.7 }} />
+              <div className="flex items-center gap-3 pr-10">
+                <CoinLogo pair={coin.pair} size={40} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-xl text-white tracking-tight">{coin.pair.replace('USDT','')}</span>
+                    <span className="text-gray-500 font-mono text-xs">USDT</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest"
+                      style={{ background:`${vc}15`, color:vc, border:`1px solid ${vc}30` }}>
+                      {verdict==='avoid' ? '⛔ Avoid' : '✅ Worth It'}
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-[11px] mt-1">
+                    {coin.total_calls} Calls · {coin.closed_trades} Closed · {coin.open_trades} Open
+                  </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <p className="text-gray-400 text-[11px] mr-2">{coin.total_calls} Calls &bull; {coin.closed_trades} Closed &bull; {coin.open_trades} Open</p>
-                  {coin.anomaly_flags?.map((f,i) => (
-                    <span key={i} className="text-[8px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{ background:SEV[f.severity]?.bg, color:SEV[f.severity]?.text, border:`1px solid ${SEV[f.severity]?.border}30` }}>{f.tag}</span>
+                {/* Score gauge (compact, in header) */}
+                <div className="flex-col items-center flex-shrink-0 hidden sm:flex pr-2">
+                  <RiskGauge score={rs} size="sm" />
+                  <span className="text-[8px] font-bold uppercase tracking-widest mt-1" style={{ color:scoreColor(rs) }}>{scoreGrade(rs)}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleClose}
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 rounded-lg transition-all"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* ── BODY (scroll) ── */}
+            <div className="flex-1 min-h-0 overflow-y-auto cdm-scroll px-4 py-4 sm:px-5 sm:py-5">
+              <div className="max-w-5xl mx-auto space-y-5">
+
+                {/* Anomaly flag chips */}
+                {coin.anomaly_flags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {coin.anomaly_flags.map((f,i) => (
+                      <span key={i} className="text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                        style={{ background:SEV[f.severity]?.bg, color:SEV[f.severity]?.text, border:`1px solid ${SEV[f.severity]?.border}30` }}>{f.tag}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Stat cards */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                  {statCards.map((s,i) => (
+                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                      <p className="text-[8px] uppercase tracking-widest text-gray-500 mb-1.5 text-center">{s.l}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-mono font-extrabold text-[15px]" style={{ color:s.c }}>{s.v}</p>
+                        {s.i}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-              <div className="flex flex-col items-center flex-shrink-0 hidden sm:flex">
-                <RiskGauge score={rs} size="lg" />
-                <span className="text-[9px] font-bold uppercase tracking-widest mt-1.5" style={{ color:scoreColor(rs) }}>{scoreGrade(rs)}</span>
-              </div>
-            </div>
-          </div>
 
-          {/* 2. BODY AREA (SCROLLABLE) */}
-          <div className="flex-1 overflow-y-auto modal-body-scroll p-6 space-y-6">
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {[
-                { l:'Win Rate', v:`${coin.win_rate}%`, c:wrc(coin.win_rate), i: trendIcon },
-                { l:'SL Rate', v:`${coin.sl_rate}%`, c:coin.sl_rate>=30?'#ef4444':'#8a8577' },
-                { l:'Avg Outcome', v:coin.avg_outcome, c:coin.avg_outcome==='SL'?'#ef4444':'#d4a853' },
-                { l:'Streak', v:`${coin.current_streak?.length||0}${coin.current_streak?.type==='win'?'W':'L'}`, c:coin.current_streak?.type==='win'?'#22c55e':'#ef4444' },
-                { l:'R:R Ratio', v:coin.volatility?.rr_ratio?`${coin.volatility.rr_ratio}x`:'—', c:(coin.volatility?.rr_ratio||0)>=2?'#22c55e':(coin.volatility?.rr_ratio||0)>=1?'#eab308':'#ef4444' },
-                { l:'30d WR', v:coin.win_rate_30d!=null?`${coin.win_rate_30d}%`:'—', c:coin.win_rate_30d!=null?wrc(coin.win_rate_30d):'#8a8577' },
-              ].map((s,i) => (
-                <div key={i} className="flex flex-col items-center justify-center py-4 px-2 rounded-xl bg-white/[0.015] border border-white/[0.03] hover:bg-white/[0.03] transition-colors">
-                  <p className="text-[8px] uppercase tracking-widest text-gray-500 mb-1.5">{s.l}</p>
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-mono font-extrabold text-[16px] drop-shadow-sm" style={{ color:s.c }}>{s.v}</p>
-                    {s.i}
+                {/* Outcome distribution */}
+                <div className="rounded-xl border border-white/[0.05] p-4 bg-white/[0.015]">
+                  <div className="flex justify-between items-end mb-2.5">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Outcome Distribution</p>
+                    <p className="text-[9px] text-gray-500 font-mono">{coin.closed_trades} Total Closed</p>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-xl border border-white/[0.03] p-4 bg-white/[0.01]">
-              <div className="flex justify-between items-end mb-2.5">
-                <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Outcome Distribution</p>
-                <p className="text-[9px] text-gray-500 font-mono">{coin.closed_trades} Total Closed</p>
-              </div>
-              <div className="flex h-[14px] rounded-full overflow-hidden gap-[2px]">
-                {['sl','tp1','tp2','tp3','tp4'].map(k => {
-                  const v = coin.outcome_dist?.[k]||0; if (!v) return null;
-                  const pct = Math.round(v/coin.closed_trades*100);
-                  return <div key={k} className="relative group flex items-center justify-center transition-all hover:brightness-110" style={{ flex:v, background:JC[k], borderRadius:'4px' }}>
-                    {pct>6 && <span className="text-[8px] font-bold text-white/90 font-mono tracking-tighter">{pct}%</span>}
-                    <div className="absolute bottom-full mb-1.5 px-2 py-1 rounded-md text-[9px] font-mono bg-black/90 text-white opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 pointer-events-none">
-                      {OC[k]?.l} : {pct}% ({v} tr)
-                    </div>
-                  </div>;
-                })}
-              </div>
-            </div>
-
-            {coin.insight && (
-              <div className="relative p-5 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-white/[0.015] border border-white/[0.04]">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: st.text }} />
-                <div className="flex items-center gap-2 mb-3">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={st.text} strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color:st.text }}>AI Deep Analysis</p>
-                </div>
-                <p>{parseBold(coin.insight)}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-              <Section title="LuxQuant Winrate by Market Condition" className="h-full">
-                <div className="grid grid-cols-3 gap-2 h-full">
-                  {['high','mid','low'].map(apiFlow => {
-                    const d = coin.flow_perf?.[apiFlow]||{calls:0,wins:0,losses:0,wr:0};
-                    const marketCond = mapMarketCondition(apiFlow);
-                    const fc = FC[marketCond];
-                    const isNow = apiFlow === currentFlow;
-                    return (
-                      <div key={apiFlow} className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? 'shadow-inner' : ''}`}
-                        style={{ background:isNow?fc.bg:'rgba(255,255,255,0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(255,255,255,0.03)'}` }}>
-                        <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'#8a8577' }}>
-                          {fc.label.toUpperCase()} MARKET {isNow&&<span className="animate-pulse">●</span>}
-                        </p>
-                        <p className="font-mono font-extrabold text-xl drop-shadow-sm" style={{ color:d.calls>0?wrc(d.wr):'#4a3f35' }}>{d.calls>0?`${d.wr}%`:'—'}</p>
-                        <p className="text-gray-500 text-[9px] mt-1">{d.wins}W / {d.losses}L</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Section>
-
-              <Section title="Trend & Target Hit Rate" className="h-full flex flex-col justify-between">
-                {coin.monthly_trend?.length >= 2 && (
-                  <div className="mb-4 flex-1">
-                    <MonthlyLineChart data={coin.monthly_trend} />
-                  </div>
-                )}
-                {coin.tp4_streaks?.total_tp4 > 0 && (
-                  <div className="grid grid-cols-3 gap-3 text-center border-t border-white/[0.05] pt-3">
-                    <div><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
-                    <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-white">{coin.tp4_streaks.longest_streak}</p></div>
-                    <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
-                  </div>
-                )}
-              </Section>
-
-              {coin.volatility?.profile!=='unknown' && (
-                <Section title="Volatility Profile">
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    <StatBox label="Profile" value={coin.volatility.profile} color={coin.volatility.profile==='stable'?'#22c55e':coin.volatility.profile==='volatile'?'#ef4444':'#eab308'} />
-                    <StatBox label="P/L StdDev" value={`${coin.volatility.pl_stddev}%`} color="#fff" />
-                    <StatBox label="Avg Win" value={`+${coin.volatility.avg_win_pl}%`} color="#22c55e" />
-                    <StatBox label="Avg Loss" value={`${coin.volatility.avg_loss_pl}%`} color="#ef4444" />
-                  </div>
-                </Section>
-              )}
-
-              {coin.entry_quality?.score!=='unknown' && (
-                <Section title="Entry Quality Metrics">
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    <StatBox label="Score" value={coin.entry_quality.score} color={coin.entry_quality.score==='excellent'?'#22c55e':coin.entry_quality.score==='poor'?'#ef4444':'#d4a853'} />
-                    <StatBox label="Avg TP Level" value={`${coin.entry_quality.avg_tp_level}/4`} color="#fff" />
-                    <StatBox label="Hits > TP1" value={`${coin.entry_quality.reaches_potential}%`} color={coin.entry_quality.reaches_potential>=60?'#22c55e':'#eab308'} />
-                    <StatBox label="Full Target Rate" value={`${coin.entry_quality.full_target_rate}%`} color={coin.entry_quality.full_target_rate>=20?'#22c55e':'#8a8577'} />
-                  </div>
-                </Section>
-              )}
-
-              {coin.recovery && (
-                <Section title="Recovery Behavior">
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    <StatBox label="Avg Signal to Recover" value={`${coin.recovery.avg_signals_to_recover} sig`} color={coin.recovery.speed_label==='fast'?'#22c55e':coin.recovery.speed_label==='slow'?'#ef4444':'#eab308'} />
-                    <StatBox label="Fastest Recovery" value={`${coin.recovery.fastest_recovery} sig`} color="#22c55e" />
-                    <StatBox label="Slowest Recovery" value={`${coin.recovery.slowest_recovery} sig`} color="#ef4444" />
-                    <StatBox label="Total Recoveries" value={`${coin.recovery.total_recoveries}`} color="#6b5c52" />
-                  </div>
-                </Section>
-              )}
-
-              {coin.hour_analysis?.has_pattern && (
-                <Section title="Best Entry Timing (UTC)">
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    <StatBox label="Best Hour" value={`${coin.hour_analysis.best_hour}:00`} color="#22c55e" />
-                    <StatBox label="Hour WR" value={`${coin.hour_analysis.best_hour_wr}%`} color={wrc(coin.hour_analysis.best_hour_wr)} />
-                    <StatBox label="Best Block" value={coin.hour_analysis.best_block?.split(' ')[0]||'—'} color="#d4a853" />
-                    <StatBox label="Block WR" value={`${coin.hour_analysis.best_block_wr}%`} color={wrc(coin.hour_analysis.best_block_wr)} />
-                  </div>
-                </Section>
-              )}
-            </div>
-
-            {coin.dow_analysis?.breakdown && Object.keys(coin.dow_analysis.breakdown).length > 0 && (
-              <Section title="Win Rate by Day of Week">
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                  {Object.entries(coin.dow_analysis.breakdown).map(([day,s]) => {
-                    const isBest = coin.dow_analysis.best_day===day, isWorst = coin.dow_analysis.worst_day===day;
-                    return (
-                      <div key={day} className="text-center rounded-lg py-2.5 border border-transparent transition-all hover:border-white/10" style={{ background: isBest ? 'rgba(34,197,94,0.05)' : isWorst ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.015)' }}>
-                        <div className="flex items-center justify-center text-[12px] font-mono font-bold mb-1.5" style={{ color:wrc(s.wr) }}>
-                          {Math.round(s.wr)}%
+                  <div className="flex h-[14px] rounded-full overflow-hidden gap-[2px]">
+                    {['sl','tp1','tp2','tp3','tp4'].map(k => {
+                      const v = coin.outcome_dist?.[k]||0; if (!v) return null;
+                      const pct = Math.round(v/coin.closed_trades*100);
+                      return <div key={k} className="relative group flex items-center justify-center transition-all hover:brightness-110" style={{ flex:v, background:JC[k], borderRadius:'4px' }}>
+                        {pct>6 && <span className="text-[8px] font-bold text-white/90 font-mono tracking-tighter">{pct}%</span>}
+                        <div className="absolute bottom-full mb-1.5 px-2 py-1 rounded-md text-[9px] font-mono bg-black/90 text-white opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 pointer-events-none">
+                          {OC[k]?.l} : {pct}% ({v} tr)
                         </div>
-                        <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wide">{day}</p>
-                        <p className="text-[7px] text-gray-600 mt-0.5">{s.closed} tr</p>
-                        {isBest && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]" />}
-                        {isWorst && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]" />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </Section>
-            )}
-
-            {coin.correlated_pairs?.length > 0 && (
-              <div className="p-5 rounded-xl bg-red-500/[0.04] border border-red-500/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Correlated SL Risk</p>
+                      </div>;
+                    })}
                   </div>
-                  <p className="text-[11px] text-gray-400">These coins tend to hit SL on the same days. Avoid simultaneous positions.</p>
                 </div>
-                <div className="flex gap-2.5 flex-wrap">
-                  {coin.correlated_pairs.map((cp,i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-red-500/[0.08] border border-red-500/20">
-                      <CoinLogo pair={cp.pair} size={18} />
-                      <span className="text-[12px] font-mono font-bold text-white tracking-wide">{cp.pair.replace('USDT','')}</span>
-                      <span className="text-[9px] text-red-400 font-semibold bg-red-500/10 px-1.5 py-0.5 rounded">{cp.co_sl_count}× together</span>
+
+                {/* AI insight */}
+                {coin.insight && (
+                  <div className="relative p-4 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-white/[0.02] border border-white/[0.05]">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: st.text }} />
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={st.text} strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color:st.text }}>AI Deep Analysis</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {coin.signal_history?.length > 0 && (
-              <div className="mt-4">
-                <div className="flex justify-between items-end mb-3">
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Signal History</p>
-                  <p className="text-[10px] text-gray-500 font-mono">Last {coin.signal_history.length} signals</p>
-                </div>
-                <div className="rounded-xl border border-white/[0.05] bg-black/20 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[500px]">
-                      <thead className="bg-[#0a0506] border-b border-white/[0.05]">
-                        <tr>
-                          {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
-                            <th key={h} className="px-4 py-3.5 text-[8px] uppercase tracking-widest text-[#d4a853] font-semibold">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.02]">
-                        {coin.signal_history.map((s,i) => (
-                          <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-3 font-mono text-[11px] text-gray-300 whitespace-nowrap">{fmtDate(s.date)}</td>
-                            <td className="px-4 py-3 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'#555' }}>
-                              {s.platform_wr!=null?`${s.platform_wr}%`:'—'}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{s.entry}</td>
-                            <td className="px-4 py-3">
-                              {OC[s.outcome] && <span className="font-mono font-bold text-[10px] px-2.5 py-1 rounded" style={{ background:OC[s.outcome].bg, color:OC[s.outcome].tx }}>{OC[s.outcome].l}</span>}
-                            </td>
-                            <td className={`px-4 py-3 font-mono text-[12px] font-bold ${s.outcome!=='sl'?'text-green-400':'text-red-400'}`}>
-                              {s.pl_pct}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <p>{parseBold(coin.insight)}</p>
                   </div>
+                )}
+
+                {/* 2-col analysis grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Section title="LuxQuant Winrate by Market Condition" className="h-full">
+                    <div className="grid grid-cols-3 gap-2 h-full">
+                      {['high','mid','low'].map(apiFlow => {
+                        const d = coin.flow_perf?.[apiFlow]||{calls:0,wins:0,losses:0,wr:0};
+                        const marketCond = mapMarketCondition(apiFlow);
+                        const fc = FC[marketCond];
+                        const isNow = apiFlow === currentFlow;
+                        return (
+                          <div key={apiFlow} className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? 'shadow-inner' : ''}`}
+                            style={{ background:isNow?fc.bg:'rgba(255,255,255,0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(255,255,255,0.03)'}` }}>
+                            <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'#8a8577' }}>
+                              {fc.label.toUpperCase()} MARKET {isNow&&<span className="animate-pulse">●</span>}
+                            </p>
+                            <p className="font-mono font-extrabold text-xl" style={{ color:d.calls>0?wrc(d.wr):'#4a3f35' }}>{d.calls>0?`${d.wr}%`:'—'}</p>
+                            <p className="text-gray-500 text-[9px] mt-1">{d.wins}W / {d.losses}L</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Section>
+
+                  <Section title="Trend & Target Hit Rate" className="h-full flex flex-col justify-between">
+                    {coin.monthly_trend?.length >= 2 && (
+                      <div className="mb-3 flex-1">
+                        <MonthlyLineChart data={coin.monthly_trend} />
+                      </div>
+                    )}
+                    {coin.tp4_streaks?.total_tp4 > 0 && (
+                      <div className="grid grid-cols-3 gap-3 text-center border-t border-white/[0.05] pt-3">
+                        <div><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
+                        <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-white">{coin.tp4_streaks.longest_streak}</p></div>
+                        <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
+                      </div>
+                    )}
+                  </Section>
+
+                  {coin.volatility?.profile!=='unknown' && (
+                    <Section title="Volatility Profile">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                        <StatBox label="Profile" value={coin.volatility.profile} color={coin.volatility.profile==='stable'?'#22c55e':coin.volatility.profile==='volatile'?'#ef4444':'#eab308'} />
+                        <StatBox label="P/L StdDev" value={`${coin.volatility.pl_stddev}%`} color="#fff" />
+                        <StatBox label="Avg Win" value={`+${coin.volatility.avg_win_pl}%`} color="#22c55e" />
+                        <StatBox label="Avg Loss" value={`${coin.volatility.avg_loss_pl}%`} color="#ef4444" />
+                      </div>
+                    </Section>
+                  )}
+
+                  {coin.entry_quality?.score!=='unknown' && (
+                    <Section title="Entry Quality Metrics">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                        <StatBox label="Score" value={coin.entry_quality.score} color={coin.entry_quality.score==='excellent'?'#22c55e':coin.entry_quality.score==='poor'?'#ef4444':'#d4a853'} />
+                        <StatBox label="Avg TP Level" value={`${coin.entry_quality.avg_tp_level}/4`} color="#fff" />
+                        <StatBox label="Hits > TP1" value={`${coin.entry_quality.reaches_potential}%`} color={coin.entry_quality.reaches_potential>=60?'#22c55e':'#eab308'} />
+                        <StatBox label="Full Target Rate" value={`${coin.entry_quality.full_target_rate}%`} color={coin.entry_quality.full_target_rate>=20?'#22c55e':'#8a8577'} />
+                      </div>
+                    </Section>
+                  )}
+
+                  {coin.recovery && (
+                    <Section title="Recovery Behavior">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                        <StatBox label="Avg Signal to Recover" value={`${coin.recovery.avg_signals_to_recover} sig`} color={coin.recovery.speed_label==='fast'?'#22c55e':coin.recovery.speed_label==='slow'?'#ef4444':'#eab308'} />
+                        <StatBox label="Fastest Recovery" value={`${coin.recovery.fastest_recovery} sig`} color="#22c55e" />
+                        <StatBox label="Slowest Recovery" value={`${coin.recovery.slowest_recovery} sig`} color="#ef4444" />
+                        <StatBox label="Total Recoveries" value={`${coin.recovery.total_recoveries}`} color="#6b5c52" />
+                      </div>
+                    </Section>
+                  )}
+
+                  {coin.hour_analysis?.has_pattern && (
+                    <Section title="Best Entry Timing (UTC)">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                        <StatBox label="Best Hour" value={`${coin.hour_analysis.best_hour}:00`} color="#22c55e" />
+                        <StatBox label="Hour WR" value={`${coin.hour_analysis.best_hour_wr}%`} color={wrc(coin.hour_analysis.best_hour_wr)} />
+                        <StatBox label="Best Block" value={coin.hour_analysis.best_block?.split(' ')[0]||'—'} color="#d4a853" />
+                        <StatBox label="Block WR" value={`${coin.hour_analysis.best_block_wr}%`} color={wrc(coin.hour_analysis.best_block_wr)} />
+                      </div>
+                    </Section>
+                  )}
                 </div>
+
+                {/* Day of week */}
+                {coin.dow_analysis?.breakdown && Object.keys(coin.dow_analysis.breakdown).length > 0 && (
+                  <Section title="Win Rate by Day of Week">
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {Object.entries(coin.dow_analysis.breakdown).map(([day,s]) => {
+                        const isBest = coin.dow_analysis.best_day===day, isWorst = coin.dow_analysis.worst_day===day;
+                        return (
+                          <div key={day} className="text-center rounded-lg py-2.5 border border-transparent transition-all hover:border-white/10" style={{ background: isBest ? 'rgba(34,197,94,0.05)' : isWorst ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.015)' }}>
+                            <div className="flex items-center justify-center text-[12px] font-mono font-bold mb-1.5" style={{ color:wrc(s.wr) }}>
+                              {Math.round(s.wr)}%
+                            </div>
+                            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wide">{day}</p>
+                            <p className="text-[7px] text-gray-600 mt-0.5">{s.closed} tr</p>
+                            {isBest && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]" />}
+                            {isWorst && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Section>
+                )}
+
+                {/* Correlated SL risk */}
+                {coin.correlated_pairs?.length > 0 && (
+                  <div className="p-4 rounded-xl bg-red-500/[0.04] border border-red-500/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Correlated SL Risk</p>
+                      </div>
+                      <p className="text-[11px] text-gray-400">These coins tend to hit SL on the same days. Avoid simultaneous positions.</p>
+                    </div>
+                    <div className="flex gap-2.5 flex-wrap">
+                      {coin.correlated_pairs.map((cp,i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-red-500/[0.08] border border-red-500/20">
+                          <CoinLogo pair={cp.pair} size={18} />
+                          <span className="text-[12px] font-mono font-bold text-white tracking-wide">{cp.pair.replace('USDT','')}</span>
+                          <span className="text-[9px] text-red-400 font-semibold bg-red-500/10 px-1.5 py-0.5 rounded">{cp.co_sl_count}× together</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Signal history */}
+                {coin.signal_history?.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-end mb-3">
+                      <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Signal History</p>
+                      <p className="text-[10px] text-gray-500 font-mono">Last {coin.signal_history.length} signals</p>
+                    </div>
+                    <div className="rounded-xl border border-white/[0.05] bg-black/20 overflow-hidden">
+                      <div className="overflow-x-auto cdm-scroll">
+                        <table className="w-full text-left border-collapse min-w-[500px]">
+                          <thead className="bg-[#0a0506] border-b border-white/[0.05]">
+                            <tr>
+                              {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
+                                <th key={h} className="px-4 py-3 text-[8px] uppercase tracking-widest text-[#d4a853] font-semibold">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.02]">
+                            {coin.signal_history.map((s,i) => (
+                              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300 whitespace-nowrap">{fmtDate(s.date)}</td>
+                                <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'#555' }}>
+                                  {s.platform_wr!=null?`${s.platform_wr}%`:'—'}
+                                </td>
+                                <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">{s.entry}</td>
+                                <td className="px-4 py-2.5">
+                                  {OC[s.outcome] && <span className="font-mono font-bold text-[10px] px-2.5 py-1 rounded" style={{ background:OC[s.outcome].bg, color:OC[s.outcome].tx }}>{OC[s.outcome].l}</span>}
+                                </td>
+                                <td className={`px-4 py-2.5 font-mono text-[12px] font-bold ${s.outcome!=='sl'?'text-green-400':'text-red-400'}`}>
+                                  {s.pl_pct}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="h-2"></div>
               </div>
-            )}
-
-            <div className="h-6"></div>
-
+            </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        .cdm-overlay { position: fixed; inset: 0; z-index: 100050; display: flex; align-items: center; justify-content: center; isolation: isolate; }
+        @supports(height:100dvh) { .cdm-overlay { height: 100dvh; } }
+        .cdm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); animation: cdmBI .25s ease-out; }
+        .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: 100%; background: linear-gradient(180deg,#140a0c,#0a0506); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow: hidden; animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
+
+        @media(min-width:640px) {
+          .cdm-container { padding: 16px; }
+          .cdm-content { max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(0,0,0,.3); }
+        }
+        @media(min-width:1024px) {
+          .cdm-container { padding: 24px; }
+          .cdm-content { max-height: 880px; }
+        }
+        @media(max-width:639px) {
+          .cdm-content { max-height: 100%; height: 100%; border-radius: 0; border: none; }
+        }
+
+        .cdm-closing .cdm-backdrop { animation: cdmBO .2s ease-in forwards; }
+        .cdm-closing .cdm-content { animation: cdmCO .2s ease-in forwards; }
+        @keyframes cdmBI { from{opacity:0} to{opacity:1} }
+        @keyframes cdmBO { from{opacity:1} to{opacity:0} }
+        @keyframes cdmCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+        @keyframes cdmCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
+        @media(max-width:639px) {
+          .cdm-content { animation: cdmUp .3s cubic-bezier(.16,1,.3,1); }
+          .cdm-closing .cdm-content { animation: cdmDn .2s ease-in forwards; }
+          @keyframes cdmUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes cdmDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
+        }
+
+        .cdm-scroll::-webkit-scrollbar { width: 4px; height: 6px; }
+        .cdm-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cdm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+        .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }
+      `}</style>
     </>
   );
+
+  return createPortal(content, document.body);
 };
