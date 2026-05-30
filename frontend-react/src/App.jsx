@@ -38,6 +38,7 @@ const AdminWorkspacePage = lazy(
 );
 const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
 const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
+const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
@@ -102,6 +103,7 @@ const LOGIN_REQUIRED = [
   "/orderbook",
   "/calendar",
   "/whale",
+  "/money-flow",
   "/notifications",
   "/journal",
   "/onchain",
@@ -121,6 +123,7 @@ const PREMIUM_REQUIRED = [
   "/orderbook",
   "/calendar",
   "/whale",
+  "/money-flow",
   "/onchain",
   "/autotrade",
   "/portfolio",
@@ -356,6 +359,12 @@ function AppShell({ children }) {
 
   const moreMenuItems = [
     {
+      path: "/money-flow",
+      label: "Money Flow",
+      icon: "🌊",
+      description: "Where capital is rotating — sectors, coins, whales",
+    },
+    {
       path: "/portfolio",
       label: "Portfolio",
       icon: "💼",
@@ -384,12 +393,6 @@ function AppShell({ children }) {
       label: t("nav.calendar"),
       icon: "📅",
       description: t("desc.calendar"),
-    },
-    {
-      path: "/whale",
-      label: t("nav.whale"),
-      icon: "🐋",
-      description: t("desc.whale"),
     },
     {
       path: "/tips",
@@ -841,6 +844,21 @@ function AppShell({ children }) {
                 </>
               }
             />
+            {/* Money Flow — waves (capital rotation) */}
+            <SidebarItem
+              active={isActive("/money-flow")}
+              onClick={() => handleNav("/money-flow")}
+              label="Money Flow"
+              isPremium={!isPremiumUser()}
+              icon={
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M3 7.5c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0M3 12c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0M3 16.5c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0"
+                />
+              }
+            />
             {/* Analytics — trending-up chart, lebih "analytics" */}
             <SidebarItem
               active={isActive("/analytics")}
@@ -1067,20 +1085,6 @@ function AppShell({ children }) {
                   strokeLinejoin="round"
                   strokeWidth={1.5}
                   d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-                />
-              }
-            />
-            <SidebarItem
-              active={isActive("/whale")}
-              onClick={() => handleNav("/whale")}
-              label={t("nav.whale")}
-              isPremium={!isPremiumUser()}
-              icon={
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738.145l-1.093.819a.89.89 0 00-.284.97l.448 1.345a1.336 1.336 0 01-.06.885l-1.334 2.668a.75.75 0 00.34 1.006l2.053.684a.75.75 0 00.588-.012l1.527-.763a.75.75 0 00.294-.235l1.092-1.638a.252.252 0 01.428.032l.603 1.072a.662.662 0 001.106.07l.926-1.159a.753.753 0 00.132-.795z"
                 />
               }
             />
@@ -1566,18 +1570,21 @@ function App() {
                 </RequireAuth>
               }
             />
+            {/* Money Flow — payung sektor/koin/whale (Whale Alert jadi tab di dalamnya) */}
             <Route
-              path="/whale"
+              path="/money-flow"
               element={
                 <RequireAuth>
                   <AppShell>
                     <PremiumGate>
-                      <WhaleAlertPage />
+                      <MoneyFlowPage />
                     </PremiumGate>
                   </AppShell>
                 </RequireAuth>
               }
             />
+            {/* /whale lama → redirect ke /money-flow (Whale Alert sekarang tab di sana) */}
+            <Route path="/whale" element={<Navigate to="/money-flow" replace />} />
             <Route
               path="/onchain"
               element={
