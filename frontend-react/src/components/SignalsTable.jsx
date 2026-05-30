@@ -170,6 +170,7 @@ const SignalsTable = ({
 
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
+  const [showVerdictHint, setShowVerdictHint] = useState(false);    // verdict coachmark (auto-shows on load)
   const [currentPrices, setCurrentPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const [pricesFailed, setPricesFailed] = useState(false);   // true only when NO pair could be fetched at all
@@ -417,6 +418,28 @@ const SignalsTable = ({
     const v = verdictByPair?.[pair] || classifyCoin(coin);
     return { verdict: v, coin };
   };
+
+  // Index of the first row (in current page) that has a non-neutral verdict —
+  // the coachmark anchors to this row's verdict cell.
+  const firstVerdictIdx = useMemo(() => {
+    if (!signals) return -1;
+    return signals.findIndex((s) => {
+      const v = getVerdict(s.pair);
+      return v && v.verdict !== 'neutral';
+    });
+  }, [signals, coinIntel, verdictByPair]);
+
+  // Auto-show the verdict coachmark whenever the table loads with verdict data
+  // visible. Shows for 5s every page open (no localStorage — user asked for it
+  // to appear each visit). Cleans up on unmount / dependency change.
+  useEffect(() => {
+    if (loading) return;
+    if (!visibleCols.verdict) return;
+    if (firstVerdictIdx < 0) return;
+    setShowVerdictHint(true);
+    const tid = setTimeout(() => setShowVerdictHint(false), 5000);
+    return () => clearTimeout(tid);
+  }, [loading, visibleCols.verdict, firstVerdictIdx]);
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return '-';
@@ -1057,26 +1080,78 @@ const SignalsTable = ({
                         )}
 
                         {visibleCols.verdict && (
-                          <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td className="py-3 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                             {(() => {
                               const v = getVerdict(signal.pair);
                               if (!v || v.verdict === 'neutral') return <span className="text-text-muted/40 text-xs">—</span>;
                               const isAvoid = v.verdict === 'avoid';
                               const score = v.coin.risk_score ?? null;
+                              const showHint = showVerdictHint && idx === firstVerdictIdx;
                               return (
-                                <button
-                                  onClick={() => setSelectedCoinIntel(v.coin)}
-                                  title="View deep analysis"
-                                  className={`group/vd inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 cursor-pointer ${
-                                    isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                  }`}
-                                >
-                                  <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
-                                  {score != null && <span className="tabular-nums opacity-70">{score}</span>}
-                                  <svg className="w-2.5 h-2.5 opacity-50 group-hover/vd:opacity-100 group-hover/vd:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 18l6-6-6-6" />
-                                  </svg>
-                                </button>
+                                <div className="relative inline-block">
+                                  <button
+                                    onClick={() => { setShowVerdictHint(false); setSelectedCoinIntel(v.coin); }}
+                                    title="View deep analysis"
+                                    className={`group/vd inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 cursor-pointer ${
+                                      isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                    } ${showHint ? 'ring-2 ring-gold-primary/50 ring-offset-1 ring-offset-[#0a0805]' : ''}`}
+                                  >
+                                    <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
+                                    {score != null && <span className="tabular-nums opacity-70">{score}</span>}
+                                    <svg className="w-2.5 h-2.5 opacity-50 group-hover/vd:opacity-100 group-hover/vd:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M9 18l6-6-6-6" />
+                                    </svg>
+                                  </button>
+
+                                  {showHint && (
+                                    <div className="lq-verdict-hint absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 w-60 text-left">
+                                      {/* arrow */}
+                                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-[#0d0a07] border-l border-t border-gold-primary/40" />
+                                      <div className="relative bg-[#0d0a07] border border-gold-primary/40 rounded-lg shadow-2xl p-3 overflow-hidden">
+                                        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
+                                        <div className="flex items-center justify-between mb-1.5">
+                                          <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">👆 Click for detail</span>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); setShowVerdictHint(false); }}
+                                            className="text-text-muted/60 hover:text-white"
+                                            aria-label="Dismiss"
+                                          >
+                                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18L18 6M6 6l12 12" /></svg>
+                                          </button>
+                                        </div>
+                                        <p className="font-mono text-[10px] leading-relaxed text-text-muted normal-case tracking-normal mb-2">
+                                          Full assessment based on win-rate history, streaks &amp; more.
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-white/[0.06]">
+                                          <div>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Win Rate</p>
+                                            <p className="font-mono text-[11px] tabular-nums" style={{ color: v.coin.win_rate >= 70 ? '#34d399' : v.coin.win_rate >= 50 ? '#fbbf24' : '#f87171' }}>{v.coin.win_rate}%</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Streak</p>
+                                            <p className="font-mono text-[11px] tabular-nums" style={{ color: v.coin.current_streak?.type === 'win' ? '#34d399' : '#f87171' }}>
+                                              {v.coin.current_streak?.length ? `${v.coin.current_streak.length}${v.coin.current_streak.type === 'win' ? 'W' : 'L'}` : '—'}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Trades</p>
+                                            <p className="font-mono text-[11px] tabular-nums text-white">{v.coin.closed_trades ?? '—'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Avg TP</p>
+                                            <p className="font-mono text-[11px] tabular-nums text-white">{v.coin.avg_outcome ?? '—'}</p>
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={() => { setShowVerdictHint(false); setSelectedCoinIntel(v.coin); }}
+                                          className="w-full mt-2.5 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-all"
+                                        >
+                                          View Detail →
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })()}
                           </td>
@@ -1184,6 +1259,8 @@ const SignalsTable = ({
           <style>{`
             @keyframes lqNoticeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
             .lq-notice-in > div { animation: lqNoticeIn 0.25s ease-out; }
+            @keyframes lqVerdictHintIn { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+            .lq-verdict-hint { animation: lqVerdictHintIn 0.3s ease-out; }
           `}</style>
         </div>
       )}
