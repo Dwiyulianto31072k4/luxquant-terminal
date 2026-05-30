@@ -184,6 +184,14 @@ else:
     print(f"⚠️ News images directory not found: {NEWS_IMAGES_DIR}")
 
 # ═══════════════════════════════════════════
+# Serve news videos as static files
+# ═══════════════════════════════════════════
+NEWS_VIDEOS_DIR = os.environ.get("NEWS_VIDEOS_DIR", "/opt/luxquant/news-videos")
+os.makedirs(NEWS_VIDEOS_DIR, exist_ok=True)
+app.mount("/api/v1/news-videos", StaticFiles(directory=NEWS_VIDEOS_DIR), name="news-videos")
+print(f"🎬 News videos directory mounted: {NEWS_VIDEOS_DIR}")
+
+# ═══════════════════════════════════════════
 # Serve onchain images as static files
 # ═══════════════════════════════════════════
 ONCHAIN_IMAGES_DIR = os.environ.get("ONCHAIN_IMAGES_DIR", "/opt/luxquant/onchain-images")

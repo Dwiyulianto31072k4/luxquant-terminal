@@ -44,7 +44,7 @@ async def get_news_feed(
         where_clauses = ["created_at > NOW() - INTERVAL '3 days'"]
         params = {"limit": limit, "offset": offset}
 
-        if content_type and content_type in ("article", "photo", "headline"):
+        if content_type and content_type in ("article", "photo", "headline", "video"):
             where_clauses.append("content_type = :content_type")
             params["content_type"] = content_type
 
@@ -59,7 +59,7 @@ async def get_news_feed(
 
         items_q = text(f"""
             SELECT id, content_type, title, description, url, domain,
-                   image_url, published_at, created_at, has_photo, raw_text
+                   image_url, video_url, published_at, created_at, has_photo, has_video, raw_text
             FROM crypto_news
             WHERE {where_sql}
             ORDER BY created_at DESC
@@ -77,10 +77,12 @@ async def get_news_feed(
                 "url": r[4],
                 "domain": r[5],
                 "image_url": r[6],
-                "published_at": str(r[7]) if r[7] else None,
-                "created_at": str(r[8]) if r[8] else None,
-                "has_photo": r[9],
-                "raw_text": r[10],
+                "video_url": r[7],
+                "published_at": str(r[8]) if r[8] else None,
+                "created_at": str(r[9]) if r[9] else None,
+                "has_photo": r[10],
+                "has_video": r[11],
+                "raw_text": r[12],
             })
 
         db.close()
@@ -120,6 +122,7 @@ async def get_news_stats():
         articles = type_map.get("article", 0)
         photos = type_map.get("photo", 0)
         headlines = type_map.get("headline", 0)
+        videos = type_map.get("video", 0)
 
         hour_q = text("SELECT COUNT(*) FROM crypto_news WHERE created_at > NOW() - INTERVAL '1 hour'")
         last_hour = db.execute(hour_q).scalar()
@@ -149,7 +152,8 @@ async def get_news_stats():
 
         result = {
             "total": total, "articles": articles, "photos": photos,
-            "headlines": headlines, "last_hour": last_hour, "last_6h": last_6h,
+            "headlines": headlines, "videos": videos,
+            "last_hour": last_hour, "last_6h": last_6h,
             "hourly": hourly, "top_domains": top_domains,
         }
         cache_set(cache_key, result, ttl=120)
@@ -240,7 +244,7 @@ async def extract_article(news_id: int):
     # Get URL from DB
     try:
         db = next(get_db_session())
-        q = text("SELECT url, title, description, raw_text, image_url, domain, content_type, created_at FROM crypto_news WHERE id = :id")
+        q = text("SELECT url, title, description, raw_text, image_url, domain, content_type, created_at, video_url FROM crypto_news WHERE id = :id")
         row = db.execute(q, {"id": news_id}).fetchone()
         db.close()
 
@@ -258,6 +262,7 @@ async def extract_article(news_id: int):
             "domain": row[5],
             "content_type": row[6],
             "created_at": str(row[7]) if row[7] else None,
+            "video_url": row[8],
             "extracted": False,
             "summary": None,
             "keywords": [],

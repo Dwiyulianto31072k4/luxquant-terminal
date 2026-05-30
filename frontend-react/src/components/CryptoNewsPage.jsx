@@ -82,6 +82,12 @@ const getImageSrc = (item) => {
   return url;
 };
 
+const getVideoSrc = (item) => {
+  const url = item?.video_url;
+  if (!url || (typeof url === "string" && url.trim() === "")) return null;
+  return url;
+};
+
 // Auto-categorize by title keywords (lightweight, client-side)
 const CATEGORY_RULES = [
   { key: "bitcoin", label: "Bitcoin", icon: "₿", color: "#F7931A", patterns: [/\bbtc\b/i, /\bbitcoin\b/i, /satoshi/i] },
