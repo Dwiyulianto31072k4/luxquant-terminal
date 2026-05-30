@@ -323,6 +323,7 @@ const NewsModal = ({ item, onClose }) => {
   if (!item) return null;
 
   const imgSrc = extract?.top_image || getImageSrc(item);
+  const videoSrc = getVideoSrc(extract) || getVideoSrc(item);
   const summary = extract?.summary || item.description || null;
   const fullText = extract?.full_text || item.raw_text || null;
   const keywords = extract?.keywords || [];
@@ -393,7 +394,19 @@ const NewsModal = ({ item, onClose }) => {
         <div className="nm-scroll overflow-y-auto flex-1">
           {/* Image / Placeholder — object-contain so the full image is visible (no crop) */}
           <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
-            {imgSrc ? (
+            {videoSrc ? (
+              <video
+                src={videoSrc}
+                poster={imgSrc || undefined}
+                controls
+                autoPlay
+                muted
+                playsInline
+                preload="metadata"
+                ref={(el) => { if (el) el.muted = true; }}
+                className="w-auto h-auto max-w-full max-h-[45vh] object-contain bg-black"
+              />
+            ) : imgSrc ? (
               <img
                 src={imgSrc}
                 alt=""
@@ -574,6 +587,7 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
   const color = getDomainColor(item.domain);
   const isPhoto = item.content_type === "photo";
   const isHeadline = variant === "headline" || item.content_type === "headline";
+  const hasVideo = !!getVideoSrc(item);
 
   return (
     <article
@@ -602,6 +616,17 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
         {/* Subtle bottom gradient for badge legibility when image present */}
         {imgSrc && (
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        )}
+
+        {/* Play badge for video items */}
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
+              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          </div>
         )}
 
         {/* NEWS badge — top-right, only for headlines (kept as content type indicator) */}
