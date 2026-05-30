@@ -1262,6 +1262,7 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
 // ─── Main Page ───────────────────────────────────────────────────
 
 const DailyPerformancePage = () => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(todayUTC());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
