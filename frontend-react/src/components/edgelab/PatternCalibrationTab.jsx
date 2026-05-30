@@ -1,107 +1,49 @@
 // src/components/edgelab/PatternCalibrationTab.jsx
+// v2 UX: insight band + collapsible methodology + sortable + clearer CI bars
 import { useState, useMemo } from "react";
-
-// Color palette consistent with DailyPerformancePage
-const TIER_COLORS = {
-  reliable: "#10b981",
-  moderate: "#f59e0b",
-  unreliable: "#ef4444",
-};
-
-const TIER_LABELS = {
-  reliable: "Reliable",
-  moderate: "Moderate",
-  unreliable: "Unreliable",
-};
+import {
+  TIER_COLORS, TIER_LABELS, Panel, Methodology, InsightBand,
+  EmptyState, ReliabilityBadge,
+} from "./_shared";
 
 const TIER_DESC = {
-  reliable: "n ≥ 30, CI ≤ 5pp — robust evidence",
-  moderate: "n ≥ 10, CI ≤ 12pp — directional signal",
-  unreliable: "small sample or wide CI",
+  reliable: "n ≥ 30 and CI ≤ 5pp — robust evidence",
+  moderate: "n ≥ 10 and CI ≤ 12pp — directional signal",
+  unreliable: "small sample or wide CI — treat with caution",
 };
 
-const ReliabilityBadge = ({ tier }) => {
-  const color = TIER_COLORS[tier];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm border text-[9px] font-mono uppercase tracking-wider"
-      style={{
-        background: `${color}1a`,
-        borderColor: `${color}55`,
-        color: color,
-      }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-      {TIER_LABELS[tier]}
-    </span>
-  );
-};
-
-/**
- * Renders a horizontal bar for one pattern showing:
- *  - bar fill = win rate (0-100%)
- *  - whiskers at CI lower/upper bounds (gray)
- *  - tier color on bar
- */
-const CalibrationBar = ({ row, maxN }) => {
+const CalibrationRow = ({ row }) => {
   const wr = row.win_rate ?? 0;
   const ciLo = row.win_rate_ci_lower ?? 0;
   const ciHi = row.win_rate_ci_upper ?? 100;
   const color = TIER_COLORS[row.reliability];
 
   return (
-    <div className="py-3 border-b border-white/[0.04] last:border-b-0">
-      {/* Top row: pattern name + WR + sample + tier badge */}
+    <div className="group py-2.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.015] -mx-5 px-5 transition">
       <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-mono text-white/90 truncate">{row.pattern}</span>
-          <ReliabilityBadge tier={row.reliability} />
+          <span className="text-[13px] font-mono text-white/90 truncate">{row.pattern}</span>
+          <ReliabilityBadge tier={row.reliability} compact />
         </div>
-        <div className="flex items-baseline gap-2.5 font-mono tabular-nums text-[10px] flex-shrink-0">
-          <span className="text-white/40">n = {row.count}</span>
-          <span className="text-white/85 text-sm" style={{ color }}>
-            {wr.toFixed(1)}%
-          </span>
-          <span className="text-white/35">
-            [{ciLo.toFixed(1)}, {ciHi.toFixed(1)}]
-          </span>
-          <span className="text-white/35">±{row.win_rate_ci_half_width?.toFixed(1)}pp</span>
+        <div className="flex items-baseline gap-3 font-mono tabular-nums flex-shrink-0">
+          <span className="text-[10px] text-white/35">n={row.count}</span>
+          <span className="text-[10px] text-white/35">±{row.win_rate_ci_half_width?.toFixed(1)}pp</span>
+          <span className="text-base font-semibold" style={{ color }}>{wr.toFixed(1)}%</span>
         </div>
       </div>
 
-      {/* Bar + CI whiskers (relative position 0-100%) */}
-      <div className="relative h-3">
-        {/* Background track */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-white/[0.04] rounded-sm" />
-
-        {/* WR bar fill (from 0 to win_rate) */}
+      <div className="relative h-4">
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 bg-white/[0.035] rounded-full" />
+        <div className="absolute top-1/2 -translate-y-1/2 w-px h-3.5 bg-white/12" style={{ left: "50%" }} />
         <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 rounded-sm transition-all duration-700"
-          style={{ width: `${wr}%`, background: color, opacity: 0.85 }}
+          className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full"
+          style={{ left: `${ciLo}%`, width: `${Math.max(ciHi - ciLo, 0.5)}%`, background: `${color}33` }}
         />
-
-        {/* CI whisker — horizontal line between CI lower and upper */}
+        <div className="absolute top-1/2 -translate-y-1/2 w-px h-3" style={{ left: `${ciLo}%`, background: `${color}99` }} />
+        <div className="absolute top-1/2 -translate-y-1/2 w-px h-3" style={{ left: `${ciHi}%`, background: `${color}99` }} />
         <div
-          className="absolute top-1/2 -translate-y-1/2 h-px bg-white/45"
-          style={{ left: `${ciLo}%`, width: `${ciHi - ciLo}%` }}
-        />
-
-        {/* CI lower bound tick */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-px h-2.5 bg-white/55"
-          style={{ left: `${ciLo}%` }}
-        />
-
-        {/* CI upper bound tick */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-px h-2.5 bg-white/55"
-          style={{ left: `${ciHi}%` }}
-        />
-
-        {/* WR point marker */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-          style={{ left: `calc(${wr}% - 3px)`, background: color, boxShadow: `0 0 0 2px #0a0805` }}
+          className="absolute top-1/2 -translate-y-1/2 rounded-full transition-transform group-hover:scale-125"
+          style={{ left: `calc(${wr}% - 4px)`, width: 8, height: 8, background: color, boxShadow: "0 0 0 2px #0c0a07" }}
         />
       </div>
     </div>
@@ -109,13 +51,7 @@ const CalibrationBar = ({ row, maxN }) => {
 };
 
 const PatternCalibrationTab = ({ data }) => {
-  const [tierFilter, setTierFilter] = useState("all"); // all | reliable | moderate | unreliable
-
-  const filtered = useMemo(() => {
-    if (!data?.length) return [];
-    if (tierFilter === "all") return data;
-    return data.filter((d) => d.reliability === tierFilter);
-  }, [data, tierFilter]);
+  const [tierFilter, setTierFilter] = useState("all");
 
   const tierCounts = useMemo(() => {
     const c = { reliable: 0, moderate: 0, unreliable: 0 };
@@ -123,45 +59,79 @@ const PatternCalibrationTab = ({ data }) => {
     return c;
   }, [data]);
 
-  const maxN = useMemo(() => Math.max(...(data || []).map((d) => d.count), 1), [data]);
-
-  if (!data?.length) {
-    return (
-      <div className="rounded-md bg-[#0a0805] border border-white/[0.06] p-10 text-center">
-        <div className="text-white/30 text-sm font-mono uppercase tracking-wider">
-          No calibration data available
-        </div>
-        <div className="text-white/20 text-xs font-mono mt-2 normal-case">
-          Need at least 5 signals per pattern in this date range
-        </div>
-      </div>
+  const filtered = useMemo(() => {
+    if (!data?.length) return [];
+    const arr = tierFilter === "all" ? data : data.filter((d) => d.reliability === tierFilter);
+    const rank = { reliable: 0, moderate: 1, unreliable: 2 };
+    return [...arr].sort(
+      (a, b) =>
+        rank[a.reliability] - rank[b.reliability] ||
+        b.count - a.count ||
+        (b.win_rate ?? 0) - (a.win_rate ?? 0)
     );
-  }
+  }, [data, tierFilter]);
+
+  const insights = useMemo(() => {
+    if (!data?.length) return [];
+    const reliable = data.filter((d) => d.reliability === "reliable");
+    const out = [];
+    const bestRel = [...reliable].sort((a, b) => (b.win_rate ?? 0) - (a.win_rate ?? 0))[0];
+    if (bestRel) {
+      out.push({
+        kind: "good",
+        label: "Most reliable edge",
+        value: `${bestRel.pattern}`,
+        sub: `${bestRel.win_rate.toFixed(1)}% WR · n=${bestRel.count} · ±${bestRel.win_rate_ci_half_width?.toFixed(1)}pp`,
+      });
+    }
+    const worstRel = [...reliable].sort((a, b) => (a.win_rate ?? 0) - (b.win_rate ?? 0))[0];
+    if (worstRel && bestRel && worstRel.pattern !== bestRel.pattern && worstRel.win_rate < 70) {
+      out.push({
+        kind: "bad",
+        label: "Weakest reliable pattern",
+        value: `${worstRel.pattern}`,
+        sub: `${worstRel.win_rate.toFixed(1)}% WR · n=${worstRel.count} — lowest among trusted`,
+      });
+    }
+    const trap = [...(data || [])]
+      .filter((d) => d.reliability === "unreliable" && (d.win_rate ?? 0) >= 90)
+      .sort((a, b) => (b.win_rate ?? 0) - (a.win_rate ?? 0))[0];
+    if (trap) {
+      out.push({
+        kind: "neutral",
+        label: "Looks great, low evidence",
+        value: `${trap.pattern}`,
+        sub: `${trap.win_rate.toFixed(1)}% but only n=${trap.count} (±${trap.win_rate_ci_half_width?.toFixed(1)}pp) — unconfirmed`,
+      });
+    }
+    return out;
+  }, [data]);
+
+  if (!data?.length)
+    return <EmptyState title="No calibration data available" hint="Need at least 5 signals per pattern in this date range" />;
 
   return (
-    <div className="space-y-5">
-      {/* Methodology callout */}
-      <div className="rounded-md bg-[#0a0805] border border-white/[0.06] p-4 relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-2">
-          · About Pattern Calibration ·
-        </div>
-        <p className="text-xs text-white/65 leading-relaxed">
-          Win rate alone can be misleading with small samples. We compute the{" "}
-          <span className="text-white/85 font-mono">Wilson 95% confidence interval</span> around each
-          pattern's WR — the band where the true WR most likely sits given the sample size.
-          Narrow band + large sample = reliable evidence. Wide band = treat with caution.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <InsightBand items={insights} />
 
-      {/* Tier filter chips + counts */}
+      <Methodology title="How calibration works">
+        Win rate alone misleads at small samples. We compute the{" "}
+        <span className="text-white/85 font-mono">Wilson 95% confidence interval</span> around each pattern's WR —
+        the band where the true WR most likely sits given sample size. Narrow band + large n ={" "}
+        <span className="text-emerald-400">reliable</span>; wide band ={" "}
+        <span className="text-red-400">caution</span>. Tiers:{" "}
+        {Object.entries(TIER_DESC).map(([t, d], i) => (
+          <span key={t}>
+            <span style={{ color: TIER_COLORS[t] }} className="font-mono">{TIER_LABELS[t]}</span> ({d})
+            {i < 2 ? "; " : "."}
+          </span>
+        ))}
+      </Methodology>
+
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40 mr-2">
-          Filter
-        </span>
         <button
           onClick={() => setTierFilter("all")}
-          className={`px-3 py-1.5 rounded-sm border text-[10px] font-mono uppercase tracking-wider transition ${
+          className={`px-3 py-1.5 rounded-md border text-[10px] font-mono uppercase tracking-wider transition ${
             tierFilter === "all"
               ? "border-gold-primary/40 bg-gold-primary/10 text-gold-primary"
               : "border-white/[0.08] text-white/55 hover:text-white"
@@ -176,40 +146,28 @@ const PatternCalibrationTab = ({ data }) => {
             <button
               key={t}
               onClick={() => setTierFilter(t)}
-              className="px-3 py-1.5 rounded-sm border text-[10px] font-mono uppercase tracking-wider transition"
-              style={
-                isActive
-                  ? { borderColor: `${color}66`, background: `${color}15`, color }
-                  : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-              }
+              className="px-3 py-1.5 rounded-md border text-[10px] font-mono uppercase tracking-wider transition"
+              style={isActive
+                ? { borderColor: `${color}66`, background: `${color}15`, color }
+                : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }}
               title={TIER_DESC[t]}
             >
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                {TIER_LABELS[t]}
-                <span className="text-white/30 ml-1">({tierCounts[t] || 0})</span>
+                {TIER_LABELS[t]} <span className="text-white/30 ml-0.5">({tierCounts[t] || 0})</span>
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* Chart card */}
-      <div className="relative rounded-md bg-[#0a0805] border border-white/[0.06]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-
-        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
-          <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">
-            Win Rate · 95% Confidence Interval · per Pattern
-          </div>
-          <div className="text-[9px] font-mono uppercase tracking-wider text-white/30">
-            {filtered.length} of {data.length} shown
-          </div>
-        </div>
-
-        {/* Scale ticks */}
+      <Panel
+        title="Win rate · 95% confidence interval"
+        meta={`${filtered.length} of ${data.length} shown`}
+        pad={false}
+      >
         <div className="px-5 pt-4">
-          <div className="relative h-4 mb-1">
+          <div className="relative h-4">
             {[0, 25, 50, 75, 100].map((v) => (
               <div
                 key={v}
@@ -220,31 +178,28 @@ const PatternCalibrationTab = ({ data }) => {
               </div>
             ))}
           </div>
-          <div className="relative h-px bg-white/[0.05] mb-3">
-            {[25, 50, 75].map((v) => (
-              <div
-                key={v}
-                className="absolute -top-1 w-px h-2 bg-white/15"
-                style={{ left: `${v}%` }}
-              />
-            ))}
-          </div>
         </div>
 
-        <div className="px-5 pb-3">
+        <div className="px-5 pb-2 pt-1">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-white/30 text-sm font-mono uppercase tracking-wider">
-              No patterns match this tier filter
+              No patterns match this tier
             </div>
           ) : (
-            filtered.map((row) => <CalibrationBar key={row.pattern} row={row} maxN={maxN} />)
+            filtered.map((row) => <CalibrationRow key={row.pattern} row={row} />)
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/[0.05] text-[10px] text-white/35 leading-relaxed">
-          ━━ band = 95% CI · ● = observed WR · sorted by reliability then sample size
+        <div className="px-5 py-3 border-t border-white/[0.05] flex items-center gap-4 text-[10px] text-white/35 font-mono flex-wrap">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-2 rounded-full bg-white/15" /> 95% CI band
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-white/60" /> observed WR
+          </span>
+          <span className="text-white/25">| vertical line = 50% breakeven</span>
         </div>
-      </div>
+      </Panel>
     </div>
   );
 };

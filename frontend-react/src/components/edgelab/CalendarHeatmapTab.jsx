@@ -1,47 +1,32 @@
 // src/components/edgelab/CalendarHeatmapTab.jsx
+// v2 UX: insight band (best/worst day, streak) + larger cells, no redundant KPI strip
 import { useMemo } from "react";
+import { wrColor, WR_LEGEND, Panel, Methodology, InsightBand, EmptyState } from "./_shared";
 
-const cellColor = (wr, total) => {
-  if (!total) return "rgba(255,255,255,0.03)";
-  if (wr === null || wr === undefined) return "rgba(255,255,255,0.05)";
-  if (wr >= 90) return "rgba(16,185,129,0.65)";
-  if (wr >= 75) return "rgba(16,185,129,0.45)";
-  if (wr >= 60) return "rgba(16,185,129,0.28)";
-  if (wr >= 50) return "rgba(255,255,255,0.1)";
-  if (wr >= 35) return "rgba(239,68,68,0.28)";
-  return "rgba(239,68,68,0.5)";
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const CELL = 15; // px per day cell
+const GAP = 3;
+
+const fmtDate = (iso) => {
+  const d = new Date(iso + "T00:00:00Z");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 };
 
-const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"]; // Sun-Sat
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 const CalendarHeatmapTab = ({ data }) => {
-  // Build columns of weeks. Each cell = 1 day.
-  const { weeks, totals, summary } = useMemo(() => {
-    if (!data?.length) return { weeks: [], totals: 0, summary: null };
+  const { weeks, monthLabels, insights } = useMemo(() => {
+    if (!data?.length) return { weeks: [], monthLabels: [], insights: [] };
 
-    // Index by date for fast lookup
     const byDate = {};
-    let agg = { total: 0, wins: 0 };
-    for (const d of data) {
-      byDate[d.date] = d;
-      agg.total += d.total;
-      agg.wins += d.wins;
-    }
+    for (const d of data) byDate[d.date] = d;
 
-    // Build calendar grid: column = week (Sun start), row = day-of-week
-    const startStr = data[0].date;
-    const endStr = data[data.length - 1].date;
-    const startDate = new Date(startStr + "T00:00:00Z");
-    const endDate = new Date(endStr + "T00:00:00Z");
-
-    // Find Sunday on or before startDate
+    const startDate = new Date(data[0].date + "T00:00:00Z");
+    const endDate = new Date(data[data.length - 1].date + "T00:00:00Z");
     const firstSunday = new Date(startDate);
     firstSunday.setUTCDate(firstSunday.getUTCDate() - firstSunday.getUTCDay());
 
     const weekCols = [];
     let cur = new Date(firstSunday);
-
     while (cur <= endDate) {
       const week = [];
       for (let dow = 0; dow < 7; dow++) {
@@ -49,185 +34,131 @@ const CalendarHeatmapTab = ({ data }) => {
         const inRange = cur >= startDate && cur <= endDate;
         const cell = byDate[iso];
         week.push({
-          date: iso,
-          inRange,
-          total: cell?.total || 0,
-          wins: cell?.wins || 0,
+          date: iso, inRange,
+          total: cell?.total || 0, wins: cell?.wins || 0,
           win_rate: cell?.win_rate ?? null,
           month: cur.getUTCMonth(),
-          day: cur.getUTCDate(),
         });
         cur.setUTCDate(cur.getUTCDate() + 1);
       }
       weekCols.push(week);
     }
 
-    const avgWr = agg.total > 0 ? (agg.wins / agg.total) * 100 : null;
-    return {
-      weeks: weekCols,
-      totals: agg.total,
-      summary: { ...agg, avg_wr: avgWr },
-    };
-  }, [data]);
-
-  if (!data?.length) {
-    return (
-      <div className="rounded-md bg-[#0a0805] border border-white/[0.06] p-10 text-center">
-        <div className="text-white/30 text-sm font-mono uppercase tracking-wider">
-          No calendar data
-        </div>
-      </div>
-    );
-  }
-
-  // Month label positions (above grid)
-  const monthLabels = useMemo(() => {
     const labels = [];
     let lastMonth = -1;
-    weeks.forEach((week, idx) => {
-      const firstDayOfWeek = week.find((d) => d.inRange) || week[0];
-      if (firstDayOfWeek.month !== lastMonth) {
-        labels.push({ colIdx: idx, label: MONTH_LABELS[firstDayOfWeek.month] });
-        lastMonth = firstDayOfWeek.month;
+    weekCols.forEach((week, idx) => {
+      const first = week.find((d) => d.inRange) || week[0];
+      if (first.month !== lastMonth) {
+        labels.push({ colIdx: idx, label: MONTH_LABELS[first.month] });
+        lastMonth = first.month;
       }
     });
-    return labels;
-  }, [weeks]);
+
+    // insights: best & worst trading day (n>=3), longest green streak
+    const active = data.filter((d) => d.total >= 3 && d.win_rate != null);
+    const best = [...active].sort((a, b) => b.win_rate - a.win_rate)[0];
+    const worst = [...active].sort((a, b) => a.win_rate - b.win_rate)[0];
+
+    let streak = 0, bestStreak = 0, streakEnd = null;
+    for (const d of data) {
+      if (d.total > 0 && d.win_rate >= 75) {
+        streak++;
+        if (streak > bestStreak) { bestStreak = streak; streakEnd = d.date; }
+      } else if (d.total > 0) streak = 0;
+    }
+
+    const ins = [];
+    if (best)
+      ins.push({ kind: "good", label: "Best day", value: `${fmtDate(best.date)} · ${best.win_rate.toFixed(0)}%`, sub: `${best.wins}/${best.total} resolved` });
+    if (worst && best && worst.date !== best.date)
+      ins.push({ kind: "bad", label: "Worst day", value: `${fmtDate(worst.date)} · ${worst.win_rate.toFixed(0)}%`, sub: `${worst.wins}/${worst.total} resolved` });
+    if (bestStreak >= 2)
+      ins.push({ kind: "neutral", label: "Longest hot streak", value: `${bestStreak} days`, sub: `consecutive days ≥75% WR, ending ${fmtDate(streakEnd)}` });
+
+    return { weeks: weekCols, monthLabels: labels, insights: ins };
+  }, [data]);
+
+  if (!data?.length) return <EmptyState title="No calendar data" />;
+
+  const gridWidth = weeks.length * (CELL + GAP);
 
   return (
-    <div className="space-y-5">
-      {/* Methodology */}
-      <div className="rounded-md bg-[#0a0805] border border-white/[0.06] p-4 relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="text-[10px] tracking-[0.25em] font-mono uppercase text-gold-primary/70 mb-2">
-          · Calendar WR Heatmap ·
-        </div>
-        <p className="text-xs text-white/65 leading-relaxed">
-          Daily win rate over the selected window. Each cell = one day, intensity = WR. Quickly
-          spot streaks, regime shifts, or anomalous days.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <InsightBand items={insights} />
 
-      {/* Summary strip */}
-      {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3 relative">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">
-              Days
-            </div>
-            <div className="font-mono tabular-nums text-xl text-white/90 mt-1">{data.length}</div>
-          </div>
-          <div className="rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3 relative">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">
-              Resolved
-            </div>
-            <div className="font-mono tabular-nums text-xl text-white/90 mt-1">{summary.total}</div>
-          </div>
-          <div className="rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3 relative">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">
-              Wins
-            </div>
-            <div className="font-mono tabular-nums text-xl text-emerald-400 mt-1">
-              {summary.wins}
-            </div>
-          </div>
-          <div className="rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3 relative">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-            <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">
-              Avg WR
-            </div>
-            <div className="font-mono tabular-nums text-xl text-white/95 mt-1">
-              {summary.avg_wr !== null ? `${summary.avg_wr.toFixed(1)}%` : "—"}
-            </div>
-          </div>
-        </div>
-      )}
+      <Methodology title="How to read this">
+        Each cell is one day; color intensity = that day's win rate (green strong, red weak). Scan left-to-right
+        for streaks, regime shifts, or anomalous red days. Empty cells = no resolved signals.
+      </Methodology>
 
-      {/* Heatmap grid */}
-      <div className="relative rounded-md bg-[#0a0805] border border-white/[0.06] p-5 overflow-x-auto">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-
-        {/* Month labels */}
-        <div className="relative h-4 mb-1.5 ml-7" style={{ minWidth: weeks.length * 14 }}>
-          {monthLabels.map((m, i) => (
-            <div
-              key={i}
-              className="absolute text-[9px] font-mono uppercase tracking-wider text-white/40"
-              style={{ left: m.colIdx * 14 }}
-            >
-              {m.label}
+      <Panel title="Daily win rate" meta={`${data.length} days`}>
+        <div className="overflow-x-auto pb-1">
+          <div style={{ minWidth: gridWidth + 30 }}>
+            {/* month labels */}
+            <div className="relative h-4 mb-1.5" style={{ marginLeft: 22 }}>
+              {monthLabels.map((m, i) => (
+                <div
+                  key={i}
+                  className="absolute text-[10px] font-mono uppercase tracking-wider text-white/40"
+                  style={{ left: m.colIdx * (CELL + GAP) }}
+                >
+                  {m.label}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Grid: dow rows on left, week columns flowing right */}
-        <div className="flex items-start gap-1">
-          {/* Day-of-week labels column */}
-          <div className="flex flex-col gap-[2px] mr-1.5">
-            {DAY_LABELS.map((d, i) => (
-              <div
-                key={i}
-                className="w-3 h-3 text-[8px] font-mono uppercase text-white/30 flex items-center justify-center"
-              >
-                {i % 2 === 1 ? d : ""}
+            <div className="flex items-start" style={{ gap: GAP }}>
+              {/* dow labels */}
+              <div className="flex flex-col" style={{ gap: GAP }}>
+                {DAY_LABELS.map((d, i) => (
+                  <div
+                    key={i}
+                    className="text-[9px] font-mono uppercase text-white/30 flex items-center justify-center"
+                    style={{ width: 18, height: CELL }}
+                  >
+                    {i % 2 === 1 ? d : ""}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {/* Week columns */}
-          <div className="flex gap-[2px]">
-            {weeks.map((week, wIdx) => (
-              <div key={wIdx} className="flex flex-col gap-[2px]">
-                {week.map((cell, dIdx) => {
-                  const color = cell.inRange
-                    ? cellColor(cell.win_rate, cell.total)
-                    : "transparent";
-                  const tooltip = cell.inRange
-                    ? cell.total > 0
-                      ? `${cell.date} · ${cell.wins}/${cell.total} · ${cell.win_rate?.toFixed(1)}%`
-                      : `${cell.date} · no signals`
-                    : null;
-                  return (
-                    <div
-                      key={dIdx}
-                      className="w-3 h-3 rounded-[2px] transition hover:ring-1 hover:ring-white/30"
-                      style={{
-                        background: color,
-                        border: cell.inRange ? "1px solid rgba(255,255,255,0.04)" : "none",
-                      }}
-                      title={tooltip || ""}
-                    />
-                  );
-                })}
+              {/* week columns */}
+              <div className="flex" style={{ gap: GAP }}>
+                {weeks.map((week, wIdx) => (
+                  <div key={wIdx} className="flex flex-col" style={{ gap: GAP }}>
+                    {week.map((cell, dIdx) => (
+                      <div
+                        key={dIdx}
+                        className="rounded-[3px] transition hover:ring-1 hover:ring-white/40"
+                        style={{
+                          width: CELL, height: CELL,
+                          background: cell.inRange ? wrColor(cell.win_rate, cell.total) : "transparent",
+                          border: cell.inRange ? "1px solid rgba(255,255,255,0.04)" : "none",
+                        }}
+                        title={
+                          cell.inRange
+                            ? cell.total > 0
+                              ? `${cell.date} · ${cell.wins}/${cell.total} · ${cell.win_rate?.toFixed(1)}%`
+                              : `${cell.date} · no signals`
+                            : ""
+                        }
+                      />
+                    ))}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="mt-5 pt-4 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/45">
-          <span>Less</span>
-          {[
-            "rgba(239,68,68,0.5)",
-            "rgba(239,68,68,0.28)",
-            "rgba(255,255,255,0.1)",
-            "rgba(16,185,129,0.28)",
-            "rgba(16,185,129,0.45)",
-            "rgba(16,185,129,0.65)",
-          ].map((c, i) => (
-            <span
-              key={i}
-              className="w-3 h-3 rounded-[2px] border border-white/10"
-              style={{ background: c }}
-            />
+        <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center gap-2 flex-wrap text-[10px] font-mono uppercase tracking-wider text-white/40">
+          {WR_LEGEND.map((s, i) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              <span className="w-3.5 h-3 rounded-[2px] border border-white/10" style={{ background: s.c }} />
+              {s.l}
+            </span>
           ))}
-          <span>More</span>
-          <span className="ml-3 text-white/30">· hover cell for details</span>
+          <span className="ml-2 text-white/25 normal-case tracking-normal">· hover a cell for the day</span>
         </div>
-      </div>
+      </Panel>
     </div>
   );
 };
