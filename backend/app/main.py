@@ -27,6 +27,7 @@ from app.api.routes.admin_cashout import router as admin_cashout_router
 from app.api.routes.subscription import router as subscription_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.whale import router as whale_router
+from app.api.routes.money_flow_router import router as money_flow_router
 from app.api.routes.orderbook import router as orderbook_router
 from app.api.routes.referral import router as referral_router
 from app.api.routes import ai_arena
@@ -141,6 +142,7 @@ app.include_router(admin_cashout_router, prefix="/api/v1", tags=["admin-cashout"
 app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
 app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
+app.include_router(money_flow_router, prefix="/api/v1", tags=["money-flow"])
 app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])
 app.include_router(referral_router, prefix="/api/v1", tags=["referral"])
 app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"])
