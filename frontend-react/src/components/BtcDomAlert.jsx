@@ -4,14 +4,6 @@ import CoinLogo from './CoinLogo';
 
 // ─── Elegant custom icons (thin 1.5 stroke, characterful) ───────────────────
 const Icon = {
-  // Bitcoin-aware alert mark — a subtle radar/pulse ring, not a generic triangle
-  alert: (cls = 'w-4 h-4') => (
-    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="2.2" />
-      <path d="M12 5.5v-2M12 20.5v-2M18.5 12h2M3.5 12h2" opacity="0.55" />
-      <path d="M16.95 7.05a7 7 0 0 1 0 9.9M7.05 16.95a7 7 0 0 1 0-9.9" opacity="0.35" />
-    </svg>
-  ),
   // Layered shield — depth via two offset plates, not a flat lock
   shield: (cls = 'w-3.5 h-3.5') => (
     <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -150,12 +142,16 @@ const BtcDomAlert = ({ allSignals, onSignalClick }) => {
       >
         {/* Left: Icon + Title */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-            style={{ background: `${accent}0d`, border: `1px solid ${accent}22`, color: accent }}>
-            {Icon.alert('w-4 h-4')}
+          <div className="relative flex-shrink-0">
+            <CoinLogo pair="BTCUSDT" size={32} />
+            {/* warning badge */}
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black ring-2 ring-[#120c0a]"
+              style={{ background: accent, color: '#1a1207' }}>
+              !
+            </span>
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold tracking-wide text-white leading-tight">BTC Dominance Alert</p>
+            <p className="text-[12px] font-semibold tracking-wide text-white leading-tight">BTC Dominance Index Warning</p>
             <p className="text-[10px] uppercase tracking-[0.18em] text-text-muted/70 leading-tight mt-0.5">Macro Market Condition</p>
           </div>
         </div>

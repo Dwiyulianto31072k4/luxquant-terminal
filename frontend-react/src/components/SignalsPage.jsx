@@ -139,7 +139,6 @@ const SignalsPage = () => {
   const [coinIntel, setCoinIntel] = useState({});
   const [currentFlow, setCurrentFlow] = useState(null);
 
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const currentPricesRef = useRef({});
   const [priceVersion, setPriceVersion] = useState(0);
@@ -903,35 +902,8 @@ const SignalsPage = () => {
         </div>
       </div>
 
-      {/* ACCORDIONS — enhanced open state */}
-      <div className="space-y-3">
-        {/* BTC Dominance Alert */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <button
-            onClick={() => setIsAlertOpen(!isAlertOpen)}
-            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400/80">
-                {Icon.alert('w-4 h-4')}
-              </div>
-              <div className="text-left">
-                <h3 className="font-mono text-sm text-white">BTC Dominance Alert</h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">Macro market condition warning</p>
-              </div>
-            </div>
-            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${isAlertOpen ? 'rotate-180 text-red-400 border-red-500/30' : ''}`}>
-              {Icon.chevronDown('w-3 h-3')}
-            </div>
-          </button>
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isAlertOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-5 border-t border-white/[0.06]">
-              <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* BTC Dominance Alert — self-contained (has its own expand) */}
+      <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
 
       {/* ERROR / TABLE */}
       {error && (
