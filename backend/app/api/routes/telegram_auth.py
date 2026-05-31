@@ -3,15 +3,18 @@
 Telegram Login + VIP Group Membership Verification + Referral
 
 Flow:
-1. User klik "Login with Telegram" → Telegram Login Widget popup
+1. User klik "Login with Telegram" -> Telegram Login Widget popup
 2. Frontend kirim auth data (+ optional referral_code) ke POST /auth/telegram
 3. Backend verify hash (keamanan dari Telegram)
 4. Backend cek membership di VIP group via Bot API getChatMember
-5. Cek legacy_members snapshot (member lama pre-webapp → lifetime)
+5. Cek legacy_members snapshot (member lama pre-webapp -> lifetime)
 6. Resolve role via role_resolver (respect subscription_source)
 7. Sinkron flag telegram_in_group + claim legacy kalau match
 8. Apply referral_code (kalo user baru) + track login
 9. Return JWT tokens
+
+Plus: POST /auth/telegram/join-vip -> generate invite link sekali-pakai
+untuk user dengan akses aktif (syarat: telegram_id sudah ter-link).
 """
 import hashlib
 import hmac
@@ -46,12 +49,13 @@ from app.services.role_resolver import (
     SOURCE_LEGACY,
     PROVIDER_TELEGRAM,
 )
+from app.services.telegram_group import create_one_time_invite_link
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Telegram Auth"])
 
-# ── Config ──
+# -- Config --
 TELEGRAM_BOT_TOKEN = os.getenv(
     "TELEGRAM_BOT_TOKEN",
     "8398445725:AAF4zg1TEG_qUMrgwyOSlgXXQB-tyG64SqU"
@@ -59,10 +63,13 @@ TELEGRAM_BOT_TOKEN = os.getenv(
 VIP_GROUP_CHAT_ID = int(os.getenv("VIP_GROUP_CHAT_ID", "-1002670915863"))
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
+# Berapa lama invite link valid (detik). Default 1 jam.
+INVITE_LINK_TTL = int(os.getenv("VIP_INVITE_LINK_TTL", "3600"))
 
-# ════════════════════════════════════════════════════════════════════
+
+# ====================================================================
 # 1. Telegram Login
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 
 @router.post("/telegram", response_model=TokenResponse)
 async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
@@ -84,7 +91,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
 
     # Cek VIP membership (sedang ada di group atau ga)
     is_vip_member = await _check_vip_membership(data.id)
-    # Cek legacy snapshot (member lama pre-webapp → lifetime)
+    # Cek legacy snapshot (member lama pre-webapp -> lifetime)
     is_legacy = _check_legacy_member(db, data.id)
 
     # Find or create user
@@ -92,7 +99,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     is_new_user = False
 
     if user:
-        # User existing — update info & resolve role
+        # User existing -- update info & resolve role
         user.telegram_username = data.username
         if data.photo_url:
             user.avatar_url = data.photo_url
@@ -167,7 +174,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             detail="Akun tidak aktif"
         )
 
-    # ─── Apply referral KHUSUS user baru ───
+    # --- Apply referral KHUSUS user baru ---
     if is_new_user and data.referral_code:
         success, msg, _use = apply_referral_to_user(
             db, user, data.referral_code, commit=True
@@ -179,7 +186,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             )
         db.refresh(user)
 
-    # ─── Track login ───
+    # --- Track login ---
     track_user_login(db, user, commit=True)
 
     tokens = create_tokens(user.id, user.email)
@@ -191,9 +198,9 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     )
 
 
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 # 2. Check VIP Status
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 
 @router.get("/telegram/check-vip")
 async def check_vip_status(current_user: User = Depends(get_current_user)):
@@ -214,9 +221,9 @@ async def check_vip_status(current_user: User = Depends(get_current_user)):
     }
 
 
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 # 3. Refresh VIP Status (update role)
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 
 @router.post("/telegram/refresh-vip")
 async def refresh_vip_status(
@@ -260,9 +267,9 @@ async def refresh_vip_status(
     }
 
 
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 # 4. Link Telegram to existing account
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 
 @router.post("/telegram/link", response_model=UserResponse)
 async def link_telegram(
@@ -304,9 +311,70 @@ async def link_telegram(
     return UserResponse.model_validate(current_user)
 
 
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
+# 5. Join VIP Group (generate invite link)
+# ====================================================================
+
+@router.post("/telegram/join-vip")
+async def join_vip_group(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate invite link sekali-pakai ke VIP group.
+
+    Syarat:
+    - User punya akses aktif (premium/subscriber belum expired, atau lifetime/legacy/admin)
+    - telegram_id sudah ter-link (biar bisa di-track & di-kick saat expired)
+    """
+    # 1. Harus punya akses aktif
+    if not current_user.has_active_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Langganan tidak aktif. Berlangganan dulu untuk join VIP group."
+        )
+
+    # 2. Harus sudah link Telegram (krusial buat auto-kick saat expired)
+    if not current_user.telegram_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hubungkan akun Telegram kamu dulu sebelum join VIP group."
+        )
+
+    # 3. Kalau sudah di group, ga perlu link baru
+    already_in = await _check_vip_membership(current_user.telegram_id)
+    if already_in:
+        if not current_user.telegram_in_group:
+            current_user.telegram_in_group = True
+            db.commit()
+        return {
+            "already_member": True,
+            "invite_link": None,
+            "message": "Kamu sudah jadi member VIP group."
+        }
+
+    # 4. Generate invite link sekali-pakai
+    invite_link = await create_one_time_invite_link(
+        expire_seconds=INVITE_LINK_TTL,
+        name=f"u{current_user.id}",
+    )
+    if not invite_link:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gagal membuat invite link, coba lagi sebentar."
+        )
+
+    return {
+        "already_member": False,
+        "invite_link": invite_link,
+        "expires_in": INVITE_LINK_TTL,
+        "message": "Link valid sekali pakai. Klik untuk join VIP group."
+    }
+
+
+# ====================================================================
 # Helper Functions
-# ════════════════════════════════════════════════════════════════════
+# ====================================================================
 
 def _verify_telegram_hash(data: TelegramLogin) -> bool:
     """
@@ -332,7 +400,7 @@ def _verify_telegram_hash(data: TelegramLogin) -> bool:
 
 
 def _check_legacy_member(db: Session, telegram_user_id: int) -> bool:
-    """Cek apakah telegram_id ada di snapshot legacy_members (member lama → lifetime)."""
+    """Cek apakah telegram_id ada di snapshot legacy_members (member lama -> lifetime)."""
     row = db.query(LegacyMember).filter(
         LegacyMember.telegram_id == telegram_user_id
     ).first()
@@ -342,7 +410,7 @@ def _check_legacy_member(db: Session, telegram_user_id: int) -> bool:
 def _maybe_claim_legacy(db: Session, user: User, final_source: str, is_legacy: bool) -> None:
     """Tandai legacy_members.claimed = True kalau user ini di-grant via legacy.
 
-    Tidak commit sendiri — caller yang commit (biar atomic sama perubahan user).
+    Tidak commit sendiri -- caller yang commit (biar atomic sama perubahan user).
     """
     if not is_legacy or final_source != SOURCE_LEGACY or not user.telegram_id:
         return
