@@ -226,4 +226,134 @@ async def get_tx_status(tx_hash: str) -> Optional[Dict[str, Any]]:
             return result if isinstance(result, dict) else None
     except Exception as e:
         logger.error(f"TX status check error: {e}")
-        return None
+        return None# ════════════════════════════════════════════════════════════════════
+# Admin manual-payment recording — flexible TX inspector
+# Added separately so it doesn't disturb the existing self-verify flow.
+# ════════════════════════════════════════════════════════════════════
+
+async def fetch_tx_details(
+    tx_hash: str,
+    valid_pool_addresses: Optional[set] = None,
+) -> Dict[str, Any]:
+    """
+    Inspect a BSC transaction WITHOUT requiring expected_amount/wallet upfront.
+
+    Used by the admin "Manual Payment Record" flow — admin pastes a TX hash,
+    backend fetches everything we can know from-chain, frontend renders a
+    preview, admin then picks the plan + user.
+
+    Args:
+        tx_hash: 0x... hex tx hash
+        valid_pool_addresses: optional set of lowercase pool wallet addresses.
+            If provided, response includes `in_pool` flag.
+
+    Returns dict with shape:
+        {
+          "found": bool,
+          "status": "success" | "failed" | "not_found",
+          "tx_hash": str,
+          "is_usdt": bool,
+          "from": str | None,
+          "to": str | None,
+          "amount": str (decimal) | None,
+          "block": int | None,
+          "confirmations": int | None,
+          "timestamp": ISO 8601 str | None,
+          "in_pool": bool | None,
+          "error": str | None,         # human-readable, if blocker
+        }
+    """
+    out: Dict[str, Any] = {
+        "found": False,
+        "status": "not_found",
+        "tx_hash": tx_hash,
+        "is_usdt": False,
+        "from": None,
+        "to": None,
+        "amount": None,
+        "block": None,
+        "confirmations": None,
+        "timestamp": None,
+        "in_pool": None,
+        "error": None,
+    }
+
+    pool_set = {a.lower() for a in (valid_pool_addresses or set())}
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0, verify=False) as client:
+            rpc_url = await _get_working_rpc(client)
+            if not rpc_url:
+                out["error"] = "Could not connect to BSC network. Try again later."
+                return out
+
+            # ── Step 1: Get TX receipt ──
+            receipt = await _rpc_call(client, rpc_url, "eth_getTransactionReceipt", [tx_hash])
+
+            if not receipt or not isinstance(receipt, dict):
+                out["status"] = "not_found"
+                out["error"] = "Transaction not found on BSC. Check the hash and try again."
+                return out
+
+            out["found"] = True
+
+            # TX status
+            tx_status_hex = receipt.get("status", "0x0")
+            if tx_status_hex == "0x0":
+                out["status"] = "failed"
+                out["error"] = "Transaction failed (reverted) on chain."
+                return out
+
+            out["status"] = "success"
+            out["block"] = int(receipt.get("blockNumber", "0x0"), 16)
+
+            # ── Step 2: Find USDT Transfer log ──
+            for log in receipt.get("logs", []):
+                if log.get("address", "").lower() != USDT_CONTRACT_LOWER:
+                    continue
+                topics = log.get("topics", [])
+                if len(topics) < 3:
+                    continue
+                if topics[0] != TRANSFER_EVENT_TOPIC:
+                    continue
+
+                # Found USDT transfer log
+                out["is_usdt"] = True
+                out["from"] = "0x" + topics[1][-40:]
+                out["to"] = "0x" + topics[2][-40:]
+
+                raw_value = int(log.get("data", "0x0"), 16)
+                amount = Decimal(raw_value) / Decimal(10 ** 18)
+                out["amount"] = str(amount)
+                break
+
+            if not out["is_usdt"]:
+                out["error"] = "Transaction is not a USDT (BEP-20) transfer."
+                return out
+
+            # ── Step 3: Pool membership check (if pool set provided) ──
+            if pool_set:
+                out["in_pool"] = (out["to"] or "").lower() in pool_set
+
+            # ── Step 4: Confirmations ──
+            block_result = await _rpc_call(client, rpc_url, "eth_blockNumber", [])
+            current_block = int(block_result, 16) if block_result else 0
+            out["confirmations"] = max(0, current_block - out["block"])
+
+            # ── Step 5: Block timestamp ──
+            block_data = await _rpc_call(
+                client, rpc_url, "eth_getBlockByNumber",
+                [hex(out["block"]), False]
+            )
+            if block_data and isinstance(block_data, dict):
+                ts_hex = block_data.get("timestamp", "0x0")
+                ts_int = int(ts_hex, 16)
+                from datetime import datetime, timezone
+                out["timestamp"] = datetime.fromtimestamp(ts_int, tz=timezone.utc).isoformat()
+
+            return out
+
+    except Exception as e:
+        logger.error(f"fetch_tx_details error for {tx_hash}: {e}", exc_info=True)
+        out["error"] = f"Inspection error: {str(e)}"
+        return out

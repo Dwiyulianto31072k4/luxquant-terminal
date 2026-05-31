@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════════
 // Finance Filter Bar — self-contained
-// v2: + exchange dropdown (filter by receiving wallet provider)
+// v3: + source dropdown (manual / auto / all)
+// v2: + exchange dropdown (Binance/Indodax/etc)
 // ════════════════════════════════════════════════════════════════════
 
 import { SearchIcon, CloseIcon } from '../../Icons';
@@ -24,7 +25,11 @@ const SORT_OPTIONS = [
   { value: 'verified_at:desc', label: 'Recently verified' },
 ];
 
-/* ── Inline primitives ────────────────────────────────────────────── */
+const SOURCE_OPTIONS = [
+  { value: '',       label: 'All Sources' },
+  { value: 'auto',   label: 'Auto (BSC verified)' },
+  { value: 'manual', label: 'Manual records only' },
+];
 
 const fieldBg = 'rgba(0,0,0,0.28)';
 const fieldBorder = 'rgba(255,255,255,0.06)';
@@ -44,7 +49,9 @@ const Input = ({ value, onChange, placeholder, hasIcon, onClear }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full ${onClear ? 'pr-8' : 'pr-3'} py-2 rounded-lg text-xs text-white focus:outline-none focus:ring-1 transition-all ${hasIcon ? 'pl-9' : 'pl-3'}`}
+      className={`w-full ${onClear ? 'pr-8' : 'pr-3'} py-2 rounded-lg text-xs text-white focus:outline-none focus:ring-1 transition-all ${
+        hasIcon ? 'pl-9' : 'pl-3'
+      }`}
       style={{
         background: fieldBg,
         border: `1px solid ${value ? fieldBorderActive : fieldBorder}`,
@@ -82,8 +89,6 @@ const SelectBox = ({ value, onChange, options, highlight, className = '' }) => (
   </select>
 );
 
-/* ── Main ─────────────────────────────────────────────────────────── */
-
 export const FinanceFilterBar = ({
   search,
   onSearchChange,
@@ -93,12 +98,13 @@ export const FinanceFilterBar = ({
   sortOrder,
   onSortChange,
   resultCount,
-  // v2: exchange filter
   exchangeFilter = '',
   onExchangeChange,
   exchangeOptions = [],
+  sourceFilter = '',
+  onSourceChange,
 }) => {
-  const hasFilters = !!(search || statusFilter || exchangeFilter);
+  const hasFilters = !!(search || statusFilter || exchangeFilter || sourceFilter);
   const sortValue = `${sortBy}:${sortOrder}`;
 
   return (
@@ -135,6 +141,16 @@ export const FinanceFilterBar = ({
           />
         )}
 
+        {onSourceChange && (
+          <SelectBox
+            value={sourceFilter}
+            onChange={onSourceChange}
+            options={SOURCE_OPTIONS}
+            highlight={!!sourceFilter}
+            className="min-w-[160px]"
+          />
+        )}
+
         <SelectBox
           value={sortValue}
           onChange={(v) => {
@@ -151,6 +167,7 @@ export const FinanceFilterBar = ({
               onSearchChange('');
               onStatusChange('');
               if (onExchangeChange) onExchangeChange('');
+              if (onSourceChange) onSourceChange('');
             }}
             className="px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 whitespace-nowrap"
             style={{

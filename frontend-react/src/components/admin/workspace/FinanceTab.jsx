@@ -1,16 +1,16 @@
 // ════════════════════════════════════════════════════════════════════
-// FinanceTab — orchestrator (redesign batch 4 + wallet feature)
+// FinanceTab — orchestrator
 //
-// ConfirmModal uses object-payload pattern (matches batch 3 API):
-//   { title, message, confirmText, cancelText, variant, onConfirm }
-//   Hide by setting state back to null.
+// v3: + manual payment modal trigger + source filter (manual/auto/all)
+// v2: + exchange filter (Binance/Indodax/etc)
 //
-// v2: + exchange filter wiring (fetch from /finance/exchanges endpoint).
+// ConfirmModal uses object-payload pattern.
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from 'react';
 import { financeApi } from '../../../services/financeApi';
 import { PaymentDetailPanel } from './PaymentDetailPanel';
+import { ManualPaymentModal } from './ManualPaymentModal';
 import { ConfirmModal } from '../users/ConfirmModal';
 
 import { FinanceStatsGrid } from './finance/FinanceStatsGrid';
@@ -23,13 +23,14 @@ import {
   AlertTriangleIcon,
   TrendingUpIcon,
   CheckCircleIcon,
+  PlusIcon,
 } from '../Icons';
 
 const PAGE_SIZE = 25;
 
 /* ── Header ───────────────────────────────────────────────────────── */
 
-const FinanceHeader = ({ stats, onBulkCancelStale }) => {
+const FinanceHeader = ({ stats, onBulkCancelStale, onAddManualPayment }) => {
   const hasStale = (stats?.stale_count ?? 0) > 0;
   return (
     <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -42,7 +43,8 @@ const FinanceHeader = ({ stats, onBulkCancelStale }) => {
           <div
             className="relative w-full h-full rounded-xl flex items-center justify-center"
             style={{
-              background: 'linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.04))',
+              background:
+                'linear-gradient(135deg, rgba(52,211,153,0.20), rgba(52,211,153,0.04))',
               border: '1px solid rgba(52,211,153,0.30)',
               color: '#34d399',
             }}
@@ -67,27 +69,42 @@ const FinanceHeader = ({ stats, onBulkCancelStale }) => {
         </div>
       </div>
 
-      {hasStale && (
+      <div className="flex items-center gap-2 flex-wrap">
         <button
-          onClick={onBulkCancelStale}
-          className="group flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
+          onClick={onAddManualPayment}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
           style={{
-            background: 'rgba(248,113,113,0.10)',
-            color: '#f87171',
-            border: '1px solid rgba(248,113,113,0.30)',
+            background: 'linear-gradient(135deg, #d4a853, #8b6914)',
+            color: '#0a0506',
           }}
+          title="Record a payment that was made out-of-band"
         >
-          <span className="animate-pulse">
-            <AlertTriangleIcon size={12} />
-          </span>
-          Bulk Cancel {stats.stale_count} Stale
+          <PlusIcon size={12} />
+          Manual Payment
         </button>
-      )}
+
+        {hasStale && (
+          <button
+            onClick={onBulkCancelStale}
+            className="group flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
+            style={{
+              background: 'rgba(248,113,113,0.10)',
+              color: '#f87171',
+              border: '1px solid rgba(248,113,113,0.30)',
+            }}
+          >
+            <span className="animate-pulse">
+              <AlertTriangleIcon size={12} />
+            </span>
+            Bulk Cancel {stats.stale_count} Stale
+          </button>
+        )}
+      </div>
     </div>
   );
 };
 
-/* ── Loading state ────────────────────────────────────────────────── */
+/* ── Loading + empty + toast ─────────────────────────────────────── */
 
 const LoadingRows = () => (
   <div className="flex items-center justify-center py-20">
@@ -100,8 +117,6 @@ const LoadingRows = () => (
     </div>
   </div>
 );
-
-/* ── Empty state ──────────────────────────────────────────────────── */
 
 const EmptyPayments = ({ hasFilters, onReset }) => (
   <div
@@ -151,8 +166,6 @@ const EmptyPayments = ({ hasFilters, onReset }) => (
   </div>
 );
 
-/* ── Toast ────────────────────────────────────────────────────────── */
-
 const Toast = ({ toast }) => {
   if (!toast) return null;
   const isError = toast.type === 'error';
@@ -179,27 +192,28 @@ const Toast = ({ toast }) => {
    ════════════════════════════════════════════════════════════════════ */
 
 export const FinanceTab = ({ onRefreshStats }) => {
-  /* ── Data ─────────────────────────────────────────────────────── */
   const [stats, setStats] = useState(null);
   const [payments, setPayments] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
 
-  /* ── Filters ──────────────────────────────────────────────────── */
+  /* Filters */
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [exchangeFilter, setExchangeFilter] = useState('');
   const [exchangeOptions, setExchangeOptions] = useState([]);
+  const [sourceFilter, setSourceFilter] = useState(''); // '' | 'manual' | 'auto'
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  /* ── Panels & modals ──────────────────────────────────────────── */
+  /* Panels & modals */
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
 
-  /* ── Toast ────────────────────────────────────────────────────── */
+  /* Toast */
   const [toast, setToast] = useState(null);
   useEffect(() => {
     if (!toast) return;
@@ -208,7 +222,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
   }, [toast]);
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
-  /* ── Fetchers ─────────────────────────────────────────────────── */
+  /* Fetchers */
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
@@ -233,6 +247,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
       if (statusFilter) filters.status = statusFilter;
       if (search) filters.search = search;
       if (exchangeFilter) filters.exchange = exchangeFilter;
+      if (sourceFilter) filters.source = sourceFilter;
 
       const data = await financeApi.listPayments(filters);
       setPayments(data.items || []);
@@ -247,13 +262,12 @@ export const FinanceTab = ({ onRefreshStats }) => {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search, exchangeFilter, sortBy, sortOrder, pagination.page]);
+  }, [statusFilter, search, exchangeFilter, sourceFilter, sortBy, sortOrder, pagination.page]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  // Fetch exchanges list (for filter dropdown) — once on mount.
   useEffect(() => {
     financeApi
       .getExchanges()
@@ -270,9 +284,9 @@ export const FinanceTab = ({ onRefreshStats }) => {
 
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [statusFilter, search, exchangeFilter, sortBy, sortOrder]);
+  }, [statusFilter, search, exchangeFilter, sourceFilter, sortBy, sortOrder]);
 
-  /* ── Action handlers ──────────────────────────────────────────── */
+  /* Action handlers */
   const handleFilterToggle = (status) => {
     setStatusFilter(statusFilter === status ? '' : status);
   };
@@ -297,7 +311,19 @@ export const FinanceTab = ({ onRefreshStats }) => {
     }
   };
 
-  // ─── Quick approve ───
+  const handleManualPaymentSuccess = (result) => {
+    const username = result?.payment?.user?.username || 'user';
+    const wasNew = result?.user_was_created;
+    showToast(
+      wasNew
+        ? `✓ Payment recorded — new user @${username} created`
+        : `✓ Payment recorded for @${username}`
+    );
+    fetchStats();
+    fetchPayments();
+    if (onRefreshStats) onRefreshStats();
+  };
+
   const handleQuickApprove = (payment) => {
     setConfirmModal({
       title: 'Approve Payment',
@@ -323,7 +349,6 @@ export const FinanceTab = ({ onRefreshStats }) => {
     });
   };
 
-  // ─── Quick cancel ───
   const handleQuickCancel = (payment) => {
     setConfirmModal({
       title: 'Cancel Payment',
@@ -349,7 +374,6 @@ export const FinanceTab = ({ onRefreshStats }) => {
     });
   };
 
-  // ─── Bulk cancel stale ───
   const handleBulkCancelStale = () => {
     if (!stats?.stale_count) return;
     setConfirmModal({
@@ -376,14 +400,17 @@ export const FinanceTab = ({ onRefreshStats }) => {
     });
   };
 
-  /* ── Render ───────────────────────────────────────────────────── */
-  const hasFilters = !!(search || statusFilter || exchangeFilter);
+  const hasFilters = !!(search || statusFilter || exchangeFilter || sourceFilter);
 
   return (
     <div className="space-y-5">
       <Toast toast={toast} />
 
-      <FinanceHeader stats={stats} onBulkCancelStale={handleBulkCancelStale} />
+      <FinanceHeader
+        stats={stats}
+        onBulkCancelStale={handleBulkCancelStale}
+        onAddManualPayment={() => setManualOpen(true)}
+      />
 
       <FinanceStatsGrid
         stats={stats}
@@ -407,6 +434,8 @@ export const FinanceTab = ({ onRefreshStats }) => {
         exchangeFilter={exchangeFilter}
         onExchangeChange={setExchangeFilter}
         exchangeOptions={exchangeOptions}
+        sourceFilter={sourceFilter}
+        onSourceChange={setSourceFilter}
       />
 
       {loading ? (
@@ -418,6 +447,7 @@ export const FinanceTab = ({ onRefreshStats }) => {
             setSearch('');
             setStatusFilter('');
             setExchangeFilter('');
+            setSourceFilter('');
           }}
         />
       ) : (
@@ -448,6 +478,12 @@ export const FinanceTab = ({ onRefreshStats }) => {
         }}
         paymentSummary={selectedPayment}
         onActionDone={handlePanelAction}
+      />
+
+      <ManualPaymentModal
+        isOpen={manualOpen}
+        onClose={() => setManualOpen(false)}
+        onSuccess={handleManualPaymentSuccess}
       />
 
       {confirmModal && (

@@ -3,8 +3,9 @@
 //
 // Desktop (≥ md): grid-based table row.
 // Mobile  (<  md): stacked card list.
-// Self-contained Pill / IconButton internals to avoid API drift with primitives.
-// v2: + ExchangeBadge (Binance/Indodax/etc) on wallet_to.
+//
+// v3: + Manual badge on row (when payment.is_manual)
+// v2: + ExchangeBadge (Binance/Indodax/etc) on wallet_to
 // ════════════════════════════════════════════════════════════════════
 
 import { Avatar } from '../../primitives';
@@ -14,6 +15,7 @@ import {
   AlertTriangleIcon,
   ExternalLinkIcon,
   CopyIcon,
+  StarIcon,
 } from '../../Icons';
 import { ChevronRightIcon } from './icons-supplement';
 import {
@@ -25,7 +27,7 @@ import {
   exchangeColor,
 } from './helpers';
 
-/* ── Inline Pill (small status chip) ──────────────────────────────── */
+/* ── Pills ────────────────────────────────────────────────────────── */
 
 const Pill = ({ label, color, bg, border, Icon, dense = false, pulse = false }) => (
   <span
@@ -47,8 +49,6 @@ const Pill = ({ label, color, bg, border, Icon, dense = false, pulse = false }) 
   </span>
 );
 
-/* ── Exchange badge — wallet_to provider (Binance/Indodax/etc) ──── */
-
 const ExchangeBadge = ({ exchange, dense = false }) => {
   if (!exchange) return null;
   const c = exchangeColor(exchange);
@@ -57,23 +57,33 @@ const ExchangeBadge = ({ exchange, dense = false }) => {
       className={`inline-flex items-center gap-1 font-semibold rounded ${
         dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[9.5px] px-2 py-0.5'
       }`}
-      style={{
-        background: `${c}14`,
-        color: c,
-        border: `1px solid ${c}33`,
-      }}
+      style={{ background: `${c}14`, color: c, border: `1px solid ${c}33` }}
       title={`Received into ${exchange}`}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full shrink-0"
-        style={{ background: c }}
-      />
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />
       {exchange}
     </span>
   );
 };
 
-/* ── Inline IconButton ────────────────────────────────────────────── */
+const ManualBadge = ({ dense = false }) => (
+  <span
+    className={`inline-flex items-center gap-1 font-bold uppercase tracking-wider rounded ${
+      dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[9.5px] px-2 py-0.5'
+    }`}
+    style={{
+      background: 'rgba(212,168,83,0.10)',
+      color: '#d4a853',
+      border: '1px solid rgba(212,168,83,0.28)',
+    }}
+    title="Manually recorded by admin"
+  >
+    <StarIcon size={9} />
+    Manual
+  </span>
+);
+
+/* ── Icon button ──────────────────────────────────────────────────── */
 
 const TONE = {
   success: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.22)' },
@@ -137,9 +147,7 @@ const StatusPill = ({ status, isStale, ageHours, dense = false }) => {
 const TxHashCell = ({ hash, onCopy, dense = false }) => {
   if (!hash) {
     return (
-      <span className="text-[11px]" style={{ color: '#4a3f39' }}>
-        —
-      </span>
+      <span className="text-[11px]" style={{ color: '#4a3f39' }}>—</span>
     );
   }
   return (
@@ -149,7 +157,9 @@ const TxHashCell = ({ hash, onCopy, dense = false }) => {
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className={`font-mono hover:underline truncate ${dense ? 'text-[10.5px]' : 'text-[11px]'}`}
+        className={`font-mono hover:underline truncate ${
+          dense ? 'text-[10.5px]' : 'text-[11px]'
+        }`}
         style={{ color: '#60a5fa' }}
       >
         {shortHash(hash)}
@@ -272,16 +282,17 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         </p>
       </div>
 
-      {/* Status */}
-      <div className="col-span-2">
+      {/* Status + Manual badge if applicable */}
+      <div className="col-span-2 space-y-1">
         <StatusPill
           status={payment.status}
           isStale={payment.is_stale}
           ageHours={payment.age_hours}
         />
+        {payment.is_manual && <ManualBadge dense />}
       </div>
 
-      {/* TX hash + exchange badge stacked */}
+      {/* TX hash + exchange badge */}
       <div className="col-span-2 min-w-0 space-y-1">
         <TxHashCell hash={payment.tx_hash} onCopy={onCopyHash} />
         {payment.wallet_to_exchange && (
@@ -350,19 +361,22 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         <ChevronRightIcon size={14} style={{ color: '#6b5c52' }} />
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span
           className="text-lg font-light tabular-nums tracking-tight"
           style={{ color: cfg.color }}
         >
           {formatUSDT(payment.final_amount)}
         </span>
-        <StatusPill
-          status={payment.status}
-          isStale={payment.is_stale}
-          ageHours={payment.age_hours}
-          dense
-        />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusPill
+            status={payment.status}
+            isStale={payment.is_stale}
+            ageHours={payment.age_hours}
+            dense
+          />
+          {payment.is_manual && <ManualBadge dense />}
+        </div>
       </div>
 
       <div

@@ -2,12 +2,14 @@
 //
 // Finance management API client.
 // v2: Adds getExchanges() + `exchange` filter in listPayments.
+// v3: Adds manual-payment recording flow (verify-tx, create, plans, user-search)
+//     + `source` filter (manual/auto/all).
 
 import api from './authApi';
 
 export const financeApi = {
   // ════════════════════════════════════
-  // STATS — overview aggregations
+  // STATS
   // ════════════════════════════════════
   getStats: async () => {
     const response = await api.get('/api/v1/workspace/finance/stats');
@@ -23,6 +25,45 @@ export const financeApi = {
   },
 
   // ════════════════════════════════════
+  // PLANS — for manual-payment plan picker
+  // ════════════════════════════════════
+  getPlans: async () => {
+    const response = await api.get('/api/v1/workspace/finance/plans');
+    return response.data; // { plans: [...] }
+  },
+
+  // ════════════════════════════════════
+  // USER SEARCH — for manual-payment "link to existing" picker
+  // ════════════════════════════════════
+  searchUsers: async (query) => {
+    const response = await api.get('/api/v1/workspace/finance/user-search', {
+      params: { q: query },
+    });
+    return response.data; // { users: [...] }
+  },
+
+  // ════════════════════════════════════
+  // MANUAL PAYMENT — verify + create
+  // ════════════════════════════════════
+  verifyTx: async (txHash) => {
+    const response = await api.post('/api/v1/workspace/finance/verify-tx', {
+      tx_hash: txHash,
+    });
+    return response.data;
+    // { tx_data, warnings, blockers, exchange_name, existing_payment_id,
+    //   suggested_plan_id, suggested_user_id }
+  },
+
+  createManualPayment: async (payload) => {
+    const response = await api.post(
+      '/api/v1/workspace/finance/manual-payment',
+      payload
+    );
+    return response.data;
+    // { success, message, payment, user_was_created }
+  },
+
+  // ════════════════════════════════════
   // LIST payments
   // ════════════════════════════════════
   listPayments: async (filters = {}) => {
@@ -31,13 +72,16 @@ export const financeApi = {
     if (filters.search) params.search = filters.search;
     if (filters.user_id) params.user_id = filters.user_id;
     if (filters.exchange) params.exchange = filters.exchange;
+    if (filters.source) params.source = filters.source; // 'manual' | 'auto'
     if (filters.only_stale) params.only_stale = true;
     if (filters.sort_by) params.sort_by = filters.sort_by;
     if (filters.sort_order) params.sort_order = filters.sort_order;
     if (filters.page) params.page = filters.page;
     if (filters.page_size) params.page_size = filters.page_size;
 
-    const response = await api.get('/api/v1/workspace/finance/payments', { params });
+    const response = await api.get('/api/v1/workspace/finance/payments', {
+      params,
+    });
     return response.data;
   },
 
@@ -45,7 +89,9 @@ export const financeApi = {
   // GET single payment detail
   // ════════════════════════════════════
   getPayment: async (paymentId) => {
-    const response = await api.get(`/api/v1/workspace/finance/payments/${paymentId}`);
+    const response = await api.get(
+      `/api/v1/workspace/finance/payments/${paymentId}`
+    );
     return response.data;
   },
 
