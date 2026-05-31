@@ -146,6 +146,8 @@ const TxStep = ({
   verifyError,
   onVerify,
   onReset,
+  paymentDateOverride,
+  setPaymentDateOverride,
 }) => {
   const looksValid = TX_HASH_REGEX.test(txHash.trim());
   const tx = verifyResult?.tx_data;
@@ -321,9 +323,124 @@ const TxStep = ({
           >
             Use a different TX hash
           </button>
+
+          {/* Payment date override (date-only) */}
+          {tx?.timestamp && (
+            <PaymentDateOverride
+              txTimestamp={tx.timestamp}
+              value={paymentDateOverride}
+              onChange={setPaymentDateOverride}
+            />
+          )}
         </div>
       )}
     </section>
+  );
+};
+
+/* ── Payment Date Override sub-component ── */
+
+const PaymentDateOverride = ({ txTimestamp, value, onChange }) => {
+  const [overriding, setOverriding] = useState(!!value);
+
+  // Default display = TX date in YYYY-MM-DD
+  const txDateStr = txTimestamp
+    ? new Date(txTimestamp).toISOString().slice(0, 10)
+    : null;
+
+  const handleToggle = () => {
+    if (overriding) {
+      // Cancelling override → clear
+      onChange('');
+      setOverriding(false);
+    } else {
+      // Start override → prefill with TX date
+      onChange(txDateStr || '');
+      setOverriding(true);
+    }
+  };
+
+  // Compute how the effective date differs from TX date
+  const effectiveDate = value || txDateStr;
+  const txDate = txDateStr ? new Date(txDateStr) : null;
+  const eff = effectiveDate ? new Date(effectiveDate) : null;
+  const diffDays =
+    txDate && eff
+      ? Math.round((eff - txDate) / (1000 * 60 * 60 * 24))
+      : 0;
+
+  return (
+    <div
+      className="rounded-lg p-2.5 mt-3"
+      style={{
+        background: overriding
+          ? 'rgba(212,168,83,0.04)'
+          : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${
+          overriding
+            ? 'rgba(212,168,83,0.22)'
+            : 'rgba(255,255,255,0.05)'
+        }`,
+      }}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-[9.5px] uppercase tracking-wider font-semibold"
+            style={{ color: '#d4a853' }}
+          >
+            📅 Payment Date
+          </span>
+          {!overriding && (
+            <span className="text-[10px]" style={{ color: '#8a7a6e' }}>
+              (uses TX date — subscription starts from here)
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleToggle}
+          className="text-[9.5px] uppercase tracking-wider font-semibold transition-colors"
+          style={{ color: overriding ? '#f87171' : '#d4a853' }}
+        >
+          {overriding ? '✕ Reset to TX date' : '✏️ Override'}
+        </button>
+      </div>
+
+      {!overriding ? (
+        <p
+          className="text-xs tabular-nums font-mono"
+          style={{ color: '#fff' }}
+        >
+          {txDateStr || '—'}
+        </p>
+      ) : (
+        <>
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="w-full px-2.5 py-1.5 rounded-md text-xs text-white focus:outline-none font-mono"
+            style={{
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid rgba(212,168,83,0.25)',
+              colorScheme: 'dark',
+            }}
+          />
+          {diffDays !== 0 && txDateStr && (
+            <p
+              className="text-[10px] mt-1.5 flex items-center gap-1"
+              style={{ color: '#fbbf24' }}
+            >
+              <AlertTriangleIcon size={10} />
+              {diffDays > 0
+                ? `${diffDays} day(s) AFTER TX date — subscription will start later than the on-chain payment`
+                : `${Math.abs(diffDays)} day(s) BEFORE TX date — unusual, double-check`}
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 
@@ -782,6 +899,7 @@ export const ManualPaymentModal = ({
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [verifyError, setVerifyError] = useState(null);
+  const [paymentDateOverride, setPaymentDateOverride] = useState('');
 
   /* ── Step 2 state ── */
   const [userMode, setUserMode] = useState('existing');
@@ -815,6 +933,7 @@ export const ManualPaymentModal = ({
       setVerifyResult(null);
       setVerifyError(null);
       setVerifying(false);
+      setPaymentDateOverride('');
       setUserMode('existing');
       setSelectedUser(preselectedUser);
       setNewUser({ username: '', email: '', telegram_username: '', discord_handle: '' });
@@ -909,6 +1028,7 @@ export const ManualPaymentModal = ({
     setVerifyResult(null);
     setVerifyError(null);
     setSelectedPlanId(null);
+    setPaymentDateOverride('');
   };
 
   const handleSubmit = async () => {
@@ -922,6 +1042,15 @@ export const ManualPaymentModal = ({
         accept_amount_mismatch: acceptAmountMismatch,
         accept_wallet_not_in_pool: acceptWalletNotInPool,
       };
+
+      // Only send override if user actually changed it (different from TX date)
+      const txDateStr = verifyResult?.tx_data?.timestamp
+        ? new Date(verifyResult.tx_data.timestamp).toISOString().slice(0, 10)
+        : null;
+      if (paymentDateOverride && paymentDateOverride !== txDateStr) {
+        payload.payment_date_override = paymentDateOverride;
+      }
+
       if (userMode === 'existing') {
         payload.user_id = selectedUser.id;
       } else {
@@ -1023,6 +1152,8 @@ export const ManualPaymentModal = ({
             verifyError={verifyError}
             onVerify={handleVerify}
             onReset={handleResetTx}
+            paymentDateOverride={paymentDateOverride}
+            setPaymentDateOverride={setPaymentDateOverride}
           />
 
           <div style={{ opacity: step1Done ? 1 : 0.4, pointerEvents: step1Done ? 'auto' : 'none' }}>

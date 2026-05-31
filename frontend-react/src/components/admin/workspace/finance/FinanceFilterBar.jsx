@@ -18,11 +18,11 @@ const STATUS_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: 'created_at:desc',  label: 'Newest first' },
-  { value: 'created_at:asc',   label: 'Oldest first' },
+  { value: 'verified_at:desc', label: 'Recent payment date' },
+  { value: 'created_at:desc',  label: 'Recently recorded' },
+  { value: 'created_at:asc',   label: 'Oldest record' },
   { value: 'amount:desc',      label: 'Highest amount' },
   { value: 'amount:asc',       label: 'Lowest amount' },
-  { value: 'verified_at:desc', label: 'Recently verified' },
 ];
 
 const SOURCE_OPTIONS = [

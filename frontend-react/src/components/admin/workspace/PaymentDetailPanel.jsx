@@ -8,6 +8,8 @@
 // • BSCScan raw data viewer (collapsible)
 // • Full English copy
 // • v2: + "Received Into" row showing wallet_to exchange (Binance/Indodax/etc)
+// • v3: Payment date promoted as primary timestamp (was "Verified")
+//      Gap indicator if there's >1 day between payment_date and record_date
 // ════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo } from 'react';
@@ -350,6 +352,29 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
   );
 };
 
+/* ── Payment Date row (special — prominent gold) ──────────────────── */
+
+const PaymentDateRow = ({ verifiedAt }) => (
+  <div
+    className="flex items-center justify-between gap-3 py-2.5"
+    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+  >
+    <span
+      className="text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5"
+      style={{ color: '#d4a853' }}
+    >
+      <span>📅</span>
+      Payment Date
+    </span>
+    <span
+      className="text-[12.5px] font-mono tabular-nums truncate text-right font-semibold"
+      style={{ color: verifiedAt ? '#d4a853' : '#6b5c52' }}
+    >
+      {verifiedAt ? formatDateTimeLong(verifiedAt) : 'Not yet verified'}
+    </span>
+  </div>
+);
+
 /* ════════════════════════════════════════════════════════════════════
    Main Panel
    ════════════════════════════════════════════════════════════════════ */
@@ -418,6 +443,14 @@ export const PaymentDetailPanel = ({
 
   const isPending = p?.status === 'pending';
   const isConfirmed = p?.status === 'confirmed';
+
+  /* Compute gap between payment date and record date (in days) */
+  const recordGapDays = useMemo(() => {
+    if (!p?.verified_at || !p?.created_at) return null;
+    const paymentMs = new Date(p.verified_at).getTime();
+    const recordMs = new Date(p.created_at).getTime();
+    return Math.round((recordMs - paymentMs) / (1000 * 60 * 60 * 24));
+  }, [p?.verified_at, p?.created_at]);
 
   const performAction = async (actionType, note) => {
     if (!payment) return;
@@ -556,6 +589,19 @@ export const PaymentDetailPanel = ({
                   >
                     <AlertTriangleIcon size={9} />
                     Stale {p.age_hours}h
+                  </span>
+                )}
+                {p.is_manual && (
+                  <span
+                    className="text-[9.5px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded inline-flex items-center gap-1"
+                    style={{
+                      background: 'rgba(212,168,83,0.10)',
+                      color: '#d4a853',
+                      border: '1px solid rgba(212,168,83,0.28)',
+                    }}
+                    title="Manually recorded by admin"
+                  >
+                    ★ Manual
                   </span>
                 )}
                 {p.wallet_to_exchange && (
@@ -758,6 +804,14 @@ export const PaymentDetailPanel = ({
                   mono
                 />
               )}
+              {p.discount_amount < 0 && (
+                <InfoRow
+                  label="Over-payment"
+                  value={`+${formatUSDT(Math.abs(p.discount_amount))}`}
+                  mono
+                  valueColor="#fb923c"
+                />
+              )}
               {p.credit_redeemed > 0 && (
                 <InfoRow
                   label="Credit Redeemed"
@@ -818,18 +872,15 @@ export const PaymentDetailPanel = ({
             </InfoBlock>
           </Section>
 
-          {/* TIMESTAMPS */}
+          {/* TIMESTAMPS — Payment Date promoted as primary (gold) */}
           <Section title="Timestamps">
             <InfoBlock>
-              <InfoRow label="Created" value={formatDateTimeLong(p.created_at)} mono />
-              {p.verified_at && (
-                <InfoRow
-                  label="Verified"
-                  value={formatDateTimeLong(p.verified_at)}
-                  mono
-                  valueColor="#34d399"
-                />
-              )}
+              <PaymentDateRow verifiedAt={p.verified_at} />
+              <InfoRow
+                label="Record Created"
+                value={formatDateTimeLong(p.created_at)}
+                mono
+              />
               {p.expires_at && (
                 <InfoRow
                   label="Expires"
@@ -837,8 +888,25 @@ export const PaymentDetailPanel = ({
                   mono
                 />
               )}
-              <InfoRow label="Updated" value={formatDateTimeLong(p.updated_at)} mono />
+              <InfoRow
+                label="Last Updated"
+                value={formatDateTimeLong(p.updated_at)}
+                mono
+              />
             </InfoBlock>
+
+            {/* Gap indicator — payment date vs record date */}
+            {recordGapDays !== null && Math.abs(recordGapDays) >= 1 && (
+              <p
+                className="text-[10.5px] mt-1.5 flex items-center gap-1.5 px-2"
+                style={{ color: '#8a7a6e' }}
+              >
+                <span style={{ color: '#d4a853' }}>⏱</span>
+                {recordGapDays > 0
+                  ? `Recorded ${recordGapDays} day${recordGapDays !== 1 ? 's' : ''} after the payment`
+                  : `Record predates the payment by ${Math.abs(recordGapDays)} day${Math.abs(recordGapDays) !== 1 ? 's' : ''} (unusual)`}
+              </p>
+            )}
           </Section>
 
           {/* BSCSCAN RAW */}

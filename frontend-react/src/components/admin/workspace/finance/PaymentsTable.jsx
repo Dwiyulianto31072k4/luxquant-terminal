@@ -300,14 +300,46 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         )}
       </div>
 
-      {/* Date */}
+      {/* Payment Date (prominent) + Recorded (secondary) */}
       <div className="col-span-2 min-w-0">
-        <p className="text-[11px] truncate" style={{ color: '#c9b59e' }}>
-          {formatRelative(payment.created_at)}
-        </p>
-        <p className="text-[9.5px] truncate" style={{ color: '#4a3f39' }}>
-          {formatDateTime(payment.created_at)}
-        </p>
+        {payment.verified_at ? (
+          <>
+            <p
+              className="text-[11px] truncate font-medium"
+              style={{ color: '#d4a853' }}
+              title={formatDateTime(payment.verified_at)}
+            >
+              {formatRelative(payment.verified_at)}
+            </p>
+            <p className="text-[9.5px] truncate" style={{ color: '#6b5c52' }}>
+              {formatDateTime(payment.verified_at)}
+            </p>
+            {(() => {
+              const diffDays = Math.round(
+                (new Date(payment.created_at) - new Date(payment.verified_at))
+                  / (1000 * 60 * 60 * 24)
+              );
+              return Math.abs(diffDays) >= 1 ? (
+                <p
+                  className="text-[9px] truncate"
+                  style={{ color: '#4a3f39' }}
+                  title={`Recorded: ${formatDateTime(payment.created_at)}`}
+                >
+                  ↳ recorded {diffDays > 0 ? `+${diffDays}d` : `${diffDays}d`}
+                </p>
+              ) : null;
+            })()}
+          </>
+        ) : (
+          <>
+            <p className="text-[11px] truncate" style={{ color: '#c9b59e' }}>
+              {formatRelative(payment.created_at)}
+            </p>
+            <p className="text-[9.5px] truncate" style={{ color: '#4a3f39' }}>
+              {formatDateTime(payment.created_at)}
+            </p>
+          </>
+        )}
       </div>
 
       {/* Actions */}
@@ -383,7 +415,16 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
         className="flex items-center justify-between gap-2 pt-2 text-[10.5px] flex-wrap"
         style={{ borderTop: '1px solid rgba(255,255,255,0.04)', color: '#6b5c52' }}
       >
-        <span>{formatRelative(payment.created_at)}</span>
+        <span
+          style={{ color: payment.verified_at ? '#d4a853' : '#6b5c52' }}
+          title={
+            payment.verified_at
+              ? `Payment: ${formatDateTime(payment.verified_at)}`
+              : `Created: ${formatDateTime(payment.created_at)}`
+          }
+        >
+          📅 {formatRelative(payment.verified_at || payment.created_at)}
+        </span>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {payment.wallet_to_exchange && (
             <ExchangeBadge exchange={payment.wallet_to_exchange} dense />
@@ -428,7 +469,7 @@ export const PaymentsTable = ({
         <div className="col-span-2">Plan / Amount</div>
         <div className="col-span-2">Status</div>
         <div className="col-span-2">TX Hash / Wallet</div>
-        <div className="col-span-2">Created</div>
+        <div className="col-span-2">Payment Date</div>
         <div className="col-span-1 text-right">Actions</div>
       </div>
 

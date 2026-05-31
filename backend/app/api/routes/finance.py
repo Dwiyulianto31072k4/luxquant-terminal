@@ -84,9 +84,30 @@ class ManualPaymentPayload(BaseModel):
     accept_amount_mismatch: bool = False
     accept_wallet_not_in_pool: bool = False
 
+    # Override payment date (defaults to on-chain TX timestamp).
+    # ISO 8601 date string e.g. "2026-05-14" — time is set to 00:00 UTC.
+    # Used when admin wants to record the payment with a different
+    # effective date than the on-chain TX time (e.g. user paid earlier
+    # via a different rail but admin only learned about it later).
+    payment_date_override: Optional[str] = None
+
     @validator("tx_hash")
     def lower_hash(cls, v):
         return v.lower()
+
+    @validator("payment_date_override")
+    def validate_payment_date(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            # Accept "YYYY-MM-DD" or full ISO 8601
+            if len(v) == 10:
+                datetime.strptime(v, "%Y-%m-%d")
+            else:
+                datetime.fromisoformat(v.replace("Z", "+00:00"))
+            return v
+        except ValueError:
+            raise ValueError("payment_date_override must be YYYY-MM-DD or ISO 8601")
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -572,13 +593,41 @@ async def create_manual_payment(
         db.flush()  # populate user.id without committing yet
         user_was_new = True
 
+    # ─── Compute effective payment date ───
+    # Priority: admin override > on-chain TX timestamp > now
+    tx_time = (
+        datetime.fromisoformat(details["timestamp"])
+        if details.get("timestamp") else now
+    )
+    if data.payment_date_override:
+        # Parse YYYY-MM-DD or full ISO — set time to 00:00 UTC if date-only
+        v = data.payment_date_override
+        if len(v) == 10:
+            effective_date = datetime.strptime(v, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        else:
+            effective_date = datetime.fromisoformat(v.replace("Z", "+00:00"))
+            if effective_date.tzinfo is None:
+                effective_date = effective_date.replace(tzinfo=timezone.utc)
+        payment_date_was_overridden = True
+    else:
+        effective_date = tx_time
+        payment_date_was_overridden = False
+
     # ─── Compute new expiration ───
+    # Uses effective_date as base, so user gets full duration starting
+    # from when they actually paid (on-chain TX time or admin override),
+    # not when admin clicked Record. If user already has an active
+    # subscription past effective_date, stack on top of that.
     is_lifetime = plan.duration_days is None or plan.duration_days == 0
     if is_lifetime:
         new_expires_at = None
     else:
         existing_exp = getattr(user, "subscription_expires_at", None)
-        base = existing_exp if (existing_exp and existing_exp > now) else now
+        base = (
+            existing_exp
+            if (existing_exp and existing_exp > effective_date)
+            else effective_date
+        )
         new_expires_at = base + timedelta(days=plan.duration_days)
 
     # ─── Build audit-trail note ───
@@ -596,6 +645,14 @@ async def create_manual_payment(
         f"  Plan price: {plan_price} USDT{amount_delta_label}",
         f"  TX time: {tx_time_str}",
     ]
+    if payment_date_was_overridden:
+        audit_lines.append(
+            f"  📅 Payment date overridden by admin: {effective_date.strftime('%Y-%m-%d')}"
+        )
+    audit_lines.append(
+        f"  Subscription expires: "
+        f"{new_expires_at.strftime('%Y-%m-%d') if new_expires_at else 'lifetime'}"
+    )
     if user_was_new:
         audit_lines.append(f"  User created: @{user.username} (auth_provider=manual)")
     if data.accept_amount_mismatch and amount_diff > AMOUNT_TOLERANCE:
@@ -619,6 +676,9 @@ async def create_manual_payment(
     # while preserving the granted plan's nominal value.
     discount_amount = plan_price - tx_amount  # +20 if underpaid, -2 if overpaid
 
+    # ─── Create payment row ───
+    # verified_at = effective_date (TX time OR admin override) — used
+    # by revenue dashboards and 'Recently verified' sort.
     payment = Payment(
         user_id=user.id,
         plan_id=plan.id,
@@ -631,7 +691,7 @@ async def create_manual_payment(
         wallet_from=details.get("from"),
         wallet_to=details.get("to"),
         network="BSC",
-        verified_at=tx_verified_at,
+        verified_at=effective_date,
         notes=audit_note,
         bscscan_data=details,
     )
