@@ -583,11 +583,17 @@ async def create_manual_payment(
 
     # ─── Build audit-trail note ───
     tx_time_str = details.get("timestamp") or now.isoformat()
+    amount_delta_label = ""
+    if tx_amount > plan_price:
+        amount_delta_label = f" (+{tx_amount - plan_price} over)"
+    elif tx_amount < plan_price:
+        amount_delta_label = f" (-{plan_price - tx_amount} under)"
+
     audit_lines = [
         f"[Manual payment recorded by @{admin.username} on {now.strftime('%Y-%m-%d %H:%M UTC')}]",
         f"  TX: {data.tx_hash}",
         f"  Amount on-chain: {tx_amount} USDT",
-        f"  Plan price: {plan_price} USDT" + (f" (+{tx_amount - plan_price} over)" if tx_amount > plan_price else ""),
+        f"  Plan price: {plan_price} USDT{amount_delta_label}",
         f"  TX time: {tx_time_str}",
     ]
     if user_was_new:
@@ -604,13 +610,22 @@ async def create_manual_payment(
         datetime.fromisoformat(details["timestamp"]) if details.get("timestamp") else now
     )
 
+    # ─── Financial decomposition (Sudut C — hybrid) ──────────────────
+    #   amount_usdt     = plan price (nominal billed)         e.g. $50
+    #   final_amount    = TX amount actually received on chain e.g. $30
+    #   discount_amount = positive if underpaid, negative if overpaid
+    #                     so that amount_usdt - discount_amount = final_amount
+    # This keeps revenue dashboards aligned with on-chain cash flow
+    # while preserving the granted plan's nominal value.
+    discount_amount = plan_price - tx_amount  # +20 if underpaid, -2 if overpaid
+
     payment = Payment(
         user_id=user.id,
         plan_id=plan.id,
-        amount_usdt=plan_price,
-        discount_amount=Decimal("0"),
+        amount_usdt=plan_price,         # nominal price of plan granted
+        discount_amount=discount_amount, # signed delta vs final_amount
         credit_redeemed=Decimal("0"),
-        final_amount=plan_price,
+        final_amount=tx_amount,          # actual USDT received (matches wallet)
         status="confirmed",
         tx_hash=data.tx_hash,
         wallet_from=details.get("from"),
