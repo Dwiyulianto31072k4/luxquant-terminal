@@ -51,6 +51,7 @@ from app.api.routes.fx import router as fx_router
 from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
 from app.services.fx_worker import start_fx_worker
 from app.services.whale_worker import start_whale_worker
+from app.services.subscription_worker import start_subscription_worker
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -99,6 +100,9 @@ async def lifespan(app: FastAPI):
     else:
         print("🟡 Redis not available — running without cache (DB direct queries)")
         start_notification_worker()
+
+    # Subscription expiry + VIP grace/kick worker (independent of Redis)
+    start_subscription_worker()
 
     # NOTE: AutoTrade engine runs as a separate systemd service
     # (luxquant-autotrade.service), not embedded in this uvicorn process.
