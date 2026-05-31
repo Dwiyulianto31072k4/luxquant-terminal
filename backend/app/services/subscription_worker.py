@@ -13,6 +13,11 @@ Telegram VIP lifecycle on expiry:
   T>=grace_until           : kick from group (if still inside), clear grace
 
 Lifetime / legacy (subscription_expires_at IS NULL) is never touched.
+
+Single-flight: uvicorn jalanin 4 worker process, masing-masing register loop ini.
+Untuk hindari DM/kick dobel, tiap cycle ambil Redis lock (SET NX EX) — hanya
+process pemegang lock yang jalanin cycle. Kalau Redis down, lock di-skip dan
+semua process jalan (fallback aman: expiry tetap idempoten).
 """
 import asyncio
 import logging
@@ -21,6 +26,7 @@ from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import text
 from app.core.database import SessionLocal
+from app.core.redis import get_redis, is_redis_available
 from app.services.telegram_group import is_in_group, kick_member, send_dm
 
 logger = logging.getLogger(__name__)
@@ -31,6 +37,10 @@ SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://luxquant.tw")
 
 # Window (in hours) before kick to send the final reminder.
 FINAL_REMINDER_BEFORE_HOURS = 24
+
+# Single-flight lock — TTL lebih pendek dari INTERVAL biar lepas sebelum cycle berikut.
+LOCK_KEY = "lq:subworker:lock"
+LOCK_TTL = INTERVAL - 60  # 240s
 
 MSG_EXPIRED = (
     "Your LuxQuant subscription has ended.\n\n"
@@ -48,11 +58,26 @@ MSG_KICKED = (
 )
 
 
-async def _expire_and_start_grace(db, now):
-    """T+0: users yang baru expired -> free + set grace + DM reminder #1.
+def _acquire_cycle_lock() -> bool:
+    """True kalau process ini boleh jalanin cycle.
 
-    Hanya yang punya expires_at (bukan lifetime/legacy) & belum di-set grace.
+    Pakai Redis SET NX EX. Kalau Redis ga available, return True (fallback:
+    semua process jalan — expiry tetap idempoten, paling DM bisa dobel).
     """
+    if not is_redis_available():
+        return True
+    try:
+        client = get_redis()
+        # nx=True: hanya set kalau belum ada. ex=LOCK_TTL: auto-expire.
+        got = client.set(LOCK_KEY, str(os.getpid()), nx=True, ex=LOCK_TTL)
+        return bool(got)
+    except Exception as e:
+        logger.warning(f"Sub worker lock error (fallback to run): {e}")
+        return True
+
+
+async def _expire_and_start_grace(db, now):
+    """T+0: users yang baru expired -> free + set grace + DM reminder #1."""
     rows = db.execute(
         text("""
             SELECT id, telegram_id, telegram_in_group
@@ -70,8 +95,6 @@ async def _expire_and_start_grace(db, now):
     grace_until = now + timedelta(days=GRACE_DAYS)
     ids = [r.id for r in rows]
 
-    # Cabut akses web sekarang. Set grace HANYA buat yang masih in-group
-    # (yang ga di group ga perlu di-kick, jadi grace ga relevan).
     db.execute(
         text("""
             UPDATE users
@@ -88,7 +111,6 @@ async def _expire_and_start_grace(db, now):
     )
     db.commit()
 
-    # DM reminder #1 (best-effort) ke yang in-group & punya telegram_id
     for r in rows:
         if r.telegram_in_group and r.telegram_id:
             try:
@@ -100,13 +122,7 @@ async def _expire_and_start_grace(db, now):
 
 
 async def _send_final_reminders(db, now):
-    """Kirim reminder #2 buat user yang mendekati deadline kick (best-effort).
-
-    Pakai flag sederhana: kirim kalau grace_until - now <= FINAL_REMINDER_BEFORE_HOURS
-    dan belum lewat deadline. Untuk hindari spam tiap 5 menit, kita pakai kolom
-    telegram_grace_until sebagai penanda window; reminder dikirim sekali per masuk
-    window via guard di bawah (best-effort, duplikat sesekali bisa ditoleransi).
-    """
+    """Kirim reminder #2 buat user yang mendekati deadline kick (best-effort)."""
     threshold = now + timedelta(hours=FINAL_REMINDER_BEFORE_HOURS)
     rows = db.execute(
         text("""
@@ -148,16 +164,14 @@ async def _kick_past_grace(db, now):
 
     kicked = 0
     for r in rows:
-        # Cek status live dulu — defensif kalau flag telegram_in_group stale.
         present = await is_in_group(r.telegram_id)
         if present is None:
-            # API gagal — jangan ambil keputusan, coba lagi cycle berikutnya.
+            # API gagal — jangan ambil keputusan, retry cycle berikutnya.
             continue
 
         if present:
             ok = await kick_member(r.telegram_id)
             if not ok:
-                # Gagal kick — biarin grace tetap, retry next cycle.
                 continue
             try:
                 await send_dm(r.telegram_id, MSG_KICKED)
@@ -165,7 +179,6 @@ async def _kick_past_grace(db, now):
                 pass
             kicked += 1
 
-        # Present True (sukses kick) atau False (udah keluar sendiri) -> clear grace.
         db.execute(
             text("""
                 UPDATE users
@@ -183,13 +196,18 @@ async def _kick_past_grace(db, now):
 
 async def subscription_expiry_loop():
     """Check and expire subscriptions + manage VIP grace/kick + payments."""
-    logger.info(
-        f"🔄 Subscription worker started (interval: {INTERVAL}s, grace: {GRACE_DAYS}d)"
+    print(
+        f"🔄 Subscription worker loop running (interval: {INTERVAL}s, grace: {GRACE_DAYS}d)"
     )
     await asyncio.sleep(10)
 
     while True:
         try:
+            # Single-flight: hanya 1 process per cycle (kalau Redis up).
+            if not _acquire_cycle_lock():
+                await asyncio.sleep(INTERVAL)
+                continue
+
             db = SessionLocal()
             try:
                 now = datetime.now(timezone.utc)
@@ -198,7 +216,6 @@ async def subscription_expiry_loop():
                 reminded = await _send_final_reminders(db, now)
                 kicked = await _kick_past_grace(db, now)
 
-                # Expire pending payments past their window
                 result_pay = db.execute(
                     text("""
                         UPDATE payments
