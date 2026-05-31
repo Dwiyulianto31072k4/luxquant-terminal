@@ -76,7 +76,7 @@ async def get_admin_stats(
     total_users = db.query(func.count(User.id)).scalar()
 
     active_subscribers = db.query(func.count(User.id)).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.is_active == True,
         or_(
             User.subscription_expires_at.is_(None),       # lifetime
@@ -93,7 +93,7 @@ async def get_admin_stats(
 
     # Expiring soon (dalam 7 hari)
     expiring_soon = db.query(func.count(User.id)).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.is_active == True,
         User.subscription_expires_at.isnot(None),
         User.subscription_expires_at > now,
@@ -102,14 +102,14 @@ async def get_admin_stats(
 
     # Already expired (masih role subscriber tapi sudah lewat)
     expired = db.query(func.count(User.id)).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.subscription_expires_at.isnot(None),
         User.subscription_expires_at <= now
     ).scalar()
 
     # Lifetime subscribers (no expiry)
     lifetime = db.query(func.count(User.id)).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.is_active == True,
         User.subscription_expires_at.is_(None)
     ).scalar()
@@ -198,14 +198,14 @@ async def list_users(
         query = query.filter(User.is_active == False)
     elif status_filter == "expiring":
         query = query.filter(
-            User.role == 'subscriber',
+            User.role.in_(['premium', 'subscriber']),
             User.subscription_expires_at.isnot(None),
             User.subscription_expires_at > now,
             User.subscription_expires_at <= seven_days
         )
     elif status_filter == "expired":
         query = query.filter(
-            User.role == 'subscriber',
+            User.role.in_(['premium', 'subscriber']),
             User.subscription_expires_at.isnot(None),
             User.subscription_expires_at <= now
         )
@@ -335,7 +335,7 @@ async def grant_subscription(
         start = datetime.strptime(data.start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
     else:
         # Default: mulai dari sekarang, atau extend dari expiry yang ada
-        if user.role == 'subscriber' and user.subscription_expires_at and user.subscription_expires_at > now:
+        if user.role in ('premium', 'subscriber') and user.subscription_expires_at and user.subscription_expires_at > now:
             start = user.subscription_expires_at  # extend dari tanggal expiry
         else:
             start = now
@@ -440,7 +440,7 @@ async def get_expiring_subscriptions(
     cutoff = now + timedelta(days=days)
 
     expiring = db.query(User).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.is_active == True,
         User.subscription_expires_at.isnot(None),
         User.subscription_expires_at > now,
@@ -479,7 +479,7 @@ async def cleanup_expired_subscriptions(
     now = datetime.now(timezone.utc)
 
     expired_users = db.query(User).filter(
-        User.role == 'subscriber',
+        User.role.in_(['premium', 'subscriber']),
         User.subscription_expires_at.isnot(None),
         User.subscription_expires_at <= now
     ).all()
