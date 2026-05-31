@@ -14,6 +14,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from 'react-i18next';
 import api from '../services/authApi';
 import CountryCurrencyPicker from './CountryCurrencyPicker';
+import VipGroupCard from './VipGroupCard';
 import { convertPrice, formatLocalPrice, formatUsdtPrice } from '../utils/currencyHelpers';
 
 const ProfilePage = () => {
@@ -535,6 +536,10 @@ const ProfilePage = () => {
               </div>
             </div>
           </Section>
+
+          <div className="mt-3 sm:mt-4">
+            <VipGroupCard onToast={showToast} />
+          </div>
         </div>
       </div>
 

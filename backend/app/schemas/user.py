@@ -199,6 +199,10 @@ class UserResponse(BaseModel):
     subscription_granted_at: Optional[datetime] = None
     subscription_note: Optional[str] = None
     subscription_source: Optional[str] = None  # ← v2.1
+    # ← Telegram VIP sync
+    telegram_in_group: Optional[bool] = False
+    telegram_grace_until: Optional[datetime] = None
+    has_active_access: Optional[bool] = None
 
     # Referral v2
     referred_by: Optional[int] = None
