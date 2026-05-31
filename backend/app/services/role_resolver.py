@@ -8,6 +8,7 @@ Centralized logic biar telegram_auth.py & discord_auth.py ga duplicate code
 Rules:
   admin              → never touched
   lifetime           → never touched (admin granted, no expiry)
+  legacy             → never touched (member lama pre-webapp, no expiry)
   payment (active)   → never touched (user paid, expires_at NOT expired)
   payment (expired)  → fall through ke OAuth check, role = 'free' kalo no signal
   telegram_vip       → only re-evaluated by Telegram login (other providers respect it)
@@ -22,6 +23,7 @@ from app.models.user import User
 
 # Source constants
 SOURCE_LIFETIME = "lifetime"
+SOURCE_LEGACY = "legacy"
 SOURCE_ADMIN = "admin"
 SOURCE_PAYMENT = "payment"
 SOURCE_TELEGRAM_VIP = "telegram_vip"
@@ -66,6 +68,10 @@ def is_role_protected(user: User, current_provider: Optional[str] = None) -> boo
     if source == SOURCE_LIFETIME:
         return True
 
+    # Legacy (member lama pre-webapp): PROTECTED dari semua provider, lifetime
+    if source == SOURCE_LEGACY:
+        return True
+
     # Admin grant: PROTECTED selama belum expired
     if source == SOURCE_ADMIN:
         return _has_unexpired_subscription(user)
@@ -87,16 +93,30 @@ def is_role_protected(user: User, current_provider: Optional[str] = None) -> boo
     return True
 
 
-def resolve_role_for_telegram(user: User, is_vip_member: bool) -> tuple[str, Optional[str]]:
+def resolve_role_for_telegram(
+    user: User,
+    is_vip_member: bool,
+    is_legacy: bool = False,
+) -> tuple[str, Optional[str]]:
     """
     Determine final (role, source) untuk user yang baru login via Telegram.
+
+    Args:
+        user: User object
+        is_vip_member: apakah user saat ini ada di VIP group
+        is_legacy: apakah telegram_id ada di snapshot legacy_members (lifetime)
 
     Returns:
         (role, source) — tuple. Source bisa None kalo role jadi 'free'.
     """
-    # Protected? jangan touch
+    # Protected? jangan touch (admin / lifetime / legacy / payment aktif).
+    # Ini juga melindungi user yang SUDAH legacy dari di-downgrade.
     if is_role_protected(user, current_provider=PROVIDER_TELEGRAM):
         return user.role, user.subscription_source
+
+    # Legacy member (pre-webapp) → grant lifetime. Menang atas VIP biasa.
+    if is_legacy:
+        return "premium", SOURCE_LEGACY
 
     # Not protected → evaluate berdasarkan VIP membership
     if is_vip_member:

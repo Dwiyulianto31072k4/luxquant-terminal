@@ -26,6 +26,11 @@ class User(Base):
     # Telegram
     telegram_id = Column(BigInteger, unique=True, nullable=True, index=True)
     telegram_username = Column(String(100), nullable=True)
+    # ─── Telegram VIP sync ───
+    # Apakah user saat ini ada di VIP group (disinkron, BUKAN penentu akses)
+    telegram_in_group = Column(Boolean, nullable=False, default=False)
+    # Deadline kick dari group setelah subscription expired (grace period)
+    telegram_grace_until = Column(DateTime(timezone=True), nullable=True)
 
     # ─── Discord OAuth ───
     discord_id = Column(BigInteger, unique=True, nullable=True, index=True)
@@ -39,7 +44,7 @@ class User(Base):
     subscription_note = Column(Text, nullable=True)
 
     # ─── v2.1: Subscription source (cross-OAuth provider protection) ───
-    # Values: lifetime | admin | payment | telegram_vip | discord_premium | NULL
+    # Values: lifetime | admin | payment | telegram_vip | discord_premium | legacy | NULL
     subscription_source = Column(String(30), nullable=True)
 
     # ─── Admin enrichment (CRM-style, manually curated for outreach) ───
@@ -78,6 +83,22 @@ class User(Base):
             return True
         from datetime import datetime, timezone
         return self.subscription_expires_at > datetime.now(timezone.utc)
+
+    @property
+    def has_active_access(self) -> bool:
+        """True jika punya akses VIP aktif (admin / lifetime / belum expired).
+
+        Beda dengan is_premium: ini menerima role 'premium' MAUPUN 'subscriber'
+        supaya konsisten dengan user lama yang rolenya masih 'subscriber'.
+        """
+        if self.role == 'admin':
+            return True
+        if self.role in ('premium', 'subscriber'):
+            if self.subscription_expires_at is None:
+                return True  # lifetime
+            from datetime import datetime, timezone
+            return self.subscription_expires_at > datetime.now(timezone.utc)
+        return False
 
     @property
     def is_admin(self) -> bool:

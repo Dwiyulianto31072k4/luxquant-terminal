@@ -7,9 +7,11 @@ Flow:
 2. Frontend kirim auth data (+ optional referral_code) ke POST /auth/telegram
 3. Backend verify hash (keamanan dari Telegram)
 4. Backend cek membership di VIP group via Bot API getChatMember
-5. Resolve role via role_resolver (respect subscription_source)
-6. Apply referral_code (kalo user baru) + track login
-7. Return JWT tokens
+5. Cek legacy_members snapshot (member lama pre-webapp → lifetime)
+6. Resolve role via role_resolver (respect subscription_source)
+7. Sinkron flag telegram_in_group + claim legacy kalau match
+8. Apply referral_code (kalo user baru) + track login
+9. Return JWT tokens
 """
 import hashlib
 import hmac
@@ -18,6 +20,7 @@ import os
 import re
 import secrets
 import logging
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -26,6 +29,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import create_tokens
 from app.models.user import User
+from app.models.legacy_member import LegacyMember
 from app.schemas.user import (
     TelegramLogin,
     UserResponse,
@@ -39,6 +43,7 @@ from app.services.referral_helpers import (
 from app.services.role_resolver import (
     resolve_role_for_telegram,
     is_role_protected,
+    SOURCE_LEGACY,
     PROVIDER_TELEGRAM,
 )
 
@@ -77,8 +82,10 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             detail="Autentikasi Telegram sudah expired, silakan coba lagi"
         )
 
-    # Cek VIP membership
+    # Cek VIP membership (sedang ada di group atau ga)
     is_vip_member = await _check_vip_membership(data.id)
+    # Cek legacy snapshot (member lama pre-webapp → lifetime)
+    is_legacy = _check_legacy_member(db, data.id)
 
     # Find or create user
     user = db.query(User).filter(User.telegram_id == data.id).first()
@@ -90,9 +97,11 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
         if data.photo_url:
             user.avatar_url = data.photo_url
 
-        new_role, new_source = resolve_role_for_telegram(user, is_vip_member)
+        new_role, new_source = resolve_role_for_telegram(user, is_vip_member, is_legacy)
         user.role = new_role
         user.subscription_source = new_source
+        user.telegram_in_group = is_vip_member
+        _maybe_claim_legacy(db, user, new_source, is_legacy)
 
         db.commit()
         db.refresh(user)
@@ -109,17 +118,26 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
             existing_email.telegram_username = data.username
             existing_email.avatar_url = data.photo_url or existing_email.avatar_url
 
-            new_role, new_source = resolve_role_for_telegram(existing_email, is_vip_member)
+            new_role, new_source = resolve_role_for_telegram(existing_email, is_vip_member, is_legacy)
             existing_email.role = new_role
             existing_email.subscription_source = new_source
+            existing_email.telegram_in_group = is_vip_member
+            _maybe_claim_legacy(db, existing_email, new_source, is_legacy)
 
             db.commit()
             db.refresh(existing_email)
             user = existing_email
         else:
             # Genuinely new user
-            initial_role = 'subscriber' if is_vip_member else 'free'
-            initial_source = 'telegram_vip' if is_vip_member else None
+            if is_legacy:
+                initial_role = 'premium'
+                initial_source = SOURCE_LEGACY
+            elif is_vip_member:
+                initial_role = 'subscriber'
+                initial_source = 'telegram_vip'
+            else:
+                initial_role = 'free'
+                initial_source = None
 
             user = User(
                 email=email,
@@ -133,10 +151,14 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
                 is_verified=True,
                 role=initial_role,
                 subscription_source=initial_source,
+                telegram_in_group=is_vip_member,
             )
             db.add(user)
             db.commit()
             db.refresh(user)
+            _maybe_claim_legacy(db, user, initial_source, is_legacy)
+            if is_legacy:
+                db.commit()
             is_new_user = True
 
     if not user.is_active:
@@ -210,20 +232,26 @@ async def refresh_vip_status(
         }
 
     is_vip = await _check_vip_membership(current_user.telegram_id)
+    is_legacy = _check_legacy_member(db, current_user.telegram_id)
 
     old_role = current_user.role
     old_source = current_user.subscription_source
 
-    new_role, new_source = resolve_role_for_telegram(current_user, is_vip)
+    new_role, new_source = resolve_role_for_telegram(current_user, is_vip, is_legacy)
 
-    if old_role != new_role or old_source != new_source:
+    changed = old_role != new_role or old_source != new_source
+    in_group_changed = current_user.telegram_in_group != is_vip
+
+    if changed or in_group_changed:
         current_user.role = new_role
         current_user.subscription_source = new_source
+        current_user.telegram_in_group = is_vip
+        _maybe_claim_legacy(db, current_user, new_source, is_legacy)
         db.commit()
         db.refresh(current_user)
 
     return {
-        "updated": old_role != new_role or old_source != new_source,
+        "updated": changed,
         "old_role": old_role,
         "new_role": current_user.role,
         "is_vip": is_vip,
@@ -263,9 +291,12 @@ async def link_telegram(
         current_user.avatar_url = data.photo_url
 
     is_vip = await _check_vip_membership(data.id)
-    new_role, new_source = resolve_role_for_telegram(current_user, is_vip)
+    is_legacy = _check_legacy_member(db, data.id)
+    new_role, new_source = resolve_role_for_telegram(current_user, is_vip, is_legacy)
     current_user.role = new_role
     current_user.subscription_source = new_source
+    current_user.telegram_in_group = is_vip
+    _maybe_claim_legacy(db, current_user, new_source, is_legacy)
 
     db.commit()
     db.refresh(current_user)
@@ -298,6 +329,29 @@ def _verify_telegram_hash(data: TelegramLogin) -> bool:
     ).hexdigest()
 
     return computed_hash == data.hash
+
+
+def _check_legacy_member(db: Session, telegram_user_id: int) -> bool:
+    """Cek apakah telegram_id ada di snapshot legacy_members (member lama → lifetime)."""
+    row = db.query(LegacyMember).filter(
+        LegacyMember.telegram_id == telegram_user_id
+    ).first()
+    return row is not None
+
+
+def _maybe_claim_legacy(db: Session, user: User, final_source: str, is_legacy: bool) -> None:
+    """Tandai legacy_members.claimed = True kalau user ini di-grant via legacy.
+
+    Tidak commit sendiri — caller yang commit (biar atomic sama perubahan user).
+    """
+    if not is_legacy or final_source != SOURCE_LEGACY or not user.telegram_id:
+        return
+    row = db.query(LegacyMember).filter(
+        LegacyMember.telegram_id == user.telegram_id
+    ).first()
+    if row and not row.claimed:
+        row.claimed = True
+        row.claimed_at = datetime.now(timezone.utc)
 
 
 async def _check_vip_membership(telegram_user_id: int) -> bool:
