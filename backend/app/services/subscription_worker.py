@@ -228,6 +228,7 @@ async def subscription_expiry_loop():
 
 
 def start_subscription_worker():
-    """Start the subscription expiry background task"""
-    asyncio.ensure_future(subscription_expiry_loop())
-    logger.info("✅ Subscription expiry worker scheduled")
+    """Register the subscription expiry + VIP grace/kick background task."""
+    loop = asyncio.get_event_loop()
+    loop.create_task(subscription_expiry_loop())
+    print(f"🔄 Subscription worker registered (interval: {INTERVAL}s, grace: {GRACE_DAYS}d)")
