@@ -462,3 +462,63 @@ async def unlink_discord(
     db.refresh(current_user)
 
     return UserResponse.model_validate(current_user)
+# ════════════════════════════════════════════
+# 5b. Link Telegram Account  (POST /profile/link-telegram)
+# ════════════════════════════════════════════
+
+@router.post("/link-telegram", response_model=UserResponse)
+async def link_telegram(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Link Telegram account ke user yang sedang login (mis. login via Google).
+
+    Verifikasi hash Telegram (anti-spoof), cek collision, resolve role
+    (respect subscription_source + legacy), lalu sync telegram_in_group.
+    """
+    from app.schemas.user import TelegramLogin
+    from app.api.routes.telegram_auth import (
+        _verify_telegram_hash,
+        _check_vip_membership,
+        _check_legacy_member,
+        _maybe_claim_legacy,
+    )
+    from app.services.role_resolver import resolve_role_for_telegram
+
+    # Parse + validate payload jadi TelegramLogin (sama seperti login widget)
+    try:
+        tg = TelegramLogin(**data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Data Telegram tidak valid")
+
+    # Verifikasi hash — wajib, anti spoof
+    if not _verify_telegram_hash(tg):
+        raise HTTPException(status_code=401, detail="Verifikasi Telegram gagal")
+
+    # Cek telegram_id belum dipakai user lain
+    existing = db.query(User).filter(User.telegram_id == tg.id).first()
+    if existing and existing.id != current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Akun Telegram ini sudah terhubung dengan akun lain"
+        )
+
+    # Link + resolve role
+    current_user.telegram_id = tg.id
+    current_user.telegram_username = tg.username
+    if tg.photo_url and not current_user.avatar_url:
+        current_user.avatar_url = tg.photo_url
+
+    is_vip = await _check_vip_membership(tg.id)
+    is_legacy = _check_legacy_member(db, tg.id)
+    new_role, new_source = resolve_role_for_telegram(current_user, is_vip, is_legacy)
+    current_user.role = new_role
+    current_user.subscription_source = new_source
+    current_user.telegram_in_group = is_vip
+    _maybe_claim_legacy(db, current_user, new_source, is_legacy)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return UserResponse.model_validate(current_user)
