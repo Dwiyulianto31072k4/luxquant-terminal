@@ -17,7 +17,7 @@ from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
 from app.api.routes import coins, daily_dashboard, edge_lab
-from app.api.routes import workspace, finance
+from app.api.routes import workspace, finance, growth
 
 
 # Import Router
@@ -171,6 +171,7 @@ app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
 app.include_router(edge_lab.router, prefix="/api/v1", tags=["analytics"])
 app.include_router(workspace.router, tags=["workspace"])
 app.include_router(finance.router, tags=["finance"])
+app.include_router(growth.router, tags=["growth"])
 
 
 # ═══════════════════════════════════════════
