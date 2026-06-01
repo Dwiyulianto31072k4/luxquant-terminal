@@ -215,6 +215,11 @@ class UserResponse(BaseModel):
     first_login_at: Optional[datetime] = None
     login_count: Optional[int] = 0
 
+    # ─── Activity tracking (Growth dashboard) ───
+    last_active_at: Optional[datetime] = None
+    total_sessions: Optional[int] = 0
+    last_feature_touched: Optional[str] = None
+
     # Display preferences
     country_code: Optional[str] = None
     currency_code: Optional[str] = 'USD'

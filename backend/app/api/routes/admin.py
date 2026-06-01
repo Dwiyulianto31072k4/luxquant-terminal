@@ -214,18 +214,32 @@ async def list_users(
     if provider:
         query = query.filter(User.auth_provider == provider)
 
-    # Activity filter
+    # Activity filter (now keyed on last_active_at = any request, not just login)
     if activity == "active_7d":
-        query = query.filter(User.last_login_at >= now - timedelta(days=7))
+        query = query.filter(User.last_active_at >= now - timedelta(days=7))
     elif activity == "dormant_30d":
         query = query.filter(
             and_(
-                User.last_login_at.isnot(None),
-                User.last_login_at < now - timedelta(days=30),
+                User.last_active_at.isnot(None),
+                User.last_active_at < now - timedelta(days=30),
             )
         )
     elif activity == "never_logged_in":
-        query = query.filter(User.last_login_at.is_(None))
+        query = query.filter(User.last_active_at.is_(None))
+    elif activity == "power_users":
+        # 5+ distinct active days in the last 7, from the event log
+        from app.models.activity import UserActivityEvent
+        active_day = func.date(
+            func.timezone('UTC', UserActivityEvent.occurred_at)
+        )
+        power_ids = (
+            db.query(UserActivityEvent.user_id)
+            .filter(UserActivityEvent.occurred_at >= now - timedelta(days=7))
+            .group_by(UserActivityEvent.user_id)
+            .having(func.count(func.distinct(active_day)) >= 5)
+            .subquery()
+        )
+        query = query.filter(User.id.in_(power_ids))
 
     # Reach filter
     if reach == "has_tg":
@@ -278,6 +292,7 @@ async def list_users(
         "subscription_expires_at": User.subscription_expires_at,
         "email": User.email,
         "last_login_at": User.last_login_at,
+        "last_active_at": User.last_active_at,
     }.get(sort_by, User.created_at)
 
     if sort_order == "asc":
