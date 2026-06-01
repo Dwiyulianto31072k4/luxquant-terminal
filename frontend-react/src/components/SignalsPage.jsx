@@ -170,8 +170,8 @@ const SignalsPage = () => {
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [signalsRes, statsRes, intelRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/api/v1/signals/bulk-7d`),
-        fetch(`${API_BASE}/api/v1/signals/stats`),
+        fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
       ]);
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
