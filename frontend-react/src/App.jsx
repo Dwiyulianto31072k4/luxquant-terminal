@@ -5,6 +5,7 @@
 //   - Mobile drawer fix: bottom-16 (stops above bottom nav, no overlap)
 //   - Admin section moved to TOP (priority access for admin users)
 //   - Added pb-6 breathing room at scroll end
+//   - Edge Lab added to More menu (desktop) + mobile drawer
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
@@ -381,6 +382,12 @@ function AppShell({ children }) {
       label: "Daily Performance",
       icon: "📅",
       description: "Per-day breakdown by hit date with BTC context",
+    },
+    {
+      path: "/daily-performance/edge-lab",
+      label: "Edge Lab",
+      icon: "🧪",
+      description: "Pattern reliability, EV & timing analytics",
     },
     {
       path: "/orderbook",
@@ -958,6 +965,41 @@ function AppShell({ children }) {
                     y1="17"
                     x2="19"
                     y2="11"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </>
+              }
+            />
+            {/* Edge Lab — conical flask (multi-day pattern analytics) */}
+            <SidebarItem
+              active={isActive("/daily-performance/edge-lab")}
+              onClick={() => handleNav("/daily-performance/edge-lab")}
+              label="Edge Lab"
+              isFreeBadge
+              icon={
+                <>
+                  <line
+                    x1="9"
+                    y1="3"
+                    x2="15"
+                    y2="3"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M10 3 v6 L4.6 18.4 A1 1 0 005.5 20 h13 a1 1 0 00.9-1.6 L14 9 V3"
+                  />
+                  <line
+                    x1="7"
+                    y1="14.5"
+                    x2="17"
+                    y2="14.5"
                     strokeWidth={1.5}
                     strokeLinecap="round"
                     strokeLinejoin="round"
