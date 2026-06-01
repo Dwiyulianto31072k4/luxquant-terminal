@@ -69,7 +69,7 @@ const EdgeLabPage = lazy(
 import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
 import NotificationBell from "./components/NotificationBell";
-import MoreFeaturesModal from "./components/MoreFeaturesModal";
+import MoreMenuDropdown from "./components/MoreMenuDropdown";
 
 // ════════════════════════════════════════
 // PAGE LOADING FALLBACK
@@ -292,7 +292,6 @@ const SidebarItem = ({
 function AppShell({ children }) {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showMoreFeatures, setShowMoreFeatures] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { isAuthenticated, user } = useAuth();
@@ -614,32 +613,15 @@ function AppShell({ children }) {
                     </button>
                   );
                 })}
-                <button
-                  onClick={() => setShowMoreFeatures(true)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-[13px] rounded-md border transition-all duration-150 ${
-                    moreHasActive
-                      ? "text-white border-transparent"
-                      : "text-text-secondary border-transparent hover:text-white hover:bg-white/[0.05] hover:border-white/[0.08]"
-                  }`}
-                >
-                  <span>{t("nav.more")}</span>
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                  {moreHasActive && (
-                    <span className="absolute left-3 right-3 -bottom-[16px] h-[2px] bg-white" />
-                  )}
-                </button>
+                <MoreMenuDropdown
+                  label={t("nav.more")}
+                  moreHasActive={moreHasActive}
+                  isActive={isActive}
+                  isPremium={isPremiumUser()}
+                  isAdmin={isAdmin}
+                  premiumPaths={PREMIUM_REQUIRED}
+                  onNavigate={handleNav}
+                />
               </nav>
             </div>
 
@@ -1291,16 +1273,6 @@ function AppShell({ children }) {
       <PremiumModal
         isOpen={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
-      />
-
-      <MoreFeaturesModal
-        isOpen={showMoreFeatures}
-        onClose={() => setShowMoreFeatures(false)}
-        onNavigate={handleNav}
-        isActive={isActive}
-        isPremium={isPremiumUser()}
-        isAdmin={isAdmin}
-        premiumPaths={PREMIUM_REQUIRED}
       />
     </div>
   );
