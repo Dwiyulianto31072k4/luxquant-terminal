@@ -31,6 +31,7 @@ import { FollowupTab } from './admin/workspace/FollowupTab';
 import { MarketingTab } from './admin/workspace/MarketingTab';
 import { FinanceTab } from './admin/workspace/FinanceTab';
 import { TodoTab } from './admin/workspace/TodoTab';
+import { ActivityTab } from './admin/workspace/ActivityTab';
 
 // Design system
 import { palette, surface, tint, motion } from './admin/designSystem';
@@ -52,6 +53,7 @@ import {
   BroadcastConeIcon,
   BarsChartIcon,
   CheckSquareIcon,
+  ActivityIcon,
 } from './admin/Icons';
 
 // ════════════════════════════════════════════════════════════════════
@@ -93,6 +95,13 @@ const TABS = [
     description: 'Internal task board',
     Icon: CheckSquareIcon,
     accent: palette.orange[400],
+  },
+  {
+    id: 'activity',
+    label: 'Activity',
+    description: 'Engagement & growth analytics',
+    Icon: ActivityIcon,
+    accent: palette.teal[400],
   },
 ];
 
@@ -612,6 +621,7 @@ const AdminWorkspacePage = () => {
           <FinanceTab onRefreshStats={fetchFinanceStats} />
         )}
         {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
+        {activeTab === 'activity' && <ActivityTab />}
       </div>
     </div>
   );
