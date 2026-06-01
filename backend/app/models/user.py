@@ -69,6 +69,12 @@ class User(Base):
     country_code = Column(String(2), nullable=True)
     currency_code = Column(String(3), default="USD", nullable=True)
 
+    # ─── Activity tracking (Growth dashboard) ───
+    # Updated passively by ActivityTrackerMiddleware (NOT login).
+    last_active_at = Column(DateTime(timezone=True), nullable=True)
+    total_sessions = Column(Integer, default=0, nullable=False)
+    last_feature_touched = Column(String(50), nullable=True)
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

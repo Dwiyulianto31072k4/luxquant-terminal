@@ -1,6 +1,7 @@
 # backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.activity_tracker import ActivityTrackerMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
@@ -128,6 +129,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Passive activity tracking for the Growth dashboard (Batch 1).
+# Reads Bearer JWT + URL, dedupes via Redis, writes async — never blocks.
+app.add_middleware(ActivityTrackerMiddleware)
 
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
