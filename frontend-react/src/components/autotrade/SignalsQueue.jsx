@@ -53,7 +53,7 @@ export default function SignalsQueue() {
     setError("");
     try {
       const resp = await fetch("/api/v1/signals/bulk-7d?limit=50", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` },
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
