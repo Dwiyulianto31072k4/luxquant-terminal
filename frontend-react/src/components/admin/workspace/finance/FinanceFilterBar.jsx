@@ -15,6 +15,7 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'expired',   label: 'Expired' },
   { value: 'refunded',  label: 'Refunded' },
+  { value: 'voided',    label: 'Voided (deleted)' },
 ];
 
 const SORT_OPTIONS = [

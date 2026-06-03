@@ -142,6 +142,34 @@ export const financeApi = {
     return response.data;
   },
 
+  // ════════════════════════════════════
+  // VOID (soft) / RESTORE / DELETE (hard)
+  // ════════════════════════════════════
+  voidPayment: async (paymentId, note = null) => {
+    const body = note ? { note } : {};
+    const response = await api.post(
+      `/api/v1/workspace/finance/payments/${paymentId}/void`,
+      body
+    );
+    return response.data;
+  },
+
+  restorePayment: async (paymentId, note = null) => {
+    const body = note ? { note } : {};
+    const response = await api.post(
+      `/api/v1/workspace/finance/payments/${paymentId}/restore`,
+      body
+    );
+    return response.data;
+  },
+
+  deletePayment: async (paymentId) => {
+    const response = await api.delete(
+      `/api/v1/workspace/finance/payments/${paymentId}`
+    );
+    return response.data;
+  },
+
   bulkCancelStale: async (hours = 24) => {
     const response = await api.post(
       `/api/v1/workspace/finance/payments/bulk-cancel-stale`,

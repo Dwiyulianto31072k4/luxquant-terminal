@@ -24,7 +24,7 @@ import {
   CopyIcon,
   EditIcon,
 } from '../Icons';
-import { XCircleIcon } from './finance/icons-supplement';
+import { XCircleIcon, TrashIcon, RotateCcwIcon, ArchiveIcon } from './finance/icons-supplement';
 import {
   formatUSDT,
   formatDateTimeLong,
@@ -471,6 +471,12 @@ export const PaymentDetailPanel = ({
         case 'refund':
           result = await financeApi.refundPayment(payment.id, note);
           break;
+        case 'void':
+          result = await financeApi.voidPayment(payment.id, note);
+          break;
+        case 'restore':
+          result = await financeApi.restorePayment(payment.id, note);
+          break;
         default:
           throw new Error('Unknown action');
       }
@@ -509,6 +515,48 @@ export const PaymentDetailPanel = ({
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to save note.');
     } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleVoid = () => {
+    if (!payment) return;
+    if (
+      !window.confirm(
+        `Void payment #${payment.id} from @${payment.user?.username || 'user'}?\n\nIt will be hidden from the list but can be restored later.`
+      )
+    )
+      return;
+    performAction('void', null);
+  };
+
+  const handleRestore = () => {
+    if (!payment) return;
+    if (
+      !window.confirm(
+        `Restore payment #${payment.id}?\n\nIt will reappear in the finance list with its previous status.`
+      )
+    )
+      return;
+    performAction('restore', null);
+  };
+
+  const handleDelete = async () => {
+    if (!payment) return;
+    if (
+      !window.confirm(
+        `PERMANENTLY delete payment #${payment.id} from @${payment.user?.username || 'user'}?\n\nThis cannot be undone — the record is removed from the database. The user subscription is not affected.`
+      )
+    )
+      return;
+    setActionBusy('delete');
+    setError(null);
+    try {
+      await financeApi.deletePayment(payment.id);
+      if (onActionDone) onActionDone();
+      if (onClose) onClose();
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Delete failed. Please try again.');
       setActionBusy(null);
     }
   };
@@ -729,6 +777,40 @@ export const PaymentDetailPanel = ({
                 disabled={actionBusy != null}
               />
             )}
+
+            {/* Danger zone: void (recoverable) / delete (permanent) / restore */}
+            <div
+              className="mt-2 pt-2 grid grid-cols-2 gap-2"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              {p?.is_deleted ? (
+                <ActionBtn
+                  Icon={RotateCcwIcon}
+                  label="Restore"
+                  tone="success"
+                  onClick={handleRestore}
+                  busy={actionBusy === 'restore'}
+                  disabled={actionBusy != null}
+                />
+              ) : (
+                <ActionBtn
+                  Icon={ArchiveIcon}
+                  label="Void"
+                  tone="muted"
+                  onClick={handleVoid}
+                  busy={actionBusy === 'void'}
+                  disabled={actionBusy != null}
+                />
+              )}
+              <ActionBtn
+                Icon={TrashIcon}
+                label="Delete"
+                tone="danger"
+                onClick={handleDelete}
+                busy={actionBusy === 'delete'}
+                disabled={actionBusy != null}
+              />
+            </div>
           </Section>
 
           {showNoteInput && (
