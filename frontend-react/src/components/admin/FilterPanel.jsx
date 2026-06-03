@@ -137,8 +137,9 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
               options={[
                 { value: null, label: 'All Activity' },
                 { value: 'active_7d', label: 'Active (last 7d)' },
+                { value: 'power_users', label: 'Power users (5+ days/wk)' },
                 { value: 'dormant_30d', label: 'Dormant (>30d)' },
-                { value: 'never_logged_in', label: 'Never logged in' },
+                { value: 'never_logged_in', label: 'Never active' },
               ]}
             />
             <Select
@@ -175,6 +176,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
               onChange={update('sortBy')}
               options={[
                 { value: 'created_at', label: 'Date Joined' },
+                { value: 'last_active_at', label: 'Last Active' },
                 { value: 'last_login_at', label: 'Last Login' },
                 { value: 'username', label: 'Username' },
                 { value: 'subscription_expires_at', label: 'Expiry Date' },
