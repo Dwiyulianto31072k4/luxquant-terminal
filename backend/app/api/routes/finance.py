@@ -172,6 +172,8 @@ def _serialize_row(payment, user, plan, include_bscscan=False, wallet_map=None):
         "notes": payment.notes,
         "created_at": payment.created_at,
         "updated_at": payment.updated_at,
+        "deleted_at": payment.deleted_at,
+        "is_deleted": payment.deleted_at is not None,
         "is_stale": is_stale,
         "age_hours": age_hours,
         "is_expired": is_expired,
@@ -238,18 +240,19 @@ def finance_stats(db: Session = Depends(get_db), admin: User = Depends(get_admin
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    total_revenue = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed').scalar() or 0
-    revenue_this_month = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed', Payment.verified_at >= month_start).scalar() or 0
-    revenue_today = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed', Payment.verified_at >= today_start).scalar() or 0
-    pending_count = db.query(Payment).filter(Payment.status == 'pending').count()
-    pending_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'pending').scalar() or 0
-    stale_count = db.query(Payment).filter(Payment.status == 'pending', Payment.created_at < stale_cutoff).count()
-    stale_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'pending', Payment.created_at < stale_cutoff).scalar() or 0
-    failed_count = db.query(Payment).filter(Payment.status == 'failed').count()
-    failed_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'failed').scalar() or 0
-    cancelled_count = db.query(Payment).filter(Payment.status == 'cancelled').count()
-    total_count = db.query(Payment).count()
-    total_credit_redeemed = db.query(func.coalesce(func.sum(Payment.credit_redeemed), 0)).filter(Payment.status == 'confirmed').scalar() or 0
+    active = Payment.deleted_at.is_(None)
+    total_revenue = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed', active).scalar() or 0
+    revenue_this_month = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed', active, Payment.verified_at >= month_start).scalar() or 0
+    revenue_today = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'confirmed', active, Payment.verified_at >= today_start).scalar() or 0
+    pending_count = db.query(Payment).filter(Payment.status == 'pending', active).count()
+    pending_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'pending', active).scalar() or 0
+    stale_count = db.query(Payment).filter(Payment.status == 'pending', active, Payment.created_at < stale_cutoff).count()
+    stale_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'pending', active, Payment.created_at < stale_cutoff).scalar() or 0
+    failed_count = db.query(Payment).filter(Payment.status == 'failed', active).count()
+    failed_value = db.query(func.coalesce(func.sum(Payment.final_amount), 0)).filter(Payment.status == 'failed', active).scalar() or 0
+    cancelled_count = db.query(Payment).filter(Payment.status == 'cancelled', active).count()
+    total_count = db.query(Payment).filter(active).count()
+    total_credit_redeemed = db.query(func.coalesce(func.sum(Payment.credit_redeemed), 0)).filter(Payment.status == 'confirmed', active).scalar() or 0
 
     return {
         "total_revenue": float(total_revenue),
@@ -750,7 +753,13 @@ def list_payments(
 ):
     q = db.query(Payment)
 
-    if status:
+    # Soft-delete: 'voided' shows deleted rows; every other view hides them.
+    if status == 'voided':
+        q = q.filter(Payment.deleted_at.isnot(None))
+    else:
+        q = q.filter(Payment.deleted_at.is_(None))
+
+    if status and status != 'voided':
         if status == 'stale':
             cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
             q = q.filter(Payment.status == 'pending', Payment.created_at < cutoff)
@@ -1024,3 +1033,76 @@ def bulk_cancel_stale(hours: int = Query(24, ge=1), db: Session = Depends(get_db
 
     db.commit()
     return {"success": True, "cancelled": count, "message": f"Cancelled {count} stale payment(s) older than {hours}h"}
+
+
+# ════════════════════════════════════════════════════════════════════
+# VOID / RESTORE / DELETE  (dummy & test-data cleanup)
+#   void    = soft delete (hidden from list, recoverable)
+#   restore = un-void
+#   DELETE  = hard delete (row removed permanently)
+# None of these touch the user's subscription/role.
+# ════════════════════════════════════════════════════════════════════
+
+@router.post("/payments/{payment_id}/void")
+def void_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPayload(), db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """Soft-delete: hide from the finance list but keep the row (recoverable)."""
+    p = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if p.deleted_at is not None:
+        raise HTTPException(status_code=400, detail="Payment is already voided")
+
+    now = datetime.now(timezone.utc)
+    p.deleted_at = now
+    admin_note = f"[Voided by @{admin.username} on {now.strftime('%Y-%m-%d %H:%M UTC')}]"
+    if data.note:
+        admin_note += f" {data.note.strip()}"
+    p.notes = f"{p.notes}\n{admin_note}" if p.notes else admin_note
+
+    db.commit()
+    db.refresh(p)
+
+    user = db.query(User).filter(User.id == p.user_id).first()
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": f"Payment #{p.id} voided (hidden, recoverable)", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
+
+
+@router.post("/payments/{payment_id}/restore")
+def restore_payment(payment_id: int, data: PaymentActionPayload = PaymentActionPayload(), db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """Restore a voided payment back into the finance list."""
+    p = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if p.deleted_at is None:
+        raise HTTPException(status_code=400, detail="Payment is not voided")
+
+    now = datetime.now(timezone.utc)
+    p.deleted_at = None
+    admin_note = f"[Restored by @{admin.username} on {now.strftime('%Y-%m-%d %H:%M UTC')}]"
+    if data.note:
+        admin_note += f" {data.note.strip()}"
+    p.notes = f"{p.notes}\n{admin_note}" if p.notes else admin_note
+
+    db.commit()
+    db.refresh(p)
+
+    user = db.query(User).filter(User.id == p.user_id).first()
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if p.plan_id else None
+    wallet_map = _build_wallet_map(db, [p.wallet_to] if p.wallet_to else [])
+    return {"success": True, "message": f"Payment #{p.id} restored", "payment": _serialize_row(p, user, plan, wallet_map=wallet_map)}
+
+
+@router.delete("/payments/{payment_id}")
+def delete_payment(payment_id: int, db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    """Permanently delete a payment row. Irreversible. Does NOT touch the user's subscription."""
+    p = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    pid = p.id
+    logger.warning(f"🗑️ Payment #{pid} permanently deleted by @{admin.username}")
+    db.delete(p)
+    db.commit()
+
+    return {"success": True, "message": f"Payment #{pid} permanently deleted", "deleted_id": pid}

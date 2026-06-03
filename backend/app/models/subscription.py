@@ -46,6 +46,9 @@ class Payment(Base):
     bscscan_data = Column(JSONB, nullable=True)
     notes = Column(Text, nullable=True)
 
+    # Soft-delete (void). NULL = active; set = hidden from finance list, recoverable.
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
     # Referral
     referral_use_id = Column(Integer, ForeignKey("referral_uses.id"), nullable=True)
     discount_amount = Column(Numeric(10, 2), default=0)
