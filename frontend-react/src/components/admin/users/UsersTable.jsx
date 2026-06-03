@@ -186,7 +186,7 @@ const DesktopTable = ({
             className="w-3.5 h-3.5 rounded cursor-pointer accent-amber-500"
           />
         </th>
-        {['User', 'Contact', 'Role', 'Subscription', 'Last Login', ''].map((h, i) => (
+        {['User', 'Contact', 'Role', 'Subscription', 'Activity', ''].map((h, i) => (
           <th
             key={i}
             className={`px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider ${
@@ -248,15 +248,14 @@ const DesktopTable = ({
             <td className="px-3 py-2.5 hidden lg:table-cell">
               <span
                 className="text-[10px]"
-                style={{ color: u.last_login_at ? '#8a7a6e' : '#4a3f39' }}
+                style={{ color: u.last_active_at ? '#8a7a6e' : '#4a3f39' }}
               >
-                {relativeTime(u.last_login_at)}
+                {relativeTime(u.last_active_at)}
               </span>
-              {u.login_count > 0 && (
-                <p className="text-[9px] tabular-nums" style={{ color: '#4a3f39' }}>
-                  {u.login_count}× total
-                </p>
-              )}
+              <p className="text-[9px] tabular-nums" style={{ color: '#4a3f39' }}>
+                {u.total_sessions > 0 ? `${u.total_sessions} sessions` : 'no sessions'}
+                {u.last_feature_touched ? ` · ${u.last_feature_touched}` : ''}
+              </p>
             </td>
             <td className="px-3 py-2.5">
               <RowActions
@@ -329,7 +328,8 @@ const MobileCardStack = ({
           {/* Bottom row — last login + actions */}
           <div className="flex items-center justify-between">
             <span className="text-[10px]" style={{ color: '#8a7a6e' }}>
-              Last seen {relativeTime(u.last_login_at)}
+              {u.last_active_at ? `Active ${relativeTime(u.last_active_at)}` : 'No web activity'}
+              {u.last_feature_touched ? ` · ${u.last_feature_touched}` : ''}
             </span>
             <RowActions
               user={u}
