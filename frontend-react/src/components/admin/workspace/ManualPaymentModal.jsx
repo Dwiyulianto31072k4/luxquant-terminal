@@ -887,6 +887,97 @@ const NoteStep = ({ locked, note, setNote }) => {
    Main modal
    ════════════════════════════════════════ */
 
+const PAYMENT_METHODS = [
+  { id: 'onchain_bsc', label: 'On-chain' },
+  { id: 'binance_uid', label: 'Binance UID' },
+  { id: 'bank_transfer', label: 'Bank Transfer' },
+  { id: 'other', label: 'Other' },
+];
+
+const MethodSelector = ({ method, setMethod }) => (
+  <div>
+    <StepHeader num={1} title="Payment method" complete={false} locked={false} />
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {PAYMENT_METHODS.map((m) => {
+        const active = method === m.id;
+        return (
+          <button
+            key={m.id}
+            onClick={() => setMethod(m.id)}
+            className="py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all"
+            style={{
+              background: active ? 'rgba(212,168,83,0.16)' : 'rgba(255,255,255,0.02)',
+              color: active ? '#d4a853' : '#8a7a6e',
+              border: `1px solid ${active ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            }}
+          >
+            {m.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const OffchainStep = ({
+  method, offAmount, setOffAmount, idrAmount, setIdrAmount, idrRate, idrUsd,
+  reference, setReference, methodLabel, setMethodLabel,
+  paymentDateOverride, setPaymentDateOverride,
+}) => (
+  <div>
+    <StepHeader num={2} title="Payment details" complete={false} locked={false} />
+    <div className="space-y-3">
+      {method === 'other' && (
+        <Field label="Method name" hint="e.g. OVO, GoPay, Cash, PayPal">
+          <TextInput value={methodLabel} onChange={setMethodLabel} placeholder="Method name" autoFocus />
+        </Field>
+      )}
+
+      {method === 'bank_transfer' ? (
+        <Field
+          label="Amount (IDR)"
+          hint={
+            idrRate
+              ? (idrUsd
+                  ? `\u2248 $${idrUsd.toFixed(2)} USD  \u00b7  live rate ${Math.round(idrRate).toLocaleString()} IDR/USDT`
+                  : `Live rate ${Math.round(idrRate).toLocaleString()} IDR/USDT`)
+              : 'Loading live rate\u2026'
+          }
+        >
+          <TextInput value={idrAmount} onChange={(v) => setIdrAmount(v.replace(/[^0-9.]/g, ''))} placeholder="800000" mono autoFocus />
+        </Field>
+      ) : (
+        <Field label={method === 'binance_uid' ? 'Amount (USDT)' : 'Amount (USD)'}>
+          <TextInput value={offAmount} onChange={(v) => setOffAmount(v.replace(/[^0-9.]/g, ''))} placeholder="50" mono autoFocus={method !== 'other'} />
+        </Field>
+      )}
+
+      <Field
+        label={method === 'binance_uid' ? 'Binance UID / reference' : 'Reference'}
+        hint={
+          method === 'binance_uid'
+            ? 'Sender Binance UID (+ order id if any)'
+            : method === 'bank_transfer'
+            ? 'Sender name / date / bank ref'
+            : 'Any reference for the audit trail'
+        }
+      >
+        <TextInput value={reference} onChange={setReference} placeholder="Reference" />
+      </Field>
+
+      <Field label="Payment date (optional)" hint="Leave blank = today">
+        <input
+          type="date"
+          value={paymentDateOverride || ''}
+          onChange={(e) => setPaymentDateOverride(e.target.value)}
+          className="w-full px-2.5 py-2 rounded-md text-xs text-white focus:outline-none focus:ring-1"
+          style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}
+        />
+      </Field>
+    </div>
+  </div>
+);
+
 export const ManualPaymentModal = ({
   isOpen,
   onClose,
@@ -918,6 +1009,14 @@ export const ManualPaymentModal = ({
   /* ── Step 4 state ── */
   const [note, setNote] = useState('');
 
+  /* ── Payment method state (Phase B) ── */
+  const [method, setMethod] = useState('onchain_bsc');
+  const [offAmount, setOffAmount] = useState('');
+  const [idrAmount, setIdrAmount] = useState('');
+  const [reference, setReference] = useState('');
+  const [methodLabel, setMethodLabel] = useState('');
+  const [idrRate, setIdrRate] = useState(null);
+
   /* ── Submit state ── */
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -943,6 +1042,11 @@ export const ManualPaymentModal = ({
       setSubmitting(false);
       setAcceptAmountMismatch(false);
       setAcceptWalletNotInPool(false);
+      setMethod('onchain_bsc');
+      setOffAmount('');
+      setIdrAmount('');
+      setReference('');
+      setMethodLabel('');
     }
   }, [isOpen, preselectedUser]);
 
@@ -955,6 +1059,15 @@ export const ManualPaymentModal = ({
         .catch((e) => console.error('Failed to load plans:', e));
     }
   }, [isOpen, plans.length]);
+
+  // Load live FX rate (IDR per USDT) for bank-transfer conversion
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/v1/fx/rates')
+      .then((r) => r.json())
+      .then((d) => setIdrRate(d?.rates?.IDR ?? null))
+      .catch(() => {});
+  }, [isOpen]);
 
   // Auto-pick suggested plan when verify result arrives
   useEffect(() => {
@@ -984,7 +1097,24 @@ export const ManualPaymentModal = ({
   /* ── Step state derived ── */
   const blockers = verifyResult?.blockers || [];
   const warnings = verifyResult?.warnings || [];
-  const step1Done = !!verifyResult && blockers.length === 0;
+  const isOnchain = method === 'onchain_bsc';
+
+  // Off-chain amount: bank uses IDR→USD live convert; others use direct USD.
+  const idrUsd =
+    method === 'bank_transfer' && idrAmount && idrRate
+      ? Number(idrAmount) / idrRate
+      : null;
+  const offchainUsd =
+    method === 'bank_transfer' ? idrUsd : (offAmount ? Number(offAmount) : null);
+  const offchainStep1Done =
+    !isOnchain &&
+    !!offchainUsd && offchainUsd > 0 &&
+    (method !== 'other' || methodLabel.trim().length > 0) &&
+    (method !== 'bank_transfer' || !!idrRate);
+
+  const step1Done = isOnchain
+    ? (!!verifyResult && blockers.length === 0)
+    : offchainStep1Done;
   const step2Done =
     step1Done &&
     ((userMode === 'existing' && !!selectedUser) ||
@@ -992,7 +1122,7 @@ export const ManualPaymentModal = ({
   const step3Done = step2Done && !!selectedPlanId;
   const step4Done = step3Done && note.trim().length >= NOTE_MIN_CHARS;
 
-  const txAmount = verifyResult?.tx_data?.amount;
+  const txAmount = isOnchain ? verifyResult?.tx_data?.amount : offchainUsd;
   const selectedPlan = plans.find((p) => p.id === selectedPlanId);
   const planPrice = selectedPlan ? Number(selectedPlan.price_usdt) : null;
   const hasAmountMismatch =
@@ -1005,8 +1135,8 @@ export const ManualPaymentModal = ({
 
   const canSubmit =
     step4Done &&
-    (!hasAmountMismatch || acceptAmountMismatch) &&
-    (!hasWalletNotInPoolWarning || acceptWalletNotInPool) &&
+    (!isOnchain || !hasAmountMismatch || acceptAmountMismatch) &&
+    (!isOnchain || !hasWalletNotInPoolWarning || acceptWalletNotInPool) &&
     !submitting;
 
   /* ── Handlers ── */
@@ -1036,19 +1166,39 @@ export const ManualPaymentModal = ({
     setSubmitError(null);
     try {
       const payload = {
-        tx_hash: txHash.trim().toLowerCase(),
+        method,
         plan_id: selectedPlanId,
         admin_note: note.trim(),
-        accept_amount_mismatch: acceptAmountMismatch,
-        accept_wallet_not_in_pool: acceptWalletNotInPool,
       };
 
-      // Only send override if user actually changed it (different from TX date)
-      const txDateStr = verifyResult?.tx_data?.timestamp
-        ? new Date(verifyResult.tx_data.timestamp).toISOString().slice(0, 10)
-        : null;
-      if (paymentDateOverride && paymentDateOverride !== txDateStr) {
-        payload.payment_date_override = paymentDateOverride;
+      if (isOnchain) {
+        payload.tx_hash = txHash.trim().toLowerCase();
+        payload.accept_amount_mismatch = acceptAmountMismatch;
+        payload.accept_wallet_not_in_pool = acceptWalletNotInPool;
+        const txDateStr = verifyResult?.tx_data?.timestamp
+          ? new Date(verifyResult.tx_data.timestamp).toISOString().slice(0, 10)
+          : null;
+        if (paymentDateOverride && paymentDateOverride !== txDateStr) {
+          payload.payment_date_override = paymentDateOverride;
+        }
+      } else {
+        payload.amount_usd = Number(offchainUsd);
+        payload.reference = reference.trim() || undefined;
+        if (method === 'bank_transfer') {
+          payload.paid_currency = 'IDR';
+          payload.paid_amount = Number(idrAmount);
+          payload.fx_rate = idrRate;
+        } else if (method === 'binance_uid') {
+          payload.paid_currency = 'USDT';
+          payload.paid_amount = Number(offAmount);
+        } else if (method === 'other') {
+          payload.method_label = methodLabel.trim() || undefined;
+          payload.paid_currency = 'USD';
+          payload.paid_amount = Number(offAmount);
+        }
+        if (paymentDateOverride) {
+          payload.payment_date_override = paymentDateOverride;
+        }
       }
 
       if (userMode === 'existing') {
@@ -1144,17 +1294,37 @@ export const ManualPaymentModal = ({
 
         {/* BODY (scrollable) */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6 min-h-0">
-          <TxStep
-            txHash={txHash}
-            setTxHash={setTxHash}
-            verifying={verifying}
-            verifyResult={verifyResult}
-            verifyError={verifyError}
-            onVerify={handleVerify}
-            onReset={handleResetTx}
-            paymentDateOverride={paymentDateOverride}
-            setPaymentDateOverride={setPaymentDateOverride}
-          />
+          <MethodSelector method={method} setMethod={setMethod} />
+
+          {isOnchain ? (
+            <TxStep
+              txHash={txHash}
+              setTxHash={setTxHash}
+              verifying={verifying}
+              verifyResult={verifyResult}
+              verifyError={verifyError}
+              onVerify={handleVerify}
+              onReset={handleResetTx}
+              paymentDateOverride={paymentDateOverride}
+              setPaymentDateOverride={setPaymentDateOverride}
+            />
+          ) : (
+            <OffchainStep
+              method={method}
+              offAmount={offAmount}
+              setOffAmount={setOffAmount}
+              idrAmount={idrAmount}
+              setIdrAmount={setIdrAmount}
+              idrRate={idrRate}
+              idrUsd={idrUsd}
+              reference={reference}
+              setReference={setReference}
+              methodLabel={methodLabel}
+              setMethodLabel={setMethodLabel}
+              paymentDateOverride={paymentDateOverride}
+              setPaymentDateOverride={setPaymentDateOverride}
+            />
+          )}
 
           <div style={{ opacity: step1Done ? 1 : 0.4, pointerEvents: step1Done ? 'auto' : 'none' }}>
             <UserStep
@@ -1181,7 +1351,7 @@ export const ManualPaymentModal = ({
           </div>
 
           {/* Amount mismatch override (between step 3 and 4) */}
-          {step3Done && hasAmountMismatch && (
+          {isOnchain && step3Done && hasAmountMismatch && (
             <div
               className="rounded-lg p-3 space-y-2"
               style={{
@@ -1216,7 +1386,7 @@ export const ManualPaymentModal = ({
           )}
 
           {/* Wallet not in pool override */}
-          {step3Done && hasWalletNotInPoolWarning && (
+          {isOnchain && step3Done && hasWalletNotInPoolWarning && (
             <div
               className="rounded-lg p-3 space-y-2"
               style={{
