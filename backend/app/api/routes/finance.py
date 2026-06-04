@@ -72,28 +72,36 @@ class NewUserPayload(BaseModel):
 
 
 class ManualPaymentPayload(BaseModel):
-    tx_hash: str = Field(..., min_length=66, max_length=66)
+    # On-chain only — optional now; required when method == "onchain_bsc"
+    tx_hash: Optional[str] = Field(None, min_length=66, max_length=66)
     plan_id: int
     admin_note: str = Field(..., min_length=10)
+
+    # Payment method. Default preserves the original on-chain behavior so
+    # existing callers (which send no `method`) are unaffected.
+    method: Literal["onchain_bsc", "binance_uid", "bank_transfer", "other"] = "onchain_bsc"
+    method_label: Optional[str] = None     # for "other": free-text method name (OVO/GoPay/Cash/...)
+    reference: Optional[str] = None        # Binance UID / bank ref / free note
+    paid_currency: Optional[str] = None    # "USDT" | "IDR" | ...
+    paid_amount: Optional[Decimal] = None  # amount in paid_currency (audit)
+    fx_rate: Optional[Decimal] = None      # rate to USD for non-USD methods (audit)
+    amount_usd: Optional[Decimal] = None   # USD value received — required for non-on-chain
 
     # User reference — exactly one of these must be set
     user_id: Optional[int] = None
     new_user: Optional[NewUserPayload] = None
 
-    # Admin acknowledges discrepancies
+    # Admin acknowledges discrepancies (on-chain only)
     accept_amount_mismatch: bool = False
     accept_wallet_not_in_pool: bool = False
 
-    # Override payment date (defaults to on-chain TX timestamp).
+    # Override payment date (defaults to on-chain TX timestamp, else now).
     # ISO 8601 date string e.g. "2026-05-14" — time is set to 00:00 UTC.
-    # Used when admin wants to record the payment with a different
-    # effective date than the on-chain TX time (e.g. user paid earlier
-    # via a different rail but admin only learned about it later).
     payment_date_override: Optional[str] = None
 
     @validator("tx_hash")
     def lower_hash(cls, v):
-        return v.lower()
+        return v.lower() if v else v
 
     @validator("payment_date_override")
     def validate_payment_date(cls, v):
@@ -167,6 +175,11 @@ def _serialize_row(payment, user, plan, include_bscscan=False, wallet_map=None):
         "wallet_to_exchange": wallet_to_exchange,
         "wallet_to_label": wallet_to_label,
         "network": payment.network,
+        "method": getattr(payment, "method", None),
+        "reference": getattr(payment, "reference", None),
+        "paid_currency": getattr(payment, "paid_currency", None),
+        "paid_amount": float(payment.paid_amount) if getattr(payment, "paid_amount", None) is not None else None,
+        "fx_rate": float(payment.fx_rate) if getattr(payment, "fx_rate", None) is not None else None,
         "verified_at": payment.verified_at,
         "expires_at": payment.expires_at,
         "notes": payment.notes,
@@ -485,12 +498,21 @@ async def create_manual_payment(
     admin: User = Depends(get_admin_user),
 ):
     """
-    Record a manually-paid TX (e.g. user paid via Telegram support).
+    Record a manually-paid subscription.
 
-    Backend re-verifies the TX, optionally creates a new user, inserts
-    a confirmed Payment row, grants subscription, and writes an audit
-    trail to payment.notes.
+    Methods (data.method):
+      - onchain_bsc   : paste a BSC TX hash; backend re-verifies on-chain (default).
+      - binance_uid   : off-chain Binance internal transfer; no verification.
+      - bank_transfer : fiat bank transfer (e.g. BCA). paid_amount/paid_currency/fx_rate
+                        capture the original payment; final_amount stored in USD.
+      - other         : any other rail (free-text label in method_label).
+
+    For non-on-chain methods there is NO chain verification — it is a
+    trust-based admin record (admin confirms funds arrived). Subscription
+    is granted identically regardless of method.
     """
+    is_onchain = (data.method == "onchain_bsc")
+
     # ─── Validate user selector ───
     if (data.user_id is None) == (data.new_user is None):
         raise HTTPException(
@@ -503,45 +525,62 @@ async def create_manual_payment(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found.")
 
-    # ─── Re-verify TX on chain ───
-    pool_rows = db.query(ReceivingWallet.address).all()
-    pool_set = {addr.lower() for (addr,) in pool_rows if addr}
-    details = await fetch_tx_details(data.tx_hash, valid_pool_addresses=pool_set)
-
-    if details.get("error"):
-        raise HTTPException(status_code=400, detail=details["error"])
-    if details.get("status") != "success":
-        raise HTTPException(status_code=400, detail="TX did not succeed on chain.")
-    if not details.get("is_usdt"):
-        raise HTTPException(status_code=400, detail="TX is not a USDT transfer.")
-
-    # Duplicate check
-    existing = db.query(Payment).filter(Payment.tx_hash == data.tx_hash).first()
-    if existing:
-        raise HTTPException(
-            status_code=409,
-            detail=f"This TX hash is already recorded (payment #{existing.id}).",
-        )
-
-    # Pool check — admin must explicitly accept if wallet not in pool
-    if details.get("in_pool") is False and not data.accept_wallet_not_in_pool:
-        raise HTTPException(
-            status_code=400,
-            detail="Recipient wallet is not in pool. Set accept_wallet_not_in_pool=true to override.",
-        )
-
-    # Amount check — admin must explicitly accept if amount differs from plan
-    tx_amount = Decimal(details["amount"])
     plan_price = Decimal(plan.price_usdt or 0)
-    amount_diff = abs(tx_amount - plan_price)
-    if amount_diff > AMOUNT_TOLERANCE and not data.accept_amount_mismatch:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Amount mismatch: TX is {tx_amount} USDT, plan price is {plan_price} USDT. "
-                f"Set accept_amount_mismatch=true to override."
-            ),
-        )
+    details = None  # on-chain inspection result (None for off-chain methods)
+
+    if is_onchain:
+        if not data.tx_hash:
+            raise HTTPException(status_code=400, detail="tx_hash is required for on-chain payments.")
+
+        # ─── Re-verify TX on chain ───
+        pool_rows = db.query(ReceivingWallet.address).all()
+        pool_set = {addr.lower() for (addr,) in pool_rows if addr}
+        details = await fetch_tx_details(data.tx_hash, valid_pool_addresses=pool_set)
+
+        if details.get("error"):
+            raise HTTPException(status_code=400, detail=details["error"])
+        if details.get("status") != "success":
+            raise HTTPException(status_code=400, detail="TX did not succeed on chain.")
+        if not details.get("is_usdt"):
+            raise HTTPException(status_code=400, detail="TX is not a USDT transfer.")
+
+        # Duplicate check
+        existing = db.query(Payment).filter(Payment.tx_hash == data.tx_hash).first()
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"This TX hash is already recorded (payment #{existing.id}).",
+            )
+
+        # Pool check — admin must explicitly accept if wallet not in pool
+        if details.get("in_pool") is False and not data.accept_wallet_not_in_pool:
+            raise HTTPException(
+                status_code=400,
+                detail="Recipient wallet is not in pool. Set accept_wallet_not_in_pool=true to override.",
+            )
+
+        # Amount check — admin must explicitly accept if amount differs from plan
+        tx_amount = Decimal(details["amount"])
+        amount_diff = abs(tx_amount - plan_price)
+        if amount_diff > AMOUNT_TOLERANCE and not data.accept_amount_mismatch:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Amount mismatch: TX is {tx_amount} USDT, plan price is {plan_price} USDT. "
+                    f"Set accept_amount_mismatch=true to override."
+                ),
+            )
+    else:
+        # ─── Off-chain method (binance_uid / bank_transfer / other) ───
+        # No chain verification. USD value comes from the admin (already
+        # converted client-side for bank transfers via live FX rate).
+        if data.amount_usd is None:
+            raise HTTPException(
+                status_code=400,
+                detail="amount_usd is required for non-on-chain payments.",
+            )
+        tx_amount = Decimal(str(data.amount_usd))   # USD value actually received
+        amount_diff = abs(tx_amount - plan_price)
 
     # ─── Resolve user (existing or create new) ───
     now = datetime.now(timezone.utc)
@@ -600,10 +639,9 @@ async def create_manual_payment(
     # Priority: admin override > on-chain TX timestamp > now
     tx_time = (
         datetime.fromisoformat(details["timestamp"])
-        if details.get("timestamp") else now
+        if (details and details.get("timestamp")) else now
     )
     if data.payment_date_override:
-        # Parse YYYY-MM-DD or full ISO — set time to 00:00 UTC if date-only
         v = data.payment_date_override
         if len(v) == 10:
             effective_date = datetime.strptime(v, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -616,11 +654,7 @@ async def create_manual_payment(
         effective_date = tx_time
         payment_date_was_overridden = False
 
-    # ─── Compute new expiration ───
-    # Uses effective_date as base, so user gets full duration starting
-    # from when they actually paid (on-chain TX time or admin override),
-    # not when admin clicked Record. If user already has an active
-    # subscription past effective_date, stack on top of that.
+    # ─── Compute new expiration (stack on existing if still active) ───
     is_lifetime = plan.duration_days is None or plan.duration_days == 0
     if is_lifetime:
         new_expires_at = None
@@ -633,8 +667,16 @@ async def create_manual_payment(
         )
         new_expires_at = base + timedelta(days=plan.duration_days)
 
+    # ─── Method display label (for audit note) ───
+    _method_labels = {
+        "onchain_bsc": "On-chain (BSC)",
+        "binance_uid": "Binance UID",
+        "bank_transfer": "Bank Transfer",
+        "other": (data.method_label or "Other"),
+    }
+    method_display = _method_labels.get(data.method, data.method)
+
     # ─── Build audit-trail note ───
-    tx_time_str = details.get("timestamp") or now.isoformat()
     amount_delta_label = ""
     if tx_amount > plan_price:
         amount_delta_label = f" (+{tx_amount - plan_price} over)"
@@ -643,14 +685,25 @@ async def create_manual_payment(
 
     audit_lines = [
         f"[Manual payment recorded by @{admin.username} on {now.strftime('%Y-%m-%d %H:%M UTC')}]",
-        f"  TX: {data.tx_hash}",
-        f"  Amount on-chain: {tx_amount} USDT",
-        f"  Plan price: {plan_price} USDT{amount_delta_label}",
-        f"  TX time: {tx_time_str}",
+        f"  Method: {method_display}",
     ]
+    if is_onchain:
+        tx_time_str = details.get("timestamp") or now.isoformat()
+        audit_lines.append(f"  TX: {data.tx_hash}")
+        audit_lines.append(f"  Amount on-chain: {tx_amount} USDT")
+        audit_lines.append(f"  TX time: {tx_time_str}")
+    else:
+        if data.paid_amount is not None and data.paid_currency and data.paid_currency.upper() != "USD":
+            _rate = f" @ {data.fx_rate}" if data.fx_rate is not None else ""
+            audit_lines.append(f"  Paid: {data.paid_amount} {data.paid_currency.upper()}{_rate} = ${tx_amount}")
+        else:
+            audit_lines.append(f"  Amount: ${tx_amount}")
+        if data.reference:
+            audit_lines.append(f"  Reference: {data.reference}")
+    audit_lines.append(f"  Plan price: {plan_price} USDT{amount_delta_label}")
     if payment_date_was_overridden:
         audit_lines.append(
-            f"  📅 Payment date overridden by admin: {effective_date.strftime('%Y-%m-%d')}"
+            f"  \U0001F4C5 Payment date set by admin: {effective_date.strftime('%Y-%m-%d')}"
         )
     audit_lines.append(
         f"  Subscription expires: "
@@ -658,45 +711,53 @@ async def create_manual_payment(
     )
     if user_was_new:
         audit_lines.append(f"  User created: @{user.username} (auth_provider=manual)")
-    if data.accept_amount_mismatch and amount_diff > AMOUNT_TOLERANCE:
-        audit_lines.append(f"  ⚠ Amount mismatch accepted by admin")
-    if data.accept_wallet_not_in_pool and details.get("in_pool") is False:
-        audit_lines.append(f"  ⚠ Out-of-pool wallet ({details.get('to')}) accepted by admin")
+    if is_onchain and data.accept_amount_mismatch and amount_diff > AMOUNT_TOLERANCE:
+        audit_lines.append(f"  \u26A0 Amount mismatch accepted by admin")
+    if is_onchain and data.accept_wallet_not_in_pool and details.get("in_pool") is False:
+        audit_lines.append(f"  \u26A0 Out-of-pool wallet ({details.get('to')}) accepted by admin")
     audit_lines.append(f"  Admin reason: {data.admin_note.strip()}")
     audit_note = "\n".join(audit_lines)
 
-    # ─── Create payment row ───
-    tx_verified_at = (
-        datetime.fromisoformat(details["timestamp"]) if details.get("timestamp") else now
-    )
+    # ─── Financial decomposition (hybrid) ───
+    #   amount_usdt   = plan price (nominal billed)
+    #   final_amount  = USD actually received (on-chain amount, or admin USD value)
+    #   discount_amount = signed delta so amount_usdt - discount_amount = final_amount
+    discount_amount = plan_price - tx_amount
 
-    # ─── Financial decomposition (Sudut C — hybrid) ──────────────────
-    #   amount_usdt     = plan price (nominal billed)         e.g. $50
-    #   final_amount    = TX amount actually received on chain e.g. $30
-    #   discount_amount = positive if underpaid, negative if overpaid
-    #                     so that amount_usdt - discount_amount = final_amount
-    # This keeps revenue dashboards aligned with on-chain cash flow
-    # while preserving the granted plan's nominal value.
-    discount_amount = plan_price - tx_amount  # +20 if underpaid, -2 if overpaid
+    # ─── Currency/amount to persist for audit ───
+    if is_onchain:
+        store_currency = "USDT"
+        store_paid_amount = tx_amount
+        store_fx_rate = None
+    else:
+        store_currency = (data.paid_currency or "USD").upper()
+        store_paid_amount = data.paid_amount if data.paid_amount is not None else tx_amount
+        store_fx_rate = data.fx_rate
+
+    # reference: for "other" fall back to the custom label if no explicit ref
+    store_reference = data.reference or (data.method_label if data.method == "other" else None)
 
     # ─── Create payment row ───
-    # verified_at = effective_date (TX time OR admin override) — used
-    # by revenue dashboards and 'Recently verified' sort.
     payment = Payment(
         user_id=user.id,
         plan_id=plan.id,
-        amount_usdt=plan_price,         # nominal price of plan granted
-        discount_amount=discount_amount, # signed delta vs final_amount
+        amount_usdt=plan_price,
+        discount_amount=discount_amount,
         credit_redeemed=Decimal("0"),
-        final_amount=tx_amount,          # actual USDT received (matches wallet)
+        final_amount=tx_amount,
         status="confirmed",
-        tx_hash=data.tx_hash,
-        wallet_from=details.get("from"),
-        wallet_to=details.get("to"),
-        network="BSC",
+        tx_hash=(data.tx_hash if is_onchain else None),
+        wallet_from=(details.get("from") if is_onchain else None),
+        wallet_to=(details.get("to") if is_onchain else None),
+        network=("BSC" if is_onchain else None),
         verified_at=effective_date,
         notes=audit_note,
-        bscscan_data=details,
+        bscscan_data=(details if is_onchain else None),
+        method=data.method,
+        reference=store_reference,
+        paid_currency=store_currency,
+        paid_amount=store_paid_amount,
+        fx_rate=store_fx_rate,
     )
     db.add(payment)
 
@@ -717,9 +778,9 @@ async def create_manual_payment(
     db.refresh(user)
 
     logger.info(
-        f"✅ Manual payment #{payment.id} recorded by admin @{admin.username} "
-        f"for user @{user.username} ({'NEW' if user_was_new else 'existing'}) — "
-        f"plan {plan.label} (${plan_price}), TX {data.tx_hash[:10]}…"
+        f"\u2705 Manual payment #{payment.id} ({data.method}) recorded by admin @{admin.username} "
+        f"for user @{user.username} ({'NEW' if user_was_new else 'existing'}) \u2014 "
+        f"plan {plan.label} (${plan_price})"
     )
 
     wallet_map = _build_wallet_map(db, [payment.wallet_to] if payment.wallet_to else [])
