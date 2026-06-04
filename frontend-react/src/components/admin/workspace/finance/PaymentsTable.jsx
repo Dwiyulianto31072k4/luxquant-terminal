@@ -83,6 +83,29 @@ const ManualBadge = ({ dense = false }) => (
   </span>
 );
 
+const METHOD_BADGE = {
+  binance_uid:   { label: 'Binance UID', color: '#F0B90B' },
+  bank_transfer: { label: 'Bank',        color: '#60a5fa' },
+  other:         { label: 'Other',       color: '#a78bfa' },
+};
+
+const MethodBadge = ({ method, dense = false }) => {
+  const m = METHOD_BADGE[method];
+  if (!m) return null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 font-bold uppercase tracking-wider rounded ${
+        dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[9.5px] px-2 py-0.5'
+      }`}
+      style={{ background: `${m.color}14`, color: m.color, border: `1px solid ${m.color}33` }}
+      title={`Manual \u2014 ${m.label}`}
+    >
+      <StarIcon size={9} />
+      {m.label}
+    </span>
+  );
+};
+
 /* ── Icon button ──────────────────────────────────────────────────── */
 
 const TONE = {
@@ -289,7 +312,11 @@ const DesktopRow = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
           isStale={payment.is_stale}
           ageHours={payment.age_hours}
         />
-        {payment.is_manual && <ManualBadge dense />}
+        {payment.method && payment.method !== 'onchain_bsc' ? (
+          <MethodBadge method={payment.method} dense />
+        ) : (
+          payment.is_manual && <ManualBadge dense />
+        )}
       </div>
 
       {/* TX hash + exchange badge */}
@@ -407,7 +434,11 @@ const MobileCard = ({ payment, onOpenDetail, onQuickApprove, onQuickCancel, onCo
             ageHours={payment.age_hours}
             dense
           />
-          {payment.is_manual && <ManualBadge dense />}
+          {payment.method && payment.method !== 'onchain_bsc' ? (
+            <MethodBadge method={payment.method} dense />
+          ) : (
+            payment.is_manual && <ManualBadge dense />
+          )}
         </div>
       </div>
 
