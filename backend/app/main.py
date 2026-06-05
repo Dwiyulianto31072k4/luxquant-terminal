@@ -10,6 +10,7 @@ import asyncio
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.api.routes import signal_journey
+from app.api.routes import api_keys
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
@@ -145,6 +146,7 @@ app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
+app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(discord_auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
 app.include_router(admin_cashout_router, prefix="/api/v1", tags=["admin-cashout"])
