@@ -1,94 +1,78 @@
-// src/services/autotradeApi.js
-// ============================================================
-// LuxQuant Terminal — AutoTrade API client
-// Wraps all 18 backend endpoints under /api/v1/autotrade
-// ============================================================
-
-const BASE = "/api/v1/autotrade";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function getToken() {
   return localStorage.getItem("access_token") || "";
 }
 
-async function request(path, { method = "GET", body, params } = {}) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, v);
-    });
+function buildUrl(path) {
+  if (/^https?:\/\//i.test(path)) return path;
+  if (!API_BASE) return path;
+  return `${API_BASE}${path}`;
+}
+
+async function request(path, { method = "GET", body } = {}) {
+  const headers = {};
+  const token = getToken();
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
 
-  const resp = await fetch(url.pathname + url.search, {
+  const response = await fetch(buildUrl(path), {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (!resp.ok) {
+  if (!response.ok) {
     let detail = "Request failed";
+
     try {
-      const err = await resp.json();
-      detail = err.detail || err.error || detail;
-    } catch {}
+      const errorBody = await response.json();
+      if (Array.isArray(errorBody?.detail)) {
+        detail = errorBody.detail
+          .map((item) => item?.msg || item?.message || "Validation error")
+          .join(", ");
+      } else if (typeof errorBody?.detail === "string") {
+        detail = errorBody.detail;
+      }
+    } catch {
+      detail = response.statusText || detail;
+    }
+
     throw new Error(detail);
   }
 
-  if (resp.status === 204) return null;
-  return resp.json();
+  if (response.status === 204) return null;
+  return response.json();
 }
 
-// ============================================================
-// Exchange metadata
-// ============================================================
-export const listSupportedExchanges = () => request("/exchanges");
+export const getHealth = () => request("/health");
+export const getMe = () => request("/me");
+export const saveBinanceKeys = (payload) =>
+  request("/me/exchange-accounts/binance", { method: "PUT", body: payload });
+export const checkBinanceKeys = () =>
+  request("/me/exchange-accounts/binance/check", { method: "POST" });
 
-// ============================================================
-// Accounts
-// ============================================================
-export const listAccounts = () => request("/accounts");
-export const getAccount = (id) => request(`/accounts/${id}`);
-export const createAccount = (data) => request("/accounts", { method: "POST", body: data });
-export const updateAccount = (id, data) => request(`/accounts/${id}`, { method: "PUT", body: data });
-export const deleteAccount = (id) => request(`/accounts/${id}`, { method: "DELETE" });
-export const testAccountConnection = (id) => request(`/accounts/${id}/test`, { method: "POST" });
-export const fetchAccountBalance = (id) => request(`/accounts/${id}/balance`);
+export const getPortfolio = () => request("/me/portfolio");
 
-// ============================================================
-// Config
-// ============================================================
-export const getConfig = (accountId) => request(`/config/${accountId}`);
-export const updateConfig = (accountId, data) =>
-  request(`/config/${accountId}`, { method: "PUT", body: data });
-export const toggleConfig = (accountId, enabled) =>
-  request(`/config/${accountId}/toggle`, { method: "POST", body: { enabled } });
-
-// ============================================================
-// Trade orders
-// ============================================================
-export const listOrders = (filters = {}) => request("/orders", { params: filters });
-export const getOrder = (id) => request(`/orders/${id}`);
-export const getOrderLogs = (id, limit = 50) =>
-  request(`/orders/${id}/logs`, { params: { limit } });
-export const closeOrderManually = (id, reason = "manual") =>
-  request(`/orders/${id}/close`, { method: "POST", body: { reason } });
-
-// ============================================================
-// Portfolio
-// ============================================================
-export const getPortfolioSummary = () => request("/portfolio/summary");
-export const getPortfolioByExchange = () => request("/portfolio/by-exchange");
-export const getDailyPnl = (days = 30, exchangeAccountId) =>
-  request("/portfolio/daily-pnl", {
-    params: { days, exchange_account_id: exchangeAccountId },
+export const getStrategyConfigs = () => request("/me/strategy-configs");
+export const updateBinanceStrategyConfig = (payload) =>
+  request("/me/strategy-configs/binance", { method: "PUT", body: payload });
+export const setBinanceStrategyActive = (active) =>
+  request("/me/strategy-configs/binance/active", {
+    method: "PUT",
+    body: { active },
   });
 
-// ============================================================
-// Engine
-// ============================================================
-export const getEngineStatus = () => request("/engine/status");
+export const getSignals = () => request("/signals");
+export const parseSignalPreview = (text) =>
+  request("/signals/parse-preview", { method: "POST", body: { text } });
 
-export const getOrderPnLCard = (orderId) => request(`/orders/${orderId}/pnl-card`);
+export const getExecutions = () => request("/executions");
+export const retryExecution = (executionId) =>
+  request(`/executions/${executionId}/retry`, { method: "POST" });
