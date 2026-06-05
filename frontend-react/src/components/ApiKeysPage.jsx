@@ -21,6 +21,8 @@ import { useAuth } from '../context/AuthContext';
 import { apiKeysApi } from '../services/api';
 
 const PUBLIC_BASE = 'https://luxquant.tw/api/public/v1';
+const CURL_CMD = `curl ${PUBLIC_BASE}/signals \\
+  -H "Authorization: Bearer YOUR_KEY"`;
 const MAX_REVOKED_VISIBLE = 3;
 const KEY_CAP = 2;
 const RATE_LIMIT = 60;
@@ -98,6 +100,7 @@ const ApiKeysPage = () => {
   const [copied, setCopied] = useState(false);
   const [revokingId, setRevokingId] = useState(null);
   const [showAllRevoked, setShowAllRevoked] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
 
   const activeCount = keys.filter((k) => k.is_active).length;
   const atLimit = activeCount >= KEY_CAP;
@@ -163,6 +166,16 @@ const ApiKeysPage = () => {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked */
+    }
+  };
+
+  const copyCurl = async () => {
+    try {
+      await navigator.clipboard.writeText(CURL_CMD);
+      setCopiedCurl(true);
+      setTimeout(() => setCopiedCurl(false), 2000);
     } catch {
       /* clipboard blocked */
     }
@@ -400,10 +413,15 @@ const ApiKeysPage = () => {
           <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
             <SectionHead>{t('apiKeys.usage_title')}</SectionHead>
             <p className="text-text-secondary text-[13px] mb-3">{t('apiKeys.usage_desc')}</p>
-            <pre className="px-4 py-3 rounded-lg font-mono text-[11px] text-text-secondary bg-black/40 border border-white/5 overflow-x-auto">
-{`curl ${PUBLIC_BASE}/signals \\
-  -H "Authorization: Bearer YOUR_KEY"`}
-            </pre>
+            <div className="relative">
+              <pre className="px-3 py-3 pr-12 rounded-lg font-mono text-[11px] leading-relaxed text-text-secondary bg-black/40 border border-white/5 whitespace-pre-wrap break-all">{CURL_CMD}</pre>
+              <button
+                onClick={copyCurl}
+                className="absolute top-2 right-2 px-2 py-1 rounded-md text-[10px] font-semibold bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-colors"
+              >
+                {copiedCurl ? t('apiKeys.copied') : t('apiKeys.copy')}
+              </button>
+            </div>
             <div className="mt-4 space-y-1.5 text-[12px]">
               {[
                 ['GET /signals', t('apiKeys.ep_signals')],
