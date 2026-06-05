@@ -171,34 +171,22 @@ const ApiKeysPage = () => {
   return (
     <div className="max-w-6xl mx-auto px-1 sm:px-2 lg:px-0 space-y-6">
       {/* ── Header ── */}
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
-              {t('apiKeys.eyebrow')}
-            </span>
-          </div>
-          <h1
-            className="text-3xl sm:text-4xl text-white"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: '-0.025em' }}
-          >
-            {t('apiKeys.title')}
-          </h1>
-          <p className="text-text-muted text-xs sm:text-sm mt-1.5 max-w-2xl">
-            {t('apiKeys.subtitle')}
-          </p>
+      <header>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-1 h-3 rounded-full bg-gold-primary" />
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+            {t('apiKeys.eyebrow')}
+          </span>
         </div>
-        <span
-          className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-wide border flex-shrink-0 ${
-            hasAccess
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-white/5 text-text-muted border-white/10'
-          }`}
+        <h1
+          className="text-3xl sm:text-4xl text-white"
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: '-0.025em' }}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${hasAccess ? 'bg-emerald-400' : 'bg-text-muted'}`} />
-          {accessLabel(user, t)}
-        </span>
+          {t('apiKeys.title')}
+        </h1>
+        <p className="text-text-muted text-xs sm:text-sm mt-1.5 max-w-2xl">
+          {t('apiKeys.subtitle')}
+        </p>
       </header>
 
       {/* ── Stat cards ── */}
