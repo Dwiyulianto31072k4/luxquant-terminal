@@ -26,7 +26,7 @@ from app.models.api_key import ApiKey, generate_api_key
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
 # Batas key aktif per user (cegah spam). Revoke dulu kalau mau bikin lagi.
-MAX_ACTIVE_KEYS_PER_USER = 10
+MAX_ACTIVE_KEYS_PER_USER = 2
 
 
 # ── Schemas ──

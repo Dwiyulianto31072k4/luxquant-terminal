@@ -9,6 +9,9 @@
 //
 // Backend (JWT): POST/GET/PATCH/DELETE /api/v1/api-keys
 // Data API (key): https://luxquant.tw/api/public/v1/...
+//
+// Daftar key: active tampil semua; revoked dipotong 3 terbaru biar
+// nggak makan tempat, sisanya di balik toggle "lihat semua".
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiKeysApi } from '../services/api';
 
 const PUBLIC_BASE = 'https://luxquant.tw/api/public/v1';
+const MAX_REVOKED_VISIBLE = 3;
 
 function deriveActiveAccess(user) {
   if (!user) return false;
@@ -64,9 +68,19 @@ const ApiKeysPage = () => {
   const [justCreated, setJustCreated] = useState(null);
   const [copied, setCopied] = useState(false);
   const [revokingId, setRevokingId] = useState(null);
+  const [showAllRevoked, setShowAllRevoked] = useState(false);
 
   const activeCount = keys.filter((k) => k.is_active).length;
-  const atLimit = activeCount >= 10;
+  const atLimit = activeCount >= 2;
+
+  // active dulu (apa adanya), lalu revoked diurut terbaru -> lama.
+  const activeKeys = keys.filter((k) => k.is_active);
+  const revokedKeys = keys
+    .filter((k) => !k.is_active)
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const visibleRevoked = showAllRevoked ? revokedKeys : revokedKeys.slice(0, MAX_REVOKED_VISIBLE);
+  const hiddenRevokedCount = revokedKeys.length - visibleRevoked.length;
+  const displayedKeys = [...activeKeys, ...visibleRevoked];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -186,7 +200,7 @@ const ApiKeysPage = () => {
         <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-semibold text-sm">{t('apiKeys.create_title')}</h2>
-            <span className="font-mono text-[11px] text-text-muted">{activeCount}/10 {t('apiKeys.active')}</span>
+            <span className="font-mono text-[11px] text-text-muted">{activeCount}/2 {t('apiKeys.active')}</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <input
@@ -260,7 +274,7 @@ const ApiKeysPage = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {keys.map((k) => (
+            {displayedKeys.map((k) => (
               <div
                 key={k.id}
                 className={`rounded-xl p-4 border bg-white/[0.02] transition-colors ${
@@ -306,6 +320,21 @@ const ApiKeysPage = () => {
                 </div>
               </div>
             ))}
+
+            {/* Toggle lihat semua / lebih sedikit (cuma kalau revoked > 3) */}
+            {revokedKeys.length > MAX_REVOKED_VISIBLE && (
+              <button
+                onClick={() => setShowAllRevoked((v) => !v)}
+                className="w-full mt-1 py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
+              >
+                {showAllRevoked
+                  ? t('apiKeys.show_less', { defaultValue: 'Show less' })
+                  : t('apiKeys.show_all_revoked', {
+                      defaultValue: 'Show all revoked ({{n}})',
+                      n: revokedKeys.length,
+                    })}
+              </button>
+            )}
           </div>
         )}
       </div>
