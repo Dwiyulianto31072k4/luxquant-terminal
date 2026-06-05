@@ -95,4 +95,11 @@ export const marketApi = {
   },
 };
 
+export const apiKeysApi = {
+  list: async () => (await api.get("/api-keys")).data,
+  create: async (name = null) => (await api.post("/api-keys", { name })).data,
+  rename: async (id, name) => (await api.patch(`/api-keys/${id}`, { name })).data,
+  revoke: async (id) => (await api.delete(`/api-keys/${id}`)).data,
+};
+
 export default api;
