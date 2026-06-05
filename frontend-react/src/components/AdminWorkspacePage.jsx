@@ -32,6 +32,7 @@ import { MarketingTab } from './admin/workspace/MarketingTab';
 import { FinanceTab } from './admin/workspace/FinanceTab';
 import { TodoTab } from './admin/workspace/TodoTab';
 import { ActivityTab } from './admin/workspace/ActivityTab';
+import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
 
 // Design system
 import { palette, surface, tint, motion } from './admin/designSystem';
@@ -102,6 +103,13 @@ const TABS = [
     description: 'Engagement & growth analytics',
     Icon: ActivityIcon,
     accent: palette.teal[400],
+  },
+  {
+    id: 'apikeys',
+    label: 'API',
+    description: 'Developer keys & abuse flags',
+    Icon: ShieldIcon,
+    accent: palette.gold[300],
   },
 ];
 
@@ -622,6 +630,7 @@ const AdminWorkspacePage = () => {
         )}
         {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
         {activeTab === 'activity' && <ActivityTab />}
+        {activeTab === 'apikeys' && <ApiKeysTab />}
       </div>
     </div>
   );
