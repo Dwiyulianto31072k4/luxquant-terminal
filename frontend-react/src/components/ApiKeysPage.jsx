@@ -413,29 +413,17 @@ const ApiKeysPage = () => {
           <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
             <SectionHead>{t('apiKeys.usage_title')}</SectionHead>
             <p className="text-text-secondary text-[13px] mb-3">{t('apiKeys.usage_desc')}</p>
-            <div className="relative">
-              <pre className="px-3 py-3 pr-12 rounded-lg font-mono text-[11px] leading-relaxed text-text-secondary bg-black/40 border border-white/5 whitespace-pre-wrap break-all">{CURL_CMD}</pre>
-              <button
-                onClick={copyCurl}
-                className="absolute top-2 right-2 px-2 py-1 rounded-md text-[10px] font-semibold bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-colors"
-              >
-                {copiedCurl ? t('apiKeys.copied') : t('apiKeys.copy')}
-              </button>
-            </div>
-            <div className="mt-4 space-y-1.5 text-[12px]">
-              {[
-                ['GET /signals', t('apiKeys.ep_signals')],
-                ['GET /signals/updates', t('apiKeys.ep_updates')],
-                ['GET /journey/{id}', t('apiKeys.ep_journey')],
-                ['GET /enrichment/{id}', t('apiKeys.ep_enrichment')],
-                ['GET /btc-correlation/recent', t('apiKeys.ep_corr')],
-                ['GET /market-pulse/feed', t('apiKeys.ep_pulse')],
-              ].map(([ep, desc]) => (
-                <div key={ep} className="flex items-baseline gap-2 min-w-0">
-                  <code className="font-mono text-[11px] text-gold-primary/80 whitespace-nowrap">{ep}</code>
-                  <span className="text-text-muted truncate">{desc}</span>
-                </div>
-              ))}
+            <div className="rounded-lg bg-black/40 border border-white/5 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">bash</span>
+                <button
+                  onClick={copyCurl}
+                  className="text-[10px] font-semibold text-gold-primary hover:text-gold-light transition-colors"
+                >
+                  {copiedCurl ? t('apiKeys.copied') : t('apiKeys.copy')}
+                </button>
+              </div>
+              <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">{CURL_CMD}</pre>
             </div>
             <p className="text-[11px] text-text-muted mt-4">{t('apiKeys.usage_note')}</p>
           </div>
@@ -458,6 +446,29 @@ const ApiKeysPage = () => {
               </li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      {/* ── Endpoints reference (full width, no truncation) ── */}
+      <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+        <SectionHead>{t('apiKeys.endpoints_title', { defaultValue: 'Endpoints' })}</SectionHead>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            ['GET', '/signals', t('apiKeys.ep_signals')],
+            ['GET', '/signals/updates', t('apiKeys.ep_updates')],
+            ['GET', '/journey/{id}', t('apiKeys.ep_journey')],
+            ['GET', '/enrichment/{id}', t('apiKeys.ep_enrichment')],
+            ['GET', '/btc-correlation/recent', t('apiKeys.ep_corr')],
+            ['GET', '/market-pulse/feed', t('apiKeys.ep_pulse')],
+          ].map(([method, path, desc]) => (
+            <div key={path} className="rounded-lg p-3 border border-white/5 bg-white/[0.01]">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="font-mono text-[10px] font-bold text-emerald-400/80">{method}</span>
+                <code className="font-mono text-[11px] text-gold-primary/90 break-all">{path}</code>
+              </div>
+              <p className="text-[11px] text-text-muted mt-1.5 leading-relaxed">{desc}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
