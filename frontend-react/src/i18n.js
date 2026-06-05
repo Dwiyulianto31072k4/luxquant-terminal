@@ -46,6 +46,7 @@ const resources = {
       notifications: notificationsEn,
       helpModal: helpModalEn,
       mfm: moreFeaturesEn,
+      apiKeys: apiKeysEn,
     }
   },
   zh: {
@@ -74,6 +75,7 @@ const resources = {
       notifications: notificationsZh,
       helpModal: helpModalZh,
       mfm: moreFeaturesZh,
+      apiKeys: apiKeysZh,
     }
   }
 };
