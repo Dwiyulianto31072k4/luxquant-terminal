@@ -132,7 +132,7 @@ async def get_api_key_user(
     user = api_key.user
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account inactive")
-    if not user.is_premium:
+    if not user.has_active_access:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Subscription inactive")
 
     # 4. Rate limit per-user (override key kalau ada, else default global).
