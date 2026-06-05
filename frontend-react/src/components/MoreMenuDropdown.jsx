@@ -171,6 +171,11 @@ const MoreMenuDropdown = ({
         <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" /><path d="M9 12 L11 14 L15 9.5" />
       </svg>
     ),
+    apiKeys: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="7.5" cy="15.5" r="3.5" /><path d="M10 13 L20 3 M17 6 L20 9 M14 9 L16 11" />
+      </svg>
+    ),
   };
 
   // ─── Category accents (RGB triplets) — warm, theme-cohesive ───
@@ -222,6 +227,7 @@ const MoreMenuDropdown = ({
         { path: '/watchlist', icon: Icon.watchlist, label: t('mfm.watchlist') },
         { path: '/tips',      icon: Icon.tips,      label: t('mfm.tips') },
         { path: '/referral',  icon: Icon.referral,  label: t('mfm.referral') },
+        { path: '/api-keys', icon: Icon.apiKeys, label: t('mfm.api_keys', { defaultValue: 'API Keys' }) },
         ...(isAdmin ? [{ path: '/admin', icon: Icon.admin, label: t('mfm.admin'), isAdmin: true }] : []),
       ],
     },

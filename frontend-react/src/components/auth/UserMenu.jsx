@@ -286,6 +286,12 @@ const UserMenu = () => {
               label={t('userMenu.help_support')}
               onClick={() => { handleClose(); setShowHelpModal(true); }}
             />
+            <MenuItem
+              icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />}
+              label={t('userMenu.api_keys', { defaultValue: 'API Keys' })}
+              sublabel={t('userMenu.api_keys_desc', { defaultValue: 'For bots & autotrade' })}
+              onClick={() => handleNavClick('/api-keys')}
+            />
           </div>
 
           <div className="mx-3 h-px bg-white/[0.05]" />

@@ -17,6 +17,7 @@ import { profileEn, profileZh } from './locales/profile';
 import { notificationsEn, notificationsZh } from './locales/notifications';
 import { helpModalEn, helpModalZh } from './locales/helpModal';
 import { moreFeaturesEn, moreFeaturesZh } from './locales/moreFeatures';
+import { apiKeysEn, apiKeysZh } from './locales/apiKeys';
 
 const resources = {
   en: {

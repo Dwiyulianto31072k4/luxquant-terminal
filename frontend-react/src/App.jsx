@@ -28,6 +28,7 @@ const OverviewPage = lazy(() => import("./components/OverviewPage"));
 const SignalsPage = lazy(() => import("./components/SignalsPage"));
 const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
+const ApiKeysPage = lazy(() => import("./components/ApiKeysPage"));
 const AnalyzePage = lazy(() => import("./components/AnalyzePage"));
 const WatchlistPage = lazy(() => import("./components/WatchlistPage"));
 const TipsPage = lazy(() => import("./components/TipsPage"));
@@ -61,9 +62,7 @@ const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const DailyPerformancePage = lazy(
   () => import("./components/DailyPerformancePage"),
 );
-const EdgeLabPage = lazy(
-  () => import("./components/EdgeLabPage"),
-);
+const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -110,6 +109,7 @@ const LOGIN_REQUIRED = [
   "/onchain",
   "/autotrade",
   "/portfolio",
+  "/api-keys",
 ];
 
 const PREMIUM_REQUIRED = [
@@ -128,6 +128,7 @@ const PREMIUM_REQUIRED = [
   "/onchain",
   "/autotrade",
   "/portfolio",
+  "/api-keys",
 ];
 
 // ════════════════════════════════════════
@@ -1436,6 +1437,18 @@ function App() {
               }
             />
             <Route
+              path="/api-keys"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <PremiumGate>
+                      <ApiKeysPage />
+                    </PremiumGate>
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
               path="/notifications"
               element={
                 <RequireAuth>
@@ -1598,7 +1611,10 @@ function App() {
               }
             />
             {/* /whale lama → redirect ke /money-flow (Whale Alert sekarang tab di sana) */}
-            <Route path="/whale" element={<Navigate to="/money-flow" replace />} />
+            <Route
+              path="/whale"
+              element={<Navigate to="/money-flow" replace />}
+            />
             <Route
               path="/onchain"
               element={
