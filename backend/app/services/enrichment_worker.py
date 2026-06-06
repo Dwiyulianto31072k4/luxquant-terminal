@@ -294,27 +294,36 @@ async def _try_fetch_volume_symbol(symbol: str) -> float:
 
 async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFrame:
     """
-    Two-pass OHLCV fetch (PATCH-2026-06-06-ENRICHMENT-C):
-      Pass 1: try the pair as-is across _OHLCV_EXCHANGES (works for spot and
-              unscaled perps).
-      Pass 2: if the pair has a Binance-perp multiplier prefix (1000PEPE,
-              1000000MOG, ...), strip it and retry on the base symbol, then
-              scale OHLC prices by the multiplier so they match the contract
-              notation used by the signal (entry/TP/SL).
+    Three-pass OHLCV fetch (PATCH-2026-06-06-ENRICHMENT-D):
+      Pass 1: spot symbol "XYZ/USDT" -- standard path for established coins.
+      Pass 2: perp symbol "XYZ/USDT:USDT" -- ccxt notation for linear
+              USDT-margined perpetuals. Many coins (RAYSOL, ALL, new launches)
+              list perp-only on Binance/MEXC/Gate without a spot pair. No
+              scaling needed: perp prices ARE the contract notation.
+      Pass 3: multiplier-prefix fallback (1000PEPE -> PEPE x1000). Strip
+              prefix, retry as spot, scale OHLC prices by the multiplier.
     """
     tf = INTERVAL_MAP.get(interval, interval)
+    spot_symbol = _normalize_pair(pair)
 
-    # Pass 1: as-is symbol
-    df = await _try_fetch_ohlcv_symbol(_normalize_pair(pair), tf, limit)
+    # Pass 1: spot
+    df = await _try_fetch_ohlcv_symbol(spot_symbol, tf, limit)
     if not df.empty:
         return df
 
-    # Pass 2: multiplier-prefix fallback
+    # Pass 2: perp (linear USDT-margined)
+    perp_symbol = f"{spot_symbol}:USDT"
+    logger.debug(f"  Perp fallback: {pair} -> {perp_symbol}")
+    df = await _try_fetch_ohlcv_symbol(perp_symbol, tf, limit)
+    if not df.empty:
+        return df
+
+    # Pass 3: multiplier-prefix fallback
     base_pair, multiplier = _detect_multiplier(pair)
     if multiplier > 1:
-        base_symbol = _normalize_pair(base_pair)
-        logger.debug(f"  Multiplier fallback: {pair} -> {base_symbol} x{multiplier}")
-        df = await _try_fetch_ohlcv_symbol(base_symbol, tf, limit)
+        base_spot = _normalize_pair(base_pair)
+        logger.debug(f"  Multiplier fallback: {pair} -> {base_spot} x{multiplier}")
+        df = await _try_fetch_ohlcv_symbol(base_spot, tf, limit)
         if not df.empty:
             for col in ["open", "high", "low", "close"]:
                 df[col] = df[col] * multiplier
@@ -326,16 +335,22 @@ async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFram
 
 async def fetch_24h_volume(pair: str) -> float:
     """
-    Two-pass 24h volume fetch with multiplier-prefix fallback
-    (PATCH-2026-06-06-ENRICHMENT-C). Note: quoteVolume is reported in USDT
-    by ccxt -- no scaling applied (multiplier only matters for price fields).
+    Three-pass 24h volume fetch (PATCH-2026-06-06-ENRICHMENT-D).
+    Note: quoteVolume reported in USDT by ccxt -- no scaling applied.
     """
-    # Pass 1: as-is symbol
-    vol = await _try_fetch_volume_symbol(_normalize_pair(pair))
+    spot_symbol = _normalize_pair(pair)
+
+    # Pass 1: spot
+    vol = await _try_fetch_volume_symbol(spot_symbol)
     if vol > 0:
         return vol
 
-    # Pass 2: multiplier-prefix fallback
+    # Pass 2: perp
+    vol = await _try_fetch_volume_symbol(f"{spot_symbol}:USDT")
+    if vol > 0:
+        return vol
+
+    # Pass 3: multiplier-prefix fallback
     base_pair, multiplier = _detect_multiplier(pair)
     if multiplier > 1:
         vol = await _try_fetch_volume_symbol(_normalize_pair(base_pair))
