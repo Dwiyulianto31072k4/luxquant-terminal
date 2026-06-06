@@ -227,7 +227,17 @@ async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFram
     symbol = _normalize_pair(pair)
     tf = INTERVAL_MAP.get(interval, interval)
 
-    for ExchangeClass in [ccxt_async.binance, ccxt_async.bybit]:
+    # PATCH-2026-06-06-ENRICHMENT-A: expand exchange list -- covers new/tier-2 listings
+    for ExchangeClass in [
+        ccxt_async.binance,
+        ccxt_async.bybit,
+        ccxt_async.okx,
+        ccxt_async.mexc,
+        ccxt_async.gate,
+        ccxt_async.kucoin,
+        ccxt_async.bitget,
+        ccxt_async.bingx,
+    ]:
         exchange = ExchangeClass({"enableRateLimit": True})
         try:
             ohlcv = await exchange.fetch_ohlcv(symbol, tf, limit=limit)
@@ -253,7 +263,17 @@ async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFram
 async def fetch_24h_volume(pair: str) -> float:
     symbol = _normalize_pair(pair)
 
-    for ExchangeClass in [ccxt_async.binance, ccxt_async.bybit]:
+    # PATCH-2026-06-06-ENRICHMENT-A: expand exchange list
+    for ExchangeClass in [
+        ccxt_async.binance,
+        ccxt_async.bybit,
+        ccxt_async.okx,
+        ccxt_async.mexc,
+        ccxt_async.gate,
+        ccxt_async.kucoin,
+        ccxt_async.bitget,
+        ccxt_async.bingx,
+    ]:
         exchange = ExchangeClass({"enableRateLimit": True})
         try:
             ticker = await exchange.fetch_ticker(symbol)

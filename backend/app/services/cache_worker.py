@@ -630,23 +630,34 @@ async def fetch_market_overview():
     if result["btc"] and not futures_blocked:
         btc_price = result["btc"]["price"]
         try:
-            # Funding rates — sequential with small delay to reduce connection pressure
-            for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]:
-                try:
-                    fr = await client.get(
-                        f"{BINANCE_FUTURES_API}/fapi/v1/fundingRate",
-                        params={"symbol": sym, "limit": 1}
-                    )
-                    d = fr.json()
-                    if d and isinstance(d, list):
-                        result["fundingRates"].append({
+            # PATCH-2026-06-06-ENRICHMENT-B: one premiumIndex call returns ALL USDT perps.
+            # Builds two outputs:
+            #   result["fundingRates"]    = top-4 (BTC/ETH/SOL/BNB) -- frontend backward-compat
+            #   result["fundingRatesAll"] = every USDT perp -- consumed by enrichment worker
+            try:
+                pi = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
+                pi_data = pi.json()
+                if pi_data and isinstance(pi_data, list):
+                    all_funding = []
+                    for item in pi_data:
+                        sym = item.get("symbol", "")
+                        if not sym.endswith("USDT"):
+                            continue
+                        try:
+                            rate = float(item.get("lastFundingRate", 0))
+                            next_time = int(item.get("nextFundingTime", 0))
+                        except (TypeError, ValueError):
+                            continue
+                        all_funding.append({
                             "symbol": sym.replace("USDT", ""),
-                            "rate": float(d[0]["fundingRate"]),
-                            "time": int(d[0]["fundingTime"])
+                            "rate": rate,
+                            "time": next_time,
                         })
-                except Exception:
-                    continue
-                await asyncio.sleep(0.2)  # CHANGED: small delay between requests
+                    top4 = {"BTC", "ETH", "SOL", "BNB"}
+                    result["fundingRates"] = [f for f in all_funding if f["symbol"] in top4]
+                    result["fundingRatesAll"] = all_funding
+            except Exception:
+                pass
 
             # Long/short ratio
             ls = await client.get(
@@ -945,6 +956,9 @@ async def market_cache_loop():
                 cache_set("lq:market:btc-ticker", overview["btc"], ttl=interval + 5)
                 if overview.get("fundingRates"):
                     cache_set("lq:market:funding-rates", overview["fundingRates"], ttl=interval + 5)
+                # PATCH-2026-06-06-ENRICHMENT-B: full per-symbol funding for enrichment worker
+                if overview.get("fundingRatesAll"):
+                    cache_set("lq:market:funding-all", overview["fundingRatesAll"], ttl=interval + 5)
                 if overview.get("longShortRatio"):
                     cache_set("lq:market:long-short-ratio", overview["longShortRatio"], ttl=interval + 5)
                 if overview.get("openInterest"):
