@@ -75,6 +75,38 @@ _SIGNAL_COLS = """
     s.market_cap, s.created_at
 """
 
+# ── Status filter (user-facing) ─────────────────────────────────────
+# Nilai yang user kirim di ?status= harus salah satu ini. Sama persis
+# dengan output _STATUS_CASE biar konsisten (kalau response punya
+# status='closed_win', filter ?status=closed_win harus matchin).
+VALID_STATUSES = ("open", "tp1", "tp2", "tp3", "closed_win", "closed_loss")
+
+# Map status -> outcome di DB (tp4 di outcome jadi closed_win di status, dst).
+_STATUS_TO_OUTCOME = {
+    "tp1": "tp1",
+    "tp2": "tp2",
+    "tp3": "tp3",
+    "closed_win": "tp4",
+    "closed_loss": "sl",
+    # "open" ditangani khusus -> so.outcome IS NULL
+}
+
+
+def _status_filter_clause(status_val: str):
+    """
+    Return (sql_fragment, extra_params) untuk filter status user-facing.
+    Raise 400 dengan daftar valid value kalau status_val nggak dikenal —
+    biar user yang nebak-nebak langsung tau apa yang valid.
+    """
+    if status_val not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status. Must be one of: {list(VALID_STATUSES)}",
+        )
+    if status_val == "open":
+        return "so.outcome IS NULL", {}
+    return "so.outcome = :status_outcome", {"status_outcome": _STATUS_TO_OUTCOME[status_val]}
+
 
 def _sig_dict(r) -> dict:
     return {
@@ -99,6 +131,11 @@ def list_signals(
     since: Optional[str] = Query(None, description="ISO8601 cursor — signal dibuat SETELAH ini (polling maju)"),
     pair: Optional[str] = Query(None, description="Filter pair, mis. BTCUSDT"),
     risk_level: Optional[str] = Query(None, description="Filter risk: Low / Normal / High"),
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by status: open / tp1 / tp2 / tp3 / closed_win / closed_loss",
+    ),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
@@ -117,6 +154,10 @@ def list_signals(
     if risk_level:
         conds.append("s.risk_level = :risk")
         params["risk"] = risk_level
+    if status_filter:
+        clause, extra = _status_filter_clause(status_filter)
+        conds.append(clause)
+        params.update(extra)
 
     where = " AND ".join(conds)
     order = "ASC" if since else "DESC"   # since=maju kronologis; tanpa since=terbaru dulu
