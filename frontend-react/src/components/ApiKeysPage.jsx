@@ -5,15 +5,17 @@
 //
 // Layout:
 //   - Header (eyebrow + title + subtitle)
-//   - Stat cards (Access / Active keys / Rate limit / Endpoints)
+//   - Stat cards (Access / Active keys / Rate limit / Endpoints) w/ icons
 //   - Non-subscriber upsell
 //   - Just-created key banner (shown once)
-//   - Grid: left (create + key list) / right (quick start + security)
-//   - API Documentation (Stripe/X-style): sticky table-of-contents on
-//     the left with scrollspy, content on the right. Endpoints are
-//     collapsible cards with parameter + field reference; code examples
-//     use language tabs (curl / Python / JS). Mobile gets a sticky
-//     horizontal chip nav instead of the sidebar.
+//   - Keys panel (Stripe-style): header + "New key" action that reveals an
+//     inline create form, then a table of keys (Name / Key / Activity / —),
+//     collapsing to stacked cards on mobile, with revoked-trim toggle
+//   - Quick start + Security & limits (two cards)
+//   - API Documentation (Stripe/X-style): sticky table-of-contents on the
+//     left with scrollspy, content on the right. Endpoints are collapsible
+//     cards with parameter + field reference; code examples use language
+//     tabs. Mobile gets a sticky horizontal chip nav.
 //
 // Management UI is i18n (apiKeys.* namespace). Documentation content is
 // English (standard for API docs). All cards translucent over luxury-bg.
@@ -31,6 +33,16 @@ const PUBLIC_BASE = 'https://luxquant.tw/api/public/v1';
 const MAX_REVOKED_VISIBLE = 3;
 const KEY_CAP = 2;
 const RATE_LIMIT = 60;
+
+// Stat-card glyphs (heroicons outline paths).
+const ICON_ACCESS = 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+const ICON_KEY = 'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z';
+const ICON_BOLT = 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z';
+const ICON_CODE = 'M17.25 6.75L22.5 12l-5.25 5.25M6.75 17.25L1.5 12l5.25-5.25m7.5-3l-4.5 16.5';
+
+// Shared grid template for the keys table (stacks below sm).
+const KEY_GRID =
+  'sm:grid sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_auto] sm:items-center sm:gap-4';
 
 // ── Verified signal status values (matches backend ?status= filter) ──
 const STATUS_VALUES = [
@@ -491,10 +503,17 @@ function scrollToId(id) {
 
 // ── Presentational helpers ──────────────────────────────────────────
 
-const StatCard = ({ label, value, accent }) => (
+const StatCard = ({ label, value, accent, icon }) => (
   <div className="rounded-xl px-4 py-3 border border-white/5 bg-white/[0.02]">
-    <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">{label}</p>
-    <p className={`text-lg font-semibold mt-1 ${accent || 'text-white'}`}>{value}</p>
+    <div className="flex items-center gap-1.5 mb-1">
+      {icon && (
+        <svg className="w-3.5 h-3.5 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
+        </svg>
+      )}
+      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">{label}</p>
+    </div>
+    <p className={`text-lg font-semibold ${accent || 'text-white'}`}>{value}</p>
   </div>
 );
 
@@ -502,6 +521,51 @@ const SectionHead = ({ children }) => (
   <h2 className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.22em] text-gold-primary/70 mb-3">
     {children}
   </h2>
+);
+
+// One key as a Stripe-style table row (stacks on mobile).
+const KeyRow = ({ k, onRevoke, revoking, t }) => (
+  <div className={`px-4 sm:px-5 py-3.5 border-t border-white/[0.05] ${KEY_GRID} ${k.is_active ? '' : 'opacity-60'}`}>
+    {/* Name + status */}
+    <div className="min-w-0 flex items-center gap-2">
+      <span className="text-white text-sm font-medium truncate">{k.name || t('apiKeys.untitled')}</span>
+      {k.is_active ? (
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+          {t('apiKeys.status_active')}
+        </span>
+      ) : (
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/20 flex-shrink-0">
+          {t('apiKeys.status_revoked')}
+        </span>
+      )}
+    </div>
+
+    {/* Token */}
+    <code className="block font-mono text-[12px] text-text-secondary mt-1.5 sm:mt-0 truncate">
+      {k.key_prefix}{'\u2022'.repeat(8)}
+    </code>
+
+    {/* Activity */}
+    <div className="text-[11px] text-text-muted mt-1.5 sm:mt-0">
+      {t('apiKeys.created')} {fmtDate(k.created_at)}
+      {k.is_active && (
+        <> · {t('apiKeys.last_used')} {fmtRelative(k.last_used_at, t)}</>
+      )}
+    </div>
+
+    {/* Action */}
+    <div className="mt-2.5 sm:mt-0 sm:justify-self-end">
+      {k.is_active && (
+        <button
+          onClick={() => onRevoke(k.id)}
+          disabled={revoking}
+          className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-red-400/80 border border-red-500/25 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 whitespace-nowrap"
+        >
+          {revoking ? t('apiKeys.revoking') : t('apiKeys.revoke')}
+        </button>
+      )}
+    </div>
+  </div>
 );
 
 // Single-language code block with its own copy button.
@@ -794,6 +858,7 @@ const ApiKeysPage = () => {
   const [copied, setCopied] = useState(false);
   const [revokingId, setRevokingId] = useState(null);
   const [showAllRevoked, setShowAllRevoked] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   // Docs: scrollspy + collapsible endpoints.
   const activeSection = useScrollSpy(DOC_SECTION_IDS);
@@ -850,6 +915,7 @@ const ApiKeysPage = () => {
       setJustCreated(created);
       setCopied(false);
       setName('');
+      setShowCreate(false);
       await load();
     } catch (e) {
       setError(e?.response?.data?.detail || t('apiKeys.err_create'));
@@ -913,19 +979,23 @@ const ApiKeysPage = () => {
           label={t('apiKeys.stat_access', { defaultValue: 'Access' })}
           value={accessLabel(user, t)}
           accent={hasAccess ? 'text-emerald-400' : 'text-text-secondary'}
+          icon={ICON_ACCESS}
         />
         <StatCard
           label={t('apiKeys.stat_active', { defaultValue: 'Active keys' })}
           value={`${activeCount} / ${KEY_CAP}`}
           accent={atLimit ? 'text-amber-400' : 'text-white'}
+          icon={ICON_KEY}
         />
         <StatCard
           label={t('apiKeys.stat_rate', { defaultValue: 'Rate limit' })}
           value={`${RATE_LIMIT}/min`}
+          icon={ICON_BOLT}
         />
         <StatCard
           label={t('apiKeys.stat_endpoints', { defaultValue: 'Endpoints' })}
           value={String(EP_LIST.length)}
+          icon={ICON_CODE}
         />
       </div>
 
@@ -996,153 +1066,145 @@ const ApiKeysPage = () => {
         </div>
       )}
 
-      {/* ── Main grid: left (generate + list) / right (quick start + security) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left column */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Generate */}
+      {/* ── Keys panel (Stripe-style table) ── */}
+      <section className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
+        {/* Panel header */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/5">
+          <div>
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.22em] text-gold-primary/70">
+              {t('apiKeys.your_keys')}
+            </h2>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              {activeCount}/{KEY_CAP} {t('apiKeys.active')}
+            </p>
+          </div>
           {hasAccess && (
-            <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-              <div className="flex items-center justify-between mb-3">
-                <SectionHead>{t('apiKeys.create_title')}</SectionHead>
-                <span className="font-mono text-[11px] text-text-muted">
-                  {activeCount}/{KEY_CAP} {t('apiKeys.active')}
-                </span>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                  placeholder={t('apiKeys.name_placeholder')}
-                  maxLength={60}
-                  className="flex-1 px-3 py-2.5 rounded-lg text-sm text-white bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
-                />
-                <button
-                  onClick={handleCreate}
-                  disabled={creating || atLimit}
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {creating ? t('apiKeys.creating') : t('apiKeys.create_btn')}
-                </button>
-              </div>
-              {atLimit && (
-                <p className="text-amber-400/80 text-[11px] mt-2">{t('apiKeys.limit_warn')}</p>
-              )}
-            </div>
+            <button
+              onClick={() => setShowCreate((v) => !v)}
+              className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
+                showCreate
+                  ? 'text-text-secondary border border-white/10 hover:text-white hover:bg-white/[0.03]'
+                  : 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow'
+              }`}
+            >
+              {showCreate
+                ? t('apiKeys.cancel', { defaultValue: 'Cancel' })
+                : t('apiKeys.new_key', { defaultValue: '+ New key' })}
+            </button>
           )}
+        </div>
 
-          {/* Keys list */}
-          <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-            <SectionHead>{t('apiKeys.your_keys')}</SectionHead>
+        {/* Inline create form */}
+        {hasAccess && showCreate && (
+          <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01]">
+            <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-text-muted mb-2">
+              {t('apiKeys.create_title')}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                placeholder={t('apiKeys.name_placeholder')}
+                maxLength={60}
+                autoFocus
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm text-white bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
+              />
+              <button
+                onClick={handleCreate}
+                disabled={creating || atLimit}
+                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {creating ? t('apiKeys.creating') : t('apiKeys.create_btn')}
+              </button>
+            </div>
+            {atLimit && (
+              <p className="text-amber-400/80 text-[11px] mt-2">{t('apiKeys.limit_warn')}</p>
+            )}
+          </div>
+        )}
 
-            {loading ? (
-              <div className="py-8 flex items-center justify-center">
-                <div className="w-5 h-5 rounded-full border-2 border-gold-primary/30 border-t-gold-primary animate-spin" />
-              </div>
-            ) : keys.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-text-muted text-sm">{t('apiKeys.empty')}</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {displayedKeys.map((k) => (
-                  <div
-                    key={k.id}
-                    className={`rounded-xl p-4 border transition-colors ${
-                      k.is_active ? 'border-white/5 bg-white/[0.02]' : 'border-white/[0.03] bg-white/[0.01] opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-white text-sm font-medium truncate">
-                            {k.name || t('apiKeys.untitled')}
-                          </span>
-                          {k.is_active ? (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                              {t('apiKeys.status_active')}
-                            </span>
-                          ) : (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/20">
-                              {t('apiKeys.status_revoked')}
-                            </span>
-                          )}
-                        </div>
-                        <code className="block font-mono text-[12px] text-text-secondary mt-1 truncate">
-                          {k.key_prefix}{'\u2022'.repeat(8)}
-                        </code>
-                        <p className="text-[11px] text-text-muted mt-1">
-                          {t('apiKeys.created')} {fmtDate(k.created_at)}
-                          {k.is_active && (
-                            <> · {t('apiKeys.last_used')} {fmtRelative(k.last_used_at, t)}</>
-                          )}
-                        </p>
-                      </div>
+        {/* Table header (sm+) */}
+        {!loading && keys.length > 0 && (
+          <div className={`hidden ${KEY_GRID} px-5 py-2.5 text-[10px] font-mono uppercase tracking-wider text-text-muted bg-white/[0.01] border-b border-white/5`}>
+            <span>{t('apiKeys.col_name', { defaultValue: 'Name' })}</span>
+            <span>{t('apiKeys.col_key', { defaultValue: 'Key' })}</span>
+            <span>{t('apiKeys.col_activity', { defaultValue: 'Activity' })}</span>
+            <span />
+          </div>
+        )}
 
-                      {k.is_active && (
-                        <button
-                          onClick={() => handleRevoke(k.id)}
-                          disabled={revokingId === k.id}
-                          className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-red-400/80 border border-red-500/25 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0"
-                        >
-                          {revokingId === k.id ? t('apiKeys.revoking') : t('apiKeys.revoke')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+        {/* Rows */}
+        {loading ? (
+          <div className="py-10 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full border-2 border-gold-primary/30 border-t-gold-primary animate-spin" />
+          </div>
+        ) : keys.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-text-muted text-sm">{t('apiKeys.empty')}</p>
+          </div>
+        ) : (
+          <div>
+            {displayedKeys.map((k) => (
+              <KeyRow
+                key={k.id}
+                k={k}
+                onRevoke={handleRevoke}
+                revoking={revokingId === k.id}
+                t={t}
+              />
+            ))}
 
-                {revokedKeys.length > MAX_REVOKED_VISIBLE && (
-                  <button
-                    onClick={() => setShowAllRevoked((v) => !v)}
-                    className="w-full mt-1 py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
-                  >
-                    {showAllRevoked
-                      ? t('apiKeys.show_less', { defaultValue: 'Show less' })
-                      : t('apiKeys.show_all_revoked', {
-                          defaultValue: 'Show all revoked ({{n}})',
-                          n: revokedKeys.length,
-                        })}
-                  </button>
-                )}
+            {revokedKeys.length > MAX_REVOKED_VISIBLE && (
+              <div className="px-5 py-3 border-t border-white/[0.05]">
+                <button
+                  onClick={() => setShowAllRevoked((v) => !v)}
+                  className="w-full py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
+                >
+                  {showAllRevoked
+                    ? t('apiKeys.show_less', { defaultValue: 'Show less' })
+                    : t('apiKeys.show_all_revoked', {
+                        defaultValue: 'Show all revoked ({{n}})',
+                        n: revokedKeys.length,
+                      })}
+                </button>
               </div>
             )}
           </div>
+        )}
+      </section>
+
+      {/* ── Quick start + Security (two cards) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Quick start */}
+        <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+          <SectionHead>{t('apiKeys.usage_title')}</SectionHead>
+          <p className="text-text-secondary text-[13px] mb-3">{t('apiKeys.usage_desc')}</p>
+          <CodeBlock code={EX_CURL} lang="bash" copyLabel={copyLabel} copiedLabel={copiedLabel} />
+          <p className="text-[11px] text-text-muted mt-2 leading-relaxed">
+            Base URL: <Mono>{PUBLIC_BASE}</Mono>
+          </p>
+          <p className="text-[11px] text-text-muted mt-3">{t('apiKeys.usage_note')}</p>
         </div>
 
-        {/* Right column */}
-        <div className="space-y-5">
-          {/* Quick start */}
-          <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-            <SectionHead>{t('apiKeys.usage_title')}</SectionHead>
-            <p className="text-text-secondary text-[13px] mb-3">{t('apiKeys.usage_desc')}</p>
-            <CodeBlock code={EX_CURL} lang="bash" copyLabel={copyLabel} copiedLabel={copiedLabel} />
-            <p className="text-[11px] text-text-muted mt-2 leading-relaxed">
-              Base URL: <Mono>{PUBLIC_BASE}</Mono>
-            </p>
-            <p className="text-[11px] text-text-muted mt-3">{t('apiKeys.usage_note')}</p>
-          </div>
-
-          {/* Security & limits */}
-          <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-            <SectionHead>{t('apiKeys.security_title', { defaultValue: 'Security & limits' })}</SectionHead>
-            <ul className="space-y-2.5 text-[12px] text-text-secondary">
-              <li className="flex items-start gap-2">
-                <span className="text-gold-primary/70 mt-0.5">·</span>
-                <span>{t('apiKeys.security_rate', { defaultValue: 'Each account is capped at 60 requests/min — shared across all your keys.' })}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gold-primary/70 mt-0.5">·</span>
-                <span>{t('apiKeys.security_cap', { defaultValue: 'Up to 2 active keys at a time.' })}</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gold-primary/70 mt-0.5">·</span>
-                <span>{t('apiKeys.security_share', { defaultValue: 'Keys are personal. Sharing or reselling access may get them revoked.' })}</span>
-              </li>
-            </ul>
-          </div>
+        {/* Security & limits */}
+        <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
+          <SectionHead>{t('apiKeys.security_title', { defaultValue: 'Security & limits' })}</SectionHead>
+          <ul className="space-y-2.5 text-[12px] text-text-secondary">
+            <li className="flex items-start gap-2">
+              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span>{t('apiKeys.security_rate', { defaultValue: 'Each account is capped at 60 requests/min — shared across all your keys.' })}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span>{t('apiKeys.security_cap', { defaultValue: 'Up to 2 active keys at a time.' })}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-gold-primary/70 mt-0.5">·</span>
+              <span>{t('apiKeys.security_share', { defaultValue: 'Keys are personal. Sharing or reselling access may get them revoked.' })}</span>
+            </li>
+          </ul>
         </div>
       </div>
 
