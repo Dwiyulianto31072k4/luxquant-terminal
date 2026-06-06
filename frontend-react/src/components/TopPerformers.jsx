@@ -98,6 +98,18 @@ const TopPerformers = () => {
     return period;
   };
 
+  // Best single gain (honest headline number; replaces the outlier-skewed avg)
+  const bestGain = data?.top_gainers?.length > 0
+    ? Math.max(...data.top_gainers.map(g => g.gain_pct || 0))
+    : null;
+
+  // Log-scaled intensity fill so the huge dynamic range stays readable
+  const maxGain = data?.top_gainers?.length > 0
+    ? Math.max(...data.top_gainers.map(g => g.gain_pct || 0), 1)
+    : 1;
+  const logMax = Math.log10(maxGain + 1) || 1;
+  const intensityPct = (g) => Math.max(4, Math.round((Math.log10((g || 0) + 1) / logMax) * 100));
+
   if (loading && !data) {
     return (
       <div className="mb-10">
@@ -183,9 +195,9 @@ const TopPerformers = () => {
           <StatCard label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')} />
           <StatCard label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} />
           <StatCard
-            label={t('top.avg_gain')}
-            value={`${data.top_gainers?.length > 0 ? (data.top_gainers.reduce((a, b) => a + b.gain_pct, 0) / data.top_gainers.length).toFixed(2) : '0'}%`}
-            sub={t('top.gain_sub')}
+            label="Best Gain"
+            value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '\u2014'}
+            sub="Top single call"
             isProfit
           />
           <StatCard
@@ -202,25 +214,25 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* === TABLE: Top Gainers — Flowscan flat table style (no redundant title) === */}
+      {/* === TABLE: Top Gainers — Flowscan flat table (terse functional headers, no duplicate title) === */}
       {data && data.top_gainers?.length > 0 && (
         <div className={loading ? 'opacity-50' : ''}>
           <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-            {/* Column headers ONLY — no redundant title here */}
-            <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-3 sm:gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
+            {/* Column headers — terse, functional (no redundant section title) */}
+            <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
               <span className="text-right">#</span>
-              <span>{t('top.top_gainers') || 'Pair'}</span>
+              <span>Asset</span>
               <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
               <span className="text-right">{t('top.duration') || 'Duration'}</span>
               <span className="text-right">Gain</span>
             </div>
 
-            {/* Mobile mini header */}
+            {/* Mobile mini header — functional label + count, no duplicate title */}
             <div className="sm:hidden px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between">
               <span className="font-mono text-[10px] text-text-muted uppercase tracking-[0.2em]">
-                {t('top.top_gainers') || 'Top Gainers'}
+                Asset
               </span>
               <span className="font-mono text-[9px] text-text-muted uppercase tracking-wider">
                 {data.top_gainers.length} pairs
@@ -232,15 +244,29 @@ const TopPerformers = () => {
               {data.top_gainers.map((item, idx) => {
                 const rank = idx + 1;
                 const isPodium = idx < 3;
+                const podiumBorder = idx === 0
+                  ? 'border-gold-primary/60'
+                  : idx === 1
+                    ? 'border-gold-primary/35'
+                    : idx === 2
+                      ? 'border-gold-primary/20'
+                      : 'border-transparent';
+                const fillPct = intensityPct(item.gain_pct);
 
                 return (
                   <div
                     key={idx}
                     onClick={() => handleItemClick(item)}
-                    className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                    className={`relative overflow-hidden border-l-2 ${podiumBorder} hover:bg-white/[0.02] transition-colors cursor-pointer group`}
                   >
+                    {/* Log-scaled intensity fill (behind content) */}
+                    <div
+                      className="absolute inset-y-0 left-0 bg-profit/[0.05] pointer-events-none"
+                      style={{ width: `${fillPct}%` }}
+                    />
+
                     {/* Desktop: grid layout */}
-                    <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 items-center">
+                    <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 items-center relative">
                       {/* Rank */}
                       <div className={`font-mono text-xs tabular-nums text-right ${
                         isPodium ? 'text-gold-primary' : 'text-text-muted/50'
@@ -285,7 +311,7 @@ const TopPerformers = () => {
                     </div>
 
                     {/* Mobile: stacked layout */}
-                    <div className="sm:hidden flex items-center gap-3 px-4 py-3">
+                    <div className="sm:hidden flex items-center gap-3 px-4 py-3 relative">
                       <div className={`w-7 font-mono text-xs tabular-nums text-right flex-shrink-0 ${
                         isPodium ? 'text-gold-primary' : 'text-text-muted/50'
                       }`}>
