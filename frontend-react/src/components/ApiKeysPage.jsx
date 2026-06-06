@@ -23,35 +23,38 @@
 // Backend (JWT):  POST/GET/PATCH/DELETE /api/v1/api-keys
 // Data API (key): https://luxquant.tw/api/public/v1/...
 // ════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { apiKeysApi } from '../services/api';
+import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { apiKeysApi } from "../services/api";
 
-const PUBLIC_BASE = 'https://luxquant.tw/api/public/v1';
+const PUBLIC_BASE = "https://luxquant.tw/api/public/v1";
 const MAX_REVOKED_VISIBLE = 3;
 const KEY_CAP = 2;
 const RATE_LIMIT = 60;
 
 // Stat-card glyphs (heroicons outline paths).
-const ICON_ACCESS = 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
-const ICON_KEY = 'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z';
-const ICON_BOLT = 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z';
-const ICON_CODE = 'M17.25 6.75L22.5 12l-5.25 5.25M6.75 17.25L1.5 12l5.25-5.25m7.5-3l-4.5 16.5';
+const ICON_ACCESS =
+  "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+const ICON_KEY =
+  "M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z";
+const ICON_BOLT = "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z";
+const ICON_CODE =
+  "M17.25 6.75L22.5 12l-5.25 5.25M6.75 17.25L1.5 12l5.25-5.25m7.5-3l-4.5 16.5";
 
 // Shared grid template for the keys table (stacks below sm).
 const KEY_GRID =
-  'sm:grid sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_auto] sm:items-center sm:gap-4';
+  "sm:grid sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_auto] sm:items-center sm:gap-4";
 
 // ── Verified signal status values (matches backend ?status= filter) ──
 const STATUS_VALUES = [
-  ['open', 'Signal still running — no target or stop hit yet.'],
-  ['tp1', 'Reached target 1 then stopped advancing.'],
-  ['tp2', 'Reached target 2 then stopped advancing.'],
-  ['tp3', 'Reached target 3 then stopped advancing.'],
-  ['closed_win', 'Closed in profit (hit final target / TP4).'],
-  ['closed_loss', 'Closed at a loss (stop-loss hit).'],
+  ["open", "Signal still running — no target or stop hit yet."],
+  ["tp1", "Reached target 1 then stopped advancing."],
+  ["tp2", "Reached target 2 then stopped advancing."],
+  ["tp3", "Reached target 3 then stopped advancing."],
+  ["closed_win", "Closed in profit (hit final target / TP4)."],
+  ["closed_loss", "Closed at a loss (stop-loss hit)."],
 ];
 
 // ── Example payloads (signals trio = verified exact shapes) ──
@@ -163,59 +166,118 @@ setInterval(poll, 15000);`;
 // including field reference tables.
 const ENDPOINTS = [
   {
-    method: 'GET',
-    path: '/signals',
-    summary: 'List / poll signals (newest first, or forward by cursor).',
+    method: "GET",
+    path: "/signals",
+    summary: "List / poll signals (newest first, or forward by cursor).",
     params: [
-      ['status', 'string', 'no', 'Filter by status: open · tp1 · tp2 · tp3 · closed_win · closed_loss. Invalid value -> 400.'],
-      ['pair', 'string', 'no', 'Filter by trading pair, e.g. BTCUSDT (case-insensitive).'],
-      ['risk_level', 'string', 'no', 'Filter by risk tier, e.g. Low / Medium / High / Normal.'],
-      ['since', 'ISO8601', 'no', 'Return signals created AFTER this timestamp (forward polling, ascending order).'],
-      ['limit', 'int', 'no', '1-200, default 50.'],
+      [
+        "status",
+        "string",
+        "no",
+        "Filter by status: open · tp1 · tp2 · tp3 · closed_win · closed_loss. Invalid value -> 400.",
+      ],
+      [
+        "pair",
+        "string",
+        "no",
+        "Filter by trading pair, e.g. BTCUSDT (case-insensitive).",
+      ],
+      [
+        "risk_level",
+        "string",
+        "no",
+        "Filter by risk tier, e.g. Low / Medium / High / Normal.",
+      ],
+      [
+        "since",
+        "ISO8601",
+        "no",
+        "Return signals created AFTER this timestamp (forward polling, ascending order).",
+      ],
+      ["limit", "int", "no", "1-200, default 50."],
     ],
     example: EX_SIGNALS,
-    notes: 'Without `since`, results are newest-first. With `since`, results are oldest-first so you can page forward using the returned `cursor`.',
+    notes:
+      "Without `since`, results are newest-first. With `since`, results are oldest-first so you can page forward using the returned `cursor`.",
   },
   {
-    method: 'GET',
-    path: '/signals/updates',
-    summary: 'Cross-signal feed of TP/SL events as they happen.',
+    method: "GET",
+    path: "/signals/updates",
+    summary: "Cross-signal feed of TP/SL events as they happen.",
     params: [
-      ['since', 'ISO8601', 'no', 'Return events with update_at AFTER this timestamp (forward polling).'],
-      ['limit', 'int', 'no', '1-500, default 100.'],
+      [
+        "since",
+        "ISO8601",
+        "no",
+        "Return events with update_at AFTER this timestamp (forward polling).",
+      ],
+      ["limit", "int", "no", "1-500, default 100."],
     ],
     example: EX_UPDATES,
-    notes: '`event` is normalized to one of: tp1, tp2, tp3, tp4, sl. Always ascending by `update_at`. Use `cursor` to advance.',
+    notes:
+      "`event` is normalized to one of: tp1, tp2, tp3, tp4, sl. Always ascending by `update_at`. Use `cursor` to advance.",
   },
   {
-    method: 'GET',
-    path: '/signals/{id}',
-    summary: 'Full detail for one signal, including its TP/SL update history.',
+    method: "GET",
+    path: "/signals/{id}",
+    summary: "Full detail for one signal, including its TP/SL update history.",
     params: [
-      ['{id}', 'path', 'yes', 'The signal_id returned by /signals (a UUID, NOT a pair name).'],
+      [
+        "{id}",
+        "path",
+        "yes",
+        "The signal_id returned by /signals (a UUID, NOT a pair name).",
+      ],
     ],
     example: EX_DETAIL,
-    notes: 'Returns 404 if the signal does not exist OR is before the public data start date (the two are intentionally indistinguishable).',
+    notes:
+      "Returns 404 if the signal does not exist OR is before the public data start date (the two are intentionally indistinguishable).",
   },
   {
-    method: 'GET',
-    path: '/journey/{id}',
-    summary: 'Price-action journey: MAE/MFE, time-to-TP1, time above entry, realized vs missed potential.',
-    params: [
-      ['{id}', 'path', 'yes', 'signal_id from /signals.'],
-    ],
+    method: "GET",
+    path: "/journey/{id}",
+    summary:
+      "Price-action journey: MAE/MFE, time-to-TP1, time above entry, realized vs missed potential.",
+    params: [["{id}", "path", "yes", "signal_id from /signals."]],
     fields: [
-      ['available / reason', 'When false, analytics are not ready yet (reason: "no_journey_yet"). Treat as normal, not an error.'],
-      ['direction', 'Trade direction context for the signal.'],
-      ['coverage_status / coverage_from / coverage_until', 'How complete the tracked price window is, and the time range it spans.'],
-      ['overall_mae_pct / overall_mfe_pct', 'Maximum adverse and maximum favorable excursion (%) over the signal\u2019s life.'],
-      ['initial_mae_pct', 'Worst drawdown before the first favorable progress.'],
-      ['time_to_tp1_seconds', 'Seconds from entry until the first target was hit.'],
-      ['time_to_outcome_seconds', 'Seconds from entry until the final outcome.'],
-      ['pct_time_above_entry', 'Share of tracked time price stayed above entry (%).'],
-      ['tp_then_sl / tps_hit_before_sl', 'Whether it hit a target then stopped out, and how many targets were hit before any SL.'],
-      ['realized_outcome_pct / missed_potential_pct', 'Actual realized result, and extra move that was available but not captured (%).'],
-      ['events', 'Ordered timeline of price-action events.'],
+      [
+        "available / reason",
+        'When false, analytics are not ready yet (reason: "no_journey_yet"). Treat as normal, not an error.',
+      ],
+      ["direction", "Trade direction context for the signal."],
+      [
+        "coverage_status / coverage_from / coverage_until",
+        "How complete the tracked price window is, and the time range it spans.",
+      ],
+      [
+        "overall_mae_pct / overall_mfe_pct",
+        "Maximum adverse and maximum favorable excursion (%) over the signal\u2019s life.",
+      ],
+      [
+        "initial_mae_pct",
+        "Worst drawdown before the first favorable progress.",
+      ],
+      [
+        "time_to_tp1_seconds",
+        "Seconds from entry until the first target was hit.",
+      ],
+      [
+        "time_to_outcome_seconds",
+        "Seconds from entry until the final outcome.",
+      ],
+      [
+        "pct_time_above_entry",
+        "Share of tracked time price stayed above entry (%).",
+      ],
+      [
+        "tp_then_sl / tps_hit_before_sl",
+        "Whether it hit a target then stopped out, and how many targets were hit before any SL.",
+      ],
+      [
+        "realized_outcome_pct / missed_potential_pct",
+        "Actual realized result, and extra move that was available but not captured (%).",
+      ],
+      ["events", "Ordered timeline of price-action events."],
     ],
     example: `// not computed yet (usually a very new signal):
 { "signal_id": "...", "available": false, "reason": "no_journey_yet" }
@@ -232,22 +294,31 @@ const ENDPOINTS = [
   "realized_outcome_pct": 5.4, "missed_potential_pct": 7.4,
   "events": [ ... ]
 }`,
-    notes: 'Derived analytics. Until the worker has processed a (usually very new) signal it returns { "available": false, "reason": "no_journey_yet" } rather than an error — handle that as normal.',
+    notes:
+      'Derived analytics. Until the worker has processed a (usually very new) signal it returns { "available": false, "reason": "no_journey_yet" } rather than an error — handle that as normal.',
   },
   {
-    method: 'GET',
-    path: '/enrichment/{id}',
-    summary: 'Multi-timeframe technical enrichment: entry snapshot + live snapshot + facts/tags.',
-    params: [
-      ['{id}', 'path', 'yes', 'signal_id from /signals.'],
-    ],
+    method: "GET",
+    path: "/enrichment/{id}",
+    summary:
+      "Multi-timeframe technical enrichment: entry snapshot + live snapshot + facts/tags.",
+    params: [["{id}", "path", "yes", "signal_id from /signals."]],
     fields: [
-      ['status', 'One of: enriched · not_enriched · legacy_only.'],
-      ['signal_info', 'Entry, target1-4, stop1, current_status and created_at.'],
-      ['entry_snapshot', 'Multi-timeframe TA facts & tags captured at signal creation.'],
-      ['live_snapshot', 'Latest TA facts & tags.'],
-      ['live_updated_at / analyzed_at', 'When the live snapshot and the analysis were last refreshed (ISO-8601).'],
-      ['version', 'Enrichment schema version.'],
+      ["status", "One of: enriched · not_enriched · legacy_only."],
+      [
+        "signal_info",
+        "Entry, target1-4, stop1, current_status and created_at.",
+      ],
+      [
+        "entry_snapshot",
+        "Multi-timeframe TA facts & tags captured at signal creation.",
+      ],
+      ["live_snapshot", "Latest TA facts & tags."],
+      [
+        "live_updated_at / analyzed_at",
+        "When the live snapshot and the analysis were last refreshed (ISO-8601).",
+      ],
+      ["version", "Enrichment schema version."],
     ],
     example: `// status is one of: enriched | not_enriched | legacy_only
 {
@@ -265,26 +336,26 @@ const ENDPOINTS = [
   "analyzed_at": "2026-06-06T02:41:00+00:00",
   "version": 3
 }`,
-    notes: 'New signals return { "status": "not_enriched" } until processed; older ones may be "legacy_only" (no entry snapshot). Related: /enrichment/{id}/history and /enrichment/{id}/export/prompt.',
+    notes:
+      'New signals return { "status": "not_enriched" } until processed; older ones may be "legacy_only" (no entry snapshot). Related: /enrichment/{id}/history and /enrichment/{id}/export/prompt.',
   },
   {
-    method: 'GET',
-    path: '/enrichment/{id}/history',
-    summary: 'Time-series of enrichment snapshots for a signal.',
+    method: "GET",
+    path: "/enrichment/{id}/history",
+    summary: "Time-series of enrichment snapshots for a signal.",
     params: [
-      ['{id}', 'path', 'yes', 'signal_id from /signals.'],
-      ['limit', 'int', 'no', '1-200, default 50.'],
+      ["{id}", "path", "yes", "signal_id from /signals."],
+      ["limit", "int", "no", "1-200, default 50."],
     ],
     example: `{ "signal_id": "...", "pair": "SKYAIUSDT", "count": 0, "history": [] }`,
-    notes: 'Returns { count: 0, history: [] } when nothing has been recorded yet.',
+    notes:
+      "Returns { count: 0, history: [] } when nothing has been recorded yet.",
   },
   {
-    method: 'GET',
-    path: '/enrichment/{id}/export/prompt',
-    summary: 'Ready-to-feed Markdown + analysis prompt for your own LLM/agent.',
-    params: [
-      ['{id}', 'path', 'yes', 'signal_id from /signals.'],
-    ],
+    method: "GET",
+    path: "/enrichment/{id}/export/prompt",
+    summary: "Ready-to-feed Markdown + analysis prompt for your own LLM/agent.",
+    params: [["{id}", "path", "yes", "signal_id from /signals."]],
     example: `# (plain text, not JSON — Content-Type: text/plain)
 #
 # <Markdown summary of the signal's facts & tags>
@@ -297,30 +368,72 @@ const ENDPOINTS = [
 # 3. What position sizing approach would you suggest (conservative/normal/aggressive)?
 # 4. What are the key levels and conditions to watch for invalidation?
 # 5. How does the current market context (BTC, dominance, F&G) affect this trade?`,
-    notes: 'Response Content-Type is text/plain (Markdown), not JSON. The 5 analysis questions are appended verbatim so you can pass the whole body straight to an LLM.',
+    notes:
+      "Response Content-Type is text/plain (Markdown), not JSON. The 5 analysis questions are appended verbatim so you can pass the whole body straight to an LLM.",
   },
   {
-    method: 'GET',
-    path: '/btc-correlation/recent',
-    summary: 'Recent BTC-correlation analytics across signals (alignment, beta, decoupling).',
+    method: "GET",
+    path: "/btc-correlation/recent",
+    summary:
+      "Recent BTC-correlation analytics across signals (alignment, beta, decoupling).",
     params: [
-      ['limit', 'int', 'no', '1-100, default 20.'],
-      ['decoupled_only', 'bool', 'no', 'Only signals flagged as decoupled from BTC.'],
-      ['extended_only', 'bool', 'no', 'Only signals flagged as in an extended move.'],
+      ["limit", "int", "no", "1-100, default 20."],
+      [
+        "decoupled_only",
+        "bool",
+        "no",
+        "Only signals flagged as decoupled from BTC.",
+      ],
+      [
+        "extended_only",
+        "bool",
+        "no",
+        "Only signals flagged as in an extended move.",
+      ],
     ],
     fields: [
-      ['corr_1h_7d / corr_4h_30d', 'Correlation to BTC over a short (1h/7d) and a longer (4h/30d) window.'],
-      ['beta_30d / downside_beta', 'Sensitivity to BTC moves overall, and specifically during BTC drops.'],
-      ['r_squared_30d', 'How much of the coin\u2019s movement BTC explains.'],
-      ['corr_zscore', 'How unusual the current correlation is vs the coin\u2019s own history.'],
-      ['tail_corr_btc_down / tail_corr_btc_up', 'Correlation specifically in BTC down-tails and up-tails.'],
-      ['lead_lag_hours', 'Whether the coin tends to lead (+) or lag (-) BTC, in hours.'],
-      ['volatility_ratio / coin_volatility_pct', 'Coin volatility relative to BTC, and the coin\u2019s own volatility (%).'],
-      ['momentum_divergence_7d', 'Momentum gap between the coin and BTC over 7 days.'],
-      ['is_extended / is_decoupled', 'Flags: the move looks overextended; the coin is moving independently of BTC.'],
-      ['btc_context / interpretation / confidence', 'Human-readable context, a summary, and a confidence label.'],
-      ['sample_size', 'Number of data points behind the statistics.'],
-      ['data_source / snapshot_at / analyzed_at', 'Provenance and timestamps for the analysis.'],
+      [
+        "corr_1h_7d / corr_4h_30d",
+        "Correlation to BTC over a short (1h/7d) and a longer (4h/30d) window.",
+      ],
+      [
+        "beta_30d / downside_beta",
+        "Sensitivity to BTC moves overall, and specifically during BTC drops.",
+      ],
+      ["r_squared_30d", "How much of the coin\u2019s movement BTC explains."],
+      [
+        "corr_zscore",
+        "How unusual the current correlation is vs the coin\u2019s own history.",
+      ],
+      [
+        "tail_corr_btc_down / tail_corr_btc_up",
+        "Correlation specifically in BTC down-tails and up-tails.",
+      ],
+      [
+        "lead_lag_hours",
+        "Whether the coin tends to lead (+) or lag (-) BTC, in hours.",
+      ],
+      [
+        "volatility_ratio / coin_volatility_pct",
+        "Coin volatility relative to BTC, and the coin\u2019s own volatility (%).",
+      ],
+      [
+        "momentum_divergence_7d",
+        "Momentum gap between the coin and BTC over 7 days.",
+      ],
+      [
+        "is_extended / is_decoupled",
+        "Flags: the move looks overextended; the coin is moving independently of BTC.",
+      ],
+      [
+        "btc_context / interpretation / confidence",
+        "Human-readable context, a summary, and a confidence label.",
+      ],
+      ["sample_size", "Number of data points behind the statistics."],
+      [
+        "data_source / snapshot_at / analyzed_at",
+        "Provenance and timestamps for the analysis.",
+      ],
     ],
     example: `{
   "count": 1,
@@ -342,38 +455,37 @@ const ENDPOINTS = [
     }
   ]
 }`,
-    notes: 'Per-signal variant: /btc-correlation/{id} (uses signal_id). Field names shown are exact; numeric values are illustrative.',
+    notes:
+      "Per-signal variant: /btc-correlation/{id} (uses signal_id). Field names shown are exact; numeric values are illustrative.",
   },
   {
-    method: 'GET',
-    path: '/btc-correlation/{id}',
-    summary: 'BTC-correlation analytics for one signal.',
-    params: [
-      ['{id}', 'path', 'yes', 'signal_id from /signals.'],
-    ],
+    method: "GET",
+    path: "/btc-correlation/{id}",
+    summary: "BTC-correlation analytics for one signal.",
+    params: [["{id}", "path", "yes", "signal_id from /signals."]],
     example: `// same object shape as one item of /btc-correlation/recent
 { "signal_id": "...", "pair": "...", "beta_30d": 1.18, "is_decoupled": true, ... }`,
-    notes: '404 if not found or not yet computed.',
+    notes: "404 if not found or not yet computed.",
   },
   {
-    method: 'GET',
-    path: '/market-pulse/feed',
-    summary: 'Realtime market-pulse event stream (significant moves).',
+    method: "GET",
+    path: "/market-pulse/feed",
+    summary: "Realtime market-pulse event stream (significant moves).",
     params: [
-      ['source', 'string', 'no', 'pulse | price_movement.'],
-      ['pair', 'string', 'no', 'Filter by pair.'],
-      ['timeframe', 'string', 'no', '5m | 1h | 2h | 4h | 1d.'],
-      ['direction', 'string', 'no', 'bullish | bearish.'],
-      ['limit', 'int', 'no', '1-500, default 100.'],
+      ["source", "string", "no", "pulse | price_movement."],
+      ["pair", "string", "no", "Filter by pair."],
+      ["timeframe", "string", "no", "5m | 1h | 2h | 4h | 1d."],
+      ["direction", "string", "no", "bullish | bearish."],
+      ["limit", "int", "no", "1-500, default 100."],
     ],
     fields: [
-      ['pair / base_symbol', 'Trading pair and its base asset.'],
-      ['direction', 'bullish or bearish.'],
-      ['pct_change', 'Size of the move (%).'],
-      ['timeframe', 'Window the move occurred over.'],
-      ['event_type', 'Category of the pulse event.'],
-      ['move_seconds', 'How fast the move happened, in seconds.'],
-      ['created_at', 'When the event was recorded (ISO-8601).'],
+      ["pair / base_symbol", "Trading pair and its base asset."],
+      ["direction", "bullish or bearish."],
+      ["pct_change", "Size of the move (%)."],
+      ["timeframe", "Window the move occurred over."],
+      ["event_type", "Category of the pulse event."],
+      ["move_seconds", "How fast the move happened, in seconds."],
+      ["created_at", "When the event was recorded (ISO-8601)."],
     ],
     example: `{
   "events": [
@@ -387,12 +499,14 @@ const ENDPOINTS = [
   ],
   "count": 1
 }`,
-    notes: 'Internal source identifiers (source_msg_id, channel ids, raw text) are redacted. Aggregate variant: /market-pulse/stats.',
+    notes:
+      "Internal source identifiers (source_msg_id, channel ids, raw text) are redacted. Aggregate variant: /market-pulse/stats.",
   },
   {
-    method: 'GET',
-    path: '/market-pulse/stats',
-    summary: 'Aggregate market regime: 1h/24h totals, bull/bear ratio, biggest move, heatmap.',
+    method: "GET",
+    path: "/market-pulse/stats",
+    summary:
+      "Aggregate market regime: 1h/24h totals, bull/bear ratio, biggest move, heatmap.",
     params: [],
     example: `// JSON aggregate object (counts, ratios, biggest move, heatmap).
 // Contains no per-message identifiers.`,
@@ -402,30 +516,38 @@ const ENDPOINTS = [
 
 // Stable anchor id from an endpoint path.
 const epId = (path) =>
-  'ep-' + path.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
+  "ep-" +
+  path
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
 
 const EP_LIST = ENDPOINTS.map((ep) => ({ ...ep, _id: epId(ep.path) }));
 
 // Table-of-contents structure (the "Endpoints" section nests each route).
 const SECTIONS = [
-  { id: 'doc-auth', label: 'Authentication' },
-  { id: 'doc-base', label: 'Base URL' },
-  { id: 'doc-rate', label: 'Rate limits' },
-  { id: 'doc-format', label: 'Response format' },
-  { id: 'doc-codes', label: 'Status codes' },
-  { id: 'doc-ids', label: 'Using signal_id' },
-  { id: 'doc-endpoints', label: 'Endpoints', children: EP_LIST.map((ep) => ({ id: ep._id, label: ep.path })) },
-  { id: 'doc-status', label: 'Status values' },
-  { id: 'doc-examples', label: 'Code examples' },
-  { id: 'doc-best', label: 'Best practices' },
+  { id: "doc-auth", label: "Authentication" },
+  { id: "doc-base", label: "Base URL" },
+  { id: "doc-rate", label: "Rate limits" },
+  { id: "doc-format", label: "Response format" },
+  { id: "doc-codes", label: "Status codes" },
+  { id: "doc-ids", label: "Using signal_id" },
+  {
+    id: "doc-endpoints",
+    label: "Endpoints",
+    children: EP_LIST.map((ep) => ({ id: ep._id, label: ep.path })),
+  },
+  { id: "doc-status", label: "Status values" },
+  { id: "doc-examples", label: "Code examples" },
+  { id: "doc-best", label: "Best practices" },
 ];
 
 const DOC_SECTION_IDS = SECTIONS.map((s) => s.id);
 
 function deriveActiveAccess(user) {
   if (!user) return false;
-  if (user.role === 'admin') return true;
-  if (user.role === 'premium' || user.role === 'subscriber') {
+  if (user.role === "admin") return true;
+  if (user.role === "premium" || user.role === "subscriber") {
     if (!user.subscription_expires_at) return true;
     return new Date(user.subscription_expires_at) > new Date();
   }
@@ -434,35 +556,41 @@ function deriveActiveAccess(user) {
 
 function accessLabel(user, t) {
   const role = user?.role;
-  if (role === 'admin') return t('apiKeys.tier_admin', { defaultValue: 'Admin' });
-  if (role === 'premium' || role === 'subscriber') {
-    if (!user.subscription_expires_at) return t('apiKeys.tier_lifetime', { defaultValue: 'Lifetime' });
-    return role === 'subscriber'
-      ? t('apiKeys.tier_subscriber', { defaultValue: 'Subscriber' })
-      : t('apiKeys.tier_premium', { defaultValue: 'Premium' });
+  if (role === "admin")
+    return t("apiKeys.tier_admin", { defaultValue: "Admin" });
+  if (role === "premium" || role === "subscriber") {
+    if (!user.subscription_expires_at)
+      return t("apiKeys.tier_lifetime", { defaultValue: "Lifetime" });
+    return role === "subscriber"
+      ? t("apiKeys.tier_subscriber", { defaultValue: "Subscriber" })
+      : t("apiKeys.tier_premium", { defaultValue: "Premium" });
   }
-  return t('apiKeys.tier_free', { defaultValue: 'Free' });
+  return t("apiKeys.tier_free", { defaultValue: "Free" });
 }
 
 function fmtDate(s) {
-  if (!s) return '—';
+  if (!s) return "—";
   const d = new Date(s);
-  if (isNaN(d)) return '—';
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function fmtRelative(s, t) {
-  if (!s) return t('apiKeys.never');
+  if (!s) return t("apiKeys.never");
   const d = new Date(s);
-  if (isNaN(d)) return t('apiKeys.never');
+  if (isNaN(d)) return t("apiKeys.never");
   const diff = Date.now() - d.getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return t('apiKeys.just_now');
-  if (m < 60) return `${m}m ${t('apiKeys.ago')}`;
+  if (m < 1) return t("apiKeys.just_now");
+  if (m < 60) return `${m}m ${t("apiKeys.ago")}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ${t('apiKeys.ago')}`;
+  if (h < 24) return `${h}h ${t("apiKeys.ago")}`;
   const days = Math.floor(h / 24);
-  return `${days}d ${t('apiKeys.ago')}`;
+  return `${days}d ${t("apiKeys.ago")}`;
 }
 
 // Scrollspy: returns the id of the last section whose top has crossed the
@@ -470,7 +598,7 @@ function fmtRelative(s, t) {
 function useScrollSpy(ids, offset = 96) {
   const [active, setActive] = useState(ids[0]);
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === "undefined") return undefined;
     let raf = 0;
     const compute = () => {
       raf = 0;
@@ -485,11 +613,11 @@ function useScrollSpy(ids, offset = 96) {
       if (!raf) raf = window.requestAnimationFrame(compute);
     };
     compute();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, [ids, offset]);
@@ -498,7 +626,7 @@ function useScrollSpy(ids, offset = 96) {
 
 function scrollToId(id) {
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ── Presentational helpers ──────────────────────────────────────────
@@ -507,13 +635,25 @@ const StatCard = ({ label, value, accent, icon }) => (
   <div className="rounded-xl px-4 py-3 border border-white/5 bg-white/[0.02]">
     <div className="flex items-center gap-1.5 mb-1">
       {icon && (
-        <svg className="w-3.5 h-3.5 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
+        <svg
+          className="w-3.5 h-3.5 text-text-muted flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d={icon}
+          />
         </svg>
       )}
-      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">{label}</p>
+      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted">
+        {label}
+      </p>
     </div>
-    <p className={`text-lg font-semibold ${accent || 'text-white'}`}>{value}</p>
+    <p className={`text-lg font-semibold ${accent || "text-white"}`}>{value}</p>
   </div>
 );
 
@@ -525,31 +665,39 @@ const SectionHead = ({ children }) => (
 
 // One key as a Stripe-style table row (stacks on mobile).
 const KeyRow = ({ k, onRevoke, revoking, t }) => (
-  <div className={`px-4 sm:px-5 py-3.5 border-t border-white/[0.05] ${KEY_GRID} ${k.is_active ? '' : 'opacity-60'}`}>
+  <div
+    className={`px-4 sm:px-5 py-3.5 border-t border-white/[0.05] ${KEY_GRID} ${k.is_active ? "" : "opacity-60"}`}
+  >
     {/* Name + status */}
     <div className="min-w-0 flex items-center gap-2">
-      <span className="text-white text-sm font-medium truncate">{k.name || t('apiKeys.untitled')}</span>
+      <span className="text-white text-sm font-medium truncate">
+        {k.name || t("apiKeys.untitled")}
+      </span>
       {k.is_active ? (
         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
-          {t('apiKeys.status_active')}
+          {t("apiKeys.status_active")}
         </span>
       ) : (
         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/20 flex-shrink-0">
-          {t('apiKeys.status_revoked')}
+          {t("apiKeys.status_revoked")}
         </span>
       )}
     </div>
 
     {/* Token */}
     <code className="block font-mono text-[12px] text-text-secondary mt-1.5 sm:mt-0 truncate">
-      {k.key_prefix}{'\u2022'.repeat(8)}
+      {k.key_prefix}
+      {"\u2022".repeat(8)}
     </code>
 
     {/* Activity */}
     <div className="text-[11px] text-text-muted mt-1.5 sm:mt-0">
-      {t('apiKeys.created')} {fmtDate(k.created_at)}
+      {t("apiKeys.created")} {fmtDate(k.created_at)}
       {k.is_active && (
-        <> · {t('apiKeys.last_used')} {fmtRelative(k.last_used_at, t)}</>
+        <>
+          {" "}
+          · {t("apiKeys.last_used")} {fmtRelative(k.last_used_at, t)}
+        </>
       )}
     </div>
 
@@ -561,7 +709,7 @@ const KeyRow = ({ k, onRevoke, revoking, t }) => (
           disabled={revoking}
           className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-red-400/80 border border-red-500/25 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 whitespace-nowrap"
         >
-          {revoking ? t('apiKeys.revoking') : t('apiKeys.revoke')}
+          {revoking ? t("apiKeys.revoking") : t("apiKeys.revoke")}
         </button>
       )}
     </div>
@@ -569,7 +717,12 @@ const KeyRow = ({ k, onRevoke, revoking, t }) => (
 );
 
 // Single-language code block with its own copy button.
-const CodeBlock = ({ code, lang = 'bash', copyLabel = 'Copy', copiedLabel = 'Copied' }) => {
+const CodeBlock = ({
+  code,
+  lang = "bash",
+  copyLabel = "Copy",
+  copiedLabel = "Copied",
+}) => {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -583,7 +736,9 @@ const CodeBlock = ({ code, lang = 'bash', copyLabel = 'Copy', copiedLabel = 'Cop
   return (
     <div className="rounded-lg bg-black/40 border border-white/5 overflow-hidden my-2">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">{lang}</span>
+        <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+          {lang}
+        </span>
         <button
           onClick={copy}
           className="text-[10px] font-semibold text-gold-primary hover:text-gold-light transition-colors"
@@ -591,13 +746,15 @@ const CodeBlock = ({ code, lang = 'bash', copyLabel = 'Copy', copiedLabel = 'Cop
           {copied ? copiedLabel : copyLabel}
         </button>
       </div>
-      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">{code}</pre>
+      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">
+        {code}
+      </pre>
     </div>
   );
 };
 
 // Multi-language code block with tabs (curl / Python / JS).
-const CodeTabs = ({ tabs, copyLabel = 'Copy', copiedLabel = 'Copied' }) => {
+const CodeTabs = ({ tabs, copyLabel = "Copy", copiedLabel = "Copied" }) => {
   const [active, setActive] = useState(0);
   const [copied, setCopied] = useState(false);
   const cur = tabs[active] || tabs[0];
@@ -617,11 +774,14 @@ const CodeTabs = ({ tabs, copyLabel = 'Copy', copiedLabel = 'Copied' }) => {
           {tabs.map((tb, i) => (
             <button
               key={tb.label}
-              onClick={() => { setActive(i); setCopied(false); }}
+              onClick={() => {
+                setActive(i);
+                setCopied(false);
+              }}
               className={`px-3 py-1.5 text-[11px] font-mono transition-colors border-b-2 -mb-px ${
                 i === active
-                  ? 'text-gold-primary border-gold-primary'
-                  : 'text-text-muted hover:text-text-secondary border-transparent'
+                  ? "text-gold-primary border-gold-primary"
+                  : "text-text-muted hover:text-text-secondary border-transparent"
               }`}
             >
               {tb.label}
@@ -635,7 +795,9 @@ const CodeTabs = ({ tabs, copyLabel = 'Copy', copiedLabel = 'Copied' }) => {
           {copied ? copiedLabel : copyLabel}
         </button>
       </div>
-      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">{cur.code}</pre>
+      <pre className="px-3 py-3 font-mono text-[11px] leading-relaxed text-text-secondary whitespace-pre-wrap break-all">
+        {cur.code}
+      </pre>
     </div>
   );
 };
@@ -676,13 +838,19 @@ const ParamTable = ({ rows }) => (
         {rows.map(([name, type, req, desc]) => (
           <tr key={name} className="border-t border-white/[0.05] align-top">
             <td className="py-2 pr-3">
-              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">{name}</code>
+              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+                {name}
+              </code>
             </td>
-            <td className="py-2 pr-3 text-[11px] text-text-muted whitespace-nowrap">{type}</td>
+            <td className="py-2 pr-3 text-[11px] text-text-muted whitespace-nowrap">
+              {type}
+            </td>
             <td className="py-2 pr-3 text-[11px]">
-              {req === 'yes'
-                ? <span className="text-amber-400/80">yes</span>
-                : <span className="text-text-muted">no</span>}
+              {req === "yes" ? (
+                <span className="text-amber-400/80">yes</span>
+              ) : (
+                <span className="text-text-muted">no</span>
+              )}
             </td>
             <td className="py-2 text-[12px] text-text-secondary">{desc}</td>
           </tr>
@@ -706,7 +874,9 @@ const FieldTable = ({ rows }) => (
         {rows.map(([name, meaning]) => (
           <tr key={name} className="border-t border-white/[0.05] align-top">
             <td className="py-2 pr-3">
-              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">{name}</code>
+              <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+                {name}
+              </code>
             </td>
             <td className="py-2 text-[12px] text-text-secondary">{meaning}</td>
           </tr>
@@ -719,7 +889,10 @@ const FieldTable = ({ rows }) => (
 // One endpoint as a collapsible card. Open state is controlled by the parent
 // so the TOC can expand a card when its sub-link is clicked.
 const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
-  <div id={ep._id} className="scroll-mt-24 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+  <div
+    id={ep._id}
+    className="scroll-mt-24 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden"
+  >
     <button
       onClick={onToggle}
       aria-expanded={open}
@@ -729,13 +902,22 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
         <span className="font-mono text-[10px] font-bold text-emerald-400/80 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
           {ep.method}
         </span>
-        <code className="font-mono text-[13px] text-gold-primary/90 break-all">{ep.path}</code>
+        <code className="font-mono text-[13px] text-gold-primary/90 break-all">
+          {ep.path}
+        </code>
       </div>
       <svg
-        className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+        />
       </svg>
     </button>
 
@@ -745,21 +927,32 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
 
         {ep.params?.length > 0 && (
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">Parameters</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
+              Parameters
+            </p>
             <ParamTable rows={ep.params} />
           </div>
         )}
 
         {ep.fields?.length > 0 && (
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">Response fields</p>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
+              Response fields
+            </p>
             <FieldTable rows={ep.fields} />
           </div>
         )}
 
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">Example response</p>
-          <CodeBlock code={ep.example} lang="json" copyLabel={copyLabel} copiedLabel={copiedLabel} />
+          <p className="text-[10px] font-mono uppercase tracking-wider text-text-muted mb-1">
+            Example response
+          </p>
+          <CodeBlock
+            code={ep.example}
+            lang="json"
+            copyLabel={copyLabel}
+            copiedLabel={copiedLabel}
+          />
         </div>
 
         {ep.notes && (
@@ -776,7 +969,9 @@ const EndpointCard = ({ ep, open, onToggle, copyLabel, copiedLabel }) => (
 // the Endpoints section is active, its routes expand as sub-links.
 const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
   <nav className="text-[12px]" aria-label="API documentation sections">
-    <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted mb-2 px-2">On this page</p>
+    <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted mb-2 px-2">
+      On this page
+    </p>
     <ul className="space-y-0.5">
       {SECTIONS.map((s) => {
         const isActive = active === s.id;
@@ -786,11 +981,13 @@ const TocSidebar = ({ active, onNavigate, onEndpointNav }) => (
               onClick={() => onNavigate(s.id)}
               className={`w-full text-left px-2 py-1.5 rounded-md transition-colors flex items-center gap-2 ${
                 isActive
-                  ? 'text-gold-primary bg-gold-primary/10'
-                  : 'text-text-secondary hover:text-white hover:bg-white/[0.03]'
+                  ? "text-gold-primary bg-gold-primary/10"
+                  : "text-text-secondary hover:text-white hover:bg-white/[0.03]"
               }`}
             >
-              <span className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? 'bg-gold-primary' : 'bg-white/20'}`} />
+              <span
+                className={`w-1 h-1 rounded-full flex-shrink-0 ${isActive ? "bg-gold-primary" : "bg-white/20"}`}
+              />
               <span className="truncate">{s.label}</span>
             </button>
             {s.children && isActive && (
@@ -819,7 +1016,7 @@ const TocChips = ({ active, onNavigate }) => (
   <div className="lg:hidden sticky top-14 z-20 -mx-5 sm:-mx-6 px-5 sm:px-6 py-2 mb-4 bg-bg-primary/95 backdrop-blur-sm border-b border-white/5">
     <div
       className="flex gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden"
-      style={{ scrollbarWidth: 'none' }}
+      style={{ scrollbarWidth: "none" }}
     >
       {SECTIONS.map((s) => (
         <button
@@ -827,8 +1024,8 @@ const TocChips = ({ active, onNavigate }) => (
           onClick={() => onNavigate(s.id)}
           className={`px-3 py-1.5 rounded-full text-[11px] whitespace-nowrap transition-colors flex-shrink-0 border ${
             active === s.id
-              ? 'bg-gold-primary/15 text-gold-primary border-gold-primary/30'
-              : 'bg-white/[0.03] text-text-secondary border-white/5'
+              ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
+              : "bg-white/[0.03] text-text-secondary border-white/5"
           }`}
         >
           {s.label}
@@ -852,7 +1049,7 @@ const ApiKeysPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -862,7 +1059,9 @@ const ApiKeysPage = () => {
 
   // Docs: scrollspy + collapsible endpoints.
   const activeSection = useScrollSpy(DOC_SECTION_IDS);
-  const [openEndpoints, setOpenEndpoints] = useState(() => new Set([EP_LIST[0]._id]));
+  const [openEndpoints, setOpenEndpoints] = useState(
+    () => new Set([EP_LIST[0]._id]),
+  );
   const toggleEndpoint = (id) =>
     setOpenEndpoints((prev) => {
       const next = new Set(prev);
@@ -886,7 +1085,9 @@ const ApiKeysPage = () => {
   const revokedKeys = keys
     .filter((k) => !k.is_active)
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const visibleRevoked = showAllRevoked ? revokedKeys : revokedKeys.slice(0, MAX_REVOKED_VISIBLE);
+  const visibleRevoked = showAllRevoked
+    ? revokedKeys
+    : revokedKeys.slice(0, MAX_REVOKED_VISIBLE);
   const displayedKeys = [...activeKeys, ...visibleRevoked];
 
   const load = useCallback(async () => {
@@ -896,7 +1097,7 @@ const ApiKeysPage = () => {
       const data = await apiKeysApi.list();
       setKeys(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(e?.response?.data?.detail || t('apiKeys.err_load'));
+      setError(e?.response?.data?.detail || t("apiKeys.err_load"));
     } finally {
       setLoading(false);
     }
@@ -914,18 +1115,18 @@ const ApiKeysPage = () => {
       const created = await apiKeysApi.create(name.trim() || null);
       setJustCreated(created);
       setCopied(false);
-      setName('');
+      setName("");
       setShowCreate(false);
       await load();
     } catch (e) {
-      setError(e?.response?.data?.detail || t('apiKeys.err_create'));
+      setError(e?.response?.data?.detail || t("apiKeys.err_create"));
     } finally {
       setCreating(false);
     }
   };
 
   const handleRevoke = async (id) => {
-    if (!window.confirm(t('apiKeys.confirm_revoke'))) return;
+    if (!window.confirm(t("apiKeys.confirm_revoke"))) return;
     setRevokingId(id);
     setError(null);
     try {
@@ -933,7 +1134,7 @@ const ApiKeysPage = () => {
       if (justCreated && justCreated.id === id) setJustCreated(null);
       await load();
     } catch (e) {
-      setError(e?.response?.data?.detail || t('apiKeys.err_revoke'));
+      setError(e?.response?.data?.detail || t("apiKeys.err_revoke"));
     } finally {
       setRevokingId(null);
     }
@@ -949,8 +1150,8 @@ const ApiKeysPage = () => {
     }
   };
 
-  const copyLabel = t('apiKeys.copy');
-  const copiedLabel = t('apiKeys.copied');
+  const copyLabel = t("apiKeys.copy");
+  const copiedLabel = t("apiKeys.copied");
 
   return (
     <div className="max-w-6xl mx-auto px-1 sm:px-2 lg:px-0 space-y-6">
@@ -959,41 +1160,45 @@ const ApiKeysPage = () => {
         <div className="flex items-center gap-2 mb-1">
           <span className="w-1 h-3 rounded-full bg-gold-primary" />
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
-            {t('apiKeys.eyebrow')}
+            {t("apiKeys.eyebrow")}
           </span>
         </div>
         <h1
           className="text-3xl sm:text-4xl text-white"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: '-0.025em' }}
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+          }}
         >
-          {t('apiKeys.title')}
+          {t("apiKeys.title")}
         </h1>
         <p className="text-text-muted text-xs sm:text-sm mt-1.5 max-w-2xl">
-          {t('apiKeys.subtitle')}
+          {t("apiKeys.subtitle")}
         </p>
       </header>
 
       {/* ── Stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <StatCard
-          label={t('apiKeys.stat_access', { defaultValue: 'Access' })}
+          label={t("apiKeys.stat_access", { defaultValue: "Access" })}
           value={accessLabel(user, t)}
-          accent={hasAccess ? 'text-emerald-400' : 'text-text-secondary'}
+          accent={hasAccess ? "text-emerald-400" : "text-text-secondary"}
           icon={ICON_ACCESS}
         />
         <StatCard
-          label={t('apiKeys.stat_active', { defaultValue: 'Active keys' })}
+          label={t("apiKeys.stat_active", { defaultValue: "Active keys" })}
           value={`${activeCount} / ${KEY_CAP}`}
-          accent={atLimit ? 'text-amber-400' : 'text-white'}
+          accent={atLimit ? "text-amber-400" : "text-white"}
           icon={ICON_KEY}
         />
         <StatCard
-          label={t('apiKeys.stat_rate', { defaultValue: 'Rate limit' })}
+          label={t("apiKeys.stat_rate", { defaultValue: "Rate limit" })}
           value={`${RATE_LIMIT}/min`}
           icon={ICON_BOLT}
         />
         <StatCard
-          label={t('apiKeys.stat_endpoints', { defaultValue: 'Endpoints' })}
+          label={t("apiKeys.stat_endpoints", { defaultValue: "Endpoints" })}
           value={String(EP_LIST.length)}
           icon={ICON_CODE}
         />
@@ -1003,22 +1208,39 @@ const ApiKeysPage = () => {
       {!hasAccess && (
         <div
           className="rounded-2xl p-5 border border-gold-primary/20 relative overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, rgba(212,168,83,0.08), rgba(255,255,255,0.01))' }}
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(212,168,83,0.08), rgba(255,255,255,0.01))",
+          }}
         >
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gold-primary/10 border border-gold-primary/25">
-              <svg className="w-5 h-5 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              <svg
+                className="w-5 h-5 text-gold-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-sm">{t('apiKeys.locked_title')}</h3>
-              <p className="text-text-secondary text-[13px] mt-1">{t('apiKeys.locked_desc')}</p>
+              <h3 className="text-white font-semibold text-sm">
+                {t("apiKeys.locked_title")}
+              </h3>
+              <p className="text-text-secondary text-[13px] mt-1">
+                {t("apiKeys.locked_desc")}
+              </p>
               <button
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate("/pricing")}
                 className="mt-3 px-4 py-2 rounded-lg text-[13px] font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all"
               >
-                {t('apiKeys.upgrade_cta')}
+                {t("apiKeys.upgrade_cta")}
               </button>
             </div>
           </div>
@@ -1036,16 +1258,33 @@ const ApiKeysPage = () => {
       {justCreated && (
         <div
           className="rounded-2xl p-5 border border-gold-primary/40 relative overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, rgba(212,168,83,0.10), rgba(255,255,255,0.01))' }}
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(212,168,83,0.10), rgba(255,255,255,0.01))",
+          }}
         >
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/60 to-transparent" />
           <div className="flex items-center gap-2 mb-2">
-            <svg className="w-4 h-4 text-gold-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-gold-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <h3 className="text-white font-semibold text-sm">{t('apiKeys.created_title')}</h3>
+            <h3 className="text-white font-semibold text-sm">
+              {t("apiKeys.created_title")}
+            </h3>
           </div>
-          <p className="text-amber-400/90 text-[12px] mb-3">⚠ {t('apiKeys.created_warn')}</p>
+          <p className="text-amber-400/90 text-[12px] mb-3">
+            ⚠ {t("apiKeys.created_warn")}
+          </p>
           <div className="flex items-center gap-2">
             <code className="flex-1 px-3 py-2.5 rounded-lg font-mono text-[12px] sm:text-[13px] text-gold-light bg-black/40 border border-white/10 break-all">
               {justCreated.key}
@@ -1061,7 +1300,7 @@ const ApiKeysPage = () => {
             onClick={() => setJustCreated(null)}
             className="mt-3 text-[12px] text-text-muted hover:text-text-secondary transition-colors"
           >
-            {t('apiKeys.dismiss')}
+            {t("apiKeys.dismiss")}
           </button>
         </div>
       )}
@@ -1072,10 +1311,10 @@ const ApiKeysPage = () => {
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/5">
           <div>
             <h2 className="text-[11px] font-mono uppercase tracking-[0.22em] text-gold-primary/70">
-              {t('apiKeys.your_keys')}
+              {t("apiKeys.your_keys")}
             </h2>
             <p className="text-[11px] text-text-muted mt-0.5">
-              {activeCount}/{KEY_CAP} {t('apiKeys.active')}
+              {activeCount}/{KEY_CAP} {t("apiKeys.active")}
             </p>
           </div>
           {hasAccess && (
@@ -1083,13 +1322,13 @@ const ApiKeysPage = () => {
               onClick={() => setShowCreate((v) => !v)}
               className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap ${
                 showCreate
-                  ? 'text-text-secondary border border-white/10 hover:text-white hover:bg-white/[0.03]'
-                  : 'bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow'
+                  ? "text-text-secondary border border-white/10 hover:text-white hover:bg-white/[0.03]"
+                  : "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow"
               }`}
             >
               {showCreate
-                ? t('apiKeys.cancel', { defaultValue: 'Cancel' })
-                : t('apiKeys.new_key', { defaultValue: '+ New key' })}
+                ? t("apiKeys.cancel", { defaultValue: "Cancel" })
+                : t("apiKeys.new_key", { defaultValue: "+ New key" })}
             </button>
           )}
         </div>
@@ -1098,15 +1337,15 @@ const ApiKeysPage = () => {
         {hasAccess && showCreate && (
           <div className="px-5 py-4 border-b border-white/5 bg-white/[0.01]">
             <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-text-muted mb-2">
-              {t('apiKeys.create_title')}
+              {t("apiKeys.create_title")}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                placeholder={t('apiKeys.name_placeholder')}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                placeholder={t("apiKeys.name_placeholder")}
                 maxLength={60}
                 autoFocus
                 className="flex-1 px-3 py-2.5 rounded-lg text-sm text-white bg-white/[0.03] border border-white/10 placeholder:text-text-muted/70 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-colors"
@@ -1116,21 +1355,27 @@ const ApiKeysPage = () => {
                 disabled={creating || atLimit}
                 className="px-5 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary hover:shadow-gold-glow transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
-                {creating ? t('apiKeys.creating') : t('apiKeys.create_btn')}
+                {creating ? t("apiKeys.creating") : t("apiKeys.create_btn")}
               </button>
             </div>
             {atLimit && (
-              <p className="text-amber-400/80 text-[11px] mt-2">{t('apiKeys.limit_warn')}</p>
+              <p className="text-amber-400/80 text-[11px] mt-2">
+                {t("apiKeys.limit_warn")}
+              </p>
             )}
           </div>
         )}
 
         {/* Table header (sm+) */}
         {!loading && keys.length > 0 && (
-          <div className={`hidden ${KEY_GRID} px-5 py-2.5 text-[10px] font-mono uppercase tracking-wider text-text-muted bg-white/[0.01] border-b border-white/5`}>
-            <span>{t('apiKeys.col_name', { defaultValue: 'Name' })}</span>
-            <span>{t('apiKeys.col_key', { defaultValue: 'Key' })}</span>
-            <span>{t('apiKeys.col_activity', { defaultValue: 'Activity' })}</span>
+          <div
+            className={`hidden ${KEY_GRID} px-5 py-2.5 text-[10px] font-mono uppercase tracking-wider text-text-muted bg-white/[0.01] border-b border-white/5`}
+          >
+            <span>{t("apiKeys.col_name", { defaultValue: "Name" })}</span>
+            <span>{t("apiKeys.col_key", { defaultValue: "Key" })}</span>
+            <span>
+              {t("apiKeys.col_activity", { defaultValue: "Activity" })}
+            </span>
             <span />
           </div>
         )}
@@ -1142,7 +1387,7 @@ const ApiKeysPage = () => {
           </div>
         ) : keys.length === 0 ? (
           <div className="py-10 text-center">
-            <p className="text-text-muted text-sm">{t('apiKeys.empty')}</p>
+            <p className="text-text-muted text-sm">{t("apiKeys.empty")}</p>
           </div>
         ) : (
           <div>
@@ -1163,9 +1408,9 @@ const ApiKeysPage = () => {
                   className="w-full py-2 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-secondary border border-white/5 hover:border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
                 >
                   {showAllRevoked
-                    ? t('apiKeys.show_less', { defaultValue: 'Show less' })
-                    : t('apiKeys.show_all_revoked', {
-                        defaultValue: 'Show all revoked ({{n}})',
+                    ? t("apiKeys.show_less", { defaultValue: "Show less" })
+                    : t("apiKeys.show_all_revoked", {
+                        defaultValue: "Show all revoked ({{n}})",
                         n: revokedKeys.length,
                       })}
                 </button>
@@ -1179,30 +1424,55 @@ const ApiKeysPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Quick start */}
         <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-          <SectionHead>{t('apiKeys.usage_title')}</SectionHead>
-          <p className="text-text-secondary text-[13px] mb-3">{t('apiKeys.usage_desc')}</p>
-          <CodeBlock code={EX_CURL} lang="bash" copyLabel={copyLabel} copiedLabel={copiedLabel} />
+          <SectionHead>{t("apiKeys.usage_title")}</SectionHead>
+          <p className="text-text-secondary text-[13px] mb-3">
+            {t("apiKeys.usage_desc")}
+          </p>
+          <CodeBlock
+            code={EX_CURL}
+            lang="bash"
+            copyLabel={copyLabel}
+            copiedLabel={copiedLabel}
+          />
           <p className="text-[11px] text-text-muted mt-2 leading-relaxed">
             Base URL: <Mono>{PUBLIC_BASE}</Mono>
           </p>
-          <p className="text-[11px] text-text-muted mt-3">{t('apiKeys.usage_note')}</p>
+          <p className="text-[11px] text-text-muted mt-3">
+            {t("apiKeys.usage_note")}
+          </p>
         </div>
 
         {/* Security & limits */}
         <div className="rounded-2xl p-5 border border-white/5 bg-white/[0.02]">
-          <SectionHead>{t('apiKeys.security_title', { defaultValue: 'Security & limits' })}</SectionHead>
+          <SectionHead>
+            {t("apiKeys.security_title", { defaultValue: "Security & limits" })}
+          </SectionHead>
           <ul className="space-y-2.5 text-[12px] text-text-secondary">
             <li className="flex items-start gap-2">
               <span className="text-gold-primary/70 mt-0.5">·</span>
-              <span>{t('apiKeys.security_rate', { defaultValue: 'Each account is capped at 60 requests/min — shared across all your keys.' })}</span>
+              <span>
+                {t("apiKeys.security_rate", {
+                  defaultValue:
+                    "Each account is capped at 60 requests/min — shared across all your keys.",
+                })}
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-gold-primary/70 mt-0.5">·</span>
-              <span>{t('apiKeys.security_cap', { defaultValue: 'Up to 2 active keys at a time.' })}</span>
+              <span>
+                {t("apiKeys.security_cap", {
+                  defaultValue: "Up to 2 active keys at a time.",
+                })}
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-gold-primary/70 mt-0.5">·</span>
-              <span>{t('apiKeys.security_share', { defaultValue: 'Keys are personal. Sharing or reselling access may get them revoked.' })}</span>
+              <span>
+                {t("apiKeys.security_share", {
+                  defaultValue:
+                    "Keys are personal. Sharing or reselling access may get them revoked.",
+                })}
+              </span>
             </li>
           </ul>
         </div>
@@ -1216,13 +1486,27 @@ const ApiKeysPage = () => {
         <div className="pb-3 mb-4 border-b border-white/5">
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">Reference</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+              Reference
+            </span>
           </div>
-          <h2 className="text-2xl text-white" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: '-0.02em' }}>
+          <h2
+            className="text-2xl text-white"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+            }}
+          >
             API Documentation
           </h2>
-          <p className="text-text-muted text-[13px] mt-1.5 max-w-2xl">
-            Everything you need to pull LuxQuant data into your own tools. The signals endpoints are documented with exact response shapes; the analytics endpoints (journey, enrichment, correlation, market pulse) are derived data and may return a "not ready yet" state for very new signals.
+          // Baris sekitar ~780 - 790 (di dalam Doc header)
+          <p className="text-text-muted text-[13px] mt-1.5 max-w-2xl text-right">
+            Everything you need to pull LuxQuant data into your own tools. The
+            signals endpoints are documented with exact response shapes; the
+            analytics endpoints (journey, enrichment, correlation, market pulse)
+            are derived data and may return a "not ready yet" state for very new
+            signals.
           </p>
         </div>
 
@@ -1247,78 +1531,160 @@ const ApiKeysPage = () => {
             {/* Authentication */}
             <DocSection id="doc-auth" title="Authentication">
               <p>Every request must carry your API key. Preferred header:</p>
-              <CodeBlock code={`Authorization: Bearer lq_live_YOUR_KEY`} lang="http" copyLabel={copyLabel} copiedLabel={copiedLabel} />
+              <CodeBlock
+                code={`Authorization: Bearer lq_live_YOUR_KEY`}
+                lang="http"
+                copyLabel={copyLabel}
+                copiedLabel={copiedLabel}
+              />
               <p>
-                Alternatively you may send it as <Mono>X-API-Key: lq_live_YOUR_KEY</Mono>. The key is shown only once at creation — store it like a password. If it leaks, revoke it from this page and generate a new one.
+                Alternatively you may send it as{" "}
+                <Mono>X-API-Key: lq_live_YOUR_KEY</Mono>. The key is shown only
+                once at creation — store it like a password. If it leaks, revoke
+                it from this page and generate a new one.
               </p>
               <p className="text-text-muted text-[12px]">
-                Access requires an active subscription. If your subscription lapses, the key stops working automatically until it is renewed.
+                Access requires an active subscription. If your subscription
+                lapses, the key stops working automatically until it is renewed.
               </p>
             </DocSection>
 
             {/* Base URL */}
             <DocSection id="doc-base" title="Base URL">
-              <CodeBlock code={PUBLIC_BASE} lang="text" copyLabel={copyLabel} copiedLabel={copiedLabel} />
-              <p>All endpoints below are relative to this base. All responses are JSON (except <Mono>/export/prompt</Mono>, which is plain text).</p>
+              <CodeBlock
+                code={PUBLIC_BASE}
+                lang="text"
+                copyLabel={copyLabel}
+                copiedLabel={copiedLabel}
+              />
+              <p>
+                All endpoints below are relative to this base. All responses are
+                JSON (except <Mono>/export/prompt</Mono>, which is plain text).
+              </p>
             </DocSection>
 
             {/* Rate limits */}
             <DocSection id="doc-rate" title="Rate limits">
               <p>
-                Requests are limited to <Mono>{RATE_LIMIT}/min per account</Mono> (a sliding 60-second window), shared across all of your keys. Each response includes:
+                Requests are limited to{" "}
+                <Mono>{RATE_LIMIT}/min per account</Mono> (a sliding 60-second
+                window), shared across all of your keys. Each response includes:
               </p>
               <ul className="list-none space-y-1 pl-1">
-                <li>· <Mono>X-RateLimit-Limit</Mono> — your per-minute ceiling.</li>
-                <li>· <Mono>X-RateLimit-Remaining</Mono> — requests left in the current window.</li>
+                <li>
+                  · <Mono>X-RateLimit-Limit</Mono> — your per-minute ceiling.
+                </li>
+                <li>
+                  · <Mono>X-RateLimit-Remaining</Mono> — requests left in the
+                  current window.
+                </li>
               </ul>
               <p>
-                When the limit is exceeded you get HTTP <Mono>429</Mono> with a <Mono>Retry-After</Mono> header. Polling every 10–15 seconds keeps you comfortably within the limit.
+                When the limit is exceeded you get HTTP <Mono>429</Mono> with a{" "}
+                <Mono>Retry-After</Mono> header. Polling every 10–15 seconds
+                keeps you comfortably within the limit.
               </p>
             </DocSection>
 
             {/* Response format & pagination */}
-            <DocSection id="doc-format" title="Response format & forward pagination">
+            <DocSection
+              id="doc-format"
+              title="Response format & forward pagination"
+            >
               <p>
-                List endpoints return an envelope: <Mono>{`{ items: [...], count: N, cursor: "..." }`}</Mono>.
+                List endpoints return an envelope:{" "}
+                <Mono>{`{ items: [...], count: N, cursor: "..." }`}</Mono>.
               </p>
               <p>
-                To follow new data over time, save <Mono>cursor</Mono> from each response and pass it back as the <Mono>since</Mono> parameter on the next call. With <Mono>since</Mono>, results come oldest-first so nothing is skipped; without it, you get the newest items first.
+                To follow new data over time, save <Mono>cursor</Mono> from each
+                response and pass it back as the <Mono>since</Mono> parameter on
+                the next call. With <Mono>since</Mono>, results come
+                oldest-first so nothing is skipped; without it, you get the
+                newest items first.
               </p>
               <p className="text-text-muted text-[12px]">
-                Timestamps are ISO-8601 (e.g. <Mono>2026-06-06T05:12:00+00:00</Mono>). Only advance your stored cursor when a response actually returns data.
+                Timestamps are ISO-8601 (e.g.{" "}
+                <Mono>2026-06-06T05:12:00+00:00</Mono>). Only advance your
+                stored cursor when a response actually returns data.
               </p>
             </DocSection>
 
             {/* Status codes */}
             <DocSection id="doc-codes" title="Status & error codes">
               <ul className="list-none space-y-1.5">
-                <li><span className="text-emerald-400 font-mono text-[12px]">200</span> — OK. Body contains the requested data.</li>
-                <li><span className="text-amber-400 font-mono text-[12px]">400</span> — Bad request, e.g. an invalid <Mono>status</Mono> value. The body lists what's valid.</li>
-                <li><span className="text-red-400 font-mono text-[12px]">401</span> — Missing / invalid / revoked key.</li>
-                <li><span className="text-red-400 font-mono text-[12px]">403</span> — Key valid but subscription inactive.</li>
-                <li><span className="text-red-400 font-mono text-[12px]">404</span> — Resource not found (or outside the public data window).</li>
-                <li><span className="text-amber-400 font-mono text-[12px]">429</span> — Rate limit exceeded; see <Mono>Retry-After</Mono>.</li>
+                <li>
+                  <span className="text-emerald-400 font-mono text-[12px]">
+                    200
+                  </span>{" "}
+                  — OK. Body contains the requested data.
+                </li>
+                <li>
+                  <span className="text-amber-400 font-mono text-[12px]">
+                    400
+                  </span>{" "}
+                  — Bad request, e.g. an invalid <Mono>status</Mono> value. The
+                  body lists what's valid.
+                </li>
+                <li>
+                  <span className="text-red-400 font-mono text-[12px]">
+                    401
+                  </span>{" "}
+                  — Missing / invalid / revoked key.
+                </li>
+                <li>
+                  <span className="text-red-400 font-mono text-[12px]">
+                    403
+                  </span>{" "}
+                  — Key valid but subscription inactive.
+                </li>
+                <li>
+                  <span className="text-red-400 font-mono text-[12px]">
+                    404
+                  </span>{" "}
+                  — Resource not found (or outside the public data window).
+                </li>
+                <li>
+                  <span className="text-amber-400 font-mono text-[12px]">
+                    429
+                  </span>{" "}
+                  — Rate limit exceeded; see <Mono>Retry-After</Mono>.
+                </li>
               </ul>
-              <p className="text-text-muted text-[12px]">Errors share the shape <Mono>{`{ "detail": "message" }`}</Mono>.</p>
+              <p className="text-text-muted text-[12px]">
+                Errors share the shape <Mono>{`{ "detail": "message" }`}</Mono>.
+              </p>
             </DocSection>
 
             {/* signal_id clarification */}
             <DocSection id="doc-ids" title="Working with signal_id">
               <p>
-                Endpoints written as <Mono>{`/journey/{id}`}</Mono>, <Mono>{`/enrichment/{id}`}</Mono>, and <Mono>{`/btc-correlation/{id}`}</Mono> expect a <Mono>signal_id</Mono> — <span className="text-white">not</span> a pair name like <Mono>BTCUSDT</Mono>.
+                Endpoints written as <Mono>{`/journey/{id}`}</Mono>,{" "}
+                <Mono>{`/enrichment/{id}`}</Mono>, and{" "}
+                <Mono>{`/btc-correlation/{id}`}</Mono> expect a{" "}
+                <Mono>signal_id</Mono> — <span className="text-white">not</span>{" "}
+                a pair name like <Mono>BTCUSDT</Mono>.
               </p>
               <p>The flow is always:</p>
               <ol className="list-decimal pl-5 space-y-1 text-[12px]">
-                <li>Call <Mono>/signals</Mono>.</li>
-                <li>Take <Mono>signal_id</Mono> from any item in the response (a UUID like <Mono>cbc5315b-3910-…</Mono>).</li>
-                <li>Use that value in the <Mono>{`{id}`}</Mono> endpoints.</li>
+                <li>
+                  Call <Mono>/signals</Mono>.
+                </li>
+                <li>
+                  Take <Mono>signal_id</Mono> from any item in the response (a
+                  UUID like <Mono>cbc5315b-3910-…</Mono>).
+                </li>
+                <li>
+                  Use that value in the <Mono>{`{id}`}</Mono> endpoints.
+                </li>
               </ol>
             </DocSection>
 
             {/* Endpoints */}
             <DocSection id="doc-endpoints" title="Endpoints">
               <p className="text-text-muted text-[12px] -mt-1">
-                Tap a card to expand parameters, response fields, and an example. Signals endpoints have exact schemas; analytics endpoints show exact field names with illustrative values.
+                Tap a card to expand parameters, response fields, and an
+                example. Signals endpoints have exact schemas; analytics
+                endpoints show exact field names with illustrative values.
               </p>
               <div className="space-y-3 not-prose">
                 {EP_LIST.map((ep) => (
@@ -1336,16 +1702,26 @@ const ApiKeysPage = () => {
 
             {/* Status values */}
             <DocSection id="doc-status" title="Signal status values">
-              <p>The <Mono>status</Mono> field on a signal — and the values accepted by <Mono>?status=</Mono> on <Mono>/signals</Mono>:</p>
+              <p>
+                The <Mono>status</Mono> field on a signal — and the values
+                accepted by <Mono>?status=</Mono> on <Mono>/signals</Mono>:
+              </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <tbody>
                     {STATUS_VALUES.map(([val, desc]) => (
-                      <tr key={val} className="border-t border-white/[0.05] align-top">
+                      <tr
+                        key={val}
+                        className="border-t border-white/[0.05] align-top"
+                      >
                         <td className="py-2 pr-4">
-                          <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">{val}</code>
+                          <code className="font-mono text-[11px] text-gold-primary/90 whitespace-nowrap">
+                            {val}
+                          </code>
                         </td>
-                        <td className="py-2 text-[12px] text-text-secondary">{desc}</td>
+                        <td className="py-2 text-[12px] text-text-secondary">
+                          {desc}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1356,30 +1732,74 @@ const ApiKeysPage = () => {
             {/* Code examples */}
             <DocSection id="doc-examples" title="Code examples">
               <p className="text-text-muted text-[12px]">
-                Same task in three languages — list open signals, then drill into one. Switch tabs to copy your preferred language.
+                Same task in three languages — list open signals, then drill
+                into one. Switch tabs to copy your preferred language.
               </p>
               <CodeTabs
                 tabs={[
-                  { label: 'curl', code: EX_CURL },
-                  { label: 'python', code: EX_PYTHON },
-                  { label: 'javascript', code: EX_JS },
+                  { label: "curl", code: EX_CURL },
+                  { label: "python", code: EX_PYTHON },
+                  { label: "javascript", code: EX_JS },
                 ]}
                 copyLabel={copyLabel}
                 copiedLabel={copiedLabel}
               />
               <p className="text-text-muted text-[12px] mt-1">
-                The JavaScript sample shows the recommended pattern: poll <Mono>/signals/updates</Mono> with a cursor on a 15s interval rather than re-fetching everything.
+                The JavaScript sample shows the recommended pattern: poll{" "}
+                <Mono>/signals/updates</Mono> with a cursor on a 15s interval
+                rather than re-fetching everything.
               </p>
             </DocSection>
 
             {/* Best practices */}
             <DocSection id="doc-best" title="Best practices & FAQ">
               <ul className="list-none space-y-2">
-                <li className="flex items-start gap-2"><span className="text-gold-primary/60 mt-0.5">·</span><span><span className="text-white">Poll, don't hammer.</span> 10–15s intervals are plenty and stay within the 60/min limit.</span></li>
-                <li className="flex items-start gap-2"><span className="text-gold-primary/60 mt-0.5">·</span><span><span className="text-white">Use the cursor.</span> Re-fetching everything wastes your rate budget; <Mono>since</Mono> only returns what's new.</span></li>
-                <li className="flex items-start gap-2"><span className="text-gold-primary/60 mt-0.5">·</span><span><span className="text-white">Handle "not ready" states.</span> Analytics endpoints can return <Mono>{`{ available: false }`}</Mono> / <Mono>{`{ status: "not_enriched" }`}</Mono> for very new signals — treat that as a normal, non-error response.</span></li>
-                <li className="flex items-start gap-2"><span className="text-gold-primary/60 mt-0.5">·</span><span><span className="text-white">Keep the key server-side.</span> Don't embed it in a browser/client app where others can read it.</span></li>
-                <li className="flex items-start gap-2"><span className="text-gold-primary/60 mt-0.5">·</span><span><span className="text-white">One identity per key.</span> Sharing or reselling access can get the key flagged and revoked.</span></li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span>
+                    <span className="text-white">Poll, don't hammer.</span>{" "}
+                    10–15s intervals are plenty and stay within the 60/min
+                    limit.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span>
+                    <span className="text-white">Use the cursor.</span>{" "}
+                    Re-fetching everything wastes your rate budget;{" "}
+                    <Mono>since</Mono> only returns what's new.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span>
+                    <span className="text-white">
+                      Handle "not ready" states.
+                    </span>{" "}
+                    Analytics endpoints can return{" "}
+                    <Mono>{`{ available: false }`}</Mono> /{" "}
+                    <Mono>{`{ status: "not_enriched" }`}</Mono> for very new
+                    signals — treat that as a normal, non-error response.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span>
+                    <span className="text-white">
+                      Keep the key server-side.
+                    </span>{" "}
+                    Don't embed it in a browser/client app where others can read
+                    it.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gold-primary/60 mt-0.5">·</span>
+                  <span>
+                    <span className="text-white">One identity per key.</span>{" "}
+                    Sharing or reselling access can get the key flagged and
+                    revoked.
+                  </span>
+                </li>
               </ul>
             </DocSection>
           </div>
