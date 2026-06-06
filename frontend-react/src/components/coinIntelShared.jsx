@@ -7,9 +7,15 @@ import CoinLogo from './CoinLogo';
 // Extracted from CoinIntelligence.jsx so SignalsTable can reuse the exact same
 // verdict classification and the deep-analysis modal WITHOUT duplicating logic.
 // CoinIntelligence.jsx now imports these from here.
+//
+// THEME NOTE: structural surfaces (frame, header, cards, section labels,
+// scrollbar, table borders) follow the SignalModal gold design language.
+// Colors that ENCODE DATA (verdict / severity / market condition / win-loss /
+// score gauge / outcome bars / best-worst markers / correlated-SL) are kept
+// intentionally — they are meaning, not decoration.
 // ═══════════════════════════════════════════
 
-// MARKET CONDITIONS (Good, Neutral, Bad)
+// MARKET CONDITIONS (Good, Neutral, Bad) — semantic, do not goldify
 export const FC = {
   good:    { bg: 'rgba(34,197,94,0.10)', border: '#22c55e', text: '#22c55e', label: 'Good' },
   neutral: { bg: 'rgba(234,179,8,0.10)', border: '#eab308', text: '#eab308', label: 'Neutral' },
@@ -94,7 +100,7 @@ export const MonthlyLineChart = ({ data }) => {
           </linearGradient>
         </defs>
         {[0, 0.5, 1].map((f, i) => (
-          <line key={i} x1={padX} x2={W - padX} y1={padY + f * (H - padY * 2)} y2={padY + f * (H - padY * 2)} stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+          <line key={i} x1={padX} x2={W - padX} y1={padY + f * (H - padY * 2)} y2={padY + f * (H - padY * 2)} stroke="rgba(212,168,83,0.06)" strokeWidth="0.5" />
         ))}
         <path d={areaD} fill="url(#wrGrad)" />
         <path d={pathD} fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -113,15 +119,15 @@ export const MonthlyLineChart = ({ data }) => {
 };
 
 const Section = ({ title, children, className = "" }) => (
-  <div className={`rounded-xl p-4 bg-white/[0.015] border border-white/[0.03] ${className}`}>
-    <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500 mb-3">{title}</p>
+  <div className={`rounded-xl p-4 bg-[#0d0d0d] border border-gold-primary/10 ${className}`}>
+    <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70 mb-3">{title}</p>
     {children}
   </div>
 );
 
 const StatBox = ({ label, value, color, icon = null }) => (
   <div className="flex flex-col justify-center">
-    <p className="text-[7px] text-gray-500 uppercase tracking-widest mb-1">{label}</p>
+    <p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">{label}</p>
     <div className="flex items-center gap-1.5">
       <p className="font-mono font-bold text-[14px] drop-shadow-sm" style={{ color }}>{value}</p>
       {icon}
@@ -187,20 +193,21 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             </div>
 
             {/* ── HEADER (sticky) ── */}
-            <div className="flex-shrink-0 relative bg-[#0a0506] border-b border-white/[0.06] px-4 py-3.5 z-10">
+            <div className="flex-shrink-0 relative bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3.5 z-10">
+              {/* verdict-colored accent line (semantic) */}
               <div className="absolute top-0 inset-x-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${vc}, transparent)`, opacity: 0.7 }} />
               <div className="flex items-center gap-3 pr-10">
                 <CoinLogo pair={coin.pair} size={40} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-bold text-xl text-white tracking-tight">{coin.pair.replace('USDT','')}</span>
-                    <span className="text-gray-500 font-mono text-xs">USDT</span>
+                    <span className="text-text-muted font-mono text-xs">USDT</span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest"
                       style={{ background:`${vc}15`, color:vc, border:`1px solid ${vc}30` }}>
                       {verdict==='avoid' ? '⛔ Avoid' : '✅ Worth It'}
                     </span>
                   </div>
-                  <p className="text-gray-400 text-[11px] mt-1">
+                  <p className="text-text-muted text-[11px] mt-1">
                     {coin.total_calls} Calls · {coin.closed_trades} Closed · {coin.open_trades} Open
                   </p>
                 </div>
@@ -212,7 +219,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
               </div>
               <button
                 onClick={handleClose}
-                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 rounded-lg transition-all"
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -222,7 +229,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
             <div className="flex-1 min-h-0 overflow-y-auto cdm-scroll px-4 py-4 sm:px-5 sm:py-5">
               <div className="max-w-5xl mx-auto space-y-5">
 
-                {/* Anomaly flag chips */}
+                {/* Anomaly flag chips (severity = semantic) */}
                 {coin.anomaly_flags?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {coin.anomaly_flags.map((f,i) => (
@@ -232,11 +239,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </div>
                 )}
 
-                {/* Stat cards */}
+                {/* Stat cards (values = semantic) */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {statCards.map((s,i) => (
-                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
-                      <p className="text-[8px] uppercase tracking-widest text-gray-500 mb-1.5 text-center">{s.l}</p>
+                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-[#111] border border-gold-primary/10 hover:border-gold-primary/25 transition-colors">
+                      <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1.5 text-center">{s.l}</p>
                       <div className="flex items-center gap-1">
                         <p className="font-mono font-extrabold text-[15px]" style={{ color:s.c }}>{s.v}</p>
                         {s.i}
@@ -245,11 +252,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   ))}
                 </div>
 
-                {/* Outcome distribution */}
-                <div className="rounded-xl border border-white/[0.05] p-4 bg-white/[0.015]">
+                {/* Outcome distribution (bars = semantic) */}
+                <div className="rounded-xl border border-gold-primary/10 p-4 bg-[#0d0d0d]">
                   <div className="flex justify-between items-end mb-2.5">
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Outcome Distribution</p>
-                    <p className="text-[9px] text-gray-500 font-mono">{coin.closed_trades} Total Closed</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Outcome Distribution</p>
+                    <p className="text-[9px] text-text-muted font-mono">{coin.closed_trades} Total Closed</p>
                   </div>
                   <div className="flex h-[14px] rounded-full overflow-hidden gap-[2px]">
                     {['sl','tp1','tp2','tp3','tp4'].map(k => {
@@ -265,9 +272,9 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </div>
                 </div>
 
-                {/* AI insight */}
+                {/* AI insight (left accent = severity, semantic) */}
                 {coin.insight && (
-                  <div className="relative p-4 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-white/[0.02] border border-white/[0.05]">
+                  <div className="relative p-4 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-[#0d0d0d] border border-gold-primary/10">
                     <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: st.text }} />
                     <div className="flex items-center gap-2 mb-2.5">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={st.text} strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -288,12 +295,12 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                         const isNow = apiFlow === currentFlow;
                         return (
                           <div key={apiFlow} className={`p-3 rounded-lg text-center flex flex-col justify-center ${isNow ? 'shadow-inner' : ''}`}
-                            style={{ background:isNow?fc.bg:'rgba(255,255,255,0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(255,255,255,0.03)'}` }}>
+                            style={{ background:isNow?fc.bg:'rgba(255,255,255,0.01)', border:`1px solid ${isNow?fc.border+'40':'rgba(212,168,83,0.08)'}` }}>
                             <p className="text-[8px] uppercase tracking-widest font-bold mb-1.5" style={{ color:isNow?fc.text:'#8a8577' }}>
                               {fc.label.toUpperCase()} MARKET {isNow&&<span className="animate-pulse">●</span>}
                             </p>
                             <p className="font-mono font-extrabold text-xl" style={{ color:d.calls>0?wrc(d.wr):'#4a3f35' }}>{d.calls>0?`${d.wr}%`:'—'}</p>
-                            <p className="text-gray-500 text-[9px] mt-1">{d.wins}W / {d.losses}L</p>
+                            <p className="text-text-muted text-[9px] mt-1">{d.wins}W / {d.losses}L</p>
                           </div>
                         );
                       })}
@@ -307,10 +314,10 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       </div>
                     )}
                     {coin.tp4_streaks?.total_tp4 > 0 && (
-                      <div className="grid grid-cols-3 gap-3 text-center border-t border-white/[0.05] pt-3">
-                        <div><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
-                        <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-white">{coin.tp4_streaks.longest_streak}</p></div>
-                        <div className="border-l border-white/[0.05]"><p className="text-[8px] text-gray-500 uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
+                      <div className="grid grid-cols-3 gap-3 text-center border-t border-gold-primary/10 pt-3">
+                        <div><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Total TP4</p><p className="font-mono font-bold text-lg text-[#22c55e]">{coin.tp4_streaks.total_tp4}</p></div>
+                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Best Streak</p><p className="font-mono font-bold text-lg text-white">{coin.tp4_streaks.longest_streak}</p></div>
+                        <div className="border-l border-gold-primary/10"><p className="text-[8px] text-text-muted uppercase tracking-widest mb-1">Current</p><p className="font-mono font-bold text-lg" style={{ color:coin.tp4_streaks.current_tp4_streak>0?'#22c55e':'#8a8577' }}>{coin.tp4_streaks.current_tp4_streak}</p></div>
                       </div>
                     )}
                   </Section>
@@ -360,19 +367,19 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   )}
                 </div>
 
-                {/* Day of week */}
+                {/* Day of week (best/worst markers = semantic) */}
                 {coin.dow_analysis?.breakdown && Object.keys(coin.dow_analysis.breakdown).length > 0 && (
                   <Section title="Win Rate by Day of Week">
                     <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                       {Object.entries(coin.dow_analysis.breakdown).map(([day,s]) => {
                         const isBest = coin.dow_analysis.best_day===day, isWorst = coin.dow_analysis.worst_day===day;
                         return (
-                          <div key={day} className="text-center rounded-lg py-2.5 border border-transparent transition-all hover:border-white/10" style={{ background: isBest ? 'rgba(34,197,94,0.05)' : isWorst ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.015)' }}>
+                          <div key={day} className="text-center rounded-lg py-2.5 border border-transparent transition-all hover:border-gold-primary/15" style={{ background: isBest ? 'rgba(34,197,94,0.05)' : isWorst ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.015)' }}>
                             <div className="flex items-center justify-center text-[12px] font-mono font-bold mb-1.5" style={{ color:wrc(s.wr) }}>
                               {Math.round(s.wr)}%
                             </div>
                             <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wide">{day}</p>
-                            <p className="text-[7px] text-gray-600 mt-0.5">{s.closed} tr</p>
+                            <p className="text-[7px] text-text-muted mt-0.5">{s.closed} tr</p>
                             {isBest && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]" />}
                             {isWorst && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]" />}
                           </div>
@@ -382,7 +389,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </Section>
                 )}
 
-                {/* Correlated SL risk */}
+                {/* Correlated SL risk (red = semantic, kept intact) */}
                 {coin.correlated_pairs?.length > 0 && (
                   <div className="p-4 rounded-xl bg-red-500/[0.04] border border-red-500/10 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                     <div>
@@ -408,27 +415,27 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 {coin.signal_history?.length > 0 && (
                   <div>
                     <div className="flex justify-between items-end mb-3">
-                      <p className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Signal History</p>
-                      <p className="text-[10px] text-gray-500 font-mono">Last {coin.signal_history.length} signals</p>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Signal History</p>
+                      <p className="text-[10px] text-text-muted font-mono">Last {coin.signal_history.length} signals</p>
                     </div>
-                    <div className="rounded-xl border border-white/[0.05] bg-black/20 overflow-hidden">
+                    <div className="rounded-xl border border-gold-primary/10 bg-[#0d0d0d] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
                         <table className="w-full text-left border-collapse min-w-[500px]">
-                          <thead className="bg-[#0a0506] border-b border-white/[0.05]">
+                          <thead className="bg-[#0a0a0a] border-b border-gold-primary/15">
                             <tr>
                               {['Date','LuxQuant WR','Entry','Result','P/L'].map(h => (
-                                <th key={h} className="px-4 py-3 text-[8px] uppercase tracking-widest text-[#d4a853] font-semibold">{h}</th>
+                                <th key={h} className="px-4 py-3 text-[8px] uppercase tracking-widest text-gold-primary font-semibold">{h}</th>
                               ))}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/[0.02]">
+                          <tbody className="divide-y divide-gold-primary/5">
                             {coin.signal_history.map((s,i) => (
-                              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                              <tr key={i} className="hover:bg-gold-primary/[0.04] transition-colors">
                                 <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300 whitespace-nowrap">{fmtDate(s.date)}</td>
                                 <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'#555' }}>
                                   {s.platform_wr!=null?`${s.platform_wr}%`:'—'}
                                 </td>
-                                <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">{s.entry}</td>
+                                <td className="px-4 py-2.5 font-mono text-[11px] text-text-muted">{s.entry}</td>
                                 <td className="px-4 py-2.5">
                                   {OC[s.outcome] && <span className="font-mono font-bold text-[10px] px-2.5 py-1 rounded" style={{ background:OC[s.outcome].bg, color:OC[s.outcome].tx }}>{OC[s.outcome].l}</span>}
                                 </td>
@@ -456,11 +463,11 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
         @supports(height:100dvh) { .cdm-overlay { height: 100dvh; } }
         .cdm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); animation: cdmBI .25s ease-out; }
         .cdm-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: 100%; background: linear-gradient(180deg,#140a0c,#0a0506); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow: hidden; animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
+        .cdm-content { position: relative; width: 100%; max-width: 1000px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; animation: cdmCI .3s cubic-bezier(.16,1,.3,1); }
 
         @media(min-width:640px) {
           .cdm-container { padding: 16px; }
-          .cdm-content { max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(0,0,0,.3); }
+          .cdm-content { max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(212,168,83,.1); }
         }
         @media(min-width:1024px) {
           .cdm-container { padding: 24px; }
@@ -485,8 +492,8 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
 
         .cdm-scroll::-webkit-scrollbar { width: 4px; height: 6px; }
         .cdm-scroll::-webkit-scrollbar-track { background: transparent; }
-        .cdm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
-        .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }
+        .cdm-scroll::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 4px; }
+        .cdm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
       `}</style>
     </>
   );
