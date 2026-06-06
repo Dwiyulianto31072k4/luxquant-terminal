@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import CoinLogo from "./CoinLogo";
 
 /**
  * CoinUtilityModal — full detail modal for coin categorization.
  *
- * Place at:
- *   /Users/dwiyulianto/Downloads/luxquant-fullstack/frontend-react/src/components/CoinUtilityModal.jsx
- *
  * Usage:
  *   <CoinUtilityModal pair={signal.pair} isOpen={showCoinDetail} onClose={() => setShowCoinDetail(false)} />
  *
- * Style matches SignalModal (gold theme, dark bg, mobile-friendly).
+ * Shell shares the SignalModal visual language (gold hairline, dark bg, glow,
+ * drag handle, animations) but is CONTENT-HUGGING: this modal carries light,
+ * mostly-textual content, so it sizes to its content (auto height + centered
+ * on desktop, bottom-sheet on mobile) instead of forcing full viewport height.
  */
 
 const TOKEN_TYPE_META = {
@@ -42,14 +43,6 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
   const [loading, setLoading] = useState(!prefetchedData);
   const [error, setError] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
-
-  // Lock body scroll
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
 
   // Fetch when opened (unless prefetched data provided)
   useEffect(() => {
@@ -92,6 +85,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
     };
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleClose = () => {
@@ -127,12 +121,12 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
           </div>
 
           {/* HEADER */}
-          <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
+          <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2.5 z-10">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className="text-2xl">{meta?.icon || "🪙"}</span>
+                <CoinLogo pair={pair} size={30} />
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-white font-display text-base font-semibold truncate">
+                  <h2 className="text-white font-display text-sm sm:text-base font-semibold truncate">
                     {coinData?.base_symbol || pair}
                     {coinData?.coingecko_id && (
                       <span className="ml-2 text-text-muted text-[10px] font-normal">
@@ -172,13 +166,15 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
           </div>
 
           {/* BODY */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 sm:px-6 sm:py-5 bg-[#0a0a0a]">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 py-4 sm:px-5 sm:py-5 bg-[#0a0a0a]">
             {loading && (
               <div className="space-y-3 animate-pulse">
-                <div className="h-8 bg-white/5 rounded w-1/2" />
-                <div className="h-20 bg-white/5 rounded" />
-                <div className="h-32 bg-white/5 rounded" />
-                <div className="h-32 bg-white/5 rounded" />
+                <div className="h-24 bg-gold-primary/5 rounded-xl" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div className="h-28 bg-white/5 rounded-xl" />
+                  <div className="h-28 bg-white/5 rounded-xl" />
+                </div>
+                <div className="h-20 bg-white/5 rounded-xl" />
               </div>
             )}
 
@@ -200,90 +196,89 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
             )}
 
             {coinData && coinData.is_categorized && (
-              <div className="space-y-4 sm:space-y-5">
-                {/* Type & Sector chips */}
-                <div className="flex flex-wrap gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold ${typeColorClass}`}
-                  >
-                    <span>{meta.icon}</span>
-                    <span>{meta.label}</span>
-                  </span>
-                  {coinData.sector && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-white/5 text-white/80 border-white/10 capitalize">
-                      {coinData.sector}
+              <div className="space-y-3 sm:space-y-4">
+                {/* === HERO: category chips + summary === */}
+                <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-xl border border-gold-primary/30 p-3 sm:p-4 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold ${typeColorClass}`}
+                    >
+                      <span>{meta.icon}</span>
+                      <span>{meta.label}</span>
                     </span>
-                  )}
-                  {coinData.has_utility === true && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-green-500/15 text-green-300 border-green-500/30">
-                      <span>✓</span>
-                      <span>Has Utility</span>
-                    </span>
-                  )}
-                  {coinData.has_utility === false && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-orange-500/15 text-orange-300 border-orange-500/30">
-                      <span>⚠️</span>
-                      <span>No Utility</span>
-                    </span>
+                    {coinData.sector && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-white/5 text-white/80 border-white/10 capitalize">
+                        {coinData.sector}
+                      </span>
+                    )}
+                    {coinData.has_utility === true && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-green-500/15 text-green-300 border-green-500/30">
+                        <span>✓</span>
+                        <span>Has Utility</span>
+                      </span>
+                    )}
+                    {coinData.has_utility === false && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold bg-orange-500/15 text-orange-300 border-orange-500/30">
+                        <span>⚠️</span>
+                        <span>No Utility</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {coinData.summary && (
+                    <p className="text-white/85 text-xs sm:text-sm leading-relaxed">
+                      {coinData.summary}
+                    </p>
                   )}
                 </div>
 
-                {/* Summary */}
-                {coinData.summary && (
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                    <h3 className="text-gold-primary text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                      <span>📝</span>
-                      <span>Summary</span>
-                    </h3>
-                    <p className="text-text-secondary text-xs sm:text-sm leading-relaxed">
-                      {coinData.summary}
-                    </p>
+                {/* === Use Cases + Key Features (side-by-side on desktop) === */}
+                {((coinData.use_cases && coinData.use_cases.length > 0) ||
+                  (coinData.key_features && coinData.key_features.length > 0)) && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                    {coinData.use_cases && coinData.use_cases.length > 0 && (
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 h-full">
+                        <h3 className="text-gold-primary text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                          <span>💡</span>
+                          <span>Use Cases</span>
+                        </h3>
+                        <ul className="space-y-1.5">
+                          {coinData.use_cases.map((uc, i) => (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2 text-xs sm:text-sm text-text-secondary"
+                            >
+                              <span className="text-gold-primary/60 mt-0.5">•</span>
+                              <span>{uc}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {coinData.key_features && coinData.key_features.length > 0 && (
+                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 h-full">
+                        <h3 className="text-gold-primary text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                          <span>⚙️</span>
+                          <span>Key Features</span>
+                        </h3>
+                        <ul className="space-y-1.5">
+                          {coinData.key_features.map((kf, i) => (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2 text-xs sm:text-sm text-text-secondary"
+                            >
+                              <span className="text-blue-400/70 mt-0.5">▸</span>
+                              <span>{kf}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Use Cases */}
-                {coinData.use_cases && coinData.use_cases.length > 0 && (
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                    <h3 className="text-gold-primary text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                      <span>💡</span>
-                      <span>Use Cases</span>
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {coinData.use_cases.map((uc, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-xs sm:text-sm text-text-secondary"
-                        >
-                          <span className="text-gold-primary/60 mt-0.5">•</span>
-                          <span>{uc}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Key Features */}
-                {coinData.key_features && coinData.key_features.length > 0 && (
-                  <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
-                    <h3 className="text-gold-primary text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                      <span>⚙️</span>
-                      <span>Key Features</span>
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {coinData.key_features.map((kf, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-xs sm:text-sm text-text-secondary"
-                        >
-                          <span className="text-blue-400/70 mt-0.5">▸</span>
-                          <span>{kf}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Utility Details (object → key/value) */}
+                {/* === Utility Breakdown (object → key/value) === */}
                 {coinData.utility_details &&
                   Object.keys(coinData.utility_details).length > 0 && (
                     <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15">
@@ -291,7 +286,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
                         <span>🔧</span>
                         <span>Utility Breakdown</span>
                       </h3>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                         {Object.entries(coinData.utility_details).map(
                           ([key, value]) => (
                             <div key={key} className="flex flex-col gap-0.5">
@@ -310,7 +305,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
                     </div>
                   )}
 
-                {/* Risk Notes */}
+                {/* === Risk Notes === */}
                 {coinData.risk_notes && (
                   <div className="bg-orange-500/5 rounded-xl p-3 sm:p-4 border border-orange-500/25">
                     <h3 className="text-orange-300 text-[10px] sm:text-xs uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
@@ -323,8 +318,8 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
                   </div>
                 )}
 
-                {/* Footer: Source + Website */}
-                <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-white/5">
+                {/* === Footer: Source + Website === */}
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
                   <span className="text-[9px] sm:text-[10px] text-text-muted">
                     Source:{" "}
                     <span className="font-mono">
@@ -343,7 +338,7 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
                   )}
                 </div>
 
-                {/* Disclaimer */}
+                {/* === Disclaimer === */}
                 <div className="bg-[#0d0d0d] rounded-lg p-3 border border-white/5">
                   <p className="text-[9px] sm:text-[10px] text-text-muted leading-relaxed">
                     💡 This categorization is for educational purposes only and
@@ -362,19 +357,24 @@ const CoinUtilityModal = ({ pair, isOpen, onClose, prefetchedData }) => {
       {/* STYLES */}
       <style>{`
         .coin-modal-overlay { position: fixed; inset: 0; z-index: 150000; display: flex; align-items: center; justify-content: center; isolation: isolate; }
-        .coin-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85); }
+        .coin-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
         .coin-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .coin-modal-content { position: relative; width: 100%; max-width: 640px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; }
+        .coin-modal-content { position: relative; width: 100%; max-width: 860px; max-height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; }
 
+        /* Desktop/tablet: hug content, centered, scroll only if tall */
         @media(min-width:640px) {
           .coin-modal-container { padding: 16px; }
-          .coin-modal-content { max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.15); }
+          .coin-modal-content { height: auto; max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.15); }
         }
-        @media(min-width:1024px) {
-          .coin-modal-content { max-height: 800px; }
-        }
+
+        /* Mobile: bottom sheet that hugs content */
         @media(max-width:639px) {
-          .coin-modal-content { max-height: 100%; height: 100%; border-radius: 0; border: none; }
+          .coin-modal-container { align-items: flex-end; }
+          .coin-modal-content { height: auto; max-height: 92vh; border-radius: 20px 20px 0 0; }
+        }
+        @supports(height:100dvh) {
+          .coin-modal-overlay { height: 100dvh; }
+          @media(max-width:639px) { .coin-modal-content { max-height: 92dvh; } }
         }
 
         .coin-modal-backdrop { animation: coinBI .25s ease-out; }
