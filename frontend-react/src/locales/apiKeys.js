@@ -19,7 +19,7 @@ export const apiKeysEn = {
   name_placeholder: 'Key name (e.g. autotrade bot)',
   create_btn: 'Generate Key',
   creating: 'Generating…',
-  limit_warn: 'You have reached the maximum of 10 active keys. Revoke one to create another.',
+  limit_warn: 'You have reached the maximum of 2 active keys. Revoke one to create another.',
 
   // Just created
   created_title: 'Key created',
@@ -76,7 +76,7 @@ export const apiKeysZh = {
   name_placeholder: '密钥名称（例如：自动交易机器人）',
   create_btn: '生成密钥',
   creating: '生成中…',
-  limit_warn: '已达到 10 个有效密钥上限。请先撤销一个再创建。',
+  limit_warn: '已达到 2 个有效密钥上限。请先撤销一个再创建。',
 
   created_title: '密钥已创建',
   created_warn: '请立即复制——此密钥不会再次显示。',
