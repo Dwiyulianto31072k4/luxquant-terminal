@@ -1500,13 +1500,14 @@ const ApiKeysPage = () => {
           >
             API Documentation
           </h2>
-          // Baris sekitar ~780 - 790 (di dalam Doc header)
-          <p className="text-text-muted text-[13px] mt-1.5 max-w-2xl text-right">
-            Everything you need to pull LuxQuant data into your own tools. The
-            signals endpoints are documented with exact response shapes; the
-            analytics endpoints (journey, enrichment, correlation, market pulse)
-            are derived data and may return a "not ready yet" state for very new
-            signals.
+          <p className="text-text-muted text-[13px] mt-1.5 text-right">
+            Comprehensive documentation to integrate LuxQuant’s proprietary
+            AI-powered trading algorithm and advanced quantitative market
+            intelligence into your applications, bots, and quantitative systems.
+            Core endpoints deliver precise, real-time data with stable schemas,
+            while our enriched analytics layers provide deep insights generated
+            by our 24/7 market-scanning algorithm — engineered for seamless
+            integration into professional trading infrastructure.
           </p>
         </div>
 
