@@ -1,12 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import CoinLogo from './CoinLogo';
 
 /**
- * DeepAnalysis v3 — Facts + Tags UI
+ * DeepAnalysis v3 — Facts + Tags UI (redesigned shell)
  *
- * New design philosophy: "Inform, don't decide"
+ * Design philosophy: "Inform, don't decide"
  * - No confidence score, no rating
  * - Raw facts with descriptive tags
- * - Tabbed timeframe view (ALL / M15 / H1 / H4 / CONTEXT)
+ * - Hero summary band (at-a-glance) + tabbed timeframe view
+ * - Responsive shell matching SignalModal: dynamic width on desktop,
+ *   full-screen sheet on mobile, gold hairline + glow.
  * - Copy to AI feature (Markdown / JSON / Prompt)
  * - Entry snapshot + Live snapshot hybrid
  * - History expand for progressive disclosure
@@ -75,6 +79,28 @@ const timeAgo = (dateStr) => {
   return `${Math.floor(h / 24)}d ago`;
 };
 
+const trendColor = (t) => {
+  const v = (t || '').toUpperCase();
+  if (v.includes('BULL')) return 'text-green-400';
+  if (v.includes('BEAR')) return 'text-red-400';
+  return 'text-gray-400';
+};
+
+const dirPillClass = (dir) => {
+  const v = (dir || '').toUpperCase();
+  if (v.includes('BULL') || v === 'LONG') return 'bg-green-500/15 text-green-400 border border-green-500/30';
+  if (v.includes('BEAR') || v === 'SHORT') return 'bg-red-500/15 text-red-400 border border-red-500/30';
+  return 'bg-gray-500/15 text-gray-400 border border-gray-500/30';
+};
+
+const fngColor = (val) => {
+  const n = Number(val);
+  if (isNaN(n)) return 'text-white';
+  if (n <= 25) return 'text-red-400';
+  if (n >= 75) return 'text-green-400';
+  return 'text-yellow-400';
+};
+
 // ============================================================
 // TAG COMPONENT
 // ============================================================
@@ -102,7 +128,7 @@ const Tag = ({ name, important = false }) => {
 };
 
 // ============================================================
-// FACT ROW (for tab views)
+// FACT ROW + SECTION (for tab views)
 // ============================================================
 
 const FactRow = ({ label, value, subtle = false }) => (
@@ -113,100 +139,158 @@ const FactRow = ({ label, value, subtle = false }) => (
 );
 
 const Section = ({ title, children }) => (
-  <div className="bg-[#0d0d0d] rounded-lg border border-white/5 p-3 space-y-1">
-    <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-2">{title}</p>
+  <div className="bg-[#0d0d0d] rounded-lg border border-white/5 p-3 space-y-1 h-full">
+    <p className="text-[9px] text-gold-primary/60 uppercase tracking-wider font-semibold mb-2">{title}</p>
     {children}
   </div>
 );
 
 // ============================================================
-// TAB CONTENT — ALL (compact overview)
+// HERO SUMMARY (at-a-glance band, always visible)
 // ============================================================
 
-const AllTabContent = ({ facts, tags, tagsAnnotated }) => {
+const HeroSummary = ({ facts, tagsAnnotated, direction }) => {
+  const byTf = facts?.by_timeframe || {};
+  const ctx = facts?.context || {};
+  const h1 = byTf.h1 || {};
+
+  const triad = [
+    { tf: 'M15', t: byTf.m15?.trend?.trend },
+    { tf: 'H1', t: byTf.h1?.trend?.trend },
+    { tf: 'H4', t: byTf.h4?.trend?.trend },
+  ];
+
+  const importantTags = (tagsAnnotated || [])
+    .filter((x) => x.important)
+    .map((x) => x.name)
+    .slice(0, 6);
+
+  const btcChange = ctx.btc?.price_change_pct;
+  const btcColor = btcChange == null ? 'text-white' : Number(btcChange) >= 0 ? 'text-green-400' : 'text-red-400';
+
+  const stats = [
+    { label: 'H1 RSI', value: formatNum(h1.momentum?.rsi, 1), sub: h1.momentum?.rsi_state, color: 'text-white' },
+    { label: 'H1 ADX', value: formatNum(h1.trend?.adx, 1), sub: h1.trend?.trend_strength, color: 'text-white' },
+    { label: 'BTC 24h', value: formatPct(btcChange), sub: `dom ${formatNum(ctx.btc?.dominance, 1)}%`, color: btcColor },
+    { label: 'Fear & Greed', value: ctx.fng?.value ?? '—', sub: ctx.fng?.classification, color: fngColor(ctx.fng?.value) },
+    { label: 'Volatility', value: ctx.environment?.volatility_regime || '?', sub: `ATR P${formatNum(ctx.environment?.atr_percentile_h4, 0)}`, color: 'text-white' },
+  ];
+
+  return (
+    <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-xl border border-gold-primary/30 p-3 sm:p-4">
+      {/* Top: bias + multi-timeframe trend triad */}
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] uppercase tracking-wider text-gold-primary/70 font-semibold">Bias</span>
+          <span className={`text-sm font-bold ${trendColor(direction)}`}>{direction || '—'}</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          {triad.map((x) => (
+            <div key={x.tf} className="flex items-center gap-1">
+              <span className="text-[9px] text-text-muted font-mono">{x.tf}</span>
+              <span className={`text-[10px] font-semibold ${trendColor(x.t)}`}>{x.t || '?'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stat strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {stats.map((s, i) => (
+          <div key={i} className="bg-[#0d0d0d]/70 rounded-lg border border-white/5 px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-wider text-text-muted">{s.label}</p>
+            <p className={`text-sm font-mono font-bold leading-tight ${s.color}`}>{s.value}</p>
+            {s.sub && <p className="text-[8px] text-white/40 truncate">{s.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* Key tags */}
+      {importantTags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-3">
+          {importantTags.map((t) => <Tag key={t} name={t} important />)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// TAB CONTENT — ALL (full detail cards in a responsive grid)
+// ============================================================
+
+const AllTabContent = ({ facts, tagsAnnotated }) => {
   const byTf = facts?.by_timeframe || {};
   const h1 = byTf.h1 || {};
-  const context = facts?.context || {};
   const eq = facts?.entry_quality || {};
   const structure = facts?.structure || {};
+  const context = facts?.context || {};
 
-  const importantTags = tagsAnnotated.filter((t) => t.important).map((t) => t.name);
-  const detailTags = tagsAnnotated.filter((t) => !t.important).map((t) => t.name);
-
+  const detailTags = (tagsAnnotated || []).filter((t) => !t.important).map((t) => t.name);
   const [showAllTags, setShowAllTags] = useState(false);
 
   return (
     <div className="space-y-3">
-      {/* Trend summary */}
-      <Section title="Trend">
-        <FactRow
-          label="M15 / H1 / H4"
-          value={`${byTf.m15?.trend?.trend || '?'} • ${byTf.h1?.trend?.trend || '?'} • ${byTf.h4?.trend?.trend || '?'}`}
-        />
-        <FactRow
-          label="H1 Strength"
-          value={`ADX ${formatNum(byTf.h1?.trend?.adx, 1)} (${byTf.h1?.trend?.trend_strength || '?'})`}
-        />
-      </Section>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {/* Trend */}
+        <Section title="Trend">
+          <FactRow
+            label="M15 / H1 / H4"
+            value={`${byTf.m15?.trend?.trend || '?'} • ${byTf.h1?.trend?.trend || '?'} • ${byTf.h4?.trend?.trend || '?'}`}
+          />
+          <FactRow
+            label="H1 Strength"
+            value={`ADX ${formatNum(byTf.h1?.trend?.adx, 1)} (${byTf.h1?.trend?.trend_strength || '?'})`}
+          />
+        </Section>
 
-      {/* Momentum */}
-      <Section title="Momentum H1">
-        <FactRow label="RSI" value={`${formatNum(h1.momentum?.rsi, 1)} (${h1.momentum?.rsi_state || '?'})`} />
-        <FactRow label="MACD" value={`${formatNum(h1.momentum?.macd_hist, 6)} (${h1.momentum?.macd_direction || '?'})`} />
-        <FactRow label="Volume" value={`${formatNum(h1.volume?.ratio, 2)}x avg (${h1.volume?.state || '?'})`} />
-      </Section>
+        {/* Momentum */}
+        <Section title="Momentum H1">
+          <FactRow label="RSI" value={`${formatNum(h1.momentum?.rsi, 1)} (${h1.momentum?.rsi_state || '?'})`} />
+          <FactRow label="MACD" value={`${formatNum(h1.momentum?.macd_hist, 6)} (${h1.momentum?.macd_direction || '?'})`} />
+          <FactRow label="Volume" value={`${formatNum(h1.volume?.ratio, 2)}x avg (${h1.volume?.state || '?'})`} />
+        </Section>
 
-      {/* Entry Quality */}
-      <Section title="Entry Quality">
-        <FactRow label="Last 3c gain" value={formatPct(eq.last_3_candles_gain_pct)} />
-        <FactRow label="Dist EMA20 H1" value={formatPct(eq.distance_from_ema20_h1_pct)} />
-        <FactRow label="Candle age" value={`${formatNum(eq.candle_age_pct, 0)}%`} />
-      </Section>
+        {/* Entry Quality */}
+        <Section title="Entry Quality">
+          <FactRow label="Last 3c gain" value={formatPct(eq.last_3_candles_gain_pct)} />
+          <FactRow label="Dist EMA20 H1" value={formatPct(eq.distance_from_ema20_h1_pct)} />
+          <FactRow label="Candle age" value={`${formatNum(eq.candle_age_pct, 0)}%`} />
+        </Section>
 
-      {/* Structure */}
-      <Section title="Structure">
-        <FactRow
-          label="FVG / OB / Sweep"
-          value={`${structure.smc?.fvg_count || 0} / ${structure.smc?.ob_count || 0} / ${structure.smc?.sweep_count || 0}`}
-        />
-        <FactRow
-          label="Near entry"
-          value={`FVG: ${structure.smc?.fvg_near_entry ? '✓' : '—'}, OB: ${structure.smc?.ob_near_entry ? '✓' : '—'}`}
-        />
-        {structure.smc?.golden_setup && (
-          <FactRow label="Special" value="SMC Golden Setup" />
-        )}
-      </Section>
+        {/* Structure */}
+        <Section title="Structure">
+          <FactRow
+            label="FVG / OB / Sweep"
+            value={`${structure.smc?.fvg_count || 0} / ${structure.smc?.ob_count || 0} / ${structure.smc?.sweep_count || 0}`}
+          />
+          <FactRow
+            label="Near entry"
+            value={`FVG: ${structure.smc?.fvg_near_entry ? '✓' : '—'}, OB: ${structure.smc?.ob_near_entry ? '✓' : '—'}`}
+          />
+          {structure.smc?.golden_setup && (
+            <FactRow label="Special" value="SMC Golden Setup" />
+          )}
+        </Section>
 
-      {/* Context */}
-      <Section title="Market Context">
-        <FactRow
-          label="BTC"
-          value={`${formatPct(context.btc?.price_change_pct)} • dom ${formatNum(context.btc?.dominance, 2)}% (${context.btc?.dominance_trend || '?'})`}
-        />
-        <FactRow
-          label="Fear & Greed"
-          value={`${context.fng?.value ?? '—'} (${context.fng?.classification || '—'})`}
-        />
-        <FactRow
-          label="Vol regime"
-          value={`${context.environment?.volatility_regime || '?'} (ATR P${formatNum(context.environment?.atr_percentile_h4, 0)})`}
-        />
-      </Section>
+        {/* Context */}
+        <Section title="Market Context">
+          <FactRow
+            label="BTC"
+            value={`${formatPct(context.btc?.price_change_pct)} • dom ${formatNum(context.btc?.dominance, 2)}% (${context.btc?.dominance_trend || '?'})`}
+          />
+          <FactRow
+            label="Fear & Greed"
+            value={`${context.fng?.value ?? '—'} (${context.fng?.classification || '—'})`}
+          />
+          <FactRow
+            label="Vol regime"
+            value={`${context.environment?.volatility_regime || '?'} (ATR P${formatNum(context.environment?.atr_percentile_h4, 0)})`}
+          />
+        </Section>
+      </div>
 
-      {/* Important tags */}
-      {importantTags.length > 0 && (
-        <div>
-          <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">
-            Key Tags ({importantTags.length})
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {importantTags.map((t) => <Tag key={t} name={t} important />)}
-          </div>
-        </div>
-      )}
-
-      {/* Detail tags (collapsible) */}
+      {/* Detail tags (collapsible) — full width */}
       {detailTags.length > 0 && (
         <div>
           <button
@@ -227,7 +311,7 @@ const AllTabContent = ({ facts, tags, tagsAnnotated }) => {
 };
 
 // ============================================================
-// TAB CONTENT — Single Timeframe
+// TAB CONTENT — Single Timeframe (responsive grid)
 // ============================================================
 
 const TimeframeTabContent = ({ facts, tf }) => {
@@ -240,7 +324,7 @@ const TimeframeTabContent = ({ facts, tf }) => {
   const div = momentum.rsi_divergence || {};
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <Section title={`${tf.toUpperCase()} Trend`}>
         <FactRow label="Trend" value={trend.trend || '?'} />
         <FactRow label="Strength" value={`${trend.trend_strength || '?'} (ADX ${formatNum(trend.adx, 1)})`} />
@@ -297,7 +381,7 @@ const TimeframeTabContent = ({ facts, tf }) => {
 };
 
 // ============================================================
-// TAB CONTENT — CONTEXT (BTC, market, structure, env)
+// TAB CONTENT — CONTEXT (responsive grid)
 // ============================================================
 
 const ContextTabContent = ({ facts }) => {
@@ -312,7 +396,7 @@ const ContextTabContent = ({ facts }) => {
   const patterns = structure.patterns || [];
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
       <Section title="BTC Context">
         <FactRow label="Price" value={formatMoney(btc.price)} />
         <FactRow label="24h change" value={formatPct(btc.price_change_pct)} />
@@ -397,6 +481,7 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
   const [copyStatus, setCopyStatus] = useState(null);
   const [history, setHistory] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Fetch v3 enrichment data
   useEffect(() => {
@@ -441,6 +526,15 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
   const tags = activeSnapshot?.tags || [];
   const tagsAnnotated = activeSnapshot?.tags_annotated || [];
   const signalDir = activeSnapshot?.signal_direction || '?';
+
+  // Animated close (mirrors SignalModal)
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200);
+  };
 
   // Copy to clipboard handler
   const handleCopy = async (format) => {
@@ -491,180 +585,236 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[150000] flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
-
-      <div
-        className="relative z-10 w-full max-w-2xl max-h-[88vh] mx-3 bg-[#0a0a0a] border border-gold-primary/30 rounded-xl overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gold-primary/20 bg-[#0d0d0d] flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">🔍</span>
-            <div>
-              <h3 className="text-white font-semibold text-sm">Signal Analysis</h3>
-              <p className="text-text-muted text-[10px] font-mono">
-                {pair} · {signalDir}
-                {v3Data?.version && ` · ${v3Data.version}`}
-              </p>
+  const modalContent = (
+    <>
+      <div className={`da-modal-overlay ${isClosing ? 'da-modal-closing' : ''}`}>
+        <div className="da-modal-backdrop" onClick={handleClose} />
+        <div className="da-modal-container">
+          <div className="da-modal-content">
+            {/* Drag handle mobile */}
+            <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            {/* Copy dropdown */}
-            {v3Data && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowCopyMenu(!showCopyMenu)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-gold-primary/10 hover:bg-gold-primary/20 border border-gold-primary/30 rounded text-gold-primary text-[10px] font-medium transition"
-                >
-                  📋 Copy ▼
-                </button>
-                {showCopyMenu && (
-                  <div className="absolute right-0 top-full mt-1 bg-[#0d0d0d] border border-gold-primary/30 rounded shadow-xl overflow-hidden z-20 min-w-[180px]">
-                    {COPY_OPTIONS.map((opt) => (
+            {/* HEADER */}
+            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2.5 z-10">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <CoinLogo pair={pair} size={30} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-white font-display text-sm font-semibold truncate">{pair}</h2>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0 ${dirPillClass(signalDir)}`}>
+                        {signalDir}
+                      </span>
+                    </div>
+                    <p className="text-text-muted text-[10px] truncate">Signal Analysis</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Copy dropdown */}
+                  {v3Data && (
+                    <div className="relative">
                       <button
-                        key={opt.id}
-                        onClick={() => handleCopy(opt.id)}
-                        className="block w-full text-left px-3 py-2 text-[11px] text-white hover:bg-gold-primary/10 transition"
+                        onClick={() => setShowCopyMenu(!showCopyMenu)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-gold-primary/10 hover:bg-gold-primary/20 border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg text-gold-primary text-[10px] sm:text-[11px] font-semibold transition-all"
                       >
-                        {opt.label}
+                        📋 Copy ▼
                       </button>
-                    ))}
-                  </div>
-                )}
-                {copyStatus && (
-                  <div className="absolute right-0 top-full mt-1 bg-green-500/20 border border-green-500/40 rounded px-2 py-1 text-[10px] text-green-400 whitespace-nowrap">
-                    {copyStatus}
-                  </div>
-                )}
+                      {showCopyMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-[#0d0d0d] border border-gold-primary/30 rounded-lg shadow-xl overflow-hidden z-20 min-w-[180px]">
+                          {COPY_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => handleCopy(opt.id)}
+                              className="block w-full text-left px-3 py-2 text-[11px] text-white hover:bg-gold-primary/10 transition"
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {copyStatus && (
+                        <div className="absolute right-0 top-full mt-1 bg-green-500/20 border border-green-500/40 rounded px-2 py-1 text-[10px] text-green-400 whitespace-nowrap">
+                          {copyStatus}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleClose}
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            {v3Data && (
+              <div className="flex flex-shrink-0 border-b border-white/5 bg-[#0d0d0d]">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 px-3 py-2 text-[11px] font-semibold transition border-b-2 ${
+                      activeTab === tab.id
+                        ? 'border-gold-primary text-gold-primary'
+                        : 'border-transparent text-text-muted hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             )}
 
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white hover:bg-red-500/20 rounded transition"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        {v3Data && (
-          <div className="flex border-b border-white/5 bg-[#0d0d0d] flex-shrink-0">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-3 py-2 text-[11px] font-medium transition border-b-2 ${
-                  activeTab === tab.id
-                    ? 'border-gold-primary text-gold-primary'
-                    : 'border-transparent text-text-muted hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Snapshot selector (Entry vs Live) */}
-        {v3Data && v3Data.live_snapshot && v3Data.live_updated_at && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#080808] border-b border-white/5 flex-shrink-0">
-            <button
-              onClick={() => setShowLive(false)}
-              className={`px-2 py-1 rounded text-[10px] font-medium transition ${
-                !showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
-              }`}
-            >
-              Entry snapshot
-            </button>
-            <button
-              onClick={() => setShowLive(true)}
-              className={`px-2 py-1 rounded text-[10px] font-medium transition ${
-                showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
-              }`}
-            >
-              Live ({timeAgo(v3Data.live_updated_at)})
-            </button>
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-          {loading && (
-            <div className="flex items-center justify-center py-12 text-text-muted text-sm">
-              Loading analysis...
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded p-3 text-red-400 text-xs">
-              Error: {error}
-            </div>
-          )}
-
-          {!loading && !v3Data && legacyEnrichment && (
-            <LegacyFallback enrichment={legacyEnrichment} />
-          )}
-
-          {!loading && !v3Data && !legacyEnrichment && (
-            <div className="text-text-muted text-center py-12 text-sm">
-              No enrichment data available for this signal yet.
-            </div>
-          )}
-
-          {!loading && v3Data && activeSnapshot && (
-            <>
-              {activeTab === 'all' && (
-                <AllTabContent facts={facts} tags={tags} tagsAnnotated={tagsAnnotated} />
-              )}
-              {activeTab === 'm15' && <TimeframeTabContent facts={facts} tf="m15" />}
-              {activeTab === 'h1' && <TimeframeTabContent facts={facts} tf="h1" />}
-              {activeTab === 'h4' && <TimeframeTabContent facts={facts} tf="h4" />}
-              {activeTab === 'context' && <ContextTabContent facts={facts} />}
-
-              {/* History expand */}
-              <div className="mt-4 pt-3 border-t border-white/5">
+            {/* Snapshot selector (Entry vs Live) */}
+            {v3Data && v3Data.live_snapshot && v3Data.live_updated_at && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-[#080808] border-b border-white/5 flex-shrink-0">
                 <button
-                  onClick={handleLoadHistory}
-                  className="text-[10px] text-gold-primary hover:text-gold-light transition"
+                  onClick={() => setShowLive(false)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition ${
+                    !showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
+                  }`}
                 >
-                  {showHistory ? '▼ Hide' : '▶ Show'} snapshot history
+                  Entry snapshot
                 </button>
+                <button
+                  onClick={() => setShowLive(true)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition ${
+                    showLive ? 'bg-gold-primary/20 text-gold-primary' : 'text-text-muted hover:text-white'
+                  }`}
+                >
+                  Live ({timeAgo(v3Data.live_updated_at)})
+                </button>
+              </div>
+            )}
 
-                {showHistory && history && (
-                  <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
-                    {history.length === 0 && (
-                      <p className="text-text-muted text-[10px]">No history yet</p>
-                    )}
-                    {history.map((entry, i) => (
-                      <div key={i} className="bg-[#0d0d0d] rounded border border-white/5 p-2">
-                        <p className="text-[9px] text-text-muted mb-1">
-                          {new Date(entry.recorded_at).toLocaleString()}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {(entry.snapshot?.tags || [])
-                            .filter((t) => (entry.snapshot?.tags_annotated || []).find((ta) => ta.name === t && ta.important))
-                            .slice(0, 10)
-                            .map((t) => <Tag key={t} name={t} />)}
-                        </div>
-                      </div>
-                    ))}
+            {/* Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+              <div className="max-w-6xl mx-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+                {loading && (
+                  <div className="flex items-center justify-center py-12 text-text-muted text-sm">
+                    Loading analysis...
                   </div>
                 )}
+
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-xs">
+                    Error: {error}
+                  </div>
+                )}
+
+                {!loading && !v3Data && legacyEnrichment && (
+                  <LegacyFallback enrichment={legacyEnrichment} />
+                )}
+
+                {!loading && !v3Data && !legacyEnrichment && (
+                  <div className="text-text-muted text-center py-12 text-sm">
+                    No enrichment data available for this signal yet.
+                  </div>
+                )}
+
+                {!loading && v3Data && activeSnapshot && (
+                  <>
+                    <HeroSummary facts={facts} tagsAnnotated={tagsAnnotated} direction={signalDir} />
+
+                    {activeTab === 'all' && (
+                      <AllTabContent facts={facts} tagsAnnotated={tagsAnnotated} />
+                    )}
+                    {activeTab === 'm15' && <TimeframeTabContent facts={facts} tf="m15" />}
+                    {activeTab === 'h1' && <TimeframeTabContent facts={facts} tf="h1" />}
+                    {activeTab === 'h4' && <TimeframeTabContent facts={facts} tf="h4" />}
+                    {activeTab === 'context' && <ContextTabContent facts={facts} />}
+
+                    {/* History expand */}
+                    <div className="pt-3 border-t border-white/5">
+                      <button
+                        onClick={handleLoadHistory}
+                        className="text-[10px] text-gold-primary hover:text-gold-light transition"
+                      >
+                        {showHistory ? '▼ Hide' : '▶ Show'} snapshot history
+                      </button>
+
+                      {showHistory && history && (
+                        <div className="mt-3 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                          {history.length === 0 && (
+                            <p className="text-text-muted text-[10px]">No history yet</p>
+                          )}
+                          {history.map((entry, i) => (
+                            <div key={i} className="bg-[#0d0d0d] rounded border border-white/5 p-2">
+                              <p className="text-[9px] text-text-muted mb-1">
+                                {new Date(entry.recorded_at).toLocaleString()}
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {(entry.snapshot?.tags || [])
+                                  .filter((t) => (entry.snapshot?.tags_annotated || []).find((ta) => ta.name === t && ta.important))
+                                  .slice(0, 10)
+                                  .map((t) => <Tag key={t} name={t} />)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* === STYLES === */}
+      <style>{`
+        .da-modal-overlay { position: fixed; inset: 0; z-index: 150000; display: flex; align-items: center; justify-content: center; isolation: isolate; }
+        .da-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .da-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .da-modal-content { position: relative; width: 100%; max-width: 1100px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,0.4); display: flex; flex-direction: column; overflow: hidden; }
+
+        @media(min-width:640px) {
+          .da-modal-container { padding: 12px; }
+          .da-modal-content { max-height: calc(100vh - 24px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.1); }
+        }
+        @media(min-width:1024px) {
+          .da-modal-container { padding: 20px; }
+          .da-modal-content { max-height: 880px; }
+        }
+        @media(max-width:639px) {
+          .da-modal-content { max-height: 100%; height: 100%; border-radius: 0; border: none; }
+        }
+        @supports(height:100dvh) { .da-modal-overlay { height: 100dvh; } }
+
+        .da-modal-backdrop { animation: daBI .25s ease-out; }
+        .da-modal-content { animation: daCI .3s cubic-bezier(.16,1,.3,1); }
+        .da-modal-closing .da-modal-backdrop { animation: daBO .2s ease-in forwards; }
+        .da-modal-closing .da-modal-content { animation: daCO .2s ease-in forwards; }
+        @keyframes daBI { from{opacity:0} to{opacity:1} }
+        @keyframes daBO { from{opacity:1} to{opacity:0} }
+        @keyframes daCI { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+        @keyframes daCO { from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.97)} }
+        @media(max-width:639px) {
+          .da-modal-content { animation: daUp .3s cubic-bezier(.16,1,.3,1); }
+          .da-modal-closing .da-modal-content { animation: daDn .2s ease-in forwards; }
+          @keyframes daUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes daDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
+      `}</style>
+    </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 // ============================================================
@@ -674,9 +824,9 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
 const LegacyFallback = ({ enrichment }) => {
   return (
     <div>
-      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded p-3 mb-4">
+      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
         <p className="text-yellow-400 text-[10px]">
-          ⚠ This signal uses legacy enrichment (v2.x). It will be re-analyzed with v3 soon.
+          ⚠ This signal uses legacy enrichment (v2.x). It will be re-analyzed soon.
         </p>
       </div>
       <Section title="Legacy Data">
