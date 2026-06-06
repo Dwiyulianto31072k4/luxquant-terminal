@@ -377,6 +377,11 @@ async def grant_subscription(
 
     user.role = 'subscriber'
     user.subscription_expires_at = expires_at
+    # Source = identity yang dipakai role_resolver buat nentuin proteksi role
+    # saat user login/link via OAuth lain (Telegram/Discord/Google).
+    # Lifetime grant -> 'lifetime' (protected selamanya).
+    # Time-bound grant -> 'admin' (protected selama belum expired).
+    user.subscription_source = 'lifetime' if expires_at is None else 'admin'
     user.subscription_granted_by = admin.id
     user.subscription_granted_at = now
     user.subscription_note = data.note
@@ -425,6 +430,7 @@ async def revoke_subscription(
 
     user.role = 'free'
     user.subscription_expires_at = None
+    user.subscription_source = None  # jalur pencabutan resmi — bersihin source
     user.subscription_note = f"Revoked by admin (ID:{admin.id}) on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
 
     db.commit()
