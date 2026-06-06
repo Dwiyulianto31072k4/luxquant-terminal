@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import CoinLogo from "./CoinLogo";
 
 /**
  * BTCCorrelationModal
  * --------------------
  * Full overlay popup showing complete BTC correlation analysis.
- * Pattern matches CoinUtilityModal (overlay with portal + animations).
+ * Shell matches SignalModal / DeepAnalysis: dynamic width on desktop,
+ * full-screen sheet on mobile, gold hairline + glow, coin logo header.
  *
  * Usage:
  *   <BTCCorrelationModal
@@ -21,17 +23,12 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
   const [error, setError]     = useState(null);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Lock body scroll while open
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
-
   // Escape to close
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") handleClose(); };
     if (isOpen) document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Fetch data
@@ -76,19 +73,25 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
         <div className="btc-corr-backdrop" onClick={handleClose} />
         <div className="btc-corr-container">
           <div className="btc-corr-content">
+            {/* Drag handle mobile */}
+            <div className="sm:hidden flex-shrink-0 flex justify-center pt-2 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
             {/* HEADER */}
-            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
+            <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2.5 z-10">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/25 flex items-center justify-center">
-                    <span className="text-base">📊</span>
-                  </div>
+                  <CoinLogo pair={pair} size={30} />
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-white font-display text-sm font-semibold truncate">
-                      BTC Correlation Analysis
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-white font-display text-sm font-semibold truncate">{pair}</h2>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0 bg-gold-primary/10 text-gold-primary border border-gold-primary/30">
+                        vs BTC
+                      </span>
+                    </div>
                     <p className="text-text-muted text-[10px] truncate">
-                      {pair} · point-in-time snapshot at signal entry
+                      BTC Correlation · snapshot at signal entry
                     </p>
                   </div>
                 </div>
@@ -105,10 +108,12 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
             </div>
 
             {/* BODY */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0a0a] px-4 py-4 sm:px-5 sm:py-5">
-              {loading && <LoadingSkeleton />}
-              {!loading && error && <ErrorState message={error} />}
-              {!loading && data && <AnalysisBody data={data} />}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+              <div className="max-w-6xl mx-auto px-3 py-4 sm:px-5 sm:py-5">
+                {loading && <LoadingSkeleton />}
+                {!loading && error && <ErrorState message={error} />}
+                {!loading && data && <AnalysisBody data={data} />}
+              </div>
             </div>
           </div>
         </div>
@@ -116,16 +121,17 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
 
       <style>{`
         .btc-corr-overlay { position: fixed; inset: 0; z-index: 100100; display: flex; align-items: center; justify-content: center; isolation: isolate; }
-        .btc-corr-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.85); animation: bcBI .25s ease-out; }
+        .btc-corr-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: bcBI .25s ease-out; }
         .btc-corr-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .btc-corr-content { position: relative; width: 100%; max-width: 720px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,.4); display: flex; flex-direction: column; overflow: hidden; animation: bcCI .3s cubic-bezier(.16,1,.3,1); }
+        .btc-corr-content { position: relative; width: 100%; max-width: 1100px; height: 100%; background: #0a0506; border: 1px solid rgba(212,168,83,.4); display: flex; flex-direction: column; overflow: hidden; animation: bcCI .3s cubic-bezier(.16,1,.3,1); }
 
         @media(min-width:640px) {
-          .btc-corr-container { padding: 16px; }
-          .btc-corr-content { max-height: calc(100vh - 32px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(212,168,83,.1); }
+          .btc-corr-container { padding: 12px; }
+          .btc-corr-content { max-height: calc(100vh - 24px); border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,.5), 0 0 40px rgba(212,168,83,.1); }
         }
-        @media(min-width:1024px) { .btc-corr-content { max-height: 800px; } }
+        @media(min-width:1024px) { .btc-corr-container { padding: 20px; } .btc-corr-content { max-height: 880px; } }
         @media(max-width:639px)  { .btc-corr-content { max-height: 100%; border-radius: 0; border: none; } }
+        @supports(height:100dvh) { .btc-corr-overlay { height: 100dvh; } }
 
         .btc-corr-closing .btc-corr-backdrop { animation: bcBO .2s ease-in forwards; }
         .btc-corr-closing .btc-corr-content { animation: bcCO .2s ease-in forwards; }
@@ -140,8 +146,10 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
           @keyframes bcDn { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(40px)} }
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,168,83,.3); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(212,168,83,.5); }
       `}</style>
     </>
   );
@@ -155,13 +163,21 @@ export default function BTCCorrelationModal({ signalId, pair, isOpen, onClose })
 function LoadingSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
-      <div className="h-20 bg-gold-primary/5 rounded-lg" />
-      <div className="grid grid-cols-3 gap-2">
+      <div className="h-24 bg-gold-primary/5 rounded-xl" />
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        {[1,2,3,4,5].map((i) => (
+          <div key={i} className="h-16 bg-white/[0.03] rounded-lg" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
         {[1,2,3,4,5,6].map((i) => (
           <div key={i} className="h-16 bg-white/[0.03] rounded-lg" />
         ))}
       </div>
-      <div className="h-32 bg-white/[0.03] rounded-lg" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="h-32 bg-white/[0.03] rounded-lg" />
+        <div className="h-32 bg-white/[0.03] rounded-lg" />
+      </div>
     </div>
   );
 }
@@ -186,10 +202,11 @@ function AnalysisBody({ data }) {
           confidence, sample_size, data_source, snapshot_at } = data;
 
   const insufficient = confidence === "insufficient_data";
+  const hasObservations = interpretation?.key_observations?.length > 0;
 
   return (
     <div className="space-y-4">
-      {/* === HEADLINE BLOCK === */}
+      {/* === HEADLINE BLOCK (hero) === */}
       <HeadlineBlock
         interpretation={interpretation}
         confidence={confidence}
@@ -217,19 +234,19 @@ function AnalysisBody({ data }) {
         </div>
       )}
 
-      {/* === CORE METRICS GRID === */}
+      {/* === METRICS (full width — uses horizontal space) === */}
       {!insufficient && <CoreMetricsGrid metrics={metrics} />}
-
-      {/* === ADVANCED METRICS === */}
       {!insufficient && <AdvancedMetricsGrid metrics={metrics} />}
 
-      {/* === KEY OBSERVATIONS === */}
-      {interpretation?.key_observations?.length > 0 && (
-        <KeyObservations observations={interpretation.key_observations} />
+      {/* === OBSERVATIONS + GUIDANCE (side-by-side on desktop) === */}
+      {(hasObservations || !insufficient) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {hasObservations && (
+            <KeyObservations observations={interpretation.key_observations} />
+          )}
+          {!insufficient && <ActionableHints interpretation={interpretation} />}
+        </div>
       )}
-
-      {/* === ACTIONABLE HINTS === */}
-      {!insufficient && <ActionableHints interpretation={interpretation} />}
 
       {/* === BTC CONTEXT === */}
       <BtcContextBlock btc_context={btc_context} />
@@ -275,18 +292,18 @@ function HeadlineBlock({ interpretation, confidence, is_decoupled, is_extended, 
                      "text-rose-400";
 
   return (
-    <div className="bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl border border-gold-primary/25 p-4">
+    <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-xl border border-gold-primary/30 p-4">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
-          <p className="text-gold-primary/60 text-[9px] uppercase tracking-wider font-medium mb-1">
+          <p className="text-gold-primary/70 text-[9px] uppercase tracking-wider font-semibold mb-1">
             BTC Alignment
           </p>
-          <p className="text-white font-medium text-sm leading-tight">
+          <p className="text-white font-medium text-sm sm:text-base leading-tight">
             {interpretation?.headline || "Analysis pending"}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-3xl font-bold font-mono ${scoreColor}`}>
+          <div className={`text-3xl sm:text-4xl font-bold font-mono ${scoreColor}`}>
             {score ?? "—"}
           </div>
           <div className="text-[9px] text-text-muted uppercase tracking-wider">Score</div>
@@ -340,7 +357,7 @@ function AdvancedMetricsGrid({ metrics }) {
   return (
     <div>
       <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-2">Advanced Metrics</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5">
         <MetricCard label="Tail ρ (BTC ↓)" value={metrics.tail_corr_btc_down}     hint="BTC-down corr"   digits={2} signed />
         <MetricCard label="Tail ρ (BTC ↑)" value={metrics.tail_corr_btc_up}       hint="BTC-up corr"     digits={2} signed />
         <MetricCard label="Downside β"     value={metrics.downside_beta}          hint="vs BTC-down"     digits={2} />
