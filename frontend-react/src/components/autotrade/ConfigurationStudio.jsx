@@ -6,31 +6,57 @@ import {
 
 const RISK_LEVELS = ["low", "normal", "high"];
 
+// function toDraft(config) {
+//   return {
+//     spot_enabled: Boolean(config?.spot_enabled),
+//     futures_enabled: config?.futures_enabled ?? true,
+//     is_active: config?.is_active ?? false,
+//     dry_run: config?.dry_run ?? false,
+//     sizing_method: config?.sizing?.method || "fixed",
+//     sizing_value: config?.sizing?.value ?? 10,
+//     tp_source: "signal_level",
+//     tp_level: Number(draft.tp_level),
+//     tp_custom_pct: null,
+
+//     sl_source: "signal_level",
+//     sl_level: Number(draft.sl_level),
+//     sl_custom_pct: null,
+//     exit_mode: config?.exit?.mode || "fixed_sl",
+//     trailing_callback_rate: config?.exit?.trailing_callback_rate ?? 1,
+//     leverage: config?.futures?.leverage ?? 1,
+//     margin_mode: config?.futures?.margin_mode || "isolated",
+//     allowed_risk_levels: config?.allowed_risk_levels || [],
+//   };
+// }
+
 function toDraft(config) {
   return {
     spot_enabled: Boolean(config?.spot_enabled),
     futures_enabled: config?.futures_enabled ?? true,
     is_active: config?.is_active ?? false,
     dry_run: config?.dry_run ?? false,
+
     sizing_method: config?.sizing?.method || "fixed",
     sizing_value: config?.sizing?.value ?? 10,
-    tp_source: config?.tp?.source || "signal_level",
+
     tp_level: config?.tp?.level ?? 1,
-    tp_custom_pct: config?.tp?.custom_pct ?? "",
-    sl_source: config?.sl?.source || "signal_level",
     sl_level: config?.sl?.level ?? 1,
-    sl_custom_pct: config?.sl?.custom_pct ?? "",
+
     exit_mode: config?.exit?.mode || "fixed_sl",
     trailing_callback_rate: config?.exit?.trailing_callback_rate ?? 1,
+
     leverage: config?.futures?.leverage ?? 1,
     margin_mode: config?.futures?.margin_mode || "isolated",
+
     allowed_risk_levels: config?.allowed_risk_levels || [],
   };
 }
 
 function toPayload(draft) {
   const normalizeNumber = (value) =>
-    value === "" || value === null || value === undefined ? null : Number(value);
+    value === "" || value === null || value === undefined
+      ? null
+      : Number(value);
 
   return {
     spot_enabled: draft.spot_enabled,
@@ -39,18 +65,13 @@ function toPayload(draft) {
     dry_run: draft.dry_run,
     sizing_method: draft.sizing_method,
     sizing_value: Number(draft.sizing_value),
-    tp_source: draft.tp_source,
-    tp_level: draft.tp_source === "signal_level" ? Number(draft.tp_level) : null,
-    tp_custom_pct:
-      draft.tp_source === "custom_pct"
-        ? normalizeNumber(draft.tp_custom_pct)
-        : null,
-    sl_source: draft.sl_source,
-    sl_level: draft.sl_source === "signal_level" ? Number(draft.sl_level) : null,
-    sl_custom_pct:
-      draft.sl_source === "custom_pct"
-        ? normalizeNumber(draft.sl_custom_pct)
-        : null,
+    tp_source: "signal_level",
+    tp_level: Number(draft.tp_level),
+    tp_custom_pct: null,
+
+    sl_source: "signal_level",
+    sl_level: Number(draft.sl_level),
+    sl_custom_pct: null,
     exit_mode: draft.exit_mode,
     trailing_callback_rate:
       draft.exit_mode === "trailing_stop"
@@ -111,7 +132,11 @@ function Select({ value, onChange, options }) {
       className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white focus:outline-none focus:border-gold-primary/40"
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value} className="bg-[#0a0805]">
+        <option
+          key={option.value}
+          value={option.value}
+          className="bg-[#0a0805]"
+        >
           {option.label}
         </option>
       ))}
@@ -230,8 +255,8 @@ export default function ConfigurationStudio({
 
       {!hasConnectedAccount ? (
         <div className="rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-4 text-sm text-gold-primary/80">
-          The strategy API is available, but it needs a saved Binance account before
-          the backend can trade.
+          The strategy API is available, but it needs a saved Binance account
+          before the backend can trade.
         </div>
       ) : null}
 
@@ -288,7 +313,11 @@ export default function ConfigurationStudio({
 
             <InputGroup
               label="Sizing value"
-              hint={draft.sizing_method === "fixed" ? "USDT per trade." : "0-100% of available balance."}
+              hint={
+                draft.sizing_method === "fixed"
+                  ? "USDT per trade."
+                  : "0-100% of available balance."
+              }
             >
               <NumberInput
                 value={draft.sizing_value}
@@ -325,69 +354,29 @@ export default function ConfigurationStudio({
         </div>
 
         <div className="space-y-4 rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <InputGroup label="Take profit source">
-              <Select
-                value={draft.tp_source}
-                onChange={(value) => patch({ tp_source: value })}
-                options={[
-                  { value: "signal_level", label: "Signal level" },
-                  { value: "custom_pct", label: "Custom %" },
-                ]}
-              />
-            </InputGroup>
-            {draft.tp_source === "signal_level" ? (
-              <InputGroup label="TP level">
-                <NumberInput
-                  value={draft.tp_level}
-                  onChange={(value) => patch({ tp_level: value })}
-                  min={1}
-                  max={4}
-                />
-              </InputGroup>
-            ) : (
-              <InputGroup label="TP custom %">
-                <NumberInput
-                  value={draft.tp_custom_pct}
-                  onChange={(value) => patch({ tp_custom_pct: value })}
-                  min={0}
-                  step={0.1}
-                />
-              </InputGroup>
-            )}
-          </div>
+          <InputGroup
+            label="Take Profit Level"
+            hint="Use TP level from the signal"
+          >
+            <NumberInput
+              value={draft.tp_level}
+              onChange={(value) => patch({ tp_level: value })}
+              min={1}
+              max={4}
+            />
+          </InputGroup>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <InputGroup label="Stop loss source">
-              <Select
-                value={draft.sl_source}
-                onChange={(value) => patch({ sl_source: value })}
-                options={[
-                  { value: "signal_level", label: "Signal level" },
-                  { value: "custom_pct", label: "Custom %" },
-                ]}
-              />
-            </InputGroup>
-            {draft.sl_source === "signal_level" ? (
-              <InputGroup label="SL level">
-                <NumberInput
-                  value={draft.sl_level}
-                  onChange={(value) => patch({ sl_level: value })}
-                  min={1}
-                  max={4}
-                />
-              </InputGroup>
-            ) : (
-              <InputGroup label="SL custom %">
-                <NumberInput
-                  value={draft.sl_custom_pct}
-                  onChange={(value) => patch({ sl_custom_pct: value })}
-                  min={0}
-                  step={0.1}
-                />
-              </InputGroup>
-            )}
-          </div>
+          <InputGroup
+            label="Stop Loss Level"
+            hint="Use SL level from the signal"
+          >
+            <NumberInput
+              value={draft.sl_level}
+              onChange={(value) => patch({ sl_level: value })}
+              min={1}
+              max={4}
+            />
+          </InputGroup>
 
           <div className="grid gap-4 md:grid-cols-2">
             <InputGroup label="Exit mode">
@@ -406,9 +395,7 @@ export default function ConfigurationStudio({
             >
               <NumberInput
                 value={draft.trailing_callback_rate}
-                onChange={(value) =>
-                  patch({ trailing_callback_rate: value })
-                }
+                onChange={(value) => patch({ trailing_callback_rate: value })}
                 min={0.1}
                 max={10}
                 step={0.1}

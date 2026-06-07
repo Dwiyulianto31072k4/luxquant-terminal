@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../services/authApi';
+import { clearAutotradeAuth, LUXQUANT_CRYPTOBOT_TOKEN_KEY } from '../services/autotradeApi';
 import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 
 const AuthContext = createContext(null);
@@ -97,6 +98,9 @@ export const AuthProvider = ({ children }) => {
 
             localStorage.setItem('access_token', result.access_token);
             localStorage.setItem('refresh_token', result.refresh_token);
+            if (result.cryptobot_token) {
+              localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, result.cryptobot_token);
+            }
 
             // Clear pending ref setelah login sukses
             // (backend akan ignore kalau user existing, jadi safe to clear)
@@ -177,6 +181,9 @@ export const AuthProvider = ({ children }) => {
 
           localStorage.setItem('access_token', result.access_token);
           localStorage.setItem('refresh_token', result.refresh_token);
+          if (result.cryptobot_token) {
+            localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, result.cryptobot_token);
+          }
 
           // Clear pending ref setelah login sukses
           if (referralCode) clearStoredRef();
@@ -294,6 +301,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    clearAutotradeAuth();
     setUser(null);
     setError(null);
 

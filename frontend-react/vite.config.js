@@ -1,22 +1,48 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [react()],
-  
-  server: {
-    port: 3000,
-    host: true,
-    allowedHosts: ['luxquant.tw'],
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8002',
-        changeOrigin: true
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const apiTarget = env.VITE_API_URL || 'http://127.0.0.1:8002';
+  const autotradeTarget = env.VITE_AUTOTRADE_URL || 'http://72.61.143.95:8000';
+  console.log("API TARGET:", apiTarget);
+  console.log("AUTOTRADE TARGET:", autotradeTarget);
+  return {
+    plugins: [react()],
+    
+    server: {
+      port: 5173,
+      host: true,
+      allowedHosts: ['luxquant.tw'],
+      proxy: {
+        '/api': {
+          target: apiTarget,
+          changeOrigin: true
+        },
+        '/auth': {
+          target: autotradeTarget,
+          changeOrigin: true
+        },
+        '/health': {
+          target: autotradeTarget,
+          changeOrigin: true
+        },
+        '/me': {
+          target: autotradeTarget,
+          changeOrigin: true
+        },
+        '/signals': {
+          target: autotradeTarget,
+          changeOrigin: true
+        },
+        '/executions': {
+          target: autotradeTarget,
+          changeOrigin: true
+        }
       }
-    }
-  },
+    },
 
-  build: {
+    build: {
     // Target modern browsers for smaller output
     target: 'es2020',
     
@@ -70,5 +96,6 @@ export default defineConfig({
         },
       },
     },
-  },
+    },
+  };
 })

@@ -1,12 +1,44 @@
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE =
+  import.meta.env.VITE_AUTOTRADE_API_URL ||
+  import.meta.env.VITE_AUTOTRADE_URL ||
+  "http://api.cryptobot.id";
+
+export const AUTOTRADE_TOKEN_KEY = "autotrade_access_token";
+export const AUTOTRADE_REFRESH_TOKEN_KEY = "autotrade_refresh_token";
+export const AUTOTRADE_REDIRECT_KEY = "autotrade_post_login_redirect";
+export const CRYPTOBOT_TOKEN_KEY = "cryptobot_token";
+export const LUXQUANT_CRYPTOBOT_TOKEN_KEY = "luxquant_cryptobot_token";
 
 function getToken() {
-  return localStorage.getItem("access_token") || "";
+  return (
+    localStorage.getItem(AUTOTRADE_TOKEN_KEY) ||
+    localStorage.getItem(CRYPTOBOT_TOKEN_KEY) ||
+    localStorage.getItem("autotrade_bearer_token") ||
+    ""
+  );
+}
+
+export function storeAutotradeAuth(accessToken, refreshToken = null) {
+  localStorage.setItem(AUTOTRADE_TOKEN_KEY, accessToken);
+  localStorage.setItem(CRYPTOBOT_TOKEN_KEY, accessToken);
+
+  if (refreshToken) {
+    localStorage.setItem(AUTOTRADE_REFRESH_TOKEN_KEY, refreshToken);
+  } else {
+    localStorage.removeItem(AUTOTRADE_REFRESH_TOKEN_KEY);
+  }
+}
+
+export function clearAutotradeAuth() {
+  localStorage.removeItem(AUTOTRADE_TOKEN_KEY);
+  localStorage.removeItem(AUTOTRADE_REFRESH_TOKEN_KEY);
+  localStorage.removeItem(CRYPTOBOT_TOKEN_KEY);
+  localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
+  localStorage.removeItem("autotrade_bearer_token");
 }
 
 function buildUrl(path) {
   if (/^https?:\/\//i.test(path)) return path;
-  if (!API_BASE) return path;
   return `${API_BASE}${path}`;
 }
 
@@ -29,10 +61,11 @@ async function request(path, { method = "GET", body } = {}) {
   });
 
   if (!response.ok) {
-    let detail = "Request failed";
+    let detail = `Request failed (${response.status})`;
 
     try {
       const errorBody = await response.json();
+
       if (Array.isArray(errorBody?.detail)) {
         detail = errorBody.detail
           .map((item) => item?.msg || item?.message || "Validation error")
@@ -47,32 +80,80 @@ async function request(path, { method = "GET", body } = {}) {
     throw new Error(detail);
   }
 
-  if (response.status === 204) return null;
+  if (response.status === 204) {
+    return null;
+  }
+
   return response.json();
 }
 
+export async function exchangeLuxquantToken(luxquantToken) {
+  const data = await request("/auth/luxquant", {
+    method: "POST",
+    body: { token: luxquantToken },
+  });
+
+  if (!data?.access_token) {
+    throw new Error("Cryptobot did not return an access token");
+  }
+
+  storeAutotradeAuth(data.access_token, data.refresh_token || null);
+  return data;
+}
+
+// Health
 export const getHealth = () => request("/health");
+
+// User
 export const getMe = () => request("/me");
+
+// Exchange Accounts
 export const saveBinanceKeys = (payload) =>
-  request("/me/exchange-accounts/binance", { method: "PUT", body: payload });
+  request("/me/exchange-accounts/binance", {
+    method: "PUT",
+    body: payload,
+  });
+
 export const checkBinanceKeys = () =>
-  request("/me/exchange-accounts/binance/check", { method: "POST" });
+  request("/me/exchange-accounts/binance/check", {
+    method: "POST",
+  });
 
-export const getPortfolio = () => request("/me/portfolio");
+// Portfolio
+export const getPortfolio = () =>
+  request("/me/portfolio");
 
-export const getStrategyConfigs = () => request("/me/strategy-configs");
+// Strategy Configs
+export const getStrategyConfigs = () =>
+  request("/me/strategy-configs");
+
 export const updateBinanceStrategyConfig = (payload) =>
-  request("/me/strategy-configs/binance", { method: "PUT", body: payload });
+  request("/me/strategy-configs/binance", {
+    method: "PUT",
+    body: payload,
+  });
+
 export const setBinanceStrategyActive = (active) =>
   request("/me/strategy-configs/binance/active", {
     method: "PUT",
     body: { active },
   });
 
-export const getSignals = () => request("/signals");
-export const parseSignalPreview = (text) =>
-  request("/signals/parse-preview", { method: "POST", body: { text } });
+// Signals
+export const getSignals = () =>
+  request("/signals");
 
-export const getExecutions = () => request("/executions");
+export const parseSignalPreview = (text) =>
+  request("/signals/parse-preview", {
+    method: "POST",
+    body: { text },
+  });
+
+// Executions
+export const getExecutions = () =>
+  request("/executions");
+
 export const retryExecution = (executionId) =>
-  request(`/executions/${executionId}/retry`, { method: "POST" });
+  request(`/executions/${executionId}/retry`, {
+    method: "POST",
+  });

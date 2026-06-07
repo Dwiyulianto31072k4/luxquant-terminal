@@ -114,6 +114,30 @@ export const authApi = {
     return response.data;
   },
 
+  getCryptobotToken: async () => {
+    const paths = [
+      '/api/v1/auth/me/cryptobot-token',
+      '/api/v1/me/cryptobot-token',
+      '/me/cryptobot-token'
+    ];
+
+    let lastError = null;
+
+    for (const path of paths) {
+      try {
+        const response = await api.get(path);
+        return response.data;
+      } catch (err) {
+        lastError = err;
+        if (err?.response?.status !== 404) {
+          throw err;
+        }
+      }
+    }
+
+    throw lastError || new Error('Cryptobot token endpoint not found');
+  },
+
   logout: async () => {
     const response = await api.post('/api/v1/auth/logout');
     return response.data;

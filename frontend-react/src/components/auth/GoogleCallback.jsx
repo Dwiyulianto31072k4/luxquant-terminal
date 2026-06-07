@@ -6,6 +6,7 @@ import {
   AUTOTRADE_REDIRECT_KEY,
   AUTOTRADE_REFRESH_TOKEN_KEY,
   AUTOTRADE_TOKEN_KEY,
+  LUXQUANT_CRYPTOBOT_TOKEN_KEY,
 } from "../../services/autotradeApi";
 
 const GoogleCallback = () => {
@@ -74,12 +75,17 @@ const GoogleCallback = () => {
 
     const token = params.get("token");
     const refreshToken = params.get("refresh_token");
+    const cryptobotToken = params.get("cryptobot_token");
     const userStr = params.get("user");
 
     if (token && refreshToken) {
       localStorage.setItem("access_token", token);
 
       localStorage.setItem("refresh_token", refreshToken);
+
+      if (cryptobotToken) {
+        localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, cryptobotToken);
+      }
 
       if (userStr) {
         try {
