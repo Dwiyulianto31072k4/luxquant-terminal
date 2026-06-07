@@ -1,12 +1,12 @@
 // src/components/edgelab/PatternBtcHeatmapTab.jsx
-// v2 UX: insight band (regime-dependent patterns) + full-width heatmap grid
+// v3 UX: insight band (regime-dependent patterns) + full-width heatmap grid + drill
 import { useMemo } from "react";
 import { wrColor, WR_LEGEND, Panel, Methodology, InsightBand, EmptyState } from "./_shared";
 
 const BTC_CONTEXTS = ["BULLISH", "RANGING", "BEARISH", "UNKNOWN"];
 const CTX_SHORT = { BULLISH: "BULL", RANGING: "RANGE", BEARISH: "BEAR", UNKNOWN: "UNK" };
 
-const PatternBtcHeatmapTab = ({ data }) => {
+const PatternBtcHeatmapTab = ({ data, onDrill }) => {
   const { patterns } = useMemo(() => {
     if (!data?.length) return { patterns: [] };
     const map = {};
@@ -81,7 +81,8 @@ const PatternBtcHeatmapTab = ({ data }) => {
         Win rate for each pattern split by BTC market regime at signal time. Brighter green ={" "}
         <span className="text-emerald-400">stronger</span>, red ={" "}
         <span className="text-red-400">weaker</span>. A big color shift across a row means that pattern is
-        regime-dependent — only trade it in the regimes where it's green.
+        regime-dependent — only trade it in the regimes where it's green.{" "}
+        <span className="text-gold-primary/70">Click a cell</span> to open its signals.
       </Methodology>
 
       <Panel title="WR by pattern × BTC context" meta={`${patterns.length} patterns`} pad={false}>
@@ -115,9 +116,20 @@ const PatternBtcHeatmapTab = ({ data }) => {
                   );
                 const dim = cell.count < 5;
                 return (
-                  <div
+                  <button
                     key={ctx}
-                    className="flex flex-col items-center justify-center rounded-md min-h-[40px] transition hover:ring-1 hover:ring-white/25"
+                    type="button"
+                    onClick={() =>
+                      onDrill?.({
+                        dimension: "pattern_btc",
+                        key: `${p.pattern}|${ctx}`,
+                        label: `${p.pattern} · ${ctx}`,
+                        total: cell.count,
+                        wins: cell.wins,
+                        win_rate: cell.win_rate,
+                      })
+                    }
+                    className="flex flex-col items-center justify-center rounded-md min-h-[40px] transition cursor-pointer hover:ring-1 hover:ring-gold-primary/55"
                     style={{ background: wrColor(cell.win_rate, cell.count), opacity: dim ? 0.45 : 1 }}
                     title={`${p.pattern} · ${ctx} · ${cell.wins}/${cell.count} · ${cell.win_rate?.toFixed(1)}%`}
                   >
@@ -125,7 +137,7 @@ const PatternBtcHeatmapTab = ({ data }) => {
                       {cell.win_rate?.toFixed(0)}%
                     </span>
                     <span className="font-mono tabular-nums text-[9px] text-white/50 mt-0.5">n={cell.count}</span>
-                  </div>
+                  </button>
                 );
               })}
               <div className="flex items-center justify-end font-mono tabular-nums text-xs text-white/55">
@@ -144,7 +156,7 @@ const PatternBtcHeatmapTab = ({ data }) => {
               </span>
             ))}
           </div>
-          <span className="text-[10px] font-mono text-white/25">faint cells = n &lt; 5</span>
+          <span className="text-[10px] font-mono text-white/25">faint cells = n &lt; 5 · click to drill</span>
         </div>
       </Panel>
     </div>

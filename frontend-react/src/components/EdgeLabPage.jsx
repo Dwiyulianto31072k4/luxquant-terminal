@@ -3,7 +3,7 @@
 // LuxQuant Terminal — Edge Lab (multi-day analytics) — v3 UX rebuild
 // Route: /daily-performance/edge-lab
 // Header mirrors Market Pulse (left-aligned eyebrow + gradient title).
-// Drill: Calendar + Timing cells → drawer → SignalModal (Level 3).
+// Drill on every tab → drawer → SignalModal (Level 3).
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -241,9 +241,9 @@ const EdgeLabPage = () => {
           </div>
 
           <div>
-            {activeTab === "calibration" && <PatternCalibrationTab data={data.pattern_calibration} />}
-            {activeTab === "btc_heatmap" && <PatternBtcHeatmapTab data={data.pattern_btc_heatmap} />}
-            {activeTab === "ev" && <ExpectedValueTab data={data.pattern_ev} />}
+            {activeTab === "calibration" && <PatternCalibrationTab data={data.pattern_calibration} onDrill={setDrillBucket} />}
+            {activeTab === "btc_heatmap" && <PatternBtcHeatmapTab data={data.pattern_btc_heatmap} onDrill={setDrillBucket} />}
+            {activeTab === "ev" && <ExpectedValueTab data={data.pattern_ev} onDrill={setDrillBucket} />}
             {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
             {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} onDrill={setDrillBucket} />}
           </div>

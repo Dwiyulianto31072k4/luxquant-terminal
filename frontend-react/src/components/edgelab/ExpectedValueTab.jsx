@@ -1,11 +1,11 @@
 // src/components/edgelab/ExpectedValueTab.jsx
-// v2 UX: insight band + inline diverging EV bar + tier badge + sortable
+// v3 UX: insight band + inline diverging EV bar + tier badge + sortable + drill
 import { useState, useMemo } from "react";
 import {
   TIER_COLORS, Panel, Methodology, InsightBand, EmptyState, ReliabilityBadge,
 } from "./_shared";
 
-const ExpectedValueTab = ({ data }) => {
+const ExpectedValueTab = ({ data, onDrill }) => {
   const [sortBy, setSortBy] = useState("expected_value");
   const [sortDir, setSortDir] = useState("desc");
 
@@ -90,7 +90,8 @@ const ExpectedValueTab = ({ data }) => {
         expected % return per signal. Positive ={" "}
         <span className="text-emerald-400">edge exists</span>, negative ={" "}
         <span className="text-red-400">losing pattern</span>. The bar shows EV magnitude; the dot shows tier
-        confidence. A high EV on an <span className="text-red-400">unreliable</span> tier is not yet trustworthy.
+        confidence. A high EV on an <span className="text-red-400">unreliable</span> tier is not yet trustworthy.{" "}
+        <span className="text-gold-primary/70">Click a row</span> to open the signals behind it.
       </Methodology>
 
       <Panel
@@ -120,7 +121,20 @@ const ExpectedValueTab = ({ data }) => {
                 const barPct = ev == null ? 0 : (Math.abs(ev) / maxAbsEV) * 50; // half-width max
                 const pos = (ev ?? 0) >= 0;
                 return (
-                  <tr key={p.pattern} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition">
+                  <tr
+                    key={p.pattern}
+                    onClick={() =>
+                      onDrill?.({
+                        dimension: "pattern",
+                        key: p.pattern,
+                        label: p.pattern,
+                        total: p.count,
+                        wins: p.wins,
+                        win_rate: p.win_rate,
+                      })
+                    }
+                    className="border-b border-white/[0.03] hover:bg-white/[0.03] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] cursor-pointer transition"
+                  >
                     <td className="px-4 py-2.5 font-mono text-[13px] text-white/85 whitespace-nowrap">
                       <span className="inline-flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tierColor }} title={p.reliability} />
@@ -167,7 +181,7 @@ const ExpectedValueTab = ({ data }) => {
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.reliable }} /> reliable</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.moderate }} /> moderate</span>
           <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: TIER_COLORS.unreliable }} /> unreliable</span>
-          <span className="text-white/25">| bar centered at 0 · right = +EV, left = −EV</span>
+          <span className="text-white/25">| bar centered at 0 · right = +EV, left = −EV · click a row to drill</span>
         </div>
       </Panel>
     </div>
