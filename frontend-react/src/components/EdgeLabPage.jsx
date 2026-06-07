@@ -1,12 +1,12 @@
 // src/components/EdgeLabPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Edge Lab (multi-day analytics) — v3 UX rebuild
+// LuxQuant Terminal — Edge Lab (multi-day analytics) — v4 UX rebuild
 // Route: /daily-performance/edge-lab
-// Header mirrors Market Pulse (left-aligned eyebrow + gradient title).
-// Drill on every tab → drawer → SignalModal (Level 3).
+//   · Pulse-style header (eyebrow + gradient title), no back link
+//   · KPI cards: Win Rate (sparkline + delta), Resolved, Top Edge, Correlation
+//   · Drill on every tab → drawer → SignalModal (Level 3)
 // ════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { edgeLabApi } from "../services/edgeLabApi";
 
 import PatternCalibrationTab from "./edgelab/PatternCalibrationTab";
@@ -36,20 +36,45 @@ const SECTOR_OPTIONS = [
   "hype", "payments", "rwa", "privacy", "socialfi", "other",
 ];
 
+// ─── Sparkline (inline SVG, area + line, trend-colored) ──────────
+const Sparkline = ({ values, up }) => {
+  if (!values || values.length < 2) return null;
+  const W = 132, H = 30, pad = 3;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - min) / range) * (H - pad * 2);
+    return [x, y];
+  });
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H} L${pts[0][0].toFixed(1)},${H} Z`;
+  const stroke = up ? "#10b981" : "#ef4444";
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
+      <path d={area} fill={stroke} fillOpacity="0.10" />
+      <path d={line} fill="none" stroke={stroke} strokeOpacity="0.85" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r="2" fill={stroke} />
+    </svg>
+  );
+};
+
 // ─── KPI tile ────────────────────────────────────────────────────
-const Kpi = ({ label, value, sub, valueColor, subColor }) => (
-  <div className="relative rounded-lg bg-[#0c0a07] border border-white/[0.07] px-4 py-3.5">
+const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
+  <div className="relative rounded-lg bg-[#0c0a07] border border-white/[0.07] px-4 py-3.5 flex flex-col">
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">{label}</div>
-    <div className={`text-xl lg:text-[1.7rem] font-mono tabular-nums mt-1 leading-none truncate ${valueColor || "text-white/95"}`}>
+    <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-white/95"}`}>
       {value}
     </div>
-    <div className={`text-[10px] tracking-[0.12em] font-mono uppercase mt-1.5 ${subColor || "text-white/40"}`}>{sub}</div>
+    {children}
+    {sub && <div className="text-[10px] tracking-[0.12em] font-mono uppercase mt-1.5 text-white/40">{sub}</div>}
   </div>
 );
 
 const EdgeLabPage = () => {
-  const navigate = useNavigate();
   const [days, setDays] = useState(30);
   const [sector, setSector] = useState("all");
   const [data, setData] = useState(null);
@@ -76,23 +101,38 @@ const EdgeLabPage = () => {
   useEffect(() => { fetchData(days, sector); }, [days, sector, fetchData]);
 
   const totals = data?.totals;
-  const enrichmentPct = totals?.enrichment_pct ?? null;
   const corrPct = totals?.correlation_pct ?? null;
-  const lowCoverage = enrichmentPct !== null && enrichmentPct < 30;
   const resolved = totals?.signals_resolved ?? null;
+  const wr = totals?.win_rate ?? null;
+
+  // daily WR series + first-half→second-half delta (variance annotation)
+  const wrTrend = useMemo(() => {
+    const days_ = (data?.calendar_wr || []).filter((d) => d.total > 0 && d.win_rate != null);
+    const vals = days_.map((d) => d.win_rate);
+    let delta = null;
+    if (vals.length >= 4) {
+      const half = Math.floor(vals.length / 2);
+      const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+      delta = avg(vals.slice(half)) - avg(vals.slice(0, half));
+    }
+    return { vals, delta };
+  }, [data]);
+
+  // best trustworthy edge by expected value
+  const topEdge = useMemo(() => {
+    const ev = data?.pattern_ev || [];
+    const trusted = ev.filter((p) => p.reliability !== "unreliable" && p.expected_value != null);
+    const pool = trusted.length ? trusted : ev.filter((p) => p.expected_value != null);
+    return [...pool].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
+  }, [data]);
+
+  const wrColorCls = wr >= 75 ? "text-emerald-400" : wr >= 50 ? "text-white/95" : "text-red-400";
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
-      {/* ═══ PAGE HEADER — mirrors Market Pulse (eyebrow + gradient title, left-aligned) ═══ */}
+      {/* ═══ PAGE HEADER — mirrors Market Pulse (eyebrow + gradient title) ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <button
-            onClick={() => navigate("/daily-performance")}
-            className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-white/40 hover:text-white/75 transition mb-3"
-          >
-            ← Daily Performance
-          </button>
-
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/40 opacity-60" />
@@ -172,7 +212,7 @@ const EdgeLabPage = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-[88px] rounded-lg bg-[#0c0a07] border border-white/[0.06] animate-pulse" />
+              <div key={i} className="h-[110px] rounded-lg bg-[#0c0a07] border border-white/[0.06] animate-pulse" />
             ))}
           </div>
           <div className="h-12 rounded-lg bg-[#0c0a07] border border-white/[0.06] animate-pulse" />
@@ -182,44 +222,53 @@ const EdgeLabPage = () => {
 
       {data && (
         <div className="space-y-5">
-          {/* KPI strip */}
+          {/* KPI strip — Win Rate hero with sparkline + delta */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Kpi
+              label="Win Rate"
+              value={wr != null ? `${wr.toFixed(2)}%` : "—"}
+              valueColor={wrColorCls}
+              sub={`${(totals?.wins ?? 0).toLocaleString()}W / ${(totals?.losses ?? 0).toLocaleString()}L`}
+            >
+              <div className="flex items-end justify-between gap-2 mt-2">
+                <Sparkline values={wrTrend.vals} up={(wrTrend.delta ?? 0) >= 0} />
+                {wrTrend.delta != null && (
+                  <span
+                    className={`text-[10px] font-mono tabular-nums shrink-0 ${
+                      wrTrend.delta >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                    title="second half vs first half of range"
+                  >
+                    {wrTrend.delta >= 0 ? "▲" : "▼"} {Math.abs(wrTrend.delta).toFixed(1)}pp
+                  </span>
+                )}
+              </div>
+            </Kpi>
+
             <Kpi
               label="Resolved"
               value={(totals?.signals_resolved ?? 0).toLocaleString()}
               sub={`${data.date_range.start} → ${data.date_range.end}`}
             />
+
             <Kpi
-              label="Win Rate"
-              value={totals?.win_rate != null ? `${totals.win_rate.toFixed(2)}%` : "—"}
-              sub={`${(totals?.wins ?? 0).toLocaleString()}W / ${(totals?.losses ?? 0).toLocaleString()}L`}
-              valueColor={totals?.win_rate >= 75 ? "text-emerald-400" : totals?.win_rate >= 50 ? "text-white/95" : "text-red-400"}
+              label="Top Edge"
+              value={topEdge ? topEdge.pattern : "—"}
+              valueClass="text-sm lg:text-base"
+              valueColor="text-gold-primary"
+              sub={
+                topEdge
+                  ? `+${topEdge.expected_value?.toFixed(1)}% / trade · n=${topEdge.count}`
+                  : "no positive edge"
+              }
             />
-            <Kpi
-              label="Enrichment"
-              value={enrichmentPct != null ? `${enrichmentPct.toFixed(0)}%` : "—"}
-              sub="v3.0 tagged"
-              subColor={lowCoverage ? "text-amber-400/70" : "text-white/40"}
-            />
+
             <Kpi
               label="Correlation"
               value={corrPct != null ? `${corrPct.toFixed(0)}%` : "—"}
               sub="BTC β coverage"
             />
           </div>
-
-          {/* coverage note — inline, thin */}
-          {lowCoverage && (
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-md border border-amber-500/15 bg-amber-500/[0.03] text-[11px]">
-              <span className="text-amber-400/80">⚠</span>
-              <span className="text-white/60">
-                <span className="text-amber-300/90 font-mono uppercase tracking-wider text-[10px] mr-1.5">
-                  Sparse enrichment ({enrichmentPct?.toFixed(0)}%)
-                </span>
-                Pattern-based tabs reflect only v3.0-tagged signals. Calendar &amp; Timing remain fully accurate.
-              </span>
-            </div>
-          )}
 
           {/* Tabs */}
           <div className="flex items-center gap-1 border-b border-white/[0.07] overflow-x-auto">
