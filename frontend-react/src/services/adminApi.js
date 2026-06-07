@@ -2,18 +2,36 @@
 import api from './authApi';
 
 export const adminApi = {
+  // ════════════════════════════════════════
   // Dashboard stats
+  // ════════════════════════════════════════
   getStats: async () => {
     const response = await api.get('/api/v1/admin/stats');
     return response.data;
   },
 
-  // List users with search/filter/pagination
-  getUsers: async ({ search, role, status, sortBy, sortOrder, page, pageSize } = {}) => {
+  // ════════════════════════════════════════
+  // List users with search/filter/pagination (8 dimensions)
+  // ════════════════════════════════════════
+  getUsers: async ({
+    search,
+    role,
+    status,
+    provider,      // ← NEW: google/telegram/discord/local
+    activity,      // ← NEW: active_7d | dormant_30d | never_logged_in
+    reach,         // ← NEW: has_tg | has_dc | has_email | unreachable | admin_enriched
+    sortBy,
+    sortOrder,
+    page,
+    pageSize,
+  } = {}) => {
     const params = {};
     if (search) params.search = search;
     if (role) params.role = role;
     if (status) params.status = status;
+    if (provider) params.provider = provider;
+    if (activity) params.activity = activity;
+    if (reach) params.reach = reach;
     if (sortBy) params.sort_by = sortBy;
     if (sortOrder) params.sort_order = sortOrder;
     if (page) params.page = page;
@@ -23,10 +41,11 @@ export const adminApi = {
   },
 
   // Grant subscription
-  grantSubscription: async (userId, duration, note = null, startDate = null) => {
+  grantSubscription: async (userId, duration, note = null, startDate = null, endDate = null) => {
     const body = { duration };
     if (note) body.note = note;
     if (startDate) body.start_date = startDate;
+    if (endDate) body.end_date = endDate;
     const response = await api.post(`/api/v1/admin/users/${userId}/grant-subscription`, body);
     return response.data;
   },
@@ -40,20 +59,62 @@ export const adminApi = {
   // Get expiring subscriptions
   getExpiringSubscriptions: async (days = 7) => {
     const response = await api.get('/api/v1/admin/expiring-subscriptions', {
-      params: { days }
+      params: { days },
     });
     return response.data;
   },
 
-  // Cleanup expired subscriptions
+  // Cleanup expired
   cleanupExpired: async () => {
     const response = await api.post('/api/v1/admin/cleanup-expired');
     return response.data;
   },
 
-  // Toggle user active status
+  // Toggle user active
   toggleUserActive: async (userId) => {
     const response = await api.post(`/api/v1/admin/users/${userId}/toggle-active`);
+    return response.data;
+  },
+
+  // ════════════════════════════════════════
+  // Admin Outreach (Layer Outreach) — NEW
+  // ════════════════════════════════════════
+
+  // Get contact reach stats (aggregate)
+  getContactStats: async () => {
+    const response = await api.get('/api/v1/admin/users/contact-stats');
+    return response.data;
+  },
+
+  // Get FULL user detail (drawer data)
+  getUserFull: async (userId) => {
+    const response = await api.get(`/api/v1/admin/users/${userId}/full`);
+    return response.data;
+  },
+
+  // Update user enrichment (TG/DC/notes)
+  // Only fields you pass will be updated (PATCH semantics).
+  // Pass null to clear a field.
+  updateUserContact: async (userId, { admin_telegram_username, admin_discord_handle, admin_notes } = {}) => {
+    const body = {};
+    if (admin_telegram_username !== undefined) body.admin_telegram_username = admin_telegram_username;
+    if (admin_discord_handle !== undefined) body.admin_discord_handle = admin_discord_handle;
+    if (admin_notes !== undefined) body.admin_notes = admin_notes;
+    const response = await api.patch(`/api/v1/admin/users/${userId}/contact`, body);
+    return response.data;
+  },
+
+  // List message templates
+  getOutreachTemplates: async () => {
+    const response = await api.get('/api/v1/admin/outreach/templates');
+    return response.data;
+  },
+
+  // Render template for specific user
+  renderOutreachTemplate: async (templateId, userId, customMessage = null) => {
+    const body = { template_id: templateId, user_id: userId };
+    if (customMessage) body.custom_message = customMessage;
+    const response = await api.post('/api/v1/admin/outreach/render', body);
     return response.data;
   },
 };

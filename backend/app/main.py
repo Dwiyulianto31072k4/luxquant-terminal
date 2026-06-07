@@ -1,6 +1,7 @@
 # backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.activity_tracker import ActivityTrackerMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
@@ -9,13 +10,17 @@ import asyncio
 from app.config import settings
 from app.api.routes import signals, market, market_overview, auth, watchlist, coingecko, tips
 from app.api.routes import signal_journey
+from app.api.routes import api_keys
+from app.api.routes import public_signals
+from app.api.routes import public_data
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
 from app.services.notification_worker import start_notification_worker
-from app.api.routes import coins, daily_dashboard
+from app.api.routes import coins, daily_dashboard, edge_lab
+from app.api.routes import workspace, finance, growth
 
 
 # Import Router
@@ -23,9 +28,11 @@ from app.api.routes.telegram_auth import router as telegram_auth_router
 from app.api.routes.discord_auth import router as discord_auth_router
 from app.api.routes.admin import router as admin_router
 from app.api.routes.admin_cashout import router as admin_cashout_router
+from app.api.routes.admin_api_keys import router as admin_api_keys_router
 from app.api.routes.subscription import router as subscription_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.whale import router as whale_router
+from app.api.routes.money_flow_router import router as money_flow_router
 from app.api.routes.orderbook import router as orderbook_router
 from app.api.routes.referral import router as referral_router
 from app.api.routes import ai_arena
@@ -33,6 +40,7 @@ from app.api.routes import ai_arena_v6
 from app.api.routes import enrichment_v3
 from app.api.routes import btc_correlation
 from app.api.routes.autotrade import router as autotrade_router
+from app.api.routes.autotrade_auth import router as autotrade_auth_router 
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
@@ -48,6 +56,8 @@ from app.api.routes.fx import router as fx_router
 # Import AI Worker
 from app.services.ai_arena_worker import start_ai_arena_worker, run_ai_report_pipeline
 from app.services.fx_worker import start_fx_worker
+from app.services.whale_worker import start_whale_worker
+from app.services.subscription_worker import start_subscription_worker
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", "/opt/luxquant/screenshots")
 
@@ -75,6 +85,7 @@ async def lifespan(app: FastAPI):
         start_overview_workers()
         start_notification_worker()
         start_fx_worker()
+        start_whale_worker()
         
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE
@@ -95,6 +106,9 @@ async def lifespan(app: FastAPI):
     else:
         print("🟡 Redis not available — running without cache (DB direct queries)")
         start_notification_worker()
+
+    # Subscription expiry + VIP grace/kick worker (independent of Redis)
+    start_subscription_worker()
 
     # NOTE: AutoTrade engine runs as a separate systemd service
     # (luxquant-autotrade.service), not embedded in this uvicorn process.
@@ -121,9 +135,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Passive activity tracking for the Growth dashboard (Batch 1).
+# Reads Bearer JWT + URL, dedupes via Redis, writes async — never blocks.
+app.add_middleware(ActivityTrackerMiddleware)
+
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
+app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
+app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
 app.include_router(btc_correlation.router, prefix="/api/v1/signals", tags=["btc-correlation"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(market_overview.router, prefix="/api/v1/market", tags=["market-overview"])
@@ -132,12 +152,16 @@ app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
+app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(discord_auth_router, prefix="/api/v1")
+app.include_router(autotrade_auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
 app.include_router(admin_cashout_router, prefix="/api/v1", tags=["admin-cashout"])
+app.include_router(admin_api_keys_router, prefix="/api/v1", tags=["admin-api-keys"])
 app.include_router(subscription_router, prefix="/api/v1", tags=["subscription"])
 app.include_router(calendar_router, prefix="/api/v1", tags=["calendar"])
 app.include_router(whale_router, prefix="/api/v1", tags=["whale"])
+app.include_router(money_flow_router, prefix="/api/v1", tags=["money-flow"])
 app.include_router(orderbook_router, prefix="/api/v1", tags=["orderbook"])
 app.include_router(referral_router, prefix="/api/v1", tags=["referral"])
 app.include_router(ai_arena.router, prefix="/api/v1/ai-arena", tags=["ai-arena"])
@@ -154,6 +178,10 @@ app.include_router(onchain_router, prefix="/api/v1/onchain", tags=["onchain"])
 app.include_router(coins.router, prefix="/api/v1/coins", tags=["coins"])
 app.include_router(fx_router, prefix="/api/v1/fx", tags=["fx"])
 app.include_router(daily_dashboard.router, prefix="/api/v1", tags=["analytics"])
+app.include_router(edge_lab.router, prefix="/api/v1", tags=["analytics"])
+app.include_router(workspace.router, tags=["workspace"])
+app.include_router(finance.router, tags=["finance"])
+app.include_router(growth.router, tags=["growth"])
 
 
 # ═══════════════════════════════════════════
@@ -174,6 +202,14 @@ if os.path.exists(NEWS_IMAGES_DIR):
     print(f"📷 News images directory mounted: {NEWS_IMAGES_DIR}")
 else:
     print(f"⚠️ News images directory not found: {NEWS_IMAGES_DIR}")
+
+# ═══════════════════════════════════════════
+# Serve news videos as static files
+# ═══════════════════════════════════════════
+NEWS_VIDEOS_DIR = os.environ.get("NEWS_VIDEOS_DIR", "/opt/luxquant/news-videos")
+os.makedirs(NEWS_VIDEOS_DIR, exist_ok=True)
+app.mount("/api/v1/news-videos", StaticFiles(directory=NEWS_VIDEOS_DIR), name="news-videos")
+print(f"🎬 News videos directory mounted: {NEWS_VIDEOS_DIR}")
 
 # ═══════════════════════════════════════════
 # Serve onchain images as static files

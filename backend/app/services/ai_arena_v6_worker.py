@@ -665,6 +665,19 @@ async def generate_v6_report(
     total_cost = cost1["cost_usd"] + cost2["cost_usd"] + cost3["cost_usd"]
     elapsed_total = time.monotonic() - pipeline_start
 
+    # -- Liquidity layer (additive, non-blocking) --
+    liquidity_doc = None
+    try:
+        from app.services.coinank_fetch import fetch_coinank_heatmap
+        from app.services.liquidity_engine import parse_liq_heatmap, evaluate_liquidity
+        _coinank_raw = await fetch_coinank_heatmap("BTCUSDT", "12h")
+        _liq_parsed = parse_liq_heatmap(_coinank_raw, btc_price)
+        _liq_layer = evaluate_liquidity(_liq_parsed)
+        liquidity_doc = {"layer": _liq_layer.to_dict(), "magnets": _liq_parsed}
+        _log(f"Liquidity: {_liq_layer.verdict} (strength {_liq_layer.strength:.2f})")
+    except Exception as e:
+        _log(f"Liquidity layer skipped (non-fatal): {e}", level="WARN")
+
     bundle_v6 = ReportBundleV6(
         schema_version=SCHEMA_VERSION,
         report_id=f"v6_{uuid.uuid4().hex[:10]}",
@@ -676,6 +689,7 @@ async def generate_v6_report(
         confluence=confluence_dict,
         cycle_position=cycle_dict,
         bg_snapshot_summary=bg_summary,
+        liquidity=liquidity_doc,
         cost_breakdown={
             "stage1": cost1,
             "stage2": cost2,

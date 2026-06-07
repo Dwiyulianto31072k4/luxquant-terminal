@@ -51,6 +51,8 @@ ENRICHMENT_VERSION = "v3.0"
 REDIS_BTC_TICKER_KEY = "lq:market:btc-ticker"
 REDIS_GLOBAL_KEY = "lq:market:global"
 REDIS_FUNDING_KEY = "lq:market:funding-rates"
+# PATCH-2026-06-06-ENRICHMENT-B: full per-symbol funding (populated by cache_worker)
+REDIS_FUNDING_ALL_KEY = "lq:market:funding-all"
 REDIS_DOM_HISTORY_KEY = "lq:enrichment:dom_history"
 REDIS_FNG_CACHE_KEY = "lq:enrichment:fng_cache"
 
@@ -440,18 +442,23 @@ def get_fear_greed_cached(r: redis.Redis = None) -> dict:
 def get_funding_rate(r: redis.Redis, symbol: str) -> Optional[float]:
     """
     Get latest funding rate for a symbol (e.g. 'BTC', 'ETH').
-    Returns None if symbol not in funding rates list.
+    PATCH-2026-06-06-ENRICHMENT-B: try the full per-symbol key first; fall back
+    to the 4-symbol key for backward-compat / cold-start before cache_worker repopulates.
     """
-    try:
-        raw = r.get(REDIS_FUNDING_KEY)
-        if not raw:
-            return None
-        data = json.loads(raw)
-        for item in data:
-            if item.get("symbol", "").upper() == symbol.upper():
-                return _safe_float(item.get("rate"))
-    except Exception as e:
-        logger.debug(f"Funding rate fetch failed for {symbol}: {e}")
+    sym_u = symbol.upper()
+    for key in (REDIS_FUNDING_ALL_KEY, REDIS_FUNDING_KEY):
+        try:
+            raw = r.get(key)
+            if not raw:
+                continue
+            data = json.loads(raw)
+            for item in data:
+                if item.get("symbol", "").upper() == sym_u:
+                    val = _safe_float(item.get("rate"))
+                    if val is not None:
+                        return val
+        except Exception as e:
+            logger.debug(f"Funding rate fetch failed for {symbol} from {key}: {e}")
     return None
 
 

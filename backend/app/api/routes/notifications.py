@@ -1,8 +1,3 @@
-# backend/app/api/routes/notifications.py
-"""
-LuxQuant Terminal - Notifications API Routes
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -17,7 +12,7 @@ from app.models.user import User
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
-# ============ Schemas ============
+# Schemas
 
 class NotificationItem(BaseModel):
     id: int
@@ -47,17 +42,53 @@ class AdminBroadcast(BaseModel):
     type: str = "admin_broadcast"
 
 
-# ============ Helper ============
+# Helpers
 
 def require_admin(user: User):
     if not user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
 
-# ============ User Endpoints ============
+def _get_read_cutoff(db: Session, user_id: int) -> datetime:
+    row = db.execute(
+        text("SELECT notifications_read_at FROM users WHERE id = :uid"),
+        {"uid": user_id}
+    ).scalar()
+    if row is None:
+        return datetime(1970, 1, 1)
+    return row
+
+
+# SQL constants
+
+SQL_VISIBLE = "(n.user_id = :uid OR n.user_id IS NULL)"
+
+SQL_UNREAD = (
+    "n.created_at > :read_at "
+    "AND NOT ("
+    "  (n.user_id = :uid AND n.is_read = true) "
+    "  OR "
+    "  (n.user_id IS NULL AND EXISTS ("
+    "    SELECT 1 FROM notification_reads nr "
+    "    WHERE nr.notification_id = n.id AND nr.user_id = :uid"
+    "  ))"
+    ")"
+)
+
+SQL_IS_READ = (
+    "CASE "
+    "  WHEN n.created_at <= :read_at THEN true "
+    "  WHEN n.user_id = :uid AND n.is_read = true THEN true "
+    "  WHEN n.user_id IS NULL AND EXISTS ("
+    "    SELECT 1 FROM notification_reads nr "
+    "    WHERE nr.notification_id = n.id AND nr.user_id = :uid"
+    "  ) THEN true "
+    "  ELSE false "
+    "END"
+)
+
+
+# User endpoints
 
 @router.get("/", response_model=NotificationListResponse)
 async def get_notifications(
@@ -68,75 +99,47 @@ async def get_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get notifications for current user (personal + broadcasts)"""
-
-    conditions = ["(n.user_id = :user_id OR n.user_id IS NULL)"]
-    params = {"user_id": current_user.id}
+    read_at = _get_read_cutoff(db, current_user.id)
+    conditions = [SQL_VISIBLE]
+    params = {"uid": current_user.id, "read_at": read_at}
 
     if type_filter:
         conditions.append("n.type = :type_filter")
         params["type_filter"] = type_filter
 
     if unread_only:
-        conditions.append("""
-            NOT (
-                (n.user_id = :user_id AND n.is_read = true)
-                OR
-                (n.user_id IS NULL AND EXISTS (
-                    SELECT 1 FROM notification_reads nr
-                    WHERE nr.notification_id = n.id AND nr.user_id = :user_id
-                ))
-            )
-        """)
+        conditions.append(SQL_UNREAD)
 
     where = " AND ".join(conditions)
 
-    # Count total
-    total = db.execute(text(f"SELECT COUNT(*) FROM notifications n WHERE {where}"), params).scalar() or 0
+    count_sql = "SELECT COUNT(*) FROM notifications n WHERE " + where
+    total = db.execute(text(count_sql), params).scalar() or 0
 
-    # Count unread
-    unread_count = db.execute(text("""
-        SELECT COUNT(*) FROM notifications n
-        WHERE (n.user_id = :uid OR n.user_id IS NULL)
-        AND NOT (
-            (n.user_id = :uid AND n.is_read = true)
-            OR
-            (n.user_id IS NULL AND EXISTS (
-                SELECT 1 FROM notification_reads nr
-                WHERE nr.notification_id = n.id AND nr.user_id = :uid
-            ))
-        )
-    """), {"uid": current_user.id}).scalar() or 0
+    unread_sql = "SELECT COUNT(*) FROM notifications n WHERE " + SQL_VISIBLE + " AND " + SQL_UNREAD
+    unread_count = db.execute(
+        text(unread_sql),
+        {"uid": current_user.id, "read_at": read_at}
+    ).scalar() or 0
 
-    # Fetch paginated
     offset = (page - 1) * page_size
     params["limit"] = page_size
     params["offset"] = offset
 
-    rows = db.execute(text(f"""
-        SELECT n.id, n.type, n.title, n.body, n.data, n.source_type, n.source_id,
-            CASE
-                WHEN n.user_id = :user_id THEN n.is_read
-                WHEN n.user_id IS NULL THEN EXISTS (
-                    SELECT 1 FROM notification_reads nr
-                    WHERE nr.notification_id = n.id AND nr.user_id = :user_id
-                )
-                ELSE false
-            END as is_read,
-            n.created_at
-        FROM notifications n
-        WHERE {where}
-        ORDER BY n.created_at DESC
-        LIMIT :limit OFFSET :offset
-    """), params).fetchall()
+    list_sql = (
+        "SELECT n.id, n.type, n.title, n.body, n.data, n.source_type, n.source_id, "
+        + SQL_IS_READ + " as is_read, n.created_at "
+        "FROM notifications n WHERE " + where + " "
+        "ORDER BY n.created_at DESC LIMIT :limit OFFSET :offset"
+    )
+    rows = db.execute(text(list_sql), params).fetchall()
 
-    items = []
-    for r in rows:
-        items.append(NotificationItem(
+    items = [
+        NotificationItem(
             id=r[0], type=r[1], title=r[2], body=r[3], data=r[4],
             source_type=r[5], source_id=r[6], is_read=bool(r[7]), created_at=r[8],
-        ))
-
+        )
+        for r in rows
+    ]
     return NotificationListResponse(items=items, total=total, unread_count=unread_count)
 
 
@@ -145,21 +148,12 @@ async def get_unread_count(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get unread notification count (for bell badge)"""
-
-    count = db.execute(text("""
-        SELECT COUNT(*) FROM notifications n
-        WHERE (n.user_id = :uid OR n.user_id IS NULL)
-        AND NOT (
-            (n.user_id = :uid AND n.is_read = true)
-            OR
-            (n.user_id IS NULL AND EXISTS (
-                SELECT 1 FROM notification_reads nr
-                WHERE nr.notification_id = n.id AND nr.user_id = :uid
-            ))
-        )
-    """), {"uid": current_user.id}).scalar() or 0
-
+    read_at = _get_read_cutoff(db, current_user.id)
+    sql = "SELECT COUNT(*) FROM notifications n WHERE " + SQL_VISIBLE + " AND " + SQL_UNREAD
+    count = db.execute(
+        text(sql),
+        {"uid": current_user.id, "read_at": read_at}
+    ).scalar() or 0
     return NotificationUnreadCount(unread_count=count)
 
 
@@ -169,23 +163,24 @@ async def mark_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark a single notification as read"""
-
-    notif = db.execute(text("""
-        SELECT id, user_id FROM notifications
-        WHERE id = :id AND (user_id = :user_id OR user_id IS NULL)
-    """), {"id": notification_id, "user_id": current_user.id}).fetchone()
+    notif = db.execute(
+        text("SELECT id, user_id FROM notifications WHERE id = :id AND (user_id = :uid OR user_id IS NULL)"),
+        {"id": notification_id, "uid": current_user.id}
+    ).fetchone()
 
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")
 
     if notif[1] == current_user.id:
-        db.execute(text("UPDATE notifications SET is_read = true WHERE id = :id"), {"id": notification_id})
+        db.execute(
+            text("UPDATE notifications SET is_read = true WHERE id = :id"),
+            {"id": notification_id}
+        )
     else:
-        db.execute(text("""
-            INSERT INTO notification_reads (notification_id, user_id)
-            VALUES (:nid, :uid) ON CONFLICT (notification_id, user_id) DO NOTHING
-        """), {"nid": notification_id, "uid": current_user.id})
+        db.execute(
+            text("INSERT INTO notification_reads (notification_id, user_id) VALUES (:nid, :uid) ON CONFLICT (notification_id, user_id) DO NOTHING"),
+            {"nid": notification_id, "uid": current_user.id}
+        )
 
     db.commit()
     return {"message": "Marked as read", "id": notification_id}
@@ -196,23 +191,14 @@ async def mark_all_as_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mark all notifications as read"""
-
-    db.execute(text("""
-        UPDATE notifications SET is_read = true
-        WHERE user_id = :uid AND is_read = false
-    """), {"uid": current_user.id})
-
-    db.execute(text("""
-        INSERT INTO notification_reads (notification_id, user_id)
-        SELECT n.id, :uid FROM notifications n
-        WHERE n.user_id IS NULL
-        AND NOT EXISTS (
-            SELECT 1 FROM notification_reads nr
-            WHERE nr.notification_id = n.id AND nr.user_id = :uid
-        )
-    """), {"uid": current_user.id})
-
+    db.execute(
+        text("UPDATE users SET notifications_read_at = NOW() WHERE id = :uid"),
+        {"uid": current_user.id}
+    )
+    db.execute(
+        text("UPDATE notifications SET is_read = true WHERE user_id = :uid AND is_read = false"),
+        {"uid": current_user.id}
+    )
     db.commit()
     return {"message": "All notifications marked as read"}
 
@@ -223,11 +209,10 @@ async def delete_notification(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a personal notification"""
-
-    result = db.execute(text("""
-        DELETE FROM notifications WHERE id = :id AND user_id = :uid
-    """), {"id": notification_id, "uid": current_user.id})
+    result = db.execute(
+        text("DELETE FROM notifications WHERE id = :id AND user_id = :uid"),
+        {"id": notification_id, "uid": current_user.id}
+    )
     db.commit()
 
     if result.rowcount == 0:
@@ -235,8 +220,6 @@ async def delete_notification(
 
     return {"message": "Notification deleted", "id": notification_id}
 
-
-# ============ Channel Messages Endpoint ============
 
 @router.get("/channel-messages")
 async def get_channel_messages(
@@ -246,8 +229,6 @@ async def get_channel_messages(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get channel messages (price_pump, daily_results, etc.)"""
-
     conditions = ["1=1"]
     params = {}
 
@@ -257,35 +238,39 @@ async def get_channel_messages(
 
     where = " AND ".join(conditions)
 
-    total = db.execute(text(f"SELECT COUNT(*) FROM channel_messages WHERE {where}"), params).scalar() or 0
+    count_sql = "SELECT COUNT(*) FROM channel_messages WHERE " + where
+    total = db.execute(text(count_sql), params).scalar() or 0
 
     offset = (page - 1) * page_size
     params["limit"] = page_size
     params["offset"] = offset
 
-    rows = db.execute(text(f"""
-        SELECT id, message_type, pair, percentage, direction, summary_data,
-               raw_text, message_date, created_at
-        FROM channel_messages
-        WHERE {where}
-        ORDER BY message_date DESC
-        LIMIT :limit OFFSET :offset
-    """), params).fetchall()
+    list_sql = (
+        "SELECT id, message_type, pair, percentage, direction, summary_data, "
+        "raw_text, message_date, created_at "
+        "FROM channel_messages WHERE " + where + " "
+        "ORDER BY message_date DESC LIMIT :limit OFFSET :offset"
+    )
+    rows = db.execute(text(list_sql), params).fetchall()
 
-    items = []
-    for r in rows:
-        items.append({
-            "id": r[0], "message_type": r[1], "pair": r[2],
-            "percentage": r[3], "direction": r[4], "summary_data": r[5],
+    items = [
+        {
+            "id": r[0],
+            "message_type": r[1],
+            "pair": r[2],
+            "percentage": r[3],
+            "direction": r[4],
+            "summary_data": r[5],
             "raw_text": r[6],
             "message_date": r[7].isoformat() if r[7] else None,
             "created_at": r[8].isoformat() if r[8] else None,
-        })
-
+        }
+        for r in rows
+    ]
     return {"items": items, "total": total}
 
 
-# ============ Admin Endpoints ============
+# Admin endpoints
 
 @router.post("/broadcast")
 async def send_broadcast(
@@ -293,15 +278,12 @@ async def send_broadcast(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Send broadcast notification to all users (admin only)"""
     require_admin(current_user)
-
-    db.execute(text("""
-        INSERT INTO notifications (user_id, type, title, body, source_type)
-        VALUES (NULL, :type, :title, :body, 'system')
-    """), {"type": data.type, "title": data.title, "body": data.body})
+    db.execute(
+        text("INSERT INTO notifications (user_id, type, title, body, source_type) VALUES (NULL, :type, :title, :body, 'system')"),
+        {"type": data.type, "title": data.title, "body": data.body}
+    )
     db.commit()
-
     return {"message": "Broadcast sent", "title": data.title}
 
 
@@ -312,29 +294,32 @@ async def admin_get_recent_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all recent notifications (admin only)"""
     require_admin(current_user)
 
     offset = (page - 1) * page_size
 
-    rows = db.execute(text("""
-        SELECT n.id, n.user_id, n.type, n.title, n.body, n.data, n.created_at,
-               u.username
-        FROM notifications n
-        LEFT JOIN users u ON n.user_id = u.id
-        ORDER BY n.created_at DESC
-        LIMIT :limit OFFSET :offset
-    """), {"limit": page_size, "offset": offset}).fetchall()
+    rows = db.execute(
+        text(
+            "SELECT n.id, n.user_id, n.type, n.title, n.body, n.data, n.created_at, u.username "
+            "FROM notifications n LEFT JOIN users u ON n.user_id = u.id "
+            "ORDER BY n.created_at DESC LIMIT :limit OFFSET :offset"
+        ),
+        {"limit": page_size, "offset": offset}
+    ).fetchall()
 
     total = db.execute(text("SELECT COUNT(*) FROM notifications")).scalar() or 0
 
-    items = []
-    for r in rows:
-        items.append({
-            "id": r[0], "user_id": r[1], "type": r[2], "title": r[3],
-            "body": r[4], "data": r[5],
+    items = [
+        {
+            "id": r[0],
+            "user_id": r[1],
+            "type": r[2],
+            "title": r[3],
+            "body": r[4],
+            "data": r[5],
             "created_at": r[6].isoformat() if r[6] else None,
             "username": r[7] or "Broadcast",
-        })
-
+        }
+        for r in rows
+    ]
     return {"items": items, "total": total}

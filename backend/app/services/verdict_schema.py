@@ -331,6 +331,8 @@ class ReportBundleV6(BaseModel):
     confluence: dict  # ConfluenceResult.to_dict()
     cycle_position: dict  # CyclePositionResult.to_dict()
     bg_snapshot_summary: dict  # {endpoint: {value, ok}}
+    # Liquidity layer (liquidation heatmap -> magnets). Additive, optional.
+    liquidity: Optional[dict] = None
 
     # Cost tracking
     cost_breakdown: dict  # {stage1: usd, stage2: usd, stage3: usd, total: usd}

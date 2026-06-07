@@ -45,6 +45,11 @@ class ReferralCode(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Share tracking (Layer 5/6) — populated by POST /referral/track-share
+    share_count = Column(Integer, nullable=False, server_default="0")
+    qr_count = Column(Integer, nullable=False, server_default="0")
+    last_shared_at = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     owner = relationship("User", foreign_keys=[user_id], lazy="joined")
     uses = relationship("ReferralUse", back_populates="referral_code", lazy="dynamic")

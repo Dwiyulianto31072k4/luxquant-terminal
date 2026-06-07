@@ -1,17 +1,27 @@
 // src/components/CryptoNewsPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Crypto News v4 (Bloomberg × Linear redesign)
-// Magazine-grade aggregator with masonry, auto-categorization,
-// branded placeholders, ticker pulse, density toggle, keyboard nav.
+// LuxQuant Terminal — Crypto News v5 (Flowscan-density redesign)
+// Uniform 1:1 dense grid · brand favicons · info-dense
+// Replaces hero/featured/headline-card variants with single UniformCard.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 const API_BASE = "/api/v1";
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 30;
+
+// Brand assets (in /public — referenced by absolute path)
+const LUXQUANT_LOGO = "/logo.png";
+const TRADINGVIEW_IMAGE = "/news-flow-tradingview.jpg";
+
+// Domains that should display their own promo/marketing image as full-bleed thumbnail
+// (instead of the standard favicon-in-glass-card pattern)
+const FULL_BLEED_BRAND_IMAGES = {
+  "tradingview.com": TRADINGVIEW_IMAGE,
+};
 
 // ════════════════════════════════════════════
-// 1. HELPERS — time, domain colors, categorization
+// 1. HELPERS — time, domain colors, categorization, favicon
 // ════════════════════════════════════════════
 
 const timeAgo = (dateStr) => {
@@ -45,33 +55,10 @@ const DOMAIN_COLORS = {
   "bitget.com": "#00f0ff",
 };
 
-const DOMAIN_ABBREV = {
-  "tradingview.com": "TV",
-  "cointelegraph.com": "CT",
-  "coindesk.com": "CD",
-  "decrypt.co": "DE",
-  "bitcoinworld.co.in": "BW",
-  "bitcoinmagazine.com": "BM",
-  "theblock.co": "TB",
-  "cryptoslate.com": "CS",
-  "newsbtc.com": "NB",
-  "beincrypto.com": "BI",
-  "cryptobriefing.com": "CB",
-  "coinpedia.org": "CP",
-  "u.today": "UT",
-  "bitget.com": "BG",
-};
-
 const getDomainColor = (domain) => {
   if (!domain) return "#d4a24e";
   const key = Object.keys(DOMAIN_COLORS).find((d) => domain.includes(d));
   return key ? DOMAIN_COLORS[key] : "#d4a24e";
-};
-
-const getDomainAbbrev = (domain) => {
-  if (!domain) return "?";
-  const key = Object.keys(DOMAIN_ABBREV).find((d) => domain.includes(d));
-  return key ? DOMAIN_ABBREV[key] : domain.slice(0, 2).toUpperCase();
 };
 
 const shortDomain = (domain) => {
@@ -83,9 +70,21 @@ const shortDomain = (domain) => {
     .replace(".org", "");
 };
 
+// Build favicon URL via Google's favicon service (cached, fast, reliable)
+const getFaviconUrl = (domain, size = 128) => {
+  if (!domain) return null;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+};
+
 const getImageSrc = (item) => {
   const url = item?.image_url;
   if (!url || url === "webpage_photo" || (typeof url === "string" && url.trim() === "")) return null;
+  return url;
+};
+
+const getVideoSrc = (item) => {
+  const url = item?.video_url;
+  if (!url || (typeof url === "string" && url.trim() === "")) return null;
   return url;
 };
 
@@ -110,7 +109,7 @@ const categorizeItem = (item) => {
 };
 
 // ════════════════════════════════════════════
-// 2. ATOMS — DomainBadge, CategoryChip, ImagePlaceholder
+// 2. ATOMS — DomainBadge, BrandThumbnail
 // ════════════════════════════════════════════
 
 const DomainBadge = ({ domain, size = "sm" }) => {
@@ -129,102 +128,160 @@ const DomainBadge = ({ domain, size = "sm" }) => {
   );
 };
 
-const CategoryChip = ({ catKey, active, onClick, count }) => {
-  const cat = CATEGORY_RULES.find((c) => c.key === catKey);
-  if (!cat) return null;
-  return (
-    <button
-      onClick={onClick}
-      className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all duration-200 ${
-        active
-          ? "border"
-          : "bg-white/[0.02] border border-white/5 text-text-muted hover:bg-white/[0.04] hover:text-white"
-      }`}
-      style={
-        active
-          ? {
-              background: `${cat.color}15`,
-              borderColor: `${cat.color}40`,
-              color: cat.color,
-              boxShadow: `inset 0 0 0 1px ${cat.color}10`,
-            }
-          : undefined
-      }
-    >
-      <span className="text-sm leading-none" style={{ color: active ? cat.color : "currentColor" }}>
-        {cat.icon}
-      </span>
-      <span>{cat.label}</span>
-      {count !== undefined && count > 0 && (
-        <span
-          className="text-[9px] px-1 rounded font-mono"
-          style={{ background: active ? `${cat.color}25` : "rgba(255,255,255,0.05)" }}
-        >
-          {count}
-        </span>
-      )}
-    </button>
+// Note: Old CategoryChip removed — superseded by FilterChip in section 9
+
+// BrandThumbnail — three modes:
+//   1. FULL-BLEED BRAND IMAGE — for domains in FULL_BLEED_BRAND_IMAGES (e.g. TradingView).
+//      Renders the brand image as a cover-fitted thumbnail, no wrapper card.
+//   2. LUXQUANT LOGO — for headline content (no real image, no recognizable domain favicon).
+//      Renders the LuxQuant 量子智引 logo centered on luxury gold gradient.
+//   3. FAVICON GLASS CARD — fallback for all other domains. Fetches favicon from Google,
+//      displays in a glass-effect card with domain name underneath.
+const BrandThumbnail = ({ domain, isHeadline = false }) => {
+  const color = getDomainColor(domain);
+
+  // MODE 1: Full-bleed brand promo image (e.g. TradingView)
+  const fullBleedImageKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) =>
+    domain?.includes(d)
   );
+  if (fullBleedImageKey) {
+    const imgUrl = FULL_BLEED_BRAND_IMAGES[fullBleedImageKey];
+    return (
+      <div className="w-full h-full overflow-hidden bg-black">
+        <img
+          src={imgUrl}
+          alt={domain}
+          className="w-full h-full object-cover"
+          style={{ objectPosition: "10% center" }}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // MODE 2: LuxQuant logo for headlines / aggregated news
+  if (isHeadline) {
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 40%, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.04) 55%, rgba(0,0,0,0.4) 100%)",
+        }}
+      >
+        {/* Subtle grid texture */}
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(212,168,83,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(212,168,83,0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: "18px 18px",
+          }}
+        />
+        {/* Gold corner accent */}
+        <div
+          className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(135deg, transparent 50%, rgba(212,168,83,0.22) 50%)",
+          }}
+        />
+        {/* LuxQuant logo */}
+        <div className="relative z-10 flex flex-col items-center gap-2">
+          <img
+            src={LUXQUANT_LOGO}
+            alt="LuxQuant"
+            className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+            style={{
+              filter: "drop-shadow(0 4px 20px rgba(212,168,83,0.35))",
+            }}
+          />
+          <span
+            className="text-[9px] font-mono uppercase tracking-[0.25em]"
+            style={{ color: "rgba(212,168,83,0.85)" }}
+          >
+            LuxQuant News
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // MODE 3: Standard favicon-in-glass-card fallback
+  const faviconUrl = getFaviconUrl(domain, 128);
+  return <FaviconGlassCard domain={domain} faviconUrl={faviconUrl} color={color} />;
 };
 
-const ImagePlaceholder = ({ domain, className = "", size = "md" }) => {
-  const color = getDomainColor(domain);
-  const abbrev = getDomainAbbrev(domain);
-  const fontSize = size === "lg" ? "clamp(3rem, 7vw, 5rem)" : size === "sm" ? "clamp(1.5rem, 4vw, 2.5rem)" : "clamp(2.5rem, 6vw, 4rem)";
+// Helper sub-component for MODE 3 (extracted to keep useState scoped correctly)
+const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
+  const [faviconFailed, setFaviconFailed] = useState(false);
+
   return (
     <div
-      className={`w-full h-full flex items-center justify-center select-none relative overflow-hidden ${className}`}
+      className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
       style={{
-        background: `radial-gradient(circle at 30% 20%, ${color}30 0%, ${color}08 45%, ${color}18 100%)`,
+        background: `radial-gradient(circle at 35% 25%, ${color}28 0%, ${color}06 55%, ${color}14 100%)`,
       }}
     >
-      {/* Subtle grid overlay for texture */}
+      {/* Subtle grid texture */}
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-25"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
           `,
-          backgroundSize: "20px 20px",
+          backgroundSize: "18px 18px",
         }}
       />
-      {/* Noise overlay */}
+      {/* Corner accent */}
       <div
-        className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+        className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='100' height='100' filter='url(%23n)'/></svg>")`,
+          background: `linear-gradient(135deg, transparent 50%, ${color}25 50%)`,
         }}
       />
-      {/* Brand mark */}
-      <div className="relative flex flex-col items-center gap-1.5 z-10">
+      <div className="relative z-10 flex flex-col items-center gap-1.5">
+        {faviconUrl && !faviconFailed ? (
+          <div
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(8px)",
+              border: `1px solid ${color}40`,
+              boxShadow: `0 4px 20px ${color}30`,
+            }}
+          >
+            <img
+              src={faviconUrl}
+              alt={domain}
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain"
+              onError={() => setFaviconFailed(true)}
+            />
+          </div>
+        ) : (
+          <div
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-bold text-xl"
+            style={{
+              background: `${color}25`,
+              color,
+              border: `1px solid ${color}50`,
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.05em",
+            }}
+          >
+            {shortDomain(domain).slice(0, 2).toUpperCase()}
+          </div>
+        )}
         <span
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize,
-            fontWeight: 700,
-            color: `${color}d6`,
-            letterSpacing: "-0.05em",
-            lineHeight: 1,
-            textShadow: `0 4px 24px ${color}60`,
-          }}
-        >
-          {abbrev}
-        </span>
-        <span
-          className="text-[9px] font-mono uppercase tracking-[0.25em]"
-          style={{ color: `${color}80` }}
+          className="text-[9px] font-mono uppercase tracking-[0.2em] mt-1"
+          style={{ color: `${color}cc` }}
         >
           {shortDomain(domain)}
         </span>
       </div>
-      {/* Corner accent */}
-      <div
-        className="absolute top-0 right-0 w-16 h-16"
-        style={{
-          background: `linear-gradient(135deg, transparent 50%, ${color}20 50%)`,
-        }}
-      />
     </div>
   );
 };
@@ -266,6 +323,7 @@ const NewsModal = ({ item, onClose }) => {
   if (!item) return null;
 
   const imgSrc = extract?.top_image || getImageSrc(item);
+  const videoSrc = getVideoSrc(extract) || getVideoSrc(item);
   const summary = extract?.summary || item.description || null;
   const fullText = extract?.full_text || item.raw_text || null;
   const keywords = extract?.keywords || [];
@@ -275,7 +333,7 @@ const NewsModal = ({ item, onClose }) => {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-[9999] flex items-start sm:items-center justify-center px-4 pt-20 pb-6 sm:py-8 ${
         closing ? "news-modal-out" : "news-modal-in"
       }`}
       onClick={handleClose}
@@ -296,10 +354,11 @@ const NewsModal = ({ item, onClose }) => {
       `}</style>
 
       <div
-        className="nm-card relative w-full max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
+        className="nm-card relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
         style={{
           background: "linear-gradient(180deg, rgba(20,16,28,0.98), rgba(12,10,16,0.98))",
           border: "1px solid rgba(255,255,255,0.08)",
+          maxHeight: "calc(100vh - 7rem)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -333,21 +392,34 @@ const NewsModal = ({ item, onClose }) => {
 
         {/* Scrollable content */}
         <div className="nm-scroll overflow-y-auto flex-1">
-          {/* Image / Placeholder */}
-          <div className="relative w-full h-56 sm:h-72 overflow-hidden bg-black/40">
-            {imgSrc ? (
+          {/* Image / Placeholder — object-contain so the full image is visible (no crop) */}
+          <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
+            {videoSrc ? (
+              <video
+                src={videoSrc}
+                poster={imgSrc || undefined}
+                controls
+                autoPlay
+                muted
+                playsInline
+                preload="metadata"
+                ref={(el) => { if (el) el.muted = true; }}
+                className="w-auto h-auto max-w-full max-h-[45vh] object-contain bg-black"
+              />
+            ) : imgSrc ? (
               <img
                 src={imgSrc}
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-auto h-auto max-w-full max-h-[45vh] object-contain"
                 onError={(e) => {
                   e.target.style.display = "none";
                 }}
               />
             ) : (
-              <ImagePlaceholder domain={item.domain} size="lg" />
+              <div className="w-full" style={{ aspectRatio: "16 / 9" }}>
+                <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
+              </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0c0a10] to-transparent" />
           </div>
 
           {/* Body */}
@@ -410,8 +482,8 @@ const NewsModal = ({ item, onClose }) => {
         </div>
 
         {/* Footer CTA */}
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-white/5 flex-shrink-0">
-          {item.url ? (
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-white/5 flex-shrink-0">
+          {item.url && (
             <a
               href={item.url}
               target="_blank"
@@ -424,10 +496,6 @@ const NewsModal = ({ item, onClose }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
-          ) : (
-            <div className="flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl text-sm text-text-muted bg-white/[0.03]">
-              No external link
-            </div>
           )}
           <button
             onClick={handleClose}
@@ -498,234 +566,103 @@ const PulseTicker = ({ items, onSelect }) => {
 };
 
 // ════════════════════════════════════════════
-// 5. NEWS CARDS — variants by importance & content
+// 5. UNIFORM CARD — single card type for all items
 // ════════════════════════════════════════════
+//
+// Layout (square 1:1):
+//   ┌──────────────────────┐
+//   │  [thumbnail or       │  ← image area (object-cover)
+//   │   brand fallback]    │
+//   │  [domain badge TL]   │
+//   │  [photo badge TR]    │
+//   ├──────────────────────┤
+//   │  Title (2-line clamp)│  ← compact footer
+//   │  domain · time       │
+//   └──────────────────────┘
+//
+// All items use this — articles, photos, headlines — visually unified.
 
-// HERO CARD — Top of page, big & dramatic
-const HeroCard = ({ item, onSelect }) => {
-  const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
-  return (
-    <div
-      onClick={() => onSelect(item)}
-      className="group relative cursor-pointer rounded-2xl overflow-hidden border border-white/5 hover:border-gold-primary/30 transition-all duration-500 flex flex-col"
-      style={{
-        background: "linear-gradient(180deg, rgba(20,16,28,0.6), rgba(12,10,16,0.4))",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-      }}
-    >
-      {/* Image area — cinematic aspect, no crop on portrait images */}
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <ImagePlaceholder domain={item.domain} size="lg" />
-        )}
-        {/* Top gradient for badge legibility only */}
-        <div
-          className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)",
-          }}
-        />
-        {/* Top corner badges */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <DomainBadge domain={item.domain} size="lg" />
-          <span
-            className="text-[9px] font-mono uppercase tracking-[0.25em] px-2 py-0.5 rounded"
-            style={{
-              background: "rgba(212, 168, 83, 0.15)",
-              color: "#d4a853",
-              border: "1px solid rgba(212, 168, 83, 0.3)",
-            }}
-          >
-            ★ Featured
-          </span>
-        </div>
-        {/* Bottom content — stronger backdrop for legibility */}
-        <div
-          className="absolute inset-x-0 bottom-0 p-6 z-10"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.92) 100%)",
-          }}
-        >
-          <h2
-            className="text-white text-xl sm:text-2xl lg:text-3xl leading-tight line-clamp-3 mb-3 group-hover:text-gold-primary transition-colors duration-300"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
-          >
-            {item.title}
-          </h2>
-          {item.description && (
-            <p className="text-white/70 text-[13px] leading-relaxed line-clamp-2 mb-3">
-              {item.description}
-            </p>
-          )}
-          <div className="flex items-center gap-2 text-[11px] font-mono">
-            <span className="text-text-muted">{timeAgo(item.created_at)}</span>
-            <span className="text-text-muted/50">·</span>
-            <span style={{ color }} className="group-hover:underline underline-offset-2">
-              Read story →
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// FEATURED CARD — second tier, medium prominence
-const FeaturedCard = ({ item, onSelect }) => {
-  const imgSrc = getImageSrc(item);
-  const color = getDomainColor(item.domain);
-  return (
-    <div
-      onClick={() => onSelect(item)}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.03] transition-all duration-300 flex flex-col h-full"
-    >
-      <div className="relative w-full overflow-hidden flex-shrink-0" style={{ aspectRatio: "16 / 10" }}>
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <ImagePlaceholder domain={item.domain} size="md" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        <div className="absolute top-2 left-2">
-          <DomainBadge domain={item.domain} />
-        </div>
-      </div>
-      <div className="p-3 flex flex-col flex-1">
-        <h3
-          className="text-white text-[13px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-        >
-          {item.title}
-        </h3>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
-          <span
-            className="text-[10px] font-mono group-hover:translate-x-0.5 transition-transform"
-            style={{ color }}
-          >
-            →
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// REGULAR CARD — standard grid item
-const RegularCard = ({ item, onSelect, dense = false }) => {
+const UniformCard = ({ item, onSelect, variant = "default" }) => {
   const imgSrc = getImageSrc(item);
   const color = getDomainColor(item.domain);
   const isPhoto = item.content_type === "photo";
+  const isHeadline = variant === "headline" || item.content_type === "headline";
+  const hasVideo = !!getVideoSrc(item);
 
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/25 hover:bg-white/[0.035] transition-all duration-300 flex flex-col h-full"
+      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
+      style={{
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      }}
     >
-      <div
-        className="relative w-full overflow-hidden flex-shrink-0"
-        style={{ aspectRatio: dense ? "4 / 3" : "4 / 3" }}
-      >
+      {/* Image / thumbnail area — square aspect */}
+      <div className="relative w-full aspect-square overflow-hidden flex-shrink-0">
         {imgSrc ? (
           <img
             src={imgSrc}
             alt=""
-            className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
+            loading="lazy"
+            className="w-full h-full object-cover"
             onError={(e) => {
               e.target.style.display = "none";
             }}
           />
         ) : (
-          <ImagePlaceholder domain={item.domain} size="md" />
+          <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        <div className="absolute top-2 left-2">
-          <DomainBadge domain={item.domain} />
-        </div>
-        {isPhoto && (
-          <div className="absolute top-2 right-2">
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider bg-purple-500/30 text-purple-300 border border-purple-500/40">
-              photo
+
+        {/* Subtle bottom gradient for badge legibility when image present */}
+        {imgSrc && (
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        )}
+
+        {/* Play badge for video items */}
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
+              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </span>
           </div>
         )}
+
+        {/* NEWS badge — top-right, only for headlines (kept as content type indicator) */}
+        {isHeadline && !isPhoto && (
+          <div className="absolute top-2 right-2 z-10">
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-[0.15em] backdrop-blur-sm bg-gold-primary/25 text-gold-primary border border-gold-primary/50">
+              news
+            </span>
+          </div>
+        )}
+
+        {/* Hover overlay tint */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{
+            background: `linear-gradient(180deg, ${color}00 60%, ${color}15 100%)`,
+          }}
+        />
       </div>
-      <div className={`flex flex-col flex-1 ${dense ? "p-2.5" : "p-3"}`}>
+
+      {/* Footer — title + meta */}
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
         <h4
-          className={`text-white leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors flex-1 ${
-            dense ? "text-[11px]" : "text-[12.5px]"
-          }`}
+          className="text-white text-[11.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+          title={item.title}
         >
           {item.title}
         </h4>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
-          <span
-            className="text-[10px] font-mono opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
-            style={{ color }}
-          >
-            Details →
+        <div className="flex items-center justify-between mt-auto pt-1 border-t border-white/5">
+          <span className="text-text-muted text-[9px] font-mono uppercase tracking-wider truncate">
+            {shortDomain(item.domain)}
           </span>
-        </div>
-      </div>
-    </article>
-  );
-};
-
-// HEADLINE CARD — text-only, gold accent, no image
-const HeadlineCard = ({ item, onSelect }) => {
-  const color = getDomainColor(item.domain);
-  return (
-    <article
-      onClick={() => onSelect(item)}
-      className="group cursor-pointer p-4 rounded-xl bg-white/[0.015] border border-white/5 hover:bg-white/[0.03] transition-all duration-300 relative overflow-hidden"
-      style={{ borderLeft: `2px solid ${color}80` }}
-    >
-      {/* Glow on hover */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, ${color}10 0%, transparent 60%)` }}
-      />
-      <div className="relative flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-2">
-            <span
-              className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-[0.15em]"
-              style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}
-            >
-              ⚡ Headline
-            </span>
-            <DomainBadge domain={item.domain} />
-          </div>
-          <h4
-            className="text-white text-[12.5px] leading-snug line-clamp-3 group-hover:text-gold-primary transition-colors"
-            style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-          >
-            {item.title}
-          </h4>
-          <div className="mt-2 text-[10px] font-mono text-text-muted">
+          <span className="text-text-muted/70 text-[9px] font-mono flex-shrink-0 ml-1">
             {timeAgo(item.created_at)}
-          </div>
+          </span>
         </div>
       </div>
     </article>
@@ -944,28 +881,21 @@ const Pagination = ({ page, totalPages, onChange }) => {
 };
 
 // ════════════════════════════════════════════
-// 8. LOADING SKELETON
+// 8. LOADING SKELETON — uniform grid
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
   <div className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <div className="md:col-span-2 h-72 rounded-2xl bg-white/[0.02] border border-white/5 animate-pulse" />
-      <div className="space-y-3">
-        <div className="h-[140px] rounded-xl bg-white/[0.02] border border-white/5 animate-pulse" />
-        <div className="h-[140px] rounded-xl bg-white/[0.02] border border-white/5 animate-pulse" />
-      </div>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-      {[...Array(6)].map((_, i) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+      {[...Array(15)].map((_, i) => (
         <div
           key={i}
           className="rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse"
         >
-          <div className="h-36 bg-white/5" />
-          <div className="p-3 space-y-2">
-            <div className="h-3 bg-white/5 rounded w-3/4" />
-            <div className="h-3 bg-white/5 rounded w-1/2" />
+          <div className="aspect-square bg-white/5" />
+          <div className="p-2.5 space-y-1.5">
+            <div className="h-2.5 bg-white/5 rounded w-3/4" />
+            <div className="h-2 bg-white/5 rounded w-1/2" />
           </div>
         </div>
       ))}
@@ -974,8 +904,69 @@ const LoadingSkeleton = () => (
 );
 
 // ════════════════════════════════════════════
-// 9. FILTER BAR
+// 9. FILTER BAR — search + type + category (redesigned)
 // ════════════════════════════════════════════
+//
+// Design principles:
+// - Single visual container (1 card unifies all filter controls)
+// - Consistent chip sizing (h-7, all chips identical height)
+// - No inline form-style labels — segments separated by subtle divider
+// - Search dominant at top; filter chips below with visual rhythm
+// - Active state: gold accent (consistent with brand)
+// - Hover state: subtle bg lift, no border flash
+
+const FilterChip = ({ active, onClick, children, color }) => {
+  // Unified chip — same dimensions for type & category filters
+  // `color` optional: overrides active state color (used by category chips for per-category color)
+  const baseClass =
+    "inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-200 whitespace-nowrap";
+  if (active && color) {
+    return (
+      <button
+        onClick={onClick}
+        className={baseClass}
+        style={{
+          background: `${color}18`,
+          color,
+          border: `1px solid ${color}40`,
+          boxShadow: `inset 0 0 0 1px ${color}08`,
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      className={`${baseClass} ${
+        active
+          ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
+          : "bg-white/[0.02] text-text-muted border border-white/5 hover:bg-white/[0.04] hover:text-white hover:border-white/10"
+      }`}
+    >
+      {children}
+    </button>
+  );
+};
+
+const ChipCount = ({ value, active, color }) => {
+  if (value === undefined || value === null) return null;
+  return (
+    <span
+      className="text-[9px] font-mono tabular-nums px-1.5 py-px rounded ml-0.5 opacity-80"
+      style={{
+        background: active
+          ? color
+            ? `${color}25`
+            : "rgba(212, 168, 83, 0.2)"
+          : "rgba(255,255,255,0.05)",
+      }}
+    >
+      {value}
+    </span>
+  );
+};
 
 const FilterBar = ({
   searchInput,
@@ -987,132 +978,118 @@ const FilterBar = ({
   onCategoryChange,
   categoryCounts,
   stats,
-  density,
-  onDensityChange,
-}) => (
-  <div className="space-y-3">
-    {/* Top row — search + density toggle */}
-    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-      <div className="relative flex-1 max-w-xl">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+}) => {
+  const typeOptions = [
+    { k: "all", label: "All", count: stats?.total },
+    { k: "article", label: "Articles", count: stats?.articles },
+    { k: "photo", label: "Photos", count: stats?.photos },
+    { k: "headline", label: "Headlines", count: stats?.headlines },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl border border-white/[0.06] overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
+      }}
+    >
+      {/* SEARCH ROW */}
+      <div className="p-3 sm:p-4 border-b border-white/[0.04]">
+        <div className="relative">
+          <svg
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/70"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search news, topics, sources…"
+            className="w-full pl-11 pr-10 py-2.5 rounded-lg bg-black/20 border border-white/[0.06] text-white text-[13px] placeholder:text-text-muted/40 focus:outline-none focus:border-gold-primary/30 focus:bg-black/30 transition-all"
           />
-        </svg>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search news, topics, sources…"
-          className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white/[0.02] border border-white/10 text-white text-sm placeholder:text-text-muted/50 focus:outline-none focus:border-gold-primary/40 focus:ring-1 focus:ring-gold-primary/20 transition-all"
-        />
-        {searchInput && (
-          <button
-            onClick={onClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Density toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-lg bg-white/[0.02] border border-white/5">
-        {[
-          { k: "comfortable", label: "Comfy" },
-          { k: "compact", label: "Dense" },
-        ].map((o) => (
-          <button
-            key={o.k}
-            onClick={() => onDensityChange(o.k)}
-            className={`px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
-              density === o.k
-                ? "bg-gold-primary/15 text-gold-primary"
-                : "text-text-muted hover:text-white"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    {/* Type filters */}
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-text-muted/60 mr-1">
-        Type
-      </span>
-      {[
-        { k: "all", label: "All", count: stats?.total },
-        { k: "article", label: "Articles", count: stats?.articles },
-        { k: "photo", label: "Photos", count: stats?.photos },
-        { k: "headline", label: "Headlines", count: stats?.headlines },
-      ].map((f) => (
-        <button
-          key={f.k}
-          onClick={() => onFilterChange(f.k)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-mono transition-all duration-200 ${
-            activeFilter === f.k
-              ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-              : "bg-white/[0.02] text-text-muted border border-white/5 hover:text-white hover:border-white/15"
-          }`}
-        >
-          {f.label}
-          {f.count !== undefined && (
-            <span
-              className={`text-[9px] px-1 rounded font-mono ${
-                activeFilter === f.k ? "bg-gold-primary/20" : "bg-white/5"
-              }`}
+          {searchInput && (
+            <button
+              onClick={onClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted/60 hover:text-white hover:bg-white/5 transition-all"
+              title="Clear search"
             >
-              {f.count}
-            </span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           )}
-        </button>
-      ))}
-    </div>
+        </div>
+      </div>
 
-    {/* Category filters */}
-    <div className="flex flex-wrap gap-2 items-center">
-      <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-text-muted/60 mr-1">
-        Category
-      </span>
-      <button
-        onClick={() => onCategoryChange(null)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-mono uppercase tracking-wider transition-all ${
-          !activeCategory
-            ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-            : "bg-white/[0.02] border border-white/5 text-text-muted hover:text-white"
-        }`}
-      >
-        ◆ All
-      </button>
-      {CATEGORY_RULES.map((cat) => (
-        <CategoryChip
-          key={cat.key}
-          catKey={cat.key}
-          active={activeCategory === cat.key}
-          onClick={() => onCategoryChange(activeCategory === cat.key ? null : cat.key)}
-          count={categoryCounts[cat.key]}
+      {/* FILTERS ROW — type chips + divider + category chips, all same height */}
+      <div className="px-3 sm:px-4 py-3 flex flex-wrap items-center gap-1.5">
+        {/* Type chips */}
+        {typeOptions.map((f) => {
+          const isActive = activeFilter === f.k;
+          return (
+            <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)}>
+              {f.label}
+              <ChipCount value={f.count} active={isActive} />
+            </FilterChip>
+          );
+        })}
+
+        {/* Subtle vertical divider between type & category */}
+        <span
+          className="h-5 w-px mx-1.5 bg-white/[0.08]"
+          aria-hidden="true"
         />
-      ))}
+
+        {/* Category: All */}
+        <FilterChip
+          active={!activeCategory}
+          onClick={() => onCategoryChange(null)}
+        >
+          <span className="opacity-60">◆</span>
+          <span>All</span>
+        </FilterChip>
+
+        {/* Per-category chips */}
+        {CATEGORY_RULES.map((cat) => {
+          const isActive = activeCategory === cat.key;
+          const count = categoryCounts[cat.key];
+          return (
+            <FilterChip
+              key={cat.key}
+              active={isActive}
+              color={isActive ? cat.color : undefined}
+              onClick={() => onCategoryChange(isActive ? null : cat.key)}
+            >
+              <span
+                className="leading-none text-[13px]"
+                style={{ color: isActive ? cat.color : undefined, opacity: isActive ? 1 : 0.7 }}
+              >
+                {cat.icon}
+              </span>
+              <span>{cat.label}</span>
+              <ChipCount value={count} active={isActive} color={isActive ? cat.color : undefined} />
+            </FilterChip>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ════════════════════════════════════════════
 // 10. MAIN COMPONENT
@@ -1132,22 +1109,8 @@ const CryptoNewsPage = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [density, setDensity] = useState(() => {
-    try {
-      return localStorage.getItem("luxquant.news.density") || "comfortable";
-    } catch {
-      return "comfortable";
-    }
-  });
 
   const searchTimeout = useRef(null);
-
-  // ── Persist density ────────────────────
-  useEffect(() => {
-    try {
-      localStorage.setItem("luxquant.news.density", density);
-    } catch {}
-  }, [density]);
 
   // ── Fetch ──────────────────────────────
   const fetchFeed = useCallback(
@@ -1250,46 +1213,23 @@ const CryptoNewsPage = () => {
     return itemsWithCategory.filter((item) => item._category === activeCategory);
   }, [itemsWithCategory, activeCategory]);
 
-  // Hero: first article with image + description
-  const heroItem = useMemo(() => {
-    if (page !== 1 || activeFilter !== "all" || searchQuery) return null;
-    return filteredItems.find(
-      (i) =>
-        i.content_type === "article" &&
-        i.description &&
-        getImageSrc(i)
-    );
-  }, [filteredItems, page, activeFilter, searchQuery]);
-
-  // 2 featured: next 2 articles for top-right stack
-  const featuredItems = useMemo(() => {
-    if (!heroItem) return [];
-    return filteredItems
-      .filter((i) => i.id !== heroItem.id && i.content_type === "article")
-      .slice(0, 2);
-  }, [filteredItems, heroItem]);
-
-  // Pulse ticker: 12 latest non-photo
+  // Pulse ticker: 12 latest non-photo (shown only on page 1, no search)
   const pulseItems = useMemo(() => {
     if (page !== 1 || searchQuery) return [];
     return allItems.filter((i) => i.content_type !== "photo").slice(0, 12);
   }, [allItems, page, searchQuery]);
 
-  // Grid items: rest
-  const gridItems = useMemo(() => {
-    const used = new Set([heroItem?.id, ...featuredItems.map((f) => f.id)].filter(Boolean));
-    return filteredItems.filter((i) => !used.has(i.id));
-  }, [filteredItems, heroItem, featuredItems]);
+  // Latest Headlines section (max 5, only when no search/category filter narrowing)
+  const headlinesSection = useMemo(() => {
+    if (page !== 1 || searchQuery || activeCategory || activeFilter === "headline") return [];
+    return filteredItems.filter((i) => i.content_type === "headline").slice(0, 5);
+  }, [filteredItems, page, searchQuery, activeCategory, activeFilter]);
 
-  // Headlines (separate small grid)
-  const headlines = useMemo(
-    () => gridItems.filter((i) => i.content_type === "headline").slice(0, 4),
-    [gridItems]
-  );
-  const nonHeadlineGrid = useMemo(
-    () => gridItems.filter((i) => i.content_type !== "headline"),
-    [gridItems]
-  );
+  // Main grid: everything except items shown in Latest Headlines section
+  const mainGridItems = useMemo(() => {
+    const usedIds = new Set(headlinesSection.map((h) => h.id));
+    return filteredItems.filter((i) => !usedIds.has(i.id));
+  }, [filteredItems, headlinesSection]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -1299,48 +1239,17 @@ const CryptoNewsPage = () => {
       {selectedItem && <NewsModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
 
       {/* HEADER */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-2 border-b border-white/5">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1 h-3 rounded-full bg-gold-primary" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
-              Live Feed
-            </span>
-          </div>
-          <h1
-            className="text-3xl sm:text-4xl text-white"
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Crypto News
-          </h1>
-          <p className="text-text-muted text-xs sm:text-sm mt-1">
-            Real-time aggregator · 3-day rolling window · auto-refresh 60s
-          </p>
-        </div>
-        {stats && (
-          <div className="flex flex-wrap gap-2">
-            {[
-              { l: "Total", v: stats.total },
-              { l: "Articles", v: stats.articles },
-              { l: "Photos", v: stats.photos },
-              { l: "1H", v: stats.last_hour },
-            ].map((s) => (
-              <div
-                key={s.l}
-                className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 min-w-[64px]"
-              >
-                <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted">
-                  {s.l}
-                </span>
-                <span className="text-white text-sm font-mono font-bold tabular-nums">{s.v}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      <header className="pb-3 border-b border-white/5">
+        <h1
+          className="text-3xl sm:text-4xl text-white"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+          }}
+        >
+          Crypto News
+        </h1>
       </header>
 
       {/* PULSE TICKER */}
@@ -1357,8 +1266,6 @@ const CryptoNewsPage = () => {
         onCategoryChange={handleCategoryChange}
         categoryCounts={categoryCounts}
         stats={stats}
-        density={density}
-        onDensityChange={setDensity}
       />
 
       {/* CONTENT */}
@@ -1386,39 +1293,35 @@ const CryptoNewsPage = () => {
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
           <div className="flex-1 min-w-0 space-y-5">
-            {/* HERO + 2 FEATURED */}
-            {heroItem && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2">
-                  <HeroCard item={heroItem} onSelect={setSelectedItem} />
-                </div>
-                <div className="grid grid-rows-2 gap-3">
-                  {featuredItems.map((item) => (
-                    <FeaturedCard key={item.id} item={item} onSelect={setSelectedItem} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* HEADLINES STRIP */}
-            {headlines.length > 0 && (
+            {/* LATEST HEADLINES — uniform card grid, separate section */}
+            {headlinesSection.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-1 h-3 rounded-full bg-gold-primary" />
-                  <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                    Latest Headlines
-                  </h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-3 rounded-full bg-gold-primary" />
+                    <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
+                      Latest Headlines
+                    </h2>
+                  </div>
+                  <span className="text-[10px] font-mono text-text-muted">
+                    {headlinesSection.length}
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
-                  {headlines.map((item) => (
-                    <HeadlineCard key={item.id} item={item} onSelect={setSelectedItem} />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {headlinesSection.map((item) => (
+                    <UniformCard
+                      key={item.id}
+                      item={item}
+                      onSelect={setSelectedItem}
+                      variant="headline"
+                    />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* MAIN GRID */}
-            {nonHeadlineGrid.length > 0 && (
+            {/* MAIN GRID — uniform 5-column dense */}
+            {mainGridItems.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1430,23 +1333,12 @@ const CryptoNewsPage = () => {
                     </h2>
                   </div>
                   <span className="text-[10px] font-mono text-text-muted">
-                    {nonHeadlineGrid.length} stories
+                    {mainGridItems.length} stories
                   </span>
                 </div>
-                <div
-                  className={`grid gap-3 ${
-                    density === "compact"
-                      ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-                      : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                  }`}
-                >
-                  {nonHeadlineGrid.map((item) => (
-                    <RegularCard
-                      key={item.id}
-                      item={item}
-                      onSelect={setSelectedItem}
-                      dense={density === "compact"}
-                    />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {mainGridItems.map((item) => (
+                    <UniformCard key={item.id} item={item} onSelect={setSelectedItem} />
                   ))}
                 </div>
               </div>
@@ -1468,16 +1360,6 @@ const CryptoNewsPage = () => {
         </div>
       )}
 
-      {/* FOOTER */}
-      <div className="flex items-center justify-center gap-2 py-3 mt-4 border-t border-white/5">
-        <span
-          className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-          style={{ boxShadow: "0 0 6px #22c55e" }}
-        />
-        <span className="text-text-muted text-[10px] font-mono uppercase tracking-wider">
-          Auto-refresh 60s · Page {page} of {totalPages || 1}
-        </span>
-      </div>
     </div>
   );
 };

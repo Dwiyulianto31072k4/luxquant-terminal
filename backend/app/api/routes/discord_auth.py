@@ -164,6 +164,44 @@ async def discord_callback(
     # Check Premium role di guild
     has_premium_role = await _check_guild_role(discord_id)
 
+    # ─── LINK MODE: state=link:<user_id> → link ke user yg sedang login ───
+    # OAuth redirect ga bawa Bearer token, jadi identitas user diambil dari state.
+    if _link_user_id is not None:
+        link_user = db.query(User).filter(User.id == _link_user_id).first()
+        if not link_user:
+            return RedirectResponse(f"{FRONTEND_URL}/profile?error=link_user_not_found")
+
+        # Guard collision: discord_id ga boleh dipakai user lain
+        existing = db.query(User).filter(User.discord_id == discord_id).first()
+        if existing and existing.id != link_user.id:
+            return RedirectResponse(f"{FRONTEND_URL}/profile?error=discord_already_linked")
+
+        link_user.discord_id = discord_id
+        link_user.discord_username = discord_username
+        if discord_avatar and not link_user.avatar_url:
+            link_user.avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{discord_avatar}.png?size=256"
+
+        # Resolve role (respect protection — admin/lifetime/legacy/payment aman)
+        new_role, new_source = resolve_role_for_discord(link_user, has_premium_role)
+        link_user.role = new_role
+        link_user.subscription_source = new_source
+
+        db.commit()
+        db.refresh(link_user)
+
+        track_user_login(db, link_user, commit=True)
+        tokens = create_tokens(link_user.id, link_user.email)
+        user_response = UserResponse.model_validate(link_user)
+        user_json = quote(json.dumps(user_response.model_dump(mode="json")))
+        redirect_url = (
+            f"{FRONTEND_URL}/auth/discord/callback"
+            f"?token={tokens['access_token']}"
+            f"&refresh_token={tokens['refresh_token']}"
+            f"&user={user_json}"
+        )
+        return RedirectResponse(redirect_url)
+
+    # ─── LOGIN MODE: ga ada link context → flow lama (lookup discord_id / email) ───
     # Find or create user
     user = db.query(User).filter(User.discord_id == discord_id).first()
     is_new_user = False

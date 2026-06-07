@@ -56,10 +56,17 @@ export default function SignalsQueue({ executions, signalsById, onRetried }) {
     setError("");
 
     try {
-      await retryExecution(executionId);
-      onRetried?.();
-    } catch (err) {
-      setError(err.message || "Retry failed");
+      const resp = await fetch("/api/v1/signals/bulk-7d?limit=50", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const items = (data.items || data.signals || data || [])
+        .filter((s) => (s.status || "").toLowerCase() === "open")
+        .slice(0, 20);
+      setSignals(items);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setRetryingId("");
     }

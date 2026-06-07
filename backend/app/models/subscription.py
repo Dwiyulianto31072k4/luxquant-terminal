@@ -46,11 +46,21 @@ class Payment(Base):
     bscscan_data = Column(JSONB, nullable=True)
     notes = Column(Text, nullable=True)
 
+    # Soft-delete (void). NULL = active; set = hidden from finance list, recoverable.
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
     # Referral
     referral_use_id = Column(Integer, ForeignKey("referral_uses.id"), nullable=True)
     discount_amount = Column(Numeric(10, 2), default=0)
     final_amount = Column(Numeric(10, 2), nullable=True)  # amount_usdt - discount - credit_redeemed
     credit_redeemed = Column(Numeric(10, 2), default=0)   # Layer 8: credit balance used as additional discount
+
+    # ── Manual-payment method tracking (off-chain rails: Binance UID, bank, etc.) ──
+    method = Column(String(20), nullable=False, server_default="onchain_bsc")
+    reference = Column(String(200), nullable=True)        # UID / bank ref / custom note
+    paid_currency = Column(String(10), nullable=True)     # "USDT" | "IDR" | ...
+    paid_amount = Column(Numeric(20, 2), nullable=True)   # amount in paid_currency (audit)
+    fx_rate = Column(Numeric(20, 6), nullable=True)       # rate to USD for non-USD methods
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

@@ -568,19 +568,27 @@ async def get_analyze_data(
 # ============================================
 
 @router.get("/bulk-7d")
-async def get_signals_bulk_7d(db: Session = Depends(get_db)):
-    cached = cache_get("lq:signals:bulk-7d")
+async def get_signals_bulk_7d(
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    is_subscriber = _user_is_active_subscriber(current_user)
+ 
+    # Cache dipisah: anonim/free TIDAK boleh share cache dengan subscriber.
+    cache_key = "lq:signals:bulk-7d:sub" if is_subscriber else "lq:signals:bulk-7d:pub"
+ 
+    cached = cache_get(cache_key)
     if cached:
         return cached
-    
-    stale, _ = cache_get_with_stale("lq:signals:bulk-7d")
+ 
+    stale, _ = cache_get_with_stale(cache_key)
     if stale:
         return stale
-    
+ 
     try:
         from datetime import datetime, timedelta
         date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
-        
+ 
         rows = db.execute(text(f"""
             WITH {SIGNAL_OUTCOMES_CTE},
             {LAST_UPDATE_CTE}
@@ -593,33 +601,79 @@ async def get_signals_bulk_7d(db: Session = Depends(get_db)):
                 s.market_cap,
                 lu.last_update_at,
                 lu.last_update_type,
-                s.entry_chart_path, s.latest_chart_path
+                s.entry_chart_path, s.latest_chart_path,           -- r[20], r[21]
+                bc.beta_30d, bc.corr_4h_30d,                       -- r[22], r[23]
+                bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
+                (bc.interpretation->>'alignment_score')::int,      -- r[26]
+                bc.interpretation->>'risk_level'                   -- r[27]
             FROM signals s
             LEFT JOIN signal_outcomes so ON s.signal_id = so.signal_id
             LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
+            LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
             WHERE s.created_at >= :date_from
             ORDER BY s.call_message_id DESC
         """), {"date_from": date_7d}).fetchall()
-        
+ 
         items = []
         for r in rows:
-            items.append({
-                "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
-                "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7],
-                "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
-                "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
-                "created_at": r[15], "status": r[16], "market_cap": r[17],
-                "last_update_at": str(r[18]) if r[18] else None,
-                "last_update_type": r[19],
-                "entry_chart_url": chart_path_to_url(r[20]),
-                "latest_chart_url": chart_path_to_url(r[21]),
-            })
-        
-        result = {"items": items, "total": len(items), "date_from": date_7d}
-        cache_set("lq:signals:bulk-7d", result, ttl=100)
+            if is_subscriber:
+                # Full data — subscriber/admin
+                items.append({
+                    "signal_id": r[0], "channel_id": r[1], "call_message_id": r[2], "message_link": r[3],
+                    "pair": r[4], "entry": r[5], "target1": r[6], "target2": r[7],
+                    "target3": r[8], "target4": r[9], "stop1": r[10], "stop2": r[11],
+                    "risk_level": r[12], "volume_rank_num": r[13], "volume_rank_den": r[14],
+                    "created_at": r[15], "status": r[16], "market_cap": r[17],
+                    "last_update_at": str(r[18]) if r[18] else None,
+                    "last_update_type": r[19],
+                    "entry_chart_url": chart_path_to_url(r[20]),
+                    "latest_chart_url": chart_path_to_url(r[21]),
+                    "btc_beta": float(r[22]) if r[22] is not None else None,
+                    "btc_corr": float(r[23]) if r[23] is not None else None,
+                    "btc_decoupled": bool(r[24]) if r[24] is not None else False,
+                    "btc_extended": bool(r[25]) if r[25] is not None else False,
+                    "btc_align_score": r[26],
+                    "btc_risk": r[27],
+                    "is_redacted": False,
+                })
+            else:
+                # REDACTED — non-subscriber. Pilihan A: signal dalam 7 hari
+                # masih "panas" → sembunyikan semua angka actionable + link telegram.
+                # Yang tetap tampil: pair, status, created_at, risk_level, market_cap
+                # (cukup buat teaser + soft-paywall di frontend).
+                items.append({
+                    "signal_id": r[0],
+                    "channel_id": None,           # redacted (jangan bocorkan sumber)
+                    "call_message_id": None,      # redacted
+                    "message_link": None,         # redacted (link telegram)
+                    "pair": r[4],
+                    "entry": None,                # redacted
+                    "target1": None, "target2": None, "target3": None, "target4": None,  # redacted
+                    "stop1": None, "stop2": None, # redacted
+                    "risk_level": r[12],
+                    "volume_rank_num": r[13], "volume_rank_den": r[14],
+                    "created_at": r[15], "status": r[16], "market_cap": r[17],
+                    "last_update_at": str(r[18]) if r[18] else None,
+                    "last_update_type": r[19],
+                    "entry_chart_url": None,      # redacted
+                    "latest_chart_url": None,     # redacted
+                    "btc_beta": None, "btc_corr": None,
+                    "btc_decoupled": False, "btc_extended": False,
+                    "btc_align_score": None, "btc_risk": None,
+                    "is_redacted": True,
+                })
+ 
+        result = {
+            "items": items,
+            "total": len(items),
+            "date_from": date_7d,
+            "is_subscriber": is_subscriber,
+        }
+        cache_set(cache_key, result, ttl=100)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk 7d query error: {str(e)}")
+ 
 
 
 # ============================================

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
-import CoinIntelligence from './CoinIntelligence';
+import { classifyCoin } from './coinIntelShared';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -44,12 +44,6 @@ const Icon = {
       <path d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
-  brain: (className = 'w-4 h-4') => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
-    </svg>
-  ),
   alert: (className = 'w-4 h-4') => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
@@ -81,6 +75,23 @@ const Icon = {
   x: (className = 'w-3 h-3') => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  flame: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  ),
+  zap: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  target: (className = 'w-3 h-3') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
     </svg>
   ),
 };
@@ -123,8 +134,11 @@ const SignalsPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [stats, setStats] = useState(null);
 
-  const [isIntelOpen, setIsIntelOpen] = useState(false);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  // Coin Intelligence map { pair: coinObj } — used to join win-streak (and other
+  // anomaly data) onto signal rows for the new column / filter / sort.
+  const [coinIntel, setCoinIntel] = useState({});
+  const [currentFlow, setCurrentFlow] = useState(null);
+
 
   const currentPricesRef = useRef({});
   const [priceVersion, setPriceVersion] = useState(0);
@@ -135,17 +149,30 @@ const SignalsPage = () => {
   const [searchPair, setSearchPair] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [streakFilter, setStreakFilter] = useState("all"); // 'all' | 'hot'
+  const [corrDecoupled, setCorrDecoupled] = useState(false);
+  const [corrHighAlign, setCorrHighAlign] = useState(false);
+  const [verdictFilter, setVerdictFilter] = useState("all"); // 'all' | 'worth_it' | 'avoid'
   const [selectedDates, setSelectedDates] = useState([]);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
+
+  // Min win-streak length to count as a "High Win Streak" (matches the
+  // Coin Intelligence hot-streak heuristic).
+  const HOT_STREAK_MIN = 5;
 
   const fetchBulkSignals = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(null);
-      const [signalsRes, statsRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/api/v1/signals/bulk-7d`),
-        fetch(`${API_BASE}/api/v1/signals/stats`),
+
+      const token = localStorage.getItem("access_token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const [signalsRes, statsRes, intelRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
       ]);
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
@@ -156,6 +183,18 @@ const SignalsPage = () => {
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
         const statsData = await statsRes.value.json();
         setStats(statsData);
+      }
+      // Coin Intelligence is best-effort: if it fails, the Win Streak column /
+      // filter simply shows nothing — the rest of the page is unaffected.
+      if (intelRes.status === "fulfilled" && intelRes.value.ok) {
+        const intel = await intelRes.value.json();
+        const all = [...(intel.top_coins || []), ...(intel.rest_coins || [])];
+        const map = {};
+        for (const c of all) {
+          if (c && c.pair) map[c.pair] = c;
+        }
+        setCoinIntel(map);
+        setCurrentFlow(intel.current_flow ?? null);
       }
       setLastUpdated(new Date());
     } catch (err) {
@@ -174,10 +213,54 @@ const SignalsPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, riskFilter, selectedDates, sortBy, sortOrder]);
+  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder]);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;
+  }, [allSignals]);
+
+  // Count of signals currently on a "high" win streak (for the filter badge).
+  const hotStreakCount = useMemo(() => {
+    return allSignals.filter((s) => {
+      const st = coinIntel[s.pair]?.current_streak;
+      return st && st.type === "win" && st.length >= HOT_STREAK_MIN;
+    }).length;
+  }, [allSignals, coinIntel]);
+
+  // Counts for the BTC correlation filter badges.
+  const corrCounts = useMemo(() => {
+    let dec = 0, hi = 0;
+    for (const s of allSignals) {
+      if (s.btc_decoupled) dec++;
+      if ((s.btc_align_score ?? -1) >= 70) hi++;
+    }
+    return { dec, hi };
+  }, [allSignals]);
+
+  // Verdict (worth_it / avoid / neutral) per pair, computed once from coin-intel.
+  const verdictByPair = useMemo(() => {
+    const map = {};
+    for (const pair in coinIntel) {
+      map[pair] = classifyCoin(coinIntel[pair]);
+    }
+    return map;
+  }, [coinIntel]);
+
+  const verdictCounts = useMemo(() => {
+    let worth = 0, avoid = 0;
+    for (const s of allSignals) {
+      const v = verdictByPair[s.pair];
+      if (v === "worth_it") worth++;
+      else if (v === "avoid") avoid++;
+    }
+    return { worth, avoid };
+  }, [allSignals, verdictByPair]);
+
+  // All unique pairs across every signal — passed to the table so it can fetch
+  // live price/volume for the WHOLE dataset, not just the current page. This is
+  // what makes "sort by volume" correct & stable across pages.
+  const allPairs = useMemo(() => {
+    return [...new Set(allSignals.map((s) => s.pair).filter(Boolean))];
   }, [allSignals]);
 
   const todayStats = useMemo(() => {
@@ -228,6 +311,20 @@ const SignalsPage = () => {
     return data.volume || 0;
   };
 
+  // Signed win-streak value for sorting: win → +length, loss → −length,
+  // no Coin Intelligence data → null (so it can sink to the bottom).
+  const getStreakVal = (pair) => {
+    const st = coinIntel[pair]?.current_streak;
+    if (!st || !st.length) return null;
+    return st.type === "win" ? st.length : -st.length;
+  };
+
+  // Win rate for sorting (null when coin has no Coin Intelligence entry).
+  const getWinRateVal = (pair) => {
+    const wr = coinIntel[pair]?.win_rate;
+    return wr == null ? null : wr;
+  };
+
   const getOrderLabel = () => {
     const isTime = ["created_at", "last_update"].includes(sortBy);
     const isAlpha = sortBy === "pair";
@@ -248,12 +345,16 @@ const SignalsPage = () => {
     }
   };
 
-  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at";
+  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at";
 
   const resetFilters = () => {
     setSearchPair("");
     setStatusFilter("all");
     setRiskFilter("all");
+    setStreakFilter("all");
+    setCorrDecoupled(false);
+    setCorrHighAlign(false);
+    setVerdictFilter("all");
     setSelectedDates([]);
     setSortBy("created_at");
     setSortOrder("desc");
@@ -311,13 +412,43 @@ const SignalsPage = () => {
       });
     }
 
+    // High Win Streak filter — joins Coin Intelligence by pair.
+    if (streakFilter === "hot") {
+      filtered = filtered.filter((s) => {
+        const st = coinIntel[s.pair]?.current_streak;
+        return st && st.type === "win" && st.length >= HOT_STREAK_MIN;
+      });
+    }
+
+    // BTC correlation filters (data joined onto each row by the backend).
+    if (corrDecoupled) {
+      filtered = filtered.filter((s) => s.btc_decoupled === true);
+    }
+    if (corrHighAlign) {
+      filtered = filtered.filter((s) => (s.btc_align_score ?? -1) >= 70);
+    }
+
+    // Verdict filter (Worth It / Avoid) — from Coin Intelligence classification.
+    if (verdictFilter !== "all") {
+      filtered = filtered.filter((s) => verdictByPair[s.pair] === verdictFilter);
+    }
+
+    // Stable tiebreaker — when two rows compare equal (or share missing/0 data),
+    // fall back to a deterministic order (newest call first). This is what stops
+    // rows from reshuffling every refresh, especially on page 2+.
+    const tiebreak = (a, b) => (b.call_message_id || 0) - (a.call_message_id || 0);
+
     filtered.sort((a, b) => {
+      // Pair: alphabetical, with stable tiebreaker for duplicate pairs
+      if (sortBy === "pair") {
+        const pa = (a.pair || "").toLowerCase();
+        const pb = (b.pair || "").toLowerCase();
+        const r = sortOrder === "asc" ? pa.localeCompare(pb) : pb.localeCompare(pa);
+        return r !== 0 ? r : tiebreak(a, b);
+      }
+
       let valA, valB;
       switch (sortBy) {
-        case "pair":
-          valA = (a.pair || "").toLowerCase();
-          valB = (b.pair || "").toLowerCase();
-          return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
         case "current_price":
           valA = getPriceVal(a.pair); valB = getPriceVal(b.pair); break;
         case "entry":
@@ -349,6 +480,16 @@ const SignalsPage = () => {
         }
         case "volume":
           valA = getVolVal(a.pair); valB = getVolVal(b.pair); break;
+        case "win_streak":
+          valA = getStreakVal(a.pair); valB = getStreakVal(b.pair); break;
+        case "win_rate":
+          valA = getWinRateVal(a.pair); valB = getWinRateVal(b.pair); break;
+        case "btc_corr":
+          valA = a.btc_align_score ?? null; valB = b.btc_align_score ?? null; break;
+        case "verdict": {
+          const rank = (p) => { const v = verdictByPair[p]; return v === "worth_it" ? 2 : v === "avoid" ? 1 : null; };
+          valA = rank(a.pair); valB = rank(b.pair); break;
+        }
         case "last_update": {
           const tsA = a.last_update_at ? new Date(a.last_update_at).getTime() : 0;
           const tsB = b.last_update_at ? new Date(b.last_update_at).getTime() : 0;
@@ -359,8 +500,28 @@ const SignalsPage = () => {
         case "created_at": default:
           valA = a.call_message_id || 0; valB = b.call_message_id || 0; break;
       }
-      if (sortBy !== "pair") return sortOrder === "asc" ? valA - valB : valB - valA;
-      return 0;
+
+      // Live-derived metrics (fetched from the price provider): rows with no data
+      // (value 0) always sink to the bottom regardless of asc/desc, so they never
+      // pollute the top of an ascending volume/price sort.
+      if (sortBy === "volume" || sortBy === "current_price") {
+        const hasA = valA > 0;
+        const hasB = valB > 0;
+        if (hasA !== hasB) return hasA ? -1 : 1;
+      }
+
+      // Win streak / BTC alignment: rows without that data (null) always sink,
+      // regardless of direction — valid negatives (loss streaks) must not be
+      // treated as "missing".
+      if (sortBy === "win_streak" || sortBy === "btc_corr" || sortBy === "win_rate" || sortBy === "verdict") {
+        const hasA = valA !== null && valA !== undefined;
+        const hasB = valB !== null && valB !== undefined;
+        if (hasA !== hasB) return hasA ? -1 : 1;
+        valA = valA ?? 0; valB = valB ?? 0;
+      }
+
+      const cmp = sortOrder === "asc" ? valA - valB : valB - valA;
+      return cmp !== 0 ? cmp : tiebreak(a, b);
     });
 
     const total = filtered.length;
@@ -369,7 +530,7 @@ const SignalsPage = () => {
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
     return { signals: paged, totalPages: pages, totalSignals: total };
-  }, [allSignals, searchPair, statusFilter, riskFilter, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion]);
+  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
@@ -404,6 +565,10 @@ const SignalsPage = () => {
     { value: "stop_loss", label: "Stop Loss %" },
     { value: "status", label: "Signal Status" },
     { value: "risk_level", label: "Risk Level" },
+    { value: "win_rate", label: "Win Rate" },
+    { value: "win_streak", label: "Win Streak" },
+    { value: "btc_corr", label: "BTC Alignment" },
+    { value: "verdict", label: "Verdict (Worth/Avoid)" },
     { value: "market_cap", label: "Market Cap" },
     { value: "volume", label: "Volume 24H" },
   ];
@@ -638,64 +803,107 @@ const SignalsPage = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ACCORDIONS — enhanced open state */}
-      <div className="space-y-3">
-        {/* Coin Intelligence */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <button
-            onClick={() => setIsIntelOpen(!isIntelOpen)}
-            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-gold-primary/[0.06] border border-gold-primary/20 flex items-center justify-center text-gold-primary/80">
-                {Icon.brain('w-4 h-4')}
-              </div>
-              <div className="text-left">
-                <h3 className="font-mono text-sm text-white">Coin Intelligence</h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">AI-powered deep analysis & streaks</p>
-              </div>
-            </div>
-            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${isIntelOpen ? 'rotate-180 text-gold-primary border-gold-primary/30' : ''}`}>
-              {Icon.chevronDown('w-3 h-3')}
-            </div>
-          </button>
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isIntelOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-5 border-t border-white/[0.06]">
-              <CoinIntelligence selectedDates={selectedDates} />
-            </div>
+        {/* Intelligence Filters — joined from Coin Intelligence. This is the home
+            for the new analytics filters (Win Streak now; BTC Correlation next). */}
+        <div className="mt-5 pt-5 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Intelligence Filters</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">powered by coin intelligence</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                streakFilter === "hot"
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
+              <span>High Win Streak</span>
+              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥{HOT_STREAK_MIN}</span>
+              {hotStreakCount > 0 && streakFilter !== "hot" && (
+                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                  {hotStreakCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setCorrDecoupled((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                corrDecoupled
+                  ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
+              <span>Decoupled from BTC</span>
+              {corrCounts.dec > 0 && !corrDecoupled && (
+                <span className="px-1 py-0 bg-purple-500/10 text-purple-400 text-[9px] tabular-nums rounded-sm">
+                  {corrCounts.dec}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setCorrHighAlign((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                corrHighAlign
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
+              <span>High BTC Alignment</span>
+              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥70</span>
+              {corrCounts.hi > 0 && !corrHighAlign && (
+                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                  {corrCounts.hi}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                verdictFilter === "worth_it"
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
+              <span>Worth It</span>
+              {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
+                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                  {verdictCounts.worth}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                verdictFilter === "avoid"
+                  ? 'bg-red-500/15 border border-red-500/40 text-red-400'
+                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+              }`}
+            >
+              <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
+              <span>Avoid</span>
+              {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
+                <span className="px-1 py-0 bg-red-500/10 text-red-400 text-[9px] tabular-nums rounded-sm">
+                  {verdictCounts.avoid}
+                </span>
+              )}
+            </button>
           </div>
         </div>
-
-        {/* BTC Dominance Alert */}
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden relative">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <button
-            onClick={() => setIsAlertOpen(!isAlertOpen)}
-            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-red-500/[0.06] border border-red-500/20 flex items-center justify-center text-red-400/80">
-                {Icon.alert('w-4 h-4')}
-              </div>
-              <div className="text-left">
-                <h3 className="font-mono text-sm text-white">BTC Dominance Alert</h3>
-                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-0.5">Macro market condition warning</p>
-              </div>
-            </div>
-            <div className={`w-7 h-7 rounded-sm bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-text-muted transition-all ${isAlertOpen ? 'rotate-180 text-red-400 border-red-500/30' : ''}`}>
-              {Icon.chevronDown('w-3 h-3')}
-            </div>
-          </button>
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isAlertOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="p-5 border-t border-white/[0.06]">
-              <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
-            </div>
-          </div>
-        </div>
       </div>
+
+      {/* BTC Dominance Alert — self-contained (has its own expand) */}
+      <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
 
       {/* ERROR / TABLE */}
       {error && (
@@ -729,6 +937,10 @@ const SignalsPage = () => {
           totalPages={totalPages}
           onPageChange={setPage}
           onPricesUpdate={handlePricesUpdate}
+          allPairs={allPairs}
+          coinIntel={coinIntel}
+          verdictByPair={verdictByPair}
+          currentFlow={currentFlow}
         />
       )}
 

@@ -223,11 +223,39 @@ def _normalize_pair(pair: str) -> str:
     return f"{base}/USDT"
 
 
-async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFrame:
-    symbol = _normalize_pair(pair)
-    tf = INTERVAL_MAP.get(interval, interval)
+# PATCH-2026-06-06-ENRICHMENT-C: shared exchange list + multiplier-prefix fallback
+_OHLCV_EXCHANGES = [
+    ccxt_async.binance,
+    ccxt_async.bybit,
+    ccxt_async.okx,
+    ccxt_async.mexc,
+    ccxt_async.gate,
+    ccxt_async.kucoin,
+    ccxt_async.bitget,
+    ccxt_async.bingx,
+]
 
-    for ExchangeClass in [ccxt_async.binance, ccxt_async.bybit]:
+_MULTIPLIER_PREFIXES = (1000, 10000, 100000, 1000000)
+
+
+def _detect_multiplier(pair: str) -> tuple:
+    """
+    Detect contract-multiplier prefix used by Binance/Bybit perps for low-priced
+    coins (e.g. 1000PEPEUSDT, 1000000MOGUSDT, 1000LUNCUSDT). Spot exchanges list
+    the base symbol directly. Returns (base_pair, multiplier). If no recognized
+    prefix is present, returns (pair.upper(), 1).
+    """
+    import re
+    p = pair.upper().replace("/", "")
+    m = re.match(r"^(\d+)([A-Z].*)$", p)
+    if m and int(m.group(1)) in _MULTIPLIER_PREFIXES:
+        return m.group(2), int(m.group(1))
+    return p, 1
+
+
+async def _try_fetch_ohlcv_symbol(symbol: str, tf: str, limit: int) -> pd.DataFrame:
+    """Internal: iterate _OHLCV_EXCHANGES for the given ccxt-normalized symbol."""
+    for ExchangeClass in _OHLCV_EXCHANGES:
         exchange = ExchangeClass({"enableRateLimit": True})
         try:
             ohlcv = await exchange.fetch_ohlcv(symbol, tf, limit=limit)
@@ -245,23 +273,89 @@ async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFram
             logger.debug(f"  {ExchangeClass.__name__} failed {symbol} {tf}: {e}")
         finally:
             await exchange.close()
+    return pd.DataFrame()
+
+
+async def _try_fetch_volume_symbol(symbol: str) -> float:
+    """Internal: iterate _OHLCV_EXCHANGES for ticker quoteVolume."""
+    for ExchangeClass in _OHLCV_EXCHANGES:
+        exchange = ExchangeClass({"enableRateLimit": True})
+        try:
+            ticker = await exchange.fetch_ticker(symbol)
+            qv = ticker.get("quoteVolume", 0) or 0
+            if qv:
+                return float(qv)
+        except Exception as e:
+            logger.debug(f"  Volume {ExchangeClass.__name__} {symbol}: {e}")
+        finally:
+            await exchange.close()
+    return 0.0
+
+
+async def fetch_ohlcv(pair: str, interval: str, limit: int = 150) -> pd.DataFrame:
+    """
+    Three-pass OHLCV fetch (PATCH-2026-06-06-ENRICHMENT-D):
+      Pass 1: spot symbol "XYZ/USDT" -- standard path for established coins.
+      Pass 2: perp symbol "XYZ/USDT:USDT" -- ccxt notation for linear
+              USDT-margined perpetuals. Many coins (RAYSOL, ALL, new launches)
+              list perp-only on Binance/MEXC/Gate without a spot pair. No
+              scaling needed: perp prices ARE the contract notation.
+      Pass 3: multiplier-prefix fallback (1000PEPE -> PEPE x1000). Strip
+              prefix, retry as spot, scale OHLC prices by the multiplier.
+    """
+    tf = INTERVAL_MAP.get(interval, interval)
+    spot_symbol = _normalize_pair(pair)
+
+    # Pass 1: spot
+    df = await _try_fetch_ohlcv_symbol(spot_symbol, tf, limit)
+    if not df.empty:
+        return df
+
+    # Pass 2: perp (linear USDT-margined)
+    perp_symbol = f"{spot_symbol}:USDT"
+    logger.debug(f"  Perp fallback: {pair} -> {perp_symbol}")
+    df = await _try_fetch_ohlcv_symbol(perp_symbol, tf, limit)
+    if not df.empty:
+        return df
+
+    # Pass 3: multiplier-prefix fallback
+    base_pair, multiplier = _detect_multiplier(pair)
+    if multiplier > 1:
+        base_spot = _normalize_pair(base_pair)
+        logger.debug(f"  Multiplier fallback: {pair} -> {base_spot} x{multiplier}")
+        df = await _try_fetch_ohlcv_symbol(base_spot, tf, limit)
+        if not df.empty:
+            for col in ["open", "high", "low", "close"]:
+                df[col] = df[col] * multiplier
+            return df
 
     logger.warning(f"All exchanges failed for {pair} {interval}")
     return pd.DataFrame()
 
 
 async def fetch_24h_volume(pair: str) -> float:
-    symbol = _normalize_pair(pair)
+    """
+    Three-pass 24h volume fetch (PATCH-2026-06-06-ENRICHMENT-D).
+    Note: quoteVolume reported in USDT by ccxt -- no scaling applied.
+    """
+    spot_symbol = _normalize_pair(pair)
 
-    for ExchangeClass in [ccxt_async.binance, ccxt_async.bybit]:
-        exchange = ExchangeClass({"enableRateLimit": True})
-        try:
-            ticker = await exchange.fetch_ticker(symbol)
-            return float(ticker.get("quoteVolume", 0) or 0)
-        except Exception as e:
-            logger.debug(f"  Volume {ExchangeClass.__name__} {symbol}: {e}")
-        finally:
-            await exchange.close()
+    # Pass 1: spot
+    vol = await _try_fetch_volume_symbol(spot_symbol)
+    if vol > 0:
+        return vol
+
+    # Pass 2: perp
+    vol = await _try_fetch_volume_symbol(f"{spot_symbol}:USDT")
+    if vol > 0:
+        return vol
+
+    # Pass 3: multiplier-prefix fallback
+    base_pair, multiplier = _detect_multiplier(pair)
+    if multiplier > 1:
+        vol = await _try_fetch_volume_symbol(_normalize_pair(base_pair))
+        if vol > 0:
+            return vol
 
     logger.warning(f"Failed to fetch 24h volume for {pair}")
     return 0
