@@ -119,6 +119,7 @@ def evaluate_liquidity(parsed: dict | None) -> LayerVerdict:
     dom_up = parsed["dominance_up"]
 
     # Metric 1 — mass dominance near price (which side holds more liquidation fuel)
+    # Dense cluster ABOVE pulls price up (short liqs) -> bullish pull; BELOW -> bearish.
     if dom_up >= 0.58:
         s1, n1 = 1, f"Upside liquidity heavier ({dom_up*100:.0f}%) — pull up"
     elif dom_up <= 0.42:
@@ -130,25 +131,29 @@ def evaluate_liquidity(parsed: dict | None) -> LayerVerdict:
         score=s1, label=f"{dom_up*100:.0f}% up", note=n1,
     ))
 
-    # Metric 2 — nearest dominant magnet side (immediate pull)
+    # Metric 2 — nearest *meaningful* magnet side (immediate directional pull)
+    # A magnet sitting ON price (within AT_PRICE) is NOT a directional pull — skip it.
+    AT_PRICE = 0.005   # 0.5% — magnet hugging price = price is AT it, not pulled
     nu, nd = parsed["nearest_above"], parsed["nearest_below"]
     du = abs(nu["price"] - cur) / cur if nu else 1e9
     dd = abs(nd["price"] - cur) / cur if nd else 1e9
-    if nu and nd:
-        if du < 0.005 and dd < 0.005:
-            s2, n2 = 0, "Sandwiched between magnets — range"
-        elif du < dd * 0.7:
+
+    up_far = nu is not None and du >= AT_PRICE
+    dn_far = nd is not None and dd >= AT_PRICE
+
+    if up_far and dn_far:
+        if du < dd * 0.7:
             s2, n2 = 1, f"Nearest magnet ${nu['price']:,.0f} above (+{du*100:.1f}%)"
         elif dd < du * 0.7:
             s2, n2 = -1, f"Nearest magnet ${nd['price']:,.0f} below (-{dd*100:.1f}%)"
         else:
-            s2, n2 = 0, "Magnets roughly equidistant"
-    elif nu:
-        s2, n2 = 1, f"Magnet ${nu['price']:,.0f} above only"
-    elif nd:
-        s2, n2 = -1, f"Magnet ${nd['price']:,.0f} below only"
+            s2, n2 = 0, "Magnets roughly equidistant — range"
+    elif up_far and not dn_far:
+        s2, n2 = 1, f"Magnet ${nu['price']:,.0f} above (+{du*100:.1f}%); none below"
+    elif dn_far and not up_far:
+        s2, n2 = -1, f"Magnet ${nd['price']:,.0f} below (-{dd*100:.1f}%); none above"
     else:
-        s2, n2 = 0, "No clear magnet"
+        s2, n2 = 0, "Price sitting on cluster — no directional pull"
     metrics.append(MetricSignal(
         key="liq_nearest_magnet", raw_value={"above": nu, "below": nd},
         score=s2, label=n2[:40], note=n2,
