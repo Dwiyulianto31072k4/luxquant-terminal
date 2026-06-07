@@ -438,3 +438,161 @@ async def get_edge_lab(
 
     cache_set(cache_key, response, ttl=600)
     return response
+
+
+# ════════════════════════════════════════════════════════════════
+# DRILL — individual signals behind an aggregate bucket
+# Mirrors get_edge_lab scoping (OUTCOMES_CTE + sector) so counts match.
+# ════════════════════════════════════════════════════════════════
+@router.get("/analytics/edge-lab/drill")
+async def get_edge_lab_drill(
+    dimension: str = Query(..., description="calendar_day | timing_cell | pattern | pattern_btc"),
+    key: str = Query(..., description="bucket key (see edgeLabApi.getDrill)"),
+    days: int = Query(30, ge=7, le=90),
+    sector: str = Query("all", description="'all' or specific sector name"),
+    limit: int = Query(300, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    """Return the individual signals inside one Edge Lab bucket."""
+    if days not in (7, 30, 90):
+        raise HTTPException(status_code=400, detail="days must be 7, 30, or 90")
+    if dimension not in ("calendar_day", "timing_cell", "pattern", "pattern_btc"):
+        raise HTTPException(status_code=400, detail="invalid dimension")
+
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days - 1)
+    end_str = end_date.isoformat()
+    start_str = start_date.isoformat()
+    sector_filter = sector.lower().strip()
+
+    cache_key = f"lq:edge-lab:drill:v1:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    sector_clause = "" if sector_filter == "all" else "AND COALESCE(c.sector, 'uncategorized') = :sector"
+    params = {"start": start_str, "end": end_str, "limit": limit}
+    if sector_filter != "all":
+        params["sector"] = sector_filter
+
+    scoped_cte = f"""
+        scoped AS (
+            SELECT r.signal_id, r.outcome, r.hit_date,
+                   s.pair, s.peak_pct, s.created_at,
+                   NULLIF(s.created_at, '')::timestamptz AS created_ts
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            LEFT JOIN coins c ON c.pair = s.pair
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+            {sector_clause}
+        )
+    """
+
+    select_cols = "sc.signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at"
+    order_by = (
+        "ORDER BY (sc.outcome = 'sl') ASC, sc.peak_pct DESC NULLS LAST, sc.hit_date DESC "
+        "LIMIT :limit"
+    )
+
+    if dimension == "calendar_day":
+        params["day"] = key
+        sql = f"""
+            WITH {OUTCOMES_CTE},
+            {scoped_cte}
+            SELECT {select_cols}
+            FROM scoped sc
+            WHERE sc.hit_date = :day::date
+            {order_by}
+        """
+    elif dimension == "timing_cell":
+        try:
+            hour_s, dow_s = key.split("|")
+            params["hour"] = int(hour_s)
+            params["dow"] = int(dow_s)
+        except Exception:
+            raise HTTPException(status_code=400, detail="timing_cell key must be 'HOUR|DOW'")
+        sql = f"""
+            WITH {OUTCOMES_CTE},
+            {scoped_cte}
+            SELECT {select_cols}
+            FROM scoped sc
+            WHERE sc.created_ts IS NOT NULL
+              AND EXTRACT(HOUR FROM sc.created_ts AT TIME ZONE 'UTC')::int = :hour
+              AND EXTRACT(DOW FROM sc.created_ts AT TIME ZONE 'UTC')::int = :dow
+            {order_by}
+        """
+    else:
+        # pattern dims need latest snapshot tags
+        if dimension == "pattern":
+            params["pattern"] = key
+            btc_clause = ""
+        else:  # pattern_btc -> 'PATTERN|CONTEXT'
+            try:
+                pat, ctx = key.rsplit("|", 1)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="pattern_btc key must be 'PATTERN|CONTEXT'")
+            params["pattern"] = pat
+            ctx = ctx.upper()
+            if ctx == "UNKNOWN":
+                btc_clause = """
+                  AND NOT EXISTS (
+                    SELECT 1 FROM jsonb_array_elements(
+                        COALESCE(ls.snapshot->'tags_annotated','[]'::jsonb)) bt
+                    WHERE bt->>'name' IN ('BTC_BULLISH','BTC_RANGING','BTC_BEARISH')
+                  )
+                """
+            else:
+                params["btc_name"] = f"BTC_{ctx}"
+                btc_clause = """
+                  AND EXISTS (
+                    SELECT 1 FROM jsonb_array_elements(
+                        COALESCE(ls.snapshot->'tags_annotated','[]'::jsonb)) bt
+                    WHERE bt->>'name' = :btc_name
+                  )
+                """
+        sql = f"""
+            WITH {OUTCOMES_CTE},
+            {scoped_cte},
+            latest_snap AS (
+                SELECT DISTINCT ON (h.signal_id) h.signal_id, h.snapshot
+                FROM signal_enrichment_history h
+                JOIN scoped sc ON sc.signal_id = h.signal_id
+                ORDER BY h.signal_id, h.recorded_at DESC
+            )
+            SELECT {select_cols}
+            FROM scoped sc
+            JOIN latest_snap ls ON ls.signal_id = sc.signal_id
+            WHERE EXISTS (
+                SELECT 1 FROM jsonb_array_elements(
+                    COALESCE(ls.snapshot->'tags_annotated','[]'::jsonb)) t
+                WHERE (t->>'important')::boolean = true
+                  AND t->>'name' = :pattern
+            )
+            {btc_clause}
+            {order_by}
+        """
+
+    rows = db.execute(text(sql), params).fetchall()
+    signals = [{
+        "signal_id": r[0],
+        "pair": r[1],
+        "outcome": r[2],
+        "hit_date": r[3],
+        "peak_pct": _safe_float(r[4]),
+        "created_at": r[5],
+    } for r in rows]
+
+    wins = sum(1 for s in signals if s["outcome"] in ("tp1", "tp2", "tp3", "tp4"))
+    total = len(signals)
+
+    response = {
+        "dimension": dimension,
+        "key": key,
+        "count": total,
+        "wins": wins,
+        "win_rate": _wr(wins, total),
+        "signals": signals,
+    }
+    cache_set(cache_key, response, ttl=600)
+    return response
+

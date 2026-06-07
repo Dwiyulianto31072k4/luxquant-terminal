@@ -12,6 +12,7 @@ import PatternBtcHeatmapTab from "./edgelab/PatternBtcHeatmapTab";
 import ExpectedValueTab from "./edgelab/ExpectedValueTab";
 import CalendarHeatmapTab from "./edgelab/CalendarHeatmapTab";
 import HourDowHeatmapTab from "./edgelab/HourDowHeatmapTab";
+import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
 
 const SectionHeader = ({ label }) => (
   <div className="flex items-center gap-3 my-6">
@@ -60,6 +61,7 @@ const EdgeLabPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("calibration");
+  const [drillBucket, setDrillBucket] = useState(null);
 
   const fetchData = useCallback(async (d, s) => {
     setLoading(true);
@@ -225,11 +227,20 @@ const EdgeLabPage = () => {
             {activeTab === "calibration" && <PatternCalibrationTab data={data.pattern_calibration} />}
             {activeTab === "btc_heatmap" && <PatternBtcHeatmapTab data={data.pattern_btc_heatmap} />}
             {activeTab === "ev" && <ExpectedValueTab data={data.pattern_ev} />}
-            {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} />}
+            {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
             {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} />}
           </div>
         </div>
       )}
+
+      {/* ─── Drill drawer — global, always mounted (renders null when no bucket) ─── */}
+      <SignalDrillDrawer
+        bucket={drillBucket}
+        days={days}
+        sector={sector}
+        onClose={() => setDrillBucket(null)}
+        onOpenSignal={(signalId) => console.log("open signal", signalId)}
+      />
     </div>
   );
 };
