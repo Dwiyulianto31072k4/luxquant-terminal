@@ -31,10 +31,10 @@ export const edgeLabApi = {
    *    pattern_btc   → '<TAG_NAME>|<CONTEXT>'  e.g. 'BROKE_SUPPORT_RECENT|BULLISH'
    * @param {number} days - 7 | 30 | 90
    * @param {string} sector - 'all' or sector name
-   * @param {number} limit - max signals (default 300)
+   * @param {number} limit - max signals (default 1000; backend caps at 1000)
    * @returns {Promise<Object>} { dimension, key, count, wins, win_rate, signals: [...] }
    */
-  getDrill: async (dimension, key, days = 30, sector = "all", limit = 300) => {
+  getDrill: async (dimension, key, days = 30, sector = "all", limit = 1000) => {
     const response = await api.get("/api/v1/analytics/edge-lab/drill", {
       params: { dimension, key, days, sector, limit },
     });

@@ -89,7 +89,10 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
   if (!open) return null;
 
   const signals = payload?.signals || [];
-  const total = payload?.count ?? bucket.total ?? signals.length;
+  const returned = signals.length;
+  // bucket.total = aggregate count; payload.count = signals actually returned (may be capped)
+  const aggTotal = bucket.total ?? payload?.count ?? returned;
+  const capped = payload != null && returned < aggTotal;
   const wins = payload?.wins ?? bucket.wins;
   const wr = bucket.win_rate ?? payload?.win_rate ?? null;
 
@@ -124,7 +127,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
           </div>
 
           <div className="flex items-center gap-3 mt-3 text-[11px] font-mono tabular-nums">
-            <span className="text-white/55">{total} resolved</span>
+            <span className="text-white/55">{aggTotal} resolved</span>
             {wr != null && (
               <span className={wr >= 60 ? "text-emerald-400" : wr >= 50 ? "text-white/70" : "text-red-400"}>
                 {wr.toFixed(0)}% WR
@@ -132,6 +135,12 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
             )}
             {wins != null && <span className="text-white/35">{wins}W</span>}
           </div>
+
+          {capped && (
+            <div className="mt-2 text-[10px] font-mono text-amber-400/70">
+              showing first {returned.toLocaleString()} of {aggTotal.toLocaleString()}
+            </div>
+          )}
         </div>
 
         {/* body */}

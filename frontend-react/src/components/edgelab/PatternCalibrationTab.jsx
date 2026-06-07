@@ -1,5 +1,5 @@
 // src/components/edgelab/PatternCalibrationTab.jsx
-// v2 UX: insight band + collapsible methodology + sortable + clearer CI bars
+// v3 UX: insight band + collapsible methodology + sortable + clearer CI bars + drill
 import { useState, useMemo } from "react";
 import {
   TIER_COLORS, TIER_LABELS, Panel, Methodology, InsightBand,
@@ -12,14 +12,26 @@ const TIER_DESC = {
   unreliable: "small sample or wide CI — treat with caution",
 };
 
-const CalibrationRow = ({ row }) => {
+const CalibrationRow = ({ row, onDrill }) => {
   const wr = row.win_rate ?? 0;
   const ciLo = row.win_rate_ci_lower ?? 0;
   const ciHi = row.win_rate_ci_upper ?? 100;
   const color = TIER_COLORS[row.reliability];
 
   return (
-    <div className="group py-2.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.015] -mx-5 px-5 transition">
+    <button
+      type="button"
+      onClick={() =>
+        onDrill?.({
+          dimension: "pattern",
+          key: row.pattern,
+          label: row.pattern,
+          total: row.count,
+          win_rate: row.win_rate,
+        })
+      }
+      className="group block w-full text-left py-2.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] hover:shadow-[inset_2px_0_0_0_rgba(212,168,83,0.5)] -mx-5 px-5 cursor-pointer transition"
+    >
       <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[13px] font-mono text-white/90 truncate">{row.pattern}</span>
@@ -46,11 +58,11 @@ const CalibrationRow = ({ row }) => {
           style={{ left: `calc(${wr}% - 4px)`, width: 8, height: 8, background: color, boxShadow: "0 0 0 2px #0c0a07" }}
         />
       </div>
-    </div>
+    </button>
   );
 };
 
-const PatternCalibrationTab = ({ data }) => {
+const PatternCalibrationTab = ({ data, onDrill }) => {
   const [tierFilter, setTierFilter] = useState("all");
 
   const tierCounts = useMemo(() => {
@@ -125,7 +137,8 @@ const PatternCalibrationTab = ({ data }) => {
             <span style={{ color: TIER_COLORS[t] }} className="font-mono">{TIER_LABELS[t]}</span> ({d})
             {i < 2 ? "; " : "."}
           </span>
-        ))}
+        ))}{" "}
+        <span className="text-gold-primary/70">Click a pattern</span> to open its signals.
       </Methodology>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -186,7 +199,7 @@ const PatternCalibrationTab = ({ data }) => {
               No patterns match this tier
             </div>
           ) : (
-            filtered.map((row) => <CalibrationRow key={row.pattern} row={row} />)
+            filtered.map((row) => <CalibrationRow key={row.pattern} row={row} onDrill={onDrill} />)
           )}
         </div>
 
@@ -197,7 +210,7 @@ const PatternCalibrationTab = ({ data }) => {
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-white/60" /> observed WR
           </span>
-          <span className="text-white/25">| vertical line = 50% breakeven</span>
+          <span className="text-white/25">| vertical line = 50% breakeven · click a row to drill</span>
         </div>
       </Panel>
     </div>
