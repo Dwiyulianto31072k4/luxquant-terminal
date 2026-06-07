@@ -501,7 +501,7 @@ async def get_edge_lab_drill(
             {scoped_cte}
             SELECT {select_cols}
             FROM scoped sc
-            WHERE sc.hit_date = :day::date
+            WHERE sc.hit_date = CAST(:day AS date)
             {order_by}
         """
     elif dimension == "timing_cell":
