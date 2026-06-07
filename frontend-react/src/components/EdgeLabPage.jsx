@@ -1,7 +1,9 @@
 // src/components/EdgeLabPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Edge Lab (multi-day analytics) — v2 UX rebuild
+// LuxQuant Terminal — Edge Lab (multi-day analytics) — v3 UX rebuild
 // Route: /daily-performance/edge-lab
+// Header mirrors Market Pulse (left-aligned eyebrow + gradient title).
+// Drill: Calendar + Timing cells → drawer → SignalModal (Level 3).
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,14 +15,7 @@ import ExpectedValueTab from "./edgelab/ExpectedValueTab";
 import CalendarHeatmapTab from "./edgelab/CalendarHeatmapTab";
 import HourDowHeatmapTab from "./edgelab/HourDowHeatmapTab";
 import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
-
-const SectionHeader = ({ label }) => (
-  <div className="flex items-center gap-3 my-6">
-    <div className="h-px flex-1 bg-gradient-to-r from-transparent to-gold-primary/40" />
-    <div className="text-[11px] tracking-[0.25em] text-gold-primary/80 font-mono">· {label} ·</div>
-    <div className="h-px flex-1 bg-gradient-to-l from-transparent to-gold-primary/40" />
-  </div>
-);
+import SignalModal from "./SignalModal";
 
 const TAB_ITEMS = [
   { id: "calibration", label: "Calibration" },
@@ -62,6 +57,7 @@ const EdgeLabPage = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("calibration");
   const [drillBucket, setDrillBucket] = useState(null);
+  const [selectedSignal, setSelectedSignal] = useState(null);
 
   const fetchData = useCallback(async (d, s) => {
     setLoading(true);
@@ -83,30 +79,51 @@ const EdgeLabPage = () => {
   const enrichmentPct = totals?.enrichment_pct ?? null;
   const corrPct = totals?.correlation_pct ?? null;
   const lowCoverage = enrichmentPct !== null && enrichmentPct < 30;
+  const resolved = totals?.signals_resolved ?? null;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
-      <SectionHeader label="EDGE LAB" />
-
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+    <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
+      {/* ═══ PAGE HEADER — mirrors Market Pulse (eyebrow + gradient title, left-aligned) ═══ */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/daily-performance")}
-              className="px-2.5 py-1.5 rounded-md border border-white/[0.08] text-white/55 hover:text-white hover:border-white/20 text-[10px] uppercase tracking-wider transition font-mono"
-              title="Back to Daily Performance"
-            >
-              ← Daily
-            </button>
-            <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">Edge Lab</h1>
+          <button
+            onClick={() => navigate("/daily-performance")}
+            className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-white/40 hover:text-white/75 transition mb-3"
+          >
+            ← Daily Performance
+          </button>
+
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/40 opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-primary/80" />
+            </span>
+            <span>Multi-Day Analytics</span>
           </div>
-          <p className="text-sm text-white/45 mt-1.5">
-            Multi-day analytics · pattern reliability, EV, timing, regime fit
+
+          <h1
+            className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
+            style={{
+              background: "linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 60%, rgba(212,168,83,0.85) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Edge Lab
+          </h1>
+
+          <p className="text-sm text-text-muted/70 mt-2">
+            Pattern reliability, expected value &amp; timing across{" "}
+            <span className="text-white/85 font-mono tabular-nums">
+              {resolved != null ? resolved.toLocaleString() : "—"}
+            </span>{" "}
+            resolved signals
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* controls */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
           <div className="flex items-center rounded-md overflow-hidden border border-white/[0.08]">
             {RANGE_OPTIONS.map((r) => (
               <button
@@ -142,10 +159,10 @@ const EdgeLabPage = () => {
             {loading ? "···" : "Refresh"}
           </button>
         </div>
-      </div>
+      </header>
 
       {error && (
-        <div className="rounded-lg p-5 mb-6 border border-red-500/20 bg-red-500/[0.03] text-sm text-red-300">
+        <div className="rounded-lg p-5 border border-red-500/20 bg-red-500/[0.03] text-sm text-red-300">
           <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-red-400/80 mb-1">· Error ·</div>
           {error}
         </div>
@@ -199,7 +216,7 @@ const EdgeLabPage = () => {
                 <span className="text-amber-300/90 font-mono uppercase tracking-wider text-[10px] mr-1.5">
                   Sparse enrichment ({enrichmentPct?.toFixed(0)}%)
                 </span>
-                Pattern-based tabs reflect only v3.0-tagged signals. Calendar & Timing remain fully accurate.
+                Pattern-based tabs reflect only v3.0-tagged signals. Calendar &amp; Timing remain fully accurate.
               </span>
             </div>
           )}
@@ -228,18 +245,27 @@ const EdgeLabPage = () => {
             {activeTab === "btc_heatmap" && <PatternBtcHeatmapTab data={data.pattern_btc_heatmap} />}
             {activeTab === "ev" && <ExpectedValueTab data={data.pattern_ev} />}
             {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
-            {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} />}
+            {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} onDrill={setDrillBucket} />}
           </div>
         </div>
       )}
 
-      {/* ─── Drill drawer — global, always mounted (renders null when no bucket) ─── */}
+      {/* ─── Level 2: drill drawer (global, renders null when no bucket) ─── */}
       <SignalDrillDrawer
         bucket={drillBucket}
         days={days}
         sector={sector}
         onClose={() => setDrillBucket(null)}
-        onOpenSignal={(signalId) => console.log("open signal", signalId)}
+        onOpenSignal={(signalId, signalObj) =>
+          setSelectedSignal(signalObj || { signal_id: signalId })
+        }
+      />
+
+      {/* ─── Level 3: full signal modal (same pattern as SignalsTable) ─── */}
+      <SignalModal
+        signal={selectedSignal}
+        isOpen={!!selectedSignal}
+        onClose={() => setSelectedSignal(null)}
       />
     </div>
   );

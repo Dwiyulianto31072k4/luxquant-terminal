@@ -4,9 +4,9 @@
 //   · Slides in from the right (portal → document.body, high z-index)
 //   · Fetches edgeLabApi.getDrill(bucket.dimension, bucket.key, days, sector)
 //   · Lists each signal: pair, outcome badge, peak%, resolved date
-//   · Row click → onOpenSignal(signalId)  (Level 3 = SignalModal, owned by parent)
+//   · Row click → onOpenSignal(signalId, signalObj)  (Level 3 = SignalModal)
 //
-// Used by all 5 tabs — only the bucket {dimension, key, label} differs.
+// Used by all tabs — only the bucket {dimension, key, label} differs.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -34,11 +34,25 @@ const OutcomeBadge = ({ outcome }) => {
 };
 
 const fmtPair = (pair) => (pair || "").replace(/USDT$/i, "");
+
 const fmtTime = (iso) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d)) return iso.slice(0, 10);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+// Peak gains can be enormous (memecoins +5000%). Keep rows readable:
+//   >= 1000 → +5.2k%   ·  >= 100 → +529%  ·  else → +12.3%
+const fmtPeak = (p) => {
+  if (p == null) return null;
+  const sign = p >= 0 ? "+" : "−";
+  const a = Math.abs(p);
+  let body;
+  if (a >= 1000) body = `${(a / 1000).toFixed(1)}k`;
+  else if (a >= 100) body = Math.round(a).toLocaleString();
+  else body = a.toFixed(1);
+  return `${sign}${body}%`;
 };
 
 const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
@@ -64,7 +78,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
       const res = await edgeLabApi.getDrill(bucket.dimension, bucket.key, days, sector);
       setPayload(res);
     } catch (err) {
-      setError(err?.response?.data?.detail || err?.message || "Failed to load signals");
+      setError(err?.response?.data?.detail || err?.message || "Couldn't load these signals — try again.");
     } finally {
       setLoading(false);
     }
@@ -146,7 +160,8 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
           {!loading && !error && signals.length > 0 && (
             <div className="p-3 space-y-1.5">
               {signals.map((s) => {
-                const peak = s.peak_pct;
+                const peak = fmtPeak(s.peak_pct);
+                const peakPos = (s.peak_pct ?? 0) >= 0;
                 return (
                   <button
                     key={s.signal_id}
@@ -161,9 +176,9 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
                       </div>
                       <div className="text-[10px] font-mono text-white/35 mt-0.5">{fmtTime(s.hit_date)}</div>
                     </div>
-                    {peak != null && (
-                      <span className={`font-mono tabular-nums text-sm shrink-0 ${peak >= 0 ? "text-emerald-400/90" : "text-red-400/90"}`}>
-                        {peak >= 0 ? "+" : ""}{peak.toFixed(1)}%
+                    {peak && (
+                      <span className={`font-mono tabular-nums text-sm shrink-0 ${peakPos ? "text-emerald-400/90" : "text-red-400/90"}`}>
+                        {peak}
                       </span>
                     )}
                     <span className="text-white/20 group-hover:text-gold-primary/60 transition text-xs shrink-0">›</span>
