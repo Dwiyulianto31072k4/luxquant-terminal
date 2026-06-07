@@ -40,6 +40,7 @@ from app.api.routes import ai_arena_v6
 from app.api.routes import enrichment_v3
 from app.api.routes import btc_correlation
 from app.api.routes.autotrade import router as autotrade_router
+from app.api.routes.autotrade_auth import router as autotrade_auth_router 
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
@@ -153,6 +154,7 @@ app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")
 app.include_router(api_keys.router, prefix="/api/v1", tags=["api-keys"])
 app.include_router(discord_auth_router, prefix="/api/v1")
+app.include_router(autotrade_auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1", tags=["admin"])
 app.include_router(admin_cashout_router, prefix="/api/v1", tags=["admin-cashout"])
 app.include_router(admin_api_keys_router, prefix="/api/v1", tags=["admin-api-keys"])
