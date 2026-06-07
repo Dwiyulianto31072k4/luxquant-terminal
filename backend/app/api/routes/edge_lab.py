@@ -488,7 +488,7 @@ async def get_edge_lab_drill(
         )
     """
 
-    select_cols = "sc.signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at"
+    select_cols = "sc.signal_id::text AS signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at"
     order_by = (
         "ORDER BY (sc.outcome = 'sl') ASC, sc.peak_pct DESC NULLS LAST, sc.hit_date DESC "
         "LIMIT :limit"
