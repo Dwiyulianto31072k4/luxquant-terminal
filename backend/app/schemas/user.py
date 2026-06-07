@@ -188,6 +188,7 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: UserResponse
+    cryptobot_token: Optional[str] = None
 
 
 class MessageResponse(BaseModel):

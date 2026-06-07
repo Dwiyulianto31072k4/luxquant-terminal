@@ -31,7 +31,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import create_tokens
+from app.core.security import create_cryptobot_exchange_token, create_tokens
 from app.models.user import User
 from app.schemas.user import UserResponse
 from app.api.deps import get_current_user
@@ -246,6 +246,7 @@ async def discord_callback(
     track_user_login(db, user, commit=True)
 
     tokens = create_tokens(user.id, user.email)
+    cryptobot_token = create_cryptobot_exchange_token(user.id, user.email)
 
     user_response = UserResponse.model_validate(user)
     user_json = quote(json.dumps(user_response.model_dump(mode="json")))
@@ -256,6 +257,9 @@ async def discord_callback(
         f"&refresh_token={tokens['refresh_token']}"
         f"&user={user_json}"
     )
+    if cryptobot_token:
+        redirect_url += f"&cryptobot_token={cryptobot_token}"
+
     return RedirectResponse(redirect_url)
 
 

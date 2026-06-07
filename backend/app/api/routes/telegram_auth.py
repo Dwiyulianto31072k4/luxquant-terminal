@@ -24,7 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import create_tokens
+from app.core.security import create_cryptobot_exchange_token, create_tokens
 from app.models.user import User
 from app.schemas.user import (
     TelegramLogin,
@@ -165,7 +165,8 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
     return TokenResponse(
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
-        user=UserResponse.model_validate(user)
+        user=UserResponse.model_validate(user),
+        cryptobot_token=create_cryptobot_exchange_token(user.id, user.email)
     )
 
 

@@ -6,7 +6,7 @@ import {
   AUTOTRADE_REDIRECT_KEY,
   AUTOTRADE_REFRESH_TOKEN_KEY,
   AUTOTRADE_TOKEN_KEY,
-  LUXQUANT_CRYPTOBOT_TOKEN_KEY,
+  syncCryptobotAuth,
 } from "../../services/autotradeApi";
 
 const GoogleCallback = () => {
@@ -84,7 +84,7 @@ const GoogleCallback = () => {
       localStorage.setItem("refresh_token", refreshToken);
 
       if (cryptobotToken) {
-        localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, cryptobotToken);
+        syncCryptobotAuth(cryptobotToken);
       }
 
       if (userStr) {

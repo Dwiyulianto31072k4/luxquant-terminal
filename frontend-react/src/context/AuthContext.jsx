@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../services/authApi';
-import { clearAutotradeAuth, LUXQUANT_CRYPTOBOT_TOKEN_KEY } from '../services/autotradeApi';
+import { clearAutotradeAuth, syncCryptobotAuth } from '../services/autotradeApi';
 import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 
 const AuthContext = createContext(null);
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('access_token', result.access_token);
             localStorage.setItem('refresh_token', result.refresh_token);
             if (result.cryptobot_token) {
-              localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, result.cryptobot_token);
+              await syncCryptobotAuth(result.cryptobot_token);
             }
 
             // Clear pending ref setelah login sukses
@@ -182,7 +182,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('access_token', result.access_token);
           localStorage.setItem('refresh_token', result.refresh_token);
           if (result.cryptobot_token) {
-            localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, result.cryptobot_token);
+            await syncCryptobotAuth(result.cryptobot_token);
           }
 
           // Clear pending ref setelah login sukses

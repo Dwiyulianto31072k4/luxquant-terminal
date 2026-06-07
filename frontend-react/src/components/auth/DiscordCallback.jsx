@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { clearStoredRef } from '../../utils/referralStorage';
-import { LUXQUANT_CRYPTOBOT_TOKEN_KEY } from '../../services/autotradeApi';
+import { syncCryptobotAuth } from '../../services/autotradeApi';
 
 const DiscordCallback = () => {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const DiscordCallback = () => {
       localStorage.setItem('access_token', token);
       localStorage.setItem('refresh_token', refreshToken);
       if (cryptobotToken) {
-        localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, cryptobotToken);
+        syncCryptobotAuth(cryptobotToken);
       }
 
       if (userStr) {

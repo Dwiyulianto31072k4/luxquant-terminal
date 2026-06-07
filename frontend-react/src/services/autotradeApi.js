@@ -1,7 +1,7 @@
 const API_BASE =
   import.meta.env.VITE_AUTOTRADE_API_URL ||
   import.meta.env.VITE_AUTOTRADE_URL ||
-  "http://api.cryptobot.id";
+  "https://api.cryptobot.id";
 
 export const AUTOTRADE_TOKEN_KEY = "autotrade_access_token";
 export const AUTOTRADE_REFRESH_TOKEN_KEY = "autotrade_refresh_token";
@@ -37,14 +37,20 @@ export function clearAutotradeAuth() {
   localStorage.removeItem("autotrade_bearer_token");
 }
 
+export function storeLuxquantCryptobotToken(luxquantToken) {
+  if (luxquantToken) {
+    localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, luxquantToken);
+  }
+}
+
 function buildUrl(path) {
   if (/^https?:\/\//i.test(path)) return path;
   return `${API_BASE}${path}`;
 }
 
-async function request(path, { method = "GET", body } = {}) {
+async function request(path, { method = "GET", body, skipAuth = false } = {}) {
   const headers = {};
-  const token = getToken();
+  const token = skipAuth ? "" : getToken();
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -91,6 +97,7 @@ export async function exchangeLuxquantToken(luxquantToken) {
   const data = await request("/auth/luxquant", {
     method: "POST",
     body: { token: luxquantToken },
+    skipAuth: true,
   });
 
   if (!data?.access_token) {
@@ -98,7 +105,21 @@ export async function exchangeLuxquantToken(luxquantToken) {
   }
 
   storeAutotradeAuth(data.access_token, data.refresh_token || null);
+  localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
   return data;
+}
+
+export async function syncCryptobotAuth(luxquantToken) {
+  if (!luxquantToken) return null;
+
+  storeLuxquantCryptobotToken(luxquantToken);
+
+  try {
+    return await exchangeLuxquantToken(luxquantToken);
+  } catch (error) {
+    console.warn("Cryptobot token exchange failed:", error);
+    return null;
+  }
 }
 
 // Health
