@@ -424,6 +424,46 @@ async def get_edge_lab(
         "win_rate": _wr(int(r[3]), int(r[2])),
     } for r in hour_dow_rows]
 
+    # ─── Q6: Coin leaderboard — per-coin WR + peak-potential (n >= 10) ───
+    coin_rows = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        scoped AS (
+            SELECT r.signal_id, r.outcome, r.hit_date,
+                   s.pair, s.peak_pct, c.sector
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            LEFT JOIN coins c ON c.pair = s.pair
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+            {sector_clause}
+        )
+        SELECT
+            pair,
+            MAX(sector) AS sector,
+            COUNT(*) AS n,
+            COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY peak_pct)
+                FILTER (WHERE peak_pct IS NOT NULL) AS median_peak,
+            AVG(peak_pct) FILTER (WHERE peak_pct IS NOT NULL) AS avg_peak,
+            MAX(peak_pct) AS best_peak,
+            MAX(hit_date)::text AS last_signal
+        FROM scoped
+        GROUP BY pair
+        HAVING COUNT(*) >= 10
+        ORDER BY median_peak DESC NULLS LAST
+        LIMIT 250
+    """), params).fetchall()
+    coin_leaderboard = [{
+        "pair": r[0],
+        "sector": r[1] or "uncategorized",
+        "count": int(r[2]),
+        "wins": int(r[3]),
+        "win_rate": _wr(int(r[3]), int(r[2])),
+        "median_peak": _safe_float(r[4]),
+        "avg_peak": _safe_float(r[5]),
+        "best_peak": _safe_float(r[6]),
+        "last_signal": r[7],
+    } for r in coin_rows]
+
     # ─── Assemble & cache ───
     response = {
         "date_range": {"start": start_str, "end": end_str, "days": days},
@@ -434,6 +474,7 @@ async def get_edge_lab(
         "calendar_wr": calendar_wr,
         "pattern_calibration": pattern_calibration,
         "hour_dow_heatmap": hour_dow_heatmap,
+        "coin_leaderboard": coin_leaderboard,
     }
 
     cache_set(cache_key, response, ttl=600)
@@ -456,7 +497,7 @@ async def get_edge_lab_drill(
     """Return the individual signals inside one Edge Lab bucket."""
     if days not in (7, 30, 90):
         raise HTTPException(status_code=400, detail="days must be 7, 30, or 90")
-    if dimension not in ("calendar_day", "timing_cell", "pattern", "pattern_btc"):
+    if dimension not in ("calendar_day", "timing_cell", "pattern", "pattern_btc", "coin"):
         raise HTTPException(status_code=400, detail="invalid dimension")
 
     end_date = datetime.utcnow().date()
@@ -494,7 +535,17 @@ async def get_edge_lab_drill(
         "LIMIT :limit"
     )
 
-    if dimension == "calendar_day":
+    if dimension == "coin":
+        params["pair"] = key
+        sql = f"""
+            WITH {OUTCOMES_CTE},
+            {scoped_cte}
+            SELECT {select_cols}
+            FROM scoped sc
+            WHERE sc.pair = :pair
+            {order_by}
+        """
+    elif dimension == "calendar_day":
         params["day"] = key
         sql = f"""
             WITH {OUTCOMES_CTE},

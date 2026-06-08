@@ -59,11 +59,12 @@ done
 # ============================================
 echo ""
 echo "🔍 [4/5] Verifikasi worker count..."
-WORKER_COUNT=$(pgrep -f "uvicorn app.main:app" | wc -l)
-PARENT_COUNT=$(pgrep -f "uvicorn app.main:app" -P 1 | wc -l)
+MASTER_PID=$(pgrep -f "uvicorn app.main:app" | head -1)
+WORKER_COUNT=$(pgrep -P "$MASTER_PID" | xargs -r ps -o cmd= -p | grep -c "multiprocessing-fork")
+PARENT_COUNT=$([ -n "$MASTER_PID" ] && echo 1 || echo 0)
 
-echo "   → Parent process: $PARENT_COUNT (expected: 1)"
-echo "   → Total uvicorn processes: $WORKER_COUNT (expected: 5 = 1 parent + 4 workers)"
+echo "   → Master process: $PARENT_COUNT (expected: 1, PID=$MASTER_PID)"
+echo "   → Worker count: $WORKER_COUNT (expected: 4)"
 
 if [ "$PARENT_COUNT" -ne 1 ]; then
     echo "   ⚠️  WARNING: Ada lebih dari 1 parent uvicorn!"
