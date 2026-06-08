@@ -3,12 +3,17 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import os
+import time
 
 # ============ Config ============
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "luxquant-secret-key-change-in-production-123")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+LUXQUANT_JWT_SECRET = os.getenv("LUXQUANT_JWT_SECRET", "")
+LUXQUANT_CRYPTOBOT_TOKEN_EXPIRE_SECONDS = int(
+    os.getenv("LUXQUANT_CRYPTOBOT_TOKEN_EXPIRE_SECONDS", "3600")
+)
 
 # ============ Password Hashing ============
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -57,3 +62,18 @@ def create_tokens(user_id: int, email: str) -> dict:
         "access_token": create_access_token(token_data),
         "refresh_token": create_refresh_token(token_data)
     }
+
+
+def create_cryptobot_exchange_token(user_id: int, email: str) -> Optional[str]:
+    """Generate short-lived LuxQuant JWT for Cryptobot token exchange."""
+    if not LUXQUANT_JWT_SECRET:
+        return None
+
+    issued_at = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "iat": issued_at,
+        "exp": issued_at + LUXQUANT_CRYPTOBOT_TOKEN_EXPIRE_SECONDS,
+    }
+    return jwt.encode(payload, LUXQUANT_JWT_SECRET, algorithm=ALGORITHM)

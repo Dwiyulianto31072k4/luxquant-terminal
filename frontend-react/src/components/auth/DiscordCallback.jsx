@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { clearStoredRef } from '../../utils/referralStorage';
+import { syncCryptobotAuth } from '../../services/autotradeApi';
 
 const DiscordCallback = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const DiscordCallback = () => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     const refreshToken = params.get('refresh_token');
+    const cryptobotToken = params.get('cryptobot_token');
     const userStr = params.get('user');
     const error = params.get('error');
 
@@ -25,6 +27,9 @@ const DiscordCallback = () => {
     if (token && refreshToken) {
       localStorage.setItem('access_token', token);
       localStorage.setItem('refresh_token', refreshToken);
+      if (cryptobotToken) {
+        syncCryptobotAuth(cryptobotToken);
+      }
 
       if (userStr) {
         try {

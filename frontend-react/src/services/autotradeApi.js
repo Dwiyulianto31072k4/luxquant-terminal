@@ -1,94 +1,180 @@
-// src/services/autotradeApi.js
-// ============================================================
-// LuxQuant Terminal — AutoTrade API client
-// Wraps all 18 backend endpoints under /api/v1/autotrade
-// ============================================================
+const API_BASE =
+  import.meta.env.VITE_AUTOTRADE_API_URL ||
+  import.meta.env.VITE_AUTOTRADE_URL ||
+  "https://api.cryptobot.id";
 
-const BASE = "/api/v1/autotrade";
+export const AUTOTRADE_TOKEN_KEY = "autotrade_access_token";
+export const AUTOTRADE_REFRESH_TOKEN_KEY = "autotrade_refresh_token";
+export const AUTOTRADE_REDIRECT_KEY = "autotrade_post_login_redirect";
+export const CRYPTOBOT_TOKEN_KEY = "cryptobot_token";
+export const LUXQUANT_CRYPTOBOT_TOKEN_KEY = "luxquant_cryptobot_token";
 
 function getToken() {
-  return localStorage.getItem("access_token") || "";
+  return (
+    localStorage.getItem(AUTOTRADE_TOKEN_KEY) ||
+    localStorage.getItem(CRYPTOBOT_TOKEN_KEY) ||
+    localStorage.getItem("autotrade_bearer_token") ||
+    ""
+  );
 }
 
-async function request(path, { method = "GET", body, params } = {}) {
-  const url = new URL(`${BASE}${path}`, window.location.origin);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, v);
-    });
+export function storeAutotradeAuth(accessToken, refreshToken = null) {
+  localStorage.setItem(AUTOTRADE_TOKEN_KEY, accessToken);
+  localStorage.setItem(CRYPTOBOT_TOKEN_KEY, accessToken);
+
+  if (refreshToken) {
+    localStorage.setItem(AUTOTRADE_REFRESH_TOKEN_KEY, refreshToken);
+  } else {
+    localStorage.removeItem(AUTOTRADE_REFRESH_TOKEN_KEY);
+  }
+}
+
+export function clearAutotradeAuth() {
+  localStorage.removeItem(AUTOTRADE_TOKEN_KEY);
+  localStorage.removeItem(AUTOTRADE_REFRESH_TOKEN_KEY);
+  localStorage.removeItem(CRYPTOBOT_TOKEN_KEY);
+  localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
+  localStorage.removeItem("autotrade_bearer_token");
+}
+
+export function storeLuxquantCryptobotToken(luxquantToken) {
+  if (luxquantToken) {
+    localStorage.setItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY, luxquantToken);
+  }
+}
+
+function buildUrl(path) {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path}`;
+}
+
+async function request(path, { method = "GET", body, skipAuth = false } = {}) {
+  const headers = {};
+  const token = skipAuth ? "" : getToken();
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
 
-  const resp = await fetch(url.pathname + url.search, {
+  const response = await fetch(buildUrl(path), {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (!resp.ok) {
-    let detail = "Request failed";
+  if (!response.ok) {
+    let detail = `Request failed (${response.status})`;
+
     try {
-      const err = await resp.json();
-      detail = err.detail || err.error || detail;
-    } catch {}
+      const errorBody = await response.json();
+
+      if (Array.isArray(errorBody?.detail)) {
+        detail = errorBody.detail
+          .map((item) => item?.msg || item?.message || "Validation error")
+          .join(", ");
+      } else if (typeof errorBody?.detail === "string") {
+        detail = errorBody.detail;
+      }
+    } catch {
+      detail = response.statusText || detail;
+    }
+
     throw new Error(detail);
   }
 
-  if (resp.status === 204) return null;
-  return resp.json();
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
 }
 
-// ============================================================
-// Exchange metadata
-// ============================================================
-export const listSupportedExchanges = () => request("/exchanges");
-
-// ============================================================
-// Accounts
-// ============================================================
-export const listAccounts = () => request("/accounts");
-export const getAccount = (id) => request(`/accounts/${id}`);
-export const createAccount = (data) => request("/accounts", { method: "POST", body: data });
-export const updateAccount = (id, data) => request(`/accounts/${id}`, { method: "PUT", body: data });
-export const deleteAccount = (id) => request(`/accounts/${id}`, { method: "DELETE" });
-export const testAccountConnection = (id) => request(`/accounts/${id}/test`, { method: "POST" });
-export const fetchAccountBalance = (id) => request(`/accounts/${id}/balance`);
-
-// ============================================================
-// Config
-// ============================================================
-export const getConfig = (accountId) => request(`/config/${accountId}`);
-export const updateConfig = (accountId, data) =>
-  request(`/config/${accountId}`, { method: "PUT", body: data });
-export const toggleConfig = (accountId, enabled) =>
-  request(`/config/${accountId}/toggle`, { method: "POST", body: { enabled } });
-
-// ============================================================
-// Trade orders
-// ============================================================
-export const listOrders = (filters = {}) => request("/orders", { params: filters });
-export const getOrder = (id) => request(`/orders/${id}`);
-export const getOrderLogs = (id, limit = 50) =>
-  request(`/orders/${id}/logs`, { params: { limit } });
-export const closeOrderManually = (id, reason = "manual") =>
-  request(`/orders/${id}/close`, { method: "POST", body: { reason } });
-
-// ============================================================
-// Portfolio
-// ============================================================
-export const getPortfolioSummary = () => request("/portfolio/summary");
-export const getPortfolioByExchange = () => request("/portfolio/by-exchange");
-export const getDailyPnl = (days = 30, exchangeAccountId) =>
-  request("/portfolio/daily-pnl", {
-    params: { days, exchange_account_id: exchangeAccountId },
+export async function exchangeLuxquantToken(luxquantToken) {
+  const data = await request("/auth/luxquant", {
+    method: "POST",
+    body: { token: luxquantToken },
+    skipAuth: true,
   });
 
-// ============================================================
-// Engine
-// ============================================================
-export const getEngineStatus = () => request("/engine/status");
+  if (!data?.access_token) {
+    throw new Error("Cryptobot did not return an access token");
+  }
 
-export const getOrderPnLCard = (orderId) => request(`/orders/${orderId}/pnl-card`);
+  storeAutotradeAuth(data.access_token, data.refresh_token || null);
+  localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
+  return data;
+}
+
+export async function syncCryptobotAuth(luxquantToken) {
+  if (!luxquantToken) return null;
+
+  storeLuxquantCryptobotToken(luxquantToken);
+
+  try {
+    return await exchangeLuxquantToken(luxquantToken);
+  } catch (error) {
+    console.warn("Cryptobot token exchange failed:", error);
+    return null;
+  }
+}
+
+// Health
+export const getHealth = () => request("/health");
+
+// User
+export const getMe = () => request("/me");
+
+// Exchange Accounts
+export const saveBinanceKeys = (payload) =>
+  request("/me/exchange-accounts/binance", {
+    method: "PUT",
+    body: payload,
+  });
+
+export const checkBinanceKeys = () =>
+  request("/me/exchange-accounts/binance/check", {
+    method: "POST",
+  });
+
+// Portfolio
+export const getPortfolio = () =>
+  request("/me/portfolio");
+
+// Strategy Configs
+export const getStrategyConfigs = () =>
+  request("/me/strategy-configs");
+
+export const updateBinanceStrategyConfig = (payload) =>
+  request("/me/strategy-configs/binance", {
+    method: "PUT",
+    body: payload,
+  });
+
+export const setBinanceStrategyActive = (active) =>
+  request("/me/strategy-configs/binance/active", {
+    method: "PUT",
+    body: { active },
+  });
+
+// Signals
+export const getSignals = () =>
+  request("/signals");
+
+export const parseSignalPreview = (text) =>
+  request("/signals/parse-preview", {
+    method: "POST",
+    body: { text },
+  });
+
+// Executions
+export const getExecutions = () =>
+  request("/executions");
+
+export const retryExecution = (executionId) =>
+  request(`/executions/${executionId}/retry`, {
+    method: "POST",
+  });

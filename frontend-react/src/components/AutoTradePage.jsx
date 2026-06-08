@@ -1,424 +1,413 @@
-// src/components/AutoTradePage.jsx
-// ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — AutoTrade Page v2 (Flowscan reskin)
-// Container: header + engine status + PnL summary + tabs + content
-// ════════════════════════════════════════════════════════════════
-
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  listAccounts,
-  listOrders,
-  getEngineStatus,
+  AUTOTRADE_TOKEN_KEY,
+  CRYPTOBOT_TOKEN_KEY,
+  LUXQUANT_CRYPTOBOT_TOKEN_KEY,
+  clearAutotradeAuth,
+  exchangeLuxquantToken,
+  getExecutions,
+  getHealth,
+  getMe,
+  getPortfolio,
+  getSignals,
+  getStrategyConfigs,
 } from "../services/autotradeApi";
+import { authApi } from "../services/authApi";
 
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
-import AccountCard from "./autotrade/AccountCard";
-import ConfigPanel from "./autotrade/ConfigPanel";
-import PositionCard from "./autotrade/PositionCard";
+import AccountsOverview from "./autotrade/AccountsOverview";
+import ConfigurationStudio from "./autotrade/ConfigurationStudio";
+import PositionsBoard from "./autotrade/PositionsBoard";
 import SignalsQueue from "./autotrade/SignalsQueue";
+import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
 
 const TABS = [
   { id: "accounts", label: "Accounts" },
   { id: "config", label: "Configure" },
   { id: "positions", label: "Positions" },
-  { id: "queue", label: "Signals Queue" },
+  { id: "history", label: "Executions" },
+  { id: "signals", label: "Signals" },
 ];
 
-
-// ════════════════════════════════════════════════════════════════
-// SECTION HEADER
-// ════════════════════════════════════════════════════════════════
-const SectionHeader = ({ label, small = false }) => (
-  <div className="flex items-center gap-3">
-    <span className="h-px w-8 bg-gold-primary/40" />
-    <span
-      className={`font-mono uppercase tracking-[0.25em] text-gold-primary/80 ${
-        small ? "text-[10px]" : "text-[11px]"
-      }`}
-    >
-      {label}
-    </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
-  </div>
-);
-
-
-// ════════════════════════════════════════════════════════════════
-// ENGINE STATUS STRIP
-// ════════════════════════════════════════════════════════════════
-const EngineStatusStrip = ({ engineStatus }) => {
-  if (!engineStatus) return null;
-  const running = engineStatus.running;
-
+function getStoredAutotradeToken() {
   return (
-    <div className={`relative overflow-hidden rounded-md border ${
-      running
-        ? "bg-emerald-500/[0.04] border-emerald-500/20"
-        : "bg-red-500/[0.04] border-red-500/20"
-    }`}>
-      <div className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
-        running ? "via-emerald-500/40" : "via-red-500/40"
-      } to-transparent`} />
-      <div className="relative px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div className="flex items-center gap-2.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            running ? "bg-emerald-400 animate-pulse" : "bg-red-400"
-          }`} />
-          <span className={`font-mono text-[11px] uppercase tracking-[0.2em] font-semibold ${
-            running ? "text-emerald-400" : "text-red-400"
-          }`}>
-            Engine {running ? "Active" : "Stopped"}
-          </span>
-        </div>
-
-        <Divider />
-
-        <StatusItem
-          label="Enabled"
-          value={engineStatus.enabled_configs ?? 0}
-          unit="config"
-        />
-        <StatusItem
-          label="Monitored"
-          value={engineStatus.open_positions_monitored ?? 0}
-          unit="position"
-        />
-      </div>
-    </div>
+    localStorage.getItem(AUTOTRADE_TOKEN_KEY) ||
+    localStorage.getItem(CRYPTOBOT_TOKEN_KEY)
   );
-};
+}
 
-const Divider = () => <span className="hidden sm:inline h-3 w-px bg-white/[0.08]" />;
-
-const StatusItem = ({ label, value, unit }) => (
-  <div className="flex items-center gap-2 font-mono text-[11px]">
-    <span className="text-text-muted/70 uppercase tracking-[0.15em] text-[10px]">{label}</span>
-    <span className="text-white tabular-nums font-semibold">{value}</span>
-    {unit && (
-      <span className="text-text-muted/60 lowercase">
-        {unit}{value === 1 ? "" : "s"}
-      </span>
-    )}
-  </div>
-);
-
-
-// ════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ════════════════════════════════════════════════════════════════
-export default function AutoTradePage() {
-  const [tab, setTab] = useState("accounts");
-  const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showConnect, setShowConnect] = useState(false);
-  const [configuring, setConfiguring] = useState(null);
-  const [positions, setPositions] = useState([]);
-  const [engineStatus, setEngineStatus] = useState(null);
-
-  const loadAccounts = async () => {
-    try {
-      const r = await listAccounts();
-      setAccounts(r.accounts || []);
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-
-  const loadPositions = async () => {
-    try {
-      const r = await listOrders({ status: "filled", page_size: 50 });
-      const r2 = await listOrders({ status: "partial", page_size: 50 });
-      setPositions([...(r.orders || []), ...(r2.orders || [])]);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const loadEngineStatus = async () => {
-    try {
-      const r = await getEngineStatus();
-      setEngineStatus(r);
-    } catch {}
-  };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await Promise.all([loadAccounts(), loadPositions(), loadEngineStatus()]);
-      setLoading(false);
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (tab !== "positions") return;
-    const t = setInterval(loadPositions, 20000);
-    return () => clearInterval(t);
-  }, [tab]);
-
-  const handleConnect = async () => {
-    await loadAccounts();
-    setTab("accounts");
-  };
-
-  const handleDeleted = (id) => {
-    setAccounts((acc) => acc.filter((a) => a.id !== id));
-  };
-
-  const handleConfigure = (account) => {
-    setConfiguring(account);
-    setTab("config");
-  };
+function resolveLuxquantCryptobotToken(payload) {
+  if (typeof payload === "string") return payload;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
-      {/* ── Section Header ── */}
-      <SectionHeader label="AutoTrade" />
+    payload?.cryptobot_token ||
+    payload?.token ||
+    payload?.luxquant_token ||
+    payload?.jwt ||
+    ""
+  );
+}
 
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
-            AutoTrade
-          </h1>
-          <p className="text-text-muted text-sm mt-1.5 font-mono">
-            {accounts.length} exchange{accounts.length === 1 ? "" : "s"} connected
-            <span className="text-text-muted/40"> · </span>
-            {positions.length} open position{positions.length === 1 ? "" : "s"}
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowConnect(true)}
-          className="group inline-flex items-center gap-2 px-4 py-2 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-          style={{
-            background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-          }}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Connect Exchange
-        </button>
-      </div>
-
-      {/* ── Engine Status Strip ── */}
-      <EngineStatusStrip engineStatus={engineStatus} />
-
-      {/* ── PnL Summary (4 stat cards) ── */}
-      <PnLSummary />
-
-      {/* ── Tabs (flat hairline) ── */}
-      <div className="flex items-center gap-1 border-b border-white/[0.06]">
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] transition-colors ${
-                active
-                  ? "text-gold-primary"
-                  : "text-text-muted hover:text-white"
-              }`}
-            >
-              {t.label}
-              {active && (
-                <span className="absolute bottom-0 inset-x-2 h-px bg-gold-primary" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Error message ── */}
-      {error && (
-        <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-3">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-          <p className="text-[11px] font-mono text-red-400">{error}</p>
-        </div>
-      )}
-
-      {/* ── Tab Content ── */}
-      <div className="pt-2">
-        {loading ? (
-          <LoadingState />
-        ) : (
-          <>
-            {/* ── Accounts tab ── */}
-            {tab === "accounts" && (
-              <>
-                {accounts.length === 0 ? (
-                  <EmptyAccountsState onConnect={() => setShowConnect(true)} />
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {accounts.map((a) => (
-                      <AccountCard
-                        key={a.id}
-                        account={a}
-                        onDelete={handleDeleted}
-                        onConfigure={handleConfigure}
-                        onUpdate={loadAccounts}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* ── Config tab ── */}
-            {tab === "config" && (
-              <>
-                {!configuring ? (
-                  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-6">
-                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-                    {accounts.length === 0 ? (
-                      <p className="text-text-muted text-sm text-center font-mono">
-                        Connect an exchange first to configure autotrade settings.
-                      </p>
-                    ) : (
-                      <div>
-                        <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-text-muted mb-3">
-                          Select an account
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          {accounts.map((a) => (
-                            <button
-                              key={a.id}
-                              onClick={() => setConfiguring(a)}
-                              className="group relative overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-gold-primary/30 rounded-md p-3.5 text-left transition-all"
-                            >
-                              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/0 group-hover:via-gold-primary/40 to-transparent transition-all" />
-                              <p className="text-white font-mono text-sm font-semibold capitalize">
-                                {a.exchange_id}
-                                <span className="text-text-muted/50 mx-1.5">·</span>
-                                <span className="text-text-muted">{a.label || "Unnamed"}</span>
-                              </p>
-                              <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/70 mt-1.5">
-                                {a.trading_mode}
-                                <span className="mx-1.5 text-text-muted/30">·</span>
-                                {a.is_testnet ? "Testnet" : "Live"}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <ConfigPanel
-                    account={configuring}
-                    onClose={() => setConfiguring(null)}
-                  />
-                )}
-              </>
-            )}
-
-            {/* ── Positions tab ── */}
-            {tab === "positions" && (
-              <>
-                {positions.length === 0 ? (
-                  <EmptyPositionsState />
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {positions.map((p) => (
-                      <PositionCard
-                        key={p.id}
-                        order={p}
-                        onClosed={() => loadPositions()}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* ── Signals queue tab ── */}
-            {tab === "queue" && <SignalsQueue />}
-          </>
-        )}
-      </div>
-
-      {/* ── Modal ── */}
-      <ExchangeConnectModal
-        isOpen={showConnect}
-        onClose={() => setShowConnect(false)}
-        onSuccess={handleConnect}
-      />
+function SectionHeader({ label }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-px w-8 bg-gold-primary/40" />
+      <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
+        {label}
+      </span>
+      <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
     </div>
   );
 }
 
+function EngineStatusStrip({ health, config }) {
+  if (!health) return null;
 
-// ════════════════════════════════════════════════════════════════
-// LOADING / EMPTY STATES
-// ════════════════════════════════════════════════════════════════
-const LoadingState = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-    {[...Array(3)].map((_, i) => (
-      <div
-        key={i}
-        className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-5"
-      >
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/20 to-transparent" />
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-md bg-white/[0.04] animate-pulse" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 bg-white/[0.05] rounded w-1/2 animate-pulse" />
-            <div className="h-2.5 bg-white/[0.03] rounded w-3/4 animate-pulse" />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {[...Array(3)].map((_, j) => (
-            <div key={j} className="bg-white/[0.02] rounded p-2.5 space-y-1.5">
-              <div className="h-2 bg-white/[0.04] rounded w-2/3 animate-pulse" />
-              <div className="h-3 bg-white/[0.06] rounded w-3/4 animate-pulse" />
-            </div>
-          ))}
-        </div>
-        <div className="h-20 bg-white/[0.02] rounded animate-pulse mb-3" />
-        <div className="flex gap-2">
-          <div className="h-8 flex-1 bg-white/[0.03] rounded animate-pulse" />
-          <div className="h-8 flex-1 bg-white/[0.03] rounded animate-pulse" />
-          <div className="h-8 w-10 bg-white/[0.03] rounded animate-pulse" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
+  const active = Boolean(config?.is_active);
 
-const EmptyAccountsState = ({ onConnect }) => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="w-14 h-14 mx-auto mb-4 rounded-md border border-gold-primary/20 flex items-center justify-center">
-      <svg className="w-6 h-6 text-gold-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-      </svg>
-    </div>
-    <p className="text-white text-base font-medium mb-1.5">No exchanges connected</p>
-    <p className="text-text-muted text-xs font-mono uppercase tracking-[0.15em] mb-5 max-w-md mx-auto leading-relaxed">
-      Connect your first exchange to start auto-trading signals · Use Trade-only API keys for security
-    </p>
-    <button
-      onClick={onConnect}
-      className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-mono text-[11px] uppercase tracking-[0.2em] text-black transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(212,168,83,0.3)]"
-      style={{
-        background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-      }}
+  return (
+    <div
+      className={`rounded-md border px-4 py-3 ${
+        active
+          ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+          : "border-gold-primary/20 bg-gold-primary/[0.04]"
+      }`}
     >
-      Connect Exchange
-      <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
-    </button>
-  </div>
-);
+      <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono uppercase tracking-[0.15em]">
+        <span className={active ? "text-emerald-400" : "text-gold-primary"}>
+          Strategy {active ? "Active" : "Paused"}
+        </span>
+        <span className="text-text-muted">Mode {health.trading_mode || "-"}</span>
+        <span className="text-text-muted">
+          Binance {health.binance_environment || "-"}
+        </span>
+        <span className="text-text-muted">
+          Market {health.market_data_market || "-"}
+        </span>
+      </div>
+    </div>
+  );
+}
 
-const EmptyPositionsState = () => (
-  <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <p className="text-white text-sm font-medium mb-1">No open positions</p>
-    <p className="text-text-muted text-[10px] font-mono uppercase tracking-[0.2em]">
-      Positions will appear here when autotrade executes signals
-    </p>
-  </div>
-);
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {[1, 2, 3].map((item) => (
+        <div
+          key={item}
+          className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5"
+        >
+          <div className="h-3 w-24 animate-pulse rounded bg-white/[0.05]" />
+          <div className="mt-4 h-8 w-2/3 animate-pulse rounded bg-white/[0.06]" />
+          <div className="mt-3 h-16 animate-pulse rounded bg-white/[0.03]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
+  return (
+    <div className="rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-6">
+      <div className="max-w-2xl space-y-3">
+        <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary">
+          AutoTrade Setup
+        </p>
+        <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
+        <p className="text-sm leading-6 text-text-muted">{body}</p>
+        <button
+          onClick={onAction}
+          disabled={disabled}
+          className="rounded-md px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-black disabled:opacity-40"
+          style={{
+            background:
+              "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+          }}
+        >
+          {actionLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AutoTradePage() {
+  const [tab, setTab] = useState("accounts");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [authActionLoading, setAuthActionLoading] = useState(false);
+  const [showConnect, setShowConnect] = useState(false);
+  const [health, setHealth] = useState(null);
+  const [meData, setMeData] = useState(null);
+  const [portfolio, setPortfolio] = useState(null);
+  const [executions, setExecutions] = useState([]);
+  const [signalsById, setSignalsById] = useState({});
+  const [strategyConfig, setStrategyConfig] = useState(null);
+  const [hasAutotradeToken, setHasAutotradeToken] = useState(
+    Boolean(getStoredAutotradeToken()),
+  );
+
+  const exchangeAccounts = meData?.exchange_accounts || [];
+  const hasExchangeAccount = exchangeAccounts.length > 0;
+
+  const resetAutotradeData = () => {
+    setMeData(null);
+    setPortfolio(null);
+    setStrategyConfig(null);
+    setExecutions([]);
+    setSignalsById({});
+  };
+
+  const getLuxquantCryptobotToken = async () => {
+    const storedToken = localStorage.getItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
+    if (storedToken) return storedToken;
+
+    const response = await authApi.getCryptobotToken();
+    return resolveLuxquantCryptobotToken(response);
+  };
+
+  const ensureAutotradeAccess = async () => {
+    if (getStoredAutotradeToken()) return true;
+
+    const luxquantToken = await getLuxquantCryptobotToken();
+    if (!luxquantToken) {
+      throw new Error("LuxQuant did not return a Cryptobot exchange token");
+    }
+
+    await exchangeLuxquantToken(luxquantToken);
+    localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
+    return true;
+  };
+
+  const load = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const healthResponse = await getHealth();
+      setHealth(healthResponse);
+
+      let tokenReady = hasAutotradeToken;
+
+      if (!tokenReady) {
+        try {
+          tokenReady = await ensureAutotradeAccess();
+          setHasAutotradeToken(tokenReady);
+        } catch (authErr) {
+          const message = authErr?.message || "";
+          resetAutotradeData();
+          setError(
+            /404|not found/i.test(message)
+              ? "AutoTrade access is not ready yet. LuxQuant must return `cryptobot_token` at login or expose `/me/cryptobot-token` for this account."
+              : message || "Unable to connect this LuxQuant account to Cryptobot right now.",
+          );
+          return;
+        }
+      }
+
+      const meResponse = await getMe();
+      const connectedAccounts = meResponse?.exchange_accounts || [];
+
+      setMeData(meResponse);
+
+      if (connectedAccounts.length === 0) {
+        setPortfolio(null);
+        setStrategyConfig(null);
+        setExecutions([]);
+        setSignalsById({});
+        setTab("accounts");
+        return;
+      }
+
+      const [
+        portfolioResponse,
+        strategyResponse,
+        executionsResponse,
+        signalsResponse,
+      ] = await Promise.all([
+        getPortfolio(),
+        getStrategyConfigs(),
+        getExecutions(),
+        getSignals(),
+      ]);
+
+      setPortfolio(portfolioResponse);
+      setStrategyConfig(strategyResponse?.items?.[0] || null);
+      setExecutions(executionsResponse?.items || []);
+      setSignalsById(
+        Object.fromEntries(
+          (signalsResponse?.items || []).map((signal) => [signal.id, signal]),
+        ),
+      );
+    } catch (err) {
+      const unauthorized = /401|unauthorized|forbidden|invalid token/i.test(
+        err?.message || "",
+      );
+
+      if (unauthorized) {
+        clearAutotradeAuth();
+        setHasAutotradeToken(false);
+        resetAutotradeData();
+        setError("");
+      } else {
+        setError(err.message || "Failed to load AutoTrade data");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [hasAutotradeToken]);
+
+  useEffect(() => {
+    if (!loading && hasAutotradeToken && !hasExchangeAccount) {
+      setShowConnect(true);
+    }
+  }, [hasAutotradeToken, hasExchangeAccount, loading]);
+
+  const summaryText = useMemo(() => {
+    if (!hasAutotradeToken) return "Cryptobot access required";
+    if (!hasExchangeAccount) return "Connect your Binance account to unlock AutoTrade";
+
+    const totalAccounts = exchangeAccounts.length;
+    const totalExecutions = executions.length;
+    return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected • ${totalExecutions} execution jobs`;
+  }, [exchangeAccounts.length, executions.length, hasAutotradeToken, hasExchangeAccount]);
+
+  const handleAuthorizeAutotrade = async () => {
+    setAuthActionLoading(true);
+    setError("");
+
+    try {
+      const tokenReady = await ensureAutotradeAccess();
+      setHasAutotradeToken(tokenReady);
+      await load();
+    } catch (err) {
+      setError(
+        err?.message ||
+          "Unable to connect this LuxQuant account to Cryptobot right now.",
+      );
+    } finally {
+      setAuthActionLoading(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8">
+      <SectionHeader label="AutoTrade" />
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            AutoTrade
+          </h1>
+          <p className="mt-1.5 text-sm font-mono text-text-muted">{summaryText}</p>
+        </div>
+
+        {hasAutotradeToken ? (
+          <button
+            onClick={() => setShowConnect(true)}
+            className="rounded-md px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-black"
+            style={{
+              background:
+                "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
+            }}
+          >
+            {hasExchangeAccount ? "Update Binance" : "Connect Binance"}
+          </button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-md border border-red-500/25 bg-red-500/[0.05] p-3 text-sm text-red-400">
+          {error}
+        </div>
+      ) : null}
+
+      {!hasAutotradeToken ? (
+        <SetupCard
+          title="Connect AutoTrade access"
+          body="AutoTrade now uses the LuxQuant to Cryptobot exchange flow. LuxQuant provides a short-lived signed token, then Cryptobot returns the bearer token used for AutoTrade API calls."
+          actionLabel={authActionLoading ? "Connecting..." : "Connect Cryptobot"}
+          onAction={handleAuthorizeAutotrade}
+          disabled={authActionLoading}
+        />
+      ) : loading ? (
+        <LoadingState />
+      ) : !hasExchangeAccount ? (
+        <SetupCard
+          title="Connect Binance before using AutoTrade"
+          body="Your AutoTrade Google login is complete, but exchange credentials are required first. After Binance keys are saved and validated, portfolio, configuration, positions, and execution history will unlock."
+          actionLabel="Connect Binance"
+          onAction={() => setShowConnect(true)}
+        />
+      ) : (
+        <>
+          <EngineStatusStrip health={health} config={strategyConfig} />
+
+          <PnLSummary portfolio={portfolio} executions={executions} />
+
+          <div className="flex items-center gap-1 border-b border-white/[0.06]">
+            {TABS.map((item) => {
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setTab(item.id)}
+                  className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] ${
+                    active ? "text-gold-primary" : "text-text-muted hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                  {active ? (
+                    <span className="absolute inset-x-2 bottom-0 h-px bg-gold-primary" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-2">
+            {tab === "accounts" ? (
+              <AccountsOverview
+                user={meData?.user || null}
+                health={health}
+                exchangeAccounts={exchangeAccounts}
+                portfolio={portfolio}
+                onConnect={() => setShowConnect(true)}
+              />
+            ) : null}
+
+            {tab === "config" ? (
+              <ConfigurationStudio
+                config={strategyConfig}
+                hasConnectedAccount={hasExchangeAccount}
+                onSaved={load}
+              />
+            ) : null}
+
+            {tab === "positions" ? <PositionsBoard portfolio={portfolio} /> : null}
+
+            {tab === "history" ? (
+              <SignalsQueue
+                executions={executions}
+                signalsById={signalsById}
+                onRetried={load}
+              />
+            ) : null}
+            {tab === "signals" ? <SignalQueue /> : null}
+          </div>
+        </>
+      )}
+
+      <ExchangeConnectModal
+        isOpen={showConnect && hasAutotradeToken}
+        onClose={() => setShowConnect(false)}
+        onSuccess={load}
+      />
+    </div>
+  );
+}
