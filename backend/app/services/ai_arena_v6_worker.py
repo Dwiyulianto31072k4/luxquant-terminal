@@ -304,6 +304,7 @@ Produce a JSON object matching this exact schema:
 
 CRITICAL principles:
 - Be evidence-based: every claim must trace to a brief / metric
+- NOTE: when the system locks direction (deterministic mode), treat the given direction as FINAL — you may only narrate and LOWER confidence, never flip direction.
 - Horizons: tactical_24h (24h) and secondary_7d (treat as 72-HOUR swing) are the ACTIONABLE projections — base them on smart_money, liquidity, and price action. primary_30d is CYCLE/MACRO CONTEXT only (a slow backdrop bias), NOT an actionable price call.
 - Specific, not vague: prefer "STH-MVRV at 0.99 signals neutral" over "on-chain looks ok"
 - Invalidation levels must be specific prices that would flip the thesis
@@ -677,6 +678,25 @@ async def generate_v6_report(
         _log(f"Liquidity: {_liq_layer.verdict} (strength {_liq_layer.strength:.2f})")
     except Exception as e:
         _log(f"Liquidity layer skipped (non-fatal): {e}", level="WARN")
+
+    # -- Phase 3: deterministic direction (behind flag) --
+    try:
+        from app.services.deterministic_verdict import (
+            compute_deterministic_direction, flag_enabled,
+        )
+        if flag_enabled():
+            _liq_layer_doc = (liquidity_doc or {}).get("layer") if "liquidity_doc" in dir() else None
+            _det = compute_deterministic_direction(
+                _liq_layer_doc, confluence_dict, cycle_result.to_dict(),
+            )
+            for _attr, _key in (("tactical_24h", "tactical_24h"), ("secondary_7d", "secondary_7d")):
+                _hv = getattr(verdict, _attr, None)
+                if _hv is not None:
+                    _hv.direction = _det[_key]["direction"]
+                    _hv.confidence = _det[_key]["confidence"]
+            _log(f"Deterministic verdict ON: 24h={_det['tactical_24h']} 72h={_det['secondary_7d']} inputs={_det['inputs']}")
+    except Exception as e:
+        _log(f"Deterministic verdict skipped (non-fatal): {e}", level="WARN")
 
     # -- Calibrate horizon confidence against the ledger (additive) --
     try:
