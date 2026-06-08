@@ -1,15 +1,20 @@
 // src/components/edgelab/HourDowHeatmapTab.jsx
 // ════════════════════════════════════════════════════════════════
-// v3 UX: larger, legible punchcard (DOW rows × hour cols) + drill.
-//   · Click any cell with signals → onDrill({dimension:'timing_cell', key:'H|DOW'})
-//   · WR number shown when n ≥ 5; gold hover ring marks clickable cells
-//   · Reuses wrColor / WR_LEGEND for scale consistency
+// v4 UX: fluid full-width punchcard (DOW rows × 24 hour cols).
+//   · CSS grid '40px repeat(24, 1fr)' → cells stretch to fill width
+//     (same fluid approach as the Calendar tab) instead of fixed 30px
+//   · aspect-square cells, WR% hero + small n (two-tier like calendar)
+//   · Empty windows render faint (not dark "holes"); n<5 dimmed, no number
+//   · Click any cell with signals → onDrill({dimension:'timing_cell'})
+//   · Mobile: horizontal scroll preserved via min-width
 // ════════════════════════════════════════════════════════════════
 import { useMemo } from "react";
 import { wrColor, WR_LEGEND, Panel, Methodology, InsightBand, EmptyState } from "./_shared";
 
 const DOW_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // PG DOW 0=Sun
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const pad = (h) => `${String(h).padStart(2, "0")}:00`;
+const GRID_COLS = "40px repeat(24, minmax(0, 1fr))";
 
 const HourDowHeatmapTab = ({ data, onDrill }) => {
   const { grid, insights } = useMemo(() => {
@@ -44,8 +49,6 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
 
   if (!data?.length) return <EmptyState title="No timing data" />;
 
-  const HOUR_W = 30, ROW_H = 30, GAP = 3, LABEL_W = 42;
-
   return (
     <div className="space-y-4">
       <InsightBand items={insights} />
@@ -58,36 +61,30 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
 
       <Panel title="Hour × day-of-week timing" meta="UTC">
         <div className="overflow-x-auto pb-1">
-          <div style={{ minWidth: 24 * (HOUR_W + GAP) + LABEL_W }}>
-            {/* hour header */}
-            <div className="flex items-end" style={{ gap: GAP, marginLeft: LABEL_W }}>
-              {Array.from({ length: 24 }).map((_, h) => (
-                <div
-                  key={h}
-                  className="text-[9px] font-mono tabular-nums text-white/35 text-center"
-                  style={{ width: HOUR_W }}
-                >
+          <div className="min-w-[640px]">
+            {/* hour header — same grid template so columns align exactly */}
+            <div className="grid items-end mb-1.5" style={{ gridTemplateColumns: GRID_COLS, gap: 4 }}>
+              <div />
+              {HOURS.map((h) => (
+                <div key={h} className="text-center text-[9px] font-mono tabular-nums text-white/35 leading-none">
                   {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                 </div>
               ))}
             </div>
 
             {/* rows */}
-            <div className="flex flex-col mt-1.5" style={{ gap: GAP }}>
+            <div className="flex flex-col" style={{ gap: 4 }}>
               {DOW_NAMES.map((name, dow) => (
-                <div key={dow} className="flex items-center" style={{ gap: GAP }}>
-                  <div
-                    className="text-[10px] font-mono uppercase tracking-wider text-white/45 text-right pr-2.5"
-                    style={{ width: LABEL_W }}
-                  >
+                <div key={dow} className="grid items-center" style={{ gridTemplateColumns: GRID_COLS, gap: 4 }}>
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-white/45 text-right pr-2 leading-none">
                     {name}
                   </div>
-                  {Array.from({ length: 24 }).map((_, hour) => {
+                  {HOURS.map((hour) => {
                     const cell = grid[dow][hour];
                     const total = cell?.count || 0;
                     const wr = cell?.win_rate ?? null;
-                    const dim = total > 0 && total < 5;
                     const has = total > 0;
+                    const dim = has && total < 5;
 
                     return (
                       <button
@@ -105,28 +102,31 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
                             win_rate: wr,
                           })
                         }
-                        className={`rounded-[4px] flex items-center justify-center transition ${
+                        className={`relative aspect-square rounded-md flex flex-col items-center justify-center transition ${
                           has
                             ? "cursor-pointer hover:ring-1 hover:ring-gold-primary/60 hover:z-10"
                             : "cursor-default"
                         }`}
                         style={{
-                          width: HOUR_W,
-                          height: ROW_H,
-                          background: wrColor(wr, total),
-                          opacity: dim ? 0.45 : 1,
-                          border: has ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(255,255,255,0.02)",
+                          background: has ? wrColor(wr, total) : "rgba(255,255,255,0.015)",
+                          opacity: dim ? 0.5 : 1,
+                          border: has ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(255,255,255,0.02)",
                         }}
                         title={
-                          cell
+                          has
                             ? `${name} ${pad(hour)} UTC · ${cell.wins}/${cell.count} · ${wr?.toFixed(1)}%`
                             : `${name} ${pad(hour)} UTC · no data`
                         }
                       >
                         {total >= 5 && wr != null && (
-                          <span className="font-mono tabular-nums text-[9px] text-white/85 leading-none">
-                            {wr.toFixed(0)}
-                          </span>
+                          <>
+                            <span className="font-mono tabular-nums text-[13px] text-white/95 leading-none">
+                              {wr.toFixed(0)}
+                            </span>
+                            <span className="font-mono tabular-nums text-[8px] text-white/45 leading-none mt-0.5">
+                              {cell.count}
+                            </span>
+                          </>
                         )}
                       </button>
                     );
@@ -145,7 +145,7 @@ const HourDowHeatmapTab = ({ data, onDrill }) => {
               {s.l}
             </span>
           ))}
-          <span className="ml-2 text-white/25 normal-case tracking-normal">· number shown when n ≥ 5 · click a cell to drill</span>
+          <span className="ml-2 text-white/25 normal-case tracking-normal">· big number = WR%, small = signals · shown when n ≥ 5 · click to drill</span>
         </div>
       </Panel>
     </div>
