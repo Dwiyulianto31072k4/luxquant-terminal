@@ -876,7 +876,9 @@ def detect_smc(df, entry_price, atr):
                         "mitigated": (row.get("MitigatedIndex") or 0) > 0,
                     })
 
-        recent_fvg = [f for f in fvg_list if not f["mitigated"] and f["idx"] >= len(df) - 50]
+        # PATCH-2026-06-08-SMC-WIN: drop last-50 window; unmitigated + near-entry is the
+        # real validity filter (an unmitigated FVG that formed earlier is still a valid zone).
+        recent_fvg = [f for f in fvg_list if not f["mitigated"]]
         result["fvg_count"] = len(recent_fvg)
 
         for f in recent_fvg:
@@ -903,7 +905,9 @@ def detect_smc(df, entry_price, atr):
                         "mitigated": (row.get("MitigatedIndex") or 0) > 0,
                     })
 
-        recent_ob = [o for o in ob_list if not o["mitigated"] and o["idx"] >= len(df) - 50]
+        # PATCH-2026-06-08-SMC-WIN: drop last-50 window; unmitigated + near-entry is the
+        # real validity filter (an unmitigated OB that formed earlier is still a valid zone).
+        recent_ob = [o for o in ob_list if not o["mitigated"]]
         result["ob_count"] = len(recent_ob)
 
         for o in recent_ob:
