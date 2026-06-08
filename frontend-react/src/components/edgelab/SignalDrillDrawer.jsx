@@ -80,7 +80,7 @@ const median = (arr) => {
 };
 
 // ─── Coin card ───────────────────────────────────────────────────
-const CoinCard = ({ s, maxPeak, onClick }) => {
+const CoinCard = ({ s, maxPeak, opening, onClick }) => {
   const isWin = s.outcome && s.outcome !== "sl";
   const peak = fmtPeak(s.peak_pct);
   const peakPos = (s.peak_pct ?? 0) >= 0;
@@ -94,8 +94,9 @@ const CoinCard = ({ s, maxPeak, onClick }) => {
 
   return (
     <button
-      onClick={() => onClick?.(s.signal_id, s)}
-      className="group relative text-left rounded-xl bg-white/[0.025] border border-white/[0.06] p-3.5 hover:border-gold-primary/35 hover:bg-white/[0.04] transition flex flex-col gap-3"
+      onClick={() => !opening && onClick?.(s.signal_id, s)}
+      disabled={opening}
+      className={`group relative text-left rounded-xl bg-white/[0.025] border border-white/[0.06] p-3.5 hover:border-gold-primary/35 hover:bg-white/[0.04] transition flex flex-col gap-3 ${opening ? "opacity-60 cursor-wait" : ""}`}
     >
       {/* ① identity */}
       <div className="flex items-center gap-2.5">
@@ -128,12 +129,16 @@ const CoinCard = ({ s, maxPeak, onClick }) => {
         <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, background: `${accent}aa` }} />
       </div>
 
-      <span className="absolute top-3 right-3 text-white/0 group-hover:text-gold-primary/60 transition text-xs">↗</span>
+      {opening ? (
+        <span className="absolute top-3 right-3 w-3.5 h-3.5 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+      ) : (
+        <span className="absolute top-3 right-3 text-white/0 group-hover:text-gold-primary/60 transition text-xs">↗</span>
+      )}
     </button>
   );
 };
 
-const SignalDrillDrawer = ({ bucket, days, sector, hidden, onClose, onOpenSignal }) => {
+const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, onOpenSignal }) => {
   const open = !!bucket;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -342,7 +347,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, onClose, onOpenSignal
           {!loading && !error && view.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {view.map((s) => (
-                <CoinCard key={s.signal_id} s={s} maxPeak={stats.maxAbs} onClick={onOpenSignal} />
+                <CoinCard key={s.signal_id} s={s} maxPeak={stats.maxAbs} opening={openingId === s.signal_id} onClick={onOpenSignal} />
               ))}
             </div>
           )}

@@ -83,6 +83,31 @@ const EdgeLabPage = () => {
   const [activeTab, setActiveTab] = useState("calibration");
   const [drillBucket, setDrillBucket] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [openingId, setOpeningId] = useState(null);
+
+  // Drill cards carry only a partial signal (6 fields). SignalModal reads some
+  // fields straight off the prop (target1..4, stop, entry_chart_url…), so we
+  // fetch the full detail first, then hand SignalModal a complete object —
+  // identical to opening from SignalsTable.
+  const openSignal = useCallback(async (signalId, partial) => {
+    if (!signalId) return;
+    setOpeningId(signalId);
+    try {
+      const token = localStorage.getItem("access_token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/v1/signals/detail/${signalId}`, { headers });
+      if (r.ok) {
+        const full = await r.json();
+        setSelectedSignal({ ...partial, ...full });
+      } else {
+        setSelectedSignal(partial || { signal_id: signalId }); // fallback: partial
+      }
+    } catch {
+      setSelectedSignal(partial || { signal_id: signalId });
+    } finally {
+      setOpeningId(null);
+    }
+  }, []);
 
   const fetchData = useCallback(async (d, s) => {
     setLoading(true);
@@ -305,10 +330,9 @@ const EdgeLabPage = () => {
         days={days}
         sector={sector}
         hidden={!!selectedSignal}
+        openingId={openingId}
         onClose={() => setDrillBucket(null)}
-        onOpenSignal={(signalId, signalObj) =>
-          setSelectedSignal(signalObj || { signal_id: signalId })
-        }
+        onOpenSignal={(signalId, signalObj) => openSignal(signalId, signalObj)}
       />
 
       {/* ─── Level 3: full signal modal (same pattern as SignalsTable) ─── */}
