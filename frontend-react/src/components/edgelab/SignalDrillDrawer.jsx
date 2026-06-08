@@ -133,7 +133,7 @@ const CoinCard = ({ s, maxPeak, onClick }) => {
   );
 };
 
-const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
+const SignalDrillDrawer = ({ bucket, days, sector, hidden, onClose, onOpenSignal }) => {
   const open = !!bucket;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -197,7 +197,9 @@ const SignalDrillDrawer = ({ bucket, days, sector, onClose, onOpenSignal }) => {
     return arr;
   }, [all, filter, sort]);
 
-  if (!open) return null;
+  // While a signal modal is open we hide (but do NOT unmount) so the fetched
+  // payload persists and the card grid is restored instantly on return.
+  if (!open || hidden) return null;
 
   const returned = all.length;
   const aggTotal = bucket.total ?? payload?.count ?? returned;

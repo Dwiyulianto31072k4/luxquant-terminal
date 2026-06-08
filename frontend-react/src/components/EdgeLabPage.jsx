@@ -299,11 +299,12 @@ const EdgeLabPage = () => {
         </div>
       )}
 
-      {/* ─── Level 2: drill drawer (global, renders null when no bucket) ─── */}
+      {/* ─── Level 2: drill modal (hidden — not unmounted — while a signal is open) ─── */}
       <SignalDrillDrawer
         bucket={drillBucket}
         days={days}
         sector={sector}
+        hidden={!!selectedSignal}
         onClose={() => setDrillBucket(null)}
         onOpenSignal={(signalId, signalObj) =>
           setSelectedSignal(signalObj || { signal_id: signalId })
