@@ -284,7 +284,7 @@ async def discord_callback(
     track_user_login(db, user, commit=True)
 
     tokens = create_tokens(user.id, user.email)
-    cryptobot_token = create_cryptobot_exchange_token(user.id, user.email)
+    cryptobot_token = create_cryptobot_exchange_token(user)
 
     user_response = UserResponse.model_validate(user)
     user_json = quote(json.dumps(user_response.model_dump(mode="json")))

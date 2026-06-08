@@ -160,7 +160,7 @@ async def google_login(data: GoogleLogin, db: Session = Depends(get_db)):
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user.id, user.email)
+        cryptobot_token=create_cryptobot_exchange_token(user)
     )
 
 
@@ -233,7 +233,7 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user.id, user.email)
+        cryptobot_token=create_cryptobot_exchange_token(user)
     )
 
 
@@ -246,7 +246,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.get("/me/cryptobot-token")
 async def get_cryptobot_token(current_user: User = Depends(get_current_user)):
     """Return a fresh LuxQuant JWT for Cryptobot token exchange."""
-    token = create_cryptobot_exchange_token(current_user.id, current_user.email)
+    token = create_cryptobot_exchange_token(current_user)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

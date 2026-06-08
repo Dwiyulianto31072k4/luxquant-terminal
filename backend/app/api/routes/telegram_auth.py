@@ -195,7 +195,7 @@ async def telegram_login(data: TelegramLogin, db: Session = Depends(get_db)):
         access_token=tokens["access_token"],
         refresh_token=tokens["refresh_token"],
         user=UserResponse.model_validate(user),
-        cryptobot_token=create_cryptobot_exchange_token(user.id, user.email)
+        cryptobot_token=create_cryptobot_exchange_token(user)
     )
 
 

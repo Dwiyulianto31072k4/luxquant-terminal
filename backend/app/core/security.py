@@ -64,15 +64,21 @@ def create_tokens(user_id: int, email: str) -> dict:
     }
 
 
-def create_cryptobot_exchange_token(user_id: int, email: str) -> Optional[str]:
-    """Generate short-lived LuxQuant JWT for Cryptobot token exchange."""
+def create_cryptobot_exchange_token(user) -> Optional[str]:
+    """Generate short-lived LuxQuant JWT for Cryptobot token exchange.
+
+    Embeds entitlement (has_active_access) + role so Cryptobot can gate
+    access without querying the LuxQuant DB.
+    """
     if not LUXQUANT_JWT_SECRET:
         return None
 
     issued_at = int(time.time())
     payload = {
-        "sub": str(user_id),
-        "email": email,
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "has_active_access": bool(user.has_active_access),
         "iat": issued_at,
         "exp": issued_at + LUXQUANT_CRYPTOBOT_TOKEN_EXPIRE_SECONDS,
     }
