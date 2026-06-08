@@ -71,6 +71,7 @@ def generate_channel_message_notifications(db):
         db.execute(text("""
             INSERT INTO notifications (user_id, type, title, body, data, source_type, source_id, created_at)
             VALUES (NULL, :type, :title, :body, :data, 'channel_message', :source_id, :created_at)
+            ON CONFLICT DO NOTHING
         """), {
             "type": msg_type,
             "title": title,
@@ -117,6 +118,7 @@ def generate_btcdom_notifications(db):
         db.execute(text("""
             INSERT INTO notifications (user_id, type, title, body, data, source_type, source_id, created_at)
             VALUES (NULL, 'btcdom_call', :title, :body, :data, 'signal', :source_id, :created_at)
+            ON CONFLICT DO NOTHING
         """), {
             "title": title,
             "body": body,
@@ -183,6 +185,7 @@ def generate_watchlist_notifications(db):
         db.execute(text("""
             INSERT INTO notifications (user_id, type, title, body, data, source_type, source_id, created_at)
             VALUES (:user_id, 'watchlist_update', :title, :body, :data, 'signal_update', :source_id, :created_at)
+            ON CONFLICT DO NOTHING
         """), {
             "user_id": user_id,
             "title": title,
