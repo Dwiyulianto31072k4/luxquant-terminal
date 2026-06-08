@@ -873,7 +873,7 @@ def detect_smc(df, entry_price, atr):
                         "type": "bullish" if row["FVG"] == 1 else "bearish",
                         "top": float(row.get("Top", 0)),
                         "bottom": float(row.get("Bottom", 0)),
-                        "mitigated": pd.notna(row.get("MitigatedIndex")),
+                        "mitigated": (row.get("MitigatedIndex") or 0) > 0,
                     })
 
         recent_fvg = [f for f in fvg_list if not f["mitigated"] and f["idx"] >= len(df) - 50]
@@ -886,7 +886,8 @@ def detect_smc(df, entry_price, atr):
                 break
 
         # Swing Highs/Lows
-        swing_hl = smc.swing_highs_lows(smc_df, swing_length=10)
+        # PATCH-2026-06-08-SMC: swing_length 10 -> 5 (10 too strict, liquidity always empty)
+        swing_hl = smc.swing_highs_lows(smc_df, swing_length=5)
 
         # Order Block
         ob_data = smc.ob(smc_df, swing_highs_lows=swing_hl)
@@ -899,7 +900,7 @@ def detect_smc(df, entry_price, atr):
                         "type": "bullish" if row["OB"] == 1 else "bearish",
                         "top": float(row.get("Top", 0)),
                         "bottom": float(row.get("Bottom", 0)),
-                        "mitigated": pd.notna(row.get("MitigatedIndex")),
+                        "mitigated": (row.get("MitigatedIndex") or 0) > 0,
                     })
 
         recent_ob = [o for o in ob_list if not o["mitigated"] and o["idx"] >= len(df) - 50]
@@ -916,7 +917,7 @@ def detect_smc(df, entry_price, atr):
         if liq_data is not None and "Liquidity" in liq_data.columns:
             for idx, row in liq_data.iterrows():
                 if pd.notna(row.get("Liquidity")) and row["Liquidity"] != 0:
-                    swept = pd.notna(row.get("SweptIndex")) if "SweptIndex" in liq_data.columns else False
+                    swept = (row.get("Swept") or 0) > 0 if "Swept" in liq_data.columns else False
                     sweep_list.append({
                         "idx": int(idx),
                         "type": "buy_side" if row["Liquidity"] == 1 else "sell_side",
