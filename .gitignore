@@ -29,3 +29,18 @@ _v*_emergency_fix_*
 # Block all .env variants & backups
 .env*
 !.env.example
+
+# work artifacts
+*.zip
+*.bak
+*.bak.*
+*.bak-*
+*.bak3
+bundle.sh
+patch_*.py
+apply_*.py
+apply_*.sh
+__pycache__/
+*.pyc
+.font-bak-*/
+.bak-coinintel/
