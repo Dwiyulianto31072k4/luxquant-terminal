@@ -129,11 +129,11 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
         # Logic: each horizon evaluates the verdict APPROPRIATE for that horizon
         called_at = datetime.now(timezone.utc)
 
+        # Reframe: only the edge-proven horizons are projected & evaluated.
+        # 7d/30d dropped as directional predictions (see ledger: 7d ~26%).
         outcomes_to_create = [
             ("24h", verdict.tactical_24h.direction, verdict.tactical_24h.confidence),
             ("72h", verdict.secondary_7d.direction, verdict.secondary_7d.confidence),
-            ("7d", verdict.secondary_7d.direction, verdict.secondary_7d.confidence),
-            ("30d", verdict.primary_30d.direction, verdict.primary_30d.confidence),
         ]
 
         for horizon, direction, confidence in outcomes_to_create:

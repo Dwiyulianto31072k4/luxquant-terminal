@@ -304,7 +304,7 @@ Produce a JSON object matching this exact schema:
 
 CRITICAL principles:
 - Be evidence-based: every claim must trace to a brief / metric
-- Confluence-weighted: primary_30d should reflect cycle + macro layers; tactical_24h should reflect smart_money + price action
+- Horizons: tactical_24h (24h) and secondary_7d (treat as 72-HOUR swing) are the ACTIONABLE projections — base them on smart_money, liquidity, and price action. primary_30d is CYCLE/MACRO CONTEXT only (a slow backdrop bias), NOT an actionable price call.
 - Specific, not vague: prefer "STH-MVRV at 0.99 signals neutral" over "on-chain looks ok"
 - Invalidation levels must be specific prices that would flip the thesis
 - Zones should reference real price levels, not theoretical
@@ -677,6 +677,22 @@ async def generate_v6_report(
         _log(f"Liquidity: {_liq_layer.verdict} (strength {_liq_layer.strength:.2f})")
     except Exception as e:
         _log(f"Liquidity layer skipped (non-fatal): {e}", level="WARN")
+
+    # -- Calibrate horizon confidence against the ledger (additive) --
+    try:
+        from app.services.ledger_confidence import apply_ledger_confidence
+        from app.services.verdict_outcome_evaluator import compute_track_record
+        from app.core.database import SessionLocal
+        _db = SessionLocal()
+        try:
+            _tr = compute_track_record(_db, days=90)
+        finally:
+            _db.close()
+        _conf_audit = apply_ledger_confidence(verdict, _tr)
+        if _conf_audit:
+            _log(f"Confidence calibrated: {_conf_audit}")
+    except Exception as e:
+        _log(f"Ledger confidence skipped (non-fatal): {e}", level="WARN")
 
     bundle_v6 = ReportBundleV6(
         schema_version=SCHEMA_VERSION,
