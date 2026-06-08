@@ -1,10 +1,9 @@
 // src/components/EdgeLabPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Edge Lab (multi-day analytics) — v4 UX rebuild
-// Route: /daily-performance/edge-lab
-//   · Pulse-style header (eyebrow + gradient title), no back link
-//   · KPI cards: Win Rate (sparkline + delta), Resolved, Top Edge, Correlation
-//   · Drill on every tab → drawer → SignalModal (Level 3)
+// LuxQuant Terminal — Edge Lab (multi-day analytics) — v5
+//   · Pulse-style header, KPI cards (Win Rate sparkline+delta, Top Edge)
+//   · Tabs: Calibration · Pattern×BTC · EV · Calendar · Timing · Coins
+//   · Drill on every tab → centered modal → SignalModal (full detail)
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { edgeLabApi } from "../services/edgeLabApi";
@@ -14,6 +13,7 @@ import PatternBtcHeatmapTab from "./edgelab/PatternBtcHeatmapTab";
 import ExpectedValueTab from "./edgelab/ExpectedValueTab";
 import CalendarHeatmapTab from "./edgelab/CalendarHeatmapTab";
 import HourDowHeatmapTab from "./edgelab/HourDowHeatmapTab";
+import CoinLeaderboardTab from "./edgelab/CoinLeaderboardTab";
 import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
 import SignalModal from "./SignalModal";
 
@@ -23,6 +23,7 @@ const TAB_ITEMS = [
   { id: "ev", label: "Expected Value" },
   { id: "calendar", label: "Calendar" },
   { id: "timing", label: "Timing" },
+  { id: "coins", label: "Coins" },
 ];
 
 const RANGE_OPTIONS = [
@@ -100,7 +101,7 @@ const EdgeLabPage = () => {
         const full = await r.json();
         setSelectedSignal({ ...partial, ...full });
       } else {
-        setSelectedSignal(partial || { signal_id: signalId }); // fallback: partial
+        setSelectedSignal(partial || { signal_id: signalId });
       }
     } catch {
       setSelectedSignal(partial || { signal_id: signalId });
@@ -130,7 +131,6 @@ const EdgeLabPage = () => {
   const resolved = totals?.signals_resolved ?? null;
   const wr = totals?.win_rate ?? null;
 
-  // daily WR series + first-half→second-half delta (variance annotation)
   const wrTrend = useMemo(() => {
     const days_ = (data?.calendar_wr || []).filter((d) => d.total > 0 && d.win_rate != null);
     const vals = days_.map((d) => d.win_rate);
@@ -143,7 +143,6 @@ const EdgeLabPage = () => {
     return { vals, delta };
   }, [data]);
 
-  // best trustworthy edge by expected value
   const topEdge = useMemo(() => {
     const ev = data?.pattern_ev || [];
     const trusted = ev.filter((p) => p.reliability !== "unreliable" && p.expected_value != null);
@@ -155,7 +154,7 @@ const EdgeLabPage = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
-      {/* ═══ PAGE HEADER — mirrors Market Pulse (eyebrow + gradient title) ═══ */}
+      {/* ═══ HEADER ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
@@ -187,7 +186,6 @@ const EdgeLabPage = () => {
           </p>
         </div>
 
-        {/* controls */}
         <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
           <div className="flex items-center rounded-md overflow-hidden border border-white/[0.08]">
             {RANGE_OPTIONS.map((r) => (
@@ -247,7 +245,7 @@ const EdgeLabPage = () => {
 
       {data && (
         <div className="space-y-5">
-          {/* KPI strip — Win Rate hero with sparkline + delta */}
+          {/* KPI strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi
               label="Win Rate"
@@ -259,9 +257,7 @@ const EdgeLabPage = () => {
                 <Sparkline values={wrTrend.vals} up={(wrTrend.delta ?? 0) >= 0} />
                 {wrTrend.delta != null && (
                   <span
-                    className={`text-[10px] font-mono tabular-nums shrink-0 ${
-                      wrTrend.delta >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
+                    className={`text-[10px] font-mono tabular-nums shrink-0 ${wrTrend.delta >= 0 ? "text-emerald-400" : "text-red-400"}`}
                     title="second half vs first half of range"
                   >
                     {wrTrend.delta >= 0 ? "▲" : "▼"} {Math.abs(wrTrend.delta).toFixed(1)}pp
@@ -281,11 +277,7 @@ const EdgeLabPage = () => {
               value={topEdge ? topEdge.pattern : "—"}
               valueClass="text-sm lg:text-base"
               valueColor="text-gold-primary"
-              sub={
-                topEdge
-                  ? `+${topEdge.expected_value?.toFixed(1)}% / trade · n=${topEdge.count}`
-                  : "no positive edge"
-              }
+              sub={topEdge ? `+${topEdge.expected_value?.toFixed(1)}% / trade · n=${topEdge.count}` : "no positive edge"}
             />
 
             <Kpi
@@ -320,11 +312,12 @@ const EdgeLabPage = () => {
             {activeTab === "ev" && <ExpectedValueTab data={data.pattern_ev} onDrill={setDrillBucket} />}
             {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
             {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} onDrill={setDrillBucket} />}
+            {activeTab === "coins" && <CoinLeaderboardTab data={data.coin_leaderboard} onDrill={setDrillBucket} />}
           </div>
         </div>
       )}
 
-      {/* ─── Level 2: drill modal (hidden — not unmounted — while a signal is open) ─── */}
+      {/* ─── Level 2: drill modal (hidden while a signal is open) ─── */}
       <SignalDrillDrawer
         bucket={drillBucket}
         days={days}
@@ -335,7 +328,7 @@ const EdgeLabPage = () => {
         onOpenSignal={(signalId, signalObj) => openSignal(signalId, signalObj)}
       />
 
-      {/* ─── Level 3: full signal modal (same pattern as SignalsTable) ─── */}
+      {/* ─── Level 3: full signal modal ─── */}
       <SignalModal
         signal={selectedSignal}
         isOpen={!!selectedSignal}
