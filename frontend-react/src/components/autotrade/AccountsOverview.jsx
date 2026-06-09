@@ -1,168 +1,150 @@
-function fmtUsd(value) {
-  const amount = Number(value || 0);
-  return amount.toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
-}
+// src/components/autotrade/AccountsOverview.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade · Accounts tab
+// Account identity + engine/health status + linked exchange keys.
+// Balance figures live in the top PnLSummary strip; this panel is
+// about WHO is connected and WHETHER the keys are healthy.
+// ════════════════════════════════════════════════════════════════
 
-function MetricCard({ label, value, hint }) {
-  return (
-    <div className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-4">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-      <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/60">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-text-muted">{hint}</p> : null}
-    </div>
-  );
-}
+import {
+  Card,
+  SectionHeader,
+  StatusBadge,
+  GoldButton,
+  EmptyState,
+  fmtDateTime,
+} from "./AutoTradeUI";
 
-function StatusPill({ tone = "neutral", children }) {
-  const styles = {
-    good: "border-emerald-500/25 bg-emerald-500/10 text-emerald-400",
-    warn: "border-gold-primary/25 bg-gold-primary/10 text-gold-primary",
-    bad: "border-red-500/25 bg-red-500/10 text-red-400",
-    neutral: "border-white/[0.08] bg-white/[0.02] text-text-muted",
-  };
-
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.15em] ${styles[tone]}`}
-    >
-      {children}
-    </span>
-  );
+function keyStatusTone(status) {
+  if (status === "valid") return "good";
+  if (status === "invalid") return "bad";
+  return "warn";
 }
 
 export default function AccountsOverview({
   user,
   health,
-  exchangeAccounts,
+  exchangeAccounts = [],
   portfolio,
   onConnect,
 }) {
-  const totalBalance =
-    Number(portfolio?.spot?.portfolio_usdt || 0) +
-    Number(portfolio?.futures?.portfolio_usdt || 0);
+  const futuresValue = Number(portfolio?.futures?.portfolio_usdt || 0);
+  const spotValue = Number(portfolio?.spot?.portfolio_usdt || 0);
+  const liveOrders = Boolean(health?.live_orders_enabled);
 
-  const availableBalance =
-    Number(portfolio?.spot?.available_usdt || 0) +
-    Number(portfolio?.futures?.available_usdt || 0);
+  // Wallet-context hint: keys valid but the relevant wallet reads zero.
+  const hasValidKey = exchangeAccounts.some((a) => a.key_status === "valid");
+  const showWalletHint =
+    hasValidKey && futuresValue === 0 && spotValue === 0;
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
+      {/* ── Account identity + status ── */}
+      <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/80">
-              Account status
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
+              Account
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 truncate text-xl font-semibold text-white lg:text-2xl">
               {user?.email || "Connected user"}
             </h2>
-            <p className="mt-1 text-sm text-text-muted">
-              Role: {user?.role || "user"} • Exchange accounts: {exchangeAccounts.length}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge tone="neutral">
+                {user?.role || "user"}
+              </StatusBadge>
+              <span className="font-mono text-[11px] text-text-muted">
+                {exchangeAccounts.length} exchange
+                {exchangeAccounts.length === 1 ? "" : "s"} linked
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone={health?.ok ? "good" : "bad"}>
-              {health?.ok ? "API healthy" : "API unavailable"}
-            </StatusPill>
-            <StatusPill tone={health?.live_orders_enabled ? "good" : "warn"}>
-              {health?.live_orders_enabled ? "Live orders on" : "Dry rails only"}
-            </StatusPill>
-            <button
-              type="button"
-              onClick={onConnect}
-              className="rounded-md px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-black"
-              style={{
-                background:
-                  "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-              }}
-            >
-              Connect Binance
-            </button>
+            <StatusBadge tone={health?.ok ? "good" : "bad"} dot>
+              {health?.ok ? "API healthy" : "API down"}
+            </StatusBadge>
+            <StatusBadge tone={liveOrders ? "good" : "warn"}>
+              {liveOrders ? "Live orders" : "Dry run"}
+            </StatusBadge>
+            {health?.binance_environment ? (
+              <StatusBadge tone="info">
+                {health.binance_environment}
+              </StatusBadge>
+            ) : null}
+            <GoldButton onClick={onConnect}>
+              {exchangeAccounts.length > 0 ? "Update keys" : "Connect Binance"}
+            </GoldButton>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricCard
-          label="Portfolio"
-          value={fmtUsd(totalBalance)}
-          hint="Spot + futures portfolio value from `/me/portfolio`"
-        />
-        <MetricCard
-          label="Available"
-          value={fmtUsd(availableBalance)}
-          hint="Available USDT for new orders"
-        />
-        <MetricCard
-          label="Environment"
-          value={health?.binance_environment || "unknown"}
-          hint={health?.market_data_label || "Backend health metadata"}
-        />
-      </div>
-
-      <div className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Linked exchange accounts</h3>
-            <p className="mt-1 text-sm text-text-muted">
-              Directly sourced from `GET /me`
+        {showWalletHint ? (
+          <div className="mt-4 rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary mb-1">
+              Wallet check
+            </p>
+            <p className="text-sm text-gold-primary/80">
+              Your keys are valid but this wallet reads $0. AutoTrade trades the{" "}
+              <span className="font-semibold">Futures</span> wallet — if your
+              funds sit in Spot or Funding, transfer them to USD-M Futures in
+              Binance to make them available here.
             </p>
           </div>
-        </div>
+        ) : null}
+      </Card>
 
-        <div className="mt-4 space-y-3">
-          {exchangeAccounts.length === 0 ? (
-            <div className="rounded-md border border-white/[0.06] bg-white/[0.02] p-4 text-sm text-text-muted">
-              No exchange account has been saved yet.
+      {/* ── Linked exchange accounts ── */}
+      <SectionHeader label="Linked Accounts" />
+
+      {exchangeAccounts.length === 0 ? (
+        <EmptyState
+          icon="🔑"
+          title="No exchange connected"
+          hint="Save your Binance API keys to unlock portfolio, configuration, positions and execution history."
+          action={
+            <div className="mt-1">
+              <GoldButton onClick={onConnect}>Connect Binance</GoldButton>
             </div>
-          ) : (
-            exchangeAccounts.map((account) => {
-              const statusTone =
-                account.key_status === "valid"
-                  ? "good"
-                  : account.key_status === "invalid"
-                    ? "bad"
-                    : "warn";
-
-              return (
-                <div
-                  key={`${account.exchange}-${account.label || "default"}`}
-                  className="rounded-md border border-white/[0.06] bg-white/[0.02] p-4"
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-white">
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          {exchangeAccounts.map((account) => {
+            const tone = keyStatusTone(account.key_status);
+            return (
+              <Card
+                key={`${account.exchange}-${account.label || "default"}`}
+                hover
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">
                         {account.label || "Binance account"}
-                      </p>
-                      <p className="mt-1 text-xs text-text-muted">
-                        {account.exchange} • API key:{" "}
-                        {account.has_api_key ? "saved" : "missing"} • Secret:{" "}
-                        {account.has_api_secret ? "saved" : "missing"}
-                      </p>
+                      </span>
+                      <StatusBadge tone="neutral">
+                        {account.exchange}
+                      </StatusBadge>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <StatusPill tone={statusTone}>{account.key_status}</StatusPill>
-                      {account.last_checked_at ? (
-                        <StatusPill>
-                          {new Date(account.last_checked_at).toLocaleString()}
-                        </StatusPill>
-                      ) : null}
-                    </div>
+                    <p className="mt-1.5 font-mono text-[11px] text-text-muted">
+                      API key {account.has_api_key ? "saved" : "missing"} ·
+                      Secret {account.has_api_secret ? "saved" : "missing"}
+                      {account.last_checked_at
+                        ? ` · checked ${fmtDateTime(account.last_checked_at)}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <StatusBadge tone={tone} dot={tone === "good"}>
+                      {account.key_status || "unchecked"}
+                    </StatusBadge>
                   </div>
                 </div>
-              );
-            })
-          )}
+              </Card>
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }

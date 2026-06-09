@@ -1,64 +1,53 @@
-function fmtUsd(value) {
-  return Number(value || 0).toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
-}
+// src/components/autotrade/PnLSummary.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade balance / execution summary (top strip)
+// ════════════════════════════════════════════════════════════════
 
-function Card({ label, value, hint, tone = "neutral" }) {
-  const colors = {
-    neutral: "text-white",
-    gold: "text-gold-primary",
-    good: "text-emerald-400",
-    bad: "text-red-400",
-  };
+import { StatCard, fmtUsd } from "./AutoTradeUI";
 
-  return (
-    <div className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-4">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-      <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/60">
-        {label}
-      </p>
-      <p className={`mt-2 text-2xl font-semibold ${colors[tone]}`}>{value}</p>
-      <p className="mt-1 text-xs text-text-muted">{hint}</p>
-    </div>
-  );
-}
-
-export default function PnLSummary({ portfolio, executions }) {
+export default function PnLSummary({ portfolio, executions = [] }) {
   const spotValue = Number(portfolio?.spot?.portfolio_usdt || 0);
   const futuresValue = Number(portfolio?.futures?.portfolio_usdt || 0);
   const available =
     Number(portfolio?.spot?.available_usdt || 0) +
     Number(portfolio?.futures?.available_usdt || 0);
+
   const openFutures = portfolio?.futures?.positions?.length || 0;
-  const completed = executions.filter((item) => item.status === "completed").length;
-  const failed = executions.filter((item) => item.status === "failed").length;
+  const completed = executions.filter((e) => e.status === "completed").length;
+  const failed = executions.filter(
+    (e) => e.status === "failed" || e.status === "skipped",
+  ).length;
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Card
+      <StatCard
         label="Spot Value"
         value={fmtUsd(spotValue)}
-        hint="Current spot portfolio value"
+        sub="Spot wallet"
       />
-      <Card
+      <StatCard
         label="Futures Value"
         value={fmtUsd(futuresValue)}
-        hint={`${openFutures} open futures positions`}
-        tone={openFutures > 0 ? "gold" : "neutral"}
+        sub={`${openFutures} open position${openFutures === 1 ? "" : "s"}`}
+        valueColor={openFutures > 0 ? "text-gold-primary" : "text-white"}
+        accent={openFutures > 0}
       />
-      <Card
-        label="Available USDT"
+      <StatCard
+        label="Available"
         value={fmtUsd(available)}
-        hint="Funds available for new orders"
+        sub="Free for new orders"
       />
-      <Card
+      <StatCard
         label="Executions"
         value={`${completed}/${executions.length}`}
-        hint={`${failed} failed or skipped`}
-        tone={failed > 0 ? "bad" : completed > 0 ? "good" : "neutral"}
+        sub={failed > 0 ? `${failed} failed / skipped` : "all clear"}
+        valueColor={
+          failed > 0
+            ? "text-red-400"
+            : completed > 0
+              ? "text-emerald-400"
+              : "text-white"
+        }
       />
     </div>
   );
