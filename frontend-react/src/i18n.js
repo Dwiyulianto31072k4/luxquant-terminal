@@ -18,10 +18,12 @@ import { notificationsEn, notificationsZh } from './locales/notifications';
 import { helpModalEn, helpModalZh } from './locales/helpModal';
 import { moreFeaturesEn, moreFeaturesZh } from './locales/moreFeatures';
 import { apiKeysEn, apiKeysZh } from './locales/apiKeys';
+import { guideEn, guideZh } from './locales/guide';
 
 const resources = {
   en: {
     translation: {
+      ...guideEn,
       nav: { home: "Home", signals: "Potential Trades", analytics: "Performance", bitcoin: "Bitcoin", markets: "Markets", orderbook: "Order Book", calendar: "Calendar", whale: "Whale Alert", tips: "Tips", watchlist: "Watchlist", admin: "User Management", more: "More", perf: "Perf.", trades: "Trades", btc: "BTC" },
       desc: { orderbook: "Buy/sell wall imbalance", calendar: "Macro economic events", whale: "Large transaction tracker", tips: "Trading guides & education", watchlist: "Your saved coins", admin: "User management" },
       top: { title: "Top Gainer by LuxQuant Algorithm", d1: "1 Day", d7: "1 Week", d30: "1 Month", custom: "Custom", from: "From:", to: "To:", apply: "Apply", total_tp: "Total TP Hits", tp_sub: "signals hit target", unique_pairs: "Unique Pairs", pairs_sub: "different coins", avg_gain: "Avg Gain (Top 5)", gain_sub: "first entry to best TP", avg_dur: "Avg Duration", dur_sub: "first call to last hit", no_tp: "No TP hits found for this period", top_gainers: "Top Gainers by LuxQuant Algorithm Call", called: "Called", first_entry: "First Entry", to_last_tp: "to last TP", no_data: "No data", fastest_hits: "Fastest Hits by LuxQuant Algorithm Call", entry: "Entry", trade_proof: "Trade Proof", view_tg: "View on Telegram ↗", before: "Before (Entry)", fullscreen: "Fullscreen", waiting_ss: "Waiting for entry screenshot...", after: "After", latest: "LATEST", back_img: "Back to Image", interactive: "Interactive Chart", view_full: "View Fullscreen", journey: "Signal Journey", called_sig: "Signal Called", sl_hit: "Stop Loss Hit", hit: "Hit", sig_data: "Signal Data", duration: "Duration", vol_rank: "Volume Rank", risk: "Risk Level", sig_id: "Signal ID", loading: "Loading Signal Data...", failed: "Failed to load signal details", prev: "Prev", next: "Next", signal: "Signal" },
@@ -51,6 +53,7 @@ const resources = {
   },
   zh: {
     translation: {
+      ...guideZh,
       nav: { home: "主页", signals: "潜在交易", analytics: "表现", bitcoin: "比特币", markets: "市场", orderbook: "订单簿", calendar: "日历", whale: "巨鲸追踪", tips: "提示", watchlist: "自选列表", admin: "用户管理", more: "更多", perf: "表现", trades: "交易", btc: "比特币" },
       desc: { orderbook: "买卖墙不平衡", calendar: "宏观经济事件", whale: "大额交易追踪器", tips: "交易指南与教育", watchlist: "您保存的代币", admin: "用户管理" },
       top: { title: "LuxQuant 算法最高收益", d1: "1 天", d7: "1 周", d30: "1 个月", custom: "自定义", from: "从:", to: "至:", apply: "应用", total_tp: "总止盈次数", tp_sub: "达到目标的信号", unique_pairs: "独立交易对", pairs_sub: "不同的代币", avg_gain: "平均收益 (前五)", gain_sub: "首次入场至最佳止盈", avg_dur: "平均持续时间", dur_sub: "首次呼叫至最后命中", no_tp: "此期间未找到止盈记录", top_gainers: "LuxQuant 算法呼叫的最高收益", called: "呼叫", first_entry: "首次入场", to_last_tp: "至最后止盈", no_data: "无数据", fastest_hits: "LuxQuant 算法呼叫的最快命中", entry: "入场", trade_proof: "交易证明", view_tg: "在 Telegram 上查看 ↗", before: "之前 (入场)", fullscreen: "全屏", waiting_ss: "等待入场截图...", after: "之后", latest: "最新", back_img: "返回图片", interactive: "交互式图表", view_full: "查看全屏", journey: "信号历程", called_sig: "发出信号", sl_hit: "触及止损", hit: "命中", sig_data: "信号数据", duration: "持续时间", vol_rank: "成交量排名", risk: "风险等级", sig_id: "信号 ID", loading: "正在加载信号数据...", failed: "加载信号详情失败", prev: "上一页", next: "下一页", signal: "信号" },

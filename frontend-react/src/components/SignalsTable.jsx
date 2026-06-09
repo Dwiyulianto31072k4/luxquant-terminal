@@ -6,6 +6,7 @@ import StarButton from './StarButton';
 import { useAuth } from '../context/AuthContext';
 import { watchlistApi } from '../services/watchlistApi';
 import { classifyCoin, CoinDetailModal } from './coinIntelShared';
+import { InfoTip } from './GuideInfo';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -887,6 +888,7 @@ const SignalsTable = ({
                   {visibleCols.track_record && (
                     <th className="py-3 px-4 font-mono text-[10px] font-medium uppercase tracking-[0.18em] select-none text-center">
                       <span className="flex items-center justify-center gap-1.5">
+                        <InfoTip side="bottom" title={t('guide.track_t')} text={t('guide.track_d')} />
                         <button
                           onClick={() => onSort && onSort('win_rate')}
                           className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_rate' ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'}`}

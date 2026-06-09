@@ -4,6 +4,7 @@ import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
 import { classifyCoin } from './coinIntelShared';
+import { InfoTip, GuideModal } from './GuideInfo';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -161,6 +162,7 @@ const SignalsPage = () => {
   const [tagWr, setTagWr] = useState([]);            // raw list from /analytics/tag-wr
   const [selectedTags, setSelectedTags] = useState([]); // tag names the user filters by
   const [showAllTags, setShowAllTags] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Min win-streak length to count as a "High Win Streak" (matches the
   // Coin Intelligence hot-streak heuristic).
@@ -763,6 +765,13 @@ const SignalsPage = () => {
           <div className="flex items-center gap-2.5">
             {Icon.filter('w-3.5 h-3.5 text-gold-primary/70')}
             <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">Signal Scanner</h2>
+            <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-mono text-[9px] uppercase tracking-wider"
+            >
+              <span className="inline-flex items-center justify-center w-3 h-3 rounded-full border border-gold-primary/50 text-[8px] leading-none">?</span>
+              {t('guide.button')}
+            </button>
           </div>
           {hasActiveFilters && (
             <button
@@ -921,7 +930,7 @@ const SignalsPage = () => {
             for the new analytics filters (Win Streak now; BTC Correlation next). */}
         <div className="mt-5 pt-5 border-t border-white/[0.06]">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Intelligence Filters</span>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">powered by coin intelligence</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -1019,7 +1028,7 @@ const SignalsPage = () => {
         {sortedTagsForChips.length > 0 && (
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
             <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pattern Filters</span>
+              <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">historical win rate · descriptive</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -1115,6 +1124,8 @@ const SignalsPage = () => {
           signalTags={signalTags}
         />
       )}
+
+      {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
 
       {selectedSignal && (
         <SignalModal
