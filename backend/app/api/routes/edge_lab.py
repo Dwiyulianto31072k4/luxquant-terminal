@@ -738,3 +738,89 @@ async def get_tag_wr(
     response = {"days": days, "min_n": min_n, "tags": tags}
     cache_set(cache_key, response, ttl=600)
     return response
+
+
+# ════════════════════════════════════════════════════════════════
+# WR-VS-BTC — daily LuxQuant win rate overlaid with BTC daily close
+# WR source : daily_market_regime (precomputed daily by coin_intel_worker)
+# BTC source: Binance spot 1d klines, Redis-cached until UTC day change
+# ════════════════════════════════════════════════════════════════
+@router.get("/analytics/wr-vs-btc")
+async def get_wr_vs_btc(
+    range: str = Query("90", description="30 | 90 | 365 | all"),
+    db: Session = Depends(get_db),
+):
+    """Daily series: [{date, win_rate, total_closed, regime, btc_close}]."""
+    if range not in ("30", "90", "365", "all"):
+        raise HTTPException(status_code=400, detail="range must be 30, 90, 365, or all")
+
+    today_str = datetime.utcnow().date().isoformat()
+    cache_key = f"lq:edge-lab:wr-vs-btc:v1:{range}:{today_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    # ─── 1. WR series from daily_market_regime ───
+    if range == "all":
+        wr_rows = db.execute(text("""
+            SELECT date, win_rate, total_closed, regime
+            FROM daily_market_regime ORDER BY date ASC
+        """)).fetchall()
+    else:
+        wr_rows = db.execute(text("""
+            SELECT date, win_rate, total_closed, regime
+            FROM daily_market_regime
+            WHERE date >= (CURRENT_DATE - CAST(:days AS int))
+            ORDER BY date ASC
+        """), {"days": int(range)}).fetchall()
+
+    wr_series = {
+        r[0].isoformat(): {
+            "win_rate": _safe_float(r[1]),
+            "total_closed": int(r[2] or 0),
+            "regime": r[3],
+        } for r in wr_rows
+    }
+
+    # ─── 2. BTC daily closes from Binance (cached separately, refreshes per UTC day) ───
+    btc_cache_key = f"lq:edge-lab:btc-daily:v1:{today_str}"
+    btc_closes = cache_get(btc_cache_key)
+    if not btc_closes:
+        import httpx
+        btc_closes = {}
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    "https://api.binance.com/api/v3/klines",
+                    params={"symbol": "BTCUSDT", "interval": "1d", "limit": 1000},
+                )
+                if resp.status_code == 200:
+                    for k in resp.json():
+                        # k[0] = open time (ms), k[4] = close
+                        day = datetime.utcfromtimestamp(k[0] / 1000).date().isoformat()
+                        btc_closes[day] = float(k[4])
+        except Exception:
+            btc_closes = {}
+        if btc_closes:
+            cache_set(btc_cache_key, btc_closes, ttl=86400)
+
+    # ─── 3. Merge by date (WR drives the axis; BTC may be null on gap days) ───
+    series = []
+    for day in sorted(wr_series.keys()):
+        w = wr_series[day]
+        series.append({
+            "date": day,
+            "win_rate": w["win_rate"],
+            "total_closed": w["total_closed"],
+            "regime": w["regime"],
+            "btc_close": btc_closes.get(day),
+        })
+
+    response = {
+        "range": range,
+        "count": len(series),
+        "btc_available": bool(btc_closes),
+        "series": series,
+    }
+    cache_set(cache_key, response, ttl=21600)  # 6h; key already rotates daily
+    return response
