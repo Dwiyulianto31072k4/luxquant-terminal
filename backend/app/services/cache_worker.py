@@ -543,11 +543,19 @@ def query_signals_bulk_7d(db):
             bc.beta_30d, bc.corr_4h_30d,                       -- r[22], r[23]
             bc.is_decoupled, bc.is_extended,                   -- r[24], r[25]
             (bc.interpretation->>'alignment_score')::int,      -- r[26]
-            bc.interpretation->>'risk_level'                   -- r[27]
+            bc.interpretation->>'risk_level',                  -- r[27]
+            tg.important_tags                                  -- r[28]
         FROM signals s
         LEFT JOIN _cache_outcomes so ON s.signal_id = so.signal_id
         LEFT JOIN last_updates lu ON s.signal_id = lu.signal_id
         LEFT JOIN signal_btc_correlation bc ON bc.signal_id = s.signal_id
+        LEFT JOIN LATERAL (
+            SELECT array_agg(t->>'name') AS important_tags
+            FROM signal_enrichment e2,
+                 jsonb_array_elements(e2.entry_snapshot->'tags_annotated') t
+            WHERE e2.signal_id = s.signal_id
+              AND (t->>'important')::boolean = true
+        ) tg ON true
         WHERE s.created_at >= :date_from
         ORDER BY s.call_message_id DESC
     """), {"date_from": date_7d}).fetchall()
@@ -573,6 +581,7 @@ def query_signals_bulk_7d(db):
             "btc_extended": bool(r[25]) if r[25] is not None else False,
             "btc_align_score": r[26],
             "btc_risk": r[27],
+            "important_tags": list(r[28]) if r[28] else [],
         })
  
     return {"items": items, "total": len(items), "date_from": date_7d}
