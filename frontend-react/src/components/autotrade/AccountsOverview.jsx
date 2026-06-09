@@ -10,6 +10,7 @@ import {
   Card,
   SectionHeader,
   StatusBadge,
+  StatusDot,
   GoldButton,
   EmptyState,
   fmtDateTime,
@@ -49,29 +50,34 @@ export default function AccountsOverview({
             <h2 className="mt-2 truncate text-xl font-semibold text-white lg:text-2xl">
               {user?.email || "Connected user"}
             </h2>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusBadge tone="neutral">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+              <span className="capitalize text-text-secondary">
                 {user?.role || "user"}
-              </StatusBadge>
-              <span className="font-mono text-[11px] text-text-muted">
+              </span>
+              <span className="text-white/15">·</span>
+              <span>
                 {exchangeAccounts.length} exchange
                 {exchangeAccounts.length === 1 ? "" : "s"} linked
               </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone={health?.ok ? "good" : "bad"} dot>
-              {health?.ok ? "API healthy" : "API down"}
-            </StatusBadge>
-            <StatusBadge tone={liveOrders ? "good" : "warn"}>
-              {liveOrders ? "Live orders" : "Dry run"}
-            </StatusBadge>
-            {health?.binance_environment ? (
-              <StatusBadge tone="info">
-                {health.binance_environment}
-              </StatusBadge>
-            ) : null}
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <StatusDot tone={health?.ok ? "good" : "bad"} pulse={health?.ok}>
+                {health?.ok ? "API healthy" : "API down"}
+              </StatusDot>
+              <StatusDot tone={liveOrders ? "good" : "warn"}>
+                {liveOrders ? "Live orders" : "Dry run"}
+              </StatusDot>
+              {health?.binance_environment ? (
+                <span className="text-xs text-text-muted">
+                  <span className="text-text-secondary capitalize">
+                    {health.binance_environment}
+                  </span>
+                </span>
+              ) : null}
+            </div>
             <GoldButton onClick={onConnect}>
               {exchangeAccounts.length > 0 ? "Update keys" : "Connect Binance"}
             </GoldButton>
@@ -79,15 +85,12 @@ export default function AccountsOverview({
         </div>
 
         {showWalletHint ? (
-          <div className="mt-4 rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary mb-1">
-              Wallet check
-            </p>
-            <p className="text-sm text-gold-primary/80">
-              Your keys are valid but this wallet reads $0. AutoTrade trades the{" "}
-              <span className="font-semibold">Futures</span> wallet — if your
-              funds sit in Spot or Funding, transfer them to USD-M Futures in
-              Binance to make them available here.
+          <div className="mt-4 rounded-md border-l-2 border-gold-primary/40 bg-gold-primary/[0.04] py-2.5 pl-3 pr-4">
+            <p className="text-sm text-gold-primary/85">
+              Keys are valid but this wallet reads $0. AutoTrade trades the{" "}
+              <span className="font-medium text-gold-primary">Futures</span>{" "}
+              wallet — if your funds sit in Spot or Funding, transfer them to
+              USD-M Futures in Binance to use them here.
             </p>
           </div>
         ) : null}
@@ -135,9 +138,11 @@ export default function AccountsOverview({
                     </p>
                   </div>
                   <div className="flex-shrink-0">
-                    <StatusBadge tone={tone} dot={tone === "good"}>
-                      {account.key_status || "unchecked"}
-                    </StatusBadge>
+                    <StatusDot tone={tone} pulse={tone === "good"}>
+                      <span className="capitalize">
+                        {account.key_status || "unchecked"}
+                      </span>
+                    </StatusDot>
                   </div>
                 </div>
               </Card>

@@ -10,8 +10,8 @@ import { Card, SectionHeader, EmptyState, StatusBadge, fmtNum } from "./AutoTrad
 
 function pnlColor(value) {
   const n = Number(value || 0);
-  if (n > 0) return "text-emerald-400";
-  if (n < 0) return "text-red-400";
+  if (n > 0) return "text-[#0ECB81]";
+  if (n < 0) return "text-[#F6465D]";
   return "text-white/80";
 }
 

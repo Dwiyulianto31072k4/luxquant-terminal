@@ -64,8 +64,8 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Completed" value={stats.completed} valueColor="text-emerald-400" />
-        <StatCard label="Failed / Skipped" value={stats.failed} valueColor={stats.failed > 0 ? "text-red-400" : "text-white"} />
+        <StatCard label="Completed" value={stats.completed} valueColor="text-[#0ECB81]" />
+        <StatCard label="Failed / Skipped" value={stats.failed} valueColor={stats.failed > 0 ? "text-[#F6465D]" : "text-white"} />
         <StatCard label="Pending / Running" value={stats.running} valueColor={stats.running > 0 ? "text-gold-primary" : "text-white"} />
       </div>
 
@@ -101,7 +101,7 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
                         </p>
                       </div>
                     </div>
-                    <StatusBadge tone={statusTone(execution.status)} dot={execution.status === "running"}>
+                    <StatusBadge tone={statusTone(execution.status)}>
                       {execution.status}
                     </StatusBadge>
                   </div>
@@ -176,7 +176,7 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
                         <td className="px-4 py-3">
                           <StatusBadge
                             tone={statusTone(execution.status)}
-                            dot={execution.status === "running"}
+                           
                           >
                             {execution.status}
                           </StatusBadge>

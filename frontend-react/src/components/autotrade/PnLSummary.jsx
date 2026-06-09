@@ -43,9 +43,9 @@ export default function PnLSummary({ portfolio, executions = [] }) {
         sub={failed > 0 ? `${failed} failed / skipped` : "all clear"}
         valueColor={
           failed > 0
-            ? "text-red-400"
+            ? "text-[#F6465D]"
             : completed > 0
-              ? "text-emerald-400"
+              ? "text-[#0ECB81]"
               : "text-white"
         }
       />

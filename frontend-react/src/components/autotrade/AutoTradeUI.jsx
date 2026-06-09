@@ -141,42 +141,64 @@ export function StatCard({
 }
 
 // ────────────────────────────────────────────────────────────────
-// StatusBadge — pill with tone + optional pulsing dot
+// Binance-grade up/down colors (used for PnL, side, status)
 // ────────────────────────────────────────────────────────────────
-const BADGE_TONES = {
-  good: "border-emerald-500/25 bg-emerald-500/10 text-emerald-400",
-  warn: "border-gold-primary/25 bg-gold-primary/10 text-gold-primary",
-  bad: "border-red-500/25 bg-red-500/10 text-red-400",
-  info: "border-sky-500/25 bg-sky-500/10 text-sky-400",
-  neutral: "border-white/[0.08] bg-white/[0.03] text-text-muted",
+export const UP = "#0ECB81";
+export const DOWN = "#F6465D";
+
+const DOT_HEX = {
+  good: UP,
+  warn: "#d4a853",
+  bad: DOWN,
+  info: "#5B8DEF",
+  neutral: "#848E9C",
 };
 
-const DOT_TONES = {
-  good: "bg-emerald-400",
-  warn: "bg-gold-primary",
-  bad: "bg-red-400",
-  info: "bg-sky-400",
-  neutral: "bg-text-muted",
+const DOT_TEXT = {
+  good: "text-[#0ECB81]",
+  warn: "text-gold-primary",
+  bad: "text-[#F6465D]",
+  info: "text-[#5B8DEF]",
+  neutral: "text-text-muted",
 };
 
-export function StatusBadge({ tone = "neutral", children, dot = false }) {
+// StatusDot — colored dot + plain label, no background. Binance status line.
+export function StatusDot({ tone = "neutral", children, pulse = false }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs">
+      <span
+        className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${pulse ? "animate-pulse" : ""}`}
+        style={{ background: DOT_HEX[tone] || DOT_HEX.neutral }}
+      />
+      <span className={DOT_TEXT[tone] || DOT_TEXT.neutral}>{children}</span>
+    </span>
+  );
+}
+
+// StatusBadge — small squared tag (restrained, Binance-style). No pill, no
+// uppercase tracking. Subtle tinted background, normal-case medium label.
+const TAG_TONES = {
+  good: "bg-[#0ECB81]/10 text-[#0ECB81]",
+  warn: "bg-gold-primary/10 text-gold-primary",
+  bad: "bg-[#F6465D]/10 text-[#F6465D]",
+  info: "bg-[#5B8DEF]/12 text-[#5B8DEF]",
+  neutral: "bg-white/[0.05] text-text-secondary",
+};
+
+export function StatusBadge({ tone = "neutral", children }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] ${
-        BADGE_TONES[tone] || BADGE_TONES.neutral
+      className={`inline-flex items-center rounded-[3px] px-1.5 py-0.5 text-[11px] font-medium leading-none ${
+        TAG_TONES[tone] || TAG_TONES.neutral
       }`}
     >
-      {dot ? (
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${DOT_TONES[tone]} ${
-            tone === "good" ? "animate-pulse" : ""
-          }`}
-        />
-      ) : null}
       {children}
     </span>
   );
 }
+
+// Alias for semantic clarity at call sites (Long/Short, leverage, etc.)
+export const Tag = StatusBadge;
 
 // ────────────────────────────────────────────────────────────────
 // Toggle — smooth switch, label + hint on the left

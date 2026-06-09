@@ -14,7 +14,7 @@ import {
 import {
   Card,
   SectionHeader,
-  StatusBadge,
+  StatusDot,
   Toggle,
   Field,
   Select,
@@ -160,16 +160,16 @@ export default function ConfigurationStudio({
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
                 Strategy
               </p>
-              <StatusBadge
+              <StatusDot
                 tone={draft.is_active ? "good" : "warn"}
-                dot={draft.is_active}
+                pulse={draft.is_active}
               >
                 {draft.is_active ? "Active" : "Paused"}
-              </StatusBadge>
+              </StatusDot>
             </div>
             <h2 className="mt-2 text-xl font-semibold text-white lg:text-2xl">
               Execution rules

@@ -32,6 +32,7 @@ import {
   Card,
   SectionHeader,
   StatusBadge,
+  StatusDot,
   GoldButton,
   Notice,
 } from "./autotrade/AutoTradeUI";
@@ -68,27 +69,32 @@ function EngineStatusStrip({ health, config }) {
   const active = Boolean(config?.is_active);
   const live = Boolean(health.live_orders_enabled);
 
+  const Meta = ({ label, value }) => (
+    <span className="text-xs text-text-muted">
+      {label} <span className="text-text-secondary">{value}</span>
+    </span>
+  );
+  const Sep = () => <span className="text-white/15">·</span>;
+
   return (
-    <Card padded={false}>
-      <div className="flex flex-wrap items-center gap-2 p-3">
-        <StatusBadge tone={active ? "good" : "warn"} dot={active}>
-          {active ? "Strategy active" : "Strategy paused"}
-        </StatusBadge>
-        <StatusBadge tone={live ? "good" : "warn"}>
-          {live ? "Live orders" : `Mode ${health.trading_mode || "dry_run"}`}
-        </StatusBadge>
-        {health.binance_environment ? (
-          <StatusBadge tone="info">
-            Binance {health.binance_environment}
-          </StatusBadge>
-        ) : null}
-        {health.market_data_market ? (
-          <StatusBadge tone="neutral">
-            {health.market_data_market}
-          </StatusBadge>
-        ) : null}
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-white/[0.06] bg-[#0a0805] px-4 py-2.5">
+      <StatusDot tone={active ? "good" : "warn"} pulse={active}>
+        {active ? "Strategy active" : "Strategy paused"}
+      </StatusDot>
+      <span className="hidden h-3 w-px bg-white/[0.08] sm:block" />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Meta label="Mode" value={health.trading_mode || "dry_run"} />
+        <Sep />
+        <Meta label="Binance" value={health.binance_environment || "—"} />
+        <Sep />
+        <Meta label="Market" value={health.market_data_market || "—"} />
       </div>
-    </Card>
+      {live ? (
+        <span className="ml-auto">
+          <StatusBadge tone="good">Live orders</StatusBadge>
+        </span>
+      ) : null}
+    </div>
   );
 }
 
