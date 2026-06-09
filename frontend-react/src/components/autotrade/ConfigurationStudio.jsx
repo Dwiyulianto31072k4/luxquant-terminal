@@ -1,33 +1,37 @@
+// src/components/autotrade/ConfigurationStudio.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade · Configure tab
+// Execution rules for the Binance strategy. Grouped into clear
+// sections: Execution · Sizing · Futures · Exit (TP/SL) · Risk.
+// Payload/behaviour unchanged — visual + structure only.
+// ════════════════════════════════════════════════════════════════
+
 import { useEffect, useMemo, useState } from "react";
 import {
   setBinanceStrategyActive,
   updateBinanceStrategyConfig,
 } from "../../services/autotradeApi";
+import {
+  Card,
+  SectionHeader,
+  StatusBadge,
+  Toggle,
+  Field,
+  Select,
+  NumberInput,
+  Segmented,
+  PillToggle,
+  GoldButton,
+  GhostButton,
+  Notice,
+} from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
-
-// function toDraft(config) {
-//   return {
-//     spot_enabled: Boolean(config?.spot_enabled),
-//     futures_enabled: config?.futures_enabled ?? true,
-//     is_active: config?.is_active ?? false,
-//     dry_run: config?.dry_run ?? false,
-//     sizing_method: config?.sizing?.method || "fixed",
-//     sizing_value: config?.sizing?.value ?? 10,
-//     tp_source: "signal_level",
-//     tp_level: Number(draft.tp_level),
-//     tp_custom_pct: null,
-
-//     sl_source: "signal_level",
-//     sl_level: Number(draft.sl_level),
-//     sl_custom_pct: null,
-//     exit_mode: config?.exit?.mode || "fixed_sl",
-//     trailing_callback_rate: config?.exit?.trailing_callback_rate ?? 1,
-//     leverage: config?.futures?.leverage ?? 1,
-//     margin_mode: config?.futures?.margin_mode || "isolated",
-//     allowed_risk_levels: config?.allowed_risk_levels || [],
-//   };
-// }
+const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
+const SL_LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({
+  value: n,
+  label: `${n}`,
+}));
 
 function toDraft(config) {
   return {
@@ -68,7 +72,6 @@ function toPayload(draft) {
     tp_source: "signal_level",
     tp_level: Number(draft.tp_level),
     tp_custom_pct: null,
-
     sl_source: "signal_level",
     sl_level: Number(draft.sl_level),
     sl_custom_pct: null,
@@ -84,80 +87,6 @@ function toPayload(draft) {
   };
 }
 
-function Toggle({ label, hint, checked, onChange }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-md border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {hint ? <p className="mt-1 text-xs text-text-muted">{hint}</p> : null}
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className={`relative h-5 w-10 rounded-full border transition-colors ${
-          checked
-            ? "border-gold-primary bg-gold-primary/80"
-            : "border-white/[0.08] bg-white/[0.04]"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full transition-transform ${
-            checked
-              ? "translate-x-[20px] bg-[#0a0805]"
-              : "translate-x-0.5 bg-white/40"
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
-function InputGroup({ label, hint, children }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
-        {label}
-      </label>
-      {children}
-      {hint ? <p className="text-xs text-text-muted/70">{hint}</p> : null}
-    </div>
-  );
-}
-
-function Select({ value, onChange, options }) {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white focus:outline-none focus:border-gold-primary/40"
-    >
-      {options.map((option) => (
-        <option
-          key={option.value}
-          value={option.value}
-          className="bg-[#0a0805]"
-        >
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function NumberInput({ value, onChange, min, max, step = 1 }) {
-  return (
-    <input
-      type="number"
-      value={value}
-      min={min}
-      max={max}
-      step={step}
-      onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white focus:outline-none focus:border-gold-primary/40"
-    />
-  );
-}
-
 export default function ConfigurationStudio({
   config,
   hasConnectedAccount,
@@ -165,6 +94,7 @@ export default function ConfigurationStudio({
 }) {
   const [draft, setDraft] = useState(() => toDraft(config));
   const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -173,16 +103,13 @@ export default function ConfigurationStudio({
   }, [config]);
 
   const statusText = useMemo(() => {
-    if (!hasConnectedAccount) return "Connect Binance keys first.";
-    if (draft.is_active) return "AutoTrade is active.";
-    return "Strategy saved but inactive.";
+    if (!hasConnectedAccount) return "Connect Binance keys to start trading.";
+    if (draft.is_active) return "AutoTrade is running on incoming signals.";
+    return "Strategy saved but paused.";
   }, [draft.is_active, hasConnectedAccount]);
 
   const patch = (changes) =>
-    setDraft((current) => ({
-      ...current,
-      ...changes,
-    }));
+    setDraft((current) => ({ ...current, ...changes }));
 
   const toggleRisk = (level) => {
     setDraft((current) => {
@@ -197,10 +124,9 @@ export default function ConfigurationStudio({
   };
 
   const handleQuickToggle = async () => {
-    setSaving(true);
+    setToggling(true);
     setError("");
     setSuccess("");
-
     try {
       const response = await setBinanceStrategyActive(!draft.is_active);
       patch({ is_active: response.active });
@@ -209,7 +135,7 @@ export default function ConfigurationStudio({
     } catch (err) {
       setError(err.message || "Failed to toggle strategy");
     } finally {
-      setSaving(false);
+      setToggling(false);
     }
   };
 
@@ -217,7 +143,6 @@ export default function ConfigurationStudio({
     setSaving(true);
     setError("");
     setSuccess("");
-
     try {
       await updateBinanceStrategyConfig(toPayload(draft));
       setSuccess("Strategy configuration saved.");
@@ -231,221 +156,236 @@ export default function ConfigurationStudio({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary/80">
-              Binance Strategy Config
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
-              Configure execution rules
+      {/* ── Header: status + quick enable/pause ── */}
+      <Card>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
+                Strategy
+              </p>
+              <StatusBadge
+                tone={draft.is_active ? "good" : "warn"}
+                dot={draft.is_active}
+              >
+                {draft.is_active ? "Active" : "Paused"}
+              </StatusBadge>
+            </div>
+            <h2 className="mt-2 text-xl font-semibold text-white lg:text-2xl">
+              Execution rules
             </h2>
             <p className="mt-1 text-sm text-text-muted">{statusText}</p>
           </div>
-          <button
-            type="button"
+          <GhostButton
+            tone="gold"
             onClick={handleQuickToggle}
-            disabled={!hasConnectedAccount || saving}
-            className="rounded-md border border-gold-primary/25 px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
+            disabled={!hasConnectedAccount || toggling}
           >
-            {draft.is_active ? "Pause Strategy" : "Enable Strategy"}
-          </button>
+            {toggling
+              ? "Working…"
+              : draft.is_active
+                ? "Pause strategy"
+                : "Enable strategy"}
+          </GhostButton>
         </div>
-      </div>
+      </Card>
 
       {!hasConnectedAccount ? (
-        <div className="rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-4 text-sm text-gold-primary/80">
-          The strategy API is available, but it needs a saved Binance account
-          before the backend can trade.
-        </div>
+        <Notice tone="warn">
+          The strategy can be configured now, but a saved Binance account is
+          required before the engine can place trades.
+        </Notice>
       ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      {success ? <Notice tone="success">{success}</Notice> : null}
 
-      {error ? (
-        <div className="rounded-md border border-red-500/25 bg-red-500/[0.05] p-3 text-sm text-red-400">
-          {error}
-        </div>
-      ) : null}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* ── LEFT: execution + sizing + futures ── */}
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <SectionHeader label="Execution" />
+            <Toggle
+              label="Strategy active"
+              hint="Master on/off for automated trading."
+              checked={draft.is_active}
+              onChange={(value) => patch({ is_active: value })}
+            />
+            <Toggle
+              label="Dry run"
+              hint="Simulate orders without sending them to Binance."
+              checked={draft.dry_run}
+              onChange={(value) => patch({ dry_run: value })}
+            />
+            <Toggle
+              label="Spot trading"
+              hint="Execute spot orders for supported signals."
+              checked={draft.spot_enabled}
+              onChange={(value) => patch({ spot_enabled: value })}
+            />
+            <Toggle
+              label="Futures trading"
+              hint="Execute leveraged futures orders."
+              checked={draft.futures_enabled}
+              onChange={(value) => patch({ futures_enabled: value })}
+            />
+          </div>
 
-      {success ? (
-        <div className="rounded-md border border-emerald-500/25 bg-emerald-500/[0.05] p-3 text-sm text-emerald-400">
-          {success}
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4 rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
-          <Toggle
-            label="Strategy active"
-            hint="Master on/off switch from `is_active`."
-            checked={draft.is_active}
-            onChange={(value) => patch({ is_active: value })}
-          />
-          <Toggle
-            label="Dry run"
-            hint="Simulate orders without sending them to Binance."
-            checked={draft.dry_run}
-            onChange={(value) => patch({ dry_run: value })}
-          />
-          <Toggle
-            label="Spot enabled"
-            hint="Allow spot execution for supported signals."
-            checked={draft.spot_enabled}
-            onChange={(value) => patch({ spot_enabled: value })}
-          />
-          <Toggle
-            label="Futures enabled"
-            hint="Allow futures execution and leverage settings."
-            checked={draft.futures_enabled}
-            onChange={(value) => patch({ futures_enabled: value })}
-          />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <InputGroup label="Sizing method">
-              <Select
-                value={draft.sizing_method}
-                onChange={(value) => patch({ sizing_method: value })}
-                options={[
-                  { value: "fixed", label: "Fixed USDT" },
-                  { value: "percent", label: "Percent of balance" },
-                ]}
-              />
-            </InputGroup>
-
-            <InputGroup
-              label="Sizing value"
-              hint={
-                draft.sizing_method === "fixed"
-                  ? "USDT per trade."
-                  : "0-100% of available balance."
-              }
-            >
-              <NumberInput
-                value={draft.sizing_value}
-                onChange={(value) => patch({ sizing_value: value })}
-                min={0}
-                max={draft.sizing_method === "fixed" ? 1000000 : 100}
-                step={0.1}
-              />
-            </InputGroup>
+          <div className="space-y-3">
+            <SectionHeader label="Position Sizing" />
+            <Card>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Method">
+                  <Select
+                    value={draft.sizing_method}
+                    onChange={(value) => patch({ sizing_method: value })}
+                    options={[
+                      { value: "fixed", label: "Fixed USDT" },
+                      { value: "percent", label: "Percent of balance" },
+                    ]}
+                  />
+                </Field>
+                <Field
+                  label="Amount"
+                  hint={
+                    draft.sizing_method === "fixed"
+                      ? "USDT per trade."
+                      : "0–100% of available balance."
+                  }
+                >
+                  <NumberInput
+                    value={draft.sizing_value}
+                    onChange={(value) => patch({ sizing_value: value })}
+                    min={0}
+                    max={draft.sizing_method === "fixed" ? 1000000 : 100}
+                    step={0.1}
+                    suffix={draft.sizing_method === "fixed" ? "USDT" : "%"}
+                  />
+                </Field>
+              </div>
+            </Card>
           </div>
 
           {draft.futures_enabled ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              <InputGroup label="Leverage">
-                <NumberInput
-                  value={draft.leverage}
-                  onChange={(value) => patch({ leverage: value })}
-                  min={1}
-                  max={125}
-                />
-              </InputGroup>
-              <InputGroup label="Margin mode">
-                <Select
-                  value={draft.margin_mode}
-                  onChange={(value) => patch({ margin_mode: value })}
-                  options={[
-                    { value: "isolated", label: "Isolated" },
-                    { value: "cross", label: "Cross" },
-                  ]}
-                />
-              </InputGroup>
+            <div className="space-y-3">
+              <SectionHeader label="Futures" />
+              <Card>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Leverage" hint="1×–125×">
+                    <NumberInput
+                      value={draft.leverage}
+                      onChange={(value) => patch({ leverage: value })}
+                      min={1}
+                      max={125}
+                      suffix="×"
+                    />
+                  </Field>
+                  <Field label="Margin mode">
+                    <Select
+                      value={draft.margin_mode}
+                      onChange={(value) => patch({ margin_mode: value })}
+                      options={[
+                        { value: "isolated", label: "Isolated" },
+                        { value: "cross", label: "Cross" },
+                      ]}
+                    />
+                  </Field>
+                </div>
+              </Card>
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-md border border-white/[0.06] bg-[#0a0805] p-5">
-          <InputGroup
-            label="Take Profit Level"
-            hint="Use TP level from the signal"
-          >
-            <NumberInput
-              value={draft.tp_level}
-              onChange={(value) => patch({ tp_level: value })}
-              min={1}
-              max={4}
-            />
-          </InputGroup>
+        {/* ── RIGHT: exit (TP/SL) + risk filter ── */}
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <SectionHeader label="Take Profit / Stop Loss" />
+            <Card>
+              <div className="space-y-4">
+                <Field
+                  label="Take Profit target"
+                  hint="Which TP level from the signal to exit on."
+                >
+                  <Segmented
+                    value={draft.tp_level}
+                    onChange={(value) => patch({ tp_level: value })}
+                    options={LEVEL_OPTIONS}
+                  />
+                </Field>
+                <Field
+                  label="Stop Loss level"
+                  hint="Which SL level from the signal to use."
+                >
+                  <Segmented
+                    value={draft.sl_level}
+                    onChange={(value) => patch({ sl_level: value })}
+                    options={SL_LEVEL_OPTIONS}
+                  />
+                </Field>
 
-          <InputGroup
-            label="Stop Loss Level"
-            hint="Use SL level from the signal"
-          >
-            <NumberInput
-              value={draft.sl_level}
-              onChange={(value) => patch({ sl_level: value })}
-              min={1}
-              max={4}
-            />
-          </InputGroup>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <InputGroup label="Exit mode">
-              <Select
-                value={draft.exit_mode}
-                onChange={(value) => patch({ exit_mode: value })}
-                options={[
-                  { value: "fixed_sl", label: "Fixed SL" },
-                  { value: "trailing_stop", label: "Trailing stop" },
-                ]}
-              />
-            </InputGroup>
-            <InputGroup
-              label="Trailing callback"
-              hint="Required only when exit mode is trailing stop."
-            >
-              <NumberInput
-                value={draft.trailing_callback_rate}
-                onChange={(value) => patch({ trailing_callback_rate: value })}
-                min={0.1}
-                max={10}
-                step={0.1}
-              />
-            </InputGroup>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Exit mode">
+                    <Select
+                      value={draft.exit_mode}
+                      onChange={(value) => patch({ exit_mode: value })}
+                      options={[
+                        { value: "fixed_sl", label: "Fixed SL" },
+                        { value: "trailing_stop", label: "Trailing stop" },
+                      ]}
+                    />
+                  </Field>
+                  <Field
+                    label="Trailing callback"
+                    hint="Used only for trailing stop."
+                  >
+                    <NumberInput
+                      value={draft.trailing_callback_rate}
+                      onChange={(value) =>
+                        patch({ trailing_callback_rate: value })
+                      }
+                      min={0.1}
+                      max={10}
+                      step={0.1}
+                      suffix="%"
+                    />
+                  </Field>
+                </div>
+              </div>
+            </Card>
           </div>
 
-          <div>
-            <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
-              Allowed risk levels
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {RISK_LEVELS.map((level) => {
-                const active = draft.allowed_risk_levels.includes(level);
-                return (
-                  <button
+          <div className="space-y-3">
+            <SectionHeader label="Risk Filter" />
+            <Card>
+              <p className="mb-3 text-sm text-text-muted">
+                Only trade signals matching these risk levels.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {RISK_LEVELS.map((level) => (
+                  <PillToggle
                     key={level}
-                    type="button"
+                    active={draft.allowed_risk_levels.includes(level)}
                     onClick={() => toggleRisk(level)}
-                    className={`rounded-full border px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.15em] ${
-                      active
-                        ? "border-gold-primary/30 bg-gold-primary/10 text-gold-primary"
-                        : "border-white/[0.08] bg-white/[0.02] text-text-muted"
-                    }`}
                   >
                     {level}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-text-muted/70">
-              Leave all unselected to trade every risk level.
-            </p>
+                  </PillToggle>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-text-muted/70">
+                Leave all unselected to trade every risk level.
+              </p>
+            </Card>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <button
-          type="button"
+      {/* ── Save bar ── */}
+      <div className="flex items-center justify-end gap-3 border-t border-white/[0.06] pt-4">
+        <GoldButton
           onClick={handleSave}
           disabled={!hasConnectedAccount || saving}
-          className="rounded-md px-5 py-2.5 text-[11px] font-mono uppercase tracking-[0.2em] text-black disabled:opacity-40"
-          style={{
-            background:
-              "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-          }}
         >
-          {saving ? "Saving..." : "Save Strategy"}
-        </button>
+          {saving ? "Saving…" : "Save strategy"}
+        </GoldButton>
       </div>
     </div>
   );

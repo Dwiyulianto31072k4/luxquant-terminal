@@ -1,23 +1,30 @@
-// src/components/autotrade/SignalsQueue.jsx
+// src/components/autotrade/SignalQueue.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — AutoTrade Signals Queue v2 (Flowscan reskin)
-// Latest open signals that engine evaluates
+// LuxQuant — AutoTrade · Signals tab
+// Latest open signals the engine is evaluating. Live, auto-refresh.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from "react";
 import CoinLogo from "../CoinLogo";
+import {
+  Card,
+  SectionHeader,
+  StatusBadge,
+  Spinner,
+  EmptyState,
+  Notice,
+  fmtNum,
+  fmtTime,
+} from "./AutoTradeUI";
 
-function fmtNum(n, d = 4) {
-  if (n === null || n === undefined) return "—";
-  return Number(n).toFixed(d);
-}
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
-const riskStyle = (risk) => {
+const riskTone = (risk) => {
   const r = (risk || "").toLowerCase();
-  if (r.startsWith("high")) return "bg-red-500/10 text-red-400 border-red-500/25";
-  if (r.startsWith("med") || r.startsWith("nor")) return "bg-gold-primary/10 text-gold-primary border-gold-primary/25";
-  if (r.startsWith("low")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
-  return "bg-white/[0.04] text-white/70 border-white/[0.08]";
+  if (r.startsWith("high")) return "bad";
+  if (r.startsWith("med") || r.startsWith("nor")) return "warn";
+  if (r.startsWith("low")) return "good";
+  return "neutral";
 };
 
 const riskLabel = (risk) => {
@@ -28,22 +35,7 @@ const riskLabel = (risk) => {
   return risk || "—";
 };
 
-
-// ════════════════════════════════════════════════════════════════
-// SECTION HEADER
-// ════════════════════════════════════════════════════════════════
-const SectionHeader = ({ label }) => (
-  <div className="flex items-center gap-3">
-    <span className="h-px w-6 bg-gold-primary/40" />
-    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-      {label}
-    </span>
-    <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
-  </div>
-);
-
-
-export default function SignalsQueue() {
+export default function SignalQueue() {
   const [signals, setSignals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,8 +44,9 @@ export default function SignalsQueue() {
     setLoading(true);
     setError("");
     try {
-      const resp = await fetch("/api/v1/signals/bulk-7d?limit=50", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      const token = localStorage.getItem("access_token") || "";
+      const resp = await fetch(`${API_BASE}/api/v1/signals/bulk-7d?limit=50`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
@@ -74,117 +67,93 @@ export default function SignalsQueue() {
     return () => clearInterval(t);
   }, []);
 
-  // ── Loading ──
-  if (loading && signals.length === 0) {
-    return (
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <div className="w-8 h-8 border-2 border-gold-primary/20 border-t-gold-primary rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-text-muted text-[11px] font-mono uppercase tracking-[0.15em]">
-          Loading signals queue…
-        </p>
-      </div>
-    );
-  }
-
-  // ── Error ──
-  if (error) {
-    return (
-      <div className="relative overflow-hidden bg-red-500/[0.05] border border-red-500/25 rounded-md p-12 text-center">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-        <p className="text-red-400 text-sm font-medium mb-1">Failed to load</p>
-        <p className="text-[10px] font-mono text-red-400/70">{error}</p>
-      </div>
-    );
-  }
-
-  // ── Empty ──
-  if (signals.length === 0) {
-    return (
-      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md p-12 text-center">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-        <p className="text-white text-sm font-medium mb-1">No pending signals</p>
-        <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted">
-          Engine waiting for next signal
-        </p>
-      </div>
-    );
-  }
+  if (loading && signals.length === 0) return <Spinner label="Loading signals queue…" />;
 
   return (
     <div className="space-y-3">
-      {/* ── Header bar ── */}
       <SectionHeader label="Signals Queue" />
 
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/[0.06]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted">Live</span>
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-muted/70">
+          <StatusBadge tone="good" dot>
+            Live
+          </StatusBadge>
+          <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/70">
             Auto-refresh <span className="text-white tabular-nums">30s</span>
           </span>
         </div>
-
         <button
+          type="button"
           onClick={load}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/[0.06] text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary/80 hover:text-gold-primary hover:border-gold-primary/30 transition-all"
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary/80 transition-all hover:border-gold-primary/30 hover:text-gold-primary"
         >
-          <svg className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992m0 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          <svg
+            className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992m0 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+            />
           </svg>
           Refresh
         </button>
       </div>
 
-      {/* ── Signal rows ── */}
-      <div className="space-y-1.5">
-        {signals.map((s) => (
-          <div
-            key={s.signal_id}
-            className="relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md hover:border-white/[0.12] transition-all"
-          >
-            <div className="flex items-center gap-3 p-3">
-              {/* Logo */}
-              <CoinLogo pair={s.pair} size={32} />
+      {error ? <Notice tone="error">Failed to load: {error}</Notice> : null}
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                  <p className="text-white font-semibold text-sm font-mono truncate">{s.pair}</p>
-                  <span className="text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/25">
-                    Buy
-                  </span>
-                  {s.risk_level && (
-                    <span className={`text-[9px] font-mono uppercase tracking-[0.1em] px-1.5 py-0.5 rounded border ${riskStyle(s.risk_level)}`}>
-                      {riskLabel(s.risk_level)}
-                    </span>
-                  )}
+      {!error && signals.length === 0 ? (
+        <EmptyState
+          icon="🛰️"
+          title="No pending signals"
+          hint="The engine is waiting for the next open signal."
+        />
+      ) : (
+        <div className="space-y-2">
+          {signals.map((s) => (
+            <Card key={s.signal_id} hover padded={false}>
+              <div className="flex items-center gap-3 p-3">
+                <CoinLogo pair={s.pair} size={32} />
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                    <p className="truncate font-mono text-sm font-semibold text-white">
+                      {s.pair}
+                    </p>
+                    <StatusBadge tone="good">Buy</StatusBadge>
+                    {s.risk_level ? (
+                      <StatusBadge tone={riskTone(s.risk_level)}>
+                        {riskLabel(s.risk_level)}
+                      </StatusBadge>
+                    ) : null}
+                  </div>
+                  <p className="font-mono text-[10px] tabular-nums text-text-muted/70">
+                    <span className="text-[9px] uppercase tracking-wider">Entry</span>
+                    <span className="ml-1 text-white/80">{fmtNum(s.entry, 6)}</span>
+                    <span className="mx-1.5 text-text-muted/40">·</span>
+                    <span className="text-[9px] uppercase tracking-wider">SL</span>
+                    <span className="ml-1 text-red-400/80">{fmtNum(s.stop1, 6)}</span>
+                  </p>
                 </div>
-                <p className="text-[10px] font-mono text-text-muted/70 tabular-nums">
-                  <span className="uppercase tracking-wider text-[9px]">Entry</span>
-                  <span className="ml-1 text-white/80">{fmtNum(s.entry, 6)}</span>
-                  <span className="text-text-muted/40 mx-1.5">·</span>
-                  <span className="uppercase tracking-wider text-[9px]">SL</span>
-                  <span className="ml-1 text-red-400/80">{fmtNum(s.stop1, 6)}</span>
-                </p>
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <p className="font-mono text-[11px] font-semibold tabular-nums text-gold-primary">
+                    <span className="mr-1 text-[9px] uppercase tracking-wider text-gold-primary/60">
+                      TP1
+                    </span>
+                    {fmtNum(s.target1, 6)}
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-wider tabular-nums text-text-muted/60">
+                    {fmtTime(s.created_at)}
+                  </p>
+                </div>
               </div>
-
-              {/* Right: TP1 + time */}
-              <div className="shrink-0 flex flex-col items-end gap-0.5">
-                <p className="text-[11px] font-mono text-gold-primary font-semibold tabular-nums">
-                  <span className="text-gold-primary/60 text-[9px] uppercase tracking-wider mr-1">TP1</span>
-                  {fmtNum(s.target1, 6)}
-                </p>
-                <p className="text-[10px] font-mono text-text-muted/60 tabular-nums uppercase tracking-wider">
-                  {s.created_at ? new Date(s.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,10 @@
+// src/components/AutoTradePage.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade page shell
+// Auth/load logic preserved verbatim; header, engine strip, tabs
+// and setup states restyled to match the terminal design language.
+// ════════════════════════════════════════════════════════════════
+
 import { useEffect, useMemo, useState } from "react";
 import {
   AUTOTRADE_TOKEN_KEY,
@@ -21,6 +28,13 @@ import PositionsBoard from "./autotrade/PositionsBoard";
 import SignalsQueue from "./autotrade/SignalsQueue";
 import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
+import {
+  Card,
+  SectionHeader,
+  StatusBadge,
+  GoldButton,
+  Notice,
+} from "./autotrade/AutoTradeUI";
 
 const TABS = [
   { id: "accounts", label: "Accounts" },
@@ -39,7 +53,6 @@ function getStoredAutotradeToken() {
 
 function resolveLuxquantCryptobotToken(payload) {
   if (typeof payload === "string") return payload;
-
   return (
     payload?.cryptobot_token ||
     payload?.token ||
@@ -49,44 +62,33 @@ function resolveLuxquantCryptobotToken(payload) {
   );
 }
 
-function SectionHeader({ label }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="h-px w-8 bg-gold-primary/40" />
-      <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-gold-primary/80">
-        {label}
-      </span>
-      <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/20 to-transparent" />
-    </div>
-  );
-}
-
+// ── Engine status strip ──
 function EngineStatusStrip({ health, config }) {
   if (!health) return null;
-
   const active = Boolean(config?.is_active);
+  const live = Boolean(health.live_orders_enabled);
 
   return (
-    <div
-      className={`rounded-md border px-4 py-3 ${
-        active
-          ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-          : "border-gold-primary/20 bg-gold-primary/[0.04]"
-      }`}
-    >
-      <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono uppercase tracking-[0.15em]">
-        <span className={active ? "text-emerald-400" : "text-gold-primary"}>
-          Strategy {active ? "Active" : "Paused"}
-        </span>
-        <span className="text-text-muted">Mode {health.trading_mode || "-"}</span>
-        <span className="text-text-muted">
-          Binance {health.binance_environment || "-"}
-        </span>
-        <span className="text-text-muted">
-          Market {health.market_data_market || "-"}
-        </span>
+    <Card padded={false}>
+      <div className="flex flex-wrap items-center gap-2 p-3">
+        <StatusBadge tone={active ? "good" : "warn"} dot={active}>
+          {active ? "Strategy active" : "Strategy paused"}
+        </StatusBadge>
+        <StatusBadge tone={live ? "good" : "warn"}>
+          {live ? "Live orders" : `Mode ${health.trading_mode || "dry_run"}`}
+        </StatusBadge>
+        {health.binance_environment ? (
+          <StatusBadge tone="info">
+            Binance {health.binance_environment}
+          </StatusBadge>
+        ) : null}
+        {health.market_data_market ? (
+          <StatusBadge tone="neutral">
+            {health.market_data_market}
+          </StatusBadge>
+        ) : null}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -109,26 +111,22 @@ function LoadingState() {
 
 function SetupCard({ title, body, actionLabel, onAction, disabled = false }) {
   return (
-    <div className="rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-6">
+    <Card className="border-gold-primary/20 bg-gold-primary/[0.03]">
       <div className="max-w-2xl space-y-3">
-        <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-primary">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">
           AutoTrade Setup
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-white">
+          {title}
+        </h2>
         <p className="text-sm leading-6 text-text-muted">{body}</p>
-        <button
-          onClick={onAction}
-          disabled={disabled}
-          className="rounded-md px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-black disabled:opacity-40"
-          style={{
-            background:
-              "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-          }}
-        >
-          {actionLabel}
-        </button>
+        <div className="pt-1">
+          <GoldButton onClick={onAction} disabled={disabled}>
+            {actionLabel}
+          </GoldButton>
+        </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -162,19 +160,16 @@ export default function AutoTradePage() {
   const getLuxquantCryptobotToken = async () => {
     const storedToken = localStorage.getItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
     if (storedToken) return storedToken;
-
     const response = await authApi.getCryptobotToken();
     return resolveLuxquantCryptobotToken(response);
   };
 
   const ensureAutotradeAccess = async () => {
     if (getStoredAutotradeToken()) return true;
-
     const luxquantToken = await getLuxquantCryptobotToken();
     if (!luxquantToken) {
       throw new Error("LuxQuant did not return a Cryptobot exchange token");
     }
-
     await exchangeLuxquantToken(luxquantToken);
     localStorage.removeItem(LUXQUANT_CRYPTOBOT_TOKEN_KEY);
     return true;
@@ -183,13 +178,11 @@ export default function AutoTradePage() {
   const load = async () => {
     setError("");
     setLoading(true);
-
     try {
       const healthResponse = await getHealth();
       setHealth(healthResponse);
 
       let tokenReady = hasAutotradeToken;
-
       if (!tokenReady) {
         try {
           tokenReady = await ensureAutotradeAccess();
@@ -199,8 +192,9 @@ export default function AutoTradePage() {
           resetAutotradeData();
           setError(
             /404|not found/i.test(message)
-              ? "AutoTrade access is not ready yet. LuxQuant must return `cryptobot_token` at login or expose `/me/cryptobot-token` for this account."
-              : message || "Unable to connect this LuxQuant account to Cryptobot right now.",
+              ? "AutoTrade access is not ready yet. Try logging out and back in to refresh your Cryptobot access token."
+              : message ||
+                  "Unable to connect this LuxQuant account to Cryptobot right now.",
           );
           return;
         }
@@ -208,7 +202,6 @@ export default function AutoTradePage() {
 
       const meResponse = await getMe();
       const connectedAccounts = meResponse?.exchange_accounts || [];
-
       setMeData(meResponse);
 
       if (connectedAccounts.length === 0) {
@@ -244,7 +237,6 @@ export default function AutoTradePage() {
       const unauthorized = /401|unauthorized|forbidden|invalid token/i.test(
         err?.message || "",
       );
-
       if (unauthorized) {
         clearAutotradeAuth();
         setHasAutotradeToken(false);
@@ -270,17 +262,21 @@ export default function AutoTradePage() {
 
   const summaryText = useMemo(() => {
     if (!hasAutotradeToken) return "Cryptobot access required";
-    if (!hasExchangeAccount) return "Connect your Binance account to unlock AutoTrade";
-
+    if (!hasExchangeAccount)
+      return "Connect your Binance account to unlock AutoTrade";
     const totalAccounts = exchangeAccounts.length;
     const totalExecutions = executions.length;
-    return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected • ${totalExecutions} execution jobs`;
-  }, [exchangeAccounts.length, executions.length, hasAutotradeToken, hasExchangeAccount]);
+    return `${totalAccounts} exchange${totalAccounts === 1 ? "" : "s"} connected · ${totalExecutions} execution job${totalExecutions === 1 ? "" : "s"}`;
+  }, [
+    exchangeAccounts.length,
+    executions.length,
+    hasAutotradeToken,
+    hasExchangeAccount,
+  ]);
 
   const handleAuthorizeAutotrade = async () => {
     setAuthActionLoading(true);
     setError("");
-
     try {
       const tokenReady = await ensureAutotradeAccess();
       setHasAutotradeToken(tokenReady);
@@ -299,39 +295,30 @@ export default function AutoTradePage() {
     <div className="mx-auto max-w-[1400px] space-y-6 px-4 py-8">
       <SectionHeader label="AutoTrade" />
 
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             AutoTrade
           </h1>
-          <p className="mt-1.5 text-sm font-mono text-text-muted">{summaryText}</p>
+          <p className="mt-1.5 font-mono text-sm text-text-muted">
+            {summaryText}
+          </p>
         </div>
-
         {hasAutotradeToken ? (
-          <button
-            onClick={() => setShowConnect(true)}
-            className="rounded-md px-4 py-2 text-[11px] font-mono uppercase tracking-[0.2em] text-black"
-            style={{
-              background:
-                "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-            }}
-          >
+          <GoldButton onClick={() => setShowConnect(true)}>
             {hasExchangeAccount ? "Update Binance" : "Connect Binance"}
-          </button>
+          </GoldButton>
         ) : null}
       </div>
 
-      {error ? (
-        <div className="rounded-md border border-red-500/25 bg-red-500/[0.05] p-3 text-sm text-red-400">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       {!hasAutotradeToken ? (
         <SetupCard
           title="Connect AutoTrade access"
-          body="AutoTrade now uses the LuxQuant to Cryptobot exchange flow. LuxQuant provides a short-lived signed token, then Cryptobot returns the bearer token used for AutoTrade API calls."
-          actionLabel={authActionLoading ? "Connecting..." : "Connect Cryptobot"}
+          body="AutoTrade links your LuxQuant account to the execution engine using a secure one-time token exchange. No password or exchange keys are shared in this step."
+          actionLabel={authActionLoading ? "Connecting…" : "Connect AutoTrade"}
           onAction={handleAuthorizeAutotrade}
           disabled={authActionLoading}
         />
@@ -340,7 +327,7 @@ export default function AutoTradePage() {
       ) : !hasExchangeAccount ? (
         <SetupCard
           title="Connect Binance before using AutoTrade"
-          body="Your AutoTrade Google login is complete, but exchange credentials are required first. After Binance keys are saved and validated, portfolio, configuration, positions, and execution history will unlock."
+          body="Your AutoTrade access is ready, but exchange credentials are required first. After your Binance keys are saved and validated, portfolio, configuration, positions and execution history unlock."
           actionLabel="Connect Binance"
           onAction={() => setShowConnect(true)}
         />
@@ -350,15 +337,18 @@ export default function AutoTradePage() {
 
           <PnLSummary portfolio={portfolio} executions={executions} />
 
-          <div className="flex items-center gap-1 border-b border-white/[0.06]">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06]">
             {TABS.map((item) => {
               const active = tab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setTab(item.id)}
-                  className={`relative px-4 py-2.5 text-[11px] font-mono uppercase tracking-[0.15em] ${
-                    active ? "text-gold-primary" : "text-text-muted hover:text-white"
+                  className={`relative whitespace-nowrap px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
+                    active
+                      ? "text-gold-primary"
+                      : "text-text-muted hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -389,7 +379,9 @@ export default function AutoTradePage() {
               />
             ) : null}
 
-            {tab === "positions" ? <PositionsBoard portfolio={portfolio} /> : null}
+            {tab === "positions" ? (
+              <PositionsBoard portfolio={portfolio} />
+            ) : null}
 
             {tab === "history" ? (
               <SignalsQueue
@@ -398,6 +390,7 @@ export default function AutoTradePage() {
                 onRetried={load}
               />
             ) : null}
+
             {tab === "signals" ? <SignalQueue /> : null}
           </div>
         </>

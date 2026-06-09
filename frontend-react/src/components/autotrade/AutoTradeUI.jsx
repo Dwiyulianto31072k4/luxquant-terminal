@@ -202,13 +202,13 @@ export function Toggle({ label, hint, checked, onChange, disabled = false }) {
         ) : null}
       </span>
       <span
-        className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 ${
-          checked ? "bg-gold-primary" : "bg-white/[0.1]"
+        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200 ${
+          checked ? "bg-gold-primary" : "bg-white/[0.12]"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-[#0a0805] shadow-sm transition-transform duration-200 ${
-            checked ? "translate-x-[18px]" : "translate-x-0.5"
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.4)] transition-transform duration-200 ${
+            checked ? "translate-x-5" : "translate-x-0"
           }`}
         />
       </span>
@@ -345,6 +345,33 @@ export function TextInput({ value, onChange, placeholder }) {
       onChange={(event) => onChange(event.target.value)}
       className={`${INPUT_CLASS} placeholder:text-text-muted/30`}
     />
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Segmented control — choose one from a small set (e.g. TP/SL level)
+// ────────────────────────────────────────────────────────────────
+export function Segmented({ value, onChange, options }) {
+  return (
+    <div className="flex gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] p-1">
+      {options.map((option) => {
+        const active = String(value) === String(option.value);
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`flex-1 rounded px-3 py-1.5 font-mono text-xs tabular-nums transition-colors ${
+              active
+                ? "bg-gold-primary/15 text-gold-primary"
+                : "text-text-muted hover:text-white"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

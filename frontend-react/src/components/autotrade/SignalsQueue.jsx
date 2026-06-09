@@ -1,9 +1,28 @@
+// src/components/autotrade/SignalsQueue.jsx
+// ════════════════════════════════════════════════════════════════
+// LuxQuant — AutoTrade · Executions tab
+// Execution-job history backed by GET /executions, linked to signals.
+// Responsive (cards ↔ table). Retry calls retryExecution(id).
+// ════════════════════════════════════════════════════════════════
+
 import { useMemo, useState } from "react";
 import { retryExecution } from "../../services/autotradeApi";
+import CoinLogo from "../CoinLogo";
+import {
+  Card,
+  StatCard,
+  StatusBadge,
+  EmptyState,
+  GhostButton,
+  Notice,
+  fmtDateTime,
+} from "./AutoTradeUI";
 
-function fmtDate(value) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString();
+function statusTone(status) {
+  if (status === "completed") return "good";
+  if (status === "failed" || status === "skipped") return "bad";
+  if (status === "running" || status === "pending") return "info";
+  return "neutral";
 }
 
 function getSymbol(execution) {
@@ -14,59 +33,29 @@ function getSide(execution, signal) {
   return signal?.side || execution?.orders?.[0]?.side || "—";
 }
 
-function getRisk(signal) {
-  return signal?.risk_level || "—";
-}
-
-function StatusPill({ status }) {
-  const tone =
-    status === "completed"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
-      : status === "failed" || status === "skipped"
-        ? "border-red-500/25 bg-red-500/10 text-red-400"
-        : "border-gold-primary/25 bg-gold-primary/10 text-gold-primary";
-
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.15em] ${tone}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-export default function SignalsQueue({ executions, signalsById, onRetried }) {
+export default function SignalsQueue({ executions = [], signalsById = {}, onRetried }) {
   const [retryingId, setRetryingId] = useState("");
   const [error, setError] = useState("");
 
   const stats = useMemo(() => {
-    const completed = executions.filter((item) => item.status === "completed").length;
+    const completed = executions.filter((e) => e.status === "completed").length;
     const failed = executions.filter(
-      (item) => item.status === "failed" || item.status === "skipped",
+      (e) => e.status === "failed" || e.status === "skipped",
     ).length;
     const running = executions.filter(
-      (item) => item.status === "running" || item.status === "pending",
+      (e) => e.status === "running" || e.status === "pending",
     ).length;
-
     return { completed, failed, running };
   }, [executions]);
 
   const handleRetry = async (executionId) => {
     setRetryingId(executionId);
     setError("");
-
     try {
-      const resp = await fetch("/api/v1/signals/bulk-7d?limit=50", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` },
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      const items = (data.items || data.signals || data || [])
-        .filter((s) => (s.status || "").toLowerCase() === "open")
-        .slice(0, 20);
-      setSignals(items);
-    } catch (e) {
-      setError(e.message);
+      await retryExecution(executionId);
+      onRetried?.();
+    } catch (err) {
+      setError(err.message || "Failed to retry execution");
     } finally {
       setRetryingId("");
     }
@@ -74,111 +63,151 @@ export default function SignalsQueue({ executions, signalsById, onRetried }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricCard label="Completed" value={stats.completed} />
-        <MetricCard label="Failed / Skipped" value={stats.failed} />
-        <MetricCard label="Pending / Running" value={stats.running} />
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Completed" value={stats.completed} valueColor="text-emerald-400" />
+        <StatCard label="Failed / Skipped" value={stats.failed} valueColor={stats.failed > 0 ? "text-red-400" : "text-white"} />
+        <StatCard label="Pending / Running" value={stats.running} valueColor={stats.running > 0 ? "text-gold-primary" : "text-white"} />
       </div>
 
-      {error ? (
-        <div className="rounded-md border border-red-500/25 bg-red-500/[0.05] p-3 text-sm text-red-400">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
-      <div className="overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805]">
-        <div className="border-b border-white/[0.06] px-4 py-3">
-          <h3 className="text-base font-semibold text-white">Execution history</h3>
-          <p className="mt-1 text-xs text-text-muted">
-            Backed by `GET /executions` and linked to `GET /signals`.
-          </p>
-        </div>
-
-        {executions.length === 0 ? (
-          <div className="p-6 text-center text-sm text-text-muted">
-            No execution jobs yet.
+      {executions.length === 0 ? (
+        <EmptyState
+          icon="📜"
+          title="No execution jobs yet"
+          hint="When the engine acts on a signal, each execution attempt is logged here with its status and any error."
+        />
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="space-y-2.5 lg:hidden">
+            {executions.map((execution) => {
+              const signal = signalsById[execution.signal_id];
+              const canRetry =
+                execution.status === "failed" || execution.status === "completed";
+              const symbol = getSymbol(execution);
+              return (
+                <Card key={execution.id}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <CoinLogo pair={symbol} size={30} />
+                      <div>
+                        <p className="font-mono text-sm font-semibold text-white">
+                          {symbol}
+                        </p>
+                        <p className="font-mono text-[10px] text-text-muted">
+                          {getSide(execution, signal)} · {execution.market_type}
+                          {execution.dry_run ? " · dry" : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge tone={statusTone(execution.status)} dot={execution.status === "running"}>
+                      {execution.status}
+                    </StatusBadge>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+                    <span className="font-mono text-[10px] text-text-muted">
+                      {fmtDateTime(execution.created_at)}
+                    </span>
+                    {canRetry ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRetry(execution.id)}
+                        disabled={retryingId === execution.id}
+                        className="rounded-md border border-gold-primary/25 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
+                      >
+                        {retryingId === execution.id ? "Retrying…" : "Retry"}
+                      </button>
+                    ) : null}
+                  </div>
+                  {execution.error ? (
+                    <p className="mt-2 text-xs text-red-400/80">{execution.error}</p>
+                  ) : null}
+                </Card>
+              );
+            })}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-black/20">
-                <tr>
-                  {[
-                    "Created",
-                    "Symbol",
-                    "Side",
-                    "Market",
-                    "Status",
-                    "Risk",
-                    "Dry Run",
-                    "Error",
-                    "Action",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-3 text-left text-[10px] font-mono uppercase tracking-[0.18em] text-text-muted/80"
-                    >
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {executions.map((execution) => {
-                  const signal = signalsById[execution.signal_id];
-                  const canRetry =
-                    execution.status === "failed" || execution.status === "completed";
 
-                  return (
-                    <tr
-                      key={execution.id}
-                      className="border-t border-white/[0.06] text-white/90"
-                    >
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {fmtDate(execution.created_at)}
-                      </td>
-                      <td className="px-4 py-3 font-mono">{getSymbol(execution)}</td>
-                      <td className="px-4 py-3 font-mono">{getSide(execution, signal)}</td>
-                      <td className="px-4 py-3 font-mono">{execution.market_type}</td>
-                      <td className="px-4 py-3">
-                        <StatusPill status={execution.status} />
-                      </td>
-                      <td className="px-4 py-3 font-mono">{getRisk(signal)}</td>
-                      <td className="px-4 py-3 font-mono">
-                        {execution.dry_run ? "yes" : "no"}
-                      </td>
-                      <td className="max-w-[280px] px-4 py-3 text-xs text-text-muted">
-                        {execution.error || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleRetry(execution.id)}
-                          disabled={!canRetry || retryingId === execution.id}
-                          className="rounded-md border border-gold-primary/25 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
-                        >
-                          {retryingId === execution.id ? "Retrying..." : "Retry"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value }) {
-  return (
-    <div className="rounded-md border border-white/[0.06] bg-[#0a0805] p-4">
-      <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/60">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+          {/* Desktop table */}
+          <Card padded={false} className="hidden lg:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.06]">
+                    {["Time", "Symbol", "Side", "Market", "Status", "Dry", "Error", ""].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {executions.map((execution) => {
+                    const signal = signalsById[execution.signal_id];
+                    const canRetry =
+                      execution.status === "failed" ||
+                      execution.status === "completed";
+                    const symbol = getSymbol(execution);
+                    return (
+                      <tr
+                        key={execution.id}
+                        className="border-b border-white/[0.04] last:border-0 transition-colors hover:bg-white/[0.02]"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-text-muted">
+                          {fmtDateTime(execution.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <CoinLogo pair={symbol} size={22} />
+                            <span className="font-mono font-medium text-white">
+                              {symbol}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-white/80">
+                          {getSide(execution, signal)}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-white/80">
+                          {execution.market_type}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge
+                            tone={statusTone(execution.status)}
+                            dot={execution.status === "running"}
+                          >
+                            {execution.status}
+                          </StatusBadge>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-white/70">
+                          {execution.dry_run ? "yes" : "no"}
+                        </td>
+                        <td className="max-w-[260px] truncate px-4 py-3 text-xs text-text-muted">
+                          {execution.error || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {canRetry ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRetry(execution.id)}
+                              disabled={retryingId === execution.id}
+                              className="rounded-md border border-gold-primary/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
+                            >
+                              {retryingId === execution.id ? "…" : "Retry"}
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
