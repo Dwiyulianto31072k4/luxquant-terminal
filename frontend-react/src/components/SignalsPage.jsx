@@ -274,28 +274,86 @@ const SignalsPage = () => {
     return m;
   }, [tagWr]);
 
-  // Reverse map { signal_id: [tagName, ...] } from each tag's active_signal_ids.
+  // Map { signal_id: [tagName, ...] } built from each signal's own tags
+  // (provided by bulk-7d). This is what makes the filter dynamic — it reflects
+  // exactly the signals currently in view, whatever timeline/day is selected.
   const signalTags = useMemo(() => {
     const m = {};
-    for (const t of tagWr) {
-      for (const sid of (t.active_signal_ids || [])) {
-        (m[sid] = m[sid] || []).push(t.tag);
+    for (const s of allSignals) {
+      if (s.signal_id && Array.isArray(s.important_tags)) {
+        m[s.signal_id] = s.important_tags;
       }
     }
     return m;
-  }, [tagWr]);
+  }, [allSignals]);
 
   // Tags sorted by WR desc (chips); top 10 unless "show all".
   const sortedTagsForChips = useMemo(() => {
     return [...tagWr].sort((a, b) => b.win_rate - a.win_rate);
   }, [tagWr]);
 
-  // Count of active signals carrying each tag (for chip badge).
+  // Signals passing every filter EXCEPT the tag filter — used to compute
+  // dynamic per-tag counts (how many currently-visible signals carry each tag)
+  // and to decide which chips to show. Tag filter itself is excluded so counts
+  // don't collapse to the current selection.
+  const signalsBeforeTagFilter = useMemo(() => {
+    let f = [...allSignals];
+    if (searchPair) {
+      const q = searchPair.toUpperCase();
+      f = f.filter((s) => s.pair && s.pair.toUpperCase().includes(q));
+    }
+    if (selectedDates.length > 0) {
+      f = f.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
+    }
+    if (statusFilter === "updated") {
+      f = f.filter((s) => s.last_update_at);
+    } else if (statusFilter !== "all") {
+      f = f.filter((s) => {
+        const st = (s.status || "").toLowerCase();
+        switch (statusFilter) {
+          case "open": return st === "open";
+          case "tp1": return st === "tp1";
+          case "tp2": return st === "tp2";
+          case "tp3": return st === "tp3";
+          case "tp4": case "closed_win": return st === "closed_win" || st === "tp4";
+          case "sl": case "closed_loss": return st === "closed_loss" || st === "sl";
+          default: return true;
+        }
+      });
+    }
+    if (riskFilter !== "all") {
+      f = f.filter((s) => {
+        const r = (s.risk_level || "").toLowerCase();
+        switch (riskFilter) {
+          case "low": return r.startsWith("low");
+          case "normal": return r.startsWith("med") || r.startsWith("nor");
+          case "high": return r.startsWith("high");
+          default: return true;
+        }
+      });
+    }
+    if (streakFilter === "hot") {
+      f = f.filter((s) => {
+        const st = coinIntel[s.pair]?.current_streak;
+        return st && st.type === "win" && st.length >= HOT_STREAK_MIN;
+      });
+    }
+    if (corrDecoupled) f = f.filter((s) => s.btc_decoupled === true);
+    if (corrHighAlign) f = f.filter((s) => (s.btc_align_score ?? -1) >= 70);
+    if (verdictFilter !== "all") f = f.filter((s) => verdictByPair[s.pair] === verdictFilter);
+    return f;
+  }, [allSignals, searchPair, selectedDates, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, coinIntel]);
+
+  // Dynamic per-tag count: how many currently-visible signals carry each tag.
   const tagActiveCount = useMemo(() => {
     const m = {};
-    for (const t of tagWr) m[t.tag] = (t.active_signal_ids || []).length;
+    for (const s of signalsBeforeTagFilter) {
+      const tags = s.important_tags;
+      if (!Array.isArray(tags)) continue;
+      for (const tg of tags) m[tg] = (m[tg] || 0) + 1;
+    }
     return m;
-  }, [tagWr]);
+  }, [signalsBeforeTagFilter]);
 
   // All unique pairs across every signal — passed to the table so it can fetch
   // live price/volume for the WHOLE dataset, not just the current page. This is
@@ -965,7 +1023,11 @@ const SignalsPage = () => {
               <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">historical win rate · descriptive</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(showAllTags ? sortedTagsForChips : sortedTagsForChips.slice(0, 10)).map((t) => {
+              {(() => {
+                const present = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0 || selectedTags.includes(t.tag));
+                const shown = showAllTags ? present : present.slice(0, 10);
+                return shown;
+              })().map((t) => {
                 const active = selectedTags.includes(t.tag);
                 const cnt = tagActiveCount[t.tag] || 0;
                 const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-muted';
@@ -990,14 +1052,18 @@ const SignalsPage = () => {
                   </button>
                 );
               })}
-              {sortedTagsForChips.length > 10 && (
-                <button
-                  onClick={() => setShowAllTags((v) => !v)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
-                >
-                  {showAllTags ? 'Show less' : `Show all (${sortedTagsForChips.length})`}
-                </button>
-              )}
+              {(() => {
+                const presentCount = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0).length;
+                if (presentCount <= 10) return null;
+                return (
+                  <button
+                    onClick={() => setShowAllTags((v) => !v)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
+                  >
+                    {showAllTags ? 'Show less' : `Show all (${presentCount})`}
+                  </button>
+                );
+              })()}
             </div>
             <p className="font-mono text-[9px] text-text-muted/50 mt-2 normal-case tracking-normal leading-relaxed">
               Win rate of resolved signals that carried each tag. Tags overlap and describe entry conditions — not a standalone buy trigger.
