@@ -165,6 +165,8 @@ const SignalsTable = ({
   coinIntel = {},
   verdictByPair = {},
   currentFlow = null,
+  tagWrMap = {},
+  signalTags = {},
 }) => {
   const { t } = useTranslation();
 
@@ -419,6 +421,21 @@ const SignalsTable = ({
     return { verdict: v, coin };
   };
 
+  // Highest-WR tag a signal carries (for the descriptive tag badge).
+  // Returns { tag, wr } or null. Descriptive only — tags overlap.
+  const getTopTag = (signalId) => {
+    const tags = signalTags?.[signalId];
+    if (!tags || tags.length === 0) return null;
+    let best = null;
+    for (const tg of tags) {
+      const wr = tagWrMap?.[tg]?.wr;
+      if (wr == null) continue;
+      if (!best || wr > best.wr) best = { tag: tg, wr };
+    }
+    return best;
+  };
+  const fmtTag = (tg) => tg.replace(/_H1$/, '').replace(/_/g, ' ');
+
   // Index of the first row (in current page) that has a non-neutral verdict —
   // the coachmark anchors to this row's verdict cell.
   const firstVerdictIdx = useMemo(() => {
@@ -652,6 +669,18 @@ const SignalsTable = ({
                       isWin ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
                     }`}>
                       {s.length}{isWin ? 'W' : 'L'}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  const tt = getTopTag(signal.signal_id);
+                  if (!tt) return null;
+                  return (
+                    <span
+                      title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
+                      className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case"
+                    >
+                      {fmtTag(tt.tag).toLowerCase()} {tt.wr}%
                     </span>
                   );
                 })()}
@@ -1052,6 +1081,18 @@ const SignalsTable = ({
                                       {s.type === 'win' ? '▲' : '▼'} {s.length}{s.type === 'win' ? 'W' : 'L'}
                                     </span>
                                   )}
+                                  {(() => {
+                                    const tt = getTopTag(signal.signal_id);
+                                    if (!tt) return null;
+                                    return (
+                                      <span
+                                        title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
+                                        className="font-mono text-[9px] tabular-nums mt-1 px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/90 border border-gold-primary/20 normal-case leading-none max-w-[120px] truncate"
+                                      >
+                                        {fmtTag(tt.tag).toLowerCase()} · {tt.wr}%
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               );
                             })()}

@@ -157,6 +157,11 @@ const SignalsPage = () => {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
+  // Tag intelligence (historical WR per important tag + active signal map).
+  const [tagWr, setTagWr] = useState([]);            // raw list from /analytics/tag-wr
+  const [selectedTags, setSelectedTags] = useState([]); // tag names the user filters by
+  const [showAllTags, setShowAllTags] = useState(false);
+
   // Min win-streak length to count as a "High Win Streak" (matches the
   // Coin Intelligence hot-streak heuristic).
   const HOT_STREAK_MIN = 5;
@@ -169,10 +174,11 @@ const SignalsPage = () => {
       const token = localStorage.getItem("access_token");
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [signalsRes, statsRes, intelRes] = await Promise.allSettled([
+      const [signalsRes, statsRes, intelRes, tagWrRes] = await Promise.allSettled([
         fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/stats`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/v1/signals/coin-intel`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/v1/analytics/tag-wr?days=90&min_n=200`, { headers: authHeaders }),
       ]);
       if (signalsRes.status === "fulfilled" && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
@@ -196,6 +202,11 @@ const SignalsPage = () => {
         setCoinIntel(map);
         setCurrentFlow(intel.current_flow ?? null);
       }
+      // Tag WR is best-effort: failure just hides the tag filter / badges.
+      if (tagWrRes.status === "fulfilled" && tagWrRes.value.ok) {
+        const tw = await tagWrRes.value.json();
+        setTagWr(Array.isArray(tw.tags) ? tw.tags : []);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching signals:", err);
@@ -213,7 +224,7 @@ const SignalsPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder]);
+  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder, selectedTags]);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;
@@ -255,6 +266,36 @@ const SignalsPage = () => {
     }
     return { worth, avoid };
   }, [allSignals, verdictByPair]);
+
+  // Tag WR lookup { tagName: { wr, n, median_peak } } — for chip labels & badges.
+  const tagWrMap = useMemo(() => {
+    const m = {};
+    for (const t of tagWr) m[t.tag] = { wr: t.win_rate, n: t.n, median_peak: t.median_peak };
+    return m;
+  }, [tagWr]);
+
+  // Reverse map { signal_id: [tagName, ...] } from each tag's active_signal_ids.
+  const signalTags = useMemo(() => {
+    const m = {};
+    for (const t of tagWr) {
+      for (const sid of (t.active_signal_ids || [])) {
+        (m[sid] = m[sid] || []).push(t.tag);
+      }
+    }
+    return m;
+  }, [tagWr]);
+
+  // Tags sorted by WR desc (chips); top 10 unless "show all".
+  const sortedTagsForChips = useMemo(() => {
+    return [...tagWr].sort((a, b) => b.win_rate - a.win_rate);
+  }, [tagWr]);
+
+  // Count of active signals carrying each tag (for chip badge).
+  const tagActiveCount = useMemo(() => {
+    const m = {};
+    for (const t of tagWr) m[t.tag] = (t.active_signal_ids || []).length;
+    return m;
+  }, [tagWr]);
 
   // All unique pairs across every signal — passed to the table so it can fetch
   // live price/volume for the WHOLE dataset, not just the current page. This is
@@ -345,7 +386,11 @@ const SignalsPage = () => {
     }
   };
 
-  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at";
+  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at" || selectedTags.length > 0;
+
+  const toggleTag = (tag) => {
+    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]);
+  };
 
   const resetFilters = () => {
     setSearchPair("");
@@ -356,6 +401,7 @@ const SignalsPage = () => {
     setCorrHighAlign(false);
     setVerdictFilter("all");
     setSelectedDates([]);
+    setSelectedTags([]);
     setSortBy("created_at");
     setSortOrder("desc");
   };
@@ -431,6 +477,15 @@ const SignalsPage = () => {
     // Verdict filter (Worth It / Avoid) — from Coin Intelligence classification.
     if (verdictFilter !== "all") {
       filtered = filtered.filter((s) => verdictByPair[s.pair] === verdictFilter);
+    }
+
+    // Tag filter — signal passes if it carries ANY of the selected tags.
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((s) => {
+        const tags = signalTags[s.signal_id];
+        if (!tags) return false;
+        return selectedTags.some((t) => tags.includes(t));
+      });
     }
 
     // Stable tiebreaker — when two rows compare equal (or share missing/0 data),
@@ -530,7 +585,7 @@ const SignalsPage = () => {
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
     return { signals: paged, totalPages: pages, totalSignals: total };
-  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel]);
+  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel, selectedTags, signalTags]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
@@ -900,6 +955,55 @@ const SignalsPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Tag Pattern Filters — historical WR per entry-condition tag.
+            Descriptive (tags overlap; not a standalone predictive signal). */}
+        {sortedTagsForChips.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pattern Filters</span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">historical win rate · descriptive</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(showAllTags ? sortedTagsForChips : sortedTagsForChips.slice(0, 10)).map((t) => {
+                const active = selectedTags.includes(t.tag);
+                const cnt = tagActiveCount[t.tag] || 0;
+                const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-muted';
+                return (
+                  <button
+                    key={t.tag}
+                    onClick={() => toggleTag(t.tag)}
+                    title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                      active
+                        ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
+                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
+                    <span className={`tabular-nums ${active ? 'text-gold-primary' : wrCol}`}>{t.win_rate}%</span>
+                    {cnt > 0 && (
+                      <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-muted/70'}`}>
+                        {cnt}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {sortedTagsForChips.length > 10 && (
+                <button
+                  onClick={() => setShowAllTags((v) => !v)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
+                >
+                  {showAllTags ? 'Show less' : `Show all (${sortedTagsForChips.length})`}
+                </button>
+              )}
+            </div>
+            <p className="font-mono text-[9px] text-text-muted/50 mt-2 normal-case tracking-normal leading-relaxed">
+              Win rate of resolved signals that carried each tag. Tags overlap and describe entry conditions — not a standalone buy trigger.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* BTC Dominance Alert — self-contained (has its own expand) */}
@@ -941,6 +1045,8 @@ const SignalsPage = () => {
           coinIntel={coinIntel}
           verdictByPair={verdictByPair}
           currentFlow={currentFlow}
+          tagWrMap={tagWrMap}
+          signalTags={signalTags}
         />
       )}
 
