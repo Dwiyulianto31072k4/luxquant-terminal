@@ -315,7 +315,7 @@ const EdgeLabPage = () => {
             {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
             {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} onDrill={setDrillBucket} />}
             {activeTab === "coins" && <CoinLeaderboardTab data={data.coin_leaderboard} onDrill={setDrillBucket} />}
-            {activeTab === "wrbtc" && <WrVsBtcTab />}
+            {activeTab === "wrbtc" && <WrVsBtcTab onDrill={setDrillBucket} />}
           </div>
         </div>
       )}

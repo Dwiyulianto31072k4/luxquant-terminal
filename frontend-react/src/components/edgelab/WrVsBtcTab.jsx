@@ -1,300 +1,405 @@
-// src/components/edgelab/WrVsBtcTab.jsx
-// ════════════════════════════════════════════════════════════════
-// WR × BTC — LuxQuant daily win rate overlaid with BTC daily close.
-// · WR (left axis, 0–100%): 7-day rolling line (hero) + faint raw daily
-// · BTC (right axis, price): gold area
-// · Range toggle 30D / 90D / 1Y / All — data fetched once (range=all),
-//   sliced client-side so toggles are instant.
-// Data: GET /api/v1/analytics/wr-vs-btc?range=all
-//   [{date, win_rate, total_closed, regime, btc_close}]
-// ════════════════════════════════════════════════════════════════
+// WrVsBtcTab v2 — daily LuxQuant win rate vs BTC candlestick, all-time since first signal.
+// - BTC: real OHLC candlesticks (right axis), green/red + wicks
+// - WR : emerald line, left axis locked 0-100%, smoothing window dynamic per range
+//        (30D raw daily · 90D 7d · 1Y 14d · All 30d) + faint raw overlay when smoothed
+// - Markers: ▲ best / ▼ worst WR day (min 5 closed) within visible range
+// - Crosshair tooltip: date · WR · closed · regime · OHLC
+// - Click a candle → onDrill({dimension:'created_day', ...}) → SignalDrillDrawer → SignalModal
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createChart, LineSeries, AreaSeries } from "lightweight-charts";
-import api from "../../services/authApi";
-import { Panel, Methodology, EmptyState } from "./_shared";
+import {
+  createChart,
+  CandlestickSeries,
+  LineSeries,
+  createSeriesMarkers,
+} from "lightweight-charts";
+import { Panel, EmptyState, Methodology } from "./_shared";
 
 const RANGES = [
-  { id: "30", label: "30D" },
-  { id: "90", label: "90D" },
-  { id: "365", label: "1Y" },
-  { id: "all", label: "All" },
+  { id: "30", label: "30D", days: 30, smooth: 1 },
+  { id: "90", label: "90D", days: 90, smooth: 7 },
+  { id: "365", label: "1Y", days: 365, smooth: 14 },
+  { id: "all", label: "All", days: Infinity, smooth: 30 },
 ];
 
-const fmtPct = (v) => (v == null ? "—" : `${v.toFixed(1)}%`);
+const COLORS = {
+  up: "#10b981",
+  down: "#f43f5e",
+  wr: "#34d399",
+  wrRaw: "rgba(52, 211, 153, 0.22)",
+  text: "rgba(255,255,255,0.40)",
+  grid: "rgba(255,255,255,0.04)",
+};
+
+const timeToKey = (t) =>
+  typeof t === "string"
+    ? t
+    : `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
+
+const rollingMean = (rows, window) => {
+  if (window <= 1) return rows.map((r) => ({ time: r.date, value: r.win_rate }));
+  const out = [];
+  let sum = 0;
+  const buf = [];
+  for (const r of rows) {
+    buf.push(r.win_rate);
+    sum += r.win_rate;
+    if (buf.length > window) sum -= buf.shift();
+    out.push({ time: r.date, value: +(sum / buf.length).toFixed(2) });
+  }
+  return out;
+};
+
 const fmtUsd = (v) =>
   v == null
     ? "—"
     : v >= 1000
-    ? `$${(v / 1000).toFixed(1)}k`
-    : `$${v.toFixed(0)}`;
+      ? `$${Math.round(v).toLocaleString("en-US")}`
+      : `$${v.toFixed(2)}`;
 
-// 7-day trailing rolling WR, weighted by closed count so quiet days don't whip the line.
-function rollingWr(series, window = 7) {
-  const out = [];
-  for (let i = 0; i < series.length; i++) {
-    let wins = 0;
-    let closed = 0;
-    for (let j = Math.max(0, i - window + 1); j <= i; j++) {
-      const d = series[j];
-      if (d.win_rate == null || !d.total_closed) continue;
-      wins += (d.win_rate / 100) * d.total_closed;
-      closed += d.total_closed;
-    }
-    out.push({
-      time: series[i].date,
-      value: closed > 0 ? (wins / closed) * 100 : null,
-    });
-  }
-  return out.filter((p) => p.value != null);
-}
-
-const WrVsBtcTab = () => {
-  const containerRef = useRef(null);
-  const chartRef = useRef(null);
-  const [series, setSeries] = useState(null); // full all-time series
+const WrVsBtcTab = ({ onDrill }) => {
+  const [allSeries, setAllSeries] = useState(null); // full all-time payload
   const [error, setError] = useState(null);
-  const [range, setRange] = useState("90");
+  const [rangeId, setRangeId] = useState("all");
 
-  // ─── fetch once (all-time), slice locally ───
+  const containerRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const chartRef = useRef(null);
+
+  // ── fetch all-time once; range toggles slice locally ──
   useEffect(() => {
-    let cancelled = false;
-    api
-      .get("/api/v1/analytics/wr-vs-btc", { params: { range: "all" } })
-      .then((res) => {
-        if (!cancelled) setSeries(res.data?.series || []);
+    let alive = true;
+    fetch("/api/v1/analytics/wr-vs-btc?range=all")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
       })
-      .catch(() => {
-        if (!cancelled) setError("Failed to load WR × BTC data");
-      });
+      .then((d) => alive && setAllSeries(d))
+      .catch((e) => alive && setError(e.message));
     return () => {
-      cancelled = true;
+      alive = false;
     };
   }, []);
 
-  const sliced = useMemo(() => {
-    if (!series) return [];
-    if (range === "all") return series;
-    return series.slice(-parseInt(range, 10));
-  }, [series, range]);
+  const range = RANGES.find((r) => r.id === rangeId) || RANGES[3];
 
-  const insights = useMemo(() => {
-    if (!sliced.length) return [];
-    const withWr = sliced.filter((d) => d.win_rate != null && d.total_closed > 0);
-    let wins = 0;
-    let closed = 0;
-    for (const d of withWr) {
-      wins += (d.win_rate / 100) * d.total_closed;
-      closed += d.total_closed;
+  const sliced = useMemo(() => {
+    const rows = (allSeries?.series || []).filter((r) => r.win_rate != null);
+    if (range.days === Infinity) return rows;
+    return rows.slice(-range.days);
+  }, [allSeries, range]);
+
+  const stats = useMemo(() => {
+    if (!sliced.length) return null;
+    let wSum = 0;
+    let nSum = 0;
+    let best = null;
+    let worst = null;
+    for (const r of sliced) {
+      wSum += r.win_rate * r.total_closed;
+      nSum += r.total_closed;
+      if (r.total_closed >= 5) {
+        if (!best || r.win_rate > best.win_rate) best = r;
+        if (!worst || r.win_rate < worst.win_rate) worst = r;
+      }
     }
-    const avgWr = closed > 0 ? (wins / closed) * 100 : null;
-    const best = withWr.reduce(
-      (a, b) => (b.win_rate > (a?.win_rate ?? -1) ? b : a),
-      null
-    );
-    const first = sliced.find((d) => d.btc_close != null);
-    const last = [...sliced].reverse().find((d) => d.btc_close != null);
-    const btcChg =
-      first && last && first.btc_close
-        ? ((last.btc_close - first.btc_close) / first.btc_close) * 100
-        : null;
-    return [
-      { label: "Avg WR (range)", value: fmtPct(avgWr), tone: "emerald" },
-      best && {
-        label: "Best day",
-        value: `${fmtPct(best.win_rate)} · ${best.date}`,
-        tone: "white",
-      },
-      btcChg != null && {
-        label: "BTC over range",
-        value: `${btcChg >= 0 ? "+" : ""}${btcChg.toFixed(1)}%`,
-        tone: btcChg >= 0 ? "emerald" : "red",
-      },
-    ].filter(Boolean);
+    const withBtc = sliced.filter((r) => r.btc_close != null);
+    const btcFirst = withBtc[0]?.btc_close;
+    const btcLast = withBtc[withBtc.length - 1]?.btc_close;
+    const btcDelta =
+      btcFirst && btcLast ? +(((btcLast - btcFirst) / btcFirst) * 100).toFixed(1) : null;
+    return {
+      avgWr: nSum ? +(wSum / nSum).toFixed(1) : null,
+      totalClosed: nSum,
+      best,
+      worst,
+      btcDelta,
+      btcLast,
+    };
   }, [sliced]);
 
-  // ─── chart lifecycle ───
+  // ── chart lifecycle: rebuild on data/range change (cheap at ≤900 pts) ──
   useEffect(() => {
-    if (!containerRef.current || !sliced.length) return;
-
     const el = containerRef.current;
+    if (!el || !sliced.length) return;
+
     const chart = createChart(el, {
-      height: 380,
+      width: el.clientWidth,
+      height: 440,
       layout: {
         background: { color: "transparent" },
-        textColor: "rgba(255,255,255,0.45)",
-        fontFamily: "'JetBrains Mono', monospace",
+        textColor: COLORS.text,
         fontSize: 10,
+        attributionLogo: false,
       },
       grid: {
-        vertLines: { color: "rgba(255,255,255,0.04)" },
-        horzLines: { color: "rgba(255,255,255,0.04)" },
+        vertLines: { color: COLORS.grid },
+        horzLines: { color: COLORS.grid },
       },
-      leftPriceScale: {
-        visible: true,
-        borderColor: "rgba(255,255,255,0.08)",
-      },
-      rightPriceScale: {
-        visible: true,
-        borderColor: "rgba(255,255,255,0.08)",
-      },
-      timeScale: { borderColor: "rgba(255,255,255,0.08)" },
+      leftPriceScale: { visible: true, borderVisible: false },
+      rightPriceScale: { visible: true, borderVisible: false },
+      timeScale: { borderVisible: false },
       crosshair: { mode: 0 },
     });
     chartRef.current = chart;
 
-    // BTC — gold area, right axis (price scale)
-    const btcSeries = chart.addSeries(AreaSeries, {
-      priceScaleId: "right",
-      lineColor: "rgba(212,168,83,0.9)",
-      topColor: "rgba(212,168,83,0.18)",
-      bottomColor: "rgba(212,168,83,0.0)",
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: true,
-      title: "BTC",
-    });
-    btcSeries.setData(
-      sliced
-        .filter((d) => d.btc_close != null)
-        .map((d) => ({ time: d.date, value: d.btc_close }))
-    );
+    // BTC candlesticks — right axis
+    const rowByDate = new Map(sliced.map((r) => [r.date, r]));
+    const candleData = sliced
+      .filter(
+        (r) =>
+          r.btc_open != null && r.btc_high != null && r.btc_low != null && r.btc_close != null,
+      )
+      .map((r) => ({
+        time: r.date,
+        open: r.btc_open,
+        high: r.btc_high,
+        low: r.btc_low,
+        close: r.btc_close,
+      }));
 
-    // Raw daily WR — faint, context only
-    const rawSeries = chart.addSeries(LineSeries, {
-      priceScaleId: "left",
-      color: "rgba(52,211,153,0.22)",
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    rawSeries.setData(
-      sliced
-        .filter((d) => d.win_rate != null && d.total_closed > 0)
-        .map((d) => ({ time: d.date, value: d.win_rate }))
-    );
+    let candle = null;
+    if (candleData.length) {
+      candle = chart.addSeries(CandlestickSeries, {
+        priceScaleId: "right",
+        upColor: COLORS.up,
+        downColor: COLORS.down,
+        borderUpColor: COLORS.up,
+        borderDownColor: COLORS.down,
+        wickUpColor: COLORS.up,
+        wickDownColor: COLORS.down,
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      candle.setData(candleData);
+    }
 
-    // 7d rolling WR — hero line, left axis
-    const wrSeries = chart.addSeries(LineSeries, {
+    // WR — left axis, locked 0-100
+    const lockWr = { autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) };
+    if (range.smooth > 1) {
+      const raw = chart.addSeries(LineSeries, {
+        priceScaleId: "left",
+        color: COLORS.wrRaw,
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+        ...lockWr,
+      });
+      raw.setData(rollingMean(sliced, 1));
+    }
+    const wr = chart.addSeries(LineSeries, {
       priceScaleId: "left",
-      color: "#34d399",
+      color: COLORS.wr,
       lineWidth: 2,
       priceLineVisible: false,
-      lastValueVisible: true,
-      title: "WR 7d",
+      lastValueVisible: false,
+      ...lockWr,
     });
-    wrSeries.setData(rollingWr(sliced));
+    wr.setData(rollingMean(sliced, range.smooth));
 
-    // Pin WR axis to 0–100
-    chart.priceScale("left").applyOptions({
-      autoScale: false,
-      scaleMargins: { top: 0.05, bottom: 0.05 },
-    });
-    wrSeries.applyOptions({
-      autoscaleInfoProvider: () => ({
-        priceRange: { minValue: 0, maxValue: 100 },
-      }),
-    });
+    // markers: best / worst WR day (min 5 closed) on candles
+    if (candle && stats?.best && stats?.worst && stats.best.date !== stats.worst.date) {
+      const markers = [
+        {
+          time: stats.best.date,
+          position: "aboveBar",
+          color: COLORS.up,
+          shape: "arrowUp",
+          text: `▲ ${stats.best.win_rate}%`,
+        },
+        {
+          time: stats.worst.date,
+          position: "belowBar",
+          color: COLORS.down,
+          shape: "arrowDown",
+          text: `▼ ${stats.worst.win_rate}%`,
+        },
+      ].sort((a, b) => (a.time < b.time ? -1 : 1));
+      createSeriesMarkers(candle, markers);
+    }
+
+    // crosshair tooltip — direct DOM (no re-render per move)
+    const tip = tooltipRef.current;
+    const onMove = (param) => {
+      if (!tip) return;
+      if (!param.time || !param.point) {
+        tip.style.display = "none";
+        return;
+      }
+      const r = rowByDate.get(timeToKey(param.time));
+      if (!r) {
+        tip.style.display = "none";
+        return;
+      }
+      tip.innerHTML = `
+        <div class="text-[10px] uppercase tracking-widest text-white/40 mb-1">${r.date}${r.regime ? ` · ${r.regime}` : ""}</div>
+        <div class="font-mono tabular-nums text-emerald-300">WR ${r.win_rate}% · ${r.total_closed} closed</div>
+        ${
+          r.btc_close != null
+            ? `<div class="font-mono tabular-nums text-white/60 text-[11px] mt-1">O ${fmtUsd(r.btc_open)} · H ${fmtUsd(r.btc_high)}<br/>L ${fmtUsd(r.btc_low)} · C ${fmtUsd(r.btc_close)}</div>`
+            : ""
+        }
+        <div class="text-[9px] uppercase tracking-widest text-amber-300/50 mt-1.5">click candle to drill</div>`;
+      tip.style.display = "block";
+      const x = Math.min(param.point.x + 14, el.clientWidth - tip.offsetWidth - 8);
+      const y = Math.min(param.point.y + 14, 440 - tip.offsetHeight - 8);
+      tip.style.left = `${Math.max(0, x)}px`;
+      tip.style.top = `${Math.max(0, y)}px`;
+    };
+    chart.subscribeCrosshairMove(onMove);
+
+    // click → drill into the signals that formed that day's WR
+    const onClick = (param) => {
+      if (!param.time || !onDrill) return;
+      const r = rowByDate.get(timeToKey(param.time));
+      if (!r || !r.total_closed) return;
+      onDrill({
+        dimension: "created_day",
+        key: r.date,
+        label: `${r.date} · ${r.win_rate}% WR`,
+        win_rate: r.win_rate,
+        total: r.total_closed,
+      });
+    };
+    chart.subscribeClick(onClick);
 
     chart.timeScale().fitContent();
 
-    const onResize = () => chart.applyOptions({ width: el.clientWidth });
-    onResize();
-    const ro = new ResizeObserver(onResize);
+    const ro = new ResizeObserver(() => {
+      chart.applyOptions({ width: el.clientWidth });
+    });
     ro.observe(el);
 
     return () => {
       ro.disconnect();
+      chart.unsubscribeCrosshairMove(onMove);
+      chart.unsubscribeClick(onClick);
       chart.remove();
       chartRef.current = null;
     };
-  }, [sliced]);
+  }, [sliced, range, stats, onDrill]);
 
-  if (error) return <EmptyState title="WR × BTC unavailable" hint={error} />;
-  if (!series) {
+  // ── render ──
+  if (error) {
     return (
-      <div className="h-[420px] rounded-lg bg-[#0c0a07] border border-white/[0.06] animate-pulse" />
+      <Panel title="WR × BTC">
+        <EmptyState title="Failed to load" hint={error} />
+      </Panel>
     );
   }
-  if (!series.length) return <EmptyState title="No data yet" hint="Daily performance history is empty" />;
+  if (!allSeries) {
+    return (
+      <Panel title="WR × BTC">
+        <div className="h-[440px] flex items-center justify-center text-white/30 text-xs uppercase tracking-widest">
+          Loading…
+        </div>
+      </Panel>
+    );
+  }
+  if (!sliced.length) {
+    return (
+      <Panel title="WR × BTC">
+        <EmptyState title="No data" hint="daily_market_regime returned no rows" />
+      </Panel>
+    );
+  }
+
+  const smoothLabel = range.smooth > 1 ? `${range.smooth}d smoothed` : "raw daily";
 
   return (
     <div className="space-y-4">
-      {insights.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {insights.map((it) => (
-            <div
-              key={it.label}
-              className="rounded-lg bg-[#0c0a07] border border-white/[0.07] px-4 py-3"
-            >
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/35">
-                {it.label}
-              </div>
-              <div
-                className={`mt-1 font-mono text-sm ${
-                  it.tone === "emerald"
-                    ? "text-emerald-400"
-                    : it.tone === "red"
-                    ? "text-red-400"
-                    : "text-white/85"
-                }`}
-              >
-                {it.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       <Panel
-        title="Win Rate × BTC Price"
-        meta="Daily · since first signal (Dec 2023)"
+        title="WR × BTC"
+        meta={`since first signal · ${smoothLabel} · click a candle to drill`}
       >
-        {/* toolbar: range toggle + legend */}
+        {/* controls + insight chips */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-1">
+          <div className="flex gap-1">
             {RANGES.map((r) => (
               <button
                 key={r.id}
-                onClick={() => setRange(r.id)}
-                className={`px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-wider transition-colors ${
-                  range === r.id
-                    ? "bg-[#d4a853]/15 text-[#d4a853] border border-[#d4a853]/40"
-                    : "text-white/40 border border-white/[0.06] hover:text-white/70"
+                onClick={() => setRangeId(r.id)}
+                className={`px-3 py-1 text-[10px] uppercase tracking-widest rounded border transition-colors ${
+                  rangeId === r.id
+                    ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+                    : "border-white/10 text-white/40 hover:text-white/70"
                 }`}
               >
                 {r.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-wider">
-            <span className="flex items-center gap-1.5 text-white/50">
-              <span className="w-3 h-[2px] bg-[#34d399] inline-block" />
-              WR 7d (left, 0–100%)
-            </span>
-            <span className="flex items-center gap-1.5 text-white/50">
-              <span className="w-3 h-[2px] bg-[#d4a853] inline-block" />
-              BTC close (right)
-            </span>
-          </div>
+          {stats && (
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-emerald-300">
+                Avg WR {stats.avgWr ?? "—"}%
+                <span className="text-white/30 ml-1">({stats.totalClosed} closed)</span>
+              </span>
+              {stats.best && (
+                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-white/60">
+                  Best <span className="text-emerald-300">{stats.best.win_rate}%</span>{" "}
+                  <span className="text-white/30">{stats.best.date}</span>
+                </span>
+              )}
+              {stats.worst && (
+                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-white/60">
+                  Worst <span className="text-rose-300">{stats.worst.win_rate}%</span>{" "}
+                  <span className="text-white/30">{stats.worst.date}</span>
+                </span>
+              )}
+              {stats.btcDelta != null && (
+                <span className="px-2.5 py-1 rounded border border-white/10 bg-white/[0.03] text-[11px] font-mono tabular-nums text-white/60">
+                  BTC{" "}
+                  <span className={stats.btcDelta >= 0 ? "text-emerald-300" : "text-rose-300"}>
+                    {stats.btcDelta >= 0 ? "+" : ""}
+                    {stats.btcDelta}%
+                  </span>{" "}
+                  <span className="text-white/30">{fmtUsd(stats.btcLast)}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        <div ref={containerRef} className="w-full" />
+        {/* chart + tooltip overlay */}
+        <div className="relative">
+          <div ref={containerRef} className="w-full" />
+          <div
+            ref={tooltipRef}
+            style={{ display: "none" }}
+            className="absolute z-20 pointer-events-none px-3 py-2 rounded-lg border border-amber-400/20 bg-[#0a0805]/95 shadow-xl"
+          />
+        </div>
 
-        <p className="mt-2 font-mono text-[9px] text-white/25 uppercase tracking-wider">
-          WR weighted by closed signals/day · faint line = raw daily WR
-        </p>
+        {/* legend */}
+        <div className="flex flex-wrap gap-4 mt-3 text-[10px] uppercase tracking-widest text-white/35">
+          <span>
+            <span className="inline-block w-3 h-[2px] align-middle mr-1.5" style={{ background: COLORS.wr }} />
+            WR {smoothLabel} (left, 0–100%)
+          </span>
+          {range.smooth > 1 && (
+            <span>
+              <span className="inline-block w-3 h-[2px] align-middle mr-1.5" style={{ background: COLORS.wrRaw }} />
+              WR raw daily
+            </span>
+          )}
+          <span>
+            <span className="inline-block w-2 h-2 align-middle mr-1.5 rounded-[2px]" style={{ background: COLORS.up }} />
+            <span className="inline-block w-2 h-2 align-middle mr-1.5 rounded-[2px]" style={{ background: COLORS.down }} />
+            BTC daily OHLC (right)
+          </span>
+        </div>
       </Panel>
 
-      <Methodology title="How this chart works">
+      <Methodology title="How to read this chart">
         <p>
-          Daily win rate comes from resolved signals grouped by creation date
-          (precomputed nightly). The hero line is a 7-day rolling win rate
-          weighted by how many signals closed each day, so quiet days don't
-          whip the curve. The faint line is the raw daily value. BTC is the
-          daily close from spot market data, plotted on its own price axis —
-          the two scales are independent: this chart shows co-movement, not
-          causation.
+          Win rate comes from <code>daily_market_regime</code> — signals grouped by the UTC day
+          they were <em>created</em>. Clicking a candle drills into that exact set of signals
+          (dimension <code>created_day</code>), so the modal count matches the chart. BTC candles
+          are Binance spot daily OHLC. The two axes are independent scales — this shows
+          co-movement, not causation. Smoothing widens with range (30D raw · 90D 7d · 1Y 14d ·
+          All 30d) so long-range patterns stay readable; the faint line is always the raw daily
+          value. Best/Worst markers require ≥5 closed signals on that day.
         </p>
       </Methodology>
     </div>

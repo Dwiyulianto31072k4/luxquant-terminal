@@ -497,7 +497,7 @@ async def get_edge_lab_drill(
     """Return the individual signals inside one Edge Lab bucket."""
     if days not in (7, 30, 90):
         raise HTTPException(status_code=400, detail="days must be 7, 30, or 90")
-    if dimension not in ("calendar_day", "timing_cell", "pattern", "pattern_btc", "coin"):
+    if dimension not in ("calendar_day", "created_day", "timing_cell", "pattern", "pattern_btc", "coin"):
         raise HTTPException(status_code=400, detail="invalid dimension")
 
     end_date = datetime.utcnow().date()
@@ -506,7 +506,17 @@ async def get_edge_lab_drill(
     start_str = start_date.isoformat()
     sector_filter = sector.lower().strip()
 
-    cache_key = f"lq:edge-lab:drill:v1:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
+    # Exact-day drills (chart candle clicks) may target dates far older than
+    # the rolling window — widen scope start so they stay drillable.
+    if dimension in ("calendar_day", "created_day"):
+        try:
+            key_date = datetime.strptime(key, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="key must be an ISO date (YYYY-MM-DD)")
+        if key_date < start_date:
+            start_date = key_date
+            start_str = start_date.isoformat()
+    cache_key = f"lq:edge-lab:drill:v2:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -553,6 +563,17 @@ async def get_edge_lab_drill(
             SELECT {select_cols}
             FROM scoped sc
             WHERE sc.hit_date = CAST(:day AS date)
+            {order_by}
+        """
+    elif dimension == "created_day":
+        params["day"] = key
+        sql = f"""
+            WITH {OUTCOMES_CTE},
+            {scoped_cte}
+            SELECT {select_cols}
+            FROM scoped sc
+            WHERE sc.created_ts IS NOT NULL
+              AND (sc.created_ts AT TIME ZONE 'UTC')::date = CAST(:day AS date)
             {order_by}
         """
     elif dimension == "timing_cell":
@@ -755,7 +776,7 @@ async def get_wr_vs_btc(
         raise HTTPException(status_code=400, detail="range must be 30, 90, 365, or all")
 
     today_str = datetime.utcnow().date().isoformat()
-    cache_key = f"lq:edge-lab:wr-vs-btc:v1:{range}:{today_str}"
+    cache_key = f"lq:edge-lab:wr-vs-btc:v2:{range}:{today_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -783,7 +804,7 @@ async def get_wr_vs_btc(
     }
 
     # ─── 2. BTC daily closes from Binance (cached separately, refreshes per UTC day) ───
-    btc_cache_key = f"lq:edge-lab:btc-daily:v1:{today_str}"
+    btc_cache_key = f"lq:edge-lab:btc-daily:v2:{today_str}"
     btc_closes = cache_get(btc_cache_key)
     if not btc_closes:
         import httpx
@@ -796,9 +817,14 @@ async def get_wr_vs_btc(
                 )
                 if resp.status_code == 200:
                     for k in resp.json():
-                        # k[0] = open time (ms), k[4] = close
+                        # k[0]=open time ms, k[1]=open, k[2]=high, k[3]=low, k[4]=close
                         day = datetime.utcfromtimestamp(k[0] / 1000).date().isoformat()
-                        btc_closes[day] = float(k[4])
+                        btc_closes[day] = {
+                            "o": float(k[1]),
+                            "h": float(k[2]),
+                            "l": float(k[3]),
+                            "c": float(k[4]),
+                        }
         except Exception:
             btc_closes = {}
         if btc_closes:
@@ -808,12 +834,16 @@ async def get_wr_vs_btc(
     series = []
     for day in sorted(wr_series.keys()):
         w = wr_series[day]
+        b = btc_closes.get(day) or {}
         series.append({
             "date": day,
             "win_rate": w["win_rate"],
             "total_closed": w["total_closed"],
             "regime": w["regime"],
-            "btc_close": btc_closes.get(day),
+            "btc_open": b.get("o"),
+            "btc_high": b.get("h"),
+            "btc_low": b.get("l"),
+            "btc_close": b.get("c"),
         })
 
     response = {
