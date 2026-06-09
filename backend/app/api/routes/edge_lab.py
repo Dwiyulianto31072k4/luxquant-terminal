@@ -647,3 +647,94 @@ async def get_edge_lab_drill(
     cache_set(cache_key, response, ttl=600)
     return response
 
+
+
+# ════════════════════════════════════════════════════════════════
+# TAG-WR — per-(important)-tag historical win rate + active signal map
+# Descriptive only (tags overlap; not a standalone predictive signal).
+# Powers Signals page: tag filter (A) + per-signal tag badges (C).
+# ════════════════════════════════════════════════════════════════
+@router.get("/analytics/tag-wr")
+async def get_tag_wr(
+    days: int = Query(90, ge=7, le=90, description="lookback for WR basis (7/30/90)"),
+    min_n: int = Query(200, ge=1, le=5000, description="min resolved samples per tag"),
+    db: Session = Depends(get_db),
+):
+    """Per-tag WR/median-peak (resolved) + active (open) signal_ids per tag."""
+    if days not in (7, 30, 90):
+        raise HTTPException(status_code=400, detail="days must be 7, 30, or 90")
+
+    end_date = datetime.utcnow().date()
+    start_date = end_date - timedelta(days=days - 1)
+    end_str = end_date.isoformat()
+    start_str = start_date.isoformat()
+
+    cache_key = f"lq:edge-lab:tag-wr:v1:{days}:{min_n}:{end_str}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    params = {"start": start_str, "end": end_str, "min_n": min_n}
+
+    # ─── Per-tag WR + median peak from RESOLVED signals ───
+    wr_rows = db.execute(text(f"""
+        WITH {OUTCOMES_CTE},
+        scoped AS (
+            SELECT r.signal_id, r.outcome, s.peak_pct
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            WHERE r.hit_date >= :start AND r.hit_date <= :end
+        ),
+        tagged AS (
+            SELECT sc.signal_id, sc.outcome, sc.peak_pct, t->>'name' AS tag_name
+            FROM scoped sc
+            JOIN signal_enrichment e ON e.signal_id = sc.signal_id,
+                 jsonb_array_elements(
+                     COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                              e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+            WHERE (t->>'important')::boolean = true
+        )
+        SELECT tag_name,
+               COUNT(*) AS n,
+               COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')) AS wins,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY peak_pct)
+                   FILTER (WHERE peak_pct IS NOT NULL) AS median_peak
+        FROM tagged
+        GROUP BY tag_name
+        HAVING COUNT(*) >= :min_n
+        ORDER BY (COUNT(*) FILTER (WHERE outcome IN ('tp1','tp2','tp3','tp4')))::float / NULLIF(COUNT(*),0) DESC
+    """), params).fetchall()
+
+    # ─── Active (open) signal_ids per tag ───
+    active_rows = db.execute(text("""
+        SELECT t->>'name' AS tag_name, s.signal_id
+        FROM signals s
+        JOIN signal_enrichment e ON e.signal_id = s.signal_id,
+             jsonb_array_elements(
+                 COALESCE(e.entry_snapshot->'facts'->'tags_annotated',
+                          e.entry_snapshot->'tags_annotated','[]'::jsonb)) t
+        WHERE s.status = 'open'
+          AND (t->>'important')::boolean = true
+    """)).fetchall()
+
+    active_map = {}
+    for tag_name, sid in active_rows:
+        active_map.setdefault(tag_name, []).append(sid)
+
+    tags = []
+    for r in wr_rows:
+        tag_name = r[0]
+        n = int(r[1])
+        wins = int(r[2])
+        tags.append({
+            "tag": tag_name,
+            "n": n,
+            "win_rate": _wr(wins, n),
+            "median_peak": _safe_float(r[3]),
+            "active_signal_ids": active_map.get(tag_name, []),
+            "active_count": len(active_map.get(tag_name, [])),
+        })
+
+    response = {"days": days, "min_n": min_n, "tags": tags}
+    cache_set(cache_key, response, ttl=600)
+    return response
