@@ -1,8 +1,9 @@
 // src/components/autotrade/ExchangeConnectModal.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant — AutoTrade · Connect Binance modal
-// Save + validate API keys. Logic/props unchanged; redesigned UI
-// with a clear permission checklist and reassurance copy.
+// Two-pane premium layout: left = guidance (permissions + safety),
+// right = key form. Stacks to one column on mobile, scroll-safe with
+// navbar/tab-bar clearance. Logic/props unchanged.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
@@ -12,17 +13,32 @@ import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "" };
 
 const PERMISSIONS = [
-  { label: "Enable Reading", required: true },
-  { label: "Enable Futures", required: true },
-  { label: "Enable Spot & Margin Trading", required: false },
-  { label: "Enable Withdrawals", required: false, forbidden: true },
+  { label: "Enable Reading", state: "yes" },
+  { label: "Enable Futures", state: "yes" },
+  { label: "Enable Spot & Margin Trading", state: "optional" },
+  { label: "Enable Withdrawals", state: "no" },
 ];
+
+function PermIcon({ state }) {
+  if (state === "no") {
+    return (
+      <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#F6465D]/12 text-[10px] text-[#F6465D]">
+        ✕
+      </span>
+    );
+  }
+  return (
+    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#0ECB81]/12 text-[10px] text-[#0ECB81]">
+      ✓
+    </span>
+  );
+}
 
 function SecretField({ label, value, onChange, placeholder }) {
   const [visible, setVisible] = useState(false);
   return (
-    <div className="space-y-1.5">
-      <label className="block font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-text-secondary">
         {label}
       </label>
       <div className="relative">
@@ -31,12 +47,12 @@ function SecretField({ label, value, onChange, placeholder }) {
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 pr-14 font-mono text-sm text-white placeholder:text-text-muted/30 focus:border-gold-primary/40 focus:outline-none"
+          className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 pr-14 font-mono text-sm text-white placeholder:text-text-muted/30 transition-colors focus:border-gold-primary/40 focus:outline-none"
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-white"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium uppercase tracking-wide text-text-muted transition-colors hover:text-white"
         >
           {visible ? "Hide" : "Show"}
         </button>
@@ -97,134 +113,146 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[100000] overflow-y-auto overscroll-contain">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
       <div
-        onClick={(event) => event.stopPropagation()}
-        className="relative max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-md border border-white/[0.08] bg-[#0a0805] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+        onClick={onClose}
+        className="relative flex min-h-full items-start justify-center px-4 pt-20 pb-28 sm:items-center sm:py-10"
       >
-        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent" />
-
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
-              Exchange
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-white">
-              Connect Binance
-            </h2>
-          </div>
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="relative w-full max-w-[820px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        >
+          {/* Close */}
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.06] bg-white/[0.02] text-lg text-text-muted hover:text-white"
+            aria-label="Close"
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-white/[0.06] hover:text-white"
           >
-            ×
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
           </button>
-        </div>
 
-        <div className="space-y-4 p-5">
-          {/* Permission checklist */}
-          <div className="rounded-md border border-gold-primary/20 bg-gold-primary/[0.04] p-4">
-            <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary">
-              Required permissions
-            </p>
-            <ul className="space-y-1.5">
-              {PERMISSIONS.map((perm) => (
-                <li
-                  key={perm.label}
-                  className="flex items-center gap-2 text-sm"
+          <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
+            {/* LEFT: guidance */}
+            <div className="border-b border-white/[0.06] p-6 lg:border-b-0 lg:border-r lg:p-8">
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
+                Exchange
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                Connect Binance
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-text-muted">
+                Link your account with API keys. Funds stay on Binance —
+                withdrawal access is never requested.
+              </p>
+
+              <div className="mt-7">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted/70">
+                  Required permissions
+                </p>
+                <ul className="mt-3 space-y-2.5">
+                  {PERMISSIONS.map((perm) => (
+                    <li key={perm.label} className="flex items-start gap-2.5">
+                      <PermIcon state={perm.state} />
+                      <span
+                        className={`text-sm leading-5 ${
+                          perm.state === "no"
+                            ? "text-[#F6465D]/90"
+                            : "text-text-secondary"
+                        }`}
+                      >
+                        {perm.label}
+                        {perm.state === "optional" ? (
+                          <span className="text-text-muted/60"> · optional</span>
+                        ) : null}
+                        {perm.state === "no" ? (
+                          <span className="text-[#F6465D]/60"> · never enable</span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-7 space-y-3 border-t border-white/[0.06] pt-5">
+                <p className="text-xs leading-5 text-text-muted">
+                  Keys are encrypted at rest and never leave the AutoTrade
+                  backend.
+                </p>
+                <p className="text-xs leading-5 text-text-muted">
+                  If you restrict the key to trusted IPs, whitelist your
+                  AutoTrade server IP — otherwise Binance rejects every request.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT: form */}
+            <div className="p-6 lg:p-8">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-text-secondary">
+                    Label
+                  </label>
+                  <input
+                    value={form.label}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        label: event.target.value,
+                      }))
+                    }
+                    placeholder="My Binance Account"
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3.5 py-2.5 text-sm text-white placeholder:text-text-muted/30 transition-colors focus:border-gold-primary/40 focus:outline-none"
+                  />
+                </div>
+
+                <SecretField
+                  label="API key"
+                  value={form.api_key}
+                  placeholder="Paste your Binance API key"
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, api_key: value }))
+                  }
+                />
+                <SecretField
+                  label="API secret"
+                  value={form.api_secret}
+                  placeholder="Paste your Binance API secret"
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, api_secret: value }))
+                  }
+                />
+
+                {result ? (
+                  <Notice tone={result.valid ? "success" : "error"}>
+                    {result.valid
+                      ? "Binance keys validated successfully."
+                      : "Keys saved, but Binance rejected validation. Check permissions and IP whitelist."}
+                  </Notice>
+                ) : null}
+                {error ? <Notice tone="error">{error}</Notice> : null}
+              </div>
+
+              <div className="mt-7 flex gap-3">
+                <GhostButton
+                  onClick={onClose}
+                  disabled={saving}
+                  className="flex-1"
                 >
-                  <span
-                    className={
-                      perm.forbidden ? "text-red-400" : "text-emerald-400"
-                    }
-                  >
-                    {perm.forbidden ? "✕" : "✓"}
-                  </span>
-                  <span
-                    className={
-                      perm.forbidden
-                        ? "text-red-400/80"
-                        : "text-gold-primary/90"
-                    }
-                  >
-                    {perm.label}
-                    {perm.forbidden ? " — never enable this" : ""}
-                    {!perm.required && !perm.forbidden ? " (optional)" : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-gold-primary/70">
-              If you restrict the key to trusted IPs, whitelist your AutoTrade
-              server IP — otherwise Binance rejects every request.
-            </p>
+                  Cancel
+                </GhostButton>
+                <GoldButton
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || saving}
+                  className="flex-1"
+                >
+                  {saving ? "Saving…" : "Save & Validate"}
+                </GoldButton>
+              </div>
+            </div>
           </div>
-
-          <Notice tone="info">
-            Your keys are encrypted at rest and never leave the AutoTrade
-            backend. Funds stay in your Binance account — withdrawal access is
-            not requested.
-          </Notice>
-
-          {/* Form */}
-          <div className="space-y-1.5">
-            <label className="block font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-              Label
-            </label>
-            <input
-              value={form.label}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, label: event.target.value }))
-              }
-              placeholder="My Binance Account"
-              className="w-full rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white placeholder:text-text-muted/30 focus:border-gold-primary/40 focus:outline-none"
-            />
-          </div>
-
-          <SecretField
-            label="API key"
-            value={form.api_key}
-            placeholder="Paste your Binance API key"
-            onChange={(value) =>
-              setForm((current) => ({ ...current, api_key: value }))
-            }
-          />
-          <SecretField
-            label="API secret"
-            value={form.api_secret}
-            placeholder="Paste your Binance API secret"
-            onChange={(value) =>
-              setForm((current) => ({ ...current, api_secret: value }))
-            }
-          />
-
-          {result ? (
-            <Notice tone={result.valid ? "success" : "error"}>
-              {result.valid
-                ? "Binance keys validated successfully."
-                : "Keys saved, but Binance rejected the validation check. Verify permissions and IP whitelist."}
-            </Notice>
-          ) : null}
-          {error ? <Notice tone="error">{error}</Notice> : null}
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-2 border-t border-white/[0.06] p-4">
-          <GhostButton onClick={onClose} disabled={saving} className="flex-1">
-            Cancel
-          </GhostButton>
-          <GoldButton
-            onClick={handleSubmit}
-            disabled={!canSubmit || saving}
-            className="flex-1"
-          >
-            {saving ? "Saving…" : "Save & Validate"}
-          </GoldButton>
         </div>
       </div>
     </div>
