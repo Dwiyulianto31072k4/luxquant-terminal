@@ -14,6 +14,7 @@ import ExpectedValueTab from "./edgelab/ExpectedValueTab";
 import CalendarHeatmapTab from "./edgelab/CalendarHeatmapTab";
 import HourDowHeatmapTab from "./edgelab/HourDowHeatmapTab";
 import CoinLeaderboardTab from "./edgelab/CoinLeaderboardTab";
+import WrVsBtcTab from "./edgelab/WrVsBtcTab";
 import SignalDrillDrawer from "./edgelab/SignalDrillDrawer";
 import SignalModal from "./SignalModal";
 
@@ -24,6 +25,7 @@ const TAB_ITEMS = [
   { id: "calendar", label: "Calendar" },
   { id: "timing", label: "Timing" },
   { id: "coins", label: "Coins" },
+  { id: "wrbtc", label: "WR \u00d7 BTC" },
 ];
 
 const RANGE_OPTIONS = [
@@ -313,6 +315,7 @@ const EdgeLabPage = () => {
             {activeTab === "calendar" && <CalendarHeatmapTab data={data.calendar_wr} onDrill={setDrillBucket} />}
             {activeTab === "timing" && <HourDowHeatmapTab data={data.hour_dow_heatmap} onDrill={setDrillBucket} />}
             {activeTab === "coins" && <CoinLeaderboardTab data={data.coin_leaderboard} onDrill={setDrillBucket} />}
+            {activeTab === "wrbtc" && <WrVsBtcTab />}
           </div>
         </div>
       )}
