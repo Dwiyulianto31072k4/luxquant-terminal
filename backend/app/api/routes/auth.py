@@ -16,8 +16,13 @@ import os
 import re
 import secrets
 import logging
+import json
+
+import httpx
+from urllib.parse import urlencode, quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
@@ -47,6 +52,12 @@ GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
     "352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com"
 )
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI",
+    "https://luxquant.tw/api/v1/auth/google/callback"
+)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://luxquant.tw")
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -263,3 +274,166 @@ async def logout(current_user: User = Depends(get_current_user)):
         message="Logout berhasil",
         success=True
     )
+
+
+# ════════════════════════════════════════════════════════════════════
+# GOOGLE OAUTH — REDIRECT FLOW (full-page, Cloudflare-style)
+# ════════════════════════════════════════════════════════════════════
+
+def _encode_google_state(referral_code=None):
+    csrf = secrets.token_urlsafe(16)
+    if referral_code:
+        clean = re.sub(r'[^A-Z0-9_-]', '', referral_code.upper())[:20]
+        if clean:
+            return f"ref:{clean}:{csrf}"
+    return f"csrf:{csrf}"
+
+
+def _decode_google_state(state):
+    if not state:
+        return None
+    parts = state.split(":", 2)
+    if len(parts) >= 2 and parts[0] == "ref":
+        clean = re.sub(r'[^A-Z0-9_-]', '', parts[1].upper())[:20]
+        return clean if clean else None
+    return None
+
+
+@router.get("/google/url")
+async def get_google_auth_url(referral_code: str = None):
+    """Return Google OAuth2 authorization URL (redirect flow)."""
+    state = _encode_google_state(referral_code=referral_code)
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    }
+    url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    return {"url": url}
+
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str = None,
+    state: str = None,
+    error: str = None,
+    db: Session = Depends(get_db),
+):
+    """Google redirect ke sini dengan ?code=xxx&state=xxx."""
+    if error or not code:
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=google_cancelled")
+
+    referral_code = _decode_google_state(state or "")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": GOOGLE_REDIRECT_URI,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+        if resp.status_code != 200:
+            logger.error(f"Google token exchange failed: {resp.status_code} {resp.text}")
+            return RedirectResponse(f"{FRONTEND_URL}/login?error=google_token_failed")
+        token_data = resp.json()
+    except Exception as e:
+        logger.error(f"Google token exchange error: {e}")
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=google_token_failed")
+
+    try:
+        idinfo = google_id_token.verify_oauth2_token(
+            token_data["id_token"],
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+    except (ValueError, KeyError) as e:
+        logger.error(f"Google id_token verify failed: {e}")
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=google_token_invalid")
+
+    google_id = idinfo.get('sub')
+    email = idinfo.get('email')
+    name = idinfo.get('name', '')
+    picture = idinfo.get('picture', '')
+    email_verified = idinfo.get('email_verified', False)
+
+    if not email:
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=google_no_email")
+
+    user = db.query(User).filter(User.google_id == google_id).first()
+    is_new_user = False
+
+    if not user:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.google_id = google_id
+            if picture and not user.avatar_url:
+                user.avatar_url = picture
+            new_role, new_source = resolve_role_for_google(user)
+            if user.role != new_role or user.subscription_source != new_source:
+                user.role = new_role
+                user.subscription_source = new_source
+            db.commit()
+            db.refresh(user)
+        else:
+            username = _generate_username(name, email, db)
+            user = User(
+                email=email,
+                username=username,
+                password_hash=None,
+                auth_provider='google',
+                google_id=google_id,
+                avatar_url=picture,
+                is_active=True,
+                is_verified=email_verified,
+                role='free',
+                subscription_source=None,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            is_new_user = True
+    else:
+        if picture and user.avatar_url != picture:
+            user.avatar_url = picture
+            db.commit()
+            db.refresh(user)
+
+    if not user.is_active:
+        return RedirectResponse(f"{FRONTEND_URL}/login?error=account_inactive")
+
+    if is_new_user and referral_code:
+        success, msg, _use = apply_referral_to_user(db, user, referral_code, commit=True)
+        if not success:
+            logger.info(
+                f"Google referral apply failed for user {user.id} "
+                f"with code='{referral_code}': {msg}"
+            )
+        db.refresh(user)
+
+    track_user_login(db, user, commit=True)
+
+    tokens = create_tokens(user.id, user.email)
+    cryptobot_token = create_cryptobot_exchange_token(user)
+
+    user_response = UserResponse.model_validate(user)
+    user_json = quote(json.dumps(user_response.model_dump(mode="json")))
+
+    redirect_url = (
+        f"{FRONTEND_URL}/auth/google/callback"
+        f"?token={tokens['access_token']}"
+        f"&refresh_token={tokens['refresh_token']}"
+        f"&user={user_json}"
+    )
+    if cryptobot_token:
+        redirect_url += f"&cryptobot_token={cryptobot_token}"
+
+    return RedirectResponse(redirect_url)
