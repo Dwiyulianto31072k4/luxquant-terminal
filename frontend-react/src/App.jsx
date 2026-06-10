@@ -20,6 +20,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import InAppBrowserBanner from "./components/InAppBrowserBanner";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -1316,6 +1317,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <InAppBrowserBanner />
         <CurrencyProvider>
           <Routes>
             {/* Landing */}
