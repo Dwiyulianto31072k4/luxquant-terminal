@@ -6,9 +6,6 @@ import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 
 const AuthContext = createContext(null);
 
-// Google Client ID — must match backend
-const GOOGLE_CLIENT_ID = '352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com';
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -71,30 +68,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [googleReady, setGoogleReady] = useState(false);
-
-  // ─── Load Google Identity Services SDK ───
-  useEffect(() => {
-    if (document.getElementById('google-gsi-script')) {
-      if (window.google?.accounts?.id) {
-        setGoogleReady(true);
-      }
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = 'google-gsi-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      setGoogleReady(true);
-    };
-    script.onerror = () => {
-      console.error('Failed to load Google Identity Services SDK');
-    };
-    document.head.appendChild(script);
-  }, []);
 
   // ─── Check token on mount ───
   useEffect(() => {
@@ -126,98 +99,30 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // ─── Google Login via GSI Popup ───
-  const loginWithGoogle = useCallback(() => {
-    return new Promise((resolve, reject) => {
-      setError(null);
+  // ─── Google Login via OAuth2 Redirect (full-page, Cloudflare-style) ───
+  // Catatan: flow GSI popup lama (POST /auth/google) tetap ada di backend
+  // sebagai fallback, tapi frontend sekarang pakai redirect flow yang juga
+  // lebih kompatibel dengan in-app browser/webview.
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      // ─── Layer 6: forward stored referral code via OAuth state ───
+      const referralCode = getStoredRef();
+      const params = referralCode ? `?referral_code=${encodeURIComponent(referralCode)}` : '';
+      const res = await fetch(`/api/v1/auth/google/url${params}`);
+      if (!res.ok) throw new Error(`auth url request failed: ${res.status}`);
+      const data = await res.json();
 
-      if (!window.google?.accounts?.id) {
-        const msg = 'Google sign-in is still loading. Please refresh the page and try again.';
-        setError(msg);
-        reject(new Error(msg));
-        return;
-      }
+      // Note: don't clearStoredRef here — the user hasn't logged in yet (just
+      // redirecting). Same pattern as Discord: cleared after a successful
+      // callback (GoogleCallback.jsx).
 
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async (response) => {
-          try {
-            // ─── Layer 6: forward stored referral code ───
-            const referralCode = getStoredRef();
-            const result = await authApi.googleLogin(response.credential, referralCode);
-
-            localStorage.setItem('access_token', result.access_token);
-            localStorage.setItem('refresh_token', result.refresh_token);
-            if (result.cryptobot_token) {
-              await syncCryptobotAuth(result.cryptobot_token);
-            }
-
-            // Clear pending ref after successful login
-            // (backend ignores it for existing users, so safe to clear)
-            if (referralCode) clearStoredRef();
-
-            setUser(result.user);
-            resolve(result);
-          } catch (err) {
-            const message = err.response?.data?.detail || 'Google sign-in failed. Please try again.';
-            setError(message);
-            reject(err);
-          }
-        },
-        auto_select: false,
-        itp_support: true,
-      });
-
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-          console.log('One Tap not displayed:', notification.getNotDisplayedReason());
-
-          const overlay = buildOverlay('google-fallback-container');
-          const card = buildCard();
-
-          // Close (×) button
-          const closeBtn = document.createElement('button');
-          closeBtn.innerHTML = '✕';
-          closeBtn.setAttribute('aria-label', 'Close');
-          closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;color:#8a7a6e;background:none;border:none;font-size:16px;cursor:pointer;line-height:1;padding:4px;';
-          closeBtn.onmouseenter = () => { closeBtn.style.color = '#d4cfc8'; };
-          closeBtn.onmouseleave = () => { closeBtn.style.color = '#8a7a6e'; };
-          closeBtn.onclick = () => { document.body.removeChild(overlay); reject(new Error('cancelled')); };
-          card.appendChild(closeBtn);
-
-          // Title
-          const title = document.createElement('p');
-          title.textContent = 'Choose your Google account';
-          title.style.cssText = "color:#f0ece6;margin-bottom:20px;font-size:16px;font-weight:600;font-family:'Space Grotesk',sans-serif;";
-          card.appendChild(title);
-
-          // Google button container
-          const btnDiv = document.createElement('div');
-          btnDiv.id = 'google-fallback-btn';
-          btnDiv.style.cssText = 'display:flex;justify-content:center;';
-          card.appendChild(btnDiv);
-
-          overlay.appendChild(card);
-          overlay.onclick = (e) => {
-            if (e.target === overlay) { document.body.removeChild(overlay); reject(new Error('cancelled')); }
-          };
-          document.body.appendChild(overlay);
-
-          window.google.accounts.id.renderButton(btnDiv, {
-            theme: 'filled_black',
-            size: 'large',
-            width: 280,
-            text: 'continue_with',
-          });
-        }
-
-        if (notification.isDismissedMoment()) {
-          console.log('One Tap dismissed:', notification.getDismissedReason());
-          const fallback = document.getElementById('google-fallback-container');
-          if (fallback) document.body.removeChild(fallback);
-        }
-      });
-    });
+      window.location.href = data.url;
+    } catch (err) {
+      const message = 'Google sign-in failed. Please try again.';
+      setError(message);
+      throw err;
+    }
   }, []);
 
   // ─── Telegram Login via Widget ───
@@ -367,6 +272,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setError(null);
 
+    // Guard: GSI script tidak lagi di-load oleh app, tapi jaga-jaga kalau
+    // masih ada di halaman (mis. dari cache/extension).
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
     }
@@ -377,7 +284,9 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: !!user,
-    googleReady,
+    // googleReady dipertahankan demi kompatibilitas konsumen lama.
+    // Redirect flow tidak butuh SDK, jadi selalu siap.
+    googleReady: true,
     logout,
     loginWithGoogle,
     loginWithTelegram,
