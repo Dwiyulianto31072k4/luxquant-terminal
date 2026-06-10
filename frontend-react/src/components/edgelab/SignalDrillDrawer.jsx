@@ -1,15 +1,21 @@
 // src/components/edgelab/SignalDrillDrawer.jsx
 // ════════════════════════════════════════════════════════════════
-// Level-2 drill — MASTER-DETAIL MODAL (v3).
+// Level-2 drill — MASTER-DETAIL MODAL (v4).
 // Same export/props as before — EdgeLabPage needs no change.
 //
 //   ① header     → bucket label · WR · outcome distribution · BTC that day
-//   ② left pane  → filter/sort + compact list (peak under-bar per row)
-//   ③ right pane → detail: peak hero · PEAK FIELD strip (where this signal
-//                  sits among the day's signals) · timeline · CTA
+//   ② left pane  → filter/sort + compact list (peak under-bar, α vs BTC)
+//   ③ right pane → identity · TRADE vs MARKET (signal peak set against the
+//                  BTC move over the SAME holding window, + alpha) · peak
+//                  field strip · timeline facts · CTA
 //
-// bucket.btc (optional, passed by WR×BTC tab): { chg, open, close } — the
-// intraday BTC move for that day. Rendered only when present.
+// bucket.btc       (optional): { chg, open, close } — intraday BTC for the
+//                  bucket day. Header stat + timeline row.
+// bucket.btcSeries (optional): { 'YYYY-MM-DD': {o, c} } — daily BTC open/
+//                  close map passed by the WR×BTC tab. Enables per-signal
+//                  BTC change across each signal's own created→resolved
+//                  window, the alpha column, and the trade-vs-market block.
+//                  Tabs that don't pass it render exactly as before.
 //
 // Desktop: two panes. Mobile: list → tap → detail (back button).
 // Keyboard: ↑/↓ selection · Enter opens full breakdown · Esc closes.
@@ -72,6 +78,11 @@ const fmtPeak = (p) => {
   return `${sign}${body}%`;
 };
 
+const fmtSignedPct = (v, dp = 2) => {
+  if (v == null) return "—";
+  return `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(dp)}%`;
+};
+
 const fmtHold = (createdAt, hitDate) => {
   if (!createdAt || !hitDate) return null;
   const a = new Date(createdAt), b = new Date(hitDate);
@@ -91,6 +102,14 @@ const median = (arr) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+// UTC day key — matches the backend's created_ts::date grouping
+const isoDay = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return String(iso).slice(0, 10);
+  return d.toISOString().slice(0, 10);
+};
+
 // log compression keeps memecoin outliers from flattening everything
 const signedLog = (p) => Math.sign(p || 0) * Math.log10(Math.abs(p || 0) + 1);
 const logBarPct = (peak, maxPeak) => {
@@ -98,6 +117,24 @@ const logBarPct = (peak, maxPeak) => {
   return maxPeak > 0
     ? Math.min(100, Math.max(3, (Math.log10(a + 1) / Math.log10(maxPeak + 1)) * 100))
     : 3;
+};
+
+// ─── per-signal BTC over the signal's own holding window ─────────
+// open of the created day → close of the resolved day.
+const btcOverHold = (s, btcSeries) => {
+  if (!btcSeries) return null;
+  const d0 = isoDay(s.created_at);
+  const d1 = isoDay(s.hit_date);
+  if (!d0 || !d1) return null;
+  const a = btcSeries[d0];
+  const b = btcSeries[d1];
+  if (!a || !b || a.o == null || b.c == null || a.o <= 0) return null;
+  return {
+    chg: +(((b.c - a.o) / a.o) * 100).toFixed(2),
+    from: a.o,
+    to: b.c,
+    sameDay: d0 === d1,
+  };
 };
 
 // ─── BTC day chip (header) ───────────────────────────────────────
@@ -119,9 +156,90 @@ const BtcDayStat = ({ btc }) => {
   );
 };
 
-// ─── peak field strip (signature) ────────────────────────────────
+// ─── trade vs market (signature) ─────────────────────────────────
+// Signal peak and the BTC move over the SAME holding window, drawn as two
+// bars from a shared zero baseline on a signed-log scale, with alpha
+// (peak − BTC) called out. Answers: did this trade beat just holding BTC?
+const TradeVsMarket = ({ s, btcHold }) => {
+  if (!btcHold || s.peak_pct == null) return null;
+  const peak = s.peak_pct;
+  const btc = btcHold.chg;
+  const alpha = +(peak - btc).toFixed(1);
+
+  const lp = signedLog(peak);
+  const lb = signedLog(btc);
+  const maxMag = Math.max(Math.abs(lp), Math.abs(lb)) || 1;
+  // each side of the zero line gets 50% of the track
+  const w = (v) => Math.max(1.5, (Math.abs(v) / maxMag) * 48);
+
+  const Row = ({ label, value, log, color }) => (
+    <div className="flex items-center gap-2.5">
+      <span className="w-[72px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-white/35">
+        {label}
+      </span>
+      <div className="relative flex-1 h-[14px]">
+        <div className="absolute inset-y-0 left-1/2 w-px bg-white/[0.14]" />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full"
+          style={
+            log >= 0
+              ? { left: "50%", width: `${w(log)}%`, background: color }
+              : { right: "50%", width: `${w(log)}%`, background: color }
+          }
+        />
+      </div>
+      <span
+        className="w-[64px] shrink-0 text-right font-mono tabular-nums text-[12px]"
+        style={{ color }}
+      >
+        {fmtPeak(value)}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-3.5 py-3">
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">
+          Trade vs market · same window
+        </span>
+        <span className="text-[9px] font-mono text-white/25">log scale</span>
+      </div>
+      <div className="space-y-2">
+        <Row
+          label="This trade"
+          value={peak}
+          log={lp}
+          color={peak >= 0 ? "#34d399" : "#f87171"}
+        />
+        <Row
+          label="BTC held"
+          value={btc}
+          log={lb}
+          color="rgba(255,255,255,0.45)"
+        />
+      </div>
+      <div className="mt-3 pt-2.5 border-t border-white/[0.05] flex items-baseline justify-between">
+        <span
+          className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/35"
+          title="Signal peak minus the BTC move over the same created→resolved window"
+        >
+          α vs holding BTC
+        </span>
+        <span
+          className="font-mono tabular-nums text-[15px]"
+          style={{ color: alpha >= 0 ? "#34d399" : "#f87171" }}
+        >
+          {alpha >= 0 ? "+" : "−"}{Math.abs(alpha).toFixed(1)}pp
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ─── peak field strip ────────────────────────────────────────────
 // Every signal of the bucket as a dot on a signed-log axis; the selected
-// one is ringed in gold. Reads as "where this trade sits in the day's field".
+// one is ringed in gold, median ticked. "Where this trade sits in the field."
 const PeakField = ({ signals, selectedId }) => {
   const pts = signals.filter((s) => s.peak_pct != null);
   if (pts.length < 3) return null;
@@ -133,6 +251,7 @@ const PeakField = ({ signals, selectedId }) => {
   const zeroX = min < 0 && max > 0 ? 3 + ((0 - min) / span) * 94 : null;
   const minPeak = Math.min(...pts.map((s) => s.peak_pct));
   const maxPeak = Math.max(...pts.map((s) => s.peak_pct));
+  const med = median(pts.map((s) => s.peak_pct));
 
   return (
     <div>
@@ -151,6 +270,14 @@ const PeakField = ({ signals, selectedId }) => {
             className="absolute top-1.5 bottom-1.5 w-px bg-white/[0.12]"
             style={{ left: `${zeroX}%` }}
             title="0%"
+          />
+        )}
+        {/* median tick */}
+        {med != null && (
+          <div
+            className="absolute top-0 bottom-0 w-px"
+            style={{ left: `${x(med)}%`, background: "rgba(212,168,83,0.3)" }}
+            title={`median ${fmtPeak(med)}`}
           />
         )}
         {pts.map((s, i) => {
@@ -179,6 +306,7 @@ const PeakField = ({ signals, selectedId }) => {
       </div>
       <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums text-white/25">
         <span>{fmtPeak(minPeak)}</span>
+        <span className="text-gold-primary/45">med {fmtPeak(med)}</span>
         <span>{fmtPeak(maxPeak)}</span>
       </div>
     </div>
@@ -186,10 +314,12 @@ const PeakField = ({ signals, selectedId }) => {
 };
 
 // ─── ② list row (left pane) ──────────────────────────────────────
-const SignalRow = ({ s, maxPeak, selected, onSelect }) => {
+const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
   const isWin = s.outcome && s.outcome !== "sl";
   const peak = fmtPeak(s.peak_pct);
   const barPct = logBarPct(s.peak_pct, maxPeak);
+  const alpha =
+    btcHold && s.peak_pct != null ? +(s.peak_pct - btcHold.chg).toFixed(1) : null;
   return (
     <button
       onClick={() => onSelect(s.signal_id)}
@@ -208,7 +338,17 @@ const SignalRow = ({ s, maxPeak, selected, onSelect }) => {
             </span>
             <OutcomeBadge outcome={s.outcome} size={8} />
           </div>
-          <div className="text-[10px] font-mono text-white/30 leading-tight mt-0.5">{fmtDate(s.hit_date)}</div>
+          <div className="flex items-center gap-2 text-[10px] font-mono leading-tight mt-0.5">
+            <span className="text-white/30">{fmtDate(s.hit_date)}</span>
+            {alpha != null && (
+              <span
+                className={alpha >= 0 ? "text-emerald-400/55" : "text-red-400/55"}
+                title="Peak minus BTC move over this signal's own window"
+              >
+                α {alpha >= 0 ? "+" : "−"}{Math.abs(alpha).toFixed(1)}
+              </span>
+            )}
+          </div>
         </div>
         <span className={`font-mono tabular-nums text-[12px] shrink-0 ${isWin ? "text-emerald-400" : "text-red-400"}`}>
           {peak || "—"}
@@ -225,7 +365,7 @@ const SignalRow = ({ s, maxPeak, selected, onSelect }) => {
 };
 
 // ─── ③ detail pane (right) ───────────────────────────────────────
-const DetailPane = ({ s, rank, total, allSignals, btc, opening, onOpenSignal, onBack }) => {
+const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpenSignal, onBack }) => {
   if (!s) {
     return (
       <div className="flex-1 flex items-center justify-center text-white/25 text-xs font-mono uppercase tracking-wider">
@@ -235,6 +375,7 @@ const DetailPane = ({ s, rank, total, allSignals, btc, opening, onOpenSignal, on
   }
   const peak = fmtPeak(s.peak_pct);
   const hold = fmtHold(s.created_at, s.hit_date);
+  const btcHold = btcOverHold(s, btcSeries);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
@@ -279,7 +420,10 @@ const DetailPane = ({ s, rank, total, allSignals, btc, opening, onOpenSignal, on
           )}
         </div>
 
-        {/* signature: where this signal sits in the day's field */}
+        {/* signature: did this trade beat just holding BTC? */}
+        <TradeVsMarket s={s} btcHold={btcHold} />
+
+        {/* where this signal sits in the day's field */}
         <PeakField signals={allSignals} selectedId={s.signal_id} />
 
         {/* timeline facts */}
@@ -292,6 +436,21 @@ const DetailPane = ({ s, rank, total, allSignals, btc, opening, onOpenSignal, on
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">Resolved</span>
             <span className="font-mono tabular-nums text-[12px] text-white/75">{fmtDate(s.hit_date)}</span>
           </div>
+          {btcHold && (
+            <div className="flex items-center justify-between px-3.5 py-2.5">
+              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">
+                BTC over hold{btcHold.sameDay ? " · same day" : ""}
+              </span>
+              <span className="font-mono tabular-nums text-[12px] text-white/75">
+                <span className={btcHold.chg >= 0 ? "text-emerald-400/90" : "text-red-400/90"}>
+                  {fmtSignedPct(btcHold.chg)}
+                </span>
+                <span className="text-white/30 text-[10px] ml-2">
+                  {fmtUsd(btcHold.from)} → {fmtUsd(btcHold.to)}
+                </span>
+              </span>
+            </div>
+          )}
           {btc && btc.chg != null && (
             <div className="flex items-center justify-between px-3.5 py-2.5">
               <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">BTC that day</span>
@@ -362,6 +521,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
   useEffect(() => { if (open) load(); }, [open, load]);
 
   const all = payload?.signals || [];
+  const btcSeries = bucket?.btcSeries || null;
 
   const stats = useMemo(() => {
     const counts = { tp4: 0, tp3: 0, tp2: 0, tp1: 0, sl: 0 };
@@ -387,6 +547,14 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
     byPeak.forEach((s, i) => m.set(s.signal_id, i + 1));
     return m;
   }, [all]);
+
+  // per-signal BTC window, memoised once per payload
+  const btcHoldById = useMemo(() => {
+    const m = new Map();
+    if (!btcSeries) return m;
+    for (const s of all) m.set(s.signal_id, btcOverHold(s, btcSeries));
+    return m;
+  }, [all, btcSeries]);
 
   const view = useMemo(() => {
     let arr = all;
@@ -588,6 +756,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                         key={s.signal_id}
                         s={s}
                         maxPeak={stats.maxAbs}
+                        btcHold={btcHoldById.get(s.signal_id) || null}
                         selected={s.signal_id === selectedId}
                         onSelect={(id) => {
                           setSelectedId(id);
@@ -610,6 +779,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   total={stats.total}
                   allSignals={all}
                   btc={bucket.btc}
+                  btcSeries={btcSeries}
                   opening={selected && openingId === selected.signal_id}
                   onOpenSignal={onOpenSignal}
                   onBack={() => setMobileDetail(false)}

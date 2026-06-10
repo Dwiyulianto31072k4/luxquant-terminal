@@ -1,13 +1,16 @@
-// WrVsBtcTab v3 — daily LuxQuant win rate vs BTC candlestick + BTC × WR analysis.
+// WrVsBtcTab v5 — daily LuxQuant win rate vs BTC candlestick + BTC × WR analysis.
 // Chart:
 //   - BTC: real OHLC candlesticks (right axis), green/red + wicks
-//   - WR : emerald line, left axis locked 0-100%, smoothing dynamic per range
-//          (30D raw · 90D 7d · 1Y 14d · All 30d) + faint raw overlay when smoothed
+//   - WR : emerald line, left axis locked 0-100%, raw daily by default;
+//          smoothing is an explicit toggle (window dynamic per range)
 //   - Markers ▲ best / ▼ worst WR day (min 5 closed) · crosshair tooltip · click-to-drill
 // Analysis (all client-side from the same all-time payload, recomputed per range):
 //   - Pearson r between BTC daily return and WR (+ strength label)
 //   - Conditional WR by BTC move bucket (dump / down / flat / up / pump)
 //   - Anomaly days from linear-fit residuals — each card drillable (created_day)
+// Drill payloads now carry btcSeries — a {date: {o, c}} map over ALL days —
+// so the drawer can compute each signal's BTC change over its OWN
+// created→resolved window (multi-day holds included), plus alpha.
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
@@ -82,6 +85,24 @@ const BTC_BUCKETS = [
   { id: "pump", label: "BTC ≥ +3%", test: (v) => v >= 3 },
 ];
 
+// drill bucket for a chart day — shared by candle click & anomaly cards
+const dayBucket = (r, btcSeries) => ({
+  dimension: "created_day",
+  key: r.date,
+  label: `${r.date} · ${r.win_rate}% WR`,
+  win_rate: r.win_rate,
+  total: r.total_closed,
+  btc:
+    r.btc_open != null && r.btc_close != null && r.btc_open > 0
+      ? {
+          chg: +(((r.btc_close - r.btc_open) / r.btc_open) * 100).toFixed(2),
+          open: r.btc_open,
+          close: r.btc_close,
+        }
+      : null,
+  btcSeries,
+});
+
 const WrVsBtcTab = ({ onDrill }) => {
   const [allSeries, setAllSeries] = useState(null);
   const [error, setError] = useState(null);
@@ -113,6 +134,18 @@ const WrVsBtcTab = ({ onDrill }) => {
     if (range.days === Infinity) return rows;
     return rows.slice(-range.days);
   }, [allSeries, range]);
+
+  // ── BTC open/close per day over ALL days (not the slice) — handed to the
+  //    drill drawer so multi-day holds resolving outside the slice still work ──
+  const btcSeries = useMemo(() => {
+    const m = {};
+    for (const r of allSeries?.series || []) {
+      if (r.btc_open != null && r.btc_close != null) {
+        m[r.date] = { o: r.btc_open, c: r.btc_close };
+      }
+    }
+    return m;
+  }, [allSeries]);
 
   // ── headline stats (actual WR over the range, not an "average of averages") ──
   const stats = useMemo(() => {
@@ -360,21 +393,7 @@ const WrVsBtcTab = ({ onDrill }) => {
       if (!param.time || !onDrill) return;
       const r = rowByDate.get(timeToKey(param.time));
       if (!r || !r.total_closed) return;
-      onDrill({
-        dimension: "created_day",
-        key: r.date,
-        label: `${r.date} · ${r.win_rate}% WR`,
-        win_rate: r.win_rate,
-        total: r.total_closed,
-        btc:
-          r.btc_open != null && r.btc_close != null && r.btc_open > 0
-            ? {
-                chg: +(((r.btc_close - r.btc_open) / r.btc_open) * 100).toFixed(2),
-                open: r.btc_open,
-                close: r.btc_close,
-              }
-            : null,
-      });
+      onDrill(dayBucket(r, btcSeries));
     };
     chart.subscribeClick(onClick);
 
@@ -391,7 +410,7 @@ const WrVsBtcTab = ({ onDrill }) => {
       chart.unsubscribeClick(onClick);
       chart.remove();
     };
-  }, [sliced, range, smoothOn, stats, onDrill]);
+  }, [sliced, range, smoothOn, stats, onDrill, btcSeries]);
 
   // ── render ──
   if (error) {
@@ -420,22 +439,7 @@ const WrVsBtcTab = ({ onDrill }) => {
 
   const smoothLabel = smoothOn ? `${range.smooth}d smoothed` : "raw daily";
 
-  const drillDay = (d) =>
-    onDrill?.({
-      dimension: "created_day",
-      key: d.date,
-      label: `${d.date} · ${d.win_rate}% WR`,
-      win_rate: d.win_rate,
-      total: d.total_closed,
-      btc:
-        d.btc_open != null && d.btc_close != null && d.btc_open > 0
-          ? {
-              chg: +(((d.btc_close - d.btc_open) / d.btc_open) * 100).toFixed(2),
-              open: d.btc_open,
-              close: d.btc_close,
-            }
-          : null,
-    });
+  const drillDay = (d) => onDrill?.(dayBucket(d, btcSeries));
 
   return (
     <div className="space-y-4">
@@ -684,13 +688,16 @@ const WrVsBtcTab = ({ onDrill }) => {
           they were <em>created</em>. The headline WR chip is the actual aggregate over the
           selected range (total wins ÷ total closed), not an average of daily percentages.
           Clicking a candle or an anomaly card drills into that exact set of signals (dimension{" "}
-          <code>created_day</code>), so the modal count matches the chart. BTC candles are
-          Binance spot daily OHLC; BTC daily return compares consecutive closes. Correlation and
-          the conditional table only use days with ≥3 closed signals to limit small-sample noise;
-          anomaly days require ≥5. The two chart axes are independent scales — everything here
-          describes co-movement within the window, not causation. Smoothing widens with range
-          (30D raw · 90D 7d · 1Y 14d · All 30d); the faint line is always the raw daily value.
-          Best/Worst markers require ≥5 closed signals on that day.
+          <code>created_day</code>), so the modal count matches the chart. Inside the drill
+          modal, each signal's "BTC over hold" compares BTC's open on the signal's created day
+          to its close on the resolved day — the same window the trade was alive — and alpha is
+          the signal's peak minus that move. BTC candles are Binance spot daily OHLC; BTC daily
+          return compares consecutive closes. Correlation and the conditional table only use
+          days with ≥3 closed signals to limit small-sample noise; anomaly days require ≥5. The
+          two chart axes are independent scales — everything here describes co-movement within
+          the window, not causation. Smoothing is off by default (raw daily WR); when enabled
+          the window widens with range (30D 3d · 90D 7d · 1Y 14d · All 30d) and the faint line
+          is the raw daily value. Best/Worst markers require ≥5 closed signals on that day.
         </p>
       </Methodology>
     </div>
