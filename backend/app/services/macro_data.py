@@ -34,7 +34,7 @@ import requests
 from datetime import datetime, timezone
 from typing import Optional, Dict, List, Tuple
 
-TIMEOUT = 15
+TIMEOUT = 5
 
 FRED_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 BINANCE_KLINES = "https://api.binance.com/api/v3/klines"
@@ -69,7 +69,9 @@ def fetch_fred_history(series_id: str, days: int = 60) -> Optional[List[Dict]]:
     (skipping rows where the value is missing — FRED uses '.' for holidays).
     """
     try:
-        r = requests.get(FRED_BASE, params={"id": series_id}, timeout=TIMEOUT)
+        from datetime import timedelta
+        start = (datetime.now(timezone.utc) - timedelta(days=days + 30)).strftime("%Y-%m-%d")
+        r = requests.get(FRED_BASE, params={"id": series_id, "cosd": start}, timeout=TIMEOUT)
         if r.status_code != 200:
             _log(f"FRED {series_id} HTTP {r.status_code}")
             return None
@@ -231,16 +233,19 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
 
     btc_history = fetch_binance_daily(BTC_BINANCE_SYMBOL, days=60)
     if not btc_history or len(btc_history) < 10:
-        _log("BTC history insufficient, aborting")
-        return None
+        _log("BTC history insufficient, serving stale" if _cache["data"] else "BTC history insufficient, aborting")
+        return _cache["data"]
 
     btc_snapshot = build_asset_snapshot(btc_history)
     if not btc_snapshot:
         return None
 
     assets_out = {}
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futures = {key: ex.submit(fetch_history_for, cfg, 60) for key, cfg in MACRO_SYMBOLS.items()}
     for key, cfg in MACRO_SYMBOLS.items():
-        history = fetch_history_for(cfg, days=60)
+        history = futures[key].result()
         if not history:
             continue
         snap = build_asset_snapshot(history)
@@ -256,8 +261,8 @@ def fetch_macro_pulse(force_refresh: bool = False) -> Optional[Dict]:
         }
 
     if not assets_out:
-        _log("no assets fetched")
-        return None
+        _log("no assets fetched, serving stale" if _cache["data"] else "no assets fetched")
+        return _cache["data"]
 
     regime, detail = classify_regime(assets_out, btc_snapshot)
 
