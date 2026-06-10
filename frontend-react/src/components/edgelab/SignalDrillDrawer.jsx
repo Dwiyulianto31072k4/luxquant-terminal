@@ -1,16 +1,18 @@
 // src/components/edgelab/SignalDrillDrawer.jsx
 // ════════════════════════════════════════════════════════════════
-// Level-2 drill — MASTER-DETAIL MODAL (v2, Kiyotaka-style).
-// Same export/props as v1 — EdgeLabPage needs no change.
+// Level-2 drill — MASTER-DETAIL MODAL (v3).
+// Same export/props as before — EdgeLabPage needs no change.
 //
-// Layout:
-//   ① header       → bucket label + WR + outcome distribution + median/best
-//   ② left pane    → filter/sort toolbar + compact signal list (scrollable)
-//   ③ right pane   → detail of the selected signal + "open full breakdown"
+//   ① header     → bucket label · WR · outcome distribution · BTC that day
+//   ② left pane  → filter/sort + compact list (peak under-bar per row)
+//   ③ right pane → detail: peak hero · PEAK FIELD strip (where this signal
+//                  sits among the day's signals) · timeline · CTA
 //
-// Desktop: two panes side by side. Mobile: list → tap → detail (back button).
-// Keyboard: ↑/↓ moves selection · Enter opens full breakdown · Esc closes.
-// Card click → onOpenSignal(signalId, signalObj) → Level-3 SignalModal.
+// bucket.btc (optional, passed by WR×BTC tab): { chg, open, close } — the
+// intraday BTC move for that day. Rendered only when present.
+//
+// Desktop: two panes. Mobile: list → tap → detail (back button).
+// Keyboard: ↑/↓ selection · Enter opens full breakdown · Esc closes.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -55,6 +57,9 @@ const fmtDateTime = (iso) => {
     ", " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 };
 
+const fmtUsd = (v) =>
+  v == null ? "—" : v >= 1000 ? `$${Math.round(v).toLocaleString("en-US")}` : `$${v.toFixed(2)}`;
+
 // Peak gains can be enormous (memecoins +5000%). Compact display.
 const fmtPeak = (p) => {
   if (p == null) return null;
@@ -86,7 +91,8 @@ const median = (arr) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
-// log-compressed bar so memecoin outliers don't flatten everything
+// log compression keeps memecoin outliers from flattening everything
+const signedLog = (p) => Math.sign(p || 0) * Math.log10(Math.abs(p || 0) + 1);
 const logBarPct = (peak, maxPeak) => {
   const a = Math.abs(peak ?? 0);
   return maxPeak > 0
@@ -94,38 +100,132 @@ const logBarPct = (peak, maxPeak) => {
     : 3;
 };
 
+// ─── BTC day chip (header) ───────────────────────────────────────
+const BtcDayStat = ({ btc }) => {
+  if (!btc || btc.chg == null) return null;
+  const up = btc.chg >= 0;
+  return (
+    <div>
+      <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">BTC that day</div>
+      <div className="font-mono tabular-nums text-base leading-tight">
+        <span className={up ? "text-emerald-400/90" : "text-red-400/90"}>
+          {up ? "+" : ""}{btc.chg}%
+        </span>
+        <span className="text-white/30 text-[11px] ml-2">
+          {fmtUsd(btc.open)} → {fmtUsd(btc.close)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ─── peak field strip (signature) ────────────────────────────────
+// Every signal of the bucket as a dot on a signed-log axis; the selected
+// one is ringed in gold. Reads as "where this trade sits in the day's field".
+const PeakField = ({ signals, selectedId }) => {
+  const pts = signals.filter((s) => s.peak_pct != null);
+  if (pts.length < 3) return null;
+  const vals = pts.map((s) => signedLog(s.peak_pct));
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const span = max - min || 1;
+  const x = (p) => 3 + ((signedLog(p) - min) / span) * 94; // 3%..97%
+  const zeroX = min < 0 && max > 0 ? 3 + ((0 - min) / span) * 94 : null;
+  const minPeak = Math.min(...pts.map((s) => s.peak_pct));
+  const maxPeak = Math.max(...pts.map((s) => s.peak_pct));
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">
+          Peak field · all {pts.length} signals
+        </span>
+        <span className="text-[9px] font-mono text-white/25">log scale</span>
+      </div>
+      <div className="relative h-11 rounded-md border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+        {/* baseline */}
+        <div className="absolute left-0 right-0 top-1/2 h-px bg-white/[0.07]" />
+        {/* zero tick */}
+        {zeroX != null && (
+          <div
+            className="absolute top-1.5 bottom-1.5 w-px bg-white/[0.12]"
+            style={{ left: `${zeroX}%` }}
+            title="0%"
+          />
+        )}
+        {pts.map((s, i) => {
+          const sel = s.signal_id === selectedId;
+          const win = s.outcome && s.outcome !== "sl";
+          const left = `${x(s.peak_pct)}%`;
+          const top = `${50 + (sel ? 0 : ((i % 5) - 2) * 11)}%`;
+          if (sel) {
+            return (
+              <div key={s.signal_id} className="absolute z-10 -translate-x-1/2 -translate-y-1/2" style={{ left, top: "50%" }}>
+                <div className="w-[11px] h-[11px] rounded-full border-[2px] border-gold-primary bg-[#0a0805]" />
+                <div className="absolute left-1/2 -translate-x-1/2 -top-[18px] text-[9px] font-mono tabular-nums text-gold-primary whitespace-nowrap">
+                  {fmtPeak(s.peak_pct)}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={s.signal_id}
+              className="absolute w-[5px] h-[5px] rounded-full -translate-x-1/2 -translate-y-1/2"
+              style={{ left, top, background: win ? "rgba(16,185,129,0.5)" : "rgba(239,68,68,0.5)" }}
+            />
+          );
+        })}
+      </div>
+      <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums text-white/25">
+        <span>{fmtPeak(minPeak)}</span>
+        <span>{fmtPeak(maxPeak)}</span>
+      </div>
+    </div>
+  );
+};
+
 // ─── ② list row (left pane) ──────────────────────────────────────
-const SignalRow = ({ s, selected, onSelect }) => {
+const SignalRow = ({ s, maxPeak, selected, onSelect }) => {
   const isWin = s.outcome && s.outcome !== "sl";
   const peak = fmtPeak(s.peak_pct);
+  const barPct = logBarPct(s.peak_pct, maxPeak);
   return (
     <button
       onClick={() => onSelect(s.signal_id)}
-      className={`w-full text-left px-3 py-2.5 flex items-center gap-2.5 border-l-2 transition ${
+      className={`w-full text-left px-3 pt-2.5 pb-2 border-l-2 transition ${
         selected
           ? "border-gold-primary bg-white/[0.045]"
           : "border-transparent hover:bg-white/[0.03]"
       }`}
     >
-      <CoinLogo pair={s.pair} size={24} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className={`font-mono text-[13px] truncate leading-tight ${selected ? "text-white" : "text-white/85"}`}>
-            {fmtPair(s.pair)}
-          </span>
-          <OutcomeBadge outcome={s.outcome} size={8} />
+      <div className="flex items-center gap-2.5">
+        <CoinLogo pair={s.pair} size={24} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-[13px] truncate leading-tight ${selected ? "text-white" : "text-white/85"}`}>
+              {fmtPair(s.pair)}
+            </span>
+            <OutcomeBadge outcome={s.outcome} size={8} />
+          </div>
+          <div className="text-[10px] font-mono text-white/30 leading-tight mt-0.5">{fmtDate(s.hit_date)}</div>
         </div>
-        <div className="text-[10px] font-mono text-white/30 leading-tight mt-0.5">{fmtDate(s.hit_date)}</div>
+        <span className={`font-mono tabular-nums text-[12px] shrink-0 ${isWin ? "text-emerald-400" : "text-red-400"}`}>
+          {peak || "—"}
+        </span>
       </div>
-      <span className={`font-mono tabular-nums text-[12px] shrink-0 ${isWin ? "text-emerald-400" : "text-red-400"}`}>
-        {peak || "—"}
-      </span>
+      <div className="mt-1.5 ml-[34px] h-[2px] rounded-full bg-white/[0.04] overflow-hidden">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${barPct}%`, background: isWin ? "rgba(16,185,129,0.45)" : "rgba(239,68,68,0.45)" }}
+        />
+      </div>
     </button>
   );
 };
 
 // ─── ③ detail pane (right) ───────────────────────────────────────
-const DetailPane = ({ s, rank, total, maxPeak, opening, onOpenSignal, onBack }) => {
+const DetailPane = ({ s, rank, total, allSignals, btc, opening, onOpenSignal, onBack }) => {
   if (!s) {
     return (
       <div className="flex-1 flex items-center justify-center text-white/25 text-xs font-mono uppercase tracking-wider">
@@ -133,15 +233,11 @@ const DetailPane = ({ s, rank, total, maxPeak, opening, onOpenSignal, onBack }) 
       </div>
     );
   }
-  const isWin = s.outcome && s.outcome !== "sl";
-  const accent = isWin ? "#10b981" : "#ef4444";
   const peak = fmtPeak(s.peak_pct);
   const hold = fmtHold(s.created_at, s.hit_date);
-  const barPct = logBarPct(s.peak_pct, maxPeak);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-      {/* mobile back */}
       {onBack && (
         <button
           onClick={onBack}
@@ -183,10 +279,8 @@ const DetailPane = ({ s, rank, total, maxPeak, opening, onOpenSignal, onBack }) 
           )}
         </div>
 
-        {/* peak bar */}
-        <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-          <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: `${accent}aa` }} />
-        </div>
+        {/* signature: where this signal sits in the day's field */}
+        <PeakField signals={allSignals} selectedId={s.signal_id} />
 
         {/* timeline facts */}
         <div className="rounded-lg border border-white/[0.06] divide-y divide-white/[0.04]">
@@ -198,6 +292,14 @@ const DetailPane = ({ s, rank, total, maxPeak, opening, onOpenSignal, onBack }) 
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">Resolved</span>
             <span className="font-mono tabular-nums text-[12px] text-white/75">{fmtDate(s.hit_date)}</span>
           </div>
+          {btc && btc.chg != null && (
+            <div className="flex items-center justify-between px-3.5 py-2.5">
+              <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">BTC that day</span>
+              <span className={`font-mono tabular-nums text-[12px] ${btc.chg >= 0 ? "text-emerald-400/90" : "text-red-400/90"}`}>
+                {btc.chg >= 0 ? "+" : ""}{btc.chg}%
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between px-3.5 py-2.5">
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">Outcome</span>
             <OutcomeBadge outcome={s.outcome} size={9} />
@@ -279,7 +381,6 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
     };
   }, [all]);
 
-  // rank lookup: position by peak within the whole bucket
   const rankById = useMemo(() => {
     const byPeak = [...all].sort((a, b) => (b.peak_pct ?? -1e9) - (a.peak_pct ?? -1e9));
     const m = new Map();
@@ -297,7 +398,6 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
     return arr;
   }, [all, filter, sort]);
 
-  // keep a valid selection whenever the visible list changes
   useEffect(() => {
     if (!view.length) {
       setSelectedId(null);
@@ -310,7 +410,6 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
 
   const selected = view.find((s) => s.signal_id === selectedId) || null;
 
-  // keyboard: Esc close · ↑/↓ move selection · Enter open full breakdown
   useEffect(() => {
     if (!open || hidden) return;
     const onKey = (e) => {
@@ -358,13 +457,11 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
 
   return createPortal(
     <div className="fixed inset-0 z-[150000] flex items-center justify-center p-4 sm:p-6">
-      {/* backdrop */}
       <div
         className="absolute inset-0 bg-black/65 backdrop-blur-[3px] animate-[dfadeIn_120ms_ease-out]"
         onClick={onClose}
       />
 
-      {/* panel */}
       <div className="relative w-full max-w-5xl h-[88vh] bg-[#0a0805] border border-white/[0.08] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-[dpop_180ms_cubic-bezier(0.16,1,0.3,1)]">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
 
@@ -422,6 +519,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">Best</div>
                   <div className="font-mono tabular-nums text-base text-emerald-400/90">{fmtPeak(stats.bestPeak) || "—"}</div>
                 </div>
+                <BtcDayStat btc={bucket.btc} />
               </div>
             </div>
           )}
@@ -489,6 +587,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                       <SignalRow
                         key={s.signal_id}
                         s={s}
+                        maxPeak={stats.maxAbs}
                         selected={s.signal_id === selectedId}
                         onSelect={(id) => {
                           setSelectedId(id);
@@ -509,7 +608,8 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
                   s={selected}
                   rank={selected ? rankById.get(selected.signal_id) : null}
                   total={stats.total}
-                  maxPeak={stats.maxAbs}
+                  allSignals={all}
+                  btc={bucket.btc}
                   opening={selected && openingId === selected.signal_id}
                   onOpenSignal={onOpenSignal}
                   onBack={() => setMobileDetail(false)}

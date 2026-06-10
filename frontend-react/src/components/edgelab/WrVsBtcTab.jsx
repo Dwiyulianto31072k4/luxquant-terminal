@@ -18,7 +18,7 @@ import {
 import { Panel, EmptyState, Methodology } from "./_shared";
 
 const RANGES = [
-  { id: "30", label: "30D", days: 30, smooth: 1 },
+  { id: "30", label: "30D", days: 30, smooth: 3 },
   { id: "90", label: "90D", days: 90, smooth: 7 },
   { id: "365", label: "1Y", days: 365, smooth: 14 },
   { id: "all", label: "All", days: Infinity, smooth: 30 },
@@ -86,6 +86,7 @@ const WrVsBtcTab = ({ onDrill }) => {
   const [allSeries, setAllSeries] = useState(null);
   const [error, setError] = useState(null);
   const [rangeId, setRangeId] = useState("all");
+  const [smoothOn, setSmoothOn] = useState(false); // default: raw actual WR, no averaging
 
   const containerRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -284,7 +285,7 @@ const WrVsBtcTab = ({ onDrill }) => {
     }
 
     const lockWr = { autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) };
-    if (range.smooth > 1) {
+    if (smoothOn) {
       const raw = chart.addSeries(LineSeries, {
         priceScaleId: "left",
         color: COLORS.wrRaw,
@@ -304,7 +305,7 @@ const WrVsBtcTab = ({ onDrill }) => {
       lastValueVisible: false,
       ...lockWr,
     });
-    wr.setData(rollingMean(sliced, range.smooth));
+    wr.setData(rollingMean(sliced, smoothOn ? range.smooth : 1));
 
     if (candle && stats?.best && stats?.worst && stats.best.date !== stats.worst.date) {
       const markers = [
@@ -365,6 +366,14 @@ const WrVsBtcTab = ({ onDrill }) => {
         label: `${r.date} · ${r.win_rate}% WR`,
         win_rate: r.win_rate,
         total: r.total_closed,
+        btc:
+          r.btc_open != null && r.btc_close != null && r.btc_open > 0
+            ? {
+                chg: +(((r.btc_close - r.btc_open) / r.btc_open) * 100).toFixed(2),
+                open: r.btc_open,
+                close: r.btc_close,
+              }
+            : null,
       });
     };
     chart.subscribeClick(onClick);
@@ -382,7 +391,7 @@ const WrVsBtcTab = ({ onDrill }) => {
       chart.unsubscribeClick(onClick);
       chart.remove();
     };
-  }, [sliced, range, stats, onDrill]);
+  }, [sliced, range, smoothOn, stats, onDrill]);
 
   // ── render ──
   if (error) {
@@ -409,7 +418,7 @@ const WrVsBtcTab = ({ onDrill }) => {
     );
   }
 
-  const smoothLabel = range.smooth > 1 ? `${range.smooth}d smoothed` : "raw daily";
+  const smoothLabel = smoothOn ? `${range.smooth}d smoothed` : "raw daily";
 
   const drillDay = (d) =>
     onDrill?.({
@@ -418,6 +427,14 @@ const WrVsBtcTab = ({ onDrill }) => {
       label: `${d.date} · ${d.win_rate}% WR`,
       win_rate: d.win_rate,
       total: d.total_closed,
+      btc:
+        d.btc_open != null && d.btc_close != null && d.btc_open > 0
+          ? {
+              chg: +(((d.btc_close - d.btc_open) / d.btc_open) * 100).toFixed(2),
+              open: d.btc_open,
+              close: d.btc_close,
+            }
+          : null,
     });
 
   return (
@@ -442,6 +459,17 @@ const WrVsBtcTab = ({ onDrill }) => {
                 {r.label}
               </button>
             ))}
+            <button
+              onClick={() => setSmoothOn((v) => !v)}
+              className={`ml-1 px-3 py-1 text-[10px] uppercase tracking-widest rounded border transition-colors ${
+                smoothOn
+                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                  : "border-white/10 text-white/40 hover:text-white/70"
+              }`}
+              title="Toggle rolling smoothing on the WR line"
+            >
+              Smooth {range.smooth}d
+            </button>
           </div>
           {stats && (
             <div className="flex flex-wrap gap-2">
@@ -491,7 +519,7 @@ const WrVsBtcTab = ({ onDrill }) => {
             <span className="inline-block w-3 h-[2px] align-middle mr-1.5" style={{ background: COLORS.wr }} />
             WR {smoothLabel} (left, 0–100%)
           </span>
-          {range.smooth > 1 && (
+          {smoothOn && (
             <span>
               <span className="inline-block w-3 h-[2px] align-middle mr-1.5" style={{ background: COLORS.wrRaw }} />
               WR raw daily
