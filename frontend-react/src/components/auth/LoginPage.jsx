@@ -12,6 +12,7 @@ const LoginPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const { loginWithGoogle, loginWithTelegram, loginWithDiscord, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -94,6 +95,11 @@ const LoginPage = () => {
           .lq-stagger > *:nth-child(2) { animation-delay: 0.16s; }
           .lq-stagger > *:nth-child(3) { animation-delay: 0.24s; }
           .lq-login-btn:focus-visible { outline: 2px solid rgba(212,168,83,0.6); outline-offset: 2px; }
+          @keyframes lq-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes lq-modal-pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+          .lq-terms-scroll::-webkit-scrollbar { width: 5px; }
+          .lq-terms-scroll::-webkit-scrollbar-track { background: transparent; }
+          .lq-terms-scroll::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 999px; }
           @media (prefers-reduced-motion: reduce) {
             .lq-card-enter, .lq-stagger > * { animation: none !important; }
           }
@@ -121,9 +127,6 @@ const LoginPage = () => {
 
           {/* Heading */}
           <div className="mb-2 text-center lg:text-left">
-            <p className="mb-2 font-semibold uppercase" style={{ color: '#d4a853', fontSize: 10, letterSpacing: '0.22em' }}>
-              LuxQuant Terminal
-            </p>
             <h1 className="text-2xl sm:text-[28px] font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {a('login_title')}
             </h1>
@@ -191,8 +194,155 @@ const LoginPage = () => {
 
           <p className="text-center pb-1 leading-relaxed" style={{ color: '#6b5c52', fontSize: 11 }}>
             {a('login_terms')}{' '}
-            <a href="#" className="underline underline-offset-2 hover:opacity-80 transition-opacity" style={{ color: '#b8a89a' }}>{a('terms')}</a>
+            <button type="button" onClick={() => setShowTerms(true)}
+                    className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+                    style={{ color: '#b8a89a', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11 }}>
+              {a('terms')}
+            </button>
           </p>
+        </div>
+
+        {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      </div>
+    </div>
+  );
+};
+
+/* ── Terms & Conditions Modal ── */
+const TERMS_SECTIONS = [
+  {
+    title: '1. Acceptance of Terms',
+    body: 'By accessing or using LuxQuant Terminal ("the Platform"), you agree to be bound by these Terms & Conditions. If you do not agree with any part of these terms, you must not use the Platform. We may update these terms from time to time; continued use of the Platform after changes constitutes acceptance of the revised terms.',
+  },
+  {
+    title: '2. Nature of the Service',
+    body: 'LuxQuant Terminal is a data and analytics platform. We surface market data, algorithmic signals, on-chain metrics, and AI-generated analysis for informational purposes. The Platform informs — it does not decide for you. Nothing on the Platform constitutes financial, investment, legal, or tax advice, and no content should be interpreted as a recommendation to buy, sell, or hold any digital asset.',
+  },
+  {
+    title: '3. Risk Disclosure',
+    body: 'Trading cryptocurrency involves substantial risk and may result in the loss of part or all of your capital. Digital asset markets are highly volatile and operate 24/7. Past performance of any signal, strategy, or analysis is not indicative of future results. You are solely responsible for your own trading decisions and should never trade with funds you cannot afford to lose. Consider consulting a licensed financial advisor before making investment decisions.',
+  },
+  {
+    title: '4. Eligibility',
+    body: 'You must be at least 18 years old and legally permitted to use cryptocurrency-related services in your jurisdiction. You are responsible for ensuring that your use of the Platform complies with all laws and regulations applicable to you. The Platform is not directed at any jurisdiction where its use would be unlawful.',
+  },
+  {
+    title: '5. Accounts & Security',
+    body: 'You sign in through third-party identity providers (Google, Telegram, or Discord). You are responsible for maintaining the security of those accounts. You must notify us promptly of any unauthorized access. We reserve the right to suspend or terminate accounts that violate these terms or that we reasonably believe are compromised.',
+  },
+  {
+    title: '6. Subscriptions & Payments',
+    body: 'Certain features require a paid subscription. Subscription fees, billing periods, and included features are described at the point of purchase. Fees are non-refundable except where required by law. We may modify pricing or features with reasonable notice; changes apply from your next billing cycle. Access tied to community membership (e.g., VIP groups) may be re-verified periodically.',
+  },
+  {
+    title: '7. Automated Trading Features',
+    body: 'If you enable automated trading, you do so entirely at your own risk. You connect your own exchange API keys, which are encrypted at rest, and you retain full control and responsibility over your exchange account, position sizing, and risk parameters. Automated execution can be affected by exchange outages, network latency, slippage, and market conditions beyond our control. We are not liable for losses arising from automated trade execution.',
+  },
+  {
+    title: '8. Data & Privacy',
+    body: 'We collect only the information necessary to operate the Platform: your authentication profile (email, username, avatar), subscription status, and usage data. Exchange API keys are stored encrypted and are never shared with third parties. We do not sell your personal data. You may request deletion of your account and associated data by contacting support.',
+  },
+  {
+    title: '9. Acceptable Use',
+    body: 'You agree not to: (a) redistribute, resell, or publicly share signals, data, or analysis from the Platform without written permission; (b) reverse-engineer, scrape, or abuse the Platform or its APIs; (c) use the Platform for unlawful activity, including market manipulation; (d) share your account access with others. Violation may result in immediate termination without refund.',
+  },
+  {
+    title: '10. Intellectual Property',
+    body: 'All content, branding, algorithms, software, and design on the Platform are the property of LuxQuant or its licensors and are protected by applicable intellectual property laws. Your subscription grants you a limited, non-exclusive, non-transferable license for personal use only.',
+  },
+  {
+    title: '11. Limitation of Liability',
+    body: 'To the maximum extent permitted by law, LuxQuant and its operators shall not be liable for any direct, indirect, incidental, consequential, or exemplary damages — including trading losses, lost profits, or data loss — arising from your use of, or inability to use, the Platform. The Platform is provided "as is" and "as available" without warranties of any kind, including accuracy, completeness, or uninterrupted availability of data and signals.',
+  },
+  {
+    title: '12. Termination',
+    body: 'You may stop using the Platform at any time. We may suspend or terminate your access if you breach these terms, with or without notice. Sections relating to risk, intellectual property, and limitation of liability survive termination.',
+  },
+  {
+    title: '13. Contact',
+    body: 'For questions about these Terms & Conditions, account issues, or data requests, contact us through the official LuxQuant Telegram channel or the support contact listed on the Platform.',
+  },
+];
+
+const TermsModal = ({ onClose }) => {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6"
+         style={{ background: 'rgba(4,2,2,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'lq-modal-fade 0.2s ease-out' }}
+         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+
+      <div className="relative w-full max-w-2xl flex flex-col rounded-2xl overflow-hidden"
+           style={{
+             maxHeight: '85vh',
+             background: 'linear-gradient(170deg, #14100b 0%, #0b0807 100%)',
+             border: '1px solid rgba(212,168,83,0.16)',
+             boxShadow: '0 40px 100px rgba(0,0,0,0.8), 0 0 80px rgba(212,168,83,0.05)',
+             animation: 'lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)',
+           }}>
+
+        {/* Gold hairline */}
+        <div className="absolute top-0 left-[8%] right-[8%] h-px pointer-events-none"
+             style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.5), transparent)' }} />
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 sm:px-9 pt-7 sm:pt-9 pb-5"
+             style={{ borderBottom: '1px solid rgba(212,168,83,0.08)' }}>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Terms & Conditions
+            </h2>
+            <p className="text-sm" style={{ color: '#8a7a6e' }}>
+              Please read these terms carefully before using LuxQuant Terminal
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close"
+                  className="flex items-center justify-center rounded-xl transition-colors duration-200 flex-shrink-0 ml-4"
+                  style={{ width: 36, height: 36, color: '#8a7a6e', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.12)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#8a7a6e'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.12)'; }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="lq-terms-scroll overflow-y-auto px-6 sm:px-9 py-6" style={{ flex: 1 }}>
+          <p className="mb-6 text-xs uppercase font-semibold" style={{ color: '#d4a853', letterSpacing: '0.18em' }}>
+            Last updated · June 2026
+          </p>
+          {TERMS_SECTIONS.map((s) => (
+            <div key={s.title} className="mb-6">
+              <h3 className="text-sm font-semibold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {s.title}
+              </h3>
+              <p className="text-[13px] leading-relaxed" style={{ color: '#9a8c80' }}>
+                {s.body}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 sm:px-9 py-4 flex items-center justify-end"
+             style={{ borderTop: '1px solid rgba(212,168,83,0.08)', background: 'rgba(0,0,0,0.2)' }}>
+          <button type="button" onClick={onClose}
+                  className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+                  style={{ background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.35)', color: '#e8c882' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,168,83,0.2)'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.55)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,168,83,0.12)'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.35)'; }}>
+            I understand
+          </button>
         </div>
       </div>
     </div>

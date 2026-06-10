@@ -2,7 +2,7 @@
 
 export const authEn = {
   // Login Page
-  login_title: "Welcome back",
+  login_title: "Sign in",
   login_subtitle: "Sign in to your LuxQuant Terminal account",
   login_terms: "By signing in, you agree to our",
   terms: "Terms & Conditions",
@@ -57,7 +57,7 @@ export const authEn = {
 
 export const authZh = {
   // Login Page
-  login_title: "欢迎回来",
+  login_title: "登录",
   login_subtitle: "登录你的 LuxQuant 终端帐号",
   login_terms: "登录即表示你同意我们的",
   terms: "服务条款",
