@@ -17,6 +17,27 @@ import CountryCurrencyPicker from './CountryCurrencyPicker';
 import VipGroupCard from './VipGroupCard';
 import { convertPrice, formatLocalPrice, formatUsdtPrice } from '../utils/currencyHelpers';
 
+// ─── Lazy-load Google Identity Services — hanya saat dibutuhkan ───
+// AuthContext tidak lagi me-load GSI global (login Google sekarang pakai
+// OAuth2 redirect), jadi fitur "Link Google" di sini load script-nya sendiri.
+const loadGsiScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) return resolve();
+    const existing = document.getElementById('google-gsi-script');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', reject);
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'google-gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
 const ProfilePage = () => {
   const { t } = useTranslation();
   const { user, setUser } = useAuth();
@@ -186,9 +207,15 @@ const ProfilePage = () => {
   // ════════════════════════════════════════
   // CONNECTIONS — Google
   // ════════════════════════════════════════
-  const handleLinkGoogle = useCallback(() => {
-    if (!window.google?.accounts?.id) { showToast(t('profile.google_not_ready'), 'error'); return; }
+  const handleLinkGoogle = useCallback(async () => {
     setLinkingGoogle(true);
+    try {
+      await loadGsiScript();
+    } catch {
+      showToast(t('profile.google_not_ready'), 'error');
+      setLinkingGoogle(false);
+      return;
+    }
     window.google.accounts.id.initialize({
       client_id: '352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com',
       callback: async (response) => {
