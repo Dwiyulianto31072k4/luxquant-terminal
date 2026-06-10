@@ -244,7 +244,6 @@ const DesktopTypewriter = () => {
    DESKTOP LEFT PANEL — only visible on lg+
    ================================================================ */
 const LeftBrandPanel = () => {
-  const { t } = useTranslation();
   return (
     <>
       <style>{`
@@ -261,7 +260,7 @@ const LeftBrandPanel = () => {
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, transparent 10%, rgba(212,168,83,0.12) 50%, transparent 90%)' }} />
         <div className="absolute top-0 right-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,168,83,0.08), transparent)' }} />
 
-        <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-6" style={{ flexDirection: 'column' }}>
+        <div className="relative z-10 flex h-full px-10 xl:px-14 pt-8 pb-10" style={{ flexDirection: 'column' }}>
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="LuxQuant" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover' }} />
@@ -279,11 +278,6 @@ const LeftBrandPanel = () => {
             <div style={{ position: 'relative', width: '100%', maxWidth: 520, aspectRatio: '4 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <DeviceMockup />
             </div>
-          </div>
-
-          {/* Bottom */}
-          <div style={{ borderTop: '1px solid rgba(212,168,83,0.06)', paddingTop: 10, textAlign: 'center' }}>
-            <p style={{ fontSize: 10, color: '#3d352f', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('auth.copyright')}</p>
           </div>
         </div>
       </div>

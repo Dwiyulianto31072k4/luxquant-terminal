@@ -6,7 +6,7 @@ import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 
 const AuthContext = createContext(null);
 
-// Google Client ID — sama dengan yang di backend
+// Google Client ID — must match backend
 const GOOGLE_CLIENT_ID = '352504384995-lo53k3ak37t4mst7nuauj3nm6hg0n1j7.apps.googleusercontent.com';
 
 export const useAuth = () => {
@@ -15,6 +15,56 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
+};
+
+/* ── Shared modal helpers (vanilla DOM, brand-styled) ── */
+const MODAL_KEYFRAMES_ID = 'lq-auth-modal-styles';
+const ensureModalStyles = () => {
+  if (document.getElementById(MODAL_KEYFRAMES_ID)) return;
+  const style = document.createElement('style');
+  style.id = MODAL_KEYFRAMES_ID;
+  style.textContent = `
+    @keyframes lq-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes lq-modal-pop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  `;
+  document.head.appendChild(style);
+};
+
+const buildOverlay = (id) => {
+  ensureModalStyles();
+  const overlay = document.createElement('div');
+  overlay.id = id;
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:99999',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'padding:16px',
+    'background:rgba(5,3,2,0.78)',
+    'backdrop-filter:blur(8px)', '-webkit-backdrop-filter:blur(8px)',
+    'animation:lq-modal-fade 0.2s ease-out',
+  ].join(';');
+  return overlay;
+};
+
+const buildCard = () => {
+  const card = document.createElement('div');
+  card.style.cssText = [
+    'position:relative',
+    'background:linear-gradient(165deg, #15100c 0%, #0c0806 100%)',
+    'padding:36px 32px 28px',
+    'border-radius:20px',
+    'border:1px solid rgba(212,168,83,0.18)',
+    'box-shadow:0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(212,168,83,0.05)',
+    'text-align:center',
+    'width:100%', 'max-width:360px',
+    'animation:lq-modal-pop 0.25s cubic-bezier(0.16,1,0.3,1)',
+  ].join(';');
+
+  // Gold hairline on top edge
+  const hairline = document.createElement('div');
+  hairline.style.cssText = 'position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(to right, transparent, rgba(212,168,83,0.5), transparent);';
+  card.appendChild(hairline);
+
+  return card;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -82,7 +132,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
 
       if (!window.google?.accounts?.id) {
-        const msg = 'Google login belum siap. Coba refresh halaman.';
+        const msg = 'Google sign-in is still loading. Please refresh the page and try again.';
         setError(msg);
         reject(new Error(msg));
         return;
@@ -102,14 +152,14 @@ export const AuthProvider = ({ children }) => {
               await syncCryptobotAuth(result.cryptobot_token);
             }
 
-            // Clear pending ref setelah login sukses
-            // (backend akan ignore kalau user existing, jadi safe to clear)
+            // Clear pending ref after successful login
+            // (backend ignores it for existing users, so safe to clear)
             if (referralCode) clearStoredRef();
 
             setUser(result.user);
             resolve(result);
           } catch (err) {
-            const message = err.response?.data?.detail || 'Google login gagal';
+            const message = err.response?.data?.detail || 'Google sign-in failed. Please try again.';
             setError(message);
             reject(err);
           }
@@ -122,34 +172,36 @@ export const AuthProvider = ({ children }) => {
         if (notification.isNotDisplayed()) {
           console.log('One Tap not displayed:', notification.getNotDisplayedReason());
 
-          const tempDiv = document.createElement('div');
-          tempDiv.style.position = 'fixed';
-          tempDiv.style.top = '50%';
-          tempDiv.style.left = '50%';
-          tempDiv.style.transform = 'translate(-50%, -50%)';
-          tempDiv.style.zIndex = '99999';
-          tempDiv.style.background = 'rgba(0,0,0,0.8)';
-          tempDiv.style.padding = '32px';
-          tempDiv.style.borderRadius = '16px';
-          tempDiv.style.border = '1px solid rgba(212,168,83,0.3)';
-          tempDiv.id = 'google-fallback-container';
+          const overlay = buildOverlay('google-fallback-container');
+          const card = buildCard();
 
+          // Close (×) button
           const closeBtn = document.createElement('button');
           closeBtn.innerHTML = '✕';
-          closeBtn.style.cssText = 'position:absolute;top:8px;right:12px;color:#8a7a6e;background:none;border:none;font-size:18px;cursor:pointer;';
-          closeBtn.onclick = () => { document.body.removeChild(tempDiv); reject(new Error('Dibatalkan')); };
-          tempDiv.appendChild(closeBtn);
+          closeBtn.setAttribute('aria-label', 'Close');
+          closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;color:#8a7a6e;background:none;border:none;font-size:16px;cursor:pointer;line-height:1;padding:4px;';
+          closeBtn.onmouseenter = () => { closeBtn.style.color = '#d4cfc8'; };
+          closeBtn.onmouseleave = () => { closeBtn.style.color = '#8a7a6e'; };
+          closeBtn.onclick = () => { document.body.removeChild(overlay); reject(new Error('cancelled')); };
+          card.appendChild(closeBtn);
 
+          // Title
           const title = document.createElement('p');
-          title.textContent = 'Pilih akun Google';
-          title.style.cssText = 'color:#b8a89a;margin-bottom:16px;text-align:center;font-size:14px;';
-          tempDiv.appendChild(title);
+          title.textContent = 'Choose your Google account';
+          title.style.cssText = "color:#f0ece6;margin-bottom:20px;font-size:16px;font-weight:600;font-family:'Space Grotesk',sans-serif;";
+          card.appendChild(title);
 
+          // Google button container
           const btnDiv = document.createElement('div');
           btnDiv.id = 'google-fallback-btn';
-          tempDiv.appendChild(btnDiv);
+          btnDiv.style.cssText = 'display:flex;justify-content:center;';
+          card.appendChild(btnDiv);
 
-          document.body.appendChild(tempDiv);
+          overlay.appendChild(card);
+          overlay.onclick = (e) => {
+            if (e.target === overlay) { document.body.removeChild(overlay); reject(new Error('cancelled')); }
+          };
+          document.body.appendChild(overlay);
 
           window.google.accounts.id.renderButton(btnDiv, {
             theme: 'filled_black',
@@ -185,7 +237,7 @@ export const AuthProvider = ({ children }) => {
             await syncCryptobotAuth(result.cryptobot_token);
           }
 
-          // Clear pending ref setelah login sukses
+          // Clear pending ref after successful login
           if (referralCode) clearStoredRef();
 
           setUser(result.user);
@@ -195,26 +247,35 @@ export const AuthProvider = ({ children }) => {
 
           resolve(result);
         } catch (err) {
-          const message = err.response?.data?.detail || 'Telegram login gagal';
+          const message = err.response?.data?.detail || 'Telegram sign-in failed. Please try again.';
           setError(message);
           reject(err);
         }
       };
 
-      const container = document.createElement('div');
-      container.id = 'telegram-login-container';
-      container.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);';
+      const overlay = buildOverlay('telegram-login-container');
+      const card = buildCard();
 
-      const card = document.createElement('div');
-      card.style.cssText = 'background:#1a1014;padding:32px;border-radius:16px;border:1px solid rgba(212,168,83,0.3);text-align:center;min-width:300px;';
+      // Telegram badge icon
+      const iconWrap = document.createElement('div');
+      iconWrap.style.cssText = 'width:52px;height:52px;margin:0 auto 16px;border-radius:16px;background:rgba(41,171,226,0.1);border:1px solid rgba(41,171,226,0.25);display:flex;align-items:center;justify-content:center;';
+      iconWrap.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="#29ABE2"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
+      card.appendChild(iconWrap);
 
+      // Title + subtitle
       const title = document.createElement('p');
-      title.textContent = 'Login dengan Telegram';
-      title.style.cssText = 'color:#b8a89a;margin-bottom:20px;font-size:16px;font-weight:600;';
+      title.textContent = 'Sign in with Telegram';
+      title.style.cssText = "color:#f0ece6;margin-bottom:6px;font-size:17px;font-weight:600;font-family:'Space Grotesk',sans-serif;";
       card.appendChild(title);
 
+      const subtitle = document.createElement('p');
+      subtitle.textContent = 'Authorize with your Telegram account to continue';
+      subtitle.style.cssText = 'color:#8a7a6e;margin-bottom:22px;font-size:12.5px;line-height:1.5;';
+      card.appendChild(subtitle);
+
+      // Telegram widget
       const widgetDiv = document.createElement('div');
-      widgetDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:16px;';
+      widgetDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:18px;min-height:46px;';
 
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -227,27 +288,28 @@ export const AuthProvider = ({ children }) => {
       widgetDiv.appendChild(script);
       card.appendChild(widgetDiv);
 
+      // Cancel button
       const closeBtn = document.createElement('button');
-      closeBtn.textContent = 'Batal';
-      closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.2);padding:8px 24px;border-radius:12px;cursor:pointer;font-size:14px;margin-top:8px;';
-      closeBtn.onmouseenter = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.5)'; closeBtn.style.color = '#b8a89a'; };
-      closeBtn.onmouseleave = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.2)'; closeBtn.style.color = '#8a7a6e'; };
+      closeBtn.textContent = 'Cancel';
+      closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.18);padding:9px 28px;border-radius:12px;cursor:pointer;font-size:13px;transition:all 0.2s;';
+      closeBtn.onmouseenter = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.45)'; closeBtn.style.color = '#d4cfc8'; };
+      closeBtn.onmouseleave = () => { closeBtn.style.borderColor = 'rgba(212,168,83,0.18)'; closeBtn.style.color = '#8a7a6e'; };
       closeBtn.onclick = () => {
-        document.body.removeChild(container);
-        reject(new Error('Dibatalkan'));
+        document.body.removeChild(overlay);
+        reject(new Error('cancelled'));
       };
       card.appendChild(closeBtn);
 
-      container.appendChild(card);
+      overlay.appendChild(card);
 
-      container.onclick = (e) => {
-        if (e.target === container) {
-          document.body.removeChild(container);
-          reject(new Error('Dibatalkan'));
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          document.body.removeChild(overlay);
+          reject(new Error('cancelled'));
         }
       };
 
-      document.body.appendChild(container);
+      document.body.appendChild(overlay);
     });
   }, []);
 
@@ -259,20 +321,20 @@ export const AuthProvider = ({ children }) => {
       const referralCode = getStoredRef();
       const data = await authApi.discordGetUrl(referralCode);
 
-      // Note: Don't clearStoredRef here. User belum login (cuma redirecting).
-      // Backend akan handle setelah callback success. localStorage tetap di-persist
-      // sampai user balik dari Discord callback. Setelah callback redirect ke
-      // /auth/discord/callback, kalau sukses kita clear di sana (DiscordCallback.jsx).
+      // Note: don't clearStoredRef here — the user hasn't logged in yet (just redirecting).
+      // The backend handles it after a successful callback. localStorage stays persisted
+      // until the user returns from the Discord callback. After the redirect to
+      // /auth/discord/callback succeeds, it's cleared there (DiscordCallback.jsx).
 
       window.location.href = data.url;
     } catch (err) {
-      const message = err.response?.data?.detail || 'Discord login gagal';
+      const message = err.response?.data?.detail || 'Discord sign-in failed. Please try again.';
       setError(message);
       throw err;
     }
   }, []);
 
-  // ─── Refresh VIP Status (periodik) ───
+  // ─── Refresh VIP Status (periodic) ───
   const refreshVipStatus = useCallback(async () => {
     try {
       const result = await authApi.refreshVipStatus();
@@ -286,7 +348,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  // ─── Periodic VIP Check (setiap 30 menit) ───
+  // ─── Periodic VIP Check (every 30 minutes) ───
   useEffect(() => {
     if (!user?.telegram_id) return;
 
