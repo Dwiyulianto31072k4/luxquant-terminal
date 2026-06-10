@@ -7,10 +7,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  setBinanceStrategyActive,
-  updateBinanceStrategyConfig,
-} from "../../services/autotradeApi";
+import { updateBinanceStrategyConfig } from "../../services/autotradeApi";
 import {
   Card,
   SectionHeader,
@@ -22,15 +19,14 @@ import {
   Segmented,
   PillToggle,
   GoldButton,
-  GhostButton,
   Notice,
 } from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
 const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
-const SL_LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({
+const SL_LEVEL_OPTIONS = [1, 2].map((n) => ({
   value: n,
-  label: `${n}`,
+  label: `SL${n}`,
 }));
 
 function toDraft(config) {
@@ -38,7 +34,6 @@ function toDraft(config) {
     spot_enabled: Boolean(config?.spot_enabled),
     futures_enabled: config?.futures_enabled ?? true,
     is_active: config?.is_active ?? false,
-    dry_run: config?.dry_run ?? false,
 
     sizing_method: config?.sizing?.method || "fixed",
     sizing_value: config?.sizing?.value ?? 10,
@@ -53,6 +48,19 @@ function toDraft(config) {
     margin_mode: config?.futures?.margin_mode || "isolated",
 
     allowed_risk_levels: config?.allowed_risk_levels || [],
+    one_open_position_per_symbol:
+      config?.risk_limits?.one_open_position_per_symbol ?? true,
+    max_open_positions: config?.risk_limits?.max_open_positions ?? 3,
+    max_daily_trades: config?.risk_limits?.max_daily_trades ?? 5,
+    max_trade_notional_usdt:
+      config?.risk_limits?.max_trade_notional_usdt ?? 10,
+    min_available_usdt: config?.risk_limits?.min_available_usdt ?? 5,
+    daily_loss_limit_usdt:
+      config?.risk_limits?.daily_loss_limit_usdt ?? 10,
+    cooldown_after_loss_minutes:
+      config?.risk_limits?.cooldown_after_loss_minutes ?? 60,
+    cooldown_after_error_minutes:
+      config?.risk_limits?.cooldown_after_error_minutes ?? 15,
   };
 }
 
@@ -66,7 +74,7 @@ function toPayload(draft) {
     spot_enabled: draft.spot_enabled,
     futures_enabled: draft.futures_enabled,
     is_active: draft.is_active,
-    dry_run: draft.dry_run,
+    dry_run: false,
     sizing_method: draft.sizing_method,
     sizing_value: Number(draft.sizing_value),
     tp_source: "signal_level",
@@ -84,6 +92,14 @@ function toPayload(draft) {
     margin_mode: draft.futures_enabled ? draft.margin_mode : null,
     allowed_risk_levels:
       draft.allowed_risk_levels.length > 0 ? draft.allowed_risk_levels : null,
+    one_open_position_per_symbol: draft.one_open_position_per_symbol,
+    max_open_positions: Number(draft.max_open_positions),
+    max_daily_trades: Number(draft.max_daily_trades),
+    max_trade_notional_usdt: Number(draft.max_trade_notional_usdt),
+    min_available_usdt: Number(draft.min_available_usdt),
+    daily_loss_limit_usdt: Number(draft.daily_loss_limit_usdt),
+    cooldown_after_loss_minutes: Number(draft.cooldown_after_loss_minutes),
+    cooldown_after_error_minutes: Number(draft.cooldown_after_error_minutes),
   };
 }
 
@@ -94,7 +110,6 @@ export default function ConfigurationStudio({
 }) {
   const [draft, setDraft] = useState(() => toDraft(config));
   const [saving, setSaving] = useState(false);
-  const [toggling, setToggling] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -104,9 +119,8 @@ export default function ConfigurationStudio({
 
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return "Connect Binance keys to start trading.";
-    if (draft.is_active) return "AutoTrade is running on incoming signals.";
-    return "Strategy saved but paused.";
-  }, [draft.is_active, hasConnectedAccount]);
+    return "Configure how future Binance entries are sized, protected and limited.";
+  }, [hasConnectedAccount]);
 
   const patch = (changes) =>
     setDraft((current) => ({ ...current, ...changes }));
@@ -121,22 +135,6 @@ export default function ConfigurationStudio({
           : [...current.allowed_risk_levels, level],
       };
     });
-  };
-
-  const handleQuickToggle = async () => {
-    setToggling(true);
-    setError("");
-    setSuccess("");
-    try {
-      const response = await setBinanceStrategyActive(!draft.is_active);
-      patch({ is_active: response.active });
-      setSuccess(`Strategy ${response.active ? "enabled" : "paused"}.`);
-      onSaved?.();
-    } catch (err) {
-      setError(err.message || "Failed to toggle strategy");
-    } finally {
-      setToggling(false);
-    }
   };
 
   const handleSave = async () => {
@@ -156,13 +154,13 @@ export default function ConfigurationStudio({
 
   return (
     <div className="space-y-5">
-      {/* ── Header: status + quick enable/pause ── */}
+      {/* ── Header ── */}
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
-                Strategy
+                Trading Policy
               </p>
               <StatusDot
                 tone={draft.is_active ? "good" : "warn"}
@@ -172,21 +170,14 @@ export default function ConfigurationStudio({
               </StatusDot>
             </div>
             <h2 className="mt-2 text-xl font-semibold text-white lg:text-2xl">
-              Execution rules
+              Strategy configuration
             </h2>
             <p className="mt-1 text-sm text-text-muted">{statusText}</p>
           </div>
-          <GhostButton
-            tone="gold"
-            onClick={handleQuickToggle}
-            disabled={!hasConnectedAccount || toggling}
-          >
-            {toggling
-              ? "Working…"
-              : draft.is_active
-                ? "Pause strategy"
-                : "Enable strategy"}
-          </GhostButton>
+          <p className="max-w-xs text-xs leading-5 text-text-muted sm:text-right">
+            Start and pause AutoTrade from the engine control at the top of the
+            page.
+          </p>
         </div>
       </Card>
 
@@ -203,19 +194,7 @@ export default function ConfigurationStudio({
         {/* ── LEFT: execution + sizing + futures ── */}
         <div className="space-y-5">
           <div className="space-y-3">
-            <SectionHeader label="Execution" />
-            <Toggle
-              label="Strategy active"
-              hint="Master on/off for automated trading."
-              checked={draft.is_active}
-              onChange={(value) => patch({ is_active: value })}
-            />
-            <Toggle
-              label="Dry run"
-              hint="Simulate orders without sending them to Binance."
-              checked={draft.dry_run}
-              onChange={(value) => patch({ dry_run: value })}
-            />
+            <SectionHeader label="Markets" />
             <Toggle
               label="Spot trading"
               hint="Execute spot orders for supported signals."
@@ -375,11 +354,163 @@ export default function ConfigurationStudio({
               </p>
             </Card>
           </div>
+
         </div>
       </div>
 
+      <div className="space-y-3">
+        <SectionHeader
+          label="Risk Limits"
+          hint="Server-enforced before every live entry"
+        />
+        <Card className="border-gold-primary/15">
+          <div className="mb-5 flex flex-col gap-3 border-b border-white/[0.06] pb-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">
+                Portfolio protection
+              </h3>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-text-muted">
+                These limits are stored per user and checked by the execution
+                engine before an order reaches Binance.
+              </p>
+            </div>
+            <div className="w-full sm:w-[360px]">
+              <Toggle
+                label="One position per symbol"
+                hint="Prevent duplicate exposure on the same asset."
+                checked={draft.one_open_position_per_symbol}
+                onChange={(value) =>
+                  patch({ one_open_position_per_symbol: value })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-md border border-white/[0.06] bg-white/[0.015] p-4">
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+                Exposure
+              </p>
+              <div className="space-y-4">
+                <Field
+                  label="Open positions"
+                  hint="Maximum concurrent positions."
+                >
+                  <NumberInput
+                    value={draft.max_open_positions}
+                    onChange={(value) => patch({ max_open_positions: value })}
+                    min={1}
+                    max={100}
+                  />
+                </Field>
+                <Field label="Per trade cap" hint="Maximum entry notional.">
+                  <NumberInput
+                    value={draft.max_trade_notional_usdt}
+                    onChange={(value) =>
+                      patch({ max_trade_notional_usdt: value })
+                    }
+                    min={0.01}
+                    max={1000000}
+                    step={0.1}
+                    suffix="USDT"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-white/[0.06] bg-white/[0.015] p-4">
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+                Daily Guard
+              </p>
+              <div className="space-y-4">
+                <Field label="Trades per day" hint="Resets at 00:00 UTC.">
+                  <NumberInput
+                    value={draft.max_daily_trades}
+                    onChange={(value) => patch({ max_daily_trades: value })}
+                    min={1}
+                    max={1000}
+                  />
+                </Field>
+                <Field label="Loss limit" hint="Pause after realized losses.">
+                  <NumberInput
+                    value={draft.daily_loss_limit_usdt}
+                    onChange={(value) =>
+                      patch({ daily_loss_limit_usdt: value })
+                    }
+                    min={0.01}
+                    max={1000000}
+                    step={0.1}
+                    suffix="USDT"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-white/[0.06] bg-white/[0.015] p-4">
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+                Capital Guard
+              </p>
+              <Field
+                label="Minimum reserve"
+                hint="USDT that must remain free after a new entry."
+              >
+                <NumberInput
+                  value={draft.min_available_usdt}
+                  onChange={(value) => patch({ min_available_usdt: value })}
+                  min={0}
+                  max={1000000}
+                  step={0.1}
+                  suffix="USDT"
+                />
+              </Field>
+              <div className="mt-4 rounded-md border border-gold-primary/10 bg-gold-primary/[0.03] px-3 py-2.5 text-xs leading-5 text-text-muted">
+                Reconciliation issues always block new live entries regardless
+                of these values.
+              </div>
+            </div>
+
+            <div className="rounded-md border border-white/[0.06] bg-white/[0.015] p-4">
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80">
+                Recovery
+              </p>
+              <div className="space-y-4">
+                <Field label="After loss" hint="Wait before the next entry.">
+                  <NumberInput
+                    value={draft.cooldown_after_loss_minutes}
+                    onChange={(value) =>
+                      patch({ cooldown_after_loss_minutes: value })
+                    }
+                    min={0}
+                    max={10080}
+                    suffix="min"
+                  />
+                </Field>
+                <Field label="After error" hint="Wait after execution failure.">
+                  <NumberInput
+                    value={draft.cooldown_after_error_minutes}
+                    onChange={(value) =>
+                      patch({ cooldown_after_error_minutes: value })
+                    }
+                    min={0}
+                    max={10080}
+                    suffix="min"
+                  />
+                </Field>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-text-muted/60">
+            Skipped signals do not consume the daily trade quota.
+          </p>
+        </Card>
+      </div>
+
       {/* ── Save bar ── */}
-      <div className="flex items-center justify-end gap-3 border-t border-white/[0.06] pt-4">
+      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-[#0a0805]/95 px-4 py-3 shadow-2xl backdrop-blur">
+        <p className="hidden text-xs text-text-muted sm:block">
+          Changes apply to future execution jobs.
+        </p>
         <GoldButton
           onClick={handleSave}
           disabled={!hasConnectedAccount || saving}

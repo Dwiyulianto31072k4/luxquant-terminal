@@ -5,6 +5,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from "react";
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import CoinLogo from "../CoinLogo";
 import {
   Card,
@@ -68,6 +69,11 @@ export default function SignalQueue() {
   }, []);
 
   if (loading && signals.length === 0) return <Spinner label="Loading signals queue…" />;
+  const riskData = ["Low", "Normal", "High"].map((label) => ({
+    name: label,
+    value: signals.filter((signal) => riskLabel(signal.risk_level) === label).length,
+    color: label === "Low" ? "#0ECB81" : label === "High" ? "#F6465D" : "#d4a853",
+  }));
 
   return (
     <div className="space-y-3">
@@ -105,6 +111,35 @@ export default function SignalQueue() {
       </div>
 
       {error ? <Notice tone="error">Failed to load: {error}</Notice> : null}
+
+      {!error && signals.length > 0 ? (
+        <Card>
+          <div className="grid items-center gap-4 lg:grid-cols-[260px_1fr]">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary">
+                Signal risk mix
+              </p>
+              <p className="mt-2 text-xs leading-5 text-text-muted">
+                Current open-signal queue grouped by the risk label consumed by AutoTrade filters.
+              </p>
+              <p className="mt-4 font-mono text-3xl text-white">{signals.length}</p>
+              <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted">open signals</p>
+            </div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={riskData} layout="vertical">
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                    {riskData.map((item) => <Cell key={item.name} fill={item.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
       {!error && signals.length === 0 ? (
         <EmptyState

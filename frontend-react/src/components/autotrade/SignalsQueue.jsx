@@ -5,71 +5,99 @@
 // Responsive (cards ↔ table). Retry calls retryExecution(id).
 // ════════════════════════════════════════════════════════════════
 
-import { useMemo, useState } from "react";
-import { retryExecution } from "../../services/autotradeApi";
+import { useMemo } from "react";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import CoinLogo from "../CoinLogo";
 import {
   Card,
   StatCard,
   StatusBadge,
   EmptyState,
-  GhostButton,
-  Notice,
   fmtDateTime,
 } from "./AutoTradeUI";
 
 function statusTone(status) {
   if (status === "completed") return "good";
-  if (status === "failed" || status === "skipped") return "bad";
+  if (status === "failed") return "bad";
+  if (status === "skipped") return "warn";
+  if (status === "reconciliation_required") return "info";
   if (status === "running" || status === "pending") return "info";
   return "neutral";
 }
 
+function statusLabel(status) {
+  if (status === "reconciliation_required") return "needs reconciliation";
+  return status;
+}
+
 function getSymbol(execution) {
-  return execution?.orders?.[0]?.symbol || execution?.signal_id || "—";
+  return execution?.symbol || execution?.orders?.[0]?.symbol || "—";
 }
 
 function getSide(execution, signal) {
-  return signal?.side || execution?.orders?.[0]?.side || "—";
+  return execution?.side || signal?.side || execution?.orders?.[0]?.side || "—";
 }
 
-export default function SignalsQueue({ executions = [], signalsById = {}, onRetried }) {
-  const [retryingId, setRetryingId] = useState("");
-  const [error, setError] = useState("");
-
+export default function SignalsQueue({ executions = [], signalsById = {} }) {
   const stats = useMemo(() => {
     const completed = executions.filter((e) => e.status === "completed").length;
-    const failed = executions.filter(
-      (e) => e.status === "failed" || e.status === "skipped",
+    const skipped = executions.filter((e) => e.status === "skipped").length;
+    const failed = executions.filter((e) => e.status === "failed").length;
+    const reconciliation = executions.filter(
+      (e) => e.status === "reconciliation_required",
     ).length;
     const running = executions.filter(
       (e) => e.status === "running" || e.status === "pending",
     ).length;
-    return { completed, failed, running };
+    return { completed, skipped, failed, reconciliation, running };
   }, [executions]);
-
-  const handleRetry = async (executionId) => {
-    setRetryingId(executionId);
-    setError("");
-    try {
-      await retryExecution(executionId);
-      onRetried?.();
-    } catch (err) {
-      setError(err.message || "Failed to retry execution");
-    } finally {
-      setRetryingId("");
-    }
-  };
-
+  const statusChart = [
+    { name: "Completed", value: stats.completed, color: "#0ECB81" },
+    { name: "Skipped", value: stats.skipped, color: "#d4a853" },
+    { name: "Failed", value: stats.failed, color: "#F6465D" },
+    { name: "Reconcile", value: stats.reconciliation, color: "#5B8DEF" },
+    { name: "Running", value: stats.running, color: "#848E9C" },
+  ].filter((item) => item.value > 0);
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Completed" value={stats.completed} valueColor="text-[#0ECB81]" />
-        <StatCard label="Failed / Skipped" value={stats.failed} valueColor={stats.failed > 0 ? "text-[#F6465D]" : "text-white"} />
+        <StatCard label="Skipped" value={stats.skipped} valueColor={stats.skipped > 0 ? "text-gold-primary" : "text-white"} />
+        <StatCard label="Failed" value={stats.failed} valueColor={stats.failed > 0 ? "text-[#F6465D]" : "text-white"} />
+        <StatCard label="Needs Reconciliation" value={stats.reconciliation} valueColor={stats.reconciliation > 0 ? "text-[#5B8DEF]" : "text-white"} />
         <StatCard label="Pending / Running" value={stats.running} valueColor={stats.running > 0 ? "text-gold-primary" : "text-white"} />
       </div>
 
-      {error ? <Notice tone="error">{error}</Notice> : null}
+      {executions.length > 0 ? (
+        <div>
+          <Card>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-primary">
+              Execution outcomes
+            </p>
+            <p className="mt-1 text-xs text-text-muted">Operational job status, not trading PnL.</p>
+            <div className="mt-3 h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusChart}>
+                  <XAxis dataKey="name" tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fill: "#848E9C", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[3, 3, 0, 0]}>
+                    {statusChart.map((item) => <Cell key={item.name} fill={item.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+      ) : null}
 
       {executions.length === 0 ? (
         <EmptyState
@@ -83,8 +111,6 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
           <div className="space-y-2.5 lg:hidden">
             {executions.map((execution) => {
               const signal = signalsById[execution.signal_id];
-              const canRetry =
-                execution.status === "failed" || execution.status === "completed";
               const symbol = getSymbol(execution);
               return (
                 <Card key={execution.id}>
@@ -97,28 +123,17 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
                         </p>
                         <p className="font-mono text-[10px] text-text-muted">
                           {getSide(execution, signal)} · {execution.market_type}
-                          {execution.dry_run ? " · dry" : ""}
                         </p>
                       </div>
                     </div>
                     <StatusBadge tone={statusTone(execution.status)}>
-                      {execution.status}
+                      {statusLabel(execution.status)}
                     </StatusBadge>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
                     <span className="font-mono text-[10px] text-text-muted">
                       {fmtDateTime(execution.created_at)}
                     </span>
-                    {canRetry ? (
-                      <button
-                        type="button"
-                        onClick={() => handleRetry(execution.id)}
-                        disabled={retryingId === execution.id}
-                        className="rounded-md border border-gold-primary/25 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
-                      >
-                        {retryingId === execution.id ? "Retrying…" : "Retry"}
-                      </button>
-                    ) : null}
                   </div>
                   {execution.error ? (
                     <p className="mt-2 text-xs text-red-400/80">{execution.error}</p>
@@ -134,7 +149,7 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/[0.06]">
-                    {["Time", "Symbol", "Side", "Market", "Status", "Dry", "Error", ""].map((h) => (
+                    {["Time", "Symbol", "Side", "Market", "Status", "Error"].map((h) => (
                       <th
                         key={h}
                         className="px-4 py-3 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/80"
@@ -147,9 +162,6 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
                 <tbody>
                   {executions.map((execution) => {
                     const signal = signalsById[execution.signal_id];
-                    const canRetry =
-                      execution.status === "failed" ||
-                      execution.status === "completed";
                     const symbol = getSymbol(execution);
                     return (
                       <tr
@@ -176,28 +188,12 @@ export default function SignalsQueue({ executions = [], signalsById = {}, onRetr
                         <td className="px-4 py-3">
                           <StatusBadge
                             tone={statusTone(execution.status)}
-                           
                           >
-                            {execution.status}
+                            {statusLabel(execution.status)}
                           </StatusBadge>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-white/70">
-                          {execution.dry_run ? "yes" : "no"}
                         </td>
                         <td className="max-w-[260px] truncate px-4 py-3 text-xs text-text-muted">
                           {execution.error || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {canRetry ? (
-                            <button
-                              type="button"
-                              onClick={() => handleRetry(execution.id)}
-                              disabled={retryingId === execution.id}
-                              className="rounded-md border border-gold-primary/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-gold-primary hover:bg-gold-primary/[0.08] disabled:opacity-40"
-                            >
-                              {retryingId === execution.id ? "…" : "Retry"}
-                            </button>
-                          ) : null}
                         </td>
                       </tr>
                     );

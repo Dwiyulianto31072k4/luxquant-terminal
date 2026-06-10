@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { checkBinanceKeys, saveBinanceKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
+import { BinanceIcon } from "./BrandIcons";
 
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "" };
 
@@ -140,9 +141,14 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
               <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
                 Exchange
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                Connect Binance
-              </h2>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+                  <BinanceIcon className="h-6 w-6" />
+                </span>
+                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                  Connect Binance
+                </h2>
+              </div>
               <p className="mt-2 text-sm leading-6 text-text-muted">
                 Link your account with API keys. Funds stay on Binance —
                 withdrawal access is never requested.

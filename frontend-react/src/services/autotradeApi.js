@@ -144,6 +144,9 @@ export const checkBinanceKeys = () =>
 export const getPortfolio = () =>
   request("/me/portfolio");
 
+export const getTradeHistory = () =>
+  request("/me/trade-history");
+
 // Strategy Configs
 export const getStrategyConfigs = () =>
   request("/me/strategy-configs");
@@ -176,5 +179,20 @@ export const getExecutions = () =>
 
 export const retryExecution = (executionId) =>
   request(`/executions/${executionId}/retry`, {
+    method: "POST",
+  });
+
+// Monitoring and Telegram Alerts
+export const getAlertStatus = () =>
+  request("/me/alerts");
+
+export const updateAlertPreferences = (payload) =>
+  request("/me/alerts", {
+    method: "PUT",
+    body: payload,
+  });
+
+export const sendTestAlert = () =>
+  request("/me/alerts/test", {
     method: "POST",
   });

@@ -79,6 +79,8 @@ def create_cryptobot_exchange_token(user) -> Optional[str]:
         "email": user.email,
         "role": user.role,
         "has_active_access": bool(user.has_active_access),
+        "telegram_id": str(user.telegram_id) if user.telegram_id else None,
+        "telegram_username": user.telegram_username,
         "iat": issued_at,
         "exp": issued_at + LUXQUANT_CRYPTOBOT_TOKEN_EXPIRE_SECONDS,
     }

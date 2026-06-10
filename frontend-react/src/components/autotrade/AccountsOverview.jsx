@@ -15,6 +15,7 @@ import {
   EmptyState,
   fmtDateTime,
 } from "./AutoTradeUI";
+import { BinanceIcon } from "./BrandIcons";
 
 function keyStatusTone(status) {
   if (status === "valid") return "good";
@@ -40,25 +41,23 @@ export default function AccountsOverview({
 
   return (
     <div className="space-y-4">
-      {/* ── Account identity + status ── */}
+      {/* ── Connection summary ── */}
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/80">
-              Account
-            </p>
-            <h2 className="mt-2 truncate text-xl font-semibold text-white lg:text-2xl">
-              {user?.email || "Connected user"}
-            </h2>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-muted">
-              <span className="capitalize text-text-secondary">
-                {user?.role || "user"}
-              </span>
-              <span className="text-white/15">·</span>
-              <span>
-                {exchangeAccounts.length} exchange
-                {exchangeAccounts.length === 1 ? "" : "s"} linked
-              </span>
+          <div className="flex min-w-0 items-start gap-4">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+              <BinanceIcon className="h-7 w-7" />
+            </span>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#F3BA2F]">
+                Exchange Connection
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-white lg:text-2xl">
+                Binance
+              </h2>
+              <p className="mt-1 text-xs text-text-muted">
+                Connected for {user?.email || "this LuxQuant account"}
+              </p>
             </div>
           </div>
 
@@ -68,7 +67,7 @@ export default function AccountsOverview({
                 {health?.ok ? "API healthy" : "API down"}
               </StatusDot>
               <StatusDot tone={liveOrders ? "good" : "warn"}>
-                {liveOrders ? "Live orders" : "Dry run"}
+                {liveOrders ? "Live engine ready" : "Live engine locked"}
               </StatusDot>
               {health?.binance_environment ? (
                 <span className="text-xs text-text-muted">
@@ -79,7 +78,7 @@ export default function AccountsOverview({
               ) : null}
             </div>
             <GoldButton onClick={onConnect}>
-              {exchangeAccounts.length > 0 ? "Update keys" : "Connect Binance"}
+              {exchangeAccounts.length > 0 ? "Manage API keys" : "Connect Binance"}
             </GoldButton>
           </div>
         </div>
@@ -122,8 +121,11 @@ export default function AccountsOverview({
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+                        <BinanceIcon className="h-5 w-5" />
+                      </span>
                       <span className="text-sm font-semibold text-white">
-                        {account.label || "Binance account"}
+                        {account.label || "Primary Binance account"}
                       </span>
                       <StatusBadge tone="neutral">
                         {account.exchange}
