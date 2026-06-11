@@ -46,7 +46,7 @@ def _asyncpg_dsn() -> str:
 async def _flush_after_debounce():
     await asyncio.sleep(_DEBOUNCE_SECONDS)
     deleted = invalidate_signals_cache()
-    logger.info(f"[cache-invalidator] flushed {deleted} signal cache keys")
+    print(f"⚡ [cache-invalidator] flushed {deleted} signal cache keys", flush=True)
 
 
 def _on_notify(conn, pid, channel, payload):
@@ -64,7 +64,7 @@ async def cache_invalidator_loop():
             conn = await asyncpg.connect(_asyncpg_dsn())
             for ch in CHANNELS:
                 await conn.add_listener(ch, _on_notify)
-            logger.info(f"[cache-invalidator] listening on {CHANNELS}")
+            print(f"⚡ [cache-invalidator] listening on {CHANNELS}", flush=True)
             while True:
                 await asyncio.sleep(30)
                 # keepalive ping; raises kalau koneksi mati -> reconnect
