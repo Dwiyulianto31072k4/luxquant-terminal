@@ -220,7 +220,7 @@ const SignalsPage = () => {
 
   useEffect(() => {
     fetchBulkSignals(true);
-    const interval = setInterval(() => fetchBulkSignals(false), 90000);
+    const interval = setInterval(() => fetchBulkSignals(false), 30000);
     return () => clearInterval(interval);
   }, [fetchBulkSignals]);
 
