@@ -580,11 +580,7 @@ async def get_signals_bulk_7d(
     cached = cache_get(cache_key)
     if cached:
         return cached
- 
-    stale, _ = cache_get_with_stale(cache_key)
-    if stale:
-        return stale
- 
+
     try:
         from datetime import datetime, timedelta
         date_7d = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -679,7 +675,7 @@ async def get_signals_bulk_7d(
             "date_from": date_7d,
             "is_subscriber": is_subscriber,
         }
-        cache_set(cache_key, result, ttl=100)
+        cache_set(cache_key, result, ttl=30)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bulk 7d query error: {str(e)}")

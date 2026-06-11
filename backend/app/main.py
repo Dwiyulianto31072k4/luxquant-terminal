@@ -86,6 +86,11 @@ async def lifespan(app: FastAPI):
         start_notification_worker()
         start_fx_worker()
         start_whale_worker()
+
+        # ─── Cache invalidator: LISTEN new_signal/signal_update → flush lq:signals:* ───
+        from app.services.cache_invalidator import cache_invalidator_loop
+        asyncio.create_task(cache_invalidator_loop())
+        print("⚡ Signal cache invalidator started (LISTEN new_signal)")
         
         # ═══════════════════════════════════════════
         # INISIASI QUANTITATIVE AI ENGINE

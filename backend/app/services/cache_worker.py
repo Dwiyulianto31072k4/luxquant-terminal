@@ -871,7 +871,10 @@ async def signal_cache_loop():
                 # Step 1b: Cache BULK 7d data (all signals, no pagination)
                 # Frontend fetches this once, then sorts/filters/paginates client-side
                 bulk_7d = query_signals_bulk_7d(db)
-                cache_set("lq:signals:bulk-7d", bulk_7d, ttl=ttl)
+                # Endpoint membaca key :sub (subscriber) — loop pre-compute
+                # versi full di key itu. Key :pub sengaja TIDAK ditulis dari
+                # sini karena payload public digate field-nya oleh endpoint.
+                cache_set("lq:signals:bulk-7d:sub", bulk_7d, ttl=ttl)
                 cached += 1
 
                 # Step 2: Cache "Last 7 Days" ALL pages (fallback for server-side pagination)
