@@ -13,6 +13,7 @@ import {
   clearAutotradeAuth,
   exchangeLuxquantToken,
   getExecutions,
+  getActivityLogs,
   getAlertStatus,
   getHealth,
   getMe,
@@ -32,6 +33,7 @@ import SignalsQueue from "./autotrade/SignalsQueue";
 import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
+import ActivityLogs from "./autotrade/ActivityLogs";
 import {
   BinanceIcon,
   TelegramIcon,
@@ -52,6 +54,7 @@ const TABS = [
   { id: "positions", label: "Positions" },
   { id: "trades", label: "Trade History" },
   { id: "history", label: "Activity" },
+  { id: "logs", label: "Logs" },
   { id: "signals", label: "Signals" },
   { id: "settings", label: "Settings" },
 ];
@@ -431,6 +434,7 @@ export default function AutoTradePage() {
   const [portfolio, setPortfolio] = useState(null);
   const [tradeHistory, setTradeHistory] = useState({ items: [], summary: {} });
   const [executions, setExecutions] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
   const [signalsById, setSignalsById] = useState({});
   const [strategyConfig, setStrategyConfig] = useState(null);
   const [alertStatus, setAlertStatus] = useState(null);
@@ -454,6 +458,7 @@ export default function AutoTradePage() {
     setTradeHistory({ items: [], summary: {} });
     setStrategyConfig(null);
     setExecutions([]);
+    setActivityLogs([]);
     setSignalsById({});
     setAlertStatus(null);
     setAlertStatusError("");
@@ -520,6 +525,7 @@ export default function AutoTradePage() {
         setTradeHistory({ items: [], summary: {} });
         setStrategyConfig(null);
         setExecutions([]);
+        setActivityLogs([]);
         setSignalsById({});
         setTab("settings");
         setSettingsSection("connections");
@@ -537,6 +543,7 @@ export default function AutoTradePage() {
         portfolioResponse,
         strategyResponse,
         executionsResponse,
+        activityLogsResponse,
         signalsResponse,
         alertResult,
         tradeHistoryResponse,
@@ -544,6 +551,7 @@ export default function AutoTradePage() {
         getPortfolio(),
         getStrategyConfigs(),
         getExecutions(),
+        getActivityLogs(),
         getSignals(),
         alertRequest,
         getTradeHistory(),
@@ -553,6 +561,7 @@ export default function AutoTradePage() {
       setTradeHistory(tradeHistoryResponse || { items: [], summary: {} });
       setStrategyConfig(strategyResponse?.items?.[0] || null);
       setExecutions(executionsResponse?.items || []);
+      setActivityLogs(activityLogsResponse?.items || []);
       setAlertStatus(alertResult.data);
       setAlertStatusError(alertResult.error);
       setSignalsById(
@@ -753,7 +762,7 @@ export default function AutoTradePage() {
             ) : null}
 
             {tab === "positions" ? (
-              <PositionsBoard portfolio={portfolio} />
+              <PositionsBoard portfolio={portfolio} onChanged={() => load({ background: true })} />
             ) : null}
 
             {tab === "trades" ? (
@@ -769,6 +778,8 @@ export default function AutoTradePage() {
             ) : null}
 
             {tab === "signals" ? <SignalQueue /> : null}
+
+            {tab === "logs" ? <ActivityLogs items={activityLogs} /> : null}
           </div>
         </>
       )}

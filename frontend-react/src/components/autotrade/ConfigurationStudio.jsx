@@ -19,10 +19,12 @@ import {
   Segmented,
   PillToggle,
   GoldButton,
+  GhostButton,
   Notice,
 } from "./AutoTradeUI";
 
 const RISK_LEVELS = ["low", "normal", "high"];
+const MIN_LIVE_ENTRY_USDT = 6;
 const LEVEL_OPTIONS = [1, 2, 3, 4].map((n) => ({ value: n, label: `TP${n}` }));
 const SL_LEVEL_OPTIONS = [1, 2].map((n) => ({
   value: n,
@@ -110,22 +112,46 @@ export default function ConfigurationStudio({
 }) {
   const [draft, setDraft] = useState(() => toDraft(config));
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    setDraft(toDraft(config));
-  }, [config]);
+    if (!dirty && !saving) {
+      setDraft(toDraft(config));
+    }
+  }, [config, dirty, saving]);
 
   const statusText = useMemo(() => {
     if (!hasConnectedAccount) return "Connect Binance keys to start trading.";
     return "Configure how future Binance entries are sized, protected and limited.";
   }, [hasConnectedAccount]);
 
-  const patch = (changes) =>
+  const patch = (changes) => {
+    setDirty(true);
+    setError("");
+    setSuccess("");
     setDraft((current) => ({ ...current, ...changes }));
+  };
+
+  const effectiveFixedNotional =
+    draft.sizing_method === "fixed"
+      ? Math.max(MIN_LIVE_ENTRY_USDT, Number(draft.sizing_value) || 0)
+      : null;
+  const sizingLimitError =
+    effectiveFixedNotional !== null &&
+    Number(draft.max_trade_notional_usdt) < effectiveFixedNotional
+      ? `Per trade cap must be at least ${effectiveFixedNotional.toFixed(
+          2,
+        )} USDT. Live orders use a minimum execution size of ${MIN_LIVE_ENTRY_USDT.toFixed(
+          2,
+        )} USDT.`
+      : "";
 
   const toggleRisk = (level) => {
+    setDirty(true);
+    setError("");
+    setSuccess("");
     setDraft((current) => {
       const exists = current.allowed_risk_levels.includes(level);
       return {
@@ -138,18 +164,37 @@ export default function ConfigurationStudio({
   };
 
   const handleSave = async () => {
-    setSaving(true);
     setError("");
     setSuccess("");
+    if (sizingLimitError) {
+      setError(sizingLimitError);
+      return;
+    }
+    setSaving(true);
     try {
-      await updateBinanceStrategyConfig(toPayload(draft));
-      setSuccess("Strategy configuration saved.");
-      onSaved?.();
+      const response = await updateBinanceStrategyConfig(toPayload(draft));
+      if (response?.config) {
+        setDraft(toDraft(response.config));
+      }
+      setDirty(false);
+      await onSaved?.({ background: true });
+      setSuccess(
+        `Strategy saved. Amount: ${Number(draft.sizing_value)} ${
+          draft.sizing_method === "fixed" ? "USDT" : "%"
+        }; per trade cap: ${Number(draft.max_trade_notional_usdt)} USDT.`,
+      );
     } catch (err) {
       setError(err.message || "Failed to save strategy");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleReset = () => {
+    setDraft(toDraft(config));
+    setDirty(false);
+    setError("");
+    setSuccess("");
   };
 
   return (
@@ -189,6 +234,9 @@ export default function ConfigurationStudio({
       ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
+      {sizingLimitError && error !== sizingLimitError ? (
+        <Notice tone="warn">{sizingLimitError}</Notice>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* ── LEFT: execution + sizing + futures ── */}
@@ -227,14 +275,18 @@ export default function ConfigurationStudio({
                   label="Amount"
                   hint={
                     draft.sizing_method === "fixed"
-                      ? "USDT per trade."
+                      ? `USDT per trade. Live minimum: ${MIN_LIVE_ENTRY_USDT} USDT.`
                       : "0–100% of available balance."
                   }
                 >
                   <NumberInput
                     value={draft.sizing_value}
                     onChange={(value) => patch({ sizing_value: value })}
-                    min={0}
+                    min={
+                      draft.sizing_method === "fixed"
+                        ? MIN_LIVE_ENTRY_USDT
+                        : 0
+                    }
                     max={draft.sizing_method === "fixed" ? 1000000 : 100}
                     step={0.1}
                     suffix={draft.sizing_method === "fixed" ? "USDT" : "%"}
@@ -403,13 +455,22 @@ export default function ConfigurationStudio({
                     max={100}
                   />
                 </Field>
-                <Field label="Per trade cap" hint="Maximum entry notional.">
+                <Field
+                  label="Per trade cap"
+                  hint={
+                    draft.sizing_method === "fixed"
+                      ? `Must cover the effective ${effectiveFixedNotional.toFixed(
+                          2,
+                        )} USDT entry. Protected spot orders may need a slightly higher cap.`
+                      : "Maximum entry notional."
+                  }
+                >
                   <NumberInput
                     value={draft.max_trade_notional_usdt}
                     onChange={(value) =>
                       patch({ max_trade_notional_usdt: value })
                     }
-                    min={0.01}
+                    min={effectiveFixedNotional || 0.01}
                     max={1000000}
                     step={0.1}
                     suffix="USDT"
@@ -508,15 +569,36 @@ export default function ConfigurationStudio({
 
       {/* ── Save bar ── */}
       <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-[#0a0805]/95 px-4 py-3 shadow-2xl backdrop-blur">
-        <p className="hidden text-xs text-text-muted sm:block">
-          Changes apply to future execution jobs.
-        </p>
-        <GoldButton
-          onClick={handleSave}
-          disabled={!hasConnectedAccount || saving}
-        >
-          {saving ? "Saving…" : "Save strategy"}
-        </GoldButton>
+        <div>
+          <p
+            className={`text-xs font-medium ${
+              dirty ? "text-gold-primary" : "text-text-muted"
+            }`}
+          >
+            {dirty ? "Unsaved changes" : "All changes saved"}
+          </p>
+          <p className="hidden text-[11px] text-text-muted/60 sm:block">
+            Background refresh will not overwrite values while you are editing.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {dirty ? (
+            <GhostButton onClick={handleReset} disabled={saving}>
+              Discard
+            </GhostButton>
+          ) : null}
+          <GoldButton
+            onClick={handleSave}
+            disabled={
+              !hasConnectedAccount ||
+              saving ||
+              !dirty ||
+              Boolean(sizingLimitError)
+            }
+          >
+            {saving ? "Saving…" : "Save strategy"}
+          </GoldButton>
+        </div>
       </div>
     </div>
   );

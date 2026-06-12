@@ -147,6 +147,27 @@ export const getPortfolio = () =>
 export const getTradeHistory = () =>
   request("/me/trade-history");
 
+export const forceSellSpotPosition = (positionId, payload) =>
+  request(`/me/portfolio/position/${encodeURIComponent(positionId)}/force-sell`, {
+    method: "POST",
+    body: payload,
+  });
+
+export const forceSellAllSpotPositions = (payload) =>
+  request("/me/portfolio/positions/force-sell-all", {
+    method: "POST",
+    body: payload,
+  });
+
+export const convertSpotAssetsToUsdt = (payload) =>
+  request("/me/portfolio/spot-assets/convert-to-usdt", {
+    method: "POST",
+    body: payload,
+  });
+
+export const getActivityLogs = (limit = 100) =>
+  request(`/me/activity-logs?limit=${encodeURIComponent(limit)}`);
+
 // Strategy Configs
 export const getStrategyConfigs = () =>
   request("/me/strategy-configs");
