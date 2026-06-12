@@ -3,6 +3,7 @@
 // LuxQuant — AutoTrade page shell
 // Auth/load logic preserved verbatim; header, engine strip, tabs
 // and setup states restyled to match the terminal design language.
+// Activity + Logs are merged into a single compact Activity tab.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,11 +30,10 @@ import { authApi } from "../services/authApi";
 import ExchangeConnectModal from "./autotrade/ExchangeConnectModal";
 import AutoTradeSettings from "./autotrade/AutoTradeSettings";
 import PositionsBoard from "./autotrade/PositionsBoard";
-import SignalsQueue from "./autotrade/SignalsQueue";
+import ActivityTimeline from "./autotrade/ActivityTimeline";
 import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
-import ActivityLogs from "./autotrade/ActivityLogs";
 import {
   BinanceIcon,
   TelegramIcon,
@@ -54,7 +54,6 @@ const TABS = [
   { id: "positions", label: "Positions" },
   { id: "trades", label: "Trade History" },
   { id: "history", label: "Activity" },
-  { id: "logs", label: "Logs" },
   { id: "signals", label: "Signals" },
   { id: "settings", label: "Settings" },
 ];
@@ -770,16 +769,13 @@ export default function AutoTradePage() {
             ) : null}
 
             {tab === "history" ? (
-              <SignalsQueue
+              <ActivityTimeline
                 executions={liveExecutions}
-                signalsById={signalsById}
-                onRetried={load}
+                items={activityLogs}
               />
             ) : null}
 
             {tab === "signals" ? <SignalQueue /> : null}
-
-            {tab === "logs" ? <ActivityLogs items={activityLogs} /> : null}
           </div>
         </>
       )}
