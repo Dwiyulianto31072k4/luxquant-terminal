@@ -61,7 +61,7 @@ done
 # ============================================
 echo ""
 echo "🔍 [4/6] Verifikasi worker count..."
-MASTER_PID=$(systemctl show -p MainPID --value $SERVICE_NAME 2>/dev/null || true)
+MASTER_PID=$(pgrep -f "uvicorn app.main:app" | head -1 || true)
 
 if [ -n "$MASTER_PID" ]; then
     PARENT_COUNT=1
@@ -99,7 +99,7 @@ if [ -f "$CF_ENV_FILE" ]; then
     source "$CF_ENV_FILE"
 fi
 if [ -n "${CF_ZONE_ID:-}" ] && [ -n "${CF_API_TOKEN:-}" ]; then
-    CF_RESULT=$(curl -4 -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+    CF_RESULT=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
         -H "Authorization: Bearer ${CF_API_TOKEN}" \
         -H "Content-Type: application/json" \
         --data '{"purge_everything":true}' || true)
