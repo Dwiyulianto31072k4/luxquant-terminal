@@ -47,6 +47,15 @@ function eventInfo(item) {
       source: "System safety",
     };
   }
+  if (action === "strategy.auto_resumed_after_convert") {
+    return {
+      category: "strategy",
+      tone: "good",
+      title: "AutoTrade resumed after convert",
+      description: `${metadata.submitted || 0} submitted · ${metadata.failed || 0} failed · ${metadata.skipped || 0} skipped`,
+      source: "System safety",
+    };
+  }
   if (action === "strategy.emergency_paused") {
     return {
       category: "strategy",
