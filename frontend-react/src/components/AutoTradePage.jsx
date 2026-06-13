@@ -7,6 +7,8 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
+
 import {
   AUTOTRADE_TOKEN_KEY,
   CRYPTOBOT_TOKEN_KEY,
@@ -34,6 +36,7 @@ import ActivityTimeline from "./autotrade/ActivityTimeline";
 import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
+import AutoTradeHelpModal from "./autotrade/AutoTradeHelpModal";
 import {
   BinanceIcon,
   TelegramIcon,
@@ -428,6 +431,7 @@ export default function AutoTradePage() {
   const [error, setError] = useState("");
   const [authActionLoading, setAuthActionLoading] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [health, setHealth] = useState(null);
   const [meData, setMeData] = useState(null);
   const [portfolio, setPortfolio] = useState(null);
@@ -661,16 +665,30 @@ export default function AutoTradePage() {
             {summaryText}
           </p>
         </div>
-        {lastUpdatedAt ? (
-          <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
-            Auto-refresh 30s · Updated{" "}
-            {lastUpdatedAt.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            })}
-          </p>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {lastUpdatedAt ? (
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
+              Auto-refresh 30s · Updated{" "}
+              {lastUpdatedAt.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            aria-label="Open AutoTrade guide"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] text-text-muted transition-colors hover:border-gold-primary/30 hover:bg-gold-primary/[0.05] hover:text-gold-primary"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" />
+              <path d="M12 17h.01" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
@@ -784,6 +802,10 @@ export default function AutoTradePage() {
         isOpen={showConnect && hasAutotradeToken}
         onClose={() => setShowConnect(false)}
         onSuccess={load}
+      />
+      <AutoTradeHelpModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
       />
     </div>
   );
