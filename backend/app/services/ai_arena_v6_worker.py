@@ -714,6 +714,34 @@ async def generate_v6_report(
     except Exception as e:
         _log(f"Ledger confidence skipped (non-fatal): {e}", level="WARN")
 
+    # -- Shadow validation: always compute deterministic, record alongside LLM (no override) --
+    shadow_det = None
+    try:
+        from app.services.deterministic_verdict import compute_deterministic_direction
+        _liq_doc = (liquidity_doc or {}).get("layer") if "liquidity_doc" in dir() else None
+        _sd = compute_deterministic_direction(_liq_doc, confluence_dict, cycle_result.to_dict())
+        shadow_det = {
+            "tactical_24h": {
+                "llm": verdict.tactical_24h.direction,
+                "det": _sd["tactical_24h"]["direction"],
+                "det_conf": _sd["tactical_24h"]["confidence"],
+                "det_score": _sd["tactical_24h"]["score"],
+                "agree": verdict.tactical_24h.direction == _sd["tactical_24h"]["direction"],
+            },
+            "secondary_7d": {
+                "llm": verdict.secondary_7d.direction,
+                "det": _sd["secondary_7d"]["direction"],
+                "det_conf": _sd["secondary_7d"]["confidence"],
+                "det_score": _sd["secondary_7d"]["score"],
+                "agree": verdict.secondary_7d.direction == _sd["secondary_7d"]["direction"],
+            },
+            "inputs": _sd["inputs"],
+        }
+        _log(f"Shadow det: 24h llm={shadow_det['tactical_24h']['llm']}/det={shadow_det['tactical_24h']['det']} "
+             f"72h llm={shadow_det['secondary_7d']['llm']}/det={shadow_det['secondary_7d']['det']}")
+    except Exception as e:
+        _log(f"Shadow det skipped (non-fatal): {e}", level="WARN")
+
     bundle_v6 = ReportBundleV6(
         schema_version=SCHEMA_VERSION,
         report_id=f"v6_{uuid.uuid4().hex[:10]}",
@@ -726,6 +754,7 @@ async def generate_v6_report(
         cycle_position=cycle_dict,
         bg_snapshot_summary=bg_summary,
         liquidity=liquidity_doc,
+        shadow_deterministic=shadow_det,
         cost_breakdown={
             "stage1": cost1,
             "stage2": cost2,

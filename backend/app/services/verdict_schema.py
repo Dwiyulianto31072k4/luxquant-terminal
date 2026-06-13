@@ -333,6 +333,8 @@ class ReportBundleV6(BaseModel):
     bg_snapshot_summary: dict  # {endpoint: {value, ok}}
     # Liquidity layer (liquidation heatmap -> magnets). Additive, optional.
     liquidity: Optional[dict] = None
+    # Shadow validation: deterministic direction recorded alongside LLM (not shown to user).
+    shadow_deterministic: Optional[dict] = None
 
     # Cost tracking
     cost_breakdown: dict  # {stage1: usd, stage2: usd, stage3: usd, total: usd}
