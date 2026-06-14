@@ -43,6 +43,17 @@ def _iso_utc(epoch_seconds: float) -> str:
     return datetime.fromtimestamp(epoch_seconds, timezone.utc).isoformat()
 
 
+def _actor_error_reason(payload: Any) -> str | None:
+    """Map actor-reported errors to stable, non-sensitive reason codes."""
+    item = payload[0] if isinstance(payload, list) and payload else payload
+    if not isinstance(item, dict) or not item.get("error"):
+        return None
+    message = str(item["error"]).lower()
+    if "upstream request failed" in message or "system error" in message:
+        return "actor_upstream_error"
+    return "actor_reported_error"
+
+
 @dataclass(frozen=True)
 class HeatmapFetchResult:
     status: LiquidityStatus
@@ -202,6 +213,10 @@ async def fetch_coinank_heatmap(
             last_shape = describe_payload_shape(data)
             if not data:
                 last_reason = "empty_dataset"
+                break
+            actor_error = _actor_error_reason(data)
+            if actor_error is not None:
+                last_reason = actor_error
                 break
             record = find_liq_heatmap_record(data)
             if record is None:

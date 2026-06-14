@@ -186,6 +186,42 @@ def test_invalid_provider_shape_uses_recent_last_good(monkeypatch):
     }
 
 
+def test_actor_upstream_error_has_stable_reason(monkeypatch):
+    class FakeResponse:
+        status_code = 201
+
+        @staticmethod
+        def json():
+            return [{"error": "Upstream request failed with status 200: system error!"}]
+
+    class FakeClient:
+        def __init__(self, **_):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def post(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    monkeypatch.setenv("APIFY_TOKEN", "secret-token")
+    monkeypatch.setattr(coinank_fetch.httpx, "AsyncClient", FakeClient)
+    monkeypatch.setattr(coinank_fetch, "_load_last_good", lambda *_: None)
+
+    result = asyncio.run(coinank_fetch.fetch_coinank_heatmap())
+
+    assert result.status == "unavailable"
+    assert result.reason == "actor_upstream_error"
+    assert result.payload_shape == {
+        "type": "array",
+        "length": 1,
+        "first_keys": ["error"],
+    }
+
+
 def test_production_enum_aliases_are_normalized():
     cycle = CycleBrief(
         score=20,
