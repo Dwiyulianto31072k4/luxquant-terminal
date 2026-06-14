@@ -48,6 +48,19 @@ def _truncate(value: Optional[str], limit: int) -> Optional[str]:
     return cut.rstrip() + "…"
 
 
+def _upper_token(value):
+    """Normalize common LLM enum formatting without inventing new semantics."""
+    if not isinstance(value, str):
+        return value
+    return "_".join(value.strip().upper().replace("-", " ").split())
+
+
+def _lower_token(value):
+    if not isinstance(value, str):
+        return value
+    return "_".join(value.strip().lower().replace("-", " ").split())
+
+
 # ════════════════════════════════════════════════════════════════════════
 # Stage 1 — Layer Briefs (GPT-4o-mini compresses raw data into narratives)
 # ════════════════════════════════════════════════════════════════════════
@@ -64,6 +77,11 @@ class LayerBrief(BaseModel):
         max_length=6,
         description="2-4 most important metrics with values, e.g. 'M2 +6.93% YoY'",
     )
+
+    @field_validator("layer", "direction", mode="before")
+    @classmethod
+    def _normalize_enums(cls, v):
+        return _lower_token(v)
 
     @field_validator("headline", mode="before")
     @classmethod
@@ -85,6 +103,23 @@ class CycleBrief(BaseModel):
     ]
     confidence: Literal["low", "medium", "high"]
     interpretation: str = Field(max_length=360)
+
+    @field_validator("phase", mode="before")
+    @classmethod
+    def _normalize_phase(cls, v):
+        token = _upper_token(v)
+        return {
+            "BOTTOM": "DEEP_BOTTOM",
+            "CYCLE_BOTTOM": "DEEP_BOTTOM",
+            "EARLY_BULL_MARKET": "EARLY_BULL",
+            "MID_BULL_MARKET": "MID_BULL",
+            "LATE_BULL_MARKET": "LATE_BULL",
+        }.get(token, token)
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _normalize_confidence(cls, v):
+        return _lower_token(v)
 
     @field_validator("interpretation", mode="before")
     @classmethod
@@ -148,6 +183,11 @@ class HorizonVerdict(BaseModel):
     confidence: int = Field(ge=0, le=100)
     rationale: str = Field(max_length=280)
 
+    @field_validator("direction", mode="before")
+    @classmethod
+    def _normalize_direction(cls, v):
+        return _lower_token(v)
+
     @field_validator("rationale", mode="before")
     @classmethod
     def _trim_rationale(cls, v):
@@ -159,6 +199,11 @@ class InvalidationLevel(BaseModel):
     direction: Literal["bullish_invalidated", "bearish_invalidated"]
     price: float
     reason: str = Field(max_length=220)
+
+    @field_validator("direction", mode="before")
+    @classmethod
+    def _normalize_direction(cls, v):
+        return _lower_token(v)
 
     @field_validator("reason", mode="before")
     @classmethod
@@ -173,6 +218,11 @@ class TacticalZone(BaseModel):
     price_high: float
     why: str = Field(max_length=280)
     liquidity_note: Optional[str] = Field(default=None, max_length=220)
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def _normalize_kind(cls, v):
+        return _lower_token(v)
 
     @field_validator("why", mode="before")
     @classmethod
@@ -194,6 +244,23 @@ class TripleScreenItem(BaseModel):
     ]
     note: str = Field(max_length=200)
 
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def _normalize_timeframe(cls, v):
+        return v.strip().upper() if isinstance(v, str) else v
+
+    @field_validator("state", mode="before")
+    @classmethod
+    def _normalize_state(cls, v):
+        token = _upper_token(v)
+        return {
+            "RANGE_BOUND": "RANGING",
+            "SIDEWAYS": "RANGING",
+            "CONSOLIDATION": "CONSOLIDATING",
+            "BULLISH_TREND": "UPTREND",
+            "BEARISH_TREND": "DOWNTREND",
+        }.get(token, token)
+
     @field_validator("note", mode="before")
     @classmethod
     def _trim_note(cls, v):
@@ -210,6 +277,11 @@ class RiskScenario(BaseModel):
         max_length=320,
         description="Why this scenario matters (optional — has fallback default)",
     )
+
+    @field_validator("severity", mode="before")
+    @classmethod
+    def _normalize_severity(cls, v):
+        return _lower_token(v)
 
     @field_validator("title", mode="before")
     @classmethod
@@ -296,6 +368,11 @@ class SelfCritique(BaseModel):
         max_length=320,
         description="Disclaimer to surface alongside verdict if needed",
     )
+
+    @field_validator("decision", mode="before")
+    @classmethod
+    def _normalize_decision(cls, v):
+        return _lower_token(v)
 
     @field_validator("overall_assessment", mode="before")
     @classmethod

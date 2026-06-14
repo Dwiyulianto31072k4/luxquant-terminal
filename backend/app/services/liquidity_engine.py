@@ -28,6 +28,7 @@ from app.services.confluence_engine import (  # type: ignore
     LayerVerdict,
     _aggregate_layer,
 )
+from app.services.heatmap_payload import find_liq_heatmap_record
 
 
 def parse_liq_heatmap(
@@ -46,11 +47,16 @@ def parse_liq_heatmap(
     Returns a dict with magnets above/below, nearest magnets, and the
     upside-mass dominance ratio — or None if the payload is unusable.
     """
-    rec = raw[0] if isinstance(raw, list) and raw else raw
-    if not isinstance(rec, dict):
+    rec = find_liq_heatmap_record(raw)
+    if rec is None:
         return None
     lh = rec.get("liqHeatMap") or {}
-    prices = [float(p) for p in lh.get("priceArray", []) if p is not None]
+    prices = []
+    for price in lh.get("priceArray", []):
+        try:
+            prices.append(float(price))
+        except (TypeError, ValueError):
+            return None
     data = lh.get("data", []) or []
     if not prices or not data:
         return None

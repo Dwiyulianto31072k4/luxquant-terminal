@@ -671,13 +671,48 @@ async def generate_v6_report(
     try:
         from app.services.coinank_fetch import fetch_coinank_heatmap
         from app.services.liquidity_engine import parse_liq_heatmap, evaluate_liquidity
-        _coinank_raw = await fetch_coinank_heatmap("BTCUSDT", "12h")
-        _liq_parsed = parse_liq_heatmap(_coinank_raw, btc_price)
-        _liq_layer = evaluate_liquidity(_liq_parsed)
-        liquidity_doc = {"layer": _liq_layer.to_dict(), "magnets": _liq_parsed}
-        _log(f"Liquidity: {_liq_layer.verdict} (strength {_liq_layer.strength:.2f})")
+        _coinank_result = await fetch_coinank_heatmap("BTCUSDT", "12h")
+        _liq_parsed = (
+            parse_liq_heatmap(_coinank_result.payload, btc_price)
+            if _coinank_result.available
+            else None
+        )
+        _liq_usable = _coinank_result.available and _liq_parsed is not None
+        _liq_status = _coinank_result.status if _liq_usable else "unavailable"
+        _liq_reason = _coinank_result.reason
+        if _coinank_result.available and _liq_parsed is None:
+            _liq_reason = "heatmap_parser_rejected_payload"
+        _liq_layer = evaluate_liquidity(_liq_parsed if _liq_usable else None)
+        liquidity_doc = {
+            **_coinank_result.metadata(),
+            "status": _liq_status,
+            "available": _liq_usable,
+            "is_stale": _liq_status == "stale",
+            "reason": _liq_reason,
+            "layer": _liq_layer.to_dict(),
+            "magnets": _liq_parsed,
+        }
+        if _liq_usable:
+            _log(
+                f"Liquidity: {_liq_status.upper()} {_liq_layer.verdict} "
+                f"(strength {_liq_layer.strength:.2f}, age={liquidity_doc['age_seconds']}s)"
+            )
+        else:
+            _log(
+                f"Liquidity: UNAVAILABLE ({_liq_reason or 'unknown_reason'})",
+                level="WARN",
+            )
     except Exception as e:
-        _log(f"Liquidity layer skipped (non-fatal): {e}", level="WARN")
+        liquidity_doc = {
+            "provider": "coinank_via_apify",
+            "status": "unavailable",
+            "available": False,
+            "is_stale": False,
+            "reason": f"liquidity_pipeline_{type(e).__name__}",
+            "layer": None,
+            "magnets": None,
+        }
+        _log(f"Liquidity layer unavailable (non-fatal): {e}", level="WARN")
 
     # -- Phase 3: deterministic direction (behind flag) --
     try:
@@ -685,16 +720,22 @@ async def generate_v6_report(
             compute_deterministic_direction, flag_enabled,
         )
         if flag_enabled():
-            _liq_layer_doc = (liquidity_doc or {}).get("layer") if "liquidity_doc" in dir() else None
-            _det = compute_deterministic_direction(
-                _liq_layer_doc, confluence_dict, cycle_result.to_dict(),
-            )
-            for _attr, _key in (("tactical_24h", "tactical_24h"), ("secondary_7d", "secondary_7d")):
-                _hv = getattr(verdict, _attr, None)
-                if _hv is not None:
-                    _hv.direction = _det[_key]["direction"]
-                    _hv.confidence = _det[_key]["confidence"]
-            _log(f"Deterministic verdict ON: 24h={_det['tactical_24h']} 72h={_det['secondary_7d']} inputs={_det['inputs']}")
+            if not (liquidity_doc or {}).get("available"):
+                _log(
+                    "Deterministic verdict ON but not applied: liquidity unavailable",
+                    level="WARN",
+                )
+            else:
+                _liq_layer_doc = (liquidity_doc or {}).get("layer")
+                _det = compute_deterministic_direction(
+                    _liq_layer_doc, confluence_dict, cycle_result.to_dict(),
+                )
+                for _attr, _key in (("tactical_24h", "tactical_24h"), ("secondary_7d", "secondary_7d")):
+                    _hv = getattr(verdict, _attr, None)
+                    if _hv is not None:
+                        _hv.direction = _det[_key]["direction"]
+                        _hv.confidence = _det[_key]["confidence"]
+                _log(f"Deterministic verdict ON: 24h={_det['tactical_24h']} 72h={_det['secondary_7d']} inputs={_det['inputs']}")
     except Exception as e:
         _log(f"Deterministic verdict skipped (non-fatal): {e}", level="WARN")
 
@@ -718,27 +759,38 @@ async def generate_v6_report(
     shadow_det = None
     try:
         from app.services.deterministic_verdict import compute_deterministic_direction
-        _liq_doc = (liquidity_doc or {}).get("layer") if "liquidity_doc" in dir() else None
-        _sd = compute_deterministic_direction(_liq_doc, confluence_dict, cycle_result.to_dict())
-        shadow_det = {
-            "tactical_24h": {
-                "llm": verdict.tactical_24h.direction,
-                "det": _sd["tactical_24h"]["direction"],
-                "det_conf": _sd["tactical_24h"]["confidence"],
-                "det_score": _sd["tactical_24h"]["score"],
-                "agree": verdict.tactical_24h.direction == _sd["tactical_24h"]["direction"],
-            },
-            "secondary_7d": {
-                "llm": verdict.secondary_7d.direction,
-                "det": _sd["secondary_7d"]["direction"],
-                "det_conf": _sd["secondary_7d"]["confidence"],
-                "det_score": _sd["secondary_7d"]["score"],
-                "agree": verdict.secondary_7d.direction == _sd["secondary_7d"]["direction"],
-            },
-            "inputs": _sd["inputs"],
-        }
-        _log(f"Shadow det: 24h llm={shadow_det['tactical_24h']['llm']}/det={shadow_det['tactical_24h']['det']} "
-             f"72h llm={shadow_det['secondary_7d']['llm']}/det={shadow_det['secondary_7d']['det']}")
+        if not (liquidity_doc or {}).get("available"):
+            shadow_det = {
+                "eligible": False,
+                "reason": "liquidity_unavailable",
+                "liquidity_status": (liquidity_doc or {}).get("status", "unavailable"),
+                "liquidity_reason": (liquidity_doc or {}).get("reason"),
+            }
+            _log("Shadow det: ineligible (liquidity unavailable)", level="WARN")
+        else:
+            _liq_doc = (liquidity_doc or {}).get("layer")
+            _sd = compute_deterministic_direction(_liq_doc, confluence_dict, cycle_result.to_dict())
+            shadow_det = {
+                "eligible": True,
+                "liquidity_status": (liquidity_doc or {}).get("status"),
+                "tactical_24h": {
+                    "llm": verdict.tactical_24h.direction,
+                    "det": _sd["tactical_24h"]["direction"],
+                    "det_conf": _sd["tactical_24h"]["confidence"],
+                    "det_score": _sd["tactical_24h"]["score"],
+                    "agree": verdict.tactical_24h.direction == _sd["tactical_24h"]["direction"],
+                },
+                "secondary_7d": {
+                    "llm": verdict.secondary_7d.direction,
+                    "det": _sd["secondary_7d"]["direction"],
+                    "det_conf": _sd["secondary_7d"]["confidence"],
+                    "det_score": _sd["secondary_7d"]["score"],
+                    "agree": verdict.secondary_7d.direction == _sd["secondary_7d"]["direction"],
+                },
+                "inputs": _sd["inputs"],
+            }
+            _log(f"Shadow det: 24h llm={shadow_det['tactical_24h']['llm']}/det={shadow_det['tactical_24h']['det']} "
+                 f"72h llm={shadow_det['secondary_7d']['llm']}/det={shadow_det['secondary_7d']['det']}")
     except Exception as e:
         _log(f"Shadow det skipped (non-fatal): {e}", level="WARN")
 
