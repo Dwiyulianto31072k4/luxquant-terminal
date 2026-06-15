@@ -45,6 +45,7 @@ from app.services.verdict_schema import (
     CompleteVerdict,
     LayerBriefBundle,
     ReportBundleV6,
+    RiskScenario,
     SelfCritique,
 )
 
