@@ -1261,14 +1261,16 @@ const AllSignalsModal = ({ open, onClose, signals, onPickSignal }) => {
 
 // ─── Main Page ───────────────────────────────────────────────────
 
-const DailyPerformancePage = () => {
+const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {}) => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(todayUTC());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ outcome: null, sector: null, pattern: null, btc_trend: null });
-  const [activeTab, setActiveTab] = useState("overview");
+  const [internalTab, setInternalTab] = useState("overview");
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = onTabChange ?? setInternalTab;
   const [showAllModal, setShowAllModal] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [loadingSignal, setLoadingSignal] = useState(false);
@@ -1376,7 +1378,9 @@ const DailyPerformancePage = () => {
         <div className="space-y-5">
           <HeroSection signals={filteredSignals} totalUnfiltered={allSignals.length} summary={summary} correlationSummary={correlationSummary} selectedDate={selectedDate} hasFilters={hasFilters} />
           <KpiRow signals={filteredSignals} />
+          {!hideTabBar && (
           <div className="mt-8"><TabSwitcher active={activeTab} onChange={setActiveTab} /></div>
+          )}
           <div className="mt-5">
             {activeTab === "overview" && <OverviewTab signals={filteredSignals} detail={detail?.context} summary={summary} filters={filters} addFilter={addFilter} />}
             {activeTab === "patterns" && <PatternsTab signals={filteredSignals} filters={filters} addFilter={addFilter} />}

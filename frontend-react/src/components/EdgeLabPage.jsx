@@ -77,13 +77,15 @@ const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
   </div>
 );
 
-const EdgeLabPage = () => {
+const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {}) => {
   const [days, setDays] = useState(30);
   const [sector, setSector] = useState("all");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("calibration");
+  const [internalTab, setInternalTab] = useState("calibration");
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = onTabChange ?? setInternalTab;
   const [drillBucket, setDrillBucket] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [openingId, setOpeningId] = useState(null);
@@ -290,6 +292,7 @@ const EdgeLabPage = () => {
           </div>
 
           {/* Tabs */}
+          {!hideTabBar && (
           <div className="flex items-center gap-1 border-b border-white/[0.07] overflow-x-auto">
             {TAB_ITEMS.map((t) => {
               const isActive = activeTab === t.id;
@@ -307,6 +310,7 @@ const EdgeLabPage = () => {
               );
             })}
           </div>
+          )}
 
           <div>
             {activeTab === "calibration" && <PatternCalibrationTab data={data.pattern_calibration} onDrill={setDrillBucket} />}
