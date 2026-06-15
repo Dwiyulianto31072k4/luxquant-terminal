@@ -64,6 +64,7 @@ const DailyPerformancePage = lazy(
   () => import("./components/DailyPerformancePage"),
 );
 const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
+const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -91,6 +92,7 @@ const PageLoader = () => (
 const LOGIN_REQUIRED = [
   "/signals",
   "/analytics",
+  "/performance",
   "/bitcoin",
   "/markets",
   "/watchlist",
@@ -373,22 +375,10 @@ function AppShell({ children }) {
       description: "Track PnL, equity curve & trade history",
     },
     {
-      path: "/analytics",
-      label: t("nav.analytics"),
+      path: "/performance",
+      label: "Performance",
       icon: "📈",
-      description: "Performance analytics & win rate",
-    },
-    {
-      path: "/daily-performance",
-      label: "Daily Performance",
-      icon: "📅",
-      description: "Per-day breakdown by hit date with BTC context",
-    },
-    {
-      path: "/daily-performance/edge-lab",
-      label: "Edge Lab",
-      icon: "🧪",
-      description: "Pattern reliability, EV & timing analytics",
+      description: "Track record, daily snapshot & multi-day research",
     },
     {
       path: "/orderbook",
@@ -850,11 +840,11 @@ function AppShell({ children }) {
                 />
               }
             />
-            {/* Analytics — trending-up chart, lebih "analytics" */}
+            {/* Performance — unified hub (Overview / Daily / Research) */}
             <SidebarItem
-              active={isActive("/analytics")}
-              onClick={() => handleNav("/analytics")}
-              label={t("nav.analytics")}
+              active={isActive("/performance")}
+              onClick={() => handleNav("/performance")}
+              label="Performance"
               isFreeBadge
               icon={
                 <>
@@ -869,124 +859,6 @@ function AppShell({ children }) {
                     strokeLinejoin="round"
                     strokeWidth={1.5}
                     d="M16 7h6v6"
-                  />
-                </>
-              }
-            />
-            <SidebarItem
-              active={isActive("/daily-performance")}
-              onClick={() => handleNav("/daily-performance")}
-              label="Daily Performance"
-              isFreeBadge
-              icon={
-                <>
-                  <rect
-                    x="3"
-                    y="5"
-                    width="18"
-                    height="16"
-                    rx="1"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="3"
-                    y1="9"
-                    x2="21"
-                    y2="9"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="8"
-                    y1="3"
-                    x2="8"
-                    y2="7"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="16"
-                    y1="3"
-                    x2="16"
-                    y2="7"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="7"
-                    y1="17"
-                    x2="7"
-                    y2="15"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="11"
-                    y1="17"
-                    x2="11"
-                    y2="13.5"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="15"
-                    y1="17"
-                    x2="15"
-                    y2="12"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <line
-                    x1="19"
-                    y1="17"
-                    x2="19"
-                    y2="11"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </>
-              }
-            />
-            {/* Edge Lab — conical flask (multi-day pattern analytics) */}
-            <SidebarItem
-              active={isActive("/daily-performance/edge-lab")}
-              onClick={() => handleNav("/daily-performance/edge-lab")}
-              label="Edge Lab"
-              isFreeBadge
-              icon={
-                <>
-                  <line
-                    x1="9"
-                    y1="3"
-                    x2="15"
-                    y2="3"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M10 3 v6 L4.6 18.4 A1 1 0 005.5 20 h13 a1 1 0 00.9-1.6 L14 9 V3"
-                  />
-                  <line
-                    x1="7"
-                    y1="14.5"
-                    x2="17"
-                    y2="14.5"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
                   />
                 </>
               }
@@ -1394,33 +1266,29 @@ function App() {
                 </AppShell>
               }
             />
+            {/* Unified Performance hub (Overview / Daily / Research) */}
             <Route
-              path="/daily-performance"
-              element={
-                <AppShell>
-                  <DailyPerformancePage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/daily-performance/edge-lab"
-              element={
-                <AppShell>
-                  <EdgeLabPage />
-                </AppShell>
-              }
-            />
-
-            {/* FREE (login required) */}
-            <Route
-              path="/analytics"
+              path="/performance"
               element={
                 <RequireAuth>
                   <AppShell>
-                    <AnalyzePage />
+                    <PerformanceHub />
                   </AppShell>
                 </RequireAuth>
               }
+            />
+            {/* Legacy routes → redirect into the hub (keep bookmarks alive) */}
+            <Route
+              path="/analytics"
+              element={<Navigate to="/performance?view=overview" replace />}
+            />
+            <Route
+              path="/daily-performance"
+              element={<Navigate to="/performance?view=daily" replace />}
+            />
+            <Route
+              path="/daily-performance/edge-lab"
+              element={<Navigate to="/performance?view=research" replace />}
             />
             <Route
               path="/journal"
