@@ -451,7 +451,7 @@ const SignalRow = ({ s, maxPeak, btcHold, selected, onSelect }) => {
                 className={alpha >= 0 ? "text-emerald-400/55" : "text-red-400/55"}
                 title="Peak minus BTC move over this signal's own window"
               >
-                α {alpha >= 0 ? "+" : "−"}{Math.abs(alpha).toFixed(1)}
+                vBTC {alpha >= 0 ? "+" : "−"}{Math.abs(alpha).toFixed(1)}
               </span>
             )}
           </div>

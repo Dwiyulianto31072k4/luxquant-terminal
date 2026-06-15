@@ -783,7 +783,7 @@ async def get_wr_vs_btc(
         raise HTTPException(status_code=400, detail="range must be 30, 90, 365, or all")
 
     today_str = datetime.utcnow().date().isoformat()
-    cache_key = f"lq:edge-lab:wr-vs-btc:v2:{range}:{today_str}"
+    cache_key = f"lq:edge-lab:wr-vs-btc:v3:{range}:{today_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -837,11 +837,42 @@ async def get_wr_vs_btc(
         if btc_closes:
             cache_set(btc_cache_key, btc_closes, ttl=86400)
 
+    # ─── 2b. Capture rate per CREATED day (median realized / median MFE) ───
+    # Same population as daily_market_regime: resolved via OUTCOMES_CTE
+    # (signal_updates), grouped by created day. signal_journey LEFT JOINed
+    # so journeyless rows just drop out of the medians.
+    cap_series = {}
+    try:
+        cap_rows = db.execute(text(f"""
+            WITH {OUTCOMES_CTE}
+            SELECT
+                (NULLIF(s.created_at, '')::timestamptz AT TIME ZONE 'UTC')::date AS d,
+                percentile_cont(0.5) WITHIN GROUP (ORDER BY j.realized_outcome_pct)
+                    FILTER (WHERE j.realized_outcome_pct IS NOT NULL) AS med_realized,
+                percentile_cont(0.5) WITHIN GROUP (ORDER BY j.overall_mfe_pct)
+                    FILTER (WHERE j.overall_mfe_pct > 0) AS med_mfe
+            FROM resolved r
+            JOIN signals s ON s.signal_id = r.signal_id
+            LEFT JOIN signal_journey j ON j.signal_id = r.signal_id
+            WHERE NULLIF(s.created_at, '') IS NOT NULL
+            GROUP BY 1
+        """)).fetchall()
+        for cr in cap_rows:
+            if cr[0] is None:
+                continue
+            cap_series[cr[0].isoformat()] = {
+                "med_realized": _safe_float(cr[1]),
+                "med_mfe": _safe_float(cr[2]),
+            }
+    except Exception:
+        cap_series = {}
+
     # ─── 3. Merge by date (WR drives the axis; BTC may be null on gap days) ───
     series = []
     for day in sorted(wr_series.keys()):
         w = wr_series[day]
         b = btc_closes.get(day) or {}
+        cap = cap_series.get(day) or {}
         series.append({
             "date": day,
             "win_rate": w["win_rate"],
@@ -851,6 +882,8 @@ async def get_wr_vs_btc(
             "btc_high": b.get("h"),
             "btc_low": b.get("l"),
             "btc_close": b.get("c"),
+            "med_mfe": cap.get("med_mfe"),
+            "med_realized": cap.get("med_realized"),
         })
 
     response = {

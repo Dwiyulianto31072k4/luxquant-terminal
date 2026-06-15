@@ -68,6 +68,13 @@ const wAvg = (days) => {
   return days.reduce((p, c) => p + c.win_rate * c.total_closed, 0) / n;
 };
 
+const median = (arr) => {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+
 const corrStrength = (r) => {
   const a = Math.abs(r);
   if (a < 0.2) return "negligible";
@@ -219,12 +226,19 @@ const WrVsBtcTab = ({ onDrill }) => {
       const ds = usable.filter((d) => b.test(d.btcRet));
       const closed = ds.reduce((p, c) => p + c.total_closed, 0);
       const wr = wAvg(ds);
+      // capture = how much of peak (MFE) the static TP banked, per day,
+      // then median across the bucket. Only days carrying journey medians.
+      const caps = ds
+        .filter((d) => d.med_mfe != null && d.med_mfe > 0 && d.med_realized != null)
+        .map((d) => (d.med_realized / d.med_mfe) * 100);
+      const capture = caps.length ? median(caps) : null;
       return {
         ...b,
         days: ds.length,
         closed,
         wr: wr != null ? +wr.toFixed(1) : null,
         delta: wr != null && overallWr != null ? +(wr - overallWr).toFixed(1) : null,
+        capture: capture != null ? Math.round(capture) : null,
       };
     });
 
@@ -589,17 +603,18 @@ const WrVsBtcTab = ({ onDrill }) => {
               WR by same-day BTC move
             </div>
             <div className="rounded-lg border border-white/[0.06] overflow-hidden">
-              <div className="grid grid-cols-[1.2fr_0.6fr_0.8fr_0.9fr_1.4fr] gap-2 px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-white/30 border-b border-white/[0.05]">
+              <div className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[9px] font-mono uppercase tracking-[0.18em] text-white/30 border-b border-white/[0.05]">
                 <span>BTC day</span>
                 <span className="text-right">Days</span>
                 <span className="text-right">Closed</span>
                 <span className="text-right">WR</span>
+                <span className="text-right" title="Median share of peak (MFE) the static TP banked">Capture</span>
                 <span className="text-right">vs range WR ({analysis.overallWr}%)</span>
               </div>
               {analysis.buckets.map((b) => (
                 <div
                   key={b.id}
-                  className="grid grid-cols-[1.2fr_0.6fr_0.8fr_0.9fr_1.4fr] gap-2 px-3 py-2 text-[11px] font-mono tabular-nums border-b border-white/[0.04] last:border-0 items-center"
+                  className="grid grid-cols-[1.2fr_0.55fr_0.7fr_0.8fr_0.85fr_1.3fr] gap-2 px-3 py-2 text-[11px] font-mono tabular-nums border-b border-white/[0.04] last:border-0 items-center"
                 >
                   <span className="text-white/70">{b.label}</span>
                   <span className="text-right text-white/45">{b.days}</span>
@@ -614,6 +629,20 @@ const WrVsBtcTab = ({ onDrill }) => {
                     }`}
                   >
                     {b.wr != null ? `${b.wr}%` : "—"}
+                  </span>
+                  <span
+                    className={`text-right ${
+                      b.capture == null
+                        ? "text-white/25"
+                        : b.capture >= 60
+                          ? "text-emerald-300/80"
+                          : b.capture >= 40
+                            ? "text-amber-300/80"
+                            : "text-rose-300/80"
+                    }`}
+                    title="Median realized ÷ median MFE — share of the peak the TP captured"
+                  >
+                    {b.capture != null ? `${b.capture}%` : "—"}
                   </span>
                   <span className="flex items-center justify-end gap-2">
                     {b.delta != null ? (
@@ -642,6 +671,11 @@ const WrVsBtcTab = ({ onDrill }) => {
                 </div>
               ))}
             </div>
+            <p className="mt-2 text-[10px] text-white/35 leading-relaxed">
+              Capture = median realized gain ÷ median peak (MFE) for signals created that
+              day. Lower capture means the static TP left more of the move on the table —
+              it tends to fall when BTC gives bigger swings.
+            </p>
           </div>
 
           {/* anomalies — drillable */}
