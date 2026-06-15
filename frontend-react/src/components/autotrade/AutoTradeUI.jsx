@@ -472,3 +472,27 @@ export function Spinner({ label = "Loading…" }) {
     </Card>
   );
 }
+
+
+const RED_GRADIENT =
+  "linear-gradient(135deg, #ff5c6c 0%, #f6465d 50%, #d9344a 100%)";
+
+export function DangerButton({
+  children,
+  onClick,
+  disabled = false,
+  type = "button",
+  className = "",
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      style={{ background: RED_GRADIENT }}
+      className={`rounded-md px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
