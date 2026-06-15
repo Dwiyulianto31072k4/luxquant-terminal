@@ -9,7 +9,7 @@ NO deep_translator — translations handled on frontend.
 import json
 import httpx
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.core.redis import cache_get, cache_set, cache_get_with_stale, is_redis_available
@@ -131,6 +131,7 @@ def get_calendar_health(
     *,
     include_next_week: bool = False,
     event_count: int = 0,
+    events: Optional[list[dict]] = None,
 ) -> dict:
     """Return the source state from the most recent calendar fetch."""
     now = datetime.now(timezone.utc)
@@ -151,6 +152,22 @@ def get_calendar_health(
     age_seconds = (
         max(0.0, (now - parsed_at).total_seconds()) if parsed_at else None
     )
+    event_dates = []
+    for event in events or []:
+        try:
+            value = str(event.get("date") or "").replace("Z", "+00:00")
+            event_at = datetime.fromisoformat(value)
+            if event_at.tzinfo is None:
+                event_at = event_at.replace(tzinfo=timezone.utc)
+            event_dates.append(event_at.astimezone(timezone.utc))
+        except (TypeError, ValueError):
+            continue
+    coverage_through = max(event_dates) if event_dates else None
+    covers_72h = (
+        coverage_through >= now + timedelta(hours=72)
+        if coverage_through is not None
+        else False
+    )
     return {
         "provider": "forexfactory",
         "status": status,
@@ -160,6 +177,10 @@ def get_calendar_health(
         "event_count": event_count,
         "weeks_requested": keys,
         "sources": states,
+        "coverage_through": (
+            coverage_through.isoformat() if coverage_through else None
+        ),
+        "covers_72h": covers_72h,
     }
 
 

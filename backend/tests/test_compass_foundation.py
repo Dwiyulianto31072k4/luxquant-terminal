@@ -304,6 +304,7 @@ def test_event_risk_deduplicates_news_and_flags_near_macro_event():
             "fetched_at": now.isoformat(),
             "age_seconds": 0,
             "event_count": 1,
+            "covers_72h": True,
         },
         now=now,
     )
@@ -351,6 +352,7 @@ def test_event_risk_marks_both_sources_unavailable():
             "fetched_at": None,
             "age_seconds": None,
             "event_count": 0,
+            "covers_72h": False,
         },
         now=now,
     )

@@ -388,6 +388,18 @@ def build_event_risk_snapshot(
     }
     assessment = _risk_assessment(headlines, events)
 
+    if (
+        calendar_health.get("available")
+        and calendar_health.get("covers_72h") is False
+    ):
+        coverage_warning = (
+            "Economic-calendar coverage ends before the full 72-hour window."
+        )
+        if assessment["risk_level"] == "low":
+            assessment["warnings"] = [coverage_warning]
+        else:
+            assessment["warnings"].append(coverage_warning)
+
     if not news_health["available"] and not calendar_health.get("available"):
         assessment.update({
             "risk_level": "unavailable",
@@ -427,7 +439,7 @@ def build_event_risk_snapshot(
 async def get_event_risk_snapshot(
     *,
     news_limit: int = 30,
-    include_next_week: bool = True,
+    include_next_week: bool = False,
 ) -> dict:
     """Fetch existing sources and return the structured Compass snapshot."""
     news_payload = await get_macro_news(limit=news_limit)
@@ -435,6 +447,7 @@ async def get_event_risk_snapshot(
     health = get_calendar_health(
         include_next_week=include_next_week,
         event_count=len(events),
+        events=events,
     )
     return build_event_risk_snapshot(
         news_payload,
