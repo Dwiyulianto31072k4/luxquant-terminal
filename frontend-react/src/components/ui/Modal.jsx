@@ -37,6 +37,7 @@ const SIZES = {
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-[820px]",
+  "2xl": "max-w-[1100px]",
 };
 
 export default function Modal({
