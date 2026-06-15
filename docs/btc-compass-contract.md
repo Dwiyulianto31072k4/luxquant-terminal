@@ -129,3 +129,28 @@ a bullish, bearish, or neutral call. When scheduled event risk is elevated, it
 may only reduce existing 24-hour and 72-hour confidence and append an explicit
 risk warning. The before/after confidence values and unchanged directions are
 stored in the snapshot audit.
+
+## Phase 4 Transparent Evidence Matrix
+
+Phase 4 stores and displays one deterministic evidence matrix for the 24-hour
+and 72-hour horizons. The rows are:
+
+- observed price action;
+- estimated liquidation liquidity;
+- derivatives;
+- smart-money positioning;
+- macro liquidity;
+- on-chain behavior;
+- cycle context;
+- news and scheduled event risk.
+
+Each row exposes its condition, strength, horizon weight, source health, source
+age, supporting values, and material change from the preceding report.
+Unavailable evidence remains `unavailable`; it is never converted into a
+neutral vote.
+
+The matrix publishes a weighted evidence bias, coverage, directional conflicts,
+and comparison with the user-facing verdict. It is an audit surface only and
+has `decision_authority=false`. Cycle context and event risk have zero
+directional weight: cycle remains a slow backdrop, while news/events remain a
+confidence guardrail.

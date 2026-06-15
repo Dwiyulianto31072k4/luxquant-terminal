@@ -214,4 +214,27 @@ def get_previous_verdict_context() -> Optional[dict]:
         db.close()
 
 
-__all__ = ["persist_report_to_db", "get_previous_verdict_context"]
+def get_previous_evidence_matrix() -> Optional[dict]:
+    """Return the most recent persisted evidence matrix, if one exists."""
+    db: Session = SessionLocal()
+    try:
+        row = db.execute(text("""
+            SELECT report_json
+            FROM ai_arena_reports
+            WHERE schema_version = 'v6.1'
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """)).first()
+        if not row or not isinstance(row.report_json, dict):
+            return None
+        matrix = row.report_json.get("evidence_matrix")
+        return matrix if isinstance(matrix, dict) else None
+    finally:
+        db.close()
+
+
+__all__ = [
+    "persist_report_to_db",
+    "get_previous_verdict_context",
+    "get_previous_evidence_matrix",
+]

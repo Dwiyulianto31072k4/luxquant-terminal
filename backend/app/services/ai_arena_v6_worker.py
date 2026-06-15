@@ -51,6 +51,7 @@ from app.services.verdict_schema import (
 # Phase 3 — DB persistence helpers
 try:
     from app.services.ai_arena_v6_persist import (
+        get_previous_evidence_matrix,
         get_previous_verdict_context,
         persist_report_to_db,
     )
@@ -59,6 +60,7 @@ except ImportError:
     # Allow worker to run without DB persistence (smoke test mode)
     _PERSIST_AVAILABLE = False
     get_previous_verdict_context = lambda: None  # noqa: E731
+    get_previous_evidence_matrix = lambda: None  # noqa: E731
     persist_report_to_db = lambda b: None  # noqa: E731
 
 load_dotenv()
@@ -659,7 +661,14 @@ async def generate_v6_report(
     # ─────────────────────────────────────
     cycle_dict = cycle_result.to_dict()
     bg_summary = {
-        k: {"value": m.value, "ok": m.ok, "error": m.error}
+        k: {
+            "value": m.value,
+            "ok": m.ok,
+            "error": m.error,
+            "timestamp": m.timestamp,
+            "fetched_at": m.fetched_at,
+            "is_stale": m.is_stale,
+        }
         for k, m in bg_snapshot.items()
     }
 
@@ -879,6 +888,34 @@ async def generate_v6_report(
     except Exception as e:
         _log(f"Shadow det skipped (non-fatal): {e}", level="WARN")
 
+    # -- Phase 4: transparent evidence matrix (audit only) --
+    evidence_matrix = None
+    try:
+        from app.services.compass_evidence_matrix import build_evidence_matrix
+
+        _previous_matrix = (
+            get_previous_evidence_matrix() if _PERSIST_AVAILABLE else None
+        )
+        evidence_matrix = build_evidence_matrix(
+            btc_price=btc_price,
+            price_context=price_context,
+            confluence=confluence_dict,
+            cycle=cycle_dict,
+            liquidity=liquidity_doc,
+            event_risk=event_risk_doc,
+            bg_summary=bg_summary,
+            verdict=verdict,
+            previous_matrix=_previous_matrix,
+        )
+        _log(
+            "Evidence matrix: "
+            f"24h={evidence_matrix['horizons']['24h']['bias']} "
+            f"72h={evidence_matrix['horizons']['72h']['bias']} "
+            f"changed={evidence_matrix['changes']['changed_rows']}"
+        )
+    except Exception as e:
+        _log(f"Evidence matrix unavailable (non-fatal): {e}", level="WARN")
+
     bundle_v6 = ReportBundleV6(
         schema_version=SCHEMA_VERSION,
         report_id=f"v6_{uuid.uuid4().hex[:10]}",
@@ -892,6 +929,7 @@ async def generate_v6_report(
         bg_snapshot_summary=bg_summary,
         liquidity=liquidity_doc,
         event_risk=event_risk_doc,
+        evidence_matrix=evidence_matrix,
         shadow_deterministic=shadow_det,
         cost_breakdown={
             "stage1": cost1,

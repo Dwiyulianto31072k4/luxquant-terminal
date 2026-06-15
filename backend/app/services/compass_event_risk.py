@@ -22,6 +22,14 @@ MAX_EVENTS = 10
 
 TOPICS = (
     (
+        "market_stress",
+        "Market stress",
+        (
+            "liquidation", "hack", "exploit", "bankruptcy", "default",
+            "selloff", "crash", "war", "conflict",
+        ),
+    ),
+    (
         "monetary_policy",
         "Monetary policy",
         (
@@ -54,14 +62,6 @@ TOPICS = (
         "institutional_flows",
         "Institutional flows",
         ("etf", "inflow", "outflow", "institutional", "treasury", "reserve"),
-    ),
-    (
-        "market_stress",
-        "Market stress",
-        (
-            "liquidation", "hack", "exploit", "bankruptcy", "default",
-            "selloff", "crash", "war", "conflict",
-        ),
     ),
     (
         "bitcoin_market",

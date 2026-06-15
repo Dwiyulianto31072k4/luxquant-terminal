@@ -13,6 +13,7 @@ from app.services.compass_event_risk import (
     apply_event_risk_to_verdict,
     build_event_risk_snapshot,
 )
+from app.services.compass_evidence_matrix import build_evidence_matrix
 from app.services.binance_liquidation_map import estimate_liquidation_map
 from app.services.binance_liquidation_validation import (
     match_event_to_forecast,
@@ -360,6 +361,209 @@ def test_event_risk_marks_both_sources_unavailable():
     assert snapshot["risk_level"] == "unavailable"
     assert snapshot["confidence_adjustment"]["penalty_points"] == 0
     assert snapshot["source_health"]["news"]["status"] == "unavailable"
+
+
+def test_exploit_headline_is_market_stress_not_regulation():
+    now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+    snapshot = build_event_risk_snapshot(
+        {
+            "fetched_at": now.isoformat(),
+            "status": "fresh",
+            "articles": [{
+                "title": "Aztec Connect smart contract exploited for $2.1M",
+                "description": "Security incident prompts a regulatory discussion.",
+                "source": "CoinTelegraph",
+                "published": now.isoformat(),
+            }],
+        },
+        [],
+        calendar_health={
+            "status": "fresh",
+            "available": True,
+            "event_count": 0,
+            "covers_72h": True,
+        },
+        now=now,
+    )
+
+    assert snapshot["headlines"][0]["topic"] == "market_stress"
+
+
+def _matrix_bg_summary():
+    now = datetime.now(timezone.utc).timestamp()
+    keys = {
+        "mvrv-zscore", "puell-multiple", "mayer-multiple", "pi-cycle",
+        "reserve-risk", "m2global", "m2yoy-change", "ssr",
+        "ssr-oscillator", "funding-rate", "btc-derivatives-basis-1h",
+        "taker-vol-1h", "top-trader-position-1h",
+        "top-trader-account-1h", "nupl", "sopr", "sth-mvrv",
+        "miner-net-flow", "exchange-netflow-btc", "hashribbons",
+    }
+    return {
+        key: {
+            "ok": True,
+            "fetched_at": now,
+            "is_stale": False,
+        }
+        for key in keys
+    }
+
+
+def _matrix_confluence():
+    return {
+        "layers": {
+            "macro_liquidity": {
+                "verdict": "BULLISH",
+                "strength": 0.5,
+                "rationale": "Macro liquidity is expanding.",
+                "metrics": [
+                    {
+                        "key": "m2yoy_change",
+                        "score": 1,
+                        "label": "+5.2%",
+                        "available": True,
+                    },
+                ],
+            },
+            "smart_money": {
+                "verdict": "BEARISH",
+                "strength": 0.5,
+                "rationale": "Positioning is cautious.",
+                "metrics": [
+                    {
+                        "key": "funding_rate",
+                        "score": -1,
+                        "label": "-0.01%",
+                        "available": True,
+                    },
+                    {
+                        "key": "basis",
+                        "score": 0,
+                        "label": "+12",
+                        "available": True,
+                    },
+                    {
+                        "key": "top_trader_position",
+                        "score": 1,
+                        "label": "58% long",
+                        "available": True,
+                    },
+                ],
+            },
+            "onchain": {
+                "verdict": "NEUTRAL",
+                "strength": 0.0,
+                "rationale": "On-chain signals are balanced.",
+                "metrics": [
+                    {
+                        "key": "sopr",
+                        "score": 0,
+                        "label": "1.00",
+                        "available": True,
+                    },
+                ],
+            },
+        },
+    }
+
+
+def test_evidence_matrix_is_transparent_and_non_authoritative():
+    verdict = SimpleNamespace(
+        tactical_24h=SimpleNamespace(direction="bearish"),
+        secondary_7d=SimpleNamespace(direction="neutral"),
+    )
+    matrix = build_evidence_matrix(
+        btc_price=65_000,
+        price_context={
+            "change_24h_pct": 1.5,
+            "change_72h_pct": -2.5,
+            "change_7d_pct": -3.0,
+            "high_24h": 66_000,
+            "low_24h": 63_500,
+        },
+        confluence=_matrix_confluence(),
+        cycle={
+            "score": 45,
+            "phase": "ACCUMULATION",
+            "phase_label": "Accumulation",
+            "confidence": "medium",
+        },
+        liquidity={
+            "provider": "binance_estimated_liquidation_v1",
+            "status": "fresh",
+            "available": True,
+            "age_seconds": 120,
+            "layer": {
+                "verdict": "BEARISH",
+                "strength": 0.6,
+                "rationale": "Downside liquidity is heavier.",
+            },
+            "magnets": {
+                "dominance_up": 0.35,
+                "nearest_above": {"price": 66_500},
+                "nearest_below": {"price": 63_000},
+            },
+            "model_confidence": 0.68,
+        },
+        event_risk={
+            "risk_level": "elevated",
+            "summary": "Two high-impact events fall inside 72 hours.",
+            "confidence_adjustment": {"penalty_points": 4},
+            "windows": {"next_72h": {"high_impact_count": 2}},
+            "source_health": {
+                "news": {"status": "fresh"},
+                "calendar": {"status": "fresh"},
+            },
+        },
+        bg_summary=_matrix_bg_summary(),
+        verdict=verdict,
+    )
+
+    rows = {row["key"]: row for row in matrix["rows"]}
+    assert matrix["decision_authority"] is False
+    assert len(rows) == 8
+    assert rows["news_event_risk"]["horizons"]["24h"]["weight"] == 0
+    assert rows["cycle_context"]["role"] == "context_only"
+    assert matrix["horizons"]["24h"]["verdict_direction"] == "bearish"
+    assert matrix["horizons"]["24h"]["coverage"] > 0.9
+
+
+def test_evidence_matrix_marks_missing_derivatives_unavailable():
+    bg_summary = _matrix_bg_summary()
+    for key in (
+        "funding-rate", "btc-derivatives-basis-1h", "taker-vol-1h",
+    ):
+        bg_summary[key] = {"ok": False, "error": "upstream"}
+    confluence = _matrix_confluence()
+    confluence["layers"]["smart_money"]["metrics"] = [
+        {
+            "key": "top_trader_position",
+            "score": 1,
+            "label": "58% long",
+            "available": True,
+        },
+    ]
+    verdict = SimpleNamespace(
+        tactical_24h=SimpleNamespace(direction="neutral"),
+        secondary_7d=SimpleNamespace(direction="neutral"),
+    )
+
+    matrix = build_evidence_matrix(
+        btc_price=65_000,
+        price_context={"change_24h_pct": 0, "change_7d_pct": 0},
+        confluence=confluence,
+        cycle={"score": 50, "phase": "MID_BULL", "confidence": "medium"},
+        liquidity={},
+        event_risk={},
+        bg_summary=bg_summary,
+        verdict=verdict,
+    )
+    derivatives = next(
+        row for row in matrix["rows"] if row["key"] == "derivatives"
+    )
+
+    assert derivatives["source_health"]["status"] == "unavailable"
+    assert derivatives["horizons"]["24h"]["direction"] == "unavailable"
 
 
 def test_missing_liquidity_is_unavailable_not_evidence():

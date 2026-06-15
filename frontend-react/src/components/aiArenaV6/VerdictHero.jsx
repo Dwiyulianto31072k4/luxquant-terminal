@@ -231,8 +231,8 @@ export default function VerdictHero({ report, btcPrice }) {
 
       {/* 3 Horizon cards */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <HorizonCard label="Primary" horizonLabel="30-DAY HORIZON" verdict={primary30d} />
-        <HorizonCard label="Short-term" horizonLabel="7-DAY HORIZON" verdict={secondary7d} />
+        <HorizonCard label="Cycle context" horizonLabel="SLOW MARKET BACKDROP" verdict={primary30d} />
+        <HorizonCard label="Swing" horizonLabel="72-HOUR HORIZON" verdict={secondary7d} />
         <HorizonCard label="Tactical" horizonLabel="24-HOUR HORIZON" verdict={tactical24h} />
       </div>
 

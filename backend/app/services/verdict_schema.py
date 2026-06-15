@@ -412,6 +412,8 @@ class ReportBundleV6(BaseModel):
     liquidity: Optional[dict] = None
     # Structured news and economic-event context. Never owns direction.
     event_risk: Optional[dict] = None
+    # Deterministic 24h/72h evidence audit. Never owns direction.
+    evidence_matrix: Optional[dict] = None
     # Shadow validation: deterministic direction recorded alongside LLM (not shown to user).
     shadow_deterministic: Optional[dict] = None
 

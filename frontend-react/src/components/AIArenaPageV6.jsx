@@ -49,6 +49,7 @@ import InstitutionalFlowRadar from "./aiArenaV6/InstitutionalFlowRadar";
 import MacroPulse from "./aiArenaV6/MacroPulse";
 import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
 import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
+import EvidenceMatrixPanel from "./aiArenaV6/EvidenceMatrixPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -305,6 +306,7 @@ export default function AIArenaPageV6() {
   const zonesToWatch = verdict?.zones_to_watch || [];
   const whatChanged = verdict?.what_changed || null;
   const riskScenarios = verdict?.risk_scenarios || [];
+  const evidenceMatrix = innerReport?.evidence_matrix || null;
 
   return (
     <div
@@ -331,6 +333,9 @@ export default function AIArenaPageV6() {
 
         {/* 3. Price Chart — Batch 2 Turn 2 — Lightweight Charts v5 */}
         <PriceChart />
+
+        {/* Phase 4: deterministic evidence audit by horizon */}
+        <EvidenceMatrixPanel data={evidenceMatrix} />
 
         {/* Phase 2: estimated liquidation model validation */}
         <LiquidityValidationPanel data={liquidityValidation} />

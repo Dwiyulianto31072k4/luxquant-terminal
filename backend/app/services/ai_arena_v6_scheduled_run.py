@@ -60,7 +60,8 @@ async def fetch_price_context() -> tuple[float, dict]:
     high_24h = float(ticker["highPrice24h"])
     low_24h = float(ticker["lowPrice24h"])
 
-    # Try to get 7d change from klines (1d interval, last 8 candles)
+    # Get 72h and 7d changes from daily klines.
+    change_72h = None
     change_7d = None
     try:
         async with httpx.AsyncClient(timeout=10) as c:
@@ -74,6 +75,9 @@ async def fetch_price_context() -> tuple[float, dict]:
                 },
             )
             klines = r.json()["result"]["list"]
+            if len(klines) >= 4:
+                price_72h_ago = float(klines[3][4])
+                change_72h = round((btc_price / price_72h_ago - 1) * 100, 2)
             if len(klines) >= 7:
                 # Bybit returns newest first
                 price_7d_ago = float(klines[6][4])  # close of 7 days ago
@@ -83,6 +87,7 @@ async def fetch_price_context() -> tuple[float, dict]:
 
     price_context = {
         "change_24h_pct": round(change_24h, 2),
+        "change_72h_pct": change_72h,
         "change_7d_pct": change_7d,
         "high_24h": high_24h,
         "low_24h": low_24h,
