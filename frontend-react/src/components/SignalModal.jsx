@@ -598,11 +598,7 @@ const SignalModal = ({
       calendar: false,
       hide_volume: false,
       withdateranges: true,
-      studies: [
-        "MACD@tv-basicstudies",
-        "Stochastic RSI@tv-basicstudies",
-        "SuperTrend@tv-basicstudies",
-      ],
+      studies: ["MACD@tv-basicstudies", "Stochastic RSI@tv-basicstudies"],
       support_host: "https://www.tradingview.com",
     });
 
@@ -671,11 +667,8 @@ const SignalModal = ({
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: false,
-        studies: [
-          "MACD@tv-basicstudies",
-          "Stochastic RSI@tv-basicstudies",
-          "SuperTrend@tv-basicstudies",
-        ],
+        studies: ["MACD@tv-basicstudies", "Stochastic RSI@tv-basicstudies"],
+
         support_host: "https://www.tradingview.com",
       });
 
