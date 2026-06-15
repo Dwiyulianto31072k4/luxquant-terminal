@@ -1,13 +1,19 @@
 // src/components/edgelab/SignalDrillDrawer.jsx
 // ════════════════════════════════════════════════════════════════
-// Level-2 drill — MASTER-DETAIL MODAL (v4).
+// Level-2 drill — MASTER-DETAIL MODAL (v5).
 // Same export/props as before — EdgeLabPage needs no change.
 //
 //   ① header     → bucket label · WR · outcome distribution · BTC that day
 //   ② left pane  → filter/sort + compact list (peak under-bar, α vs BTC)
 //   ③ right pane → identity · TRADE vs MARKET (signal peak set against the
-//                  BTC move over the SAME holding window, + alpha) · peak
-//                  field strip · timeline facts · CTA
+//                  BTC move over the SAME holding window, + alpha) · TRADE
+//                  JOURNEY (MFE/MAE excursion + realized vs missed, from
+//                  signal_journey) · peak field strip · timeline facts · CTA
+//
+// New in v5: drill payload signals may carry mfe_pct / mae_pct /
+// realized_pct / missed_pct (backend LEFT JOINs signal_journey). All four
+// are optional — the journey block renders only when MFE/MAE are present,
+// so dimensions/rows without journey data are unaffected.
 //
 // bucket.btc       (optional): { chg, open, close } — intraday BTC for the
 //                  bucket day. Header stat + timeline row.
@@ -237,6 +243,106 @@ const TradeVsMarket = ({ s, btcHold }) => {
   );
 };
 
+// ─── trade journey (signal_journey: MFE / MAE / realized / missed) ───
+// MFE = how high the trade ran (max favorable excursion).
+// MAE = how deep it sank first (max adverse excursion, ≤0).
+// realized vs missed = what the call actually banked vs what it left on
+// the table at the peak. Renders only when MFE & MAE are present.
+const TradeJourney = ({ s }) => {
+  const mfe = s.mfe_pct;
+  const mae = s.mae_pct;
+  if (mfe == null && mae == null) return null;
+
+  // excursion bars share one magnitude scale so up/down read comparably
+  const top = Math.max(Math.abs(mfe ?? 0), Math.abs(mae ?? 0)) || 1;
+  const up = mfe != null ? Math.max(2, (Math.abs(mfe) / top) * 100) : 0;
+  const dn = mae != null ? Math.max(2, (Math.abs(mae) / top) * 100) : 0;
+
+  const realized = s.realized_pct;
+  const missed = s.missed_pct;
+  const captureBase = realized != null && missed != null ? realized + missed : null;
+  const capture =
+    captureBase && captureBase > 0 ? Math.round((realized / captureBase) * 100) : null;
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-3.5 py-3">
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-white/30">
+          Trade journey · path to outcome
+        </span>
+      </div>
+
+      {/* MFE / MAE excursion — two bars from a shared center baseline */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2.5">
+          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-white/35">
+            Ran up
+          </span>
+          <div className="relative flex-1 h-[12px]">
+            <div className="absolute inset-y-0 left-0 w-px bg-white/[0.14]" />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 left-0 h-[6px] rounded-full"
+              style={{ width: `${up}%`, background: "rgba(52,211,153,0.65)" }}
+            />
+          </div>
+          <span className="w-[58px] shrink-0 text-right font-mono tabular-nums text-[12px] text-emerald-400">
+            {mfe != null ? fmtPeak(mfe) : "—"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <span className="w-[68px] shrink-0 text-[9px] font-mono uppercase tracking-[0.14em] text-white/35">
+            Drew down
+          </span>
+          <div className="relative flex-1 h-[12px]">
+            <div className="absolute inset-y-0 left-0 w-px bg-white/[0.14]" />
+            <div
+              className="absolute top-1/2 -translate-y-1/2 left-0 h-[6px] rounded-full"
+              style={{ width: `${dn}%`, background: "rgba(248,113,113,0.6)" }}
+            />
+          </div>
+          <span className="w-[58px] shrink-0 text-right font-mono tabular-nums text-[12px] text-red-400">
+            {mae != null ? fmtPeak(mae) : "—"}
+          </span>
+        </div>
+      </div>
+
+      {/* realized vs missed potential */}
+      {realized != null && missed != null && (
+        <div className="mt-3 pt-2.5 border-t border-white/[0.05]">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/35">
+              Banked vs left on table
+            </span>
+            {capture != null && (
+              <span className="text-[10px] font-mono tabular-nums text-white/55">
+                {capture}% of peak captured
+              </span>
+            )}
+          </div>
+          <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.05]">
+            {captureBase > 0 && (
+              <>
+                <div
+                  style={{ width: `${(realized / captureBase) * 100}%`, background: "rgba(52,211,153,0.6)" }}
+                  title={`realized ${fmtPeak(realized)}`}
+                />
+                <div
+                  style={{ width: `${(missed / captureBase) * 100}%`, background: "rgba(255,255,255,0.12)" }}
+                  title={`missed ${fmtPeak(missed)}`}
+                />
+              </>
+            )}
+          </div>
+          <div className="flex justify-between mt-1 text-[9px] font-mono tabular-nums">
+            <span className="text-emerald-400/80">realized {fmtPeak(realized)}</span>
+            <span className="text-white/35">missed {fmtPeak(missed)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── peak field strip ────────────────────────────────────────────
 // Every signal of the bucket as a dot on a signed-log axis; the selected
 // one is ringed in gold, median ticked. "Where this trade sits in the field."
@@ -422,6 +528,9 @@ const DetailPane = ({ s, rank, total, allSignals, btc, btcSeries, opening, onOpe
 
         {/* signature: did this trade beat just holding BTC? */}
         <TradeVsMarket s={s} btcHold={btcHold} />
+
+        {/* trade journey: how it got to the outcome (MFE/MAE, realized vs missed) */}
+        <TradeJourney s={s} />
 
         {/* where this signal sits in the day's field */}
         <PeakField signals={allSignals} selectedId={s.signal_id} />

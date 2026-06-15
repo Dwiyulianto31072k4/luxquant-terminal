@@ -516,7 +516,7 @@ async def get_edge_lab_drill(
         if key_date < start_date:
             start_date = key_date
             start_str = start_date.isoformat()
-    cache_key = f"lq:edge-lab:drill:v2:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
+    cache_key = f"lq:edge-lab:drill:v3:{dimension}:{key}:{days}:{sector_filter}:{end_str}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -530,16 +530,19 @@ async def get_edge_lab_drill(
         scoped AS (
             SELECT r.signal_id, r.outcome, r.hit_date,
                    s.pair, s.peak_pct, s.created_at,
-                   NULLIF(s.created_at, '')::timestamptz AS created_ts
+                   NULLIF(s.created_at, '')::timestamptz AS created_ts,
+                   j.overall_mfe_pct, j.overall_mae_pct,
+                   j.realized_outcome_pct, j.missed_potential_pct
             FROM resolved r
             JOIN signals s ON s.signal_id = r.signal_id
             LEFT JOIN coins c ON c.pair = s.pair
+            LEFT JOIN signal_journey j ON j.signal_id = r.signal_id
             WHERE r.hit_date >= :start AND r.hit_date <= :end
             {sector_clause}
         )
     """
 
-    select_cols = "sc.signal_id::text AS signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at"
+    select_cols = "sc.signal_id::text AS signal_id, sc.pair, sc.outcome, sc.hit_date::text, sc.peak_pct, sc.created_at, sc.overall_mfe_pct, sc.overall_mae_pct, sc.realized_outcome_pct, sc.missed_potential_pct"
     order_by = (
         "ORDER BY (sc.outcome = 'sl') ASC, sc.peak_pct DESC NULLS LAST, sc.hit_date DESC "
         "LIMIT :limit"
@@ -652,6 +655,10 @@ async def get_edge_lab_drill(
         "hit_date": r[3],
         "peak_pct": _safe_float(r[4]),
         "created_at": r[5],
+        "mfe_pct": _safe_float(r[6]),
+        "mae_pct": _safe_float(r[7]),
+        "realized_pct": _safe_float(r[8]),
+        "missed_pct": _safe_float(r[9]),
     } for r in rows]
 
     wins = sum(1 for s in signals if s["outcome"] in ("tp1", "tp2", "tp3", "tp4"))
