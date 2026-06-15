@@ -154,3 +154,24 @@ and comparison with the user-facing verdict. It is an audit surface only and
 has `decision_authority=false`. Cycle context and event risk have zero
 directional weight: cycle remains a slow backdrop, while news/events remain a
 confidence guardrail.
+
+## Phase 5 Shadow Validation And Confidence Calibration
+
+Phase 5 compares the user-facing verdict and deterministic shadow model against
+the same resolved 24-hour and 72-hour outcomes. The audit publishes:
+
+- baseline and shadow hit rates on the same eligible sample;
+- the shadow model's edge or deficit versus the baseline;
+- mean confidence, calibration gap, Brier score, and confidence bands;
+- agreement and disagreement outcomes;
+- performance segmented by liquidity freshness and evidence coverage;
+- explicit initial-sample, robust-sample, edge, calibration, and
+  regime-stability gates.
+
+Historical outcomes that predate shadow metadata remain visible in the baseline
+record but are not silently counted as shadow observations. Missing freshness or
+coverage metadata is labeled as legacy or not recorded.
+
+Phase 5 has `decision_authority=false`. Passing every gate only makes a horizon
+eligible for manual review. It never enables `COMPASS_DETERMINISTIC_VERDICT`
+automatically and never changes the user-facing direction.

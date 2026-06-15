@@ -186,6 +186,22 @@ def get_track_record(
 
 
 # ════════════════════════════════════════════════════════════════════════
+# GET /model-calibration
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/model-calibration")
+def get_compass_model_calibration(
+    days: int = Query(90, ge=30, le=365),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """Return Phase 5 shadow-model validation and confidence calibration."""
+    from app.services.compass_model_calibration import get_model_calibration
+
+    return get_model_calibration(db, days=days)
+
+
+# ════════════════════════════════════════════════════════════════════════
 # GET /liquidity-validation
 # ════════════════════════════════════════════════════════════════════════
 

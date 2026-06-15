@@ -39,6 +39,16 @@ export async function getTrackRecord({ days = 30 } = {}) {
 }
 
 /**
+ * Fetch Phase 5 shadow-model validation and confidence calibration.
+ */
+export async function getModelCalibration({ days = 90 } = {}) {
+  const { data } = await api.get(`${V6_BASE}/model-calibration`, {
+    params: { days },
+  });
+  return data;
+}
+
+/**
  * Fetch Phase 2 liquidation model validation and collector health.
  */
 export async function getLiquidityValidation({ limit = 25 } = {}) {
@@ -70,6 +80,7 @@ export default {
   getLatestReport,
   getLedger,
   getTrackRecord,
+  getModelCalibration,
   getLiquidityValidation,
   getEventRisk,
   getChartData,

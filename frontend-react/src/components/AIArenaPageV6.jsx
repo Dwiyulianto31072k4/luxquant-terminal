@@ -23,6 +23,7 @@ import {
   getLatestReport,
   getLedger,
   getTrackRecord,
+  getModelCalibration,
   getLiquidityValidation,
   getEventRisk,
 } from "../services/aiArenaV6Api";
@@ -50,6 +51,7 @@ import MacroPulse from "./aiArenaV6/MacroPulse";
 import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
 import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
 import EvidenceMatrixPanel from "./aiArenaV6/EvidenceMatrixPanel";
+import ModelCalibrationPanel from "./aiArenaV6/ModelCalibrationPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -199,6 +201,7 @@ export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [trackRecord, setTrackRecord] = useState(null);
+  const [modelCalibration, setModelCalibration] = useState(null);
   const [liquidityValidation, setLiquidityValidation] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -214,10 +217,11 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [latestRes, ledgerRes, trackRes, liquidityRes, eventRiskRes] = await Promise.allSettled([
+      const [latestRes, ledgerRes, trackRes, calibrationRes, liquidityRes, eventRiskRes] = await Promise.allSettled([
         getLatestReport(),
         getLedger({ days: 14 }),
         getTrackRecord({ days: 30 }),
+        getModelCalibration({ days: 90 }),
         getLiquidityValidation({ limit: 25 }),
         getEventRisk(),
       ]);
@@ -244,6 +248,13 @@ export default function AIArenaPageV6() {
           horizons: {},
           overall: { total: 0, hit: 0, miss: 0, hit_rate: null },
         });
+      }
+
+      if (calibrationRes.status === "fulfilled") {
+        setModelCalibration(calibrationRes.value);
+      } else {
+        console.warn("[v6] model calibration fetch failed:", calibrationRes.reason);
+        setModelCalibration(null);
       }
 
       if (liquidityRes.status === "fulfilled") {
@@ -376,6 +387,9 @@ export default function AIArenaPageV6() {
         />
 
         {/* 9. Verdict Ledger */}
+        <ModelCalibrationPanel data={modelCalibration} />
+
+        {/* 9b. Verdict history */}
         <VerdictLedger trackRecord={trackRecord} ledger={ledger} />
 
         {/* 10. Risk Watch — NEW Batch 2 Turn 1 */}
