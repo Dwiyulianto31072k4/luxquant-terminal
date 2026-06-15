@@ -118,7 +118,7 @@ const SectionHeader = ({ label, hint }) => (
     <span className="h-px w-8 bg-gold-primary/40" />
     <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{label}</span>
     <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
-    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/70">{hint}</span>}
+    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-white/50">{hint}</span>}
   </div>
 );
 
@@ -128,10 +128,10 @@ const SectionHeader = ({ label, hint }) => (
 const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
   <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-secondary mb-2">{label}</p>
+    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/70 mb-2">{label}</p>
     <div className="h-px bg-white/[0.06] mb-3" />
     <p className={`font-mono text-2xl lg:text-3xl font-light tabular-nums leading-none ${valueColor}`}>{value}</p>
-    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/70 mt-2">{sub}</p>}
+    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-2">{sub}</p>}
   </div>
 );
 
@@ -730,13 +730,13 @@ const SignalsPage = () => {
             <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
           <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">Potential Trades</h1>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/80 mt-1.5">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-white/70 mt-1.5">
             Last 7 days
-            <span className="mx-2 text-text-secondary/40">·</span>
+            <span className="mx-2 text-white/30">·</span>
             <span className="text-white tabular-nums">{allSignals.length}</span> signals
             {updatedCount > 0 && (
               <>
-                <span className="mx-2 text-text-secondary/40">·</span>
+                <span className="mx-2 text-white/30">·</span>
                 <span className="text-gold-primary tabular-nums">{updatedCount}</span> recently updated
               </>
             )}
@@ -754,7 +754,7 @@ const SignalsPage = () => {
                 : '0 0 6px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.35)',
             }}
           />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">
             {loading
               ? 'Syncing'
               : lastUpdated
@@ -809,7 +809,7 @@ const SignalsPage = () => {
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-secondary hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white"
             >
               {Icon.close('w-3 h-3')}
               Reset All
@@ -820,7 +820,7 @@ const SignalsPage = () => {
         {/* PRIMARY ROW — search + sort + order (always visible) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
           <div className="md:col-span-7 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/60 pointer-events-none">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/45 pointer-events-none">
               {Icon.search('w-3.5 h-3.5')}
             </span>
             <input
@@ -842,7 +842,7 @@ const SignalsPage = () => {
                 <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
               ))}
             </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none">
               {Icon.chevronDown('w-3 h-3')}
             </span>
           </div>
@@ -861,8 +861,8 @@ const SignalsPage = () => {
         {/* TIMELINE — always visible (primary filter) */}
         <div>
           <div className="flex items-center justify-between mb-2.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Timeline</span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">multi-select</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">Timeline</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">multi-select</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {dateOptions.map((opt) => {
@@ -874,13 +874,13 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     isActive
                       ? 'bg-white/10 border border-white/[0.08] text-white'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span>{opt.label}</span>
                   {opt.count != null && (
                     <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded-sm ${
-                      isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-secondary/80'
+                      isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-white/70'
                     }`}>
                       {opt.count}
                     </span>
@@ -900,7 +900,7 @@ const SignalsPage = () => {
           >
             <span className="flex items-center gap-2">
               <span className="text-gold-primary/70">{Icon.sliders('w-3.5 h-3.5')}</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary group-hover:text-white transition-colors">
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/70 group-hover:text-white transition-colors">
                 Advanced Filters
               </span>
               {advancedActiveCount > 0 && (
@@ -909,7 +909,7 @@ const SignalsPage = () => {
                 </span>
               )}
             </span>
-            <span className={`text-text-secondary group-hover:text-white transition-all ${advancedOpen ? 'rotate-180' : ''}`}>
+            <span className={`text-white/70 group-hover:text-white transition-all ${advancedOpen ? 'rotate-180' : ''}`}>
               {Icon.chevronDown('w-3.5 h-3.5')}
             </span>
           </button>
@@ -923,7 +923,7 @@ const SignalsPage = () => {
               {/* Status */}
               <div className="lg:col-span-8">
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Signal Status</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">Signal Status</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {statusOptions.map((opt) => {
@@ -932,7 +932,7 @@ const SignalsPage = () => {
                       opt.accent === 'emerald' ? 'text-emerald-400' :
                       opt.accent === 'red' ? 'text-red-400' :
                       opt.accent === 'gold' ? 'text-gold-primary' :
-                      'text-text-secondary';
+                      'text-white/70';
                     return (
                       <button
                         key={opt.value}
@@ -943,7 +943,7 @@ const SignalsPage = () => {
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           isActive
                             ? 'bg-white/10 border border-white/[0.08] text-white'
-                            : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                            : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                         }`}
                       >
                         {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
@@ -962,7 +962,7 @@ const SignalsPage = () => {
               {/* Risk */}
               <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Risk Profile</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">Risk Profile</span>
                 </div>
                 <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-sm p-0.5">
                   {riskOptions.map((opt) => {
@@ -974,7 +974,7 @@ const SignalsPage = () => {
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           isActive
                             ? 'bg-white/10 text-white'
-                            : 'text-text-secondary hover:text-white hover:bg-white/[0.03]'
+                            : 'text-white/70 hover:text-white hover:bg-white/[0.03]'
                         }`}
                       >
                         {opt.dotColor && (
@@ -991,8 +991,8 @@ const SignalsPage = () => {
             {/* Intelligence Filters */}
             <div className="pt-5 border-t border-white/[0.06]">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-secondary">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
-                <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">powered by coin intelligence</span>
+                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/70">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
+                <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">powered by coin intelligence</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 <button
@@ -1000,7 +1000,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     streakFilter === "hot"
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
@@ -1018,7 +1018,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrDecoupled
                       ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
@@ -1035,7 +1035,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     corrHighAlign
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
@@ -1053,7 +1053,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "worth_it"
                       ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
@@ -1070,7 +1070,7 @@ const SignalsPage = () => {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                     verdictFilter === "avoid"
                       ? 'bg-red-500/15 border border-red-500/40 text-red-400'
-                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
@@ -1088,8 +1088,8 @@ const SignalsPage = () => {
             {sortedTagsForChips.length > 0 && (
               <div className="pt-5 border-t border-white/[0.06]">
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-secondary">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">historical win rate · descriptive</span>
+                  <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/70">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">historical win rate · descriptive</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {(() => {
@@ -1099,7 +1099,7 @@ const SignalsPage = () => {
                   })().map((t) => {
                     const active = selectedTags.includes(t.tag);
                     const cnt = tagActiveCount[t.tag] || 0;
-                    const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-secondary';
+                    const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-white/70';
                     return (
                       <button
                         key={t.tag}
@@ -1108,13 +1108,13 @@ const SignalsPage = () => {
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
                           active
                             ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
-                            : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                            : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
                         }`}
                       >
                         <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
                         <span className={`tabular-nums ${active ? 'text-gold-primary' : wrCol}`}>{t.win_rate}%</span>
                         {cnt > 0 && (
-                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-secondary/80'}`}>
+                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-white/70'}`}>
                             {cnt}
                           </span>
                         )}
@@ -1127,14 +1127,14 @@ const SignalsPage = () => {
                     return (
                       <button
                         onClick={() => setShowAllTags((v) => !v)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-secondary hover:text-white hover:border-white/[0.15] transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-white/70 hover:text-white hover:border-white/[0.15] transition-all"
                       >
                         {showAllTags ? 'Show less' : `Show all (${presentCount})`}
                       </button>
                     );
                   })()}
                 </div>
-                <p className="font-mono text-[9px] text-text-secondary/60 mt-2 normal-case tracking-normal leading-relaxed">
+                <p className="font-mono text-[9px] text-white/45 mt-2 normal-case tracking-normal leading-relaxed">
                   Win rate of resolved signals that carried each tag. Tags overlap and describe entry conditions — not a standalone buy trigger.
                 </p>
               </div>
@@ -1155,7 +1155,7 @@ const SignalsPage = () => {
               {Icon.alert('w-5 h-5')}
             </div>
             <h3 className="font-mono text-sm text-white">Failed to load signals</h3>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">{error}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-white/70">{error}</p>
             <button
               onClick={() => fetchBulkSignals(true)}
               className="px-4 py-2 mt-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"

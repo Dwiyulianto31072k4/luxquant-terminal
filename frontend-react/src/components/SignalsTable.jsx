@@ -100,14 +100,14 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-white"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-white/75 hover:text-white"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="7" height="18" rx="1" />
           <rect x="14" y="3" width="7" height="18" rx="1" />
         </svg>
         <span>Columns</span>
-        <span className="text-text-muted/60 tabular-nums">{visibleCount}/{SIGNAL_COLUMNS.length}</span>
+        <span className="text-white/45 tabular-nums">{visibleCount}/{SIGNAL_COLUMNS.length}</span>
       </button>
 
       {open && (
@@ -117,7 +117,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">Visible Columns</span>
             <button
               onClick={onReset}
-              className="font-mono text-[9px] uppercase tracking-wider text-text-muted hover:text-gold-primary transition-colors"
+              className="font-mono text-[9px] uppercase tracking-wider text-white/75 hover:text-gold-primary transition-colors"
             >
               Reset
             </button>
@@ -141,7 +141,7 @@ const ColumnsMenu = ({ visibleCols, onToggle, onReset }) => {
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </span>
-                  <span className={active ? 'text-white' : 'text-text-muted'}>{c.label}</span>
+                  <span className={active ? 'text-white' : 'text-white/75'}>{c.label}</span>
                 </button>
               );
             })}
@@ -544,7 +544,7 @@ const SignalsTable = ({
       cls = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
       label = s.toUpperCase();
     } else {
-      cls = 'bg-white/[0.04] text-text-muted border-white/[0.06]';
+      cls = 'bg-white/[0.04] text-white/75 border-white/[0.06]';
       label = status || '-';
     }
     return (
@@ -594,7 +594,7 @@ const SignalsTable = ({
     return (
       <th
         className={`py-3 px-4 font-mono text-[10px] font-medium uppercase tracking-[0.18em] cursor-pointer transition-colors select-none ${textAlign} ${
-          isActive ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'
+          isActive ? 'text-white' : 'text-white/50 hover:text-white/80'
         }`}
         onClick={() => onSort && onSort(field)}
       >
@@ -613,7 +613,7 @@ const SignalsTable = ({
   };
 
   const EmptyStateIcon = () => (
-    <svg className="w-8 h-8 text-text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className="w-8 h-8 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.35-4.35" />
     </svg>
@@ -642,9 +642,9 @@ const SignalsTable = ({
                 <p className="text-white font-mono text-sm tracking-wide group-hover:text-amber-400 transition-colors">
                   {getCoinName(signal.pair)}
                 </p>
-                <p className="text-text-muted/60 text-[10px] font-mono">USDT</p>
+                <p className="text-white/45 text-[10px] font-mono">USDT</p>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
                 <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
                   {getRiskLabel(signal.risk_level)}
                 </span>
@@ -679,7 +679,7 @@ const SignalsTable = ({
                   return (
                     <span
                       title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
-                      className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case"
+                      className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case max-w-[150px] truncate"
                     >
                       {fmtTag(tt.tag).toLowerCase()} {tt.wr}%
                     </span>
@@ -721,7 +721,7 @@ const SignalsTable = ({
               <span className="w-1 h-1 rounded-full bg-amber-400/60" />
               {getUpdateTypeBadge(signal.last_update_type)}
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">
               {formatTimeAgo(signal.last_update_at)}
             </span>
           </div>
@@ -729,11 +729,11 @@ const SignalsTable = ({
 
         <div className="grid grid-cols-3 gap-2 mb-3 bg-white/[0.02] border border-white/[0.06] p-3 rounded-sm">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mb-1">Entry</p>
+            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Entry</p>
             <p className="text-white font-mono text-[12px] tabular-nums font-medium">{formatPrice(signal.entry)}</p>
           </div>
           <div className="text-center border-x border-white/[0.04]">
-            <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mb-1">Current</p>
+            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Current</p>
             {pricesLoading && !currentPrice ? (
               <div className="h-3 w-12 bg-white/[0.04] rounded animate-pulse mx-auto" />
             ) : currentPrice ? (
@@ -741,17 +741,17 @@ const SignalsTable = ({
                 {formatPrice(currentPrice)}
               </p>
             ) : (
-              <p className="text-text-muted/40 text-[12px]">-</p>
+              <p className="text-white/30 text-[12px]">-</p>
             )}
           </div>
           <div className="text-right">
-            <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mb-1">P&L</p>
+            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">P&L</p>
             {priceChange !== null ? (
               <p className={`font-mono text-[12px] tabular-nums font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
               </p>
             ) : (
-              <p className="text-text-muted/40 text-[12px]">-</p>
+              <p className="text-white/30 text-[12px]">-</p>
             )}
           </div>
         </div>
@@ -764,31 +764,31 @@ const SignalsTable = ({
             { label: 'TP4', value: signal.target4 },
           ].map((tp, i) => (
             <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
-              <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">{tp.label}</p>
-              <p className="text-text-muted font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : '—'}</p>
+              <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">{tp.label}</p>
+              <p className="text-white/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : '—'}</p>
             </div>
           ))}
         </div>
 
         <div className="flex items-center justify-between text-[10px] border-t border-white/[0.06] pt-3">
           <div className="flex items-center gap-3 flex-wrap font-mono">
-            {signal.market_cap && <span className="text-text-muted/60">MC <span className="text-text-muted">{formatMarketCap(signal.market_cap)}</span></span>}
+            {signal.market_cap && <span className="text-white/45">MC <span className="text-white/75">{formatMarketCap(signal.market_cap)}</span></span>}
             {currentVol ? (
-              <span className="text-text-muted/60">Vol <span className="text-text-muted">{formatVolume(currentVol)}</span></span>
+              <span className="text-white/45">Vol <span className="text-white/75">{formatVolume(currentVol)}</span></span>
             ) : signal.volume_rank_num && signal.volume_rank_den ? (
-              <span className="text-text-muted/60">Vol <span className="text-text-muted">{signal.volume_rank_num}/{signal.volume_rank_den}</span></span>
+              <span className="text-white/45">Vol <span className="text-white/75">{signal.volume_rank_num}/{signal.volume_rank_den}</span></span>
             ) : null}
             {(() => {
               const b = getBtc(signal);
               if (!b) return null;
               return (
-                <span className="text-text-muted/60">BTC <span className={btcScoreColor(b.score)}>{b.score}</span>{b.decoupled ? ' ⚡' : ''}</span>
+                <span className="text-white/45">BTC <span className={btcScoreColor(b.score)}>{b.score}</span>{b.decoupled ? ' ⚡' : ''}</span>
               );
             })()}
           </div>
           <div className="text-right">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/60 mr-1.5">Called</span>
-            <span className="text-text-muted font-mono tabular-nums font-medium">{formatDateTimeShort(signal.created_at)}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-white/45 mr-1.5">Called</span>
+            <span className="text-white/75 font-mono tabular-nums font-medium">{formatDateTimeShort(signal.created_at)}</span>
           </div>
         </div>
       </div>
@@ -830,7 +830,7 @@ const SignalsTable = ({
                 <EmptyStateIcon />
               </div>
               <p className="text-white font-mono text-sm">No signals found</p>
-              <p className="text-text-muted font-mono text-[10px] uppercase tracking-wider">Adjust your filters and try again</p>
+              <p className="text-white/75 font-mono text-[10px] uppercase tracking-wider">Adjust your filters and try again</p>
             </div>
           </div>
         ) : (
@@ -841,7 +841,7 @@ const SignalsTable = ({
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between py-4 mt-2">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Page {page}/{totalPages}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-white/75">Page {page}/{totalPages}</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onPageChange(page - 1)}
@@ -891,7 +891,7 @@ const SignalsTable = ({
                         <InfoTip side="bottom" title={t('guide.track_t')} text={t('guide.track_d')} />
                         <button
                           onClick={() => onSort && onSort('win_rate')}
-                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_rate' ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'}`}
+                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_rate' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
                         >
                           WR
                           <svg className={`w-2.5 h-2.5 transition-all ${sortBy === 'win_rate' ? 'opacity-100 text-amber-400' : 'opacity-0'}`}
@@ -900,10 +900,10 @@ const SignalsTable = ({
                             <path d="M17.6569 16.2427L19.0711 14.8285L12.0001 7.75739L4.92896 14.8285L6.34317 16.2427L12.0001 10.5858L17.6569 16.2427Z" />
                           </svg>
                         </button>
-                        <span className="text-text-muted/30">/</span>
+                        <span className="text-white/25">/</span>
                         <button
                           onClick={() => onSort && onSort('win_streak')}
-                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_streak' ? 'text-white' : 'text-text-muted/70 hover:text-text-muted'}`}
+                          className={`flex items-center gap-0.5 transition-colors ${sortBy === 'win_streak' ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
                         >
                           Streak
                           <svg className={`w-2.5 h-2.5 transition-all ${sortBy === 'win_streak' ? 'opacity-100 text-amber-400' : 'opacity-0'}`}
@@ -941,7 +941,7 @@ const SignalsTable = ({
                           <EmptyStateIcon />
                         </div>
                         <p className="text-white font-mono text-sm">No signals found</p>
-                        <p className="text-text-muted font-mono text-[10px] uppercase tracking-wider">Adjust your filters and try again</p>
+                        <p className="text-white/75 font-mono text-[10px] uppercase tracking-wider">Adjust your filters and try again</p>
                       </div>
                     </td>
                   </tr>
@@ -973,7 +973,7 @@ const SignalsTable = ({
                               <p className="text-white font-mono text-sm tracking-wide group-hover:text-amber-400 transition-colors">
                                 {getCoinName(signal.pair)}
                               </p>
-                              <p className="text-text-muted/60 text-[10px] font-mono">USDT</p>
+                              <p className="text-white/45 text-[10px] font-mono">USDT</p>
                             </div>
                           </div>
                         </td>
@@ -994,14 +994,14 @@ const SignalsTable = ({
                                 )}
                               </div>
                             ) : (
-                              <span className="text-text-muted/40">-</span>
+                              <span className="text-white/30">-</span>
                             )}
                           </td>
                         )}
 
                         {visibleCols.entry && (
                           <td className="py-3 px-4 text-right">
-                            <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatPrice(signal.entry)}</span>
+                            <span className="text-white/75 font-mono text-sm tabular-nums font-medium">{formatPrice(signal.entry)}</span>
                           </td>
                         )}
 
@@ -1044,9 +1044,9 @@ const SignalsTable = ({
                         {visibleCols.market_cap && (
                           <td className="py-3 px-4 text-right">
                             {signal.market_cap ? (
-                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatMarketCap(signal.market_cap)}</span>
+                              <span className="text-white/75 font-mono text-sm tabular-nums font-medium">{formatMarketCap(signal.market_cap)}</span>
                             ) : (
-                              <span className="text-text-muted/40">-</span>
+                              <span className="text-white/30">-</span>
                             )}
                           </td>
                         )}
@@ -1054,13 +1054,13 @@ const SignalsTable = ({
                         {visibleCols.volume && (
                           <td className="py-3 px-4 text-right">
                             {currentVol ? (
-                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">{formatVolume(currentVol)}</span>
+                              <span className="text-white/75 font-mono text-sm tabular-nums font-medium">{formatVolume(currentVol)}</span>
                             ) : signal.volume_rank_num && signal.volume_rank_den ? (
-                              <span className="text-text-muted font-mono text-sm tabular-nums font-medium">
-                                {signal.volume_rank_num}<span className="text-text-muted/40">/{signal.volume_rank_den}</span>
+                              <span className="text-white/75 font-mono text-sm tabular-nums font-medium">
+                                {signal.volume_rank_num}<span className="text-white/30">/{signal.volume_rank_den}</span>
                               </span>
                             ) : (
-                              <span className="text-text-muted/40">-</span>
+                              <span className="text-white/30">-</span>
                             )}
                           </td>
                         )}
@@ -1070,13 +1070,13 @@ const SignalsTable = ({
                             {(() => {
                               const wr = getWinRate(signal.pair);
                               const s = getStreak(signal.pair);
-                              if (wr == null && !s) return <span className="text-text-muted/40 text-xs">—</span>;
+                              if (wr == null && !s) return <span className="text-white/30 text-xs">—</span>;
                               return (
                                 <div className="flex flex-col items-center">
                                   {wr != null ? (
                                     <span className={`font-mono text-sm tabular-nums font-medium ${wrColor(wr)}`}>{wr}%</span>
                                   ) : (
-                                    <span className="text-text-muted/40 text-xs">—</span>
+                                    <span className="text-white/30 text-xs">—</span>
                                   )}
                                   {s && (
                                     <span className={`font-mono text-[10px] tabular-nums mt-0.5 font-medium ${s.type === 'win' ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
@@ -1105,7 +1105,7 @@ const SignalsTable = ({
                           <td className="py-3 px-4 text-center">
                             {(() => {
                               const b = getBtc(signal);
-                              if (!b) return <span className="text-text-muted/40 text-xs">—</span>;
+                              if (!b) return <span className="text-white/30 text-xs">—</span>;
                               return (
                                 <div className="flex flex-col items-center">
                                   <div className="flex items-center gap-1">
@@ -1113,7 +1113,7 @@ const SignalsTable = ({
                                     {b.extended && <span className="text-orange-400 text-[10px]" title="Extended move">🔥</span>}
                                     <span className={`font-mono text-sm tabular-nums font-medium ${btcScoreColor(b.score)}`}>{b.score}</span>
                                   </div>
-                                  <span className="font-mono text-[10px] tabular-nums text-text-muted/60 mt-0.5">
+                                  <span className="font-mono text-[10px] tabular-nums text-white/45 mt-0.5">
                                     ρ{fmtSigned(b.corr)} · β{fmtSigned(b.beta)}
                                   </span>
                                 </div>
@@ -1126,7 +1126,7 @@ const SignalsTable = ({
                           <td className="py-3 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
                             {(() => {
                               const v = getVerdict(signal.pair);
-                              if (!v || v.verdict === 'neutral') return <span className="text-text-muted/40 text-xs">—</span>;
+                              if (!v || v.verdict === 'neutral') return <span className="text-white/30 text-xs">—</span>;
                               const isAvoid = v.verdict === 'avoid';
                               const score = v.coin.risk_score ?? null;
                               const showHint = showVerdictHint && idx === firstVerdictIdx;
@@ -1156,32 +1156,32 @@ const SignalsTable = ({
                                           <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">👆 Click for detail</span>
                                           <button
                                             onClick={(e) => { e.stopPropagation(); setShowVerdictHint(false); }}
-                                            className="text-text-muted/60 hover:text-white"
+                                            className="text-white/45 hover:text-white"
                                             aria-label="Dismiss"
                                           >
                                             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18L18 6M6 6l12 12" /></svg>
                                           </button>
                                         </div>
-                                        <p className="font-mono text-[10px] leading-relaxed text-text-muted normal-case tracking-normal mb-2">
+                                        <p className="font-mono text-[10px] leading-relaxed text-white/75 normal-case tracking-normal mb-2">
                                           Full assessment based on win-rate history, streaks &amp; more.
                                         </p>
                                         <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-white/[0.06]">
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Win Rate</p>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">Win Rate</p>
                                             <p className="font-mono text-[11px] tabular-nums" style={{ color: v.coin.win_rate >= 70 ? '#34d399' : v.coin.win_rate >= 50 ? '#fbbf24' : '#f87171' }}>{v.coin.win_rate}%</p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Streak</p>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">Streak</p>
                                             <p className="font-mono text-[11px] tabular-nums" style={{ color: v.coin.current_streak?.type === 'win' ? '#34d399' : '#f87171' }}>
                                               {v.coin.current_streak?.length ? `${v.coin.current_streak.length}${v.coin.current_streak.type === 'win' ? 'W' : 'L'}` : '—'}
                                             </p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Trades</p>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">Trades</p>
                                             <p className="font-mono text-[11px] tabular-nums text-white">{v.coin.closed_trades ?? '—'}</p>
                                           </div>
                                           <div>
-                                            <p className="font-mono text-[8px] uppercase tracking-wider text-text-muted/60">Avg TP</p>
+                                            <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">Avg TP</p>
                                             <p className="font-mono text-[11px] tabular-nums text-white">{v.coin.avg_outcome ?? '—'}</p>
                                           </div>
                                         </div>
@@ -1211,10 +1211,10 @@ const SignalsTable = ({
                             {signal.last_update_at ? (
                               <div className="flex flex-col items-center gap-0.5">
                                 {getUpdateTypeBadge(signal.last_update_type)}
-                                <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted/60">{formatTimeAgo(signal.last_update_at)}</span>
+                                <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">{formatTimeAgo(signal.last_update_at)}</span>
                               </div>
                             ) : (
-                              <span className="text-text-muted/40 text-xs">—</span>
+                              <span className="text-white/30 text-xs">—</span>
                             )}
                           </td>
                         )}
@@ -1222,13 +1222,13 @@ const SignalsTable = ({
                         {visibleCols.created_at && (
                           <td className="py-3 px-4 text-right">
                             <div className="flex flex-col items-end">
-                              <span className="text-text-muted font-mono text-[11px] tabular-nums font-medium">
+                              <span className="text-white/75 font-mono text-[11px] tabular-nums font-medium">
                                 {(() => {
                                   const d = new Date(signal.created_at);
                                   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
                                 })()}
                               </span>
-                              <span className="font-mono text-[10px] tabular-nums text-text-muted/60 mt-0.5 font-medium">
+                              <span className="font-mono text-[10px] tabular-nums text-white/45 mt-0.5 font-medium">
                                 {(() => {
                                   const d = new Date(signal.created_at);
                                   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -1247,7 +1247,7 @@ const SignalsTable = ({
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06] bg-white/[0.015]">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-white/75">
                 Page {page} of {totalPages}
               </p>
               <div className="flex items-center gap-2">
@@ -1285,14 +1285,14 @@ const SignalsTable = ({
             </div>
             <div className="min-w-0">
               <p className="font-mono text-xs text-white tracking-wide">Some market data unavailable</p>
-              <p className="font-mono text-[11px] leading-relaxed text-text-muted mt-1">
+              <p className="font-mono text-[11px] leading-relaxed text-white/75 mt-1">
                 If prices or volume aren't loading, a global crypto exchange may be blocked on your network or region. Connecting through a VPN usually restores live data.
               </p>
             </div>
             <button
               onClick={() => setShowNotice(false)}
               aria-label="Dismiss"
-              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-sm text-text-muted/60 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-sm text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 18L18 6M6 6l12 12" />
