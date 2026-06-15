@@ -583,7 +583,7 @@ const SignalModal = ({
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: symbol,
-      interval: "60",
+      interval: "240",
       timezone: timezone,
       theme: "dark",
       style: "1",
@@ -655,7 +655,7 @@ const SignalModal = ({
       script.innerHTML = JSON.stringify({
         autosize: true,
         symbol: symbol,
-        interval: "60",
+        interval: "240",
         timezone: timezone,
         theme: "dark",
         style: "1",
