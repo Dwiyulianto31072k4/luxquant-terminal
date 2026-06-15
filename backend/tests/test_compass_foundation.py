@@ -6,6 +6,11 @@ import asyncio
 import json
 
 from app.services import coinank_fetch
+from app.services.binance_liquidation_map import estimate_liquidation_map
+from app.services.binance_liquidation_validation import (
+    match_event_to_forecast,
+    normalize_force_order_event,
+)
 from app.services.coinank_fetch import HeatmapFetchResult
 from app.services.heatmap_payload import (
     describe_payload_shape,
@@ -66,6 +71,121 @@ def test_liquidity_parser_accepts_wrapped_payload():
     assert parsed["dominance_up"] > 0.5
     assert parsed["nearest_above"]["price"] == 105_000
     assert verdict.metrics
+
+
+def _binance_model_rows():
+    start = 1_750_000_000_000
+    oi_rows = []
+    klines = []
+    taker_rows = []
+    top_rows = []
+    open_interest = 10_000.0
+    price = 100_000.0
+    for index in range(30):
+        timestamp = start + index * 300_000
+        if index % 4 == 0:
+            open_interest += 18.0
+            next_price = price * 1.002
+            taker_ratio = 1.25
+            top_ratio = 1.08 + index * 0.001
+        elif index % 7 == 0:
+            open_interest -= 10.0
+            next_price = price * 0.999
+            taker_ratio = 0.9
+            top_ratio = 1.06
+        else:
+            open_interest += 5.0
+            next_price = price * 1.0004
+            taker_ratio = 1.05
+            top_ratio = 1.07 + index * 0.0005
+        oi_rows.append({
+            "symbol": "BTCUSDT",
+            "sumOpenInterest": str(open_interest),
+            "sumOpenInterestValue": str(open_interest * next_price),
+            "timestamp": timestamp,
+        })
+        klines.append([
+            timestamp,
+            str(price),
+            str(max(price, next_price) * 1.001),
+            str(min(price, next_price) * 0.999),
+            str(next_price),
+            "100",
+        ])
+        taker_rows.append({
+            "buySellRatio": str(taker_ratio),
+            "timestamp": timestamp,
+        })
+        top_rows.append({
+            "longShortRatio": str(top_ratio),
+            "timestamp": timestamp,
+        })
+        price = next_price
+    return oi_rows, klines, taker_rows, top_rows, price
+
+
+def test_binance_estimator_builds_explicit_estimated_map():
+    oi_rows, klines, taker_rows, top_rows, price = _binance_model_rows()
+
+    payload = estimate_liquidation_map(
+        symbol="BTCUSDT",
+        oi_rows=oi_rows,
+        kline_rows=klines,
+        taker_rows=taker_rows,
+        top_position_rows=top_rows,
+        current_price=price,
+    )
+    parsed = parse_liq_heatmap(payload, current_price=price)
+    verdict = evaluate_liquidity(parsed)
+
+    assert payload is not None
+    assert payload["schema"] == "estimated_liquidation_map.v1"
+    assert payload["provider"] == "binance_estimated_liquidation_v1"
+    assert payload["model"]["label"] == "estimated_not_exchange_reported"
+    assert 0.0 < payload["model_confidence"] <= 0.68
+    assert payload["data_confidence"] >= payload["model_confidence"]
+    assert payload["levels"]
+    assert parsed is not None
+    assert parsed["source"] == "binance_estimated_liquidation_v1"
+    assert verdict.strength <= payload["model_confidence"]
+
+
+def test_binance_estimator_rejects_insufficient_rows():
+    payload = estimate_liquidation_map(
+        symbol="BTCUSDT",
+        oi_rows=[],
+        kline_rows=[],
+    )
+
+    assert payload is None
+
+
+def test_force_order_event_matches_same_side_forecast_level():
+    raw = {
+        "E": 1_750_000_000_000,
+        "o": {
+            "s": "BTCUSDT",
+            "S": "SELL",
+            "ap": "99520",
+            "z": "0.25",
+        },
+    }
+    event = normalize_force_order_event(raw)
+    match = match_event_to_forecast(
+        event,
+        {
+            "levels": [
+                {"price": 99_500, "value": 2_000_000, "side": "long"},
+                {"price": 101_000, "value": 1_000_000, "side": "short"},
+            ],
+        },
+    )
+
+    assert event is not None
+    assert event["side"] == "long"
+    assert event["notional"] == 24_880.0
+    assert match["matched"] is True
+    assert match["nearest_level"]["price"] == 99_500
 
 
 def test_missing_liquidity_is_unavailable_not_evidence():

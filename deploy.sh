@@ -27,6 +27,8 @@ FRONTEND_PATH="$LUXQUANT_PATH/frontend-react"
 NGINX_WWW_PATH="/var/www/luxquantdata"
 LUXQUANT_SERVICE="luxquant-backend"
 LUXQUANT_HEALTH_URL="http://localhost:8002/health"
+LIQUIDATION_STREAM_SERVICE="luxquant-binance-liquidation-stream"
+LIQUIDATION_STREAM_UNIT="$LUXQUANT_PATH/deployment/${LIQUIDATION_STREAM_SERVICE}.service"
 
 # ---------- Cryptobot paths ----------
 CRYPTOBOT_PATH="/root/cryptobot"
@@ -90,6 +92,23 @@ deploy_luxquant() {
         fi
     done
 
+    if [ -f "$LIQUIDATION_STREAM_UNIT" ]; then
+        echo "   → Syncing Binance liquidation validation stream..."
+        install -m 0644 \
+            "$LIQUIDATION_STREAM_UNIT" \
+            "/etc/systemd/system/${LIQUIDATION_STREAM_SERVICE}.service"
+        systemctl daemon-reload
+        systemctl enable "$LIQUIDATION_STREAM_SERVICE" > /dev/null
+        systemctl restart "$LIQUIDATION_STREAM_SERVICE"
+        if systemctl is-active --quiet "$LIQUIDATION_STREAM_SERVICE"; then
+            echo "   ✅ Liquidation validation stream active"
+        else
+            echo "   ❌ Liquidation validation stream failed to start"
+            journalctl -u "$LIQUIDATION_STREAM_SERVICE" -n 30 --no-pager
+            exit 1
+        fi
+    fi
+
     # [4/6] Worker check
     echo ""
     echo "🔍 [4/6] Verifikasi worker count..."
@@ -116,6 +135,16 @@ deploy_luxquant() {
     echo "🧹 [5/6] Membersihkan Cache Redis..."
     redis-cli flushall > /dev/null
     echo "   ✅ Redis cache cleared"
+    if [ -f "$LIQUIDATION_STREAM_UNIT" ]; then
+        echo "   → Prewarming estimated liquidation forecast..."
+        cd "$LUXQUANT_PATH/backend"
+        if ./venv/bin/python -c \
+            'import asyncio; from app.services.binance_liquidation_map import fetch_binance_estimated_heatmap; result = asyncio.run(fetch_binance_estimated_heatmap()); raise SystemExit(0 if result.available else 1)'; then
+            echo "   ✅ Liquidation forecast prewarmed"
+        else
+            echo "   ⚠️  Forecast prewarm failed; Compass will retry on its next run"
+        fi
+    fi
 
     # [6/6] Cloudflare
     echo ""

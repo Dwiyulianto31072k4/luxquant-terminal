@@ -47,6 +47,38 @@ def parse_liq_heatmap(
     Returns a dict with magnets above/below, nearest magnets, and the
     upside-mass dominance ratio — or None if the payload is unusable.
     """
+    if isinstance(raw, dict) and raw.get("schema") == "estimated_liquidation_map.v1":
+        levels = raw.get("levels")
+        if not isinstance(levels, list) or not levels:
+            return None
+        normalized_levels = []
+        for level in levels:
+            if not isinstance(level, dict):
+                continue
+            try:
+                price = float(level["price"])
+                value = float(level["value"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if price > 0 and value > 0:
+                normalized_levels.append({
+                    "price": price,
+                    "value": value,
+                    "side": level.get("side"),
+                })
+        if not normalized_levels:
+            return None
+        return _summarize_levels(
+            normalized_levels,
+            current_price=current_price,
+            window_pct=window_pct,
+            tick_size=raw.get("bucket_size"),
+            max_liq=max(level["value"] for level in normalized_levels),
+            source=raw.get("provider"),
+            model_confidence=raw.get("model_confidence"),
+            confidence_label=raw.get("confidence_label"),
+        )
+
     rec = find_liq_heatmap_record(raw)
     if rec is None:
         return None
@@ -76,6 +108,29 @@ def parse_liq_heatmap(
     if not levels:
         return None
 
+    return _summarize_levels(
+        levels,
+        current_price=current_price,
+        window_pct=window_pct,
+        tick_size=rec.get("tickSize"),
+        max_liq=lh.get("maxLiqValue"),
+        source="coinank_via_apify",
+        model_confidence=1.0,
+        confidence_label="provider",
+    )
+
+
+def _summarize_levels(
+    levels: list[dict],
+    *,
+    current_price: float,
+    window_pct: float,
+    tick_size: Any,
+    max_liq: Any,
+    source: Any,
+    model_confidence: Any,
+    confidence_label: Any,
+) -> dict:
     cur = float(current_price)
     hi = cur * (1 + window_pct / 100.0)
     lo = cur * (1 - window_pct / 100.0)
@@ -106,8 +161,11 @@ def parse_liq_heatmap(
         "mass_below": mass_below,
         "dominance_up": dom_up,          # 0..1  (>0.5 = upside heavier)
         "window_pct": window_pct,
-        "tick_size": rec.get("tickSize"),
-        "max_liq": lh.get("maxLiqValue"),
+        "tick_size": tick_size,
+        "max_liq": max_liq,
+        "source": source,
+        "model_confidence": model_confidence,
+        "confidence_label": confidence_label,
     }
 
 
@@ -165,4 +223,12 @@ def evaluate_liquidity(parsed: dict | None) -> LayerVerdict:
         score=s2, label=n2[:40], note=n2,
     ))
 
-    return _aggregate_layer("liquidity", metrics)
+    verdict = _aggregate_layer("liquidity", metrics)
+    try:
+        confidence = max(0.0, min(1.0, float(parsed.get("model_confidence", 1.0))))
+    except (TypeError, ValueError):
+        confidence = 1.0
+    verdict.strength *= confidence
+    if confidence < 1.0:
+        verdict.rationale += f"; estimated-map confidence {confidence:.2f}"
+    return verdict

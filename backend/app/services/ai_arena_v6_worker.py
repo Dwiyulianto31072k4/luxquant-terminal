@@ -669,26 +669,43 @@ async def generate_v6_report(
     # -- Liquidity layer (additive, non-blocking) --
     liquidity_doc = None
     try:
-        from app.services.coinank_fetch import fetch_coinank_heatmap
+        from app.services.binance_liquidation_map import fetch_binance_estimated_heatmap
         from app.services.liquidity_engine import parse_liq_heatmap, evaluate_liquidity
-        _coinank_result = await fetch_coinank_heatmap("BTCUSDT", "12h")
+        _heatmap_result = await fetch_binance_estimated_heatmap(
+            "BTCUSDT",
+            "12h",
+            current_price=btc_price,
+        )
         _liq_parsed = (
-            parse_liq_heatmap(_coinank_result.payload, btc_price)
-            if _coinank_result.available
+            parse_liq_heatmap(_heatmap_result.payload, btc_price)
+            if _heatmap_result.available
             else None
         )
-        _liq_usable = _coinank_result.available and _liq_parsed is not None
-        _liq_status = _coinank_result.status if _liq_usable else "unavailable"
-        _liq_reason = _coinank_result.reason
-        if _coinank_result.available and _liq_parsed is None:
+        _liq_usable = _heatmap_result.available and _liq_parsed is not None
+        _liq_status = _heatmap_result.status if _liq_usable else "unavailable"
+        _liq_reason = _heatmap_result.reason
+        if _heatmap_result.available and _liq_parsed is None:
             _liq_reason = "heatmap_parser_rejected_payload"
         _liq_layer = evaluate_liquidity(_liq_parsed if _liq_usable else None)
+        _model_confidence = (
+            float((_liq_parsed or {}).get("model_confidence") or 0.0)
+            if _liq_usable
+            else 0.0
+        )
+        _minimum_confidence = float(
+            os.getenv("COMPASS_LIQUIDITY_MIN_CONFIDENCE", "0.52")
+        )
+        _decision_eligible = (
+            _liq_usable and _model_confidence >= _minimum_confidence
+        )
         liquidity_doc = {
-            **_coinank_result.metadata(),
+            **_heatmap_result.metadata(),
             "status": _liq_status,
             "available": _liq_usable,
             "is_stale": _liq_status == "stale",
             "reason": _liq_reason,
+            "decision_eligible": _decision_eligible,
+            "minimum_confidence": _minimum_confidence,
             "layer": _liq_layer.to_dict(),
             "magnets": _liq_parsed,
         }
@@ -704,11 +721,12 @@ async def generate_v6_report(
             )
     except Exception as e:
         liquidity_doc = {
-            "provider": "coinank_via_apify",
+            "provider": "binance_estimated_liquidation_v1",
             "status": "unavailable",
             "available": False,
             "is_stale": False,
             "reason": f"liquidity_pipeline_{type(e).__name__}",
+            "decision_eligible": False,
             "layer": None,
             "magnets": None,
         }
@@ -720,9 +738,9 @@ async def generate_v6_report(
             compute_deterministic_direction, flag_enabled,
         )
         if flag_enabled():
-            if not (liquidity_doc or {}).get("available"):
+            if not (liquidity_doc or {}).get("decision_eligible"):
                 _log(
-                    "Deterministic verdict ON but not applied: liquidity unavailable",
+                    "Deterministic verdict ON but not applied: liquidity ineligible",
                     level="WARN",
                 )
             else:
@@ -759,14 +777,19 @@ async def generate_v6_report(
     shadow_det = None
     try:
         from app.services.deterministic_verdict import compute_deterministic_direction
-        if not (liquidity_doc or {}).get("available"):
+        if not (liquidity_doc or {}).get("decision_eligible"):
             shadow_det = {
                 "eligible": False,
-                "reason": "liquidity_unavailable",
+                "reason": (
+                    "liquidity_low_confidence"
+                    if (liquidity_doc or {}).get("available")
+                    else "liquidity_unavailable"
+                ),
                 "liquidity_status": (liquidity_doc or {}).get("status", "unavailable"),
                 "liquidity_reason": (liquidity_doc or {}).get("reason"),
+                "model_confidence": (liquidity_doc or {}).get("model_confidence"),
             }
-            _log("Shadow det: ineligible (liquidity unavailable)", level="WARN")
+            _log("Shadow det: ineligible (liquidity unavailable/low confidence)", level="WARN")
         else:
             _liq_doc = (liquidity_doc or {}).get("layer")
             _sd = compute_deterministic_direction(_liq_doc, confluence_dict, cycle_result.to_dict())

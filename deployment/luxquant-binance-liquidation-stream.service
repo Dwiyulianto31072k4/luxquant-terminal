@@ -1,0 +1,16 @@
+[Unit]
+Description=LuxQuant Binance Liquidation Validation Stream
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.binance_liquidation_stream
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
