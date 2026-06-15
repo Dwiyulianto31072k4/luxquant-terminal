@@ -95,6 +95,19 @@ const Icon = {
       <circle cx="12" cy="12" r="2" />
     </svg>
   ),
+  sliders: (className = 'w-3.5 h-3.5') => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </svg>
+  ),
 };
 
 // ================================================================
@@ -105,25 +118,25 @@ const SectionHeader = ({ label, hint }) => (
     <span className="h-px w-8 bg-gold-primary/40" />
     <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{label}</span>
     <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
-    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{hint}</span>}
+    {hint && <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/70">{hint}</span>}
   </div>
 );
 
 // ================================================================
-// STAT CARD — enhanced colors
+// STAT CARD — brighter label/sub for contrast
 // ================================================================
 const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
   <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
     <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted mb-2">{label}</p>
+    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-secondary mb-2">{label}</p>
     <div className="h-px bg-white/[0.06] mb-3" />
     <p className={`font-mono text-2xl lg:text-3xl font-light tabular-nums leading-none ${valueColor}`}>{value}</p>
-    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70 mt-2">{sub}</p>}
+    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/70 mt-2">{sub}</p>}
   </div>
 );
 
 // ================================================================
-// MAIN PAGE — REVISED COLORS ONLY
+// MAIN PAGE
 // ================================================================
 const SignalsPage = () => {
   const { t } = useTranslation();
@@ -163,6 +176,11 @@ const SignalsPage = () => {
   const [selectedTags, setSelectedTags] = useState([]); // tag names the user filters by
   const [showAllTags, setShowAllTags] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+
+  // Advanced (secondary) filter section — collapsed by default so the console
+  // doesn't push the table far down the page. Always force-open when an advanced
+  // filter is active so the user can see/clear what's applied.
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Min win-streak length to count as a "High Win Streak" (matches the
   // Coin Intelligence hot-streak heuristic).
@@ -446,6 +464,19 @@ const SignalsPage = () => {
     }
   };
 
+  // Count of active advanced (secondary) filters — drives the badge on the
+  // "Advanced filters" toggle and forces the section open when > 0.
+  const advancedActiveCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (riskFilter !== "all" ? 1 : 0) +
+    (streakFilter !== "all" ? 1 : 0) +
+    (corrDecoupled ? 1 : 0) +
+    (corrHighAlign ? 1 : 0) +
+    (verdictFilter !== "all" ? 1 : 0) +
+    (selectedTags.length > 0 ? 1 : 0);
+
+  const advancedOpen = showAdvanced || advancedActiveCount > 0;
+
   const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at" || selectedTags.length > 0;
 
   const toggleTag = (tag) => {
@@ -690,7 +721,7 @@ const SignalsPage = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* PAGE HEADER */}
+      {/* PAGE HEADER — reworded: feature name is the H1, "last 7 days" is the descriptor */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 mb-3">
@@ -698,12 +729,14 @@ const SignalsPage = () => {
             <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal Signals</span>
             <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
           </div>
-          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">Last 7 Days Activity</h1>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1.5">
-            <span className="text-white tabular-nums">{allSignals.length}</span> signals generated
+          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">Potential Trades</h1>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary/80 mt-1.5">
+            Last 7 days
+            <span className="mx-2 text-text-secondary/40">·</span>
+            <span className="text-white tabular-nums">{allSignals.length}</span> signals
             {updatedCount > 0 && (
               <>
-                <span className="mx-2 text-text-muted/40">·</span>
+                <span className="mx-2 text-text-secondary/40">·</span>
                 <span className="text-gold-primary tabular-nums">{updatedCount}</span> recently updated
               </>
             )}
@@ -721,7 +754,7 @@ const SignalsPage = () => {
                 : '0 0 6px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.35)',
             }}
           />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
             {loading
               ? 'Syncing'
               : lastUpdated
@@ -731,7 +764,7 @@ const SignalsPage = () => {
         </div>
       </div>
 
-      {/* PERFORMANCE STATS — enhanced colors */}
+      {/* PERFORMANCE STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="Today's Activity"
@@ -757,7 +790,7 @@ const SignalsPage = () => {
         />
       </div>
 
-      {/* FILTER CONSOLE — stronger colors */}
+      {/* FILTER CONSOLE */}
       <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
@@ -776,7 +809,7 @@ const SignalsPage = () => {
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-muted hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-text-secondary hover:text-white"
             >
               {Icon.close('w-3 h-3')}
               Reset All
@@ -784,9 +817,10 @@ const SignalsPage = () => {
           )}
         </div>
 
+        {/* PRIMARY ROW — search + sort + order (always visible) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
           <div className="md:col-span-7 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/60 pointer-events-none">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/60 pointer-events-none">
               {Icon.search('w-3.5 h-3.5')}
             </span>
             <input
@@ -794,7 +828,7 @@ const SignalsPage = () => {
               placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white placeholder-text-muted/40 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
             />
           </div>
 
@@ -808,7 +842,7 @@ const SignalsPage = () => {
                 <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
               ))}
             </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
               {Icon.chevronDown('w-3 h-3')}
             </span>
           </div>
@@ -824,259 +858,287 @@ const SignalsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Timeline */}
-          <div className="lg:col-span-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Timeline Filters</span>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">multi-select</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {dateOptions.map((opt) => {
-                const isActive = opt.value === "all" ? selectedDates.length === 0 : selectedDates.includes(opt.value);
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => toggleDateFilter(opt.value)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                      isActive
-                        ? 'bg-white/10 border border-white/[0.08] text-white'
-                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {opt.count != null && (
-                      <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded-sm ${
-                        isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-muted/70'
-                      }`}>
-                        {opt.count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Status — stronger active colors */}
-          <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Signal Status</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {statusOptions.map((opt) => {
-                const isActive = statusFilter === opt.value;
-                const accentColor =
-                  opt.accent === 'emerald' ? 'text-emerald-400' :
-                  opt.accent === 'red' ? 'text-red-400' :
-                  opt.accent === 'gold' ? 'text-gold-primary' :
-                  'text-text-muted';
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setStatusFilter(opt.value);
-                      if (opt.value === "updated" && sortBy === "created_at") setSortBy("last_update");
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                      isActive
-                        ? 'bg-white/10 border border-white/[0.08] text-white'
-                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-                    }`}
-                  >
-                    {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
-                    <span>{opt.label}</span>
-                    {opt.value === "updated" && updatedCount > 0 && !isActive && (
-                      <span className="px-1 py-0 bg-gold-primary/10 text-gold-primary text-[9px] tabular-nums rounded-sm">
-                        {updatedCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Risk — stronger dots */}
-          <div className="lg:col-span-3 lg:border-l lg:border-white/[0.06] lg:pl-5">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Risk Profile</span>
-            </div>
-            <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-sm p-0.5">
-              {riskOptions.map((opt) => {
-                const isActive = riskFilter === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => setRiskFilter(opt.value)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                      isActive
-                        ? 'bg-white/10 text-white'
-                        : 'text-text-muted hover:text-white hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    {opt.dotColor && (
-                      <span className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? '' : 'opacity-50'}`} />
-                    )}
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Intelligence Filters — joined from Coin Intelligence. This is the home
-            for the new analytics filters (Win Streak now; BTC Correlation next). */}
-        <div className="mt-5 pt-5 border-t border-white/[0.06]">
+        {/* TIMELINE — always visible (primary filter) */}
+        <div>
           <div className="flex items-center justify-between mb-2.5">
-            <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">powered by coin intelligence</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Timeline</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">multi-select</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                streakFilter === "hot"
-                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
-              <span>High Win Streak</span>
-              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥{HOT_STREAK_MIN}</span>
-              {hotStreakCount > 0 && streakFilter !== "hot" && (
-                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
-                  {hotStreakCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setCorrDecoupled((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                corrDecoupled
-                  ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
-                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
-              <span>Decoupled from BTC</span>
-              {corrCounts.dec > 0 && !corrDecoupled && (
-                <span className="px-1 py-0 bg-purple-500/10 text-purple-400 text-[9px] tabular-nums rounded-sm">
-                  {corrCounts.dec}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setCorrHighAlign((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                corrHighAlign
-                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
-              <span>High BTC Alignment</span>
-              <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥70</span>
-              {corrCounts.hi > 0 && !corrHighAlign && (
-                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
-                  {corrCounts.hi}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                verdictFilter === "worth_it"
-                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
-              <span>Worth It</span>
-              {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
-                <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
-                  {verdictCounts.worth}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                verdictFilter === "avoid"
-                  ? 'bg-red-500/15 border border-red-500/40 text-red-400'
-                  : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
-              <span>Avoid</span>
-              {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
-                <span className="px-1 py-0 bg-red-500/10 text-red-400 text-[9px] tabular-nums rounded-sm">
-                  {verdictCounts.avoid}
-                </span>
-              )}
-            </button>
+            {dateOptions.map((opt) => {
+              const isActive = opt.value === "all" ? selectedDates.length === 0 : selectedDates.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => toggleDateFilter(opt.value)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    isActive
+                      ? 'bg-white/10 border border-white/[0.08] text-white'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {opt.count != null && (
+                    <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded-sm ${
+                      isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-secondary/80'
+                    }`}>
+                      {opt.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Tag Pattern Filters — historical WR per entry-condition tag.
-            Descriptive (tags overlap; not a standalone predictive signal). */}
-        {sortedTagsForChips.length > 0 && (
-          <div className="mt-5 pt-5 border-t border-white/[0.06]">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted/50">historical win rate · descriptive</span>
+        {/* ADVANCED FILTERS TOGGLE */}
+        <div className="mt-5 pt-4 border-t border-white/[0.06]">
+          <button
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 group"
+            aria-expanded={advancedOpen}
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-gold-primary/70">{Icon.sliders('w-3.5 h-3.5')}</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary group-hover:text-white transition-colors">
+                Advanced Filters
+              </span>
+              {advancedActiveCount > 0 && (
+                <span className="px-1.5 py-0 font-mono text-[9px] tabular-nums rounded-sm bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                  {advancedActiveCount} active
+                </span>
+              )}
+            </span>
+            <span className={`text-text-secondary group-hover:text-white transition-all ${advancedOpen ? 'rotate-180' : ''}`}>
+              {Icon.chevronDown('w-3.5 h-3.5')}
+            </span>
+          </button>
+        </div>
+
+        {/* ADVANCED FILTERS BODY — collapsed by default */}
+        {advancedOpen && (
+          <div className="mt-4 space-y-5 animate-slideDown">
+            {/* Status + Risk */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Status */}
+              <div className="lg:col-span-8">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Signal Status</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {statusOptions.map((opt) => {
+                    const isActive = statusFilter === opt.value;
+                    const accentColor =
+                      opt.accent === 'emerald' ? 'text-emerald-400' :
+                      opt.accent === 'red' ? 'text-red-400' :
+                      opt.accent === 'gold' ? 'text-gold-primary' :
+                      'text-text-secondary';
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setStatusFilter(opt.value);
+                          if (opt.value === "updated" && sortBy === "created_at") setSortBy("last_update");
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                          isActive
+                            ? 'bg-white/10 border border-white/[0.08] text-white'
+                            : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                        }`}
+                      >
+                        {opt.icon && <span className={isActive ? accentColor : 'opacity-70'}>{opt.icon('w-3 h-3')}</span>}
+                        <span>{opt.label}</span>
+                        {opt.value === "updated" && updatedCount > 0 && !isActive && (
+                          <span className="px-1 py-0 bg-gold-primary/10 text-gold-primary text-[9px] tabular-nums rounded-sm">
+                            {updatedCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Risk */}
+              <div className="lg:col-span-4 lg:border-l lg:border-white/[0.06] lg:pl-5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">Risk Profile</span>
+                </div>
+                <div className="flex bg-white/[0.02] border border-white/[0.06] rounded-sm p-0.5">
+                  {riskOptions.map((opt) => {
+                    const isActive = riskFilter === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setRiskFilter(opt.value)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                          isActive
+                            ? 'bg-white/10 text-white'
+                            : 'text-text-secondary hover:text-white hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        {opt.dotColor && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${opt.dotColor} ${isActive ? '' : 'opacity-50'}`} />
+                        )}
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {(() => {
-                const present = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0 || selectedTags.includes(t.tag));
-                const shown = showAllTags ? present : present.slice(0, 10);
-                return shown;
-              })().map((t) => {
-                const active = selectedTags.includes(t.tag);
-                const cnt = tagActiveCount[t.tag] || 0;
-                const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-muted';
-                return (
-                  <button
-                    key={t.tag}
-                    onClick={() => toggleTag(t.tag)}
-                    title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
-                      active
-                        ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
-                        : 'bg-white/[0.03] border border-transparent text-text-muted hover:bg-white/[0.06] hover:text-white'
-                    }`}
-                  >
-                    <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
-                    <span className={`tabular-nums ${active ? 'text-gold-primary' : wrCol}`}>{t.win_rate}%</span>
-                    {cnt > 0 && (
-                      <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-muted/70'}`}>
-                        {cnt}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-              {(() => {
-                const presentCount = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0).length;
-                if (presentCount <= 10) return null;
-                return (
-                  <button
-                    onClick={() => setShowAllTags((v) => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-muted hover:text-white hover:border-white/[0.15] transition-all"
-                  >
-                    {showAllTags ? 'Show less' : `Show all (${presentCount})`}
-                  </button>
-                );
-              })()}
+
+            {/* Intelligence Filters */}
+            <div className="pt-5 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-secondary">Intelligence Filters<InfoTip side="bottom" title={t('guide.sec_intel')} text={t('guide.worth_d')} /></span>
+                <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">powered by coin intelligence</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setStreakFilter(streakFilter === "hot" ? "all" : "hot")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    streakFilter === "hot"
+                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span className={streakFilter === "hot" ? 'text-emerald-400' : 'opacity-70'}>{Icon.flame('w-3 h-3')}</span>
+                  <span>High Win Streak</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥{HOT_STREAK_MIN}</span>
+                  {hotStreakCount > 0 && streakFilter !== "hot" && (
+                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                      {hotStreakCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrDecoupled((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    corrDecoupled
+                      ? 'bg-purple-500/15 border border-purple-500/40 text-purple-400'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span className={corrDecoupled ? 'text-purple-400' : 'opacity-70'}>{Icon.zap('w-3 h-3')}</span>
+                  <span>Decoupled from BTC</span>
+                  {corrCounts.dec > 0 && !corrDecoupled && (
+                    <span className="px-1 py-0 bg-purple-500/10 text-purple-400 text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.dec}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCorrHighAlign((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    corrHighAlign
+                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span className={corrHighAlign ? 'text-emerald-400' : 'opacity-70'}>{Icon.target('w-3 h-3')}</span>
+                  <span>High BTC Alignment</span>
+                  <span className="font-mono text-[9px] normal-case tracking-normal opacity-70">≥70</span>
+                  {corrCounts.hi > 0 && !corrHighAlign && (
+                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                      {corrCounts.hi}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setVerdictFilter(verdictFilter === "worth_it" ? "all" : "worth_it")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    verdictFilter === "worth_it"
+                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span className={verdictFilter === "worth_it" ? 'text-emerald-400' : 'opacity-70'}>✓</span>
+                  <span>Worth It</span>
+                  {verdictCounts.worth > 0 && verdictFilter !== "worth_it" && (
+                    <span className="px-1 py-0 bg-emerald-500/10 text-emerald-400 text-[9px] tabular-nums rounded-sm">
+                      {verdictCounts.worth}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setVerdictFilter(verdictFilter === "avoid" ? "all" : "avoid")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    verdictFilter === "avoid"
+                      ? 'bg-red-500/15 border border-red-500/40 text-red-400'
+                      : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  <span className={verdictFilter === "avoid" ? 'text-red-400' : 'opacity-70'}>⛔</span>
+                  <span>Avoid</span>
+                  {verdictCounts.avoid > 0 && verdictFilter !== "avoid" && (
+                    <span className="px-1 py-0 bg-red-500/10 text-red-400 text-[9px] tabular-nums rounded-sm">
+                      {verdictCounts.avoid}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
-            <p className="font-mono text-[9px] text-text-muted/50 mt-2 normal-case tracking-normal leading-relaxed">
-              Win rate of resolved signals that carried each tag. Tags overlap and describe entry conditions — not a standalone buy trigger.
-            </p>
+
+            {/* Pattern Filters */}
+            {sortedTagsForChips.length > 0 && (
+              <div className="pt-5 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-secondary">Pattern Filters<InfoTip side="bottom" title={t('guide.pattern_t')} text={t('guide.pattern_d')} /></span>
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-text-secondary/50">historical win rate · descriptive</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(() => {
+                    const present = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0 || selectedTags.includes(t.tag));
+                    const shown = showAllTags ? present : present.slice(0, 10);
+                    return shown;
+                  })().map((t) => {
+                    const active = selectedTags.includes(t.tag);
+                    const cnt = tagActiveCount[t.tag] || 0;
+                    const wrCol = t.win_rate >= 88 ? 'text-emerald-400' : t.win_rate >= 82 ? 'text-amber-400' : 'text-text-secondary';
+                    return (
+                      <button
+                        key={t.tag}
+                        onClick={() => toggleTag(t.tag)}
+                        title={`${t.win_rate}% historical win rate · n=${t.n} · ${cnt} active now`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                          active
+                            ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
+                            : 'bg-white/[0.03] border border-transparent text-text-secondary hover:bg-white/[0.06] hover:text-white'
+                        }`}
+                      >
+                        <span className="normal-case">{t.tag.replace(/_/g, ' ').toLowerCase()}</span>
+                        <span className={`tabular-nums ${active ? 'text-gold-primary' : wrCol}`}>{t.win_rate}%</span>
+                        {cnt > 0 && (
+                          <span className={`px-1 py-0 text-[9px] tabular-nums rounded-sm ${active ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-text-secondary/80'}`}>
+                            {cnt}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {(() => {
+                    const presentCount = sortedTagsForChips.filter((t) => (tagActiveCount[t.tag] || 0) > 0).length;
+                    if (presentCount <= 10) return null;
+                    return (
+                      <button
+                        onClick={() => setShowAllTags((v) => !v)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-white/[0.02] border border-white/[0.08] text-text-secondary hover:text-white hover:border-white/[0.15] transition-all"
+                      >
+                        {showAllTags ? 'Show less' : `Show all (${presentCount})`}
+                      </button>
+                    );
+                  })()}
+                </div>
+                <p className="font-mono text-[9px] text-text-secondary/60 mt-2 normal-case tracking-normal leading-relaxed">
+                  Win rate of resolved signals that carried each tag. Tags overlap and describe entry conditions — not a standalone buy trigger.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1093,7 +1155,7 @@ const SignalsPage = () => {
               {Icon.alert('w-5 h-5')}
             </div>
             <h3 className="font-mono text-sm text-white">Failed to load signals</h3>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{error}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-text-secondary">{error}</p>
             <button
               onClick={() => fetchBulkSignals(true)}
               className="px-4 py-2 mt-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider"
