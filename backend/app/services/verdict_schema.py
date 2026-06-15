@@ -321,7 +321,9 @@ class CompleteVerdict(BaseModel):
 
     # Risk & levels
     invalidation_levels: list[InvalidationLevel] = Field(min_length=2, max_length=2)
-    zones_to_watch: list[TacticalZone] = Field(min_length=3, max_length=3)
+    # Prefer all three zone kinds, but keep a usable two-zone response from
+    # aborting the entire scheduled report.
+    zones_to_watch: list[TacticalZone] = Field(min_length=2, max_length=3)
     triple_screen: list[TripleScreenItem] = Field(min_length=3, max_length=3)
     risk_scenarios: list[RiskScenario] = Field(min_length=2, max_length=6)
 

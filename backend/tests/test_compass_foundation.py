@@ -28,6 +28,7 @@ from app.services.heatmap_payload import (
 )
 from app.services.liquidity_engine import evaluate_liquidity, parse_liq_heatmap
 from app.services.verdict_schema import (
+    CompleteVerdict,
     CycleBrief,
     HorizonVerdict,
     LayerBrief,
@@ -767,3 +768,75 @@ def test_common_ai_enum_casing_is_normalized():
     assert horizon.direction == "bearish"
     assert risk.severity == "high"
     assert critique.decision == "approved_with_caveat"
+
+
+def test_complete_verdict_accepts_two_usable_price_zones():
+    horizon = {
+        "direction": "bullish",
+        "confidence": 55,
+        "rationale": "Momentum remains constructive.",
+    }
+    reasoning = [
+        {
+            "step": step,
+            "title": f"Step {step}",
+            "observation": "Observed market data.",
+            "interpretation": "The data remains constructive.",
+            "implication": "Maintain measured confidence.",
+        }
+        for step in range(1, 4)
+    ]
+
+    verdict = CompleteVerdict.model_validate({
+        "headline": "Cautiously bullish",
+        "narrative": "Two concrete zones still provide usable context.",
+        "primary_30d": horizon,
+        "secondary_7d": horizon,
+        "tactical_24h": horizon,
+        "reasoning_chain": reasoning,
+        "invalidation_levels": [
+            {
+                "direction": "bullish_invalidated",
+                "price": 64_000,
+                "reason": "Demand fails.",
+            },
+            {
+                "direction": "bearish_invalidated",
+                "price": 68_000,
+                "reason": "Supply breaks.",
+            },
+        ],
+        "zones_to_watch": [
+            {
+                "kind": "demand",
+                "price_low": 64_000,
+                "price_high": 65_000,
+                "why": "Recent demand cluster.",
+            },
+            {
+                "kind": "supply",
+                "price_low": 67_000,
+                "price_high": 68_000,
+                "why": "Recent supply cluster.",
+            },
+        ],
+        "triple_screen": [
+            {"timeframe": "1D", "state": "UPTREND", "note": "Daily trend."},
+            {"timeframe": "4H", "state": "BULLISH", "note": "Four-hour trend."},
+            {"timeframe": "1H", "state": "MIXED", "note": "Hourly consolidation."},
+        ],
+        "risk_scenarios": [
+            {
+                "title": "Demand failure",
+                "severity": "high",
+                "threshold": "BTC closes below $64,000",
+            },
+            {
+                "title": "Supply rejection",
+                "severity": "medium",
+                "threshold": "BTC rejects $68,000",
+            },
+        ],
+    })
+
+    assert [zone.kind for zone in verdict.zones_to_watch] == ["demand", "supply"]
