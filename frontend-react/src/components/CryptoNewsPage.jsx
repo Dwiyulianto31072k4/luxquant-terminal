@@ -6,6 +6,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Modal from "./ui/Modal";
 
 const API_BASE = "/api/v1";
 const PAGE_SIZE = 30;
@@ -293,32 +294,16 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
 const NewsModal = ({ item, onClose }) => {
   const [extract, setExtract] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (!item?.id) return;
     setLoading(true);
     fetch(`${API_BASE}/crypto-news-feed/extract/${item.id}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) setExtract(data);
-      })
+      .then((data) => { if (data) setExtract(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [item?.id]);
-
-  const handleClose = useCallback(() => {
-    setClosing(true);
-    setTimeout(onClose, 200);
-  }, [onClose]);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [handleClose]);
 
   if (!item) return null;
 
@@ -331,181 +316,133 @@ const NewsModal = ({ item, onClose }) => {
   const isPhoto = item.content_type === "photo";
   const color = getDomainColor(item.domain);
 
-  return (
-    <div
-      className={`fixed inset-0 z-[9999] flex items-start sm:items-center justify-center px-4 pt-20 pb-6 sm:py-8 ${
-        closing ? "news-modal-out" : "news-modal-in"
-      }`}
-      onClick={handleClose}
-    >
-      <style>{`
-        .news-modal-in { background: rgba(0,0,0,0); backdrop-filter: blur(0px); animation: nmOverlayIn .3s ease forwards; }
-        .news-modal-out { animation: nmOverlayOut .2s ease forwards; }
-        .news-modal-out .nm-card { animation: nmCardOut .2s ease forwards; }
-        @keyframes nmOverlayIn { to { background: rgba(8,4,12,.86); backdrop-filter: blur(12px); } }
-        @keyframes nmOverlayOut { from { background: rgba(8,4,12,.86); backdrop-filter: blur(12px); } to { background: rgba(0,0,0,0); backdrop-filter: blur(0px); } }
-        .nm-card { animation: nmCardIn .35s cubic-bezier(.16,1,.3,1) forwards; }
-        @keyframes nmCardIn { from { opacity: 0; transform: scale(.96) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes nmCardOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.96) translateY(20px); } }
-        .nm-scroll::-webkit-scrollbar { width: 6px; }
-        .nm-scroll::-webkit-scrollbar-track { background: transparent; }
-        .nm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
-        .nm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-      `}</style>
-
-      <div
-        className="nm-card relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
-        style={{
-          background: "linear-gradient(180deg, rgba(20,16,28,0.98), rgba(12,10,16,0.98))",
-          border: "1px solid rgba(255,255,255,0.08)",
-          maxHeight: "calc(100vh - 7rem)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top accent line */}
-        <div
-          className="absolute top-0 left-0 right-0 h-px z-10"
-          style={{ background: `linear-gradient(to right, transparent, ${color}80, transparent)` }}
-        />
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <DomainBadge domain={item.domain} size="lg" />
-            {isPhoto && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                photo
-              </span>
-            )}
-            <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-text-muted hover:text-white transition-all"
-            title="Close (Esc)"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Scrollable content */}
-        <div className="nm-scroll overflow-y-auto flex-1">
-          {/* Image / Placeholder — object-contain so the full image is visible (no crop) */}
-          <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
-            {videoSrc ? (
-              <video
-                src={videoSrc}
-                poster={imgSrc || undefined}
-                controls
-                autoPlay
-                muted
-                playsInline
-                preload="metadata"
-                ref={(el) => { if (el) el.muted = true; }}
-                className="w-auto h-auto max-w-full max-h-[45vh] object-contain bg-black"
-              />
-            ) : imgSrc ? (
-              <img
-                src={imgSrc}
-                alt=""
-                className="w-auto h-auto max-w-full max-h-[45vh] object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-            ) : (
-              <div className="w-full" style={{ aspectRatio: "16 / 9" }}>
-                <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
-              </div>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className="p-5 space-y-4">
-            <h2
-              className="text-white text-lg sm:text-2xl leading-tight"
-              style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
-            >
-              {item.title}
-            </h2>
-
-            {authors.length > 0 && (
-              <p className="text-text-muted text-[11px] font-mono">
-                BY {authors.join(", ").toUpperCase()}
-              </p>
-            )}
-
-            {loading ? (
-              <div className="space-y-2 animate-pulse">
-                <div className="h-3 bg-white/5 rounded w-full" />
-                <div className="h-3 bg-white/5 rounded w-5/6" />
-                <div className="h-3 bg-white/5 rounded w-4/6" />
-              </div>
-            ) : summary ? (
-              <div className="space-y-2">
-                <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
-                  <span className="w-1 h-3 rounded-full" style={{ background: color }} />
-                  Summary
-                </h3>
-                <p className="text-text-secondary text-[13px] leading-relaxed">{summary}</p>
-              </div>
-            ) : null}
-
-            {keywords.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {keywords.map((kw, i) => (
-                  <span
-                    key={i}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/5 text-text-muted"
-                  >
-                    #{kw}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {fullText && fullText !== summary && (
-              <div className="space-y-2">
-                <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
-                  <span className="w-1 h-3 rounded-full" style={{ background: color }} />
-                  Article Preview
-                </h3>
-                <p className="text-text-muted text-[12px] leading-relaxed line-clamp-[8] whitespace-pre-line">
-                  {fullText.slice(0, 800)}
-                  {fullText.length > 800 ? "…" : ""}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer CTA */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-white/5 flex-shrink-0">
-          {item.url && (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
-              style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}
-            >
-              Read Full Article
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          )}
-          <button
-            onClick={handleClose}
-            className="px-4 py-2.5 rounded-xl text-sm text-text-muted bg-white/[0.03] border border-white/5 hover:text-white hover:border-white/15 transition-all"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+  const header = (
+    <div className="flex items-center gap-2">
+      <DomainBadge domain={item.domain} size="lg" />
+      {isPhoto && (
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          photo
+        </span>
+      )}
+      <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
     </div>
+  );
+
+  const footer = (close) => (
+    <div className="flex items-center justify-end gap-2">
+      {item.url && (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90"
+          style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}
+        >
+          Read Full Article
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      )}
+      <button
+        onClick={close}
+        className="px-4 py-2.5 rounded-xl text-sm text-text-muted bg-white/[0.03] border border-white/5 hover:text-white hover:border-white/15 transition-all"
+      >
+        Close
+      </button>
+    </div>
+  );
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="lg"
+      padded={false}
+      accentColor={color}
+      header={header}
+      footer={footer}
+    >
+      {/* Image / Video / Placeholder — object-contain, full image visible */}
+      <div className="relative w-full bg-black/40 flex items-center justify-center" style={{ maxHeight: "45vh", minHeight: "10rem" }}>
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            poster={imgSrc || undefined}
+            controls
+            autoPlay
+            muted
+            playsInline
+            preload="metadata"
+            ref={(el) => { if (el) el.muted = true; }}
+            className="w-auto h-auto max-w-full max-h-[45vh] object-contain bg-black"
+          />
+        ) : imgSrc ? (
+          <img
+            src={imgSrc}
+            alt=""
+            className="w-auto h-auto max-w-full max-h-[45vh] object-contain"
+            onError={(e) => { e.target.style.display = "none"; }}
+          />
+        ) : (
+          <div className="w-full" style={{ aspectRatio: "16 / 9" }}>
+            <BrandThumbnail domain={item.domain} isHeadline={item.content_type === "headline"} />
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="p-5 space-y-4">
+        <h2
+          className="text-white text-lg sm:text-2xl leading-tight"
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
+        >
+          {item.title}
+        </h2>
+
+        {authors.length > 0 && (
+          <p className="text-text-muted text-[11px] font-mono">BY {authors.join(", ").toUpperCase()}</p>
+        )}
+
+        {loading ? (
+          <div className="space-y-2 animate-pulse">
+            <div className="h-3 bg-white/5 rounded w-full" />
+            <div className="h-3 bg-white/5 rounded w-5/6" />
+            <div className="h-3 bg-white/5 rounded w-4/6" />
+          </div>
+        ) : summary ? (
+          <div className="space-y-2">
+            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <span className="w-1 h-3 rounded-full" style={{ background: color }} />
+              Summary
+            </h3>
+            <p className="text-text-secondary text-[13px] leading-relaxed">{summary}</p>
+          </div>
+        ) : null}
+
+        {keywords.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {keywords.map((kw, i) => (
+              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/5 text-text-muted">
+                #{kw}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {fullText && fullText !== summary && (
+          <div className="space-y-2">
+            <h3 className="text-white text-[10px] font-mono uppercase tracking-[0.2em] flex items-center gap-1.5">
+              <span className="w-1 h-3 rounded-full" style={{ background: color }} />
+              Article Preview
+            </h3>
+            <p className="text-text-muted text-[12px] leading-relaxed whitespace-pre-line">
+              {fullText.slice(0, 800)}{fullText.length > 800 ? "…" : ""}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 };
 

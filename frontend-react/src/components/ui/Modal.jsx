@@ -1,27 +1,30 @@
 // src/components/ui/Modal.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant — Modal primitive (v2)
-// Shell standar SEMUA modal. v2 nyerap boilerplate yang dulu ditulis
-// ulang tiap modal:
-//   • Overlay + backdrop blur + animasi masuk/keluar (fade + scale)
-//   • Esc untuk tutup, klik-luar tutup, body-scroll-lock
-//   • Render via portal ke <body> (aman dari transform/filter parent)
-//   • Scroll-safe (clearance navbar/tab-bar di mobile)
-//   • Container #0a0805 + gold hairline, container radius rounded-2xl
+// LuxQuant — Modal primitive (v3)
+// Shell standar SEMUA modal. v3 nambah pola best-practice:
+//   • Header sticky + body scroll + footer sticky (prop header/footer)
+//   • Responsif penuh: 100dvh, max-h, scroll internal (tombol selalu
+//     kelihatan, konten panjang scroll di dalam — bukan kepotong)
+//   • accentColor: hairline atas bisa ikut warna kustom (mis. domain)
+// Bawaan dari v2: animasi masuk/keluar, Esc, klik-luar, body-lock,
+// portal ke <body>, container #0a0805 + gold hairline.
 //
-// Props isi (children) bebas per modal.
+// Dua pola pakai:
 //
-// Pakai:
-//   <Modal isOpen={open} onClose={close} title="Connect Binance">
-//     ...isi...
-//     <ModalFooter>
-//       <GhostButton onClick={close}>Cancel</GhostButton>
-//       <GoldButton onClick={save}>Save</GoldButton>
-//     </ModalFooter>
-//   </Modal>
+// 1) Sederhana (footer ikut scroll) — untuk modal pendek:
+//    <Modal isOpen={open} onClose={close} title="Hapus?">
+//      <p>...</p>
+//      <ModalFooter><GhostButton/>…<GoldButton/></ModalFooter>
+//    </Modal>
 //
-// Konten nempel-pinggir (gambar full-width): <Modal padded={false}>
-// Matikan animasi: <Modal animate={false}>
+// 2) Terstruktur (header & footer sticky) — untuk modal panjang:
+//    <Modal isOpen={open} onClose={close} padded={false}
+//      header={<Badge/>}
+//      footer={(close) => <><CTA/><button onClick={close}>Close</button></>}>
+//      ...konten panjang yang bisa scroll...
+//    </Modal>
+//
+// footer/header bisa berupa node ATAU fungsi (close) => node.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useRef, useState } from "react";
@@ -30,10 +33,10 @@ import { createPortal } from "react-dom";
 const EXIT_MS = 200;
 
 const SIZES = {
-  sm: "max-w-md",       // konfirmasi, prompt singkat
-  md: "max-w-lg",       // form / konten sedang
-  lg: "max-w-2xl",      // konten besar
-  xl: "max-w-[820px]",  // two-pane (spt ExchangeConnectModal)
+  sm: "max-w-md",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-[820px]",
 };
 
 export default function Modal({
@@ -43,8 +46,11 @@ export default function Modal({
   subtitle,
   eyebrow,
   icon,
+  header,
+  footer,
   size = "md",
   accent = true,
+  accentColor,
   animate = true,
   padded = true,
   usePortal = true,
@@ -57,7 +63,6 @@ export default function Modal({
   const [closing, setClosing] = useState(false);
   const timer = useRef(null);
 
-  // Buka / tutup (eksternal via prop isOpen)
   useEffect(() => {
     if (isOpen) {
       setMounted(true);
@@ -68,7 +73,6 @@ export default function Modal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Esc
   useEffect(() => {
     if (!mounted) return undefined;
     const onKey = (e) => {
@@ -79,7 +83,6 @@ export default function Modal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, closing]);
 
-  // Body scroll lock
   useEffect(() => {
     if (!mounted) return undefined;
     const prev = document.body.style.overflow;
@@ -106,19 +109,24 @@ export default function Modal({
     }, EXIT_MS);
   }
 
-  // Close dari dalam (X / backdrop / Esc): animasi keluar lalu panggil onClose
   function requestClose() {
     runExit(true);
   }
 
   if (!mounted) return null;
 
-  const hasHeader = Boolean(eyebrow || title || subtitle || icon);
+  const renderSlot = (slot) =>
+    typeof slot === "function" ? slot(requestClose) : slot;
+
+  const simpleHeader = !header && (eyebrow || title || subtitle || icon);
+  const hairlineBg = accentColor
+    ? `linear-gradient(to right, transparent, ${accentColor}, transparent)`
+    : "linear-gradient(to right, transparent, rgba(212,168,83,0.3), transparent)";
 
   const node = (
     <div
       onClick={closeOnBackdrop ? requestClose : undefined}
-      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 z-[100000] flex min-h-full items-start justify-center overflow-y-auto overscroll-contain px-4 pt-20 pb-28 sm:items-center sm:py-10`}
+      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 z-[100000] flex items-center justify-center p-4`}
     >
       <style>{`
         .lqm-overlay { background: rgba(0,0,0,0.8); }
@@ -130,15 +138,22 @@ export default function Modal({
         @keyframes lqmOverlayOut { from { background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); } to { background: rgba(0,0,0,0); backdrop-filter: blur(0px); } }
         @keyframes lqmCardIn { from { opacity: 0; transform: scale(.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes lqmCardOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.96) translateY(10px); } }
+        .lqm-scroll::-webkit-scrollbar { width: 6px; }
+        .lqm-scroll::-webkit-scrollbar-track { background: transparent; }
+        .lqm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
+        .lqm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
       `}</style>
 
       <div
         onClick={(e) => e.stopPropagation()}
         style={!animate ? { backdropFilter: "blur(6px)" } : undefined}
-        className={`lqm-card relative w-full ${SIZES[size] || SIZES.md} overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] ${className}`}
+        className={`lqm-card relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] sm:max-h-[calc(100dvh-4rem)] ${SIZES[size] || SIZES.md} ${className}`}
       >
         {accent ? (
-          <span className="pointer-events-none absolute top-0 inset-x-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <span
+            className="pointer-events-none absolute top-0 inset-x-0 z-10 h-px"
+            style={{ background: hairlineBg }}
+          />
         ) : null}
 
         {showClose ? (
@@ -153,36 +168,43 @@ export default function Modal({
           </button>
         ) : null}
 
-        {hasHeader ? (
-          <div className="px-6 pt-6 lg:px-8 lg:pt-8">
+        {/* Header sticky (prop) */}
+        {header ? (
+          <div className={`flex-shrink-0 border-b border-white/[0.06] px-5 py-3.5 ${showClose ? "pr-12" : ""}`}>
+            {renderSlot(header)}
+          </div>
+        ) : simpleHeader ? (
+          <div className={`flex-shrink-0 px-6 pt-6 lg:px-8 lg:pt-8 ${showClose ? "pr-12" : ""}`}>
             {eyebrow ? (
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
-                {eyebrow}
-              </p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">{eyebrow}</p>
             ) : null}
             {(icon || title) ? (
               <div className={`flex items-center gap-3 ${eyebrow ? "mt-3" : ""}`}>
                 {icon ? <span className="flex-shrink-0">{icon}</span> : null}
-                {title ? (
-                  <h2 className="text-2xl font-semibold tracking-tight text-white">
-                    {title}
-                  </h2>
-                ) : null}
+                {title ? <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2> : null}
               </div>
             ) : null}
-            {subtitle ? (
-              <p className="mt-2 text-sm leading-6 text-text-muted">{subtitle}</p>
-            ) : null}
+            {subtitle ? <p className="mt-2 text-sm leading-6 text-text-muted">{subtitle}</p> : null}
           </div>
         ) : null}
 
-        {padded ? (
-          <div className={hasHeader ? "px-6 py-6 lg:px-8" : "p-6 lg:p-8"}>
-            {children}
+        {/* Body scroll */}
+        <div className="lqm-scroll min-h-0 flex-1 overflow-y-auto">
+          {padded ? (
+            <div className={simpleHeader || header ? "px-6 py-6 lg:px-8" : "p-6 lg:p-8"}>
+              {children}
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+
+        {/* Footer sticky (prop) */}
+        {footer ? (
+          <div className="flex-shrink-0 border-t border-white/[0.06] px-5 py-3">
+            {renderSlot(footer)}
           </div>
-        ) : (
-          children
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -193,7 +215,7 @@ export default function Modal({
   return node;
 }
 
-// Footer standar: tombol rata kanan, full-width di mobile.
+// Footer inline (ikut scroll) — untuk modal pendek.
 export function ModalFooter({ children, className = "" }) {
   return <div className={`mt-7 flex gap-3 ${className}`}>{children}</div>;
 }
