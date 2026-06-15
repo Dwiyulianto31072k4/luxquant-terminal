@@ -475,7 +475,7 @@ function AppShell({ children }) {
     { path: "/home", label: t("nav.home") },
     { path: "/signals", label: t("nav.signals") },
     { path: "/autotrade", label: "AutoTrade" },
-    { path: "/ai-arena", label: "AI Arena" },
+    { path: "/ai-arena", label: "AI Research" },
     { path: "/market-pulse", label: "Pulse" },
     { path: "/crypto-news", label: "News" },
     { path: "/onchain", label: "On-Chain" },
@@ -609,7 +609,7 @@ function AppShell({ children }) {
     },
     {
       path: "/ai-arena",
-      label: "Arena",
+      label: "AI Research",
       icon: (
         // Lucide "bot" — robot face, jelas banget "AI"
         <svg
@@ -921,7 +921,7 @@ function AppShell({ children }) {
               active={isActive("/ai-arena")}
               path="/ai-arena"
               onClick={() => handleNav("/ai-arena")}
-              label="AI Arena"
+              label="AI Research"
               isPremium={!isPremiumUser()}
               icon={
                 <>

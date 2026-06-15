@@ -114,7 +114,7 @@ function PageHeader({ report, onRefresh, refreshing }) {
               letterSpacing: "-0.025em",
             }}
           >
-            AI Arena
+            AI Research
           </h1>
           <p className="text-sm text-white/50 mt-1">
             Multi-horizon synthesis of macro, derivatives, and on-chain
@@ -164,7 +164,7 @@ function LoadingState() {
           }}
         />
         <p className="text-sm text-white/50 font-mono">
-          Loading AI Arena v6...
+          Loading AI Research v6...
         </p>
       </div>
     </div>
@@ -407,7 +407,7 @@ export default function AIArenaPageV6() {
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-white/5 text-center">
           <p className="text-[11px] font-mono text-white/30 leading-relaxed">
-            LuxQuant AI Arena v6 · Multi-stage AI pipeline · Auto-refreshed
+            LuxQuant AI Research v6 · Multi-stage AI pipeline · Auto-refreshed
             every 6 hours · Not
             financial advice
           </p>
