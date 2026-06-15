@@ -1,2 +1,4 @@
 .font-bak-*/
-cryptobot
+cryptobot*.bak
+*.bak[0-9]
+*.bak.*
