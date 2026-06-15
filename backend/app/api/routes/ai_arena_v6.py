@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.ai_arena_v6 import AIArenaVerdictOutcome
 from app.services.verdict_outcome_evaluator import compute_track_record
+from app.api.deps import require_subscription
 
 router = APIRouter(prefix="/ai-arena/v6", tags=["AI Arena v6"])
 
@@ -182,3 +183,18 @@ def get_track_record(
 ) -> dict[str, Any]:
     """Compute hit-rate stats per horizon over last N days."""
     return compute_track_record(db, days=days)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# GET /liquidity-validation
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/liquidity-validation")
+def get_liquidity_validation(
+    limit: int = Query(25, ge=1, le=100),
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """Return Phase 2 liquidation-model health and calibration progress."""
+    from app.services.binance_liquidation_validation import get_validation_monitor
+
+    return get_validation_monitor(limit=limit)

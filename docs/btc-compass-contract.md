@@ -91,3 +91,19 @@ not override the user-facing direction.
 4. Validate shadow models and calibrate confidence.
 5. Redesign the dashboard around evidence and data health.
 6. Add alerts, monitoring, and operational runbooks.
+
+## Phase 2 Validation
+
+The Binance estimated liquidation map remains in shadow-validation mode.
+Phase 2 adds:
+
+- collector heartbeat and forecast freshness monitoring;
+- persistent actual-liquidation audit records that survive Redis flushes;
+- event-weighted and notional-weighted match rates;
+- an initial calibration threshold of 20 events;
+- a robust evaluation threshold of 100 events;
+- explicit readiness gates visible in AI Arena.
+
+Passing a sample threshold does not activate deterministic direction. Activation
+requires a separate review against a baseline and evidence that performance is
+stable across market regimes.

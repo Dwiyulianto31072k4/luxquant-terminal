@@ -15,9 +15,12 @@ from app.core.redis import get_redis
 FORECAST_KEY = "lq:compass:liquidity:binance_estimated:active_forecast"
 VALIDATION_KEY = "lq:compass:liquidity:binance_estimated:validation"
 RECENT_EVENTS_KEY = "lq:compass:liquidity:binance_estimated:actual_events"
+STREAM_HEARTBEAT_KEY = "lq:compass:liquidity:binance_estimated:stream_heartbeat"
 FORECAST_TTL_SECONDS = 8 * 60 * 60
 RECENT_EVENTS_TTL_SECONDS = 7 * 24 * 60 * 60
+STREAM_HEARTBEAT_TTL_SECONDS = 90
 MIN_VALIDATION_EVENTS = 20
+ROBUST_VALIDATION_EVENTS = 100
 MATCH_TOLERANCE_PCT = 0.0075
 STATE_FILE = Path(
     os.getenv(
@@ -25,6 +28,13 @@ STATE_FILE = Path(
         "/var/lib/luxquant/binance_liquidation_validation.json",
     )
 )
+EVENTS_FILE = Path(
+    os.getenv(
+        "COMPASS_LIQUIDATION_EVENTS_FILE",
+        "/var/lib/luxquant/binance_liquidation_events.jsonl",
+    )
+)
+MAX_PERSISTED_EVENTS = 5_000
 
 
 def _safe_float(value: Any) -> float | None:
@@ -126,6 +136,28 @@ def save_forecast_snapshot(payload: dict) -> None:
     )
 
 
+def save_stream_heartbeat(
+    status: str,
+    *,
+    connected_at: str | None = None,
+    error: str | None = None,
+) -> dict:
+    """Publish collector liveness without depending on systemd access."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "status": status,
+        "updated_at": now_iso,
+        "connected_at": connected_at,
+        "error": error,
+    }
+    get_redis().setex(
+        STREAM_HEARTBEAT_KEY,
+        STREAM_HEARTBEAT_TTL_SECONDS,
+        json.dumps(payload, separators=(",", ":")),
+    )
+    return payload
+
+
 def _read_state_file() -> dict:
     try:
         value = json.loads(STATE_FILE.read_text(encoding="utf-8"))
@@ -145,6 +177,43 @@ def _write_state_file(stats: dict) -> None:
         temporary.replace(STATE_FILE)
     except OSError:
         pass
+
+
+def _append_event_file(record: dict) -> None:
+    try:
+        EVENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with EVENTS_FILE.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, separators=(",", ":")) + "\n")
+
+        if EVENTS_FILE.stat().st_size > 10 * 1024 * 1024:
+            lines = EVENTS_FILE.read_text(encoding="utf-8").splitlines()
+            temporary = EVENTS_FILE.with_suffix(".tmp")
+            temporary.write_text(
+                "\n".join(lines[-MAX_PERSISTED_EVENTS:]) + "\n",
+                encoding="utf-8",
+            )
+            temporary.replace(EVENTS_FILE)
+    except OSError:
+        pass
+
+
+def _read_event_file(limit: int) -> list[dict]:
+    try:
+        lines = EVENTS_FILE.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+    events = []
+    for line in reversed(lines[-MAX_PERSISTED_EVENTS:]):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            events.append(value)
+        if len(events) >= limit:
+            break
+    return events
 
 
 def _raw_validation_values() -> dict:
@@ -189,6 +258,240 @@ def load_validation_stats() -> dict:
         ),
         "updated_at": values.get("updated_at"),
     }
+
+
+def _parse_iso_epoch(value: Any) -> float | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def summarize_validation_monitor(
+    *,
+    forecast: dict | None,
+    forecast_ttl_seconds: int,
+    stats: dict,
+    events: list[dict],
+    heartbeat: dict | None,
+    heartbeat_ttl_seconds: int,
+    now_epoch: float | None = None,
+) -> dict:
+    """Build the Phase 2 monitoring contract from already-loaded state."""
+    now_epoch = now_epoch if now_epoch is not None else time.time()
+    forecast = forecast if isinstance(forecast, dict) else {}
+    heartbeat = heartbeat if isinstance(heartbeat, dict) else {}
+
+    generated_epoch = _parse_iso_epoch(forecast.get("generated_at"))
+    forecast_age_seconds = (
+        max(0.0, now_epoch - generated_epoch)
+        if generated_epoch is not None
+        else None
+    )
+    heartbeat_epoch = _parse_iso_epoch(heartbeat.get("updated_at"))
+    heartbeat_age_seconds = (
+        max(0.0, now_epoch - heartbeat_epoch)
+        if heartbeat_epoch is not None
+        else None
+    )
+
+    collector_healthy = (
+        heartbeat.get("status") == "connected"
+        and heartbeat_ttl_seconds > 0
+        and heartbeat_age_seconds is not None
+        and heartbeat_age_seconds <= STREAM_HEARTBEAT_TTL_SECONDS
+    )
+    forecast_fresh = (
+        bool(forecast.get("levels"))
+        and forecast_ttl_seconds > 0
+        and forecast_age_seconds is not None
+        and forecast_age_seconds <= FORECAST_TTL_SECONDS
+    )
+
+    sample_size = int(stats.get("sample_size") or 0)
+    matched_events = int(stats.get("matched_events") or 0)
+    missed_events = max(0, sample_size - matched_events)
+    if sample_size < MIN_VALIDATION_EVENTS:
+        stage = "collecting"
+    elif sample_size < ROBUST_VALIDATION_EVENTS:
+        stage = "calibration_ready"
+    else:
+        stage = "evaluation_ready"
+
+    side_counts = {"long": 0, "short": 0}
+    recent_matched = 0
+    recent_notional = 0.0
+    distances: list[float] = []
+    normalized_events = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        side = event.get("side")
+        if side in side_counts:
+            side_counts[side] += 1
+        notional = _safe_float(event.get("notional")) or 0.0
+        recent_notional += notional
+        match = event.get("forecast_match") or {}
+        if match.get("matched"):
+            recent_matched += 1
+        distance = _safe_float(match.get("distance_pct"))
+        if distance is not None:
+            distances.append(distance)
+        normalized_events.append({
+            "event_time_iso": event.get("event_time_iso"),
+            "side": side,
+            "price": _safe_float(event.get("price")),
+            "notional": notional,
+            "matched": bool(match.get("matched")),
+            "match_reason": match.get("reason"),
+            "distance_pct": distance,
+            "nearest_level": match.get("nearest_level"),
+        })
+
+    model_confidence = _safe_float(forecast.get("model_confidence"))
+    data_confidence = _safe_float(forecast.get("data_confidence"))
+    initial_progress = min(1.0, sample_size / MIN_VALIDATION_EVENTS)
+    robust_progress = min(1.0, sample_size / ROBUST_VALIDATION_EVENTS)
+    gates = [
+        {
+            "key": "collector",
+            "label": "Collector heartbeat",
+            "passed": collector_healthy,
+            "detail": (
+                "Binance liquidation stream is connected."
+                if collector_healthy
+                else "Collector heartbeat is missing or stale."
+            ),
+        },
+        {
+            "key": "forecast",
+            "label": "Fresh forecast",
+            "passed": forecast_fresh,
+            "detail": (
+                "An active estimated map is available."
+                if forecast_fresh
+                else "No usable forecast is active."
+            ),
+        },
+        {
+            "key": "initial_sample",
+            "label": f"Initial sample ({MIN_VALIDATION_EVENTS})",
+            "passed": sample_size >= MIN_VALIDATION_EVENTS,
+            "detail": f"{sample_size}/{MIN_VALIDATION_EVENTS} actual liquidation events.",
+        },
+        {
+            "key": "robust_sample",
+            "label": f"Robust sample ({ROBUST_VALIDATION_EVENTS})",
+            "passed": sample_size >= ROBUST_VALIDATION_EVENTS,
+            "detail": f"{sample_size}/{ROBUST_VALIDATION_EVENTS} events for stable evaluation.",
+        },
+    ]
+
+    return {
+        "phase": 2,
+        "mode": "shadow_validation",
+        "stage": stage,
+        "activation_allowed": False,
+        "activation_note": (
+            "Phase 2 is observation-only. Deterministic verdict activation "
+            "requires a separate baseline and stability review."
+        ),
+        "collector": {
+            "healthy": collector_healthy,
+            "status": heartbeat.get("status") or "unknown",
+            "updated_at": heartbeat.get("updated_at"),
+            "connected_at": heartbeat.get("connected_at"),
+            "age_seconds": (
+                round(heartbeat_age_seconds, 3)
+                if heartbeat_age_seconds is not None
+                else None
+            ),
+            "error": heartbeat.get("error"),
+        },
+        "forecast": {
+            "available": bool(forecast),
+            "fresh": forecast_fresh,
+            "provider": forecast.get("provider"),
+            "generated_at": forecast.get("generated_at"),
+            "age_seconds": (
+                round(forecast_age_seconds, 3)
+                if forecast_age_seconds is not None
+                else None
+            ),
+            "ttl_seconds": max(0, forecast_ttl_seconds),
+            "current_price": _safe_float(forecast.get("current_price")),
+            "level_count": len(forecast.get("levels") or []),
+            "model_confidence": model_confidence,
+            "data_confidence": data_confidence,
+            "confidence_label": forecast.get("confidence_label"),
+            "data_quality": forecast.get("data_quality") or {},
+        },
+        "validation": {
+            **stats,
+            "missed_events": missed_events,
+            "minimum_sample": MIN_VALIDATION_EVENTS,
+            "robust_sample": ROBUST_VALIDATION_EVENTS,
+            "initial_progress": round(initial_progress, 4),
+            "robust_progress": round(robust_progress, 4),
+            "match_tolerance_pct": MATCH_TOLERANCE_PCT,
+        },
+        "recent_window": {
+            "count": len(normalized_events),
+            "matched": recent_matched,
+            "long_events": side_counts["long"],
+            "short_events": side_counts["short"],
+            "notional_usd": round(recent_notional, 2),
+            "average_distance_pct": (
+                round(sum(distances) / len(distances), 6)
+                if distances
+                else None
+            ),
+        },
+        "gates": gates,
+        "recent_events": normalized_events,
+    }
+
+
+def get_validation_monitor(limit: int = 25) -> dict:
+    """Load Phase 2 monitoring data from Redis and persistent counters."""
+    redis_client = get_redis()
+
+    def _decode(raw: Any) -> Any:
+        try:
+            return json.loads(raw) if raw else None
+        except (TypeError, json.JSONDecodeError):
+            return None
+
+    forecast = _decode(redis_client.get(FORECAST_KEY))
+    heartbeat = _decode(redis_client.get(STREAM_HEARTBEAT_KEY))
+    raw_events = redis_client.lrange(RECENT_EVENTS_KEY, 0, max(0, limit - 1))
+    redis_events = [value for value in (_decode(raw) for raw in raw_events) if value]
+    file_events = _read_event_file(limit)
+    events = []
+    seen = set()
+    for event in [*redis_events, *file_events]:
+        identity = (
+            event.get("event_time"),
+            event.get("side"),
+            event.get("price"),
+            event.get("quantity"),
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        events.append(event)
+        if len(events) >= limit:
+            break
+    return summarize_validation_monitor(
+        forecast=forecast,
+        forecast_ttl_seconds=redis_client.ttl(FORECAST_KEY),
+        stats=load_validation_stats(),
+        events=events,
+        heartbeat=heartbeat,
+        heartbeat_ttl_seconds=redis_client.ttl(STREAM_HEARTBEAT_KEY),
+    )
 
 
 def apply_validation_confidence(payload: dict) -> dict:
@@ -270,4 +573,5 @@ def record_force_order_event(raw: Any) -> dict | None:
     persisted = redis_client.hgetall(VALIDATION_KEY)
     if persisted:
         _write_state_file(persisted)
+    _append_event_file(record)
     return record

@@ -39,6 +39,16 @@ export async function getTrackRecord({ days = 30 } = {}) {
 }
 
 /**
+ * Fetch Phase 2 liquidation model validation and collector health.
+ */
+export async function getLiquidityValidation({ limit = 25 } = {}) {
+  const { data } = await api.get(`${V6_BASE}/liquidity-validation`, {
+    params: { limit },
+  });
+  return data;
+}
+
+/**
  * Fetch chart data for the embedded price chart.
  * Reuses v4 endpoint /api/v1/ai-arena/chart-data.
  * @param {string} tf - '1D' | '4H' | '1H'
@@ -52,5 +62,6 @@ export default {
   getLatestReport,
   getLedger,
   getTrackRecord,
+  getLiquidityValidation,
   getChartData,
 };

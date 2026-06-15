@@ -6,10 +6,12 @@ import asyncio
 import json
 
 from app.services import coinank_fetch
+from app.services import binance_liquidation_validation as liq_validation
 from app.services.binance_liquidation_map import estimate_liquidation_map
 from app.services.binance_liquidation_validation import (
     match_event_to_forecast,
     normalize_force_order_event,
+    summarize_validation_monitor,
 )
 from app.services.coinank_fetch import HeatmapFetchResult
 from app.services.heatmap_payload import (
@@ -186,6 +188,73 @@ def test_force_order_event_matches_same_side_forecast_level():
     assert event["notional"] == 24_880.0
     assert match["matched"] is True
     assert match["nearest_level"]["price"] == 99_500
+
+
+def test_phase2_monitor_reports_health_progress_and_shadow_gate():
+    now_epoch = 1_750_000_100.0
+    monitor = summarize_validation_monitor(
+        forecast={
+            "provider": "binance_estimated_liquidation_v1",
+            "generated_at": "2025-06-15T15:34:00+00:00",
+            "current_price": 100_000,
+            "levels": [{"price": 99_500, "value": 2_000_000, "side": "long"}],
+            "model_confidence": 0.68,
+            "data_confidence": 0.91,
+            "confidence_label": "medium",
+            "data_quality": {"coverage": 1.0},
+        },
+        forecast_ttl_seconds=20_000,
+        stats={
+            "sample_size": 12,
+            "matched_events": 8,
+            "event_hit_rate": 0.6667,
+            "notional_hit_rate": 0.7,
+            "updated_at": "2025-06-15T15:35:00+00:00",
+        },
+        events=[{
+            "event_time_iso": "2025-06-15T15:35:00+00:00",
+            "side": "long",
+            "price": 99_520,
+            "notional": 25_000,
+            "forecast_match": {
+                "matched": True,
+                "distance_pct": 0.0002,
+                "nearest_level": {"price": 99_500, "side": "long"},
+            },
+        }],
+        heartbeat={
+            "status": "connected",
+            "updated_at": "2025-06-15T15:34:55+00:00",
+            "connected_at": "2025-06-15T15:00:00+00:00",
+        },
+        heartbeat_ttl_seconds=80,
+        now_epoch=1_750_000_100.0,
+    )
+
+    assert monitor["phase"] == 2
+    assert monitor["mode"] == "shadow_validation"
+    assert monitor["activation_allowed"] is False
+    assert monitor["collector"]["healthy"] is True
+    assert monitor["forecast"]["fresh"] is True
+    assert monitor["stage"] == "collecting"
+    assert monitor["validation"]["initial_progress"] == 0.6
+    assert monitor["recent_window"]["matched"] == 1
+    assert monitor["gates"][2]["passed"] is False
+
+
+def test_liquidation_event_audit_survives_redis_flush(tmp_path, monkeypatch):
+    events_file = tmp_path / "liquidation-events.jsonl"
+    monkeypatch.setattr(liq_validation, "EVENTS_FILE", events_file)
+    record = {
+        "event_time": 1_750_000_000_000,
+        "side": "long",
+        "price": 99_500,
+        "quantity": 0.5,
+    }
+
+    liq_validation._append_event_file(record)
+
+    assert liq_validation._read_event_file(10) == [record]
 
 
 def test_missing_liquidity_is_unavailable_not_evidence():

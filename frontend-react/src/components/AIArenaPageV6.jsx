@@ -23,6 +23,7 @@ import {
   getLatestReport,
   getLedger,
   getTrackRecord,
+  getLiquidityValidation,
 } from "../services/aiArenaV6Api";
 
 // V6 components — Batch 1
@@ -45,6 +46,7 @@ import PriceChart from "./aiArenaV6/PriceChart";
 import HeaderStatStrip from "./aiArenaV6/HeaderStatStrip";
 import InstitutionalFlowRadar from "./aiArenaV6/InstitutionalFlowRadar";
 import MacroPulse from "./aiArenaV6/MacroPulse";
+import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -194,6 +196,7 @@ export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [trackRecord, setTrackRecord] = useState(null);
+  const [liquidityValidation, setLiquidityValidation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -207,10 +210,11 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [latestRes, ledgerRes, trackRes] = await Promise.allSettled([
+      const [latestRes, ledgerRes, trackRes, liquidityRes] = await Promise.allSettled([
         getLatestReport(),
         getLedger({ days: 14 }),
         getTrackRecord({ days: 30 }),
+        getLiquidityValidation({ limit: 25 }),
       ]);
 
       if (latestRes.status === "fulfilled") {
@@ -235,6 +239,13 @@ export default function AIArenaPageV6() {
           horizons: {},
           overall: { total: 0, hit: 0, miss: 0, hit_rate: null },
         });
+      }
+
+      if (liquidityRes.status === "fulfilled") {
+        setLiquidityValidation(liquidityRes.value);
+      } else {
+        console.warn("[v6] liquidity validation fetch failed:", liquidityRes.reason);
+        setLiquidityValidation(null);
       }
     } catch (e) {
       console.error("[v6] load error:", e);
@@ -309,6 +320,9 @@ export default function AIArenaPageV6() {
 
         {/* 3. Price Chart — Batch 2 Turn 2 — Lightweight Charts v5 */}
         <PriceChart />
+
+        {/* Phase 2: estimated liquidation model validation */}
+        <LiquidityValidationPanel data={liquidityValidation} />
 
         {/* 4. Triple Screen — NEW Batch 2 Turn 1 */}
         <TripleScreen tripleScreen={tripleScreen} />
