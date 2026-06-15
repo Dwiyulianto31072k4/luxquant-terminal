@@ -52,6 +52,7 @@ import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
 import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
 import EvidenceMatrixPanel from "./aiArenaV6/EvidenceMatrixPanel";
 import ModelCalibrationPanel from "./aiArenaV6/ModelCalibrationPanel";
+import DecisionContextPanel from "./aiArenaV6/DecisionContextPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -318,6 +319,7 @@ export default function AIArenaPageV6() {
   const whatChanged = verdict?.what_changed || null;
   const riskScenarios = verdict?.risk_scenarios || [];
   const evidenceMatrix = innerReport?.evidence_matrix || null;
+  const dashboardHealth = report?.dashboard_health || null;
 
   return (
     <div
@@ -334,8 +336,18 @@ export default function AIArenaPageV6() {
           refreshing={refreshing}
         />
 
+        {/* Phase 6: evidence and data health before narrative interpretation */}
+        <DecisionContextPanel data={dashboardHealth} />
+
         {/* 1. Verdict Hero */}
-        <VerdictHero report={report} btcPrice={report?.btc_price} />
+        <VerdictHero
+          report={report}
+          btcPrice={report?.btc_price}
+          dashboardHealth={dashboardHealth}
+        />
+
+        {/* Phase 4 detail: deterministic evidence audit by horizon */}
+        <EvidenceMatrixPanel data={evidenceMatrix} />
 
         {/* 1b. Header Stat Strip — v6.2 (4 unique stats: F&G, Confluence, AI Verdict, Pipeline) */}
         <HeaderStatStrip data={report} />
@@ -344,9 +356,6 @@ export default function AIArenaPageV6() {
 
         {/* 3. Price Chart — Batch 2 Turn 2 — Lightweight Charts v5 */}
         <PriceChart />
-
-        {/* Phase 4: deterministic evidence audit by horizon */}
-        <EvidenceMatrixPanel data={evidenceMatrix} />
 
         {/* Phase 2: estimated liquidation model validation */}
         <LiquidityValidationPanel data={liquidityValidation} />

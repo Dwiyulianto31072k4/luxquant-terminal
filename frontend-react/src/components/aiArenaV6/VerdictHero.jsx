@@ -13,7 +13,7 @@ import {
   formatPrice,
 } from './constants';
 
-function HorizonCard({ label, horizonLabel, verdict }) {
+function HorizonCard({ label, horizonLabel, verdict, dataHealth }) {
   if (!verdict) return null;
   const dir = (verdict.direction || 'neutral').toLowerCase();
   const color = directionColor(dir);
@@ -82,6 +82,43 @@ function HorizonCard({ label, horizonLabel, verdict }) {
       >
         {horizonLabel}
       </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 8,
+          fontSize: 9,
+          fontFamily: FONTS.mono,
+          letterSpacing: 0.6,
+          textTransform: 'uppercase',
+        }}
+      >
+        <span
+          style={{
+            color:
+              dataHealth?.support === 'supported'
+                ? COLORS.bullish
+                : dataHealth?.support === 'conflicted' ||
+                  dataHealth?.support === 'unavailable'
+                ? COLORS.bearish
+                : dataHealth?.support === 'limited'
+                ? '#fb923c'
+                : dataHealth
+                ? COLORS.cautious
+                : COLORS.textFaint,
+          }}
+        >
+          Data:{' '}
+          {dataHealth?.support ||
+            (label === 'Cycle context' ? 'context only' : 'unavailable')}
+        </span>
+        {dataHealth?.coverage != null && (
+          <span style={{ color: COLORS.textFaint }}>
+            Coverage {Math.round(Number(dataHealth.coverage) * 100)}%
+          </span>
+        )}
+      </div>
       {verdict.rationale && (
         <div
           style={{
@@ -136,7 +173,7 @@ function StatChip({ label, value, valueColor = COLORS.text }) {
   );
 }
 
-export default function VerdictHero({ report, btcPrice }) {
+export default function VerdictHero({ report, btcPrice, dashboardHealth }) {
   if (!report) return null;
 
   const verdict = report.report?.verdict || {};
@@ -232,8 +269,18 @@ export default function VerdictHero({ report, btcPrice }) {
       {/* 3 Horizon cards */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <HorizonCard label="Cycle context" horizonLabel="SLOW MARKET BACKDROP" verdict={primary30d} />
-        <HorizonCard label="Swing" horizonLabel="72-HOUR HORIZON" verdict={secondary7d} />
-        <HorizonCard label="Tactical" horizonLabel="24-HOUR HORIZON" verdict={tactical24h} />
+        <HorizonCard
+          label="Swing"
+          horizonLabel="72-HOUR HORIZON"
+          verdict={secondary7d}
+          dataHealth={dashboardHealth?.horizons?.["72h"]}
+        />
+        <HorizonCard
+          label="Tactical"
+          horizonLabel="24-HOUR HORIZON"
+          verdict={tactical24h}
+          dataHealth={dashboardHealth?.horizons?.["24h"]}
+        />
       </div>
 
       {/* Stat row: Cycle phase + score + critique decision + price */}

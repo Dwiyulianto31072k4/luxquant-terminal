@@ -175,3 +175,28 @@ coverage metadata is labeled as legacy or not recorded.
 Phase 5 has `decision_authority=false`. Passing every gate only makes a horizon
 eligible for manual review. It never enables `COMPASS_DETERMINISTIC_VERDICT`
 automatically and never changes the user-facing direction.
+
+## Phase 6 Evidence-First Dashboard
+
+Phase 6 reorganizes the user experience around the quality of the evidence
+behind each report. The dashboard derives one decision-context summary from the
+same persisted report cycle as the displayed verdict. It publishes:
+
+- report freshness with an eight-hour fresh window and 24-hour maximum age;
+- effective `fresh`, `stale`, or `unavailable` status for every evidence feed;
+- 24-hour and 72-hour verdict confidence beside evidence bias, coverage,
+  conflicts, and verdict alignment;
+- explicit `supported`, `guarded`, `conflicted`, `limited`, or `unavailable`
+  support labels for each directional horizon;
+- prioritized attention items for missing sources, stale data, conflicting
+  evidence, and elevated event risk;
+- material source, direction, and strength changes since the preceding report.
+
+Source health is time-aware. A source that was fresh when captured becomes
+effectively stale when the report itself exceeds the fresh window, and
+unavailable when the report exceeds its maximum age. The recorded capture state
+remains available for audit.
+
+Phase 6 has `decision_authority=false`. It does not modify verdict direction or
+confidence. Its role is to make the limits of the current reading visible before
+the user reaches the AI narrative.

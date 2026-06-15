@@ -63,6 +63,9 @@ def get_latest_report(db: Session = Depends(get_db)) -> dict[str, Any]:
     if not row:
         raise HTTPException(404, "No v6 report available yet")
 
+    from app.services.compass_dashboard_health import build_dashboard_health
+
+    report_json = row.report_json or {}
     return {
         "id": row.id,
         "report_id": row.report_id,
@@ -88,7 +91,11 @@ def get_latest_report(db: Session = Depends(get_db)) -> dict[str, Any]:
         "cost_usd": row.total_cost_usd,
         "is_anomaly_triggered": row.is_anomaly_triggered,
         "anomaly_reason": row.anomaly_reason,
-        "report": row.report_json,
+        "dashboard_health": build_dashboard_health(
+            report_json,
+            report_timestamp=row.timestamp,
+        ),
+        "report": report_json,
     }
 
 
