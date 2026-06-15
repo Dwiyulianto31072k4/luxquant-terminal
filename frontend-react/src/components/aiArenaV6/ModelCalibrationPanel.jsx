@@ -88,7 +88,7 @@ function SegmentTable({ segments }) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full max-w-full overflow-x-auto">
       <table className="w-full min-w-[440px]">
         <thead>
           <tr className="text-[9px] font-mono uppercase tracking-wider text-white/30">
@@ -146,7 +146,7 @@ function HorizonPanel({ horizon, data }) {
   );
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
+    <div className="min-w-0 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
@@ -220,7 +220,7 @@ function HorizonPanel({ horizon, data }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-white/[0.05] bg-black/15 px-3">
+        <div className="min-w-0 rounded-lg border border-white/[0.05] bg-black/15 px-3">
           <div className="text-[10px] font-mono uppercase tracking-wider text-white/35 pt-3 pb-1">
             Activation gates
           </div>
@@ -228,7 +228,7 @@ function HorizonPanel({ horizon, data }) {
             <GateRow key={gate.key} gate={gate} />
           ))}
         </div>
-        <div className="rounded-lg border border-white/[0.05] bg-black/15 px-3">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-white/[0.05] bg-black/15 px-3">
           <div className="text-[10px] font-mono uppercase tracking-wider text-white/35 pt-3 pb-1">
             Freshness segmentation
           </div>
@@ -262,8 +262,8 @@ export default function ModelCalibrationPanel({ data }) {
   }
 
   return (
-    <section className="mb-8">
-      <div className="rounded-xl border border-white/[0.06] bg-[#12090d]/80 p-4 md:p-5">
+    <section className="min-w-0 mb-8">
+      <div className="min-w-0 rounded-xl border border-white/[0.06] bg-[#12090d]/80 p-4 md:p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
             <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451] mb-1">
