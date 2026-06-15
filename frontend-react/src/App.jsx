@@ -785,7 +785,7 @@ function AppShell({ children }) {
         }`}
       >
         <div className="flex flex-col h-full">
-          <nav className="flex-1 py-6 pb-8 px-3 space-y-0.5 overflow-y-auto">
+          <nav className="flex-1 py-6 pb-8 px-3 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
             {isAdmin && (
               <>
