@@ -20,6 +20,58 @@ const deriveChartWithCard = (rawUrl) => {
   return rawUrl.replace(/\.png$/i, "_with_card.png");
 };
 
+// ================================================================
+// ICON SET — standardized stroke SVGs (no emoji). currentColor so each
+// icon inherits its section's accent (green targets, red SL, gold, etc).
+// ================================================================
+const Ic = {
+  target: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></svg>
+  ),
+  stop: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z" /><path d="M12 8v4.5" /><path d="M12 16h.01" /></svg>
+  ),
+  bars: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 21h18" /><path d="M7 21v-7" /><path d="M12 21V8" /><path d="M17 21v-11" /></svg>
+  ),
+  camera: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 1 2-2h1.5l1.2-1.8A1 1 0 0 1 8.5 4.7h7a1 1 0 0 1 .8.5L17.5 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><circle cx="12" cy="13" r="3.2" /></svg>
+  ),
+  clock: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+  ),
+  bank: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 21h18" /><path d="M4 10h16" /><path d="M5 10V21M9.5 10V21M14.5 10V21M19 10V21" /><path d="M12 3 4 7.5V10h16V7.5z" /></svg>
+  ),
+  link: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" /></svg>
+  ),
+  send: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
+  ),
+  cpu: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 9h6v6H9z" /><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" /></svg>
+  ),
+  globe: (c = "w-3 h-3") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" /></svg>
+  ),
+  xLogo: (c = "w-3 h-3") => (
+    <svg className={c} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2H21.5l-7.51 8.59L23 22h-6.59l-5.16-6.75L5.34 22H2.08l8.03-9.18L1.5 2h6.76l4.67 6.17L18.244 2Zm-1.16 18h1.83L7.01 3.92H5.05L17.084 20Z" /></svg>
+  ),
+  chat: (c = "w-3 h-3") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" /></svg>
+  ),
+  code: (c = "w-3 h-3") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6" /><path d="m8 6-6 6 6 6" /></svg>
+  ),
+  lock: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3.5" y="11" width="17" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+  ),
+  signal: (c = "w-3.5 h-3.5") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4.9 16.1a7 7 0 0 1 0-9.9" /><path d="M19.1 6.2a7 7 0 0 1 0 9.9" /><path d="M7.8 13.2a3 3 0 0 1 0-4.2" /><path d="M16.2 9a3 3 0 0 1 0 4.2" /><circle cx="12" cy="11" r="1.6" /><path d="M12 12.5V20" /></svg>
+  ),
+};
+
 const SignalModal = ({
   signal,
   isOpen,
@@ -804,7 +856,7 @@ const SignalModal = ({
       label: "ENTRY",
       sub: formatShortDateTime(signal?.created_at),
       detail: `@ ${formatPrice(signal?.entry)}`,
-      icon: "📡",
+      icon: "•",
       active: true,
       color: "text-gold-primary",
       border: "border-gold-primary/30",
@@ -1055,9 +1107,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               onClick={() => {
                 window.location.href = "/pricing";
               }}
-              className="px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]"
             >
-              🔒 Subscribe to Unlock
+              {Ic.lock("w-3.5 h-3.5")}
+              Subscribe to Unlock
             </button>
             <p className="text-[10px] text-white/40 mt-3">
               Closed signals are visible for free as track record proof.
@@ -1092,13 +1145,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {signalDetail?.enrichment && (
           <button
             onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500/20 hover:border-purple-500/40 transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]"
           >
-            <span>🧠</span>
+            {Ic.cpu("w-3.5 h-3.5")}
             <span>Deep Analysis</span>
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/20 text-purple-300">
-              v3
-            </span>
           </button>
         )}
 
@@ -1146,8 +1196,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </div>
         ) : (
           <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
-            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">
-              🎯 {t("modal.targets")}
+            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
+              {Ic.target("w-3 h-3")} {t("modal.targets")}
             </p>
             <div className="space-y-1">
               {targets.map((t, i) => (
@@ -1219,8 +1269,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </div>
           ) : (
             <div className="bg-[#111]/80 rounded-lg p-2 border border-red-500/15">
-              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5">
-                🛑 {t("modal.stop_loss")}
+              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
+                {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
               </p>
               <div className="space-y-1">
                 {stops.map((s, i) => (
@@ -1255,8 +1305,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           <>
             {signal?.volume_rank_num && (
               <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/15">
-                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5">
-                  📊 {t("modal.vol_rank")}
+                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5 flex items-center gap-1.5">
+                  {Ic.bars("w-3 h-3")} {t("modal.vol_rank")}
                 </p>
                 <p className="text-base font-bold text-white">
                   #{signal.volume_rank_num}
@@ -1301,7 +1351,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             <div className="flex items-center gap-2 flex-wrap">
               {signal.volume_rank_num && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
-                  <span className="text-text-muted text-[9px]">📊</span>
+                  <span className="text-text-muted">{Ic.bars("w-3 h-3")}</span>
                   <span className="text-white text-[10px] font-bold">
                     #{signal.volume_rank_num}
                   </span>
@@ -1428,30 +1478,27 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   {/* END TOMBOL JOURNAL */}
 
                   <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
-                    {["chart", "trade", "research", "history"].map((tab) => (
+                    {[
+                      { id: "chart", label: t("modal.chart"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
+                      )},
+                      { id: "trade", label: t("modal.trade"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10 3 14l4 4" /><path d="M3 14h13" /><path d="m17 14 4-4-4-4" /><path d="M21 10H8" /></svg>
+                      )},
+                      { id: "research", label: t("modal.research"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                      )},
+                      { id: "history", label: "History", icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
+                      )},
+                    ].map(({ id, label, icon }) => (
                       <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === tab ? "bg-gold-primary text-black" : "text-text-secondary hover:text-white hover:bg-white/5"}`}
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === id ? "bg-gold-primary text-black" : "text-text-secondary hover:text-white hover:bg-white/5"}`}
                       >
-                        <span className="sm:hidden">
-                          {tab === "chart"
-                            ? "📈"
-                            : tab === "trade"
-                              ? "💹"
-                              : tab === "research"
-                                ? "🔍"
-                                : "📊"}
-                        </span>
-                        <span className="hidden sm:inline">
-                          {tab === "chart"
-                            ? `📈 ${t("modal.chart")}`
-                            : tab === "trade"
-                              ? `💹 ${t("modal.trade")}`
-                              : tab === "research"
-                                ? `🔍 ${t("modal.research")}`
-                                : "📊 History"}
-                        </span>
+                        {icon}
+                        <span className="hidden sm:inline">{label}</span>
                       </button>
                     ))}
                   </div>
@@ -1504,7 +1551,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
-                        📸 {t("modal.trade_proof")}
+                        {Ic.camera("w-4 h-4")} {t("modal.trade_proof")}
                       </span>
                     </div>
 
@@ -1546,13 +1593,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
                                 <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-medium backdrop-blur-sm shadow-xl">
-                                  🔍 Fullscreen
+                                  Fullscreen
                                 </span>
                               </div>
                             </div>
                           ) : (
                             <div className="rounded-xl border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
-                              <span className="text-2xl mb-2">⏳</span>
+                              {Ic.clock("w-6 h-6 mb-2 opacity-60")}
                               <p className="text-xs">Waiting for Chart</p>
                             </div>
                           )}
@@ -1672,7 +1719,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                   onClick={() => setLightboxImg(afterImg)}
                                   className="text-white/60 hover:text-white text-[10px] underline"
                                 >
-                                  🔍 Fullscreen
+                                  Fullscreen
                                 </button>
                               </div>
                             </div>
@@ -1704,7 +1751,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {/* Timeline Horizontal */}
                     <div>
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
-                        ⏱️ Signal Journey
+                        {Ic.clock("w-4 h-4")} Signal Journey
                       </h4>
                       <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 w-full overflow-x-auto custom-scrollbar">
                         <div className="flex items-start min-w-[600px] relative pt-2 pb-4">
@@ -1760,7 +1807,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {/* Data / Exchanges Grid — CENTERED */}
                     <div>
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
-                        🏦 Trade on Exchanges
+                        {Ic.bank("w-4 h-4")} Trade on Exchanges
                       </h4>
                       <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                         {/* Tombol Telegram */}
@@ -1769,9 +1816,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={signalDetail.message_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all group"
+                            className="flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all group text-blue-400"
                           >
-                            <span className="text-xl">✈️</span>
+                            {Ic.send("w-5 h-5")}
                             <span className="text-blue-400 text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">
                               View Telegram
                             </span>
@@ -1996,9 +2043,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.homepage}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors"
                               >
-                                🌐 {t("modal.website")}
+                                {Ic.globe("w-3 h-3")} {t("modal.website")}
                               </a>
                             )}
                             {coinInfo.links.twitter && (
@@ -2006,9 +2053,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://twitter.com/${coinInfo.links.twitter}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors"
                               >
-                                🐦 @{coinInfo.links.twitter}
+                                {Ic.xLogo("w-3 h-3")} @{coinInfo.links.twitter}
                               </a>
                             )}
                             {coinInfo.links.telegram && (
@@ -2016,9 +2063,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://t.me/${coinInfo.links.telegram}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors"
                               >
-                                📨 Telegram
+                                {Ic.send("w-3 h-3")} Telegram
                               </a>
                             )}
                             {coinInfo.links.subreddit && (
@@ -2026,9 +2073,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.subreddit}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors"
                               >
-                                🤖 Reddit
+                                {Ic.chat("w-3 h-3")} Reddit
                               </a>
                             )}
                             {coinInfo.links.github && (
@@ -2036,9 +2083,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.github}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors"
                               >
-                                💻 GitHub
+                                {Ic.code("w-3 h-3")} GitHub
                               </a>
                             )}
                           </div>
@@ -2058,15 +2105,15 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* === AI PROMPT GENERATOR SECTION === */}
                     <div className="mb-4 sm:mb-5">
-                      <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] rounded-xl border border-purple-500/20 overflow-hidden">
+                      <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] rounded-xl border border-gold-primary/20 overflow-hidden">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-purple-500/10 bg-purple-500/5">
+                        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-gold-primary/10 bg-gold-primary/5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-purple-500/15 border border-purple-500/25 flex items-center justify-center">
-                              <span className="text-xs">🤖</span>
+                            <div className="w-6 h-6 rounded-lg bg-gold-primary/15 border border-gold-primary/25 flex items-center justify-center text-gold-primary">
+                              {Ic.cpu("w-3.5 h-3.5")}
                             </div>
                             <div>
-                              <h4 className="text-purple-300 text-xs sm:text-sm font-semibold">
+                              <h4 className="text-gold-primary text-xs sm:text-sm font-semibold">
                                 AI Trade Analysis Prompt
                               </h4>
                               <p className="text-text-muted text-[9px] sm:text-[10px]">
@@ -2080,7 +2127,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
                               promptCopied
                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25 hover:text-purple-200 active:scale-95"
+                                : "bg-gold-primary/15 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/25 hover:text-gold-primary active:scale-95"
                             }`}
                           >
                             {promptCopied ? (
@@ -2127,10 +2174,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </pre>
                         </div>
                         {/* Footer hint */}
-                        <div className="px-3 sm:px-4 py-2 border-t border-purple-500/10 bg-purple-500/[0.03]">
+                        <div className="px-3 sm:px-4 py-2 border-t border-gold-primary/10 bg-gold-primary/[0.03]">
                           <p className="text-[9px] sm:text-[10px] text-text-muted flex items-center gap-1.5">
                             <svg
-                              className="w-3 h-3 text-purple-400/60 flex-shrink-0"
+                              className="w-3 h-3 text-gold-primary/60 flex-shrink-0"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -2157,8 +2204,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </div>
 
                     <div className="mb-3 sm:mb-5">
-                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3">
-                        🔗 {t("modal.research_links")}
+                      <p className="text-gold-primary text-xs font-semibold mb-2.5 sm:mb-3 flex items-center gap-1.5">
+                        {Ic.link("w-3.5 h-3.5")} {t("modal.research_links")}
                       </p>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {researchLinks.map((link, i) => (
