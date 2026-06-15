@@ -732,6 +732,39 @@ async def generate_v6_report(
         }
         _log(f"Liquidity layer unavailable (non-fatal): {e}", level="WARN")
 
+    # -- Phase 3: structured news + economic event risk (context only) --
+    event_risk_doc = None
+    try:
+        from app.services.compass_event_risk import get_event_risk_snapshot
+
+        event_risk_doc = await get_event_risk_snapshot()
+        _log(
+            f"Event risk: {event_risk_doc['risk_level'].upper()} | "
+            f"{len(event_risk_doc.get('headlines') or [])} headlines | "
+            f"{len(event_risk_doc.get('upcoming_events') or [])} upcoming events"
+        )
+    except Exception as e:
+        event_risk_doc = {
+            "phase": 3,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "purpose": "context_and_event_risk_only",
+            "direction_authority": False,
+            "risk_level": "unavailable",
+            "summary": "Event-risk context is temporarily unavailable.",
+            "warnings": ["Event-risk context is temporarily unavailable."],
+            "confidence_adjustment": {
+                "penalty_points": 0,
+                "can_increase_confidence": False,
+                "can_change_direction": False,
+            },
+            "source_health": {},
+            "topics": [],
+            "headlines": [],
+            "upcoming_events": [],
+            "reason": f"event_risk_pipeline_{type(e).__name__}",
+        }
+        _log(f"Event-risk layer unavailable (non-fatal): {e}", level="WARN")
+
     # -- Phase 3: deterministic direction (behind flag) --
     try:
         from app.services.deterministic_verdict import (
@@ -756,6 +789,35 @@ async def generate_v6_report(
                 _log(f"Deterministic verdict ON: 24h={_det['tactical_24h']} 72h={_det['secondary_7d']} inputs={_det['inputs']}")
     except Exception as e:
         _log(f"Deterministic verdict skipped (non-fatal): {e}", level="WARN")
+
+    # Event risk may lower confidence and add a warning, never change direction.
+    try:
+        from app.services.compass_event_risk import apply_event_risk_to_verdict
+
+        _event_audit = apply_event_risk_to_verdict(verdict, event_risk_doc)
+        if _event_audit["penalty_points"]:
+            _warning = (event_risk_doc.get("warnings") or [event_risk_doc["summary"]])[0]
+            _scenario = RiskScenario(
+                title="Scheduled event-risk window",
+                severity=(
+                    "high"
+                    if event_risk_doc.get("risk_level") == "high"
+                    else "medium"
+                ),
+                threshold=_warning,
+                why_matters=(
+                    "Scheduled releases can expand volatility and reduce the "
+                    "reliability of pre-event confidence."
+                ),
+            )
+            _existing = [
+                item for item in verdict.risk_scenarios
+                if item.title.lower() != _scenario.title.lower()
+            ]
+            verdict.risk_scenarios = [_scenario, *_existing[:5]]
+            _log(f"Event-risk confidence adjustment: {_event_audit}")
+    except Exception as e:
+        _log(f"Event-risk confidence adjustment skipped: {e}", level="WARN")
 
     # -- Calibrate horizon confidence against the ledger (additive) --
     try:
@@ -829,6 +891,7 @@ async def generate_v6_report(
         cycle_position=cycle_dict,
         bg_snapshot_summary=bg_summary,
         liquidity=liquidity_doc,
+        event_risk=event_risk_doc,
         shadow_deterministic=shadow_det,
         cost_breakdown={
             "stage1": cost1,

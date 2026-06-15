@@ -49,6 +49,14 @@ export async function getLiquidityValidation({ limit = 25 } = {}) {
 }
 
 /**
+ * Fetch Phase 3 structured news and economic-event context.
+ */
+export async function getEventRisk() {
+  const { data } = await api.get(`${V6_BASE}/event-risk`);
+  return data;
+}
+
+/**
  * Fetch chart data for the embedded price chart.
  * Reuses v4 endpoint /api/v1/ai-arena/chart-data.
  * @param {string} tf - '1D' | '4H' | '1H'
@@ -63,5 +71,6 @@ export default {
   getLedger,
   getTrackRecord,
   getLiquidityValidation,
+  getEventRisk,
   getChartData,
 };

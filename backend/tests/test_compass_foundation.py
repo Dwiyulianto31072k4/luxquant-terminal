@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 from app.services import coinank_fetch
 from app.services import binance_liquidation_validation as liq_validation
+from app.services.compass_event_risk import (
+    apply_event_risk_to_verdict,
+    build_event_risk_snapshot,
+)
 from app.services.binance_liquidation_map import estimate_liquidation_map
 from app.services.binance_liquidation_validation import (
     match_event_to_forecast,
@@ -255,6 +261,103 @@ def test_liquidation_event_audit_survives_redis_flush(tmp_path, monkeypatch):
     liq_validation._append_event_file(record)
 
     assert liq_validation._read_event_file(10) == [record]
+
+
+def test_event_risk_deduplicates_news_and_flags_near_macro_event():
+    now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+    published = now - timedelta(hours=2)
+    news = {
+        "fetched_at": (now - timedelta(minutes=5)).isoformat(),
+        "status": "fresh",
+        "successful_sources": 3,
+        "articles": [
+            {
+                "title": "Bitcoin ETF inflows accelerate - CoinDesk",
+                "link": "https://example.com/one",
+                "source": "CoinDesk",
+                "published": published.isoformat(),
+            },
+            {
+                "title": "Bitcoin ETF inflows accelerate - Reuters",
+                "link": "https://example.com/two",
+                "source": "Google News",
+                "published": published.isoformat(),
+            },
+        ],
+    }
+    events = [{
+        "title": "US CPI m/m",
+        "country": "USD",
+        "date": (now + timedelta(hours=4)).isoformat(),
+        "impact": "High",
+        "forecast": "0.2%",
+        "previous": "0.3%",
+    }]
+
+    snapshot = build_event_risk_snapshot(
+        news,
+        events,
+        calendar_health={
+            "provider": "forexfactory",
+            "status": "fresh",
+            "available": True,
+            "fetched_at": now.isoformat(),
+            "age_seconds": 0,
+            "event_count": 1,
+        },
+        now=now,
+    )
+
+    assert snapshot["direction_authority"] is False
+    assert snapshot["risk_level"] == "high"
+    assert snapshot["confidence_adjustment"]["penalty_points"] == 8
+    assert len(snapshot["headlines"]) == 1
+    assert snapshot["upcoming_events"][0]["risk_window"] == "imminent"
+    assert snapshot["windows"]["next_24h"]["high_impact_count"] == 1
+
+
+def test_event_risk_only_reduces_confidence_not_direction():
+    verdict = SimpleNamespace(
+        tactical_24h=SimpleNamespace(direction="bullish", confidence=68),
+        secondary_7d=SimpleNamespace(direction="neutral", confidence=61),
+    )
+    snapshot = {
+        "confidence_adjustment": {
+            "penalty_points": 8,
+            "can_increase_confidence": False,
+            "can_change_direction": False,
+        },
+    }
+
+    audit = apply_event_risk_to_verdict(verdict, snapshot)
+
+    assert verdict.tactical_24h.direction == "bullish"
+    assert verdict.secondary_7d.direction == "neutral"
+    assert verdict.tactical_24h.confidence == 60
+    assert verdict.secondary_7d.confidence == 53
+    assert audit["directions_unchanged"] is True
+
+
+def test_event_risk_marks_both_sources_unavailable():
+    now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+
+    snapshot = build_event_risk_snapshot(
+        {},
+        [],
+        calendar_health={
+            "provider": "forexfactory",
+            "status": "unavailable",
+            "available": False,
+            "fetched_at": None,
+            "age_seconds": None,
+            "event_count": 0,
+        },
+        now=now,
+    )
+
+    assert snapshot["risk_level"] == "unavailable"
+    assert snapshot["confidence_adjustment"]["penalty_points"] == 0
+    assert snapshot["source_health"]["news"]["status"] == "unavailable"
 
 
 def test_missing_liquidity_is_unavailable_not_evidence():

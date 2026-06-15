@@ -20,11 +20,20 @@ logger = logging.getLogger(__name__)
 
 CACHE_KEY = "lq:macro-news"
 CACHE_TTL = 900  # 15 minutes
+MAX_CACHE_ARTICLES = 30
 
 RSS_FEEDS = [
     {"url": "https://cointelegraph.com/rss", "source": "CoinTelegraph"},
     {"url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "source": "CoinDesk"},
     {"url": "https://decrypt.co/feed", "source": "Decrypt"},
+    {
+        "url": (
+            "https://news.google.com/rss/search?"
+            "q=bitcoin%20OR%20crypto%20(Fed%20OR%20CPI%20OR%20ETF%20OR%20SEC)"
+            "&hl=en-US&gl=US&ceid=US:en"
+        ),
+        "source": "Google News",
+    },
 ]
 
 # Keywords to identify macro/economy/crypto-relevant articles
@@ -136,6 +145,15 @@ def _is_macro_relevant(title: str, description: str) -> bool:
     return any(kw in text for kw in MACRO_KEYWORDS)
 
 
+def _limit_result(result: dict, limit: int) -> dict:
+    limited = (result.get("articles") or [])[:limit]
+    return {
+        **result,
+        "articles": limited,
+        "total": len(limited),
+    }
+
+
 async def fetch_macro_news(limit: int = 20) -> dict:
     """
     Fetch and filter macro-relevant news from RSS feeds.
@@ -144,10 +162,12 @@ async def fetch_macro_news(limit: int = 20) -> dict:
     # 1. Try cache
     cached = cache_get(CACHE_KEY)
     if cached:
-        return cached
+        return _limit_result(cached, limit)
 
     # 2. Fetch fresh
     articles = []
+    successful_sources = 0
+    source_errors = []
 
     async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
         for feed in RSS_FEEDS:
@@ -156,9 +176,14 @@ async def fetch_macro_news(limit: int = 20) -> dict:
                     "User-Agent": "Mozilla/5.0 (compatible; LuxQuant/1.0)"
                 })
                 if resp.status_code != 200:
+                    source_errors.append({
+                        "source": feed["source"],
+                        "reason": f"http_{resp.status_code}",
+                    })
                     continue
 
                 root = ET.fromstring(resp.text)
+                successful_sources += 1
                 for item in root.iter("item"):
                     title_el = item.find("title")
                     link_el = item.find("link")
@@ -194,6 +219,10 @@ async def fetch_macro_news(limit: int = 20) -> dict:
 
             except Exception as e:
                 logger.warning(f"RSS feed error ({feed['source']}): {e}")
+                source_errors.append({
+                    "source": feed["source"],
+                    "reason": type(e).__name__,
+                })
                 continue
 
     # Deduplicate by title
@@ -207,17 +236,30 @@ async def fetch_macro_news(limit: int = 20) -> dict:
 
     # Sort by published date (newest first)
     unique.sort(key=lambda x: x.get("published") or "", reverse=True)
-    unique = unique[:limit]
+    unique = unique[:MAX_CACHE_ARTICLES]
 
     result = {
         "articles": unique,
         "total": len(unique),
         "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "status": "fresh" if successful_sources else "unavailable",
+        "available": successful_sources > 0,
+        "successful_sources": successful_sources,
+        "source_errors": source_errors,
     }
 
-    # Cache
-    cache_set(CACHE_KEY, result, ttl=CACHE_TTL)
+    if successful_sources:
+        cache_set(CACHE_KEY, result, ttl=CACHE_TTL)
+        return _limit_result(result, limit)
 
+    stale, _ = cache_get_with_stale(CACHE_KEY)
+    if stale:
+        return _limit_result({
+            **stale,
+            "status": "stale",
+            "available": True,
+            "source_errors": source_errors,
+        }, limit)
     return result
 
 
@@ -230,5 +272,14 @@ async def get_macro_news(limit: int = 20) -> dict:
         # Stale fallback
         stale, _ = cache_get_with_stale(CACHE_KEY)
         if stale:
-            return stale
-        return {"articles": [], "total": 0, "error": str(e)}
+            return _limit_result(
+                {**stale, "status": "stale", "available": True},
+                limit,
+            )
+        return {
+            "articles": [],
+            "total": 0,
+            "status": "unavailable",
+            "available": False,
+            "error": str(e),
+        }

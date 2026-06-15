@@ -107,3 +107,25 @@ Phase 2 adds:
 Passing a sample threshold does not activate deterministic direction. Activation
 requires a separate review against a baseline and evidence that performance is
 stable across market regimes.
+
+## Phase 3 News And Event Risk
+
+Phase 3 structures the existing RSS news and ForexFactory economic calendar
+into one auditable context layer:
+
+- duplicate headlines are collapsed before scoring;
+- headlines are grouped into macro, regulation, institutional-flow,
+  market-stress, and Bitcoin-market topics;
+- each headline includes source, publication time, relevance, impact, and
+  contextual risk tone;
+- upcoming macro events are ranked for BTC relevance and placed into 24-hour
+  and 72-hour risk windows;
+- news and calendar sources expose `fresh`, `stale`, or `unavailable` health;
+- the complete snapshot is stored inside each v6 report so it can be compared
+  with the report's 24-hour and 72-hour outcomes.
+
+This layer has no direction authority. It cannot create, reverse, or strengthen
+a bullish, bearish, or neutral call. When scheduled event risk is elevated, it
+may only reduce existing 24-hour and 72-hour confidence and append an explicit
+risk warning. The before/after confidence values and unchanged directions are
+stored in the snapshot audit.

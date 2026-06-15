@@ -21,6 +21,7 @@ CACHE_TTL = 3600  # 1 hour
 
 # ── In-memory fallback ──
 _mem_cache: dict = {}
+_source_health: dict[str, dict] = {}
 
 FF_URLS = {
     "this": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
@@ -50,17 +51,35 @@ def _get_cached_events(cache_key: str, ff_key: str) -> list[dict] | None:
     # Fresh
     cached = cache_get(cache_key)
     if cached and isinstance(cached, list) and len(cached) > 0:
+        meta = cache_get(f"{cache_key}:meta") or {}
+        _source_health[ff_key] = {
+            "status": "fresh",
+            "fetched_at": meta.get("fetched_at"),
+            "source": FF_URLS.get(ff_key),
+        }
         return cached
 
     # Stale
     stale, is_stale = cache_get_with_stale(cache_key)
     if stale and isinstance(stale, list) and len(stale) > 0:
         logger.info(f"📅 Serving stale cache for {cache_key}")
+        meta, _ = cache_get_with_stale(f"{cache_key}:meta")
+        _source_health[ff_key] = {
+            "status": "stale",
+            "fetched_at": (meta or {}).get("fetched_at"),
+            "source": FF_URLS.get(ff_key),
+        }
         return stale
 
     # Memory
     if ff_key in _mem_cache:
         logger.info(f"📅 Serving memory cache for {ff_key}")
+        previous = _source_health.get(ff_key, {})
+        _source_health[ff_key] = {
+            "status": "stale",
+            "fetched_at": previous.get("fetched_at"),
+            "source": FF_URLS.get(ff_key),
+        }
         return list(_mem_cache[ff_key])
 
     return None
@@ -82,14 +101,66 @@ async def _get_events(cache_key: str, ff_key: str) -> list[dict]:
 
     if events:
         # Store in Redis + memory
+        fetched_at = datetime.now(timezone.utc).isoformat()
         cache_set(cache_key, events, ttl=CACHE_TTL)
+        cache_set(
+            f"{cache_key}:meta",
+            {"fetched_at": fetched_at, "source": url},
+            ttl=CACHE_TTL,
+        )
         _mem_cache[ff_key] = events
+        _source_health[ff_key] = {
+            "status": "fresh",
+            "fetched_at": fetched_at,
+            "source": url,
+        }
         logger.info(f"📅 Fetched {len(events)} events from {url}")
         return events
 
     # 3. All failed
+    _source_health[ff_key] = {
+        "status": "unavailable",
+        "fetched_at": None,
+        "source": url,
+    }
     logger.error(f"❌ Calendar: no data for {ff_key}")
     return []
+
+
+def get_calendar_health(
+    *,
+    include_next_week: bool = False,
+    event_count: int = 0,
+) -> dict:
+    """Return the source state from the most recent calendar fetch."""
+    now = datetime.now(timezone.utc)
+    keys = ["this"] + (["next"] if include_next_week else [])
+    states = [_source_health.get(key) for key in keys]
+    states = [state for state in states if state]
+    primary = _source_health.get("this") or {}
+    status = primary.get("status", "unavailable")
+    fetched_at = primary.get("fetched_at")
+    parsed_at = None
+    if fetched_at:
+        try:
+            parsed_at = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+            if parsed_at.tzinfo is None:
+                parsed_at = parsed_at.replace(tzinfo=timezone.utc)
+        except ValueError:
+            parsed_at = None
+    age_seconds = (
+        max(0.0, (now - parsed_at).total_seconds()) if parsed_at else None
+    )
+    return {
+        "provider": "forexfactory",
+        "status": status,
+        "available": status in {"fresh", "stale"},
+        "fetched_at": fetched_at,
+        "age_seconds": round(age_seconds, 1) if age_seconds is not None else None,
+        "event_count": event_count,
+        "weeks_requested": keys,
+        "sources": states,
+    }
 
 
 def _enrich_events(events: list[dict]) -> list[dict]:

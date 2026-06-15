@@ -198,3 +198,17 @@ def get_liquidity_validation(
     from app.services.binance_liquidation_validation import get_validation_monitor
 
     return get_validation_monitor(limit=limit)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# GET /event-risk
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/event-risk")
+async def get_event_risk(
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """Return structured news and economic-event context for Compass."""
+    from app.services.compass_event_risk import get_event_risk_snapshot
+
+    return await get_event_risk_snapshot()

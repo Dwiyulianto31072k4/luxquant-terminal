@@ -410,6 +410,8 @@ class ReportBundleV6(BaseModel):
     bg_snapshot_summary: dict  # {endpoint: {value, ok}}
     # Liquidity layer (liquidation heatmap -> magnets). Additive, optional.
     liquidity: Optional[dict] = None
+    # Structured news and economic-event context. Never owns direction.
+    event_risk: Optional[dict] = None
     # Shadow validation: deterministic direction recorded alongside LLM (not shown to user).
     shadow_deterministic: Optional[dict] = None
 

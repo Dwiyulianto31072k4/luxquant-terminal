@@ -24,6 +24,7 @@ import {
   getLedger,
   getTrackRecord,
   getLiquidityValidation,
+  getEventRisk,
 } from "../services/aiArenaV6Api";
 
 // V6 components — Batch 1
@@ -47,6 +48,7 @@ import HeaderStatStrip from "./aiArenaV6/HeaderStatStrip";
 import InstitutionalFlowRadar from "./aiArenaV6/InstitutionalFlowRadar";
 import MacroPulse from "./aiArenaV6/MacroPulse";
 import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
+import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -197,6 +199,7 @@ export default function AIArenaPageV6() {
   const [ledger, setLedger] = useState(null);
   const [trackRecord, setTrackRecord] = useState(null);
   const [liquidityValidation, setLiquidityValidation] = useState(null);
+  const [eventRisk, setEventRisk] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -210,11 +213,12 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [latestRes, ledgerRes, trackRes, liquidityRes] = await Promise.allSettled([
+      const [latestRes, ledgerRes, trackRes, liquidityRes, eventRiskRes] = await Promise.allSettled([
         getLatestReport(),
         getLedger({ days: 14 }),
         getTrackRecord({ days: 30 }),
         getLiquidityValidation({ limit: 25 }),
+        getEventRisk(),
       ]);
 
       if (latestRes.status === "fulfilled") {
@@ -246,6 +250,13 @@ export default function AIArenaPageV6() {
       } else {
         console.warn("[v6] liquidity validation fetch failed:", liquidityRes.reason);
         setLiquidityValidation(null);
+      }
+
+      if (eventRiskRes.status === "fulfilled") {
+        setEventRisk(eventRiskRes.value);
+      } else {
+        console.warn("[v6] event-risk fetch failed:", eventRiskRes.reason);
+        setEventRisk(null);
       }
     } catch (e) {
       console.error("[v6] load error:", e);
@@ -343,6 +354,10 @@ export default function AIArenaPageV6() {
 
         {/* 6b. Macro Pulse — v6.2 (NEW) */}
         <MacroPulse />
+
+        {/* Phase 3: structured headlines and scheduled event risk */}
+        <EventRiskPanel data={eventRisk} />
+
         {/* 7. AI Reasoning Walkthrough */}
         <AIReasoningWalkthrough
           reasoningChain={reasoningChain}
