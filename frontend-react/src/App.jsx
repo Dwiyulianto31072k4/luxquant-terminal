@@ -237,58 +237,181 @@ function PremiumGate({ children }) {
 // ════════════════════════════════════════
 // SIDEBAR ITEM — Flowscan flat pattern
 // ════════════════════════════════════════
+// ─── Central nav icon registry — same visual language as MoreMenuDropdown
+//     (bare 1.5-stroke SVG paths, colour lives in the stroke). Keyed by route.
+const NAV_ICON_PATHS = {
+  "/home": (
+    <>
+      <path d="M3 10.5 L12 3 L21 10.5" /><path d="M5 9.5 V20 a1 1 0 001 1 H18 a1 1 0 001-1 V9.5" /><path d="M9.5 21 v-6 h5 v6" />
+    </>
+  ),
+  "/signals": (
+    <>
+      <path d="M3 17 L9 11 L13 15 L21 7" /><path d="M16 7 H21 V12" />
+    </>
+  ),
+  "/autotrade": (
+    <>
+      <path d="M12 3 a9 9 0 1 0 9 9" /><path d="M21 3 v5 h-5" /><path d="M12 8 v4 l3 2" />
+    </>
+  ),
+  "/ai-arena": (
+    <>
+      <circle cx="11" cy="11" r="6" /><path d="M15.5 15.5 L21 21" /><path d="M11 8.5 v5 M8.5 11 h5" strokeOpacity="0.55" />
+    </>
+  ),
+  "/orderbook": (
+    <>
+      <line x1="4" y1="6" x2="13" y2="6" /><line x1="4" y1="10" x2="10" y2="10" /><line x1="4" y1="14" x2="11" y2="14" /><line x1="4" y1="18" x2="9" y2="18" /><line x1="18" y1="4" x2="18" y2="20" /><path d="M15.5 17 L18 20 L20.5 17" />
+    </>
+  ),
+  "/markets": (
+    <>
+      <rect x="5" y="8" width="4" height="11" rx="1" /><path d="M7 8 V5" /><rect x="15" y="4" width="4" height="13" rx="1" /><path d="M17 4 V2 M17 17 v3" />
+    </>
+  ),
+  "/market-pulse": (
+    <path d="M3 12 H7 L9 6 L13 18 L15 12 H21" />
+  ),
+  "/onchain": (
+    <>
+      <circle cx="6" cy="6" r="2" /><circle cx="18" cy="6" r="2" /><circle cx="12" cy="14" r="2.4" /><circle cx="6" cy="20" r="1.8" /><circle cx="18" cy="20" r="1.8" /><line x1="7.4" y1="7.4" x2="10.4" y2="12.2" /><line x1="16.6" y1="7.4" x2="13.6" y2="12.2" /><line x1="10.6" y1="15.8" x2="7.2" y2="18.4" /><line x1="13.4" y1="15.8" x2="16.8" y2="18.4" />
+    </>
+  ),
+  "/money-flow": (
+    <>
+      <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" /><path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
+    </>
+  ),
+  "/bitcoin": (
+    <>
+      <circle cx="12" cy="12" r="9" /><path d="M10 7 V8 M10 16 V17 M13 7 V8 M13 16 V17" /><path d="M9 8 H14 a2 2 0 010 4 H9 M9 12 H15 a2 2 0 010 4 H9 V8 z" />
+    </>
+  ),
+  "/crypto-news": (
+    <>
+      <rect x="3" y="5" width="14" height="15" rx="1" /><path d="M17 8 H20 a1 1 0 011 1 V19 a1 1 0 01-1 1 H17" /><line x1="6" y1="9" x2="14" y2="9" /><line x1="6" y1="12" x2="14" y2="12" /><line x1="6" y1="15" x2="11" y2="15" />
+    </>
+  ),
+  "/calendar": (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="1" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="3" x2="8" y2="7" /><line x1="16" y1="3" x2="16" y2="7" /><circle cx="8" cy="14" r="0.8" fill="currentColor" /><circle cx="12" cy="14" r="0.8" fill="currentColor" /><circle cx="16" cy="14" r="0.8" fill="currentColor" /><circle cx="8" cy="17.5" r="0.8" fill="currentColor" />
+    </>
+  ),
+  "/performance": (
+    <>
+      <path d="M3 3 v18 h18" /><path d="M7 14 l4-4 4 4 6-6" /><path d="M17 8 h4 v4" />
+    </>
+  ),
+  "/journal": (
+    <>
+      <rect x="4" y="3" width="14" height="18" rx="1" /><line x1="8" y1="3" x2="8" y2="21" /><line x1="11" y1="9" x2="15" y2="9" /><line x1="11" y1="13" x2="15" y2="13" /><path d="M11 17 L13 18 L16 15" />
+    </>
+  ),
+  "/portfolio": (
+    <>
+      <rect x="3" y="7" width="18" height="14" rx="1" /><path d="M9 7 V5 a1 1 0 011-1 H14 a1 1 0 011 1 V7" /><line x1="3" y1="13" x2="21" y2="13" />
+    </>
+  ),
+  "/watchlist": (
+    <path d="M12 3 L14.5 8.5 L20.5 9.3 L16 13.5 L17.2 19.5 L12 16.5 L6.8 19.5 L8 13.5 L3.5 9.3 L9.5 8.5 Z" />
+  ),
+  "/tips": (
+    <>
+      <path d="M9 18 h6 M10 21 h4" /><path d="M12 3 a6 6 0 0 1 4 10.5 c-0.7 0.7-1 1.3-1 2.5 H9 c0-1.2-0.3-1.8-1-2.5 A6 6 0 0 1 12 3 z" />
+    </>
+  ),
+  "/referral": (
+    <>
+      <circle cx="8" cy="9" r="3" /><path d="M3 19 a5 5 0 0 1 10 0" /><path d="M16 7 h5 M18.5 4.5 v5" strokeOpacity="0.7" /><path d="M16 14 a4 4 0 0 1 5 4" />
+    </>
+  ),
+  "/api-keys": (
+    <>
+      <circle cx="7.5" cy="15.5" r="3.5" /><path d="M10 13 L20 3 M17 6 L20 9 M14 9 L16 11" />
+    </>
+  ),
+  "/admin": (
+    <>
+      <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" /><path d="M9 12 L11 14 L15 9.5" />
+    </>
+  ),
+};
+
 const SidebarItem = ({
   active,
   onClick,
   label,
   icon,
+  path,
   isPremium,
   isFreeBadge,
   isAdminAccent,
-}) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-sm transition-all relative ${
-      active
-        ? isAdminAccent
-          ? "text-loss bg-loss/[0.08] border border-loss/25"
-          : "text-gold-primary bg-gold-primary/[0.08] border border-gold-primary/25"
-        : "text-text-secondary hover:text-white bg-transparent hover:bg-white/[0.03] border border-transparent"
-    }`}
-  >
-    {active && (
-      <div
-        className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${
-          isAdminAccent ? "via-loss/40" : "via-gold-primary/40"
-        } to-transparent`}
-      />
-    )}
-    <svg
-      className={`w-4 h-4 flex-shrink-0 ${active ? (isAdminAccent ? "text-loss" : "text-gold-primary") : ""}`}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
+}) => {
+  const glyph = (path && NAV_ICON_PATHS[path]) || icon;
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative w-full flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-md transition-colors ${
+        active ? "bg-white/[0.04]" : "bg-transparent hover:bg-white/[0.04]"
+      }`}
     >
-      {icon}
-    </svg>
-    <span className="text-[12px] tracking-tight">{label}</span>
-    {isPremium && (
-      <span className="ml-auto font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
-        PRO
-      </span>
-    )}
-    {isFreeBadge && (
-      <span className="ml-auto font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-profit/10 text-profit/80 border border-profit/25">
-        FREE
-      </span>
-    )}
-    {active && !isPremium && !isFreeBadge && (
+      {/* active indicator — thin gold (or red for admin) left bar */}
+      {active && (
+        <span
+          className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+          style={{
+            background: isAdminAccent ? "rgb(248,113,113)" : "rgb(212,168,83)",
+            boxShadow: isAdminAccent
+              ? "0 0 6px rgba(248,113,113,0.6)"
+              : "0 0 6px rgba(212,168,83,0.6)",
+          }}
+        />
+      )}
+      {/* bare icon — colour in the stroke, white→full-white on hover */}
+      <svg
+        className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
+          active
+            ? isAdminAccent
+              ? "text-loss"
+              : "text-gold-primary"
+            : isAdminAccent
+              ? "text-red-400/70 group-hover:text-red-400"
+              : "text-white/70 group-hover:text-white"
+        }`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        viewBox="0 0 24 24"
+      >
+        {glyph}
+      </svg>
       <span
-        className={`ml-auto w-1 h-1 rounded-full ${isAdminAccent ? "bg-loss" : "bg-gold-primary"}`}
-      />
-    )}
-  </button>
-);
+        className={`text-[12.5px] tracking-tight transition-colors ${
+          active
+            ? isAdminAccent
+              ? "text-loss"
+              : "text-gold-primary"
+            : "text-white/90 group-hover:text-white"
+        }`}
+      >
+        {label}
+      </span>
+      {isPremium && (
+        <span className="ml-auto font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
+          PRO
+        </span>
+      )}
+      {isFreeBadge && (
+        <span className="ml-auto font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-profit/10 text-profit/80 border border-profit/25">
+          FREE
+        </span>
+      )}
+    </button>
+  );
+};
 
 // ════════════════════════════════════════
 // APP SHELL
@@ -661,12 +784,6 @@ function AppShell({ children }) {
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Right edge hairline accent */}
-        <div className="absolute top-0 right-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gold-primary/30 to-transparent" />
-
-        {/* Bottom edge hairline divider (separates from bottom nav visually) */}
-        <div className="absolute left-0 right-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-
         <div className="flex flex-col h-full">
           <nav className="flex-1 py-6 pb-8 px-3 space-y-0.5 overflow-y-auto">
             {/* ═══════════ ADMIN SECTION (top priority for admins) ═══════════ */}
@@ -681,6 +798,7 @@ function AppShell({ children }) {
                 </div>
                 <SidebarItem
                   active={isActive("/admin")}
+                  path="/admin"
                   onClick={() => handleNav("/admin")}
                   label={t("nav.admin")}
                   isAdminAccent
@@ -709,6 +827,7 @@ function AppShell({ children }) {
 
             <SidebarItem
               active={isActive("/home")}
+              path="/home"
               onClick={() => handleNav("/home")}
               label={t("nav.home")}
               isFreeBadge
@@ -724,6 +843,7 @@ function AppShell({ children }) {
             {/* Market Pulse — activity/heartbeat (nyambung dgn "Pulse") */}
             <SidebarItem
               active={isActive("/market-pulse")}
+              path="/market-pulse"
               onClick={() => handleNav("/market-pulse")}
               label="Market Pulse"
               isFreeBadge
@@ -738,6 +858,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/crypto-news")}
+              path="/crypto-news"
               onClick={() => handleNav("/crypto-news")}
               label="Crypto News"
               isFreeBadge
@@ -752,6 +873,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/onchain")}
+              path="/onchain"
               onClick={() => handleNav("/onchain")}
               label="On-Chain"
               isPremium={!isPremiumUser()}
@@ -766,6 +888,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/signals")}
+              path="/signals"
               onClick={() => handleNav("/signals")}
               label={t("nav.signals")}
               isPremium={!isPremiumUser()}
@@ -780,6 +903,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/autotrade")}
+              path="/autotrade"
               onClick={() => handleNav("/autotrade")}
               label="AutoTrade"
               isPremium={!isPremiumUser()}
@@ -795,6 +919,7 @@ function AppShell({ children }) {
             {/* AI Arena — Bot icon, jelas banget "AI" */}
             <SidebarItem
               active={isActive("/ai-arena")}
+              path="/ai-arena"
               onClick={() => handleNav("/ai-arena")}
               label="AI Arena"
               isPremium={!isPremiumUser()}
@@ -828,6 +953,7 @@ function AppShell({ children }) {
             {/* Money Flow — waves (capital rotation) */}
             <SidebarItem
               active={isActive("/money-flow")}
+              path="/money-flow"
               onClick={() => handleNav("/money-flow")}
               label="Money Flow"
               isPremium={!isPremiumUser()}
@@ -843,6 +969,7 @@ function AppShell({ children }) {
             {/* Performance — unified hub (Overview / Daily / Research) */}
             <SidebarItem
               active={isActive("/performance")}
+              path="/performance"
               onClick={() => handleNav("/performance")}
               label="Performance"
               isFreeBadge
@@ -865,6 +992,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/journal")}
+              path="/journal"
               onClick={() => handleNav("/journal")}
               label="Journal"
               isFreeBadge
@@ -879,6 +1007,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/bitcoin")}
+              path="/bitcoin"
               onClick={() => handleNav("/bitcoin")}
               label={t("nav.bitcoin")}
               isPremium={!isPremiumUser()}
@@ -894,6 +1023,7 @@ function AppShell({ children }) {
             {/* Markets — candlestick chart, lebih crypto-market */}
             <SidebarItem
               active={isActive("/markets")}
+              path="/markets"
               onClick={() => handleNav("/markets")}
               label={t("nav.markets")}
               isPremium={!isPremiumUser()}
@@ -946,6 +1076,7 @@ function AppShell({ children }) {
 
             <SidebarItem
               active={isActive("/portfolio")}
+              path="/portfolio"
               onClick={() => handleNav("/portfolio")}
               label="Portfolio"
               isPremium={!isPremiumUser()}
@@ -960,6 +1091,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/orderbook")}
+              path="/orderbook"
               onClick={() => handleNav("/orderbook")}
               label={t("nav.orderbook")}
               isPremium={!isPremiumUser()}
@@ -974,6 +1106,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/calendar")}
+              path="/calendar"
               onClick={() => handleNav("/calendar")}
               label={t("nav.calendar")}
               isPremium={!isPremiumUser()}
@@ -988,6 +1121,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/tips")}
+              path="/tips"
               onClick={() => handleNav("/tips")}
               label={t("nav.tips")}
               isPremium={!isPremiumUser()}
@@ -1012,6 +1146,7 @@ function AppShell({ children }) {
 
             <SidebarItem
               active={isActive("/watchlist")}
+              path="/watchlist"
               onClick={() => handleNav("/watchlist")}
               label={t("nav.watchlist")}
               isPremium={!isPremiumUser()}
@@ -1026,6 +1161,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/referral")}
+              path="/referral"
               onClick={() => handleNav("/referral")}
               label="Referral"
               icon={
@@ -1039,6 +1175,7 @@ function AppShell({ children }) {
             />
             <SidebarItem
               active={isActive("/api-keys")}
+              path="/api-keys"
               onClick={() => handleNav("/api-keys")}
               label={t("nav.api_keys", { defaultValue: "API Keys" })}
               isPremium={!isPremiumUser()}
