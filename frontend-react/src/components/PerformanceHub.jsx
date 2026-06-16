@@ -131,52 +131,87 @@ const PerformanceHub = () => {
       <div className="flex gap-6">
         {/* desktop sub-sidebar */}
         <aside className="hidden lg:block w-52 flex-shrink-0">
-          <nav className="sticky top-20 space-y-5">
+          <nav className="sticky top-20 space-y-1">
             {GROUPS.map((g) => {
               const isActiveGroup = g.view === view;
               const single = g.items.length === 1;
+              const expanded = isActiveGroup && !single;
               return (
                 <div key={g.view}>
+                  {/* group header — chevron + label + count */}
                   <button
                     onClick={() => setNav(g.view, DEFAULT_TAB[g.view])}
-                    className="w-full flex items-center gap-2 px-2 mb-1.5 group/header"
+                    className={`group/header w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors ${
+                      isActiveGroup ? "" : "hover:bg-white/[0.03]"
+                    }`}
                   >
-                    <span
-                      className={`h-1 w-1 rounded-full flex-shrink-0 transition-colors ${
-                        isActiveGroup ? "bg-gold-primary" : "bg-white/25"
+                    {/* chevron — rotates when the group is expanded */}
+                    <svg
+                      className={`w-2.5 h-2.5 flex-shrink-0 transition-all duration-200 ${
+                        expanded ? "rotate-90" : ""
+                      } ${
+                        isActiveGroup
+                          ? "text-gold-primary/70"
+                          : "text-white/30 group-hover/header:text-white/50"
                       }`}
-                      style={isActiveGroup ? { boxShadow: "0 0 5px rgba(212,168,83,0.5)" } : undefined}
-                    />
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
                     <span
-                      className={`font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
-                        isActiveGroup ? "text-gold-primary/85" : "text-white/40 group-hover/header:text-white/70"
+                      className={`font-mono text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors ${
+                        isActiveGroup
+                          ? "text-gold-primary/90"
+                          : "text-white/45 group-hover/header:text-white/70"
                       }`}
                     >
                       {g.label}
                     </span>
+                    {!single && (
+                      <span
+                        className={`ml-auto font-mono text-[10px] transition-colors ${
+                          isActiveGroup ? "text-gold-primary/50" : "text-white/25"
+                        }`}
+                      >
+                        {g.items.length}
+                      </span>
+                    )}
                   </button>
 
-                  {isActiveGroup && !single && (
-                    <div className="space-y-0.5 pl-1">
+                  {/* items — connected to the parent by a vertical rail */}
+                  {expanded && (
+                    <div className="mt-0.5 mb-2 ml-[13px] pl-[11px] border-l border-white/[0.08] flex flex-col gap-0.5">
                       {g.items.map((it) => {
                         const on = it.tab === tab;
                         return (
                           <button
                             key={it.tab}
                             onClick={() => setNav(g.view, it.tab)}
-                            className={`group relative w-full text-left flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-md transition-colors ${
-                              on ? "bg-white/[0.05]" : "hover:bg-white/[0.04]"
+                            className={`group relative w-full text-left flex items-center px-2.5 py-[7px] rounded-md transition-colors ${
+                              on
+                                ? "bg-gold-primary/[0.1]"
+                                : "hover:bg-white/[0.04]"
                             }`}
                           >
                             {on && (
                               <span
-                                className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
-                                style={{ background: "rgb(212,168,83)", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
+                                className="absolute -left-[12px] top-[7px] bottom-[7px] w-[2px] rounded-full"
+                                style={{
+                                  background: "rgb(212,168,83)",
+                                  boxShadow: "0 0 6px rgba(212,168,83,0.6)",
+                                }}
                               />
                             )}
                             <span
-                              className={`text-[12.5px] tracking-tight transition-colors ${
-                                on ? "text-gold-primary" : "text-white/70 group-hover:text-white"
+                              className={`text-[13px] tracking-tight transition-colors ${
+                                on
+                                  ? "text-gold-light font-medium"
+                                  : "text-white/55 group-hover:text-white"
                               }`}
                             >
                               {it.label}
