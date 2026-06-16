@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { watchlistApi } from '../services/watchlistApi';
 import { classifyCoin, CoinDetailModal } from './coinIntelShared';
 import { InfoTip } from './GuideInfo';
+import { Ic } from './signalIcons';
+import { shareSignal } from '../services/shareSignal';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -236,6 +238,17 @@ const SignalsTable = ({
     setWatchlistIds(prev =>
       newState ? [...prev, signalId] : prev.filter(id => id !== signalId)
     );
+  };
+
+  // Share — copied-toast keyed by signal_id so the right row/card shows it
+  const [sharedId, setSharedId] = useState(null);
+  const handleShareSignal = async (e, signal) => {
+    if (e) e.stopPropagation();
+    const res = await shareSignal(signal);
+    if (res.method === 'clipboard' && res.ok) {
+      setSharedId(signal.signal_id);
+      setTimeout(() => setSharedId((cur) => (cur === signal.signal_id ? null : cur)), 2000);
+    }
   };
 
   // Merge a freshly-fetched map into the accumulated map and notify the parent.
@@ -786,16 +799,30 @@ const SignalsTable = ({
               );
             })()}
           </div>
-          <div className="text-right">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-white/45 mr-1.5">Called</span>
-            <span className="text-white/75 font-mono tabular-nums font-medium">
-              {(() => {
-                const d = new Date(signal.created_at);
-                const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-                const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-                return `${date}, ${time}`;
-              })()}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-white/45 mr-1.5">Called</span>
+              <span className="text-white/75 font-mono tabular-nums font-medium">
+                {(() => {
+                  const d = new Date(signal.created_at);
+                  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  return `${date}, ${time}`;
+                })()}
+              </span>
+            </div>
+            <button
+              onClick={(e) => handleShareSignal(e, signal)}
+              title="Share signal"
+              aria-label="Share signal"
+              className="w-7 h-7 -mr-1 flex items-center justify-center rounded-sm text-white/45 hover:text-gold-primary hover:bg-gold-primary/10 transition-colors flex-shrink-0"
+            >
+              {sharedId === signal.signal_id ? (
+                <span className="text-gold-primary">{Ic.check('w-3.5 h-3.5')}</span>
+              ) : (
+                Ic.share('w-3.5 h-3.5')
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -927,13 +954,14 @@ const SignalsTable = ({
                   {visibleCols.status && <SortableHeader field="status" label="Status" align="center" />}
                   {visibleCols.last_update && <SortableHeader field="last_update" label="Update" align="center" />}
                   {visibleCols.created_at && <SortableHeader field="created_at" label="Called Time" align="right" />}
+                  <th className="py-3 px-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   [...Array(10)].map((_, i) => (
                     <tr key={i} className="border-b border-white/[0.03]">
-                      {[...Array(visibleColCount)].map((_, j) => (
+                      {[...Array(visibleColCount + 1)].map((_, j) => (
                         <td key={j} className="py-4 px-4">
                           <div className="h-3 bg-white/[0.04] rounded animate-pulse"></div>
                         </td>
@@ -942,7 +970,7 @@ const SignalsTable = ({
                   ))
                 ) : signals?.length === 0 ? (
                   <tr>
-                    <td colSpan={visibleColCount} className="text-center py-16">
+                    <td colSpan={visibleColCount + 1} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-14 h-14 rounded-full bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
                           <EmptyStateIcon />
@@ -1244,6 +1272,22 @@ const SignalsTable = ({
                             </div>
                           </td>
                         )}
+
+                        {/* Share — appears on row hover (desktop) */}
+                        <td className="py-3 px-2 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => handleShareSignal(e, signal)}
+                            title="Share signal"
+                            aria-label="Share signal"
+                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all ${
+                              sharedId === signal.signal_id
+                                ? 'text-gold-primary opacity-100'
+                                : 'text-white/45 opacity-0 group-hover:opacity-100 hover:text-gold-primary hover:bg-gold-primary/10'
+                            }`}
+                          >
+                            {sharedId === signal.signal_id ? Ic.check('w-3.5 h-3.5') : Ic.share('w-3.5 h-3.5')}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })

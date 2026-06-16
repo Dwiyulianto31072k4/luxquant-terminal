@@ -12,6 +12,7 @@ import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
 import BTCCorrelationBadge from "./BTCCorrelationBadge";     
 import BTCCorrelationModal from "./BTCCorrelationModal";  
 import { Ic } from "./signalIcons";
+import { shareSignal } from "../services/shareSignal";
 
 
 const deriveChartWithCard = (rawUrl) => {
@@ -49,6 +50,9 @@ const SignalModal = ({
 
   // State untuk AI Prompt copy
   const [promptCopied, setPromptCopied] = useState(false);
+
+  // State untuk Share signal (toast "Link copied")
+  const [shareCopied, setShareCopied] = useState(false);
 
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
@@ -463,6 +467,15 @@ const SignalModal = ({
       setOverrideSignal(null);
       onClose();
     }, 200);
+  };
+
+  const handleShare = async (e) => {
+    if (e) e.stopPropagation();
+    const res = await shareSignal(activeSignal);
+    if (res.method === "clipboard" && res.ok) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
   };
 
   // === SAFE MATH HELPERS (Anti-Crash) ===
@@ -1470,6 +1483,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       />
                     </svg>
                   </button>
+
+                  {/* SHARE — paling kanan header */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={handleShare}
+                      title="Share signal"
+                      aria-label="Share signal"
+                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-gold-primary bg-[#0a0a0a] hover:bg-gold-primary/15 border border-gold-primary/20 hover:border-gold-primary/50 rounded-lg transition-all ml-1"
+                    >
+                      {Ic.share("w-3.5 h-3.5")}
+                    </button>
+                    {shareCopied && (
+                      <span className="absolute top-full right-0 mt-1.5 whitespace-nowrap px-2 py-1 rounded bg-gold-primary text-black text-[10px] font-bold shadow-lg z-20">
+                        Link copied
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
