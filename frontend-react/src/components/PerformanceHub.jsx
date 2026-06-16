@@ -16,7 +16,7 @@
 //   Mobile (<lg): the sidebar collapses to a single dropdown above the
 //        content (sidebar doesn't fit a narrow viewport).
 // ════════════════════════════════════════════════════════════════
-import { Suspense, lazy, useMemo } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 const AnalyzePage = lazy(() => import("./AnalyzePage"));
@@ -90,22 +90,23 @@ const PerformanceHub = () => {
     setParams(next, { replace: false });
   };
 
+  // Group expand state — independent toggles. All groups start open; the
+  // active group is forced open; switching views never collapses others.
+  // A group only closes when its chevron is explicitly clicked.
+  const [openGroups, setOpenGroups] = useState(() =>
+    GROUPS.filter((g) => g.items.length > 1).map((g) => g.view)
+  );
+  const toggleGroup = (v) =>
+    setOpenGroups((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
+    );
+  // keep the active group open whenever the view changes
+  useEffect(() => {
+    setOpenGroups((prev) => (prev.includes(view) ? prev : [...prev, view]));
+  }, [view]);
+
   return (
     <div>
-      {/* hub eyebrow */}
-      <div className="flex items-center gap-3 flex-wrap mb-5">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          Performance
-        </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
-        {group?.note && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70">
-            {group.note}
-          </span>
-        )}
-      </div>
-
       {/* mobile: dropdown selector */}
       <div className="lg:hidden mb-5">
         <select
@@ -135,59 +136,68 @@ const PerformanceHub = () => {
             {GROUPS.map((g) => {
               const isActiveGroup = g.view === view;
               const single = g.items.length === 1;
-              const expanded = isActiveGroup && !single;
+              const expanded = !single && openGroups.includes(g.view);
               return (
                 <div key={g.view}>
-                  {/* group header — chevron + label + count */}
-                  <button
-                    onClick={() => setNav(g.view, DEFAULT_TAB[g.view])}
-                    className={`group/header w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors ${
+                  {/* group header — chevron toggles open/closed; label navigates */}
+                  <div
+                    className={`group/header w-full flex items-center gap-1.5 pr-2 rounded-md transition-colors ${
                       isActiveGroup ? "" : "hover:bg-white/[0.03]"
                     }`}
                   >
-                    {/* chevron — rotates when the group is expanded */}
-                    <svg
-                      className={`w-2.5 h-2.5 flex-shrink-0 transition-all duration-200 ${
-                        expanded ? "rotate-90" : ""
-                      } ${
-                        isActiveGroup
-                          ? "text-gold-primary/70"
-                          : "text-white/30 group-hover/header:text-white/50"
-                      }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                    {/* chevron — independent expand/collapse toggle */}
+                    {!single ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleGroup(g.view);
+                        }}
+                        className="flex items-center justify-center w-6 h-7 flex-shrink-0 -mr-1"
+                        aria-label={expanded ? "Collapse" : "Expand"}
+                      >
+                        <svg
+                          className={`w-2.5 h-2.5 transition-all duration-200 ${
+                            expanded ? "rotate-90" : ""
+                          } ${
+                            isActiveGroup
+                              ? "text-gold-primary/70"
+                              : "text-white/30 group-hover/header:text-white/50"
+                          }`}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M9 6l6 6-6 6" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <span className="w-5 flex-shrink-0" />
+                    )}
+                    {/* label — navigates into the group's default tab */}
+                    <button
+                      onClick={() => setNav(g.view, DEFAULT_TAB[g.view])}
+                      className="flex-1 text-left py-1.5"
                     >
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                    <span
-                      className={`font-mono text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors ${
-                        isActiveGroup
-                          ? "text-gold-primary/90"
-                          : "text-white/45 group-hover/header:text-white/70"
-                      }`}
-                    >
-                      {g.label}
-                    </span>
-                    {!single && (
                       <span
-                        className={`ml-auto font-mono text-[10px] transition-colors ${
-                          isActiveGroup ? "text-gold-primary/50" : "text-white/25"
+                        className={`font-mono text-[11px] uppercase tracking-[0.18em] font-semibold transition-colors ${
+                          isActiveGroup
+                            ? "text-gold-primary/90"
+                            : "text-white/45 group-hover/header:text-white/70"
                         }`}
                       >
-                        {g.items.length}
+                        {g.label}
                       </span>
-                    )}
-                  </button>
+                    </button>
+                  </div>
 
                   {/* items — connected to the parent by a vertical rail */}
                   {expanded && (
-                    <div className="mt-0.5 mb-2 ml-[13px] pl-[11px] border-l border-white/[0.08] flex flex-col gap-0.5">
+                    <div className="mt-0.5 mb-2 ml-[19px] pl-[11px] border-l border-white/[0.08] flex flex-col gap-0.5">
                       {g.items.map((it) => {
-                        const on = it.tab === tab;
+                        const on = it.tab === tab && isActiveGroup;
                         return (
                           <button
                             key={it.tab}

@@ -161,13 +161,6 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
       {/* ═══ HEADER ═══ */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-primary/70 mb-2">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/40 opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-primary/80" />
-            </span>
-            <span>Multi-Day Analytics</span>
-          </div>
 
           <h1
             className="text-2xl sm:text-3xl font-semibold tracking-tight leading-none"
@@ -178,7 +171,7 @@ const EdgeLabPage = ({ activeTab: controlledTab, onTabChange, hideTabBar } = {})
               backgroundClip: "text",
             }}
           >
-            Edge Lab
+            Research
           </h1>
 
           <p className="text-sm text-text-muted/70 mt-2">
