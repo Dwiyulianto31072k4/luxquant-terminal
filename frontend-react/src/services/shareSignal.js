@@ -71,10 +71,13 @@ export const buildSignalShareUrl = (signalId, code) => {
   return `${origin}/signals?${params.toString()}`;
 };
 
-// Compose a friendly invite message (used as Web Share text + copy payload).
-const buildShareText = (signal, url) => {
+// Compose a friendly invite message. NOTE: do NOT append the url here —
+// it's passed separately as the `url` field of navigator.share(), and share
+// targets (WhatsApp/Telegram/X) append the url themselves. Putting it in both
+// places makes the link show up twice.
+const buildShareText = (signal) => {
   const pair = signal?.pair || "this signal";
-  return `Check out ${pair} on LuxQuant Terminal — live entry, targets & track record.\n${url}`;
+  return `Check out ${pair} on LuxQuant Terminal — live entry, targets & track record.`;
 };
 
 /**
@@ -88,7 +91,7 @@ export const shareSignal = async (signal, opts = {}) => {
   const signalId = signal?.signal_id ?? signal?.id;
   const code = await getReferralCode();
   const url = buildSignalShareUrl(signalId, code);
-  const text = buildShareText(signal, url);
+  const text = buildShareText(signal);
   const title = `LuxQuant — ${signal?.pair || "Signal"}`;
 
   // Fire-and-forget share tracking (never blocks the share itself).
