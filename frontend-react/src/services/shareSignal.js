@@ -1,22 +1,20 @@
 // frontend-react/src/services/shareSignal.js
 // ================================================================
-// Shared "share a signal" logic, used by both SignalModal and
-// SignalsTable. Builds a referral-tagged deep link to the signal,
-// tries the native Web Share API, and falls back to clipboard copy.
+// Shared "share a signal" logic for SignalModal + SignalsTable.
+// Builds a referral-tagged deep link, dynamic status-aware message,
+// tries Web Share API, falls back to clipboard.
 //
-// Design notes:
-// - The link is assembled on the FRONTEND from window.location.origin,
-//   NOT from any backend-provided URL. This sidesteps the known
-//   referral.py /my-code bug that still hardcodes luxquant.com.
-// - getMyCode() return shape isn't assumed; we defensively read the
-//   referral code from several possible field names. If no code is
-//   available (not logged in / no code yet), we still share a plain
-//   signal link without ref — sharing never hard-fails.
+// Notes:
+// - Link assembled on FRONTEND from window.location.origin (sidesteps
+//   the referral.py luxquant.com hardcode).
+// - Message text is dynamic by signal status, never appends the url
+//   (url is passed separately to navigator.share). Clipboard fallback
+//   copies text + url with spacing so a paste reads cleanly.
+// - No leverage/numbers in text — the OG preview image carries those.
 // ================================================================
 
 import { referralApi } from "./referralApi";
 
-// Pull a referral code out of whatever getMyCode() returns.
 const extractCode = (data) => {
   if (!data || typeof data !== "object") return null;
   return (
@@ -29,37 +27,30 @@ const extractCode = (data) => {
   );
 };
 
-// Cache the code for the session so we don't refetch on every share.
 let _cachedCode;
 const getReferralCode = async () => {
   if (_cachedCode) return _cachedCode;
-  // 1) Try to read an existing code.
   try {
     const data = await referralApi.getMyCode();
     _cachedCode = extractCode(data);
   } catch {
-    _cachedCode = null; // not logged in, endpoint error, etc.
+    _cachedCode = null;
   }
-  // 2) No code yet but the user IS logged in → generate one so the share
-  //    link is referral-tagged (and the share actually earns credit).
-  //    generateCode() requires auth; if it fails (guest), we share without ref.
   if (!_cachedCode) {
     try {
       const gen = await referralApi.generateCode();
       _cachedCode = extractCode(gen);
     } catch {
-      _cachedCode = null; // guest / not allowed → plain link, no ref
+      _cachedCode = null;
     }
   }
   return _cachedCode;
 };
 
-// Allow callers to reset the cache (e.g. after logout/login).
 export const resetShareCodeCache = () => {
   _cachedCode = undefined;
 };
 
-// Build the shareable deep link: <origin>/signals?signal=<id>[&ref=<code>]
 export const buildSignalShareUrl = (signalId, code) => {
   const origin =
     typeof window !== "undefined" && window.location?.origin
@@ -71,58 +62,91 @@ export const buildSignalShareUrl = (signalId, code) => {
   return `${origin}/signals?${params.toString()}`;
 };
 
-// Compose a friendly invite message. NOTE: do NOT append the url here —
-// it's passed separately as the `url` field of navigator.share(), and share
-// targets (WhatsApp/Telegram/X) append the url themselves. Putting it in both
-// places makes the link show up twice.
+// ── Helpers ──────────────────────────────────────────────────────
+// "UBERUSDT" → "UBER/USDT" for nicer reading.
+const fmtPair = (pair) => {
+  if (!pair) return "this setup";
+  const quotes = ["USDT", "USDC", "FDUSD", "TUSD", "BUSD", "USD", "BTC", "ETH"];
+  for (const q of quotes) {
+    if (pair.endsWith(q) && pair.length > q.length) {
+      return `${pair.slice(0, -q.length)}/${q}`;
+    }
+  }
+  return pair;
+};
+
+const REACHED = new Set(["tp2", "tp3", "tp4", "closed_win"]);
+
+// Deterministic variant pick so a given signal always reads the same.
+const pickVariant = (arr, seed) => {
+  let h = 0;
+  const s = String(seed || "");
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+};
+
+const TEXT_REACHED = [
+  (P) => `${P} just ran to its targets on LuxQuant Terminal. See how the whole move played out — and if you join through my link, you'll get a member discount on the way in.`,
+  (P) => `Another clean run on LuxQuant Terminal: ${P} reached its targets. Take a look at the full breakdown, and grab a discount when you sign up with my link.`,
+  (P) => `${P} hit target on LuxQuant Terminal — the entry, the targets, and exactly how it unfolded. Sign up through my link for a member discount.`,
+];
+
+const TEXT_LIVE = [
+  (P) => `Watching ${P} unfold on LuxQuant Terminal — entry, targets, and live progress in one place. Come follow along, and my link gets you a member discount.`,
+  (P) => `${P} is live on LuxQuant Terminal right now. Follow the setup as it plays out, and use my link for a discount when you join.`,
+  (P) => `Tracking ${P} on LuxQuant Terminal — the full setup and live updates. Take a look, and sign up through my link for a member discount.`,
+];
+
 const buildShareText = (signal) => {
-  const pair = signal?.pair || "this signal";
-  return `Check out ${pair} on LuxQuant Terminal — live entry, targets & track record.`;
+  const P = fmtPair(signal?.pair);
+  const status = (signal?.status || "").toLowerCase();
+  const seed = signal?.signal_id ?? signal?.id ?? signal?.pair;
+  const pool = REACHED.has(status) ? TEXT_REACHED : TEXT_LIVE;
+  return pickVariant(pool, seed)(P);
+};
+
+const buildTitle = (signal) => {
+  const P = fmtPair(signal?.pair);
+  const status = (signal?.status || "").toLowerCase();
+  return REACHED.has(status)
+    ? `${P} reached its targets · LuxQuant`
+    : `${P} · LuxQuant signal`;
 };
 
 /**
  * shareSignal(signal, opts?)
- * Returns: { ok, method } where method ∈ 'web-share' | 'clipboard' | 'cancelled' | 'failed'
- *
- * opts.onCopied  — called when we fell back to clipboard (show a "Copied!" toast)
- * opts.onError   — called on unexpected failure
+ * Returns { ok, method } where method ∈ 'web-share'|'clipboard'|'cancelled'|'failed'
  */
 export const shareSignal = async (signal, opts = {}) => {
   const signalId = signal?.signal_id ?? signal?.id;
   const code = await getReferralCode();
   const url = buildSignalShareUrl(signalId, code);
   const text = buildShareText(signal);
-  const title = `LuxQuant — ${signal?.pair || "Signal"}`;
+  const title = buildTitle(signal);
 
-  // Fire-and-forget share tracking (never blocks the share itself).
   if (code) {
-    referralApi
-      .trackShare(code, "signal_share")
-      .catch(() => {});
+    referralApi.trackShare(code, "signal_share").catch(() => {});
   }
 
-  // 1) Native Web Share API (best on mobile — opens the OS share sheet).
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
       await navigator.share({ title, text, url });
       return { ok: true, method: "web-share" };
     } catch (err) {
-      // User dismissing the sheet throws AbortError — treat as a no-op,
-      // do NOT fall through to clipboard (that would be surprising).
       if (err && err.name === "AbortError") {
         return { ok: false, method: "cancelled" };
       }
-      // Any other error → fall through to clipboard.
     }
   }
 
-  // 2) Clipboard fallback (desktop / browsers without Web Share).
+  // Clipboard fallback: copy message + link with spacing.
+  const clip = `${text}\n\n${url}`;
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(clip);
     } else {
       const ta = document.createElement("textarea");
-      ta.value = url;
+      ta.value = clip;
       ta.style.position = "fixed";
       ta.style.left = "-9999px";
       document.body.appendChild(ta);
