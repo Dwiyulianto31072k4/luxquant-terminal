@@ -788,7 +788,14 @@ const SignalsTable = ({
           </div>
           <div className="text-right">
             <span className="font-mono text-[9px] uppercase tracking-wider text-white/45 mr-1.5">Called</span>
-            <span className="text-white/75 font-mono tabular-nums font-medium">{formatDateTimeShort(signal.created_at)}</span>
+            <span className="text-white/75 font-mono tabular-nums font-medium">
+              {(() => {
+                const d = new Date(signal.created_at);
+                const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                return `${date}, ${time}`;
+              })()}
+            </span>
           </div>
         </div>
       </div>
