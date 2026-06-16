@@ -629,6 +629,14 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
 
   useEffect(() => { if (open) load(); }, [open, load]);
 
+  // Lock body scroll while open (drawer stays mounted when hidden behind a child modal)
+  useEffect(() => {
+    if (!open || hidden) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open, hidden]);
+
   const all = payload?.signals || [];
   const btcSeries = bucket?.btcSeries || null;
 
@@ -756,7 +764,7 @@ const SignalDrillDrawer = ({ bucket, days, sector, hidden, openingId, onClose, o
               className="shrink-0 w-8 h-8 rounded-md border border-white/[0.08] text-white/50 hover:text-white hover:border-white/25 transition flex items-center justify-center"
               title="Close (Esc)"
             >
-              ✕
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>
           </div>
 

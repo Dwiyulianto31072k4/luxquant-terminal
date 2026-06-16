@@ -22,6 +22,7 @@ import {
   CloseIcon,
   ExternalLinkIcon,
 } from './Icons';
+import { GoldButton } from '../autotrade/AutoTradeUI';
 
 const CHANNEL_LABELS = {
   telegram: { Icon: TelegramIcon, label: 'Telegram', color: '#229ED9' },
@@ -389,18 +390,10 @@ export const QuickSendPopover = ({
               {copied ? 'Copied' : 'Copy'}
             </button>
             {rendered.deep_link && (
-              <button
-                onClick={handleSend}
-                className="flex-1 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:scale-[1.02] transition-all"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #d4a853, #8b6914)',
-                  color: '#0a0506',
-                }}
-              >
+              <GoldButton onClick={handleSend} className="flex-1 flex items-center justify-center gap-1.5">
                 <SendIcon size={12} />
                 Send → {channelInfo?.label}
-              </button>
+              </GoldButton>
             )}
           </div>
         )}

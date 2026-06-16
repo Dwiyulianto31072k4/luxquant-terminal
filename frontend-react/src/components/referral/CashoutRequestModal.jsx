@@ -43,10 +43,10 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
 
   const validate = () => {
     const amt = parseFloat(amount);
-    if (!amt || amt <= 0) return "Amount harus lebih besar dari 0.";
-    if (amt > availableBalance) return `Saldo tidak cukup. Tersedia: $${availableBalance.toFixed(2)}`;
-    if (!telegram || telegram.length < 5) return "Telegram username minimal 5 karakter.";
-    if (!/^[a-zA-Z0-9_]{5,32}$/.test(telegram)) return "Telegram username hanya boleh huruf, angka, dan underscore (5-32 char).";
+    if (!amt || amt <= 0) return "Amount must be greater than 0.";
+    if (amt > availableBalance) return `Insufficient balance. Available: $${availableBalance.toFixed(2)}`;
+    if (!telegram || telegram.length < 5) return "Telegram username must be at least 5 characters.";
+    if (!/^[a-zA-Z0-9_]{5,32}$/.test(telegram)) return "Telegram username can only contain letters, numbers, and underscores (5–32 chars).";
     return null;
   };
 
@@ -65,7 +65,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
       if (onSuccess) onSuccess(result);
       setTimeout(() => onClose(), 2500);
     } catch (err) {
-      setError(err.response?.data?.detail || "Gagal submit cashout. Coba lagi.");
+      setError(err.response?.data?.detail || "Failed to submit cashout. Please try again.");
       setSubmitting(false);
     }
   };
@@ -96,11 +96,11 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
     <Modal
       isOpen={isOpen}
       onClose={guardedClose}
-      size="sm"
+      size="md"
       closeOnBackdrop={!submitting && !success}
       eyebrow="Request Cashout"
       title="Withdraw Your Balance"
-      subtitle="Admin akan kontak kamu via Telegram untuk koordinasi pengiriman."
+      subtitle="Admin will contact you on Telegram to coordinate the transfer."
       footer={success ? undefined : footer}
     >
       {success ? (
@@ -112,8 +112,8 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
           </div>
           <h4 className="mb-2 text-base font-bold text-emerald-400">Cashout #{success.id} Submitted!</h4>
           <p className="mb-4 text-xs leading-relaxed text-text-secondary">
-            Saldo ${success.amount_usdt.toFixed(2)} telah di-reserve.<br />
-            Admin akan DM kamu di <span className="text-gold-primary">@{success.destination_telegram}</span> untuk koordinasi.
+            ${success.amount_usdt.toFixed(2)} has been reserved.<br />
+            Admin will DM you at <span className="text-gold-primary">@{success.destination_telegram}</span> to coordinate.
           </p>
           <p className="text-[11px] text-text-muted">Status: <span className="text-amber-400">pending review</span></p>
         </div>
@@ -151,13 +151,13 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
               <input type="text" value={telegram} onChange={handleTelegramChange} placeholder="username" maxLength={32} disabled={submitting}
                 className={`${inputCls} pl-9 pr-4 font-mono text-sm`} />
             </div>
-            <p className="mt-1.5 text-[10px] text-text-muted">Admin akan DM kamu via username ini untuk koordinasi.</p>
+            <p className="mt-1.5 text-[10px] text-text-muted">Admin will DM you at this username to coordinate.</p>
           </div>
 
           {/* Note */}
           <div className="mb-5">
             <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-text-muted">Note (optional)</label>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Preferred network, time zone, dll. (optional)" maxLength={500} disabled={submitting} rows={2}
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Preferred network, time zone, etc. (optional)" maxLength={500} disabled={submitting} rows={2}
               className={`${inputCls} resize-none text-xs`} />
           </div>
 
@@ -167,7 +167,7 @@ const CashoutRequestModal = ({ isOpen, onClose, availableBalance = 0, onSuccess 
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-[11px] leading-relaxed text-text-secondary">
-              <span className="font-semibold text-white/90">Hard reserve:</span> saldo akan langsung di-reserve saat submit. Bisa di-cancel selama status pending; di-refund kalau admin reject.
+              <span className="font-semibold text-white/90">Hard reserve:</span> your balance is reserved immediately on submit. You can cancel while it’s pending, and it’s refunded if the admin rejects it.
             </p>
           </div>
 

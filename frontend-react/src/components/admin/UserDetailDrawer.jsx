@@ -34,6 +34,7 @@ import {
   ProviderIcon,
   ClockIcon,
 } from './Icons';
+import { GoldButton, GhostButton } from '../autotrade/AutoTradeUI';
 
 /* ════════════════════════════════════════
    Helpers
@@ -684,33 +685,12 @@ const ContactTab = ({ data, onContactUpdate }) => {
             )}
 
             <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleCancel}
-                disabled={saving}
-                className="flex-1 py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider disabled:opacity-50"
-                style={{
-                  color: '#8a7a6e',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
+              <GhostButton onClick={handleCancel} disabled={saving} className="flex-1">
                 Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || !hasUnsavedChanges}
-                className="flex-1 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #d4a853, #8b6914)',
-                  color: '#0a0506',
-                }}
-              >
-                {saving
-                  ? 'Saving…'
-                  : hasUnsavedChanges
-                  ? 'Save Changes'
-                  : 'No Changes'}
-              </button>
+              </GhostButton>
+              <GoldButton onClick={handleSave} disabled={saving || !hasUnsavedChanges} className="flex-1">
+                {saving ? 'Saving…' : hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
+              </GoldButton>
             </div>
           </div>
         )}
@@ -1116,7 +1096,7 @@ export const UserDetailDrawer = ({
       <div
         className="w-full max-w-3xl h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl overflow-hidden flex flex-col animate-in zoom-in-95 fade-in duration-200"
         style={{
-          background: '#0a0506',
+          background: '#0a0805',
           border: '1px solid rgba(212,168,83,0.25)',
           boxShadow:
             '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,168,83,0.08), 0 0 80px -10px rgba(212,168,83,0.15)',
@@ -1127,7 +1107,7 @@ export const UserDetailDrawer = ({
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0 relative"
           style={{
-            background: 'linear-gradient(180deg, #14080d, #12090d)',
+            background: '#0a0805',
             borderBottom: '1px solid rgba(255,255,255,0.05)',
           }}
         >
