@@ -86,15 +86,15 @@ const pickVariant = (arr, seed) => {
 };
 
 const TEXT_REACHED = [
-  (P) => `${P} just ran to its targets on LuxQuant Terminal. See how the whole move played out — and if you join through my link, you'll get a member discount on the way in.`,
-  (P) => `Another clean run on LuxQuant Terminal: ${P} reached its targets. Take a look at the full breakdown, and grab a discount when you sign up with my link.`,
-  (P) => `${P} hit target on LuxQuant Terminal — the entry, the targets, and exactly how it unfolded. Sign up through my link for a member discount.`,
+  (P) => `${P} just ran to its targets on LuxQuant Terminal. See how the whole move played out, and get 10% off your first payment when you sign up through my link.`,
+  (P) => `Another clean run on LuxQuant Terminal: ${P} reached its targets. Take a look at the full breakdown, and use my link for 10% off your first payment.`,
+  (P) => `${P} hit target on LuxQuant Terminal. See the entry, the targets, and how it unfolded, then claim 10% off your first payment with my link.`,
 ];
 
 const TEXT_LIVE = [
-  (P) => `Watching ${P} unfold on LuxQuant Terminal — entry, targets, and live progress in one place. Come follow along, and my link gets you a member discount.`,
-  (P) => `${P} is live on LuxQuant Terminal right now. Follow the setup as it plays out, and use my link for a discount when you join.`,
-  (P) => `Tracking ${P} on LuxQuant Terminal — the full setup and live updates. Take a look, and sign up through my link for a member discount.`,
+  (P) => `Watching ${P} unfold on LuxQuant Terminal — entry, targets, and live progress in one place. Join through my link for 10% off your first payment.`,
+  (P) => `${P} is live on LuxQuant Terminal right now. Follow the setup as it plays out, and use my link for 10% off your first payment.`,
+  (P) => `Tracking ${P} on LuxQuant Terminal — the full setup and live updates. Take a look, and get 10% off your first payment with my link.`,
 ];
 
 const buildShareText = (signal) => {
