@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LeftBrandPanel, { TypewriterLine } from './LeftBrandPanel';
+import { referralApi } from '../../services/referralApi';
 
 const RegisterPage = () => {
   const { t } = useTranslation();
@@ -19,6 +20,13 @@ const RegisterPage = () => {
   const { register, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Tangkap ?ref=<code> dari URL (link share signal/referral) buat di-apply pasca-daftar.
+  const refCode = useRef(null);
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('ref');
+    if (code) refCode.current = code.trim();
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
@@ -31,7 +39,13 @@ const RegisterPage = () => {
     if (password.length < 8) { setLocalError(a('err_password_min')); return; }
     if (username.length < 3) { setLocalError(a('err_username_min')); return; }
     setLoading(true);
-    try { await register(email, username, password); }
+    try {
+      await register(email, username, password);
+      // Apply kode referral dari link share (best-effort, ga nge-block kalo gagal).
+      if (refCode.current) {
+        try { await referralApi.applyCode(refCode.current); } catch (e) { /* ignore */ }
+      }
+    }
     catch (err) { /* handled */ }
     finally { setLoading(false); }
   };

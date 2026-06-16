@@ -815,7 +815,7 @@ const SignalsTable = ({
               onClick={(e) => handleShareSignal(e, signal)}
               title="Share signal"
               aria-label="Share signal"
-              className="w-7 h-7 -mr-1 flex items-center justify-center rounded-sm text-white/45 hover:text-gold-primary hover:bg-gold-primary/10 transition-colors flex-shrink-0"
+              className="w-7 h-7 -mr-1 flex items-center justify-center rounded-sm text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] hover:bg-gold-primary/10 transition-colors flex-shrink-0"
             >
               {sharedId === signal.signal_id ? (
                 <span className="text-gold-primary">{Ic.check('w-3.5 h-3.5')}</span>
@@ -1279,10 +1279,8 @@ const SignalsTable = ({
                             onClick={(e) => handleShareSignal(e, signal)}
                             title="Share signal"
                             aria-label="Share signal"
-                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all ${
-                              sharedId === signal.signal_id
-                                ? 'text-gold-primary opacity-100'
-                                : 'text-white/45 opacity-0 group-hover:opacity-100 hover:text-gold-primary hover:bg-gold-primary/10'
+                            className={`w-7 h-7 inline-flex items-center justify-center rounded-sm transition-all text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] hover:bg-gold-primary/10 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] ${
+                              sharedId === signal.signal_id ? 'scale-110' : ''
                             }`}
                           >
                             {sharedId === signal.signal_id ? Ic.check('w-3.5 h-3.5') : Ic.share('w-3.5 h-3.5')}

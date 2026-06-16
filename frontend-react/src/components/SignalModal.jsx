@@ -1490,7 +1490,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-gold-primary bg-[#0a0a0a] hover:bg-gold-primary/15 border border-gold-primary/20 hover:border-gold-primary/50 rounded-lg transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg transition-all ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>

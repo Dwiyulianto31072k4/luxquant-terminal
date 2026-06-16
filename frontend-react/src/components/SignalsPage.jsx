@@ -242,6 +242,30 @@ const SignalsPage = () => {
     return () => clearInterval(interval);
   }, [fetchBulkSignals]);
 
+  // ── Deep-link: buka 1 signal dari ?signal=<id> (link share) langsung ke modal ──
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    if (loading || allSignals.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("signal");
+    deepLinkHandled.current = true;
+    if (!sid) return;
+
+    const match = allSignals.find((s) => String(s.signal_id) === String(sid));
+    if (match) setSelectedSignal(match);
+
+    // Bersihin ?signal biar refresh ga buka modal lagi; ?ref dibiarin.
+    params.delete("signal");
+    const qs = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash
+    );
+  }, [loading, allSignals]);
+
   useEffect(() => {
     setPage(1);
   }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder, selectedTags]);
