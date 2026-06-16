@@ -23,8 +23,10 @@ import {
   ExternalLinkIcon,
   CopyIcon,
   EditIcon,
+  StarIcon,
 } from '../Icons';
 import { XCircleIcon, TrashIcon, RotateCcwIcon, ArchiveIcon } from './finance/icons-supplement';
+import { CalendarDotIcon, TimerIcon, ChevronDownIcon } from './CategoryIcons';
 import {
   formatUSDT,
   formatDateTimeLong,
@@ -363,7 +365,7 @@ const PaymentDateRow = ({ verifiedAt }) => (
       className="text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5"
       style={{ color: '#d4a853' }}
     >
-      <span>📅</span>
+      <CalendarDotIcon size={11} />
       Payment Date
     </span>
     <span
@@ -649,7 +651,7 @@ export const PaymentDetailPanel = ({
                     }}
                     title="Manually recorded by admin"
                   >
-                    ★ Manual
+                    <StarIcon size={9} /> Manual
                   </span>
                 )}
                 {p.wallet_to_exchange && (
@@ -983,7 +985,7 @@ export const PaymentDetailPanel = ({
                 className="text-[10.5px] mt-1.5 flex items-center gap-1.5 px-2"
                 style={{ color: '#8a7a6e' }}
               >
-                <span style={{ color: '#d4a853' }}>⏱</span>
+                <TimerIcon size={11} style={{ color: '#d4a853' }} />
                 {recordGapDays > 0
                   ? `Recorded ${recordGapDays} day${recordGapDays !== 1 ? 's' : ''} after the payment`
                   : `Record predates the payment by ${Math.abs(recordGapDays)} day${Math.abs(recordGapDays) !== 1 ? 's' : ''} (unusual)`}
@@ -1004,7 +1006,7 @@ export const PaymentDetailPanel = ({
                 }}
               >
                 <span>{showBscscan ? 'Hide' : 'Show'} raw BSCScan response</span>
-                <span>{showBscscan ? '▲' : '▼'}</span>
+                <ChevronDownIcon size={11} style={{ transform: showBscscan ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
               </button>
               {showBscscan && (
                 <pre

@@ -1,32 +1,19 @@
 // src/components/admin/workspace/SidePanel.jsx
-//
-// Centered modal dialog (formerly a slide-in side panel).
-// Name retained for backward compatibility — all 4 callers
-// (FollowupPanel, CampaignPanel, TodoPanel, PaymentDetailPanel)
-// keep the same API: { isOpen, onClose, title, subtitle, Icon, width, footer, children }.
-//
-// Renders via React Portal at document.body — bypasses all stacking contexts.
-//
-// • Adaptive width via the `width` prop (sm | md | lg | xl)
-// • Fullscreen on mobile (< sm breakpoint) for usability
-// • Click backdrop or press Escape to close
-// • Header pinned top, body scrolls, footer (if any) pinned bottom
+// ════════════════════════════════════════════════════════════════
+// Wrapper bersama untuk panel admin (Followup / Campaign / Todo /
+// PaymentDetail). Sekarang delegasi ke <Modal> primitive standar —
+// header flat + gold hairline, animasi/Esc/scroll-lock/portal seragam.
+// API DIPERTAHANKAN: { isOpen, onClose, title, subtitle, Icon, width,
+// footer, children } — keempat caller tidak perlu diubah.
+// ════════════════════════════════════════════════════════════════
 
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { CloseIcon } from '../Icons';
+import Modal from '../../ui/Modal';
 
-/**
- * Props:
- *   isOpen: boolean
- *   onClose: () => void
- *   title: string
- *   subtitle?: string
- *   Icon?: SVG component
- *   width?: 'sm' | 'md' | 'lg' | 'xl'  (default 'md')
- *   footer?: React node  (sticky bottom action area)
- *   children: body content
- */
+// width lama → size <Modal>
+//   sm max-w-md(448)  md max-w-2xl(672)  lg max-w-3xl(768)  xl max-w-5xl(896)
+//   Modal: sm 448 · md 512 · lg 672 · xl 820 · 2xl 1100
+const WIDTH_TO_SIZE = { sm: 'sm', md: 'lg', lg: 'xl', xl: '2xl' };
+
 export const SidePanel = ({
   isOpen,
   onClose,
@@ -37,136 +24,44 @@ export const SidePanel = ({
   footer,
   children,
 }) => {
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  const size = WIDTH_TO_SIZE[width] || 'lg';
 
-  // Lock body scroll while modal open
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  // Width tokens — translated for centered modal usage.
-  // sm = confirm dialogs, md = simple forms, lg = rich forms / detail,
-  // xl = very wide (rare).
-  const widthMap = {
-    sm: 'max-w-md',     // ~448px
-    md: 'max-w-2xl',    // ~672px
-    lg: 'max-w-3xl',    // ~768px
-    xl: 'max-w-5xl',    // ~896px
-  };
-
-  return createPortal(
-    <div
-      className="fixed inset-0 flex items-center justify-center p-0 sm:p-6"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 2147483646,
-      }}
-    >
-      <div
-        className={`relative w-full ${widthMap[width] || widthMap.md} flex flex-col animate-in fade-in zoom-in-95 duration-200 h-full sm:h-auto sm:max-h-[90vh] sm:rounded-2xl overflow-hidden`}
-        style={{
-          background: '#0a0506',
-          border: '1px solid rgba(212,168,83,0.22)',
-          boxShadow:
-            '0 30px 80px -20px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.02)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ── HEADER (pinned top) ── */}
-        <div
-          className="flex items-center justify-between px-5 py-4 shrink-0 relative"
+  const header = (
+    <div className="flex min-w-0 items-center gap-2.5">
+      {Icon && (
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{
-            background: 'linear-gradient(180deg, #14080d, #12090d)',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            background: 'rgba(212,168,83,0.1)',
+            boxShadow: 'inset 0 0 0 1px rgba(212,168,83,0.22)',
           }}
         >
-          {/* Gold hairline at top */}
-          <div
-            className="absolute inset-x-0 top-0 h-px pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(to right, transparent, rgba(212,168,83,0.35), transparent)',
-            }}
-          />
-
-          <div className="flex items-center gap-2.5 min-w-0">
-            {Icon && (
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{
-                  background: 'rgba(212,168,83,0.1)',
-                  border: '1px solid rgba(212,168,83,0.22)',
-                }}
-              >
-                <Icon size={14} style={{ color: '#d4a853' }} />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white tracking-tight leading-tight">
-                {title}
-              </h2>
-              {subtitle && (
-                <p
-                  className="text-[10px] leading-tight truncate"
-                  style={{ color: '#6b5c52' }}
-                >
-                  {subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 shrink-0"
-            style={{
-              color: '#d4a853',
-              background: 'rgba(212,168,83,0.08)',
-              border: '1px solid rgba(212,168,83,0.22)',
-            }}
-            title="Close (Esc)"
-            aria-label="Close"
-          >
-            <CloseIcon size={16} />
-          </button>
-        </div>
-
-        {/* ── BODY (scrollable) ── */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
-          {children}
-        </div>
-
-        {/* ── FOOTER (pinned bottom, optional) ── */}
-        {footer && (
-          <div
-            className="px-5 py-3 shrink-0"
-            style={{
-              background: 'rgba(0,0,0,0.3)',
-              borderTop: '1px solid rgba(255,255,255,0.05)',
-            }}
-          >
-            {footer}
-          </div>
+          <Icon size={14} style={{ color: '#d4a853' }} />
+        </span>
+      )}
+      <div className="min-w-0">
+        <h2 className="text-sm font-bold leading-tight tracking-tight text-white">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="truncate text-[10px] leading-tight text-text-muted">
+            {subtitle}
+          </p>
         )}
       </div>
-    </div>,
-    document.body
+    </div>
+  );
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size={size}
+      padded={false}
+      header={header}
+      footer={footer}
+    >
+      <div className="px-5 py-5">{children}</div>
+    </Modal>
   );
 };
