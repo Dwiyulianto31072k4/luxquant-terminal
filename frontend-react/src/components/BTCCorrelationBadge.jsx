@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Ic } from "./signalIcons";
 
 /**
  * BTCCorrelationBadge
@@ -63,7 +64,9 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
         className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-500/10 border border-gray-500/20 hover:bg-gray-500/15 transition-all"
         title="BTC correlation analysis (limited data)"
       >
-        <span className="text-[9px] text-gray-400">⚠ BTC corr · limited data</span>
+        <span className="flex items-center gap-1 text-[9px] text-gray-400">
+          {Ic.warn("w-3 h-3")} BTC corr · limited data
+        </span>
       </button>
     );
   }
@@ -81,10 +84,10 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
     score >= 50     ? "bg-amber-500/10 border-amber-500/25"     :
                       "bg-rose-500/10 border-rose-500/25";
 
-  // Flag emoji (prioritize the most important)
-  const flag = is_extended    ? "🔥" :
-               is_decoupled   ? "⚡"  :
-                                "📊";
+  // Flag icon (prioritize the most important)
+  const flag = is_extended    ? Ic.flame("w-3 h-3 text-orange-400") :
+               is_decoupled   ? Ic.zap("w-3 h-3 text-purple-400")   :
+                                Ic.bars("w-3 h-3 text-white/60");
 
   const fmtNum = (n, digits = 2) =>
     n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(digits);
@@ -95,7 +98,7 @@ export default function BTCCorrelationBadge({ signalId, onClick }) {
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded border ${scoreBg} hover:brightness-125 transition-all group`}
       title="View full BTC correlation analysis"
     >
-      <span className="text-[10px]">{flag}</span>
+      <span className="flex items-center">{flag}</span>
       <span className="text-[9px] text-white/60 uppercase tracking-wider font-medium">BTC</span>
       <span className={`text-[10px] font-bold font-mono ${scoreColor}`}>{score ?? "—"}</span>
       <span className="text-[8px] text-white/30">·</span>

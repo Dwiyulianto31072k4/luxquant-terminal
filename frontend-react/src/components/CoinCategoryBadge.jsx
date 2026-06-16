@@ -19,6 +19,8 @@ import { useEffect, useState } from "react";
  * Fetches /api/v1/coins/{pair} once, caches in module-level Map.
  */
 
+import { Ic } from "./signalIcons";
+
 // Module-level cache to avoid refetching when modal reopens for same pair
 const coinCache = new Map();
 
@@ -165,7 +167,9 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide cursor-pointer hover:opacity-80 transition-opacity ${compactClass}`}
         title={tagline}
       >
-        <span>{isSpeculation ? "⚠" : "✓"}</span>
+        <span className="flex items-center">
+          {isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3")}
+        </span>
         <span>{meta.label}</span>
       </span>
     );
@@ -180,7 +184,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
     ? "bg-orange-500/15 text-orange-300 border-orange-500/30"
     : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
 
-  const typeIcon = isSpeculation ? "⚠" : "✓";
+  const typeIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
 
   // Utility status pill — explicit "HAS UTILITY" / "NO UTILITY"
   // More tegas/loud — uses full saturation background
@@ -189,7 +193,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
     : "bg-emerald-500/25 text-emerald-200 border-emerald-500/50";
 
   const utilityLabel = isSpeculation ? "NO UTILITY" : "HAS UTILITY";
-  const utilityIcon = isSpeculation ? "⚠" : "✓";
+  const utilityIcon = isSpeculation ? Ic.warn("w-3 h-3") : Ic.check("w-3 h-3");
 
   return (
     <button
@@ -205,7 +209,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
       <span
         className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-bold tracking-wide ${typePillClass}`}
       >
-        <span>{typeIcon}</span>
+        <span className="flex items-center">{typeIcon}</span>
         <span>{meta.label}</span>
       </span>
 
@@ -220,7 +224,7 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
       <span
         className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] font-extrabold tracking-wider ${utilityPillClass}`}
       >
-        <span>{utilityIcon}</span>
+        <span className="flex items-center">{utilityIcon}</span>
         <span>{utilityLabel}</span>
       </span>
 
@@ -230,8 +234,8 @@ const CoinCategoryBadge = ({ pair, onClick, compact = false }) => {
       </span>
 
       {/* Arrow hint */}
-      <span className="flex-shrink-0 text-[11px] text-gold-primary/60 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all">
-        →
+      <span className="flex-shrink-0 text-gold-primary/60 group-hover:text-gold-primary group-hover:translate-x-0.5 transition-all">
+        {Ic.arrowRight("w-3 h-3")}
       </span>
     </button>
   );

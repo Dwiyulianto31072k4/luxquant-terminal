@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "./CoinLogo";
 import JourneyInsightsSection from "./JourneyInsightsSection";  // ← ADD
+import { Ic } from "./signalIcons";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -207,8 +208,8 @@ const PastCallRow = ({ call, onClickSignal, isCurrentSignal }) => {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {call.duration && (
-            <span className="text-[9px] text-white/30 font-mono">
-              ⏱ {call.duration}
+            <span className="text-[9px] text-white/30 font-mono flex items-center gap-0.5">
+              {Ic.clock("w-2.5 h-2.5")} {call.duration}
             </span>
           )}
           {isOpen ? (
@@ -375,7 +376,9 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
     return (
       <div className="flex-1 flex items-center justify-center px-4 bg-[#0a0a0a]">
         <div className="text-center">
-          <span className="text-3xl mb-3 block">⚠️</span>
+          <div className="flex justify-center mb-3 text-amber-400">
+            {Ic.warn("w-8 h-8")}
+          </div>
           <p className="text-white/60 text-sm mb-2">
             Failed to load history for {coinSymbol}
           </p>
@@ -402,7 +405,10 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         : "text-red-400";
   const streakColor =
     stats.streak_type === "win" ? "text-green-400" : "text-red-400";
-  const streakIcon = stats.streak_type === "win" ? "🔥" : "❄️";
+  const streakIcon =
+    stats.streak_type === "win"
+      ? Ic.flame("w-3.5 h-3.5 text-orange-400")
+      : Ic.snowflake("w-3.5 h-3.5 text-sky-400");
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 custom-scrollbar bg-[#0a0a0a]">
@@ -429,14 +435,14 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         {/* ── Summary Cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <StatCard
-            icon="🏆"
+            icon={Ic.trophy("w-3.5 h-3.5 text-amber-400")}
             label="Win Rate"
             value={`${stats.win_rate}%`}
             color={wrColor}
             sub={`${stats.closed_trades} closed trades`}
           />
           <StatCard
-            icon="📊"
+            icon={Ic.bars("w-3.5 h-3.5 text-white/50")}
             label="Total Signals"
             value={stats.total_signals}
             sub={
@@ -446,7 +452,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             }
           />
           <StatCard
-            icon="📈"
+            icon={Ic.trendUp("w-3.5 h-3.5 text-emerald-400")}
             label="Avg Gain"
             value={
               stats.avg_gain_pct != null
@@ -486,8 +492,8 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
 
         {/* ── TP Breakdown ── */}
         <div className="bg-[#111]/80 rounded-xl p-3 sm:p-4 border border-white/5">
-          <p className="text-white/40 text-[9px] uppercase tracking-wider font-medium mb-3">
-            🎯 Outcome Distribution
+          <p className="text-white/40 text-[9px] uppercase tracking-wider font-medium mb-3 flex items-center gap-1.5">
+            {Ic.target("w-3 h-3")} Outcome Distribution
           </p>
           <TpDonutChart
             breakdown={stats.tp_breakdown}
@@ -500,7 +506,7 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         {/* ── Past Calls Header + Toggle ── */}
         <div className="flex items-center justify-between">
           <p className="text-gold-primary text-xs sm:text-sm font-semibold flex items-center gap-2">
-            📋 Past Calls
+            {Ic.clipboard("w-3.5 h-3.5")} Past Calls
             {loading && (
               <span className="inline-block w-3 h-3 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
             )}
@@ -527,7 +533,9 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
         <div className="space-y-2">
           {past_calls.length === 0 ? (
             <div className="text-center py-8">
-              <span className="text-2xl mb-2 block">📭</span>
+              <div className="flex justify-center mb-2 text-white/30">
+                {Ic.inbox("w-7 h-7")}
+              </div>
               <p className="text-white/40 text-xs">
                 No other signals found for {coinSymbol}
               </p>
@@ -556,12 +564,12 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
             }`}
           >
             <div className="flex items-start gap-2.5">
-              <span className="text-lg flex-shrink-0">
+              <span className="flex-shrink-0 mt-0.5">
                 {stats.win_rate >= 60
-                  ? "✅"
+                  ? Ic.checkCircle("w-5 h-5 text-green-400")
                   : stats.win_rate >= 45
-                    ? "⚠️"
-                    : "🚨"}
+                    ? Ic.warn("w-5 h-5 text-yellow-400")
+                    : Ic.siren("w-5 h-5 text-red-400")}
               </span>
               <div>
                 <p
