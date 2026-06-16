@@ -105,29 +105,139 @@ const PerformanceHub = () => {
     setOpenGroups((prev) => (prev.includes(view) ? prev : [...prev, view]));
   }, [view]);
 
+  // mobile bottom-sheet open/close. Close on Escape; lock body scroll while open.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e) => e.key === "Escape" && setSheetOpen(false);
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [sheetOpen]);
+
+  // labels for the mobile trigger button
+  const activeItem = group.items.find((i) => i.tab === tab) || group.items[0];
+  const triggerCurrent = group.items.length === 1 ? group.label : activeItem.label;
+
   return (
     <div>
-      {/* mobile: dropdown selector */}
-      <div className="lg:hidden mb-5">
-        <select
-          value={`${view}::${tab}`}
-          onChange={(e) => {
-            const [v, t] = e.target.value.split("::");
-            setNav(v, t);
-          }}
-          className="w-full bg-[#0a0805] border border-white/[0.1] rounded-md px-3 py-2.5 text-[13px] text-white/90 font-mono focus:outline-none focus:border-gold-primary/40"
+      {/* mobile: sticky trigger button (custom, non-native) */}
+      <div className="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-2.5 mb-4 bg-[#0a0506]/95 backdrop-blur border-b border-white/[0.05]">
+        <button
+          onClick={() => setSheetOpen(true)}
+          className="w-full flex items-center gap-3 bg-[#15100a] border border-gold-primary/25 rounded-xl px-4 py-3 text-left active:border-gold-primary/40 transition-colors"
         >
-          {GROUPS.map((g) => (
-            <optgroup key={g.view} label={g.label.toUpperCase()}>
-              {g.items.map((it) => (
-                <option key={`${g.view}::${it.tab}`} value={`${g.view}::${it.tab}`}>
-                  {g.items.length === 1 ? g.label : it.label}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          <div className="min-w-0">
+            <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold-primary/70">
+              {group.label}
+            </div>
+            <div className="text-[15px] font-semibold text-white truncate mt-0.5">
+              {triggerCurrent}
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-gold-primary"
+              style={{ boxShadow: "0 0 6px rgba(212,168,83,0.7)" }}
+            />
+            <svg
+              className="w-3 h-3 text-gold-primary/70"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+        </button>
       </div>
+
+      {/* mobile: bottom sheet */}
+      {sheetOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60]">
+          {/* overlay */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSheetOpen(false)}
+          />
+          {/* sheet */}
+          <div className="absolute left-0 right-0 bottom-0 max-h-[80%] flex flex-col bg-[#0c0908] border-t border-gold-primary/20 rounded-t-[18px] overflow-hidden shadow-2xl">
+            <div className="mx-auto mt-2.5 mb-1 h-1 w-9 rounded-full bg-white/20" />
+            <div className="px-[18px] pt-1.5 pb-3 border-b border-white/[0.06]">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                Jump to view
+              </span>
+            </div>
+            <div className="overflow-y-auto px-2.5 pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {GROUPS.map((g) => (
+                <div key={g.view}>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] font-semibold text-gold-primary/60 px-2.5 pt-3.5 pb-1.5">
+                    {g.label}
+                  </div>
+                  {g.items.map((it) => {
+                    const on = g.view === view && it.tab === tab;
+                    const label = g.items.length === 1 ? g.label : it.label;
+                    return (
+                      <button
+                        key={`${g.view}::${it.tab}`}
+                        onClick={() => {
+                          setNav(g.view, it.tab);
+                          setSheetOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-[10px] text-left transition-colors ${
+                          on ? "bg-gold-primary/10" : "active:bg-white/[0.04]"
+                        }`}
+                      >
+                        <span
+                          className={`h-[7px] w-[7px] rounded-full border flex-shrink-0 ${
+                            on
+                              ? "border-gold-primary bg-gold-primary"
+                              : "border-white/25"
+                          }`}
+                          style={
+                            on
+                              ? { boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
+                              : undefined
+                          }
+                        />
+                        <span
+                          className={`text-[15px] ${
+                            on
+                              ? "text-gold-light font-semibold"
+                              : "text-white/75"
+                          }`}
+                        >
+                          {label}
+                        </span>
+                        {on && (
+                          <svg
+                            className="ml-auto w-4 h-4 text-gold-primary flex-shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-6">
         {/* desktop sub-sidebar */}
