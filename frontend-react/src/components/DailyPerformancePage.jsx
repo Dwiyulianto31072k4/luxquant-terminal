@@ -1335,7 +1335,6 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
-      <SectionHeader label="DAILY PERFORMANCE" />
 
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>

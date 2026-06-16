@@ -26,9 +26,9 @@ const EdgeLabPage = lazy(() => import("./EdgeLabPage"));
 const GROUPS = [
   {
     view: "overview",
-    label: "Overview",
+    label: "All-Time",
     note: "Lifetime track record",
-    items: [{ tab: "_", label: "Track Record" }],
+    items: [{ tab: "_", label: "All-Time" }],
   },
   {
     view: "daily",

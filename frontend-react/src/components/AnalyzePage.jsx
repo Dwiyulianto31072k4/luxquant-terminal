@@ -177,16 +177,18 @@ const AnalyzePage = () => {
 
   return (
     <div className="space-y-5">
-      {/* ── PAGE TITLE — line-label-line ── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          {t("perf.title")}
-        </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/70 tabular-nums">
-          {data.stats.total_signals.toLocaleString()} {t("perf.signals_analyzed")}
-        </span>
+      {/* ── PAGE TITLE — title + tagline (matches Research/Daily) ── */}
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">
+          All-Time Performance
+        </h1>
+        <p className="text-sm text-white/45 mt-1">
+          Lifetime track record across{" "}
+          <span className="text-white/85 font-mono tabular-nums">
+            {data.stats.total_signals.toLocaleString()}
+          </span>{" "}
+          resolved signals
+        </p>
       </div>
 
       {/* ── TIME RANGE PILLS ── */}
