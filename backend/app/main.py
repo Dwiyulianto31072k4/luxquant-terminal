@@ -13,6 +13,7 @@ from app.api.routes import signal_journey
 from app.api.routes import api_keys
 from app.api.routes import public_signals
 from app.api.routes import public_data
+from app.api.routes import public_analytics
 from app.core.database import engine, Base, SessionLocal
 from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
@@ -149,6 +150,7 @@ app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
 app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
+app.include_router(public_analytics.router, prefix="/api/public/v1", tags=["public-analytics"])
 app.include_router(btc_correlation.router, prefix="/api/v1/signals", tags=["btc-correlation"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(market_overview.router, prefix="/api/v1/market", tags=["market-overview"])
