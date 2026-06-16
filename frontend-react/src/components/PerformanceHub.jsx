@@ -126,7 +126,7 @@ const PerformanceHub = () => {
   return (
     <div>
       {/* mobile: sticky trigger button (custom, non-native) */}
-      <div className="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-2.5 mb-4 bg-[#0a0506]/95 backdrop-blur border-b border-white/[0.05]">
+      <div className="lg:hidden sticky top-16 z-30 -mx-4 px-4 py-2.5 mb-1 bg-[#0a0506]/95 backdrop-blur border-b border-white/[0.05]">
         <button
           onClick={() => setSheetOpen(true)}
           className="w-full flex items-center gap-3 bg-[#15100a] border border-gold-primary/25 rounded-xl px-4 py-3 text-left active:border-gold-primary/40 transition-colors"
@@ -170,10 +170,27 @@ const PerformanceHub = () => {
           {/* sheet */}
           <div className="absolute left-0 right-0 bottom-0 max-h-[80%] flex flex-col bg-[#0c0908] border-t border-gold-primary/20 rounded-t-[18px] overflow-hidden shadow-2xl">
             <div className="mx-auto mt-2.5 mb-1 h-1 w-9 rounded-full bg-white/20" />
-            <div className="px-[18px] pt-1.5 pb-3 border-b border-white/[0.06]">
+            <div className="px-[18px] pt-1.5 pb-3 border-b border-white/[0.06] flex items-center justify-between">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
                 Jump to view
               </span>
+              <button
+                onClick={() => setSheetOpen(false)}
+                aria-label="Close"
+                className="-mr-1.5 flex items-center justify-center w-8 h-8 rounded-full text-white/45 active:bg-white/[0.06] active:text-white transition-colors"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             <div className="overflow-y-auto px-2.5 pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {GROUPS.map((g) => (
@@ -348,7 +365,7 @@ const PerformanceHub = () => {
         </aside>
 
         {/* content */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 -mt-4 lg:mt-0">
           <Suspense fallback={<ViewLoader />}>
             {view === "overview" && <AnalyzePage />}
             {view === "daily" && (
