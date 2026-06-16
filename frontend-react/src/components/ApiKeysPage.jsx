@@ -512,6 +512,226 @@ const ENDPOINTS = [
 // Contains no per-message identifiers.`,
     notes: 'No parameters. Good for a single "market mood" widget.',
   },
+  {
+    method: "GET",
+    path: "/analytics/coin-intel",
+    summary:
+      "Per-coin intelligence across the whole platform: win rate, streaks, risk score, volatility, entry quality, anomaly flags — plus current market-flow context.",
+    params: [],
+    fields: [
+      [
+        "current_flow / current_flow_wr / platform_avg_wr",
+        "Current market-flow regime (high/mid/low), win rate within that flow, and the platform all-time average win rate (%).",
+      ],
+      [
+        "flow_timeline",
+        "Recent days of platform-wide flow + win rate: { date, wr, flow, closed, wins, losses }.",
+      ],
+      [
+        "top_coins / rest_coins",
+        "Per-coin objects, ranked. top_coins = highlighted leaders; rest_coins = everyone else. Same object shape (fields below).",
+      ],
+      [
+        "correlation_clusters",
+        "Pairs that tend to hit SL together: { pair_a, pair_b, co_sl_count, sample_dates }.",
+      ],
+      [
+        "total_active_pairs / total_flagged / computed_at",
+        "Coverage counts and when the snapshot was computed.",
+      ],
+      [
+        "coin.pair / total_calls / closed_trades / open_trades",
+        "Identity and signal volume for that coin.",
+      ],
+      [
+        "coin.win_rate / sl_rate / win_rate_30d / avg_outcome",
+        "All-time win/SL rate (%), trailing-30d win rate, and the typical outcome (e.g. TP3, SL).",
+      ],
+      [
+        "coin.outcome_dist",
+        "Outcome counts by bucket: { tp1, tp2, tp3, tp4, sl }.",
+      ],
+      [
+        "coin.current_streak / tp4_streaks",
+        "Active win/loss streak { type, length }, and TP4 streak stats { total_tp4, longest_streak, current_tp4_streak }.",
+      ],
+      [
+        "coin.recent_outcomes / signal_history",
+        "Most recent outcomes (newest first) and per-signal history { date, entry, outcome, pl_pct, platform_wr, flow }.",
+      ],
+      [
+        "coin.flow_perf",
+        "Performance split by market flow (high / mid / low), each { calls, wins, losses, wr }.",
+      ],
+      [
+        "coin.volatility",
+        "Risk/return profile: { profile, pl_stddev, consistency, avg_pl, avg_win_pl, avg_loss_pl, rr_ratio }.",
+      ],
+      [
+        "coin.dow_analysis / hour_analysis",
+        "Day-of-week and hour-of-day patterns (meaningful only when has_pattern is true).",
+      ],
+      [
+        "coin.recovery",
+        "How fast the coin recovers after a loss: { avg_signals_to_recover, fastest_recovery, slowest_recovery, total_recoveries, speed_label }.",
+      ],
+      [
+        "coin.entry_quality",
+        "Entry-quality scoring: { score, reaches_potential, full_target_rate, avg_tp_level, tp1_only_pct }.",
+      ],
+      [
+        "coin.monthly_trend",
+        "Per-month win-rate history: { month, wr, closed, wins }.",
+      ],
+      [
+        "coin.risk_score / anomaly_flags / insight",
+        "A 0-100 risk score, a list of flags ({ type, severity, tag }), and a human-readable insight summary.",
+      ],
+      [
+        "coin.first_signal / last_signal / active_days / rank / is_top",
+        "Lifespan, the days it was active, its rank, and whether it is a top coin.",
+      ],
+    ],
+    example: `{
+  "current_flow": "high",
+  "current_flow_wr": 94.7,
+  "platform_avg_wr": 85.7,
+  "flow_timeline": [
+    { "date": "2026-06-16", "wr": 94.7, "flow": "high",
+      "closed": 19, "wins": 18, "losses": 1 }
+  ],
+  "top_coins": [
+    {
+      "pair": "BREVUSDT",
+      "total_calls": 25, "closed_trades": 25, "open_trades": 0,
+      "win_rate": 84.0, "sl_rate": 16.0, "win_rate_30d": 60.0,
+      "avg_outcome": "TP3",
+      "outcome_dist": { "tp1": 5, "tp2": 3, "tp3": 8, "tp4": 5, "sl": 4 },
+      "current_streak": { "type": "loss", "length": 1 },
+      "flow_perf": { "high": { "calls": 23, "wins": 19, "losses": 4, "wr": 82.6 } },
+      "volatility": { "profile": "moderate", "rr_ratio": 2.59, "consistency": 76.0 },
+      "entry_quality": { "score": "excellent", "reaches_potential": 76.2 },
+      "tp4_streaks": { "total_tp4": 5, "longest_streak": 2, "current_tp4_streak": 0 },
+      "risk_score": 67,
+      "anomaly_flags": [ { "type": "wr_decline", "severity": "warning", "tag": "WR declining" } ],
+      "insight": "Risk Score: 67/100 (Good). All-time WR 84.0% ...",
+      "rank": 11, "is_top": false
+    }
+  ],
+  "rest_coins": [ "... same shape ..." ],
+  "correlation_clusters": [
+    { "pair_a": "1000BONKUSDT", "pair_b": "1000PEPEUSDT",
+      "co_sl_count": 8, "sample_dates": ["2024-04-04"] }
+  ],
+  "total_active_pairs": 534,
+  "total_flagged": 530,
+  "computed_at": "2026-06-16T09:49:12+00:00"
+}`,
+    notes:
+      "No parameters. Full-history and regime-aware. This is the heaviest endpoint — it is cached server-side (~120s), so poll it at most once a minute. Each coin object is large; the fields above are the most useful ones, not exhaustive.",
+  },
+  {
+    method: "GET",
+    path: "/analytics/daily-winrate",
+    summary:
+      "Win-rate trend over time (for charts): per-period totals plus an overall summary.",
+    params: [
+      [
+        "time_range",
+        "string",
+        "no",
+        "Window to cover: all \u00b7 ytd \u00b7 mtd \u00b7 30d \u00b7 7d. Default all.",
+      ],
+      [
+        "period",
+        "string",
+        "no",
+        "Bucket size: daily or weekly. Default daily. With weekly, date is the week start.",
+      ],
+    ],
+    fields: [
+      [
+        "data[]",
+        "One row per period, ascending by date: { date, total_signals, wins, losses, win_rate }.",
+      ],
+      [
+        "summary",
+        "Totals across the window: { total_periods, total_wins, total_losses, overall_win_rate, avg_daily_signals }.",
+      ],
+      ["time_range", "Echoes back the requested window."],
+    ],
+    example: `{
+  "data": [
+    { "date": "2026-06-08", "total_signals": 612,
+      "wins": 561, "losses": 51, "win_rate": 91.67 }
+  ],
+  "summary": {
+    "total_periods": 2, "total_wins": 667, "total_losses": 80,
+    "overall_win_rate": 89.29, "avg_daily_signals": 373.5
+  },
+  "time_range": "7d"
+}`,
+    notes:
+      "A signal counts as a win if it hit any target (tp1-tp4) and a loss if it hit SL. Full-history when time_range=all.",
+  },
+  {
+    method: "GET",
+    path: "/analytics/dashboard",
+    summary:
+      "Daily performance dashboard for one day, bundled: today summary, a 14-day trend, and per-signal detail with market context.",
+    params: [
+      [
+        "date",
+        "string",
+        "no",
+        "Target day, YYYY-MM-DD (UTC). Defaults to today (UTC).",
+      ],
+    ],
+    fields: [
+      ["selected_date", "The day this dashboard covers (UTC)."],
+      [
+        "today_summary",
+        "Headline numbers: { total_resolved, wins, losses, win_rate, yesterday_win_rate, delta_vs_yesterday, regime_label, btc_trend_mode, fear_greed_avg/label, hot_sector, daily_regime }.",
+      ],
+      [
+        "day_detail.signals[]",
+        "Each resolved signal that day: { signal_id, pair, outcome, outcome_at, peak_pct, sector, token_type, alignment_score, signal_direction, important_tags, correlation{...} }.",
+      ],
+      [
+        "day_detail.context",
+        "Aggregate market context: BTC trend/dominance distribution, sector_breakdown, top important_tags, decoupled/extended counts, enrichment coverage, and a correlation_summary.",
+      ],
+      [
+        "trend_14d[]",
+        "Trailing 14 days: { date, total, wins, losses, win_rate, regime }.",
+      ],
+    ],
+    example: `{
+  "selected_date": "2026-06-16",
+  "today_summary": {
+    "total_resolved": 50, "wins": 46, "losses": 4, "win_rate": 92.0,
+    "yesterday_win_rate": 89.86, "delta_vs_yesterday": 2.14,
+    "regime_label": "strong", "btc_trend_mode": "RANGING",
+    "hot_sector": { "sector": "defi", "win_rate": 100.0, "total": 12 },
+    "daily_regime": { "regime": "strong", "win_rate": 94.74, "total_closed": 19 }
+  },
+  "day_detail": {
+    "signals": [
+      { "signal_id": "6a675b26-...", "pair": "EPICUSDT", "outcome": "tp4",
+        "peak_pct": 18.77, "sector": "rwa", "signal_direction": "BULLISH",
+        "important_tags": ["AT_FIB_GOLDEN_ZONE"],
+        "correlation": { "beta_30d": 0.5961, "risk_level": "medium" } }
+    ],
+    "context": { "sector_breakdown": ["..."], "correlation_summary": {} }
+  },
+  "trend_14d": [
+    { "date": "2026-06-03", "total": 67, "wins": 55, "losses": 12,
+      "win_rate": 82.09, "regime": "strong" }
+  ]
+}`,
+    notes:
+      "Mirrors the public Daily Performance page. fear_greed fields can be null when unavailable.",
+  },
 ];
 
 // Stable anchor id from an endpoint path.
