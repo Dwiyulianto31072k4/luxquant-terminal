@@ -9,8 +9,10 @@ import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import { useCurrency } from "../context/CurrencyContext";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
-import BTCCorrelationBadge from "./BTCCorrelationBadge";
-import BTCCorrelationModal from "./BTCCorrelationModal";
+import BTCCorrelationBadge from "./BTCCorrelationBadge";     
+import BTCCorrelationModal from "./BTCCorrelationModal";  
+import { Ic } from "./signalIcons";
+
 
 const deriveChartWithCard = (rawUrl) => {
   if (!rawUrl || typeof rawUrl !== "string") return null;
@@ -19,243 +21,6 @@ const deriveChartWithCard = (rawUrl) => {
   return rawUrl.replace(/\.png$/i, "_with_card.png");
 };
 
-// ================================================================
-// ICON SET — standardized stroke SVGs (no emoji). currentColor so each
-// icon inherits its section's accent (green targets, red SL, gold, etc).
-// ================================================================
-const Ic = {
-  target: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="5" />
-      <circle cx="12" cy="12" r="1.5" />
-    </svg>
-  ),
-  stop: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z" />
-      <path d="M12 8v4.5" />
-      <path d="M12 16h.01" />
-    </svg>
-  ),
-  bars: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 21h18" />
-      <path d="M7 21v-7" />
-      <path d="M12 21V8" />
-      <path d="M17 21v-11" />
-    </svg>
-  ),
-  camera: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 9a2 2 0 0 1 2-2h1.5l1.2-1.8A1 1 0 0 1 8.5 4.7h7a1 1 0 0 1 .8.5L17.5 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <circle cx="12" cy="13" r="3.2" />
-    </svg>
-  ),
-  clock: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  ),
-  bank: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 21h18" />
-      <path d="M4 10h16" />
-      <path d="M5 10V21M9.5 10V21M14.5 10V21M19 10V21" />
-      <path d="M12 3 4 7.5V10h16V7.5z" />
-    </svg>
-  ),
-  link: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" />
-      <path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" />
-    </svg>
-  ),
-  send: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M22 2 11 13" />
-      <path d="M22 2 15 22l-4-9-9-4z" />
-    </svg>
-  ),
-  cpu: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-      <path d="M9 9h6v6H9z" />
-      <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
-    </svg>
-  ),
-  globe: (c = "w-3 h-3") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" />
-    </svg>
-  ),
-  xLogo: (c = "w-3 h-3") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M18.244 2H21.5l-7.51 8.59L23 22h-6.59l-5.16-6.75L5.34 22H2.08l8.03-9.18L1.5 2h6.76l4.67 6.17L18.244 2Zm-1.16 18h1.83L7.01 3.92H5.05L17.084 20Z" />
-    </svg>
-  ),
-  chat: (c = "w-3 h-3") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
-    </svg>
-  ),
-  code: (c = "w-3 h-3") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m16 18 6-6-6-6" />
-      <path d="m8 6-6 6 6 6" />
-    </svg>
-  ),
-  lock: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3.5" y="11" width="17" height="10" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  ),
-  signal: (c = "w-3.5 h-3.5") => (
-    <svg
-      className={c}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4.9 16.1a7 7 0 0 1 0-9.9" />
-      <path d="M19.1 6.2a7 7 0 0 1 0 9.9" />
-      <path d="M7.8 13.2a3 3 0 0 1 0-4.2" />
-      <path d="M16.2 9a3 3 0 0 1 0 4.2" />
-      <circle cx="12" cy="11" r="1.6" />
-      <path d="M12 12.5V20" />
-    </svg>
-  ),
-};
 
 const SignalModal = ({
   signal,
@@ -583,7 +348,7 @@ const SignalModal = ({
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: symbol,
-      interval: "240",
+      interval: "60",
       timezone: timezone,
       theme: "dark",
       style: "1",
@@ -598,7 +363,7 @@ const SignalModal = ({
       calendar: false,
       hide_volume: false,
       withdateranges: true,
-      studies: ["MACD@tv-basicstudies", "Stochastic RSI@tv-basicstudies"],
+      studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
       support_host: "https://www.tradingview.com",
     });
 
@@ -655,7 +420,7 @@ const SignalModal = ({
       script.innerHTML = JSON.stringify({
         autosize: true,
         symbol: symbol,
-        interval: "240",
+        interval: "60",
         timezone: timezone,
         theme: "dark",
         style: "1",
@@ -667,8 +432,7 @@ const SignalModal = ({
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: false,
-        studies: ["MACD@tv-basicstudies", "Stochastic RSI@tv-basicstudies"],
-
+        studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
         support_host: "https://www.tradingview.com",
       });
 
@@ -1233,7 +997,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     }
   };
 
-  // === Local currency line helper (multi-currency display) ===
+    // === Local currency line helper (multi-currency display) ===
   // Renders a small secondary price line below USDT prices.
   // Hidden when user uses USD or rates not loaded — zero visual noise.
   const LocalPriceLine = ({ usdtValue, size = "sm", align = "left" }) => {
@@ -1241,18 +1005,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     const localValue = convertPrice(Number(usdtValue), currency, rates);
     if (localValue == null) return null;
 
-    const sizeClass =
-      size === "lg"
-        ? "text-[10px]"
-        : size === "md"
-          ? "text-[9px]"
-          : "text-[8px]";
+    const sizeClass = size === "lg" ? "text-[10px]" : size === "md" ? "text-[9px]" : "text-[8px]";
     const alignClass = align === "right" ? "text-right" : "text-left";
 
     return (
-      <p
-        className={`${sizeClass} ${alignClass} font-mono text-gold-primary/45 leading-tight mt-0.5`}
-      >
+      <p className={`${sizeClass} ${alignClass} font-mono text-gold-primary/45 leading-tight mt-0.5`}>
         ≈ {formatLocalPrice(localValue, currency)}
       </p>
     );
@@ -1326,10 +1083,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               >
                 {formatPrice(signal?.entry)}
               </p>
-              <LocalPriceLine
-                usdtValue={signal?.entry}
-                size={isCompact ? "sm" : "md"}
-              />
+              <LocalPriceLine usdtValue={signal?.entry} size={isCompact ? "sm" : "md"} />
             </div>
             <p className="text-[9px] text-gold-primary/70">
               {formatShortDateTime(signal?.created_at)}
@@ -1486,7 +1240,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         {s.pct}%
                       </span>
                     </div>
-                    <p
+                  <p
                       className={`text-[10px] font-mono mt-0.5 ${s.hit ? "text-white" : "text-text-muted"}`}
                     >
                       {formatPrice(s.value)}
@@ -1496,7 +1250,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 ))}
               </div>
             </div>
-          ))}
+          ))}  
         {!isCompact && (
           <>
             {signal?.volume_rank_num && (
@@ -1612,18 +1366,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </div>
 
                     {/* Baris 2: Coin Category Badge (dual pill + tagline) */}
-                    <CoinCategoryBadge
-                      pair={signal?.pair}
-                      onClick={() => setShowCoinUtility(true)}
-                    />
+<CoinCategoryBadge
+  pair={signal?.pair}
+  onClick={() => setShowCoinUtility(true)}
+/>
 
-                    {/* Baris 2b: BTC Correlation Badge */}
-                    <div className="mt-1">
-                      <BTCCorrelationBadge
-                        signalId={signal?.signal_id}
-                        onClick={() => setShowBtcCorrelation(true)}
-                      />
-                    </div>
+{/* Baris 2b: BTC Correlation Badge */}
+<div className="mt-1">
+  <BTCCorrelationBadge
+    signalId={signal?.signal_id}
+    onClick={() => setShowBtcCorrelation(true)}
+  />
+</div>
 
                     {/* Baris 3: Timestamp */}
                     <p className="text-text-muted text-[10px] truncate">
@@ -1675,88 +1429,18 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                   <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
                     {[
-                      {
-                        id: "chart",
-                        label: t("modal.chart"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 3v18h18" />
-                            <rect x="7" y="10" width="3" height="7" rx="0.5" />
-                            <rect
-                              x="13.5"
-                              y="6"
-                              width="3"
-                              height="11"
-                              rx="0.5"
-                            />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "trade",
-                        label: t("modal.trade"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M7 10 3 14l4 4" />
-                            <path d="M3 14h13" />
-                            <path d="m17 14 4-4-4-4" />
-                            <path d="M21 10H8" />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "research",
-                        label: t("modal.research"),
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="m21 21-4.3-4.3" />
-                          </svg>
-                        ),
-                      },
-                      {
-                        id: "history",
-                        label: "History",
-                        icon: (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-                            <path d="M3 3v5h5" />
-                            <path d="M12 7v5l3 2" />
-                          </svg>
-                        ),
-                      },
+                      { id: "chart", label: t("modal.chart"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
+                      )},
+                      { id: "trade", label: t("modal.trade"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10 3 14l4 4" /><path d="M3 14h13" /><path d="m17 14 4-4-4-4" /><path d="M21 10H8" /></svg>
+                      )},
+                      { id: "research", label: t("modal.research"), icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+                      )},
+                      { id: "history", label: "History", icon: (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
+                      )},
                     ].map(({ id, label, icon }) => (
                       <button
                         key={id}
@@ -1955,10 +1639,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 className="absolute inset-0 w-full h-full object-contain"
                                 loading="lazy"
                                 onError={(e) => {
-                                  if (
-                                    rawAfterImg &&
-                                    e.target.src !== rawAfterImg
-                                  ) {
+                                  if (rawAfterImg && e.target.src !== rawAfterImg) {
                                     e.target.onerror = null;
                                     e.target.src = rawAfterImg;
                                   }
@@ -2537,12 +2218,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       />
 
       {/* === BTC Correlation Modal === */}
-      <BTCCorrelationModal
-        signalId={signal?.signal_id}
-        pair={signal?.pair}
-        isOpen={showBtcCorrelation}
-        onClose={() => setShowBtcCorrelation(false)}
-      />
+<BTCCorrelationModal
+  signalId={signal?.signal_id}
+  pair={signal?.pair}
+  isOpen={showBtcCorrelation}
+  onClose={() => setShowBtcCorrelation(false)}
+/>
 
       {/* FULLSCREEN LIGHTBOX - OVERLAY GAMBAR */}
       {lightboxImg && (
