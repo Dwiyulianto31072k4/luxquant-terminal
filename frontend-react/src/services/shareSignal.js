@@ -1,16 +1,9 @@
 // frontend-react/src/services/shareSignal.js
 // ================================================================
-// Shared "share a signal" logic for SignalModal + SignalsTable.
-// Builds a referral-tagged deep link, dynamic status-aware message,
-// tries Web Share API, falls back to clipboard.
-//
-// Notes:
-// - Link assembled on FRONTEND from window.location.origin (sidesteps
-//   the referral.py luxquant.com hardcode).
-// - Message text is dynamic by signal status, never appends the url
-//   (url is passed separately to navigator.share). Clipboard fallback
-//   copies text + url with spacing so a paste reads cleanly.
-// - No leverage/numbers in text — the OG preview image carries those.
+// Share a signal. Mobile: native sheet with the actual image FILE
+// (IG-friendly; WA/TG get photo + caption + link). Desktop: copy link.
+// Image comes from /api/v1/og/signal/{id}/image (combined chart if
+// TP2+, brand teaser otherwise) — same logic as the OG preview.
 // ================================================================
 
 import { referralApi } from "./referralApi";
@@ -18,12 +11,8 @@ import { referralApi } from "./referralApi";
 const extractCode = (data) => {
   if (!data || typeof data !== "object") return null;
   return (
-    data.code ||
-    data.referral_code ||
-    data.my_code ||
-    data.referralCode ||
-    (data.referral && data.referral.code) ||
-    null
+    data.code || data.referral_code || data.my_code ||
+    data.referralCode || (data.referral && data.referral.code) || null
   );
 };
 
@@ -31,39 +20,29 @@ let _cachedCode;
 const getReferralCode = async () => {
   if (_cachedCode) return _cachedCode;
   try {
-    const data = await referralApi.getMyCode();
-    _cachedCode = extractCode(data);
-  } catch {
-    _cachedCode = null;
-  }
+    _cachedCode = extractCode(await referralApi.getMyCode());
+  } catch { _cachedCode = null; }
   if (!_cachedCode) {
-    try {
-      const gen = await referralApi.generateCode();
-      _cachedCode = extractCode(gen);
-    } catch {
-      _cachedCode = null;
-    }
+    try { _cachedCode = extractCode(await referralApi.generateCode()); }
+    catch { _cachedCode = null; }
   }
   return _cachedCode;
 };
 
-export const resetShareCodeCache = () => {
-  _cachedCode = undefined;
-};
+export const resetShareCodeCache = () => { _cachedCode = undefined; };
+
+const getOrigin = () =>
+  (typeof window !== "undefined" && window.location?.origin)
+    ? window.location.origin
+    : "https://luxquant.tw";
 
 export const buildSignalShareUrl = (signalId, code) => {
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : "https://luxquant.tw";
   const params = new URLSearchParams();
   if (signalId != null) params.set("signal", String(signalId));
   if (code) params.set("ref", code);
-  return `${origin}/signals?${params.toString()}`;
+  return `${getOrigin()}/signals?${params.toString()}`;
 };
 
-// ── Helpers ──────────────────────────────────────────────────────
-// "UBERUSDT" → "UBER/USDT" for nicer reading.
 const fmtPair = (pair) => {
   if (!pair) return "this setup";
   const quotes = ["USDT", "USDC", "FDUSD", "TUSD", "BUSD", "USD", "BTC", "ETH"];
@@ -77,7 +56,6 @@ const fmtPair = (pair) => {
 
 const REACHED = new Set(["tp2", "tp3", "tp4", "closed_win"]);
 
-// Deterministic variant pick so a given signal always reads the same.
 const pickVariant = (arr, seed) => {
   let h = 0;
   const s = String(seed || "");
@@ -101,8 +79,7 @@ const buildShareText = (signal) => {
   const P = fmtPair(signal?.pair);
   const status = (signal?.status || "").toLowerCase();
   const seed = signal?.signal_id ?? signal?.id ?? signal?.pair;
-  const pool = REACHED.has(status) ? TEXT_REACHED : TEXT_LIVE;
-  return pickVariant(pool, seed)(P);
+  return pickVariant(REACHED.has(status) ? TEXT_REACHED : TEXT_LIVE, seed)(P);
 };
 
 const buildTitle = (signal) => {
@@ -113,9 +90,24 @@ const buildTitle = (signal) => {
     : `${P} · LuxQuant signal`;
 };
 
+// Fetch the best share image as a File (for native file sharing).
+const fetchShareImageFile = async (signal, signalId) => {
+  try {
+    const resp = await fetch(`${getOrigin()}/api/v1/og/signal/${signalId}/image`);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const safe = (signal?.pair || "luxquant").replace(/[^A-Za-z0-9]/g, "");
+    return new File([blob], `${safe || "luxquant"}.png`, {
+      type: blob.type || "image/png",
+    });
+  } catch {
+    return null;
+  }
+};
+
 /**
  * shareSignal(signal, opts?)
- * Returns { ok, method } where method ∈ 'web-share'|'clipboard'|'cancelled'|'failed'
+ * method ∈ 'web-share-image' | 'web-share' | 'clipboard' | 'cancelled' | 'failed'
  */
 export const shareSignal = async (signal, opts = {}) => {
   const signalId = signal?.signal_id ?? signal?.id;
@@ -124,22 +116,35 @@ export const shareSignal = async (signal, opts = {}) => {
   const text = buildShareText(signal);
   const title = buildTitle(signal);
 
-  if (code) {
-    referralApi.trackShare(code, "signal_share").catch(() => {});
-  }
+  if (code) referralApi.trackShare(code, "signal_share").catch(() => {});
 
-  if (typeof navigator !== "undefined" && navigator.share) {
-    try {
-      await navigator.share({ title, text, url });
-      return { ok: true, method: "web-share" };
-    } catch (err) {
-      if (err && err.name === "AbortError") {
-        return { ok: false, method: "cancelled" };
+  const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
+
+  // 1) Mobile: share the actual image file (best for IG + still great on WA/TG).
+  if (canNativeShare && signalId != null) {
+    const file = await fetchShareImageFile(signal, signalId);
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text: `${text}\n\n${url}`, title });
+        return { ok: true, method: "web-share-image" };
+      } catch (err) {
+        if (err && err.name === "AbortError") return { ok: false, method: "cancelled" };
+        // else fall through to link share
       }
     }
   }
 
-  // Clipboard fallback: copy message + link with spacing.
+  // 2) Native link share (rich preview card on WA/TG).
+  if (canNativeShare) {
+    try {
+      await navigator.share({ title, text, url });
+      return { ok: true, method: "web-share" };
+    } catch (err) {
+      if (err && err.name === "AbortError") return { ok: false, method: "cancelled" };
+    }
+  }
+
+  // 3) Desktop: copy message + link.
   const clip = `${text}\n\n${url}`;
   try {
     if (navigator.clipboard?.writeText) {
