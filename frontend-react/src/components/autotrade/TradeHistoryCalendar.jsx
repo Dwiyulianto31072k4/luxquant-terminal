@@ -27,6 +27,7 @@ import {
 } from "./AutoTradeUI";
 
 const COLORS = { up: "#0ECB81", down: "#F6465D", gold: "#d4a853", muted: "#848E9C" };
+const PAGE_SIZE = 10;
 
 function dayKey(value) {
   const date = new Date(value);
@@ -57,6 +58,30 @@ function valueFor(trade, basis) {
 
 function formatBasis(value, basis) {
   return basis === "percent" ? fmtPct(value) : fmtUsd(value);
+}
+
+function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
+  if (pageCount <= 1) return null;
+  const btn =
+    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 pt-1">
+      <span className="font-mono text-[11px] text-text-muted">
+        {rangeStart}–{rangeEnd} of {total}
+      </span>
+      <div className="flex items-center gap-2">
+        <button type="button" className={btn} disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          Prev
+        </button>
+        <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+          {page} / {pageCount}
+        </span>
+        <button type="button" className={btn} disabled={page >= pageCount} onClick={() => onPage(page + 1)}>
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ChartTooltip({ active, payload, label, basis }) {
@@ -182,6 +207,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
   const closedTrades = trades.filter((trade) => trade.status === "closed");
   const [basis, setBasis] = useState("nominal");
   const [selectedTrade, setSelectedTrade] = useState(null);
+  const [page, setPage] = useState(1);
 
   const chartData = useMemo(() => {
     let cumulative = 0;
@@ -218,6 +244,12 @@ export default function TradeHistoryCalendar({ history = {} }) {
   const totalDisplay = basis === "percent"
     ? closedTrades.reduce((sum, trade) => sum + Number(trade.realized_pnl_pct || 0), 0)
     : Number(summary.realized_pnl_usdt || 0);
+
+  const pageCount = Math.max(1, Math.ceil(closedTrades.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pagedTrades = closedTrades.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const rangeStart = closedTrades.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(safePage * PAGE_SIZE, closedTrades.length);
 
   return (
     <div className="space-y-5">
@@ -324,7 +356,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
 
           {/* Mobile: compact tappable cards (the 9-column table needs horizontal scroll on phones) */}
           <div className="space-y-2.5 lg:hidden">
-            {closedTrades.map((trade) => (
+            {pagedTrades.map((trade) => (
               <Card key={trade.id} padded={false} hover>
                 <button
                   type="button"
@@ -381,7 +413,7 @@ export default function TradeHistoryCalendar({ history = {} }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {closedTrades.map((trade) => (
+                  {pagedTrades.map((trade) => (
                     <tr
                       key={trade.id}
                       onClick={() => setSelectedTrade(trade)}
@@ -407,6 +439,15 @@ export default function TradeHistoryCalendar({ history = {} }) {
               </table>
             </div>
           </Card>
+
+          <Pager
+            page={safePage}
+            pageCount={pageCount}
+            total={closedTrades.length}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPage={setPage}
+          />
         </>
       )}
 

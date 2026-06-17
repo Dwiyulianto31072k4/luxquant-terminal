@@ -8,9 +8,10 @@
 //     category filters that used to live on the Logs tab
 //   • consecutive repeated skip / risk-block events collapse into
 //     one expandable group so 80 identical rows read as one line
+//   • paginated (12 rows/page) so the page no longer runs forever
 // ════════════════════════════════════════════════════════════════
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   EmptyState,
@@ -28,6 +29,8 @@ const FILTERS = [
   ["position", "Positions"],
   ["account", "Connections"],
 ];
+
+const PAGE_SIZE = 12;
 
 // ────────────────────────────────────────────────────────────────
 // Audit-event presentation (carried over from the old Logs tab)
@@ -265,6 +268,30 @@ function symbolsPreview(items) {
   return unique.length > 4 ? `${head} +${unique.length - 4} more` : head;
 }
 
+function Pager({ page, pageCount, total, rangeStart, rangeEnd, onPage }) {
+  if (pageCount <= 1) return null;
+  const btn =
+    "rounded-md border border-white/[0.1] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary transition-colors hover:border-gold-primary/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/[0.1] disabled:hover:text-text-secondary";
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 pt-1">
+      <span className="font-mono text-[11px] text-text-muted">
+        {rangeStart}–{rangeEnd} of {total}
+      </span>
+      <div className="flex items-center gap-2">
+        <button type="button" className={btn} disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          Prev
+        </button>
+        <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+          {page} / {pageCount}
+        </span>
+        <button type="button" className={btn} disabled={page >= pageCount} onClick={() => onPage(page + 1)}>
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function EventRow({ item, selected, onSelect }) {
   const open = selected === item.id;
   return (
@@ -368,6 +395,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [page, setPage] = useState(1);
 
   const stats = useMemo(() => {
     const completed = executions.filter((e) => e.status === "completed").length;
@@ -394,6 +422,20 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
     [enriched, filter],
   );
   const rows = useMemo(() => buildRows(visible), [visible]);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+  const pagedRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const rangeStart = rows.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(safePage * PAGE_SIZE, rows.length);
+
+  const selectFilter = (id) => {
+    setFilter(id);
+    setPage(1);
+  };
 
   if (items.length === 0 && executions.length === 0) {
     return (
@@ -454,7 +496,7 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
               <button
                 key={id}
                 type="button"
-                onClick={() => setFilter(id)}
+                onClick={() => selectFilter(id)}
                 className={`rounded-[3px] border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider ${
                   filter === id
                     ? "border-gold-primary/35 bg-gold-primary/10 text-gold-primary"
@@ -475,34 +517,44 @@ export default function ActivityTimeline({ executions = [], items = [] }) {
           hint="Try another filter — events will appear here as the engine works."
         />
       ) : (
-        <Card padded={false}>
-          <div className="divide-y divide-white/[0.05]">
-            {rows.map((row) =>
-              row.type === "group" ? (
-                <GroupRow
-                  key={row.id}
-                  group={row}
-                  expanded={Boolean(expandedGroups[row.id])}
-                  onToggle={() =>
-                    setExpandedGroups((previous) => ({
-                      ...previous,
-                      [row.id]: !previous[row.id],
-                    }))
-                  }
-                  selected={selected}
-                  onSelect={setSelected}
-                />
-              ) : (
-                <EventRow
-                  key={row.id}
-                  item={row.item}
-                  selected={selected}
-                  onSelect={setSelected}
-                />
-              ),
-            )}
-          </div>
-        </Card>
+        <>
+          <Card padded={false}>
+            <div className="divide-y divide-white/[0.05]">
+              {pagedRows.map((row) =>
+                row.type === "group" ? (
+                  <GroupRow
+                    key={row.id}
+                    group={row}
+                    expanded={Boolean(expandedGroups[row.id])}
+                    onToggle={() =>
+                      setExpandedGroups((previous) => ({
+                        ...previous,
+                        [row.id]: !previous[row.id],
+                      }))
+                    }
+                    selected={selected}
+                    onSelect={setSelected}
+                  />
+                ) : (
+                  <EventRow
+                    key={row.id}
+                    item={row.item}
+                    selected={selected}
+                    onSelect={setSelected}
+                  />
+                ),
+              )}
+            </div>
+          </Card>
+          <Pager
+            page={safePage}
+            pageCount={pageCount}
+            total={rows.length}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPage={setPage}
+          />
+        </>
       )}
     </div>
   );

@@ -100,29 +100,31 @@ function MobileSectionPicker({ tabs, value, onChange }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left transition-colors active:border-gold-primary/30"
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-gold-primary/35 bg-gold-primary/[0.07] px-4 py-3 text-left transition-colors active:bg-gold-primary/[0.12]"
       >
         <span className="min-w-0">
-          <span className="block font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/60">
-            Section
+          <span className="block font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+            Section · tap to switch
           </span>
-          <span className="mt-0.5 block font-mono text-[12px] uppercase tracking-[0.15em] text-gold-light">
+          <span className="mt-0.5 block font-mono text-[13px] uppercase tracking-[0.15em] text-gold-light">
             {current.label}
           </span>
         </span>
-        <svg
-          className={`h-4 w-4 flex-shrink-0 text-gold-primary/70 transition-transform duration-200 ${
-            open ? "rotate-180" : ""
-          }`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-gold-primary/30 bg-gold-primary/15">
+          <svg
+            className={`h-4 w-4 text-gold-primary transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
       </button>
 
       {open ? (
@@ -347,11 +349,12 @@ function AutoTradeControlCenter({
   };
 
   return (
-    <div className={`rounded-md border p-4 lg:p-5 ${state.panel}`}>
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-start gap-4">
+    <div className={`overflow-hidden rounded-lg border ${state.panel}`}>
+      {/* Control row — status + primary action in one compact bar */}
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between lg:px-5">
+        <div className="flex min-w-0 items-center gap-3">
           <span
-            className={`mt-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border ${
+            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border ${
               active
                 ? state.tone === "good"
                   ? "border-[#0ECB81]/35 bg-[#0ECB81]/10 text-[#0ECB81]"
@@ -359,35 +362,29 @@ function AutoTradeControlCenter({
                 : "border-gold-primary/30 bg-gold-primary/10 text-gold-primary"
             }`}
           >
-            <BinanceIcon className="h-6 w-6" />
+            <BinanceIcon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-text-muted">
-                AutoTrade Engine
-              </p>
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
+                AutoTrade engine
+              </span>
               <StatusBadge tone={state.tone}>{state.eyebrow}</StatusBadge>
             </div>
-            <h2 className="mt-1.5 text-lg font-semibold text-white">
+            <h2 className="mt-0.5 truncate text-sm font-semibold text-white sm:text-base">
               {state.title}
             </h2>
-            <p className="mt-1 max-w-3xl text-xs leading-5 text-text-muted">
-              {state.description}
-            </p>
           </div>
         </div>
 
-        <div className="flex flex-shrink-0 flex-wrap gap-2">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <GhostButton onClick={onConfigure}>
             <span className="inline-flex items-center gap-2">
               <SettingsIcon className="h-4 w-4" />
               Settings
             </span>
           </GhostButton>
-          <GoldButton
-            onClick={toggle}
-            disabled={working || !accountValid}
-          >
+          <GoldButton onClick={toggle} disabled={working || !accountValid}>
             {working
               ? "Updating…"
               : active
@@ -397,7 +394,8 @@ function AutoTradeControlCenter({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 border-t border-white/[0.07] pt-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Status chips — inline, scannable; long guidance only shows when not live */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/[0.07] px-4 py-2.5 lg:px-5">
         <button type="button" onClick={onManageAccount} className="text-left">
           <StatusDot tone={accountValid ? "good" : "bad"}>
             Binance {accountValid ? "connected" : "needs attention"}
@@ -412,10 +410,15 @@ function AutoTradeControlCenter({
         <StatusDot tone={marketLabel ? "good" : "bad"}>
           Market {marketLabel || "disabled"}
         </StatusDot>
+        {state.tone !== "good" ? (
+          <span className="w-full text-xs leading-5 text-text-muted sm:w-auto sm:border-l sm:border-white/[0.08] sm:pl-5">
+            {state.description}
+          </span>
+        ) : null}
       </div>
 
       {actionError ? (
-        <div className="mt-4">
+        <div className="px-4 pb-4 lg:px-5">
           <Notice tone="error">{actionError}</Notice>
         </div>
       ) : null}
