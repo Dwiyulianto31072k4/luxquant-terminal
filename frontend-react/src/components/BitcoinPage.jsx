@@ -796,18 +796,18 @@ const BitcoinPage = () => {
                       >
                         <div className="bg-[#120809] rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
                           {a.image ? (
-                            <div className="w-full h-44 overflow-hidden">
+                            <div className="w-full overflow-hidden bg-black/40 flex items-center justify-center">
                               <img
                                 src={a.image}
                                 alt=""
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                className="w-full h-auto max-h-[460px] object-contain transition-transform duration-500 group-hover:scale-[1.02]"
                                 onError={(e) => {
                                   e.target.parentElement.style.display = "none";
                                 }}
                               />
                             </div>
                           ) : (
-                            <div className="w-full h-44 bg-[#0a0805] flex items-center justify-center border-b border-white/[0.04]">
+                            <div className="w-full aspect-video bg-[#0a0805] flex items-center justify-center border-b border-white/[0.04]">
                               <IconBtcLarge />
                             </div>
                           )}

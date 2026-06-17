@@ -522,11 +522,15 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
   return (
     <article
       onClick={() => onSelect(item)}
-      className="group cursor-pointer rounded-xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
       style={{
         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       }}
     >
+      {/* Gold hairline edges — left/right/top (mirrors BTC page) */}
+      <span className="absolute left-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
+      <span className="absolute right-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
+      <span className="absolute top-0 inset-x-0 h-px z-20 pointer-events-none" style={{ background: "linear-gradient(90deg, transparent, rgba(212,168,83,0.35), transparent)" }} />
       {/* Image / thumbnail area — square aspect */}
       <div className="relative w-full aspect-square overflow-hidden flex-shrink-0">
         {imgSrc ? (
@@ -872,7 +876,7 @@ const FilterChip = ({ active, onClick, children, color }) => {
       className={`${baseClass} ${
         active
           ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-          : "bg-white/[0.02] text-text-muted border border-white/5 hover:bg-white/[0.04] hover:text-white hover:border-white/10"
+          : "bg-white/[0.05] text-white/80 border border-white/[0.13] hover:bg-white/[0.08] hover:text-white hover:border-white/25"
       }`}
     >
       {children}
@@ -884,13 +888,13 @@ const ChipCount = ({ value, active, color }) => {
   if (value === undefined || value === null) return null;
   return (
     <span
-      className="text-[9px] font-mono tabular-nums px-1.5 py-px rounded ml-0.5 opacity-80"
+      className="text-[9px] font-mono tabular-nums px-1.5 py-px rounded ml-0.5"
       style={{
         background: active
           ? color
             ? `${color}25`
             : "rgba(212, 168, 83, 0.2)"
-          : "rgba(255,255,255,0.05)",
+          : "rgba(255,255,255,0.1)",
       }}
     >
       {value}
