@@ -67,103 +67,107 @@ const TABS = [
 ];
 
 // ════════════════════════════════════════════════════════════════
-// TabStrip — scrollable underline tabs (Cloudscape + Material spec)
-//   • single horizontal row, never wraps
-//   • active tab auto-scrolls into view (mobile-safe)
-//   • scroll-snap + hidden scrollbar + left/right edge-fade hints
+// MobileSectionPicker — tap-activated dropdown (mobile only).
+//   Best practice for 6+ sections on narrow screens (Setproduct rule;
+//   matches Django's "desktop tabs / mobile dropdown" fix). Tap, not
+//   hover (mobile has no hover) — closes on select, outside tap, Esc.
 // ════════════════════════════════════════════════════════════════
-function TabStrip({ tabs, value, onChange }) {
-  const scrollerRef = useRef(null);
-  const [edges, setEdges] = useState({ left: false, right: false });
-
-  const updateEdges = () => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setEdges({
-      left: scrollLeft > 2,
-      right: scrollLeft + clientWidth < scrollWidth - 2,
-    });
-  };
+function MobileSectionPicker({ tabs, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = tabs.find((t) => t.id === value) || tabs[0];
 
   useEffect(() => {
-    updateEdges();
-    const el = scrollerRef.current;
-    if (!el) return undefined;
-    el.addEventListener("scroll", updateEdges, { passive: true });
-    window.addEventListener("resize", updateEdges);
-    return () => {
-      el.removeEventListener("scroll", updateEdges);
-      window.removeEventListener("resize", updateEdges);
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
-  }, [tabs.length]);
-
-  // keep the active tab visible whenever it changes
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const active = el.querySelector('[data-active="true"]');
-    if (active) {
-      active.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-    }
-  }, [value]);
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("touchstart", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <div className="relative">
-      {/* edge fades — only when there is more to scroll */}
-      <div
-        className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-8 transition-opacity duration-200 ${
-          edges.left ? "opacity-100" : "opacity-0"
-        }`}
-        style={{ background: "linear-gradient(to right, #0a0506, transparent)" }}
-      />
-      <div
-        className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-8 transition-opacity duration-200 ${
-          edges.right ? "opacity-100" : "opacity-0"
-        }`}
-        style={{ background: "linear-gradient(to left, #0a0506, transparent)" }}
-      />
-
-      <div
-        ref={scrollerRef}
-        role="tablist"
-        aria-label="AutoTrade sections"
-        className="flex items-stretch gap-1 overflow-x-auto border-b border-white/[0.06] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left transition-colors active:border-gold-primary/30"
       >
-        {tabs.map((item) => {
-          const active = value === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              data-active={active}
-              onClick={() => onChange(item.id)}
-              style={{ scrollSnapAlign: "center" }}
-              className={`relative shrink-0 whitespace-nowrap px-4 py-3 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                active ? "text-gold-primary" : "text-text-muted hover:text-white"
-              }`}
-            >
-              {item.label}
-              {active ? (
+        <span className="min-w-0">
+          <span className="block font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/60">
+            Section
+          </span>
+          <span className="mt-0.5 block font-mono text-[12px] uppercase tracking-[0.15em] text-gold-light">
+            {current.label}
+          </span>
+        </span>
+        <svg
+          className={`h-4 w-4 flex-shrink-0 text-gold-primary/70 transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {open ? (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 z-30 mt-1.5 overflow-hidden rounded-md border border-gold-primary/20 bg-[#0c0908] shadow-2xl"
+        >
+          {tabs.map((item) => {
+            const on = item.id === value;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="option"
+                aria-selected={on}
+                onClick={() => {
+                  onChange(item.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 px-4 py-3 text-left font-mono text-[12px] uppercase tracking-[0.15em] transition-colors ${
+                  on ? "" : "text-text-muted active:bg-white/[0.04]"
+                }`}
+                style={on ? { background: "rgba(212,168,83,0.10)", color: "#ecd6a3" } : undefined}
+              >
                 <span
-                  className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-gold-primary"
-                  style={{ boxShadow: "0 0 8px rgba(212,168,83,0.5)" }}
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={
+                    on
+                      ? { background: "#d4a853", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }
+                      : { background: "rgba(255,255,255,0.15)" }
+                  }
                 />
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════════
 // SideNav — vertical section nav (Azure resource-menu pattern).
-//   Desktop only; mobile uses the horizontal TabStrip instead.
+//   Desktop only; mobile uses a tap dropdown (MobileSectionPicker).
 //   Active item: gold pill + left rail accent (matches Performance Hub).
 // ════════════════════════════════════════════════════════════════
 function SideNav({ tabs, value, onChange }) {
@@ -873,7 +877,7 @@ export default function AutoTradePage() {
             </aside>
             <div className="min-w-0 flex-1">
               <div className="lg:hidden mb-4">
-                <TabStrip tabs={TABS} value={tab} onChange={setTab} />
+                <MobileSectionPicker tabs={TABS} value={tab} onChange={setTab} />
               </div>
               <div className="pt-1 lg:pt-0">
             {tab === "overview" ? (
