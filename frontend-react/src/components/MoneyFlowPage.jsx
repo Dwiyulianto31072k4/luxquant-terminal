@@ -1,26 +1,18 @@
 // src/components/MoneyFlowPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Money Flow Page (v4 — layout overhaul)
-// 3-tab (zoom: makro → koin → transaksi):
+// LuxQuant Terminal — Money Flow Page (v5 — rail nav + signal modal)
+// Nav: left vertical rail (Performance-style) on desktop, tab strip on mobile.
 //   - Sectors : macro gauges + ranked sector rotation
-//   - Coins   : unified filterable flow table (logo + calls highlight)
-//               desktop 2-col: Flow Intensity ↔ DEX Buy/Sell
+//   - Coins   : unified filterable flow table (logo + calls highlight),
+//               desktop 2-col Flow ↔ DEX (aligned), call rows → SignalModal
 //   - Whale   : feed transaksi (reuse WhaleAlertPage)
-//
-// v4 changes (research-backed UX):
-//   - Tab bar dipoles: ikon + sublabel + gold underline (tabs > sidebar
-//     untuk 3 view sejajar — LogRocket/IxDF/Lollypop/UXDWorld).
-//   - Coins: 2 kartu numpuk → SATU tabel terfilter (All / LuxQuant Calls /
-//     Others) + logo koin (CoinLogo) + dot emas/border/badge "Call".
-//     Progressive disclosure: limit + "show all". (NN/g, DataCamp, Fireart)
-//   - Desktop 2-kolom (flow ↔ DEX) — manfaatin ruang horizontal, scroll½.
-//   - Mobile: kolom prioritas (vol/mcap disembunyiin), card-stack rows.
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import moneyFlowApi from "../services/moneyFlowApi";
 import WhaleAlertPage from "./WhaleAlertPage";
 import CoinLogo from "./CoinLogo";
+import SignalModal from "./SignalModal";
 
 // ═══════════════════════════════════════════
 // Format helpers
@@ -56,7 +48,7 @@ const TURNOVER_LABEL = {
 const FLOW_LABEL = { net_buying: "Net Buying", net_selling: "Net Selling", balanced: "Balanced" };
 
 // ═══════════════════════════════════════════
-// Primitives (design system)
+// Primitives
 // ═══════════════════════════════════════════
 const SectionHeader = ({ label, right }) => (
   <div className="flex items-center gap-3">
@@ -125,8 +117,15 @@ const ShowMore = ({ expanded, total, onClick }) => (
   </button>
 );
 
+const Spinner = ({ className = "" }) => (
+  <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+  </svg>
+);
+
 // ═══════════════════════════════════════════
-// Tab icons (inline SVG, Lucide-style)
+// Tab icons
 // ═══════════════════════════════════════════
 const IconSectors = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -290,7 +289,7 @@ const SectorsTab = () => {
 };
 
 // ═══════════════════════════════════════════
-// TAB 2 — COINS  (unified filterable table + DEX, 2-col on desktop)
+// TAB 2 — COINS
 // ═══════════════════════════════════════════
 const FlowFilterChip = ({ active, gold, onClick, children }) => (
   <button
@@ -307,14 +306,20 @@ const FlowFilterChip = ({ active, gold, onClick, children }) => (
   </button>
 );
 
-const CoinFlowRow = ({ c, i, max, called }) => {
+const CoinFlowRow = ({ c, i, max, called, onOpen, loadingSym }) => {
   const hi = c.turnover_tag === "high_turnover";
+  const clickable = called && !!onOpen;
+  const isLoading = loadingSym === c.symbol;
   return (
     <Row i={i}>
       <div
-        className={`grid grid-cols-[1fr_4.5rem_4.5rem] sm:grid-cols-[1fr_6rem_6rem_5rem] gap-3 items-center px-3 sm:px-4 py-3 transition-colors ${
-          called ? "border-l-2 border-gold-primary/50 hover:bg-gold-primary/[0.03]" : "border-l-2 border-transparent hover:bg-white/[0.02]"
-        }`}
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? () => onOpen(c) : undefined}
+        onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(c); } } : undefined}
+        className={`group/row grid grid-cols-[1fr_4.5rem_4.5rem] sm:grid-cols-[1fr_6rem_6rem_5rem] gap-3 items-center px-3 sm:px-4 py-3 transition-colors ${
+          called ? "border-l-2 border-gold-primary/50" : "border-l-2 border-transparent"
+        } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : called ? "hover:bg-gold-primary/[0.03]" : "hover:bg-white/[0.02]"}`}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
@@ -323,6 +328,15 @@ const CoinFlowRow = ({ c, i, max, called }) => {
             <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
               Call
             </span>
+          )}
+          {clickable && (
+            isLoading ? (
+              <Spinner className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/70" />
+            ) : (
+              <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/40 group-hover/row:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            )
           )}
         </div>
         <span className={`font-mono text-sm tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
@@ -387,8 +401,8 @@ const DexRow = ({ p, i }) => {
   );
 };
 
-const COIN_LIMIT = 24;
-const DEX_LIMIT = 10;
+const COIN_LIMIT = 14;
+const DEX_LIMIT = 8;
 
 const CoinsTab = () => {
   const [coins, setCoins] = useState([]);
@@ -398,6 +412,9 @@ const CoinsTab = () => {
   const [filter, setFilter] = useState("all"); // all | calls | others
   const [showAll, setShowAll] = useState(false);
   const [dexShowAll, setDexShowAll] = useState(false);
+
+  const [selectedSignal, setSelectedSignal] = useState(null);
+  const [loadingSym, setLoadingSym] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -420,10 +437,33 @@ const CoinsTab = () => {
     return () => { alive = false; };
   }, []);
 
+  // Resolve a LuxQuant-called coin → its latest signal, then open SignalModal
+  const openSignal = async (c) => {
+    const pair = (c.pair || `${c.symbol}USDT`).toUpperCase();
+    setLoadingSym(c.symbol);
+    try {
+      const r = await fetch(`/api/v1/analytics/coin/${pair}?limit=1`);
+      if (r.ok) {
+        const d = await r.json();
+        const sig = d.signals && d.signals[0];
+        if (sig && sig.signal_id) {
+          setSelectedSignal({
+            signal_id: sig.signal_id,
+            pair,
+            status: sig.status || "open",
+            created_at: sig.created_at,
+          });
+        }
+      }
+    } catch { /* noop */ } finally {
+      setLoadingSym(null);
+    }
+  };
+
   const maxIntensity = Math.max(...coins.map((c) => c.flow_intensity || 0), 0.5);
   const called = coins.filter((c) => c.is_luxquant_signal);
   const others = coins.filter((c) => !c.is_luxquant_signal);
-  const ordered = [...called, ...others]; // calls pinned to top in "all"
+  const ordered = [...called, ...others];
   const base = filter === "calls" ? called : filter === "others" ? others : ordered;
   const shownCoins = showAll ? base : base.slice(0, COIN_LIMIT);
 
@@ -442,13 +482,13 @@ const CoinsTab = () => {
   );
 
   return (
-    <div className="space-y-3">
+    <>
       <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 lg:gap-4 items-start">
         {/* ── LEFT: Coin flow intensity ── */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <SectionHeader label="Coin Flow Intensity" />
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="min-h-[34px] flex flex-wrap items-center gap-1.5">
             <FlowFilterChip active={filter === "all"} onClick={() => setF("all")}>
               All <span className="opacity-60">{coins.length}</span>
             </FlowFilterChip>
@@ -474,7 +514,15 @@ const CoinsTab = () => {
               {colHeader}
               <div className="divide-y divide-white/[0.04]">
                 {shownCoins.map((c, i) => (
-                  <CoinFlowRow key={c.coin_id} c={c} i={i} max={maxIntensity} called={c.is_luxquant_signal} />
+                  <CoinFlowRow
+                    key={c.coin_id}
+                    c={c}
+                    i={i}
+                    max={maxIntensity}
+                    called={c.is_luxquant_signal}
+                    onOpen={openSignal}
+                    loadingSym={loadingSym}
+                  />
                 ))}
               </div>
               {base.length > COIN_LIMIT && (
@@ -484,15 +532,22 @@ const CoinsTab = () => {
           )}
 
           <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-            Flow intensity = volume 24h ÷ market cap · dot emas = lagi di-call LuxQuant
+            Flow intensity = volume 24h ÷ market cap · baris emas = klik buat buka signal
           </p>
         </div>
 
         {/* ── RIGHT: DEX buy/sell pressure ── */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <SectionHeader label="DEX Buy / Sell Pressure" />
+
+          <div className="min-h-[34px] flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/60">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-400/80" />Buy</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/50" />Sell</span>
+            <span className="text-text-muted/35">· 24h</span>
+          </div>
+
           <Card glow>
-            {dexLoading && <Skeleton rows={8} />}
+            {dexLoading && <Skeleton rows={6} />}
             {!dexLoading && dexPools.length === 0 && (
               <div className="p-10 text-center text-text-muted text-sm font-mono">DEX data unavailable</div>
             )}
@@ -510,11 +565,19 @@ const CoinsTab = () => {
             )}
           </Card>
           <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-            Trending DEX pools (incl. meme/alt) · bar = proporsi beli vs jual 24h · Data: GeckoTerminal
+            Trending DEX pools (incl. meme/alt) · bar = beli vs jual 24h · Data: GeckoTerminal
           </p>
         </div>
       </div>
-    </div>
+
+      {selectedSignal && (
+        <SignalModal
+          signal={selectedSignal}
+          isOpen={!!selectedSignal}
+          onClose={() => setSelectedSignal(null)}
+        />
+      )}
+    </>
   );
 };
 
@@ -532,51 +595,84 @@ export default function MoneyFlowPage() {
   const [tab, setTab] = useState("sectors");
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-[1400px] mx-auto px-4 py-8">
       <style>{`@keyframes mfIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      <SectionHeader label="Money Flow" />
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">Money Flow</h1>
-        <p className="text-text-muted text-sm mt-1.5 font-mono">
-          Where capital is rotating — sectors, coins, and whale transactions
-        </p>
-      </div>
+      <div className="flex gap-6">
+        {/* ── LEFT RAIL (desktop) ── */}
+        <aside className="hidden lg:block w-44 flex-shrink-0">
+          <div className="sticky top-20">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/70 mb-3 pl-1">
+              Money Flow
+            </div>
+            <nav className="relative pl-3 border-l border-white/[0.08] space-y-1">
+              {TABS.map((tb) => {
+                const active = tab === tb.key;
+                return (
+                  <button
+                    key={tb.key}
+                    onClick={() => setTab(tb.key)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left border transition-colors ${
+                      active ? "bg-white/[0.04] border-white/[0.08]" : "border-transparent hover:bg-white/[0.02]"
+                    }`}
+                  >
+                    <span className={`flex-shrink-0 transition-colors ${active ? "text-gold-primary" : "text-text-muted"}`}>
+                      {tb.icon}
+                    </span>
+                    <span className="leading-tight min-w-0">
+                      <span className={`block text-[13px] truncate ${active ? "text-white" : "text-text-secondary"}`}>
+                        {tb.label}
+                      </span>
+                      <span className="block font-mono text-[9px] uppercase tracking-[0.1em] text-text-muted/50 truncate">
+                        {tb.sub}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
 
-      {/* Tab bar — icon + label + sublabel, gold underline */}
-      <div className="flex items-stretch gap-1 border-b border-white/[0.06] overflow-x-auto">
-        {TABS.map((tb) => {
-          const active = tab === tb.key;
-          return (
-            <button
-              key={tb.key}
-              onClick={() => setTab(tb.key)}
-              className="relative flex items-center gap-2.5 px-4 py-3 whitespace-nowrap group"
-            >
-              <span className={`transition-colors ${active ? "text-gold-primary" : "text-text-muted group-hover:text-white"}`}>
-                {tb.icon}
-              </span>
-              <span className="text-left leading-tight">
-                <span className={`block font-mono text-[13px] uppercase tracking-[0.1em] transition-colors ${active ? "text-white" : "text-text-muted group-hover:text-white"}`}>
-                  {tb.label}
-                </span>
-                <span className="hidden sm:block font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/60">
-                  {tb.sub}
-                </span>
-              </span>
-              {active && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-gold-primary rounded-full" />}
-            </button>
-          );
-        })}
-      </div>
+        {/* ── CONTENT ── */}
+        <div className="flex-1 min-w-0 space-y-6">
+          <div>
+            <SectionHeader label="Money Flow" />
+            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight mt-3">Money Flow</h1>
+            <p className="text-text-muted text-sm mt-1.5 font-mono">
+              Where capital is rotating — sectors, coins, and whale transactions
+            </p>
+          </div>
 
-      {tab === "sectors" && <SectorsTab />}
-      {tab === "coins" && <CoinsTab />}
-      {tab === "whale" && (
-        <div className="-mx-4 -mt-2">
-          <WhaleAlertPage />
+          {/* mobile tab strip */}
+          <div className="lg:hidden flex items-stretch gap-1 border-b border-white/[0.06] overflow-x-auto">
+            {TABS.map((tb) => {
+              const active = tab === tb.key;
+              return (
+                <button
+                  key={tb.key}
+                  onClick={() => setTab(tb.key)}
+                  className="relative flex items-center gap-2 px-4 py-3 whitespace-nowrap"
+                >
+                  <span className={active ? "text-gold-primary" : "text-text-muted"}>{tb.icon}</span>
+                  <span className={`font-mono text-[12px] uppercase tracking-[0.1em] ${active ? "text-white" : "text-text-muted"}`}>
+                    {tb.label}
+                  </span>
+                  {active && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-gold-primary rounded-full" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {tab === "sectors" && <SectorsTab />}
+          {tab === "coins" && <CoinsTab />}
+          {tab === "whale" && (
+            <div className="-mx-4 -mt-2">
+              <WhaleAlertPage />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
