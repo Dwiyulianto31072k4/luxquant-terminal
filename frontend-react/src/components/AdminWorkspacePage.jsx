@@ -319,7 +319,10 @@ const MobilePicker = ({ activeTab, badges, onSelect }) => {
                 <CloseGlyph className="w-4 h-4" />
               </button>
             </div>
-            <div className="overflow-y-auto px-2.5 pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div
+              className="overflow-y-auto px-2.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom))' }}
+            >
               {NAV_GROUPS.map((g) => (
                 <div key={g.id}>
                   <div className="font-mono text-[10px] uppercase tracking-[0.18em] font-semibold px-2.5 pt-3.5 pb-1.5" style={{ color: tint(palette.gold[300], 0.6) }}>{g.label}</div>
