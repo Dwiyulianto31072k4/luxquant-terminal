@@ -25,6 +25,9 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
     reconciliation > 0 ? `${reconciliation} reconcile` : "",
   ].filter(Boolean);
 
+  const openLive = tradeSummary.open_live_positions || 0;
+  const closedLive = tradeSummary.closed_live_trades || 0;
+
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatCard
@@ -48,14 +51,18 @@ export default function PnLSummary({ portfolio, executions = [], tradeSummary = 
       />
       <StatCard
         label="Live Trades"
-        value={`${tradeSummary.open_live_positions || 0} open · ${tradeSummary.closed_live_trades || 0} closed`}
-        sub={executionIssues.length > 0 ? executionIssues.join(" · ") : "No execution issues"}
+        value={`${openLive} / ${closedLive}`}
+        sub={
+          executionIssues.length > 0
+            ? executionIssues.join(" · ")
+            : "Open / closed live"
+        }
         valueColor={
           failed > 0 || reconciliation > 0
             ? "text-[#F6465D]"
             : skipped > 0
               ? "text-gold-primary"
-            : Number(tradeSummary.closed_live_trades || 0) > 0
+            : Number(closedLive) > 0
               ? "text-[#0ECB81]"
               : "text-white"
         }

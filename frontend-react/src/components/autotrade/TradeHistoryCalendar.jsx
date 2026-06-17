@@ -320,8 +320,55 @@ export default function TradeHistoryCalendar({ history = {} }) {
             </div>
           </Card>
 
-          <SectionHeader label="Closed Live Trades" hint="Click a row for full execution notes" />
-          <Card padded={false}>
+          <SectionHeader label="Closed Live Trades" hint="Tap a trade for full execution notes" />
+
+          {/* Mobile: compact tappable cards (the 9-column table needs horizontal scroll on phones) */}
+          <div className="space-y-2.5 lg:hidden">
+            {closedTrades.map((trade) => (
+              <Card key={trade.id} padded={false} hover>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrade(trade)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                >
+                  <CoinLogo pair={trade.symbol} size={28} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-semibold text-white">{trade.symbol}</span>
+                      <StatusBadge tone={trade.exit_reason === "take_profit" ? "good" : "bad"}>
+                        {trade.exit_reason?.replaceAll("_", " ")}
+                      </StatusBadge>
+                    </span>
+                    <span className="mt-0.5 block font-mono text-[10px] text-text-muted">
+                      {fmtDateTime(trade.closed_at)} · {formatDuration(trade.duration_seconds)}
+                    </span>
+                  </span>
+                  <span className="flex-shrink-0 text-right">
+                    <span className={`block font-mono text-sm font-semibold tabular-nums ${pnlClass(valueFor(trade, basis))}`}>
+                      {formatBasis(valueFor(trade, basis), basis)}
+                    </span>
+                    <span className="mt-0.5 block font-mono text-[10px] text-text-muted">
+                      fee {fmtUsd(trade.fees_usdt)}
+                    </span>
+                  </span>
+                  <svg
+                    className="h-4 w-4 flex-shrink-0 text-text-secondary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: full table */}
+          <Card padded={false} className="hidden lg:block">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
