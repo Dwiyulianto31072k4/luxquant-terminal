@@ -1,26 +1,26 @@
 // src/components/MoneyFlowPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Money Flow Page (v3)
+// LuxQuant Terminal — Money Flow Page (v4 — layout overhaul)
 // 3-tab (zoom: makro → koin → transaksi):
-//   - Sectors : macro gauges + ranked sector rotation          (Dante)
-//   - Coins   : grouped flow intensity + visual DEX buy/sell    (Anonymous)
+//   - Sectors : macro gauges + ranked sector rotation
+//   - Coins   : unified filterable flow table (logo + calls highlight)
+//               desktop 2-col: Flow Intensity ↔ DEX Buy/Sell
 //   - Whale   : feed transaksi (reuse WhaleAlertPage)
 //
-// Design: Flowscan-minimal mewah — bg #0a0805, aksen gold-primary,
-// hairline gradient, font-mono label, tabular-nums, staggered reveal.
-// Prinsip "inform, don't decide": semua tag deskriptif (turunan angka).
-//
-// v3 changes (UX):
-//   - Coins dipisah 2 grup: "LuxQuant Calls" (yg di-call) di atas dgn
-//     treatment gold penuh (dot + nama gold + border kiri), lalu
-//     "Other Movers". Pre-attentive: mata langsung nangkep mana relevan.
-//   - Background intensity bar DIBUANG (ambigu) → diganti micro-bar tipis
-//     khusus di kolom Vol/Mcap (jelas maknanya: intensitas turnover).
+// v4 changes (research-backed UX):
+//   - Tab bar dipoles: ikon + sublabel + gold underline (tabs > sidebar
+//     untuk 3 view sejajar — LogRocket/IxDF/Lollypop/UXDWorld).
+//   - Coins: 2 kartu numpuk → SATU tabel terfilter (All / LuxQuant Calls /
+//     Others) + logo koin (CoinLogo) + dot emas/border/badge "Call".
+//     Progressive disclosure: limit + "show all". (NN/g, DataCamp, Fireart)
+//   - Desktop 2-kolom (flow ↔ DEX) — manfaatin ruang horizontal, scroll½.
+//   - Mobile: kolom prioritas (vol/mcap disembunyiin), card-stack rows.
 // ════════════════════════════════════════════════════════════════
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import moneyFlowApi from "../services/moneyFlowApi";
 import WhaleAlertPage from "./WhaleAlertPage";
+import CoinLogo from "./CoinLogo";
 
 // ═══════════════════════════════════════════
 // Format helpers
@@ -84,7 +84,7 @@ const Skeleton = ({ rows = 6 }) => (
   <div className="divide-y divide-white/[0.04]">
     {[...Array(rows)].map((_, i) => (
       <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-        <div className="w-6 h-3 bg-white/[0.04] rounded animate-pulse" />
+        <div className="w-6 h-6 bg-white/[0.04] rounded-full animate-pulse" />
         <div className="flex-1 space-y-2">
           <div className="h-3 bg-white/[0.05] rounded w-1/3 animate-pulse" />
           <div className="h-1.5 bg-white/[0.03] rounded w-2/3 animate-pulse" />
@@ -98,13 +98,12 @@ const Skeleton = ({ rows = 6 }) => (
 const Row = ({ i, children }) => (
   <div
     className="opacity-0 animate-[mfIn_0.4s_ease-out_forwards]"
-    style={{ animationDelay: `${Math.min(i * 30, 450)}ms` }}
+    style={{ animationDelay: `${Math.min(i * 24, 360)}ms` }}
   >
     {children}
   </div>
 );
 
-// micro intensity bar (kecil, di kolom vol/mcap — makna jelas)
 const IntensityBar = ({ value, max, gold = false }) => {
   const pct = Math.max(4, Math.min(100, ((value || 0) / (max || 1)) * 100));
   return (
@@ -116,6 +115,38 @@ const IntensityBar = ({ value, max, gold = false }) => {
     </div>
   );
 };
+
+const ShowMore = ({ expanded, total, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted hover:text-gold-primary border-t border-white/[0.04] transition-colors"
+  >
+    {expanded ? "Show less" : `Show all ${total}`}
+  </button>
+);
+
+// ═══════════════════════════════════════════
+// Tab icons (inline SVG, Lucide-style)
+// ═══════════════════════════════════════════
+const IconSectors = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3v9l7 5" />
+  </svg>
+);
+const IconCoins = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="6" rx="8" ry="3" />
+    <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+    <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+  </svg>
+);
+const IconWhale = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 8h12l-3-3" />
+    <path d="M17 16H5l3 3" />
+  </svg>
+);
 
 // ═══════════════════════════════════════════
 // MACRO — gauge cards
@@ -259,34 +290,50 @@ const SectorsTab = () => {
 };
 
 // ═══════════════════════════════════════════
-// TAB 2 — COINS  (grouped: Calls → Others)
+// TAB 2 — COINS  (unified filterable table + DEX, 2-col on desktop)
 // ═══════════════════════════════════════════
-const CoinRow = ({ c, i, max, called }) => {
+const FlowFilterChip = ({ active, gold, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className={`font-mono text-[10px] uppercase tracking-[0.08em] px-3 py-1.5 rounded-md border transition-colors whitespace-nowrap ${
+      active
+        ? gold
+          ? "bg-gold-primary/15 text-gold-primary border-gold-primary/40"
+          : "bg-white/[0.08] text-white border-white/20"
+        : "bg-white/[0.04] text-text-muted border-white/[0.1] hover:text-white hover:border-white/20"
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const CoinFlowRow = ({ c, i, max, called }) => {
   const hi = c.turnover_tag === "high_turnover";
   return (
     <Row i={i}>
       <div
-        className={`grid grid-cols-[1fr_4.5rem_6rem] sm:grid-cols-[1fr_6rem_7rem_6rem] gap-3 items-center px-4 py-3.5 transition-colors ${
+        className={`grid grid-cols-[1fr_4.5rem_4.5rem] sm:grid-cols-[1fr_6rem_6rem_5rem] gap-3 items-center px-3 sm:px-4 py-3 transition-colors ${
           called ? "border-l-2 border-gold-primary/50 hover:bg-gold-primary/[0.03]" : "border-l-2 border-transparent hover:bg-white/[0.02]"
         }`}
       >
-        {/* coin name (+ gold dot kalau di-call) */}
-        <div className="flex items-center gap-2 min-w-0">
-          {called && <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-gold-primary shadow-[0_0_6px_rgba(212,175,55,0.6)]" />}
-          <span className={`text-sm font-semibold ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
+          <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+          {called && (
+            <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+              Call
+            </span>
+          )}
         </div>
-        {/* 24h change */}
         <span className={`font-mono text-sm tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
           {fmtPct(c.price_change_24h)}
         </span>
-        {/* vol/mcap + micro bar */}
         <div className="hidden sm:block text-right">
           <span className="font-mono text-xs tabular-nums text-text-muted">
             {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
           </span>
           <IntensityBar value={c.flow_intensity} max={max} gold={called} />
         </div>
-        {/* turnover tag */}
         <span className="text-right">
           {c.turnover_tag && (
             <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
@@ -301,11 +348,56 @@ const CoinRow = ({ c, i, max, called }) => {
   );
 };
 
+const DexRow = ({ p, i }) => {
+  const b = p.buys_24h || 0;
+  const s = p.sells_24h || 0;
+  const total = b + s || 1;
+  const buyPct = (b / total) * 100;
+  return (
+    <Row i={i}>
+      <div className="px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-white text-sm font-medium truncate">{p.base_symbol || p.name}</span>
+            {p.flow_tag && (
+              <span className={`shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                p.flow_tag === "net_buying" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/10"
+                : p.flow_tag === "net_selling" ? "text-red-400 border-red-500/25 bg-red-500/10"
+                : "text-white/60 border-white/[0.08] bg-white/[0.03]"
+              }`}>
+                {FLOW_LABEL[p.flow_tag]}
+              </span>
+            )}
+          </div>
+          <div className="shrink-0 font-mono text-[11px] tabular-nums">
+            <span className="text-emerald-400">{b.toLocaleString()}</span>
+            <span className="text-text-muted/30"> / </span>
+            <span className="text-red-400">{s.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-red-500/30">
+          <div className="h-full bg-emerald-400/80 transition-all duration-700" style={{ width: `${buyPct}%` }} />
+        </div>
+        <div className="flex items-center justify-between mt-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/50">
+          <span>Vol {fmtUSD(p.volume_24h_usd)}</span>
+          <span>Liq {fmtUSD(p.reserve_usd)}</span>
+        </div>
+      </div>
+    </Row>
+  );
+};
+
+const COIN_LIMIT = 24;
+const DEX_LIMIT = 10;
+
 const CoinsTab = () => {
   const [coins, setCoins] = useState([]);
   const [dex, setDex] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dexLoading, setDexLoading] = useState(true);
+  const [filter, setFilter] = useState("all"); // all | calls | others
+  const [showAll, setShowAll] = useState(false);
+  const [dexShowAll, setDexShowAll] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -331,9 +423,17 @@ const CoinsTab = () => {
   const maxIntensity = Math.max(...coins.map((c) => c.flow_intensity || 0), 0.5);
   const called = coins.filter((c) => c.is_luxquant_signal);
   const others = coins.filter((c) => !c.is_luxquant_signal);
+  const ordered = [...called, ...others]; // calls pinned to top in "all"
+  const base = filter === "calls" ? called : filter === "others" ? others : ordered;
+  const shownCoins = showAll ? base : base.slice(0, COIN_LIMIT);
+
+  const dexPools = dex?.pools || [];
+  const shownDex = dexShowAll ? dexPools : dexPools.slice(0, DEX_LIMIT);
+
+  const setF = (f) => { setFilter(f); setShowAll(false); };
 
   const colHeader = (
-    <div className="grid grid-cols-[1fr_4.5rem_6rem] sm:grid-cols-[1fr_6rem_7rem_6rem] gap-3 px-4 py-3 border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
+    <div className="grid grid-cols-[1fr_4.5rem_4.5rem] sm:grid-cols-[1fr_6rem_6rem_5rem] gap-3 px-3 sm:px-4 py-3 border-l-2 border-transparent border-b border-white/[0.06] font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/70">
       <span>Coin</span>
       <span className="text-right">24h</span>
       <span className="text-right hidden sm:block">Vol / Mcap</span>
@@ -342,119 +442,77 @@ const CoinsTab = () => {
   );
 
   return (
-    <div className="space-y-8">
-      {/* ── Coin flow intensity ── */}
-      <div className="space-y-4">
-        <SectionHeader label="Coin Flow Intensity" />
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 lg:gap-4 items-start">
+        {/* ── LEFT: Coin flow intensity ── */}
+        <div className="space-y-4">
+          <SectionHeader label="Coin Flow Intensity" />
 
-        {loading && <Card glow><Skeleton rows={10} /></Card>}
+          <div className="flex flex-wrap gap-1.5">
+            <FlowFilterChip active={filter === "all"} onClick={() => setF("all")}>
+              All <span className="opacity-60">{coins.length}</span>
+            </FlowFilterChip>
+            <FlowFilterChip gold active={filter === "calls"} onClick={() => setF("calls")}>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-primary" />
+                LuxQuant Calls <span className="opacity-70">{called.length}</span>
+              </span>
+            </FlowFilterChip>
+            <FlowFilterChip active={filter === "others"} onClick={() => setF("others")}>
+              Others <span className="opacity-60">{others.length}</span>
+            </FlowFilterChip>
+          </div>
 
-        {!loading && coins.length === 0 && (
-          <Card><div className="p-10 text-center text-text-muted text-sm font-mono">No data</div></Card>
-        )}
+          {loading && <Card glow><Skeleton rows={10} /></Card>}
 
-        {!loading && coins.length > 0 && (
-          <div className="space-y-5">
-            {/* GROUP 1 — LuxQuant Calls */}
-            {called.length > 0 && (
-              <Card glow>
-                <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold-primary shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-primary">
-                    LuxQuant Calls
-                  </span>
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted/60">{called.length}</span>
-                  <span className="font-mono text-[9px] normal-case tracking-normal text-text-muted/40 ml-auto">
-                    coin yang lagi di-call
-                  </span>
-                </div>
-                {colHeader}
-                <div className="divide-y divide-white/[0.04]">
-                  {called.map((c, i) => (
-                    <CoinRow key={c.coin_id} c={c} i={i} max={maxIntensity} called />
-                  ))}
-                </div>
-              </Card>
-            )}
+          {!loading && base.length === 0 && (
+            <Card><div className="p-10 text-center text-text-muted text-sm font-mono">No data</div></Card>
+          )}
 
-            {/* GROUP 2 — Other Movers */}
-            <Card>
-              <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-text-muted">
-                  Other Movers
-                </span>
-                <span className="font-mono text-[10px] tabular-nums text-text-muted/60">{others.length}</span>
-              </div>
+          {!loading && base.length > 0 && (
+            <Card glow>
               {colHeader}
               <div className="divide-y divide-white/[0.04]">
-                {others.map((c, i) => (
-                  <CoinRow key={c.coin_id} c={c} i={i} max={maxIntensity} />
+                {shownCoins.map((c, i) => (
+                  <CoinFlowRow key={c.coin_id} c={c} i={i} max={maxIntensity} called={c.is_luxquant_signal} />
                 ))}
               </div>
+              {base.length > COIN_LIMIT && (
+                <ShowMore expanded={showAll} total={base.length} onClick={() => setShowAll((v) => !v)} />
+              )}
             </Card>
-          </div>
-        )}
-
-        <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-          Flow intensity = volume 24h ÷ market cap · dot emas = lagi di-call LuxQuant
-        </p>
-      </div>
-
-      {/* ── DEX buy/sell pressure ── */}
-      <div className="space-y-4">
-        <SectionHeader label="DEX Buy / Sell Pressure" />
-        <Card glow>
-          {dexLoading && <Skeleton rows={8} />}
-          {!dexLoading && (!dex || (dex.pools || []).length === 0) && (
-            <div className="p-10 text-center text-text-muted text-sm font-mono">DEX data unavailable</div>
           )}
-          {!dexLoading && dex && (
-            <div className="divide-y divide-white/[0.04]">
-              {(dex.pools || []).map((p, i) => {
-                const b = p.buys_24h || 0;
-                const s = p.sells_24h || 0;
-                const total = b + s || 1;
-                const buyPct = (b / total) * 100;
-                return (
-                  <Row key={p.pool_address} i={i}>
-                    <div className="px-4 py-3.5 hover:bg-white/[0.02] transition-colors">
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-white text-sm font-medium truncate">{p.base_symbol || p.name}</span>
-                          {p.flow_tag && (
-                            <span className={`shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                              p.flow_tag === "net_buying" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/10"
-                              : p.flow_tag === "net_selling" ? "text-red-400 border-red-500/25 bg-red-500/10"
-                              : "text-white/60 border-white/[0.08] bg-white/[0.03]"
-                            }`}>
-                              {FLOW_LABEL[p.flow_tag]}
-                            </span>
-                          )}
-                        </div>
-                        <div className="shrink-0 font-mono text-[11px] tabular-nums">
-                          <span className="text-emerald-400">{b.toLocaleString()}</span>
-                          <span className="text-text-muted/30"> / </span>
-                          <span className="text-red-400">{s.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex h-1.5 rounded-full overflow-hidden bg-red-500/30">
-                        <div className="h-full bg-emerald-400/80 transition-all duration-700" style={{ width: `${buyPct}%` }} />
-                      </div>
-                      <div className="flex items-center justify-between mt-1.5 font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/50">
-                        <span>Vol {fmtUSD(p.volume_24h_usd)}</span>
-                        <span>Liq {fmtUSD(p.reserve_usd)}</span>
-                      </div>
-                    </div>
-                  </Row>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-        <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-          Trending DEX pools (incl. meme/alt) · bar = proporsi beli vs jual 24h · Data: GeckoTerminal
-        </p>
+
+          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
+            Flow intensity = volume 24h ÷ market cap · dot emas = lagi di-call LuxQuant
+          </p>
+        </div>
+
+        {/* ── RIGHT: DEX buy/sell pressure ── */}
+        <div className="space-y-4">
+          <SectionHeader label="DEX Buy / Sell Pressure" />
+          <Card glow>
+            {dexLoading && <Skeleton rows={8} />}
+            {!dexLoading && dexPools.length === 0 && (
+              <div className="p-10 text-center text-text-muted text-sm font-mono">DEX data unavailable</div>
+            )}
+            {!dexLoading && dexPools.length > 0 && (
+              <>
+                <div className="divide-y divide-white/[0.04]">
+                  {shownDex.map((p, i) => (
+                    <DexRow key={p.pool_address} p={p} i={i} />
+                  ))}
+                </div>
+                {dexPools.length > DEX_LIMIT && (
+                  <ShowMore expanded={dexShowAll} total={dexPools.length} onClick={() => setDexShowAll((v) => !v)} />
+                )}
+              </>
+            )}
+          </Card>
+          <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
+            Trending DEX pools (incl. meme/alt) · bar = proporsi beli vs jual 24h · Data: GeckoTerminal
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -464,9 +522,9 @@ const CoinsTab = () => {
 // MAIN
 // ═══════════════════════════════════════════
 const TABS = [
-  { key: "sectors", label: "Sectors" },
-  { key: "coins", label: "Coins" },
-  { key: "whale", label: "Whale Alert" },
+  { key: "sectors", label: "Sectors", sub: "Macro rotation", icon: <IconSectors /> },
+  { key: "coins", label: "Coins", sub: "Flow intensity", icon: <IconCoins /> },
+  { key: "whale", label: "Whale Alert", sub: "Large transactions", icon: <IconWhale /> },
 ];
 
 export default function MoneyFlowPage() {
@@ -485,19 +543,28 @@ export default function MoneyFlowPage() {
         </p>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-white/[0.06]">
+      {/* Tab bar — icon + label + sublabel, gold underline */}
+      <div className="flex items-stretch gap-1 border-b border-white/[0.06] overflow-x-auto">
         {TABS.map((tb) => {
           const active = tab === tb.key;
           return (
             <button
               key={tb.key}
               onClick={() => setTab(tb.key)}
-              className={`relative px-4 py-3 text-[13px] font-mono uppercase tracking-[0.12em] transition-colors ${
-                active ? "text-white" : "text-text-muted hover:text-white"
-              }`}
+              className="relative flex items-center gap-2.5 px-4 py-3 whitespace-nowrap group"
             >
-              {tb.label}
-              {active && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-gold-primary" />}
+              <span className={`transition-colors ${active ? "text-gold-primary" : "text-text-muted group-hover:text-white"}`}>
+                {tb.icon}
+              </span>
+              <span className="text-left leading-tight">
+                <span className={`block font-mono text-[13px] uppercase tracking-[0.1em] transition-colors ${active ? "text-white" : "text-text-muted group-hover:text-white"}`}>
+                  {tb.label}
+                </span>
+                <span className="hidden sm:block font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/60">
+                  {tb.sub}
+                </span>
+              </span>
+              {active && <span className="absolute left-3 right-3 -bottom-px h-[2px] bg-gold-primary rounded-full" />}
             </button>
           );
         })}
