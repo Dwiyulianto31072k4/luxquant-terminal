@@ -385,7 +385,7 @@ const SignalModal = ({
       calendar: false,
       hide_volume: false,
       withdateranges: true,
-      studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
+      studies: ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"],
       support_host: "https://www.tradingview.com",
     });
 
@@ -454,7 +454,7 @@ const SignalModal = ({
         hide_side_toolbar: false,
         allow_symbol_change: true,
         save_image: false,
-        studies: ["STD;EMA", "STD;EMA", "STD;VWAP"],
+        studies: ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"],
         support_host: "https://www.tradingview.com",
       });
 
