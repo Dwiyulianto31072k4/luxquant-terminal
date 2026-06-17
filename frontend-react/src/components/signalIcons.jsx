@@ -96,6 +96,9 @@ export const Ic = {
   arrowRight: (c = "w-3 h-3") => (
     <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
   ),
+  instagram: (c = "w-4 h-4") => (
+    <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+  ),
   share: (c = "w-3.5 h-3.5") => (
     <svg className={c} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 17v-1a6 6 0 0 1 6-6h7" /><path d="M13 5l5 5-5 5" /></svg>
   ),
