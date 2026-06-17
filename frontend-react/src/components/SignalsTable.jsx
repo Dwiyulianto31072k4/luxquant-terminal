@@ -174,6 +174,7 @@ const SignalsTable = ({
   const { t } = useTranslation();
 
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [expandedCards, setExpandedCards] = useState({}); // mobile card expand, keyed by signal_id (survives 15s price refresh)
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
   const [showVerdictHint, setShowVerdictHint] = useState(false);    // verdict coachmark (auto-shows on load)
   const [currentPrices, setCurrentPrices] = useState({});
@@ -636,195 +637,201 @@ const SignalsTable = ({
     const currentPrice = getPrice(signal.pair);
     const currentVol = getVolume(signal.pair);
     const priceChange = getPriceChange(signal.entry, currentPrice);
-    const currentPriceColor = priceChange !== null 
-      ? (priceChange >= 0 ? 'text-emerald-400' : 'text-red-400') 
-      : 'text-white';
+    const open = !!expandedCards[signal.signal_id];
+    const toggle = () =>
+      setExpandedCards((p) => ({ ...p, [signal.signal_id]: !p[signal.signal_id] }));
+    const v = getVerdict(signal.pair);
+    const wr = getWinRate(signal.pair);
+    const streak = getStreak(signal.pair);
+    const topTag = getTopTag(signal.signal_id);
+    const btc = getBtc(signal);
 
     return (
-      <div
-        onClick={() => setSelectedSignal(signal)}
-        className="relative bg-[#0a0805] rounded-md border border-white/[0.06] p-4 hover:border-amber-400/25 active:bg-white/[0.02] transition-all cursor-pointer overflow-hidden group"
-      >
+      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-amber-400/25">
         <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
 
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <CoinLogo pair={signal.pair} size={32} />
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-white font-mono text-sm tracking-wide group-hover:text-amber-400 transition-colors">
-                  {getCoinName(signal.pair)}
-                </p>
-                <p className="text-white/45 text-[10px] font-mono">USDT</p>
+        {/* COLLAPSED — overview, tap to expand */}
+        <div className="flex items-center gap-2.5 p-3">
+          <button
+            onClick={toggle}
+            aria-expanded={open}
+            className="flex flex-1 items-center gap-2.5 min-w-0 text-left"
+          >
+            <CoinLogo pair={signal.pair} size={30} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-white font-mono text-sm tracking-wide">{getCoinName(signal.pair)}</span>
+                <span className="text-white/45 text-[10px] font-mono">USDT</span>
+                {getStatusBadge(signal.status)}
               </div>
-              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
-                  {getRiskLabel(signal.risk_level)}
-                </span>
-                {(() => {
-                  const wr = getWinRate(signal.pair);
-                  if (wr == null) return null;
-                  return (
-                    <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
-                      wr >= 70 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                      : wr >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                      : 'bg-red-500/10 text-red-400 border-red-500/30'
-                    }`}>
-                      {wr}%
-                    </span>
-                  );
-                })()}
-                {(() => {
-                  const s = getStreak(signal.pair);
-                  if (!s) return null;
-                  const isWin = s.type === 'win';
-                  return (
-                    <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
-                      isWin ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                    }`}>
-                      {s.length}{isWin ? 'W' : 'L'}
-                    </span>
-                  );
-                })()}
-                {(() => {
-                  const tt = getTopTag(signal.signal_id);
-                  if (!tt) return null;
-                  return (
-                    <span
-                      title={`${fmtTag(tt.tag)}: ${tt.wr}% historical win rate when present`}
-                      className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case max-w-[150px] truncate"
-                    >
-                      {fmtTag(tt.tag).toLowerCase()} {tt.wr}%
-                    </span>
-                  );
-                })()}
+              <div className="mt-1 flex items-center gap-2 font-mono text-[11px]">
+                {priceChange !== null ? (
+                  <span className={`tabular-nums font-medium ${priceChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}%
+                  </span>
+                ) : (
+                  <span className="text-white/40">—</span>
+                )}
+                {currentPrice ? (
+                  <span className="text-white/45 tabular-nums">· {formatPrice(currentPrice)}</span>
+                ) : null}
+                {v && v.verdict !== "neutral" ? (
+                  <span className={`px-1.5 py-0.5 border rounded-sm text-[9px] uppercase tracking-wider ${v.verdict === "avoid" ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
+                    {v.verdict === "avoid" ? "Avoid" : "Worth"}{v.coin.risk_score != null ? ` ${v.coin.risk_score}` : ""}
+                  </span>
+                ) : wr != null ? (
+                  <span className={`px-1.5 py-0.5 border rounded-sm text-[9px] tabular-nums ${wr >= 70 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : wr >= 50 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-red-500/10 text-red-400 border-red-500/30"}`}>
+                    {wr}%
+                  </span>
+                ) : null}
               </div>
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
+          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
             <div onClick={(e) => e.stopPropagation()}>
               <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
             </div>
-            {getStatusBadge(signal.status)}
-            {(() => {
-              const v = getVerdict(signal.pair);
-              if (!v || v.verdict === 'neutral') return null;
-              const isAvoid = v.verdict === 'avoid';
-              return (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setSelectedCoinIntel(v.coin); }}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${
-                    isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                  }`}
-                >
-                  {isAvoid ? '⛔ Avoid' : '✓ Worth'}
-                  {v.coin.risk_score != null && <span className="tabular-nums opacity-70">{v.coin.risk_score}</span>}
-                  <svg className="w-2.5 h-2.5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-              );
-            })()}
-          </div>
-        </div>
-
-        {signal.last_update_at && (
-          <div className="flex items-center justify-between mb-3 px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-amber-400/60" />
-              {getUpdateTypeBadge(signal.last_update_type)}
-            </div>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">
-              {formatTimeAgo(signal.last_update_at)}
-            </span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-3 gap-2 mb-3 bg-white/[0.02] border border-white/[0.06] p-3 rounded-sm">
-          <div>
-            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Entry</p>
-            <p className="text-white font-mono text-[12px] tabular-nums font-medium">{formatPrice(signal.entry)}</p>
-          </div>
-          <div className="text-center border-x border-white/[0.04]">
-            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Current</p>
-            {pricesLoading && !currentPrice ? (
-              <div className="h-3 w-12 bg-white/[0.04] rounded animate-pulse mx-auto" />
-            ) : currentPrice ? (
-              <p className={`font-mono text-[12px] tabular-nums font-medium ${currentPriceColor}`}>
-                {formatPrice(currentPrice)}
-              </p>
-            ) : (
-              <p className="text-white/30 text-[12px]">-</p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">P&L</p>
-            {priceChange !== null ? (
-              <p className={`font-mono text-[12px] tabular-nums font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
-              </p>
-            ) : (
-              <p className="text-white/30 text-[12px]">-</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-1.5 mb-3">
-          {[
-            { label: 'TP1', value: signal.target1 },
-            { label: 'TP2', value: signal.target2 },
-            { label: 'TP3', value: signal.target3 },
-            { label: 'TP4', value: signal.target4 },
-          ].map((tp, i) => (
-            <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
-              <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">{tp.label}</p>
-              <p className="text-white/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : '—'}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between text-[10px] border-t border-white/[0.06] pt-3">
-          <div className="flex items-center gap-3 flex-wrap font-mono">
-            {signal.market_cap && <span className="text-white/45">MC <span className="text-white/75">{formatMarketCap(signal.market_cap)}</span></span>}
-            {currentVol ? (
-              <span className="text-white/45">Vol <span className="text-white/75">{formatVolume(currentVol)}</span></span>
-            ) : signal.volume_rank_num && signal.volume_rank_den ? (
-              <span className="text-white/45">Vol <span className="text-white/75">{signal.volume_rank_num}/{signal.volume_rank_den}</span></span>
-            ) : null}
-            {(() => {
-              const b = getBtc(signal);
-              if (!b) return null;
-              return (
-                <span className="text-white/45">BTC <span className={btcScoreColor(b.score)}>{b.score}</span>{b.decoupled ? ' ⚡' : ''}</span>
-              );
-            })()}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-white/45 mr-1.5">Called</span>
-              <span className="text-white/75 font-mono tabular-nums font-medium">
-                {(() => {
-                  const d = new Date(signal.created_at);
-                  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-                  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-                  return `${date}, ${time}`;
-                })()}
-              </span>
-            </div>
             <button
-              onClick={(e) => handleShareSignal(e, signal)}
-              title="Share signal"
-              aria-label="Share signal"
-              className="w-7 h-7 -mr-1 flex items-center justify-center rounded-sm text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] hover:bg-gold-primary/10 transition-colors flex-shrink-0"
+              onClick={toggle}
+              aria-label={open ? "Collapse" : "Expand"}
+              className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white"
             >
-              {sharedId === signal.signal_id ? (
-                <span className="text-gold-primary">{Ic.check('w-3.5 h-3.5')}</span>
-              ) : (
-                Ic.share('w-3.5 h-3.5')
-              )}
+              <svg className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </button>
           </div>
         </div>
+
+        {/* EXPANDED — detail + open full signal */}
+        {open ? (
+          <div className="border-t border-white/[0.06] p-3 space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
+                {getRiskLabel(signal.risk_level)}
+              </span>
+              {wr != null ? (
+                <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${wr >= 70 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : wr >= 50 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-red-500/10 text-red-400 border-red-500/30"}`}>
+                  {wr}%
+                </span>
+              ) : null}
+              {streak ? (
+                <span className={`px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${streak.type === "win" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-red-500/10 text-red-400 border-red-500/30"}`}>
+                  {streak.length}{streak.type === "win" ? "W" : "L"}
+                </span>
+              ) : null}
+              {topTag ? (
+                <span title={`${fmtTag(topTag.tag)}: ${topTag.wr}% historical win rate when present`} className="px-2 py-0.5 border font-mono text-[9px] uppercase tracking-wider rounded-sm bg-gold-primary/10 text-gold-primary border-gold-primary/30 normal-case max-w-[160px] truncate">
+                  {fmtTag(topTag.tag).toLowerCase()} {topTag.wr}%
+                </span>
+              ) : null}
+            </div>
+
+            {signal.last_update_at ? (
+              <div className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border border-white/[0.06] rounded-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-amber-400/60" />
+                  {getUpdateTypeBadge(signal.last_update_type)}
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">
+                  {formatTimeAgo(signal.last_update_at)}
+                </span>
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-3 gap-2 bg-white/[0.02] border border-white/[0.06] p-3 rounded-sm">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Entry</p>
+                <p className="text-white font-mono text-[12px] tabular-nums font-medium">{formatPrice(signal.entry)}</p>
+              </div>
+              <div className="text-center border-x border-white/[0.04]">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">Current</p>
+                {currentPrice ? (
+                  <p className={`font-mono text-[12px] tabular-nums font-medium ${priceChange !== null ? (priceChange >= 0 ? "text-emerald-400" : "text-red-400") : "text-white"}`}>
+                    {formatPrice(currentPrice)}
+                  </p>
+                ) : (
+                  <p className="text-white/30 text-[12px]">-</p>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-white/45 mb-1">P&amp;L</p>
+                {priceChange !== null ? (
+                  <p className={`font-mono text-[12px] tabular-nums font-medium ${priceChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}%
+                  </p>
+                ) : (
+                  <p className="text-white/30 text-[12px]">-</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { label: "TP1", value: signal.target1 },
+                { label: "TP2", value: signal.target2 },
+                { label: "TP3", value: signal.target3 },
+                { label: "TP4", value: signal.target4 },
+              ].map((tp, i) => (
+                <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
+                  <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">{tp.label}</p>
+                  <p className="text-white/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : "—"}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-[10px] font-mono flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                {signal.market_cap ? <span className="text-white/45">MC <span className="text-white/75">{formatMarketCap(signal.market_cap)}</span></span> : null}
+                {currentVol ? (
+                  <span className="text-white/45">Vol <span className="text-white/75">{formatVolume(currentVol)}</span></span>
+                ) : signal.volume_rank_num && signal.volume_rank_den ? (
+                  <span className="text-white/45">Vol <span className="text-white/75">{signal.volume_rank_num}/{signal.volume_rank_den}</span></span>
+                ) : null}
+                {btc ? <span className="text-white/45">BTC <span className={btcScoreColor(btc.score)}>{btc.score}</span>{btc.decoupled ? " ⚡" : ""}</span> : null}
+              </div>
+              <span className="text-white/45">
+                Called{" "}
+                <span className="text-white/75 tabular-nums">
+                  {(() => {
+                    const d = new Date(signal.created_at);
+                    const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+                    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    return `${date}, ${time}`;
+                  })()}
+                </span>
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+              <button
+                onClick={() => setSelectedSignal(signal)}
+                className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary hover:text-gold-light"
+              >
+                Open full signal →
+              </button>
+              <div className="flex items-center gap-1.5">
+                {v && v.verdict !== "neutral" ? (
+                  <button
+                    onClick={() => setSelectedCoinIntel(v.coin)}
+                    className={`inline-flex items-center gap-1 px-2 py-1 border font-mono text-[9px] uppercase tracking-wider rounded-sm ${v.verdict === "avoid" ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}
+                  >
+                    {v.verdict === "avoid" ? "Avoid" : "Worth"} detail
+                    <svg className="w-2.5 h-2.5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                ) : null}
+                <button
+                  onClick={(e) => handleShareSignal(e, signal)}
+                  title="Share signal"
+                  aria-label="Share signal"
+                  className="w-8 h-8 flex items-center justify-center rounded-sm text-gold-primary hover:bg-gold-primary/10 transition-colors"
+                >
+                  {sharedId === signal.signal_id ? Ic.check("w-3.5 h-3.5") : Ic.share("w-3.5 h-3.5")}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   };
