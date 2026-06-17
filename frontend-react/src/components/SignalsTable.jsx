@@ -645,6 +645,8 @@ const SignalsTable = ({
     const streak = getStreak(signal.pair);
     const topTag = getTopTag(signal.signal_id);
     const btc = getBtc(signal);
+    const maxTarget = getMaxTarget(signal);
+    const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
 
     return (
       <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-amber-400/25">
@@ -659,12 +661,28 @@ const SignalsTable = ({
           >
             <CoinLogo pair={signal.pair} size={30} />
             <div className="min-w-0 flex-1">
+              {/* line 1 — identity */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-white font-mono text-sm tracking-wide">{getCoinName(signal.pair)}</span>
                 <span className="text-white/45 text-[10px] font-mono">USDT</span>
                 {getStatusBadge(signal.status)}
               </div>
-              <div className="mt-1 flex items-center gap-2 font-mono text-[11px]">
+              {/* line 2 — trade levels: entry -> max target + potential */}
+              <div className="mt-1 flex items-center gap-1.5 font-mono text-[11px] flex-wrap">
+                <span className="text-white/45">E</span>
+                <span className="text-white/85 tabular-nums">{formatPrice(signal.entry)}</span>
+                {maxTarget != null ? (
+                  <>
+                    <span className="text-white/30">→</span>
+                    <span className="text-emerald-400 tabular-nums">{formatPrice(maxTarget)}</span>
+                    {potentialPct != null ? (
+                      <span className="text-emerald-400 font-medium tabular-nums">+{potentialPct.toFixed(1)}%</span>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+              {/* line 3 — live + quality cue */}
+              <div className="mt-0.5 flex items-center gap-2 font-mono text-[11px] flex-wrap">
                 {priceChange !== null ? (
                   <span className={`tabular-nums font-medium ${priceChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                     {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}%
@@ -673,7 +691,7 @@ const SignalsTable = ({
                   <span className="text-white/40">—</span>
                 )}
                 {currentPrice ? (
-                  <span className="text-white/45 tabular-nums">· {formatPrice(currentPrice)}</span>
+                  <span className="text-white/45 tabular-nums">now {formatPrice(currentPrice)}</span>
                 ) : null}
                 {v && v.verdict !== "neutral" ? (
                   <span className={`px-1.5 py-0.5 border rounded-sm text-[9px] uppercase tracking-wider ${v.verdict === "avoid" ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
@@ -772,12 +790,18 @@ const SignalsTable = ({
                 { label: "TP2", value: signal.target2 },
                 { label: "TP3", value: signal.target3 },
                 { label: "TP4", value: signal.target4 },
-              ].map((tp, i) => (
-                <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
-                  <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">{tp.label}</p>
-                  <p className="text-white/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : "—"}</p>
-                </div>
-              ))}
+              ].map((tp, i) => {
+                const pct = tp.value ? calcPct(tp.value, signal.entry) : null;
+                return (
+                  <div key={i} className="text-center bg-white/[0.015] border border-white/[0.06] py-1.5 px-1 rounded-sm">
+                    <p className="font-mono text-[8px] uppercase tracking-wider text-white/45">{tp.label}</p>
+                    <p className="text-white/75 font-mono text-[10px] mt-0.5 tabular-nums font-medium">{tp.value ? formatPrice(tp.value) : "—"}</p>
+                    {pct != null ? (
+                      <p className="text-emerald-400/70 font-mono text-[8px] tabular-nums mt-0.5">+{pct.toFixed(1)}%</p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex items-center justify-between gap-2 text-[10px] font-mono flex-wrap">
