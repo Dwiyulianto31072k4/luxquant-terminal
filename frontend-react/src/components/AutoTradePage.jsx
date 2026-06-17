@@ -4,6 +4,11 @@
 // Auth/load logic preserved verbatim; header, engine strip, tabs
 // and setup states restyled to match the terminal design language.
 // Activity + Logs are merged into a single compact Activity tab.
+//
+// Tabs follow the AWS Cloudscape "details page with tabs" pattern:
+// a always-visible summary (engine strip) + self-contained task tabs,
+// rendered as a single scrollable underline strip (Material spec):
+// active tab auto-scrolls into view, scroll-snap, edge-fade hints.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -60,6 +65,101 @@ const TABS = [
   { id: "signals", label: "Signals" },
   { id: "settings", label: "Settings" },
 ];
+
+// ════════════════════════════════════════════════════════════════
+// TabStrip — scrollable underline tabs (Cloudscape + Material spec)
+//   • single horizontal row, never wraps
+//   • active tab auto-scrolls into view (mobile-safe)
+//   • scroll-snap + hidden scrollbar + left/right edge-fade hints
+// ════════════════════════════════════════════════════════════════
+function TabStrip({ tabs, value, onChange }) {
+  const scrollerRef = useRef(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const updateEdges = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setEdges({
+      left: scrollLeft > 2,
+      right: scrollLeft + clientWidth < scrollWidth - 2,
+    });
+  };
+
+  useEffect(() => {
+    updateEdges();
+    const el = scrollerRef.current;
+    if (!el) return undefined;
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    window.addEventListener("resize", updateEdges);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      window.removeEventListener("resize", updateEdges);
+    };
+  }, [tabs.length]);
+
+  // keep the active tab visible whenever it changes
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const active = el.querySelector('[data-active="true"]');
+    if (active) {
+      active.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    }
+  }, [value]);
+
+  return (
+    <div className="relative">
+      {/* edge fades — only when there is more to scroll */}
+      <div
+        className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-8 transition-opacity duration-200 ${
+          edges.left ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ background: "linear-gradient(to right, #0a0506, transparent)" }}
+      />
+      <div
+        className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-8 transition-opacity duration-200 ${
+          edges.right ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ background: "linear-gradient(to left, #0a0506, transparent)" }}
+      />
+
+      <div
+        ref={scrollerRef}
+        role="tablist"
+        aria-label="AutoTrade sections"
+        className="flex items-stretch gap-1 overflow-x-auto border-b border-white/[0.06] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType: "x proximity", WebkitOverflowScrolling: "touch" }}
+      >
+        {tabs.map((item) => {
+          const active = value === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              data-active={active}
+              onClick={() => onChange(item.id)}
+              style={{ scrollSnapAlign: "center" }}
+              className={`relative shrink-0 whitespace-nowrap px-4 py-3 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
+                active ? "text-gold-primary" : "text-text-muted hover:text-white"
+              }`}
+            >
+              {item.label}
+              {active ? (
+                <span
+                  className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-gold-primary"
+                  style={{ boxShadow: "0 0 8px rgba(212,168,83,0.5)" }}
+                />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function getStoredAutotradeToken() {
   return (
@@ -721,28 +821,8 @@ export default function AutoTradePage() {
             onManageAccount={() => openSettings("connections")}
           />
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06]">
-            {TABS.map((item) => {
-              const active = tab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className={`relative whitespace-nowrap px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                    active
-                      ? "text-gold-primary"
-                      : "text-text-muted hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                  {active ? (
-                    <span className="absolute inset-x-2 bottom-0 h-px bg-gold-primary" />
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+          {/* Tabs — scrollable underline strip (see TabStrip) */}
+          <TabStrip tabs={TABS} value={tab} onChange={setTab} />
 
           <div className="pt-2">
             {tab === "overview" ? (
