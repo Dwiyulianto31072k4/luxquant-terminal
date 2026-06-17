@@ -70,12 +70,17 @@ const MoreMenuDropdown = ({
   const Icon = {
     signals: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 17 L9 11 L13 15 L21 7" /><path d="M16 7 H21 V12" />
+        <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
       </svg>
     ),
     autotrade: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3 a9 9 0 1 0 9 9" /><path d="M21 3 v5 h-5" /><path d="M12 8 v4 l3 2" />
+        <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
+        <path d="M9.25 7 V4.5" /><circle cx="9.25" cy="3.4" r="0.85" />
+        <circle cx="7" cy="11.3" r="1" /><circle cx="11.5" cy="11.3" r="1" />
+        <path d="M3.5 11 H2.2 M15 11 H16.3" />
+        <circle cx="17.8" cy="17.3" r="2.1" />
+        <path d="M17.8 14.6 v0.8 M17.8 20 v-0.8 M15.1 17.3 h0.8 M20.5 17.3 h-0.8 M16 15.5 l0.55 0.55 M19.6 19.1 l-0.55 -0.55 M19.6 15.5 l-0.55 0.55 M16 19.1 l0.55 -0.55" />
       </svg>
     ),
     aiResearch: (
@@ -269,11 +274,6 @@ const MoreMenuDropdown = ({
             }`}>
               {item.label}
             </span>
-            {isPro && !active && (
-              <span className="font-mono text-[8px] tracking-[0.14em] uppercase px-1 py-0.5 bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25 rounded-sm flex-shrink-0">
-                PRO
-              </span>
-            )}
           </span>
           {item.desc && (
             <span className="block text-[11px] leading-snug text-white/40 group-hover:text-white/55 transition-colors mt-0.5 truncate">
