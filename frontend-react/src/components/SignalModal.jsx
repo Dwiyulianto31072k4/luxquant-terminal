@@ -13,6 +13,7 @@ import BTCCorrelationBadge from "./BTCCorrelationBadge";
 import BTCCorrelationModal from "./BTCCorrelationModal";  
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
+import IndicatorGuideModal from "./IndicatorGuideModal";
 
 
 const deriveChartWithCard = (rawUrl) => {
@@ -370,7 +371,7 @@ const SignalModal = ({
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol: symbol,
-      interval: "60",
+      interval: "240",
       timezone: timezone,
       theme: "dark",
       style: "1",
@@ -442,7 +443,7 @@ const SignalModal = ({
       script.innerHTML = JSON.stringify({
         autosize: true,
         symbol: symbol,
-        interval: "60",
+        interval: "240",
         timezone: timezone,
         theme: "dark",
         style: "1",
@@ -1504,6 +1505,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     ))}
                   </div>
                   <button
+                    onClick={() => setShowIndicatorGuide(true)}
+                    title="How to read the chart"
+                    aria-label="Indicator guide"
+                    className="w-7 h-7 flex items-center justify-center text-gold-primary/80 hover:text-gold-primary bg-[#0a0a0a] hover:bg-gold-primary/15 border border-gold-primary/25 hover:border-gold-primary/50 rounded-lg transition-all flex-shrink-0 ml-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="9" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7M12 16h.01" />
+                    </svg>
+                  </button>
+                  <button
                     onClick={handleCloseClick}
                     className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0 ml-1 sm:ml-2"
                   >
@@ -2297,6 +2309,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
       />
 
       {/* === BTC Correlation Modal === */}
+<IndicatorGuideModal
+  isOpen={showIndicatorGuide}
+  onClose={() => setShowIndicatorGuide(false)}
+/>
+
 <BTCCorrelationModal
   signalId={signal?.signal_id}
   pair={signal?.pair}
