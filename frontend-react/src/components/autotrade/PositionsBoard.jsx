@@ -191,52 +191,95 @@ function EmergencyButton({ children, onClick, disabled = false }) {
 }
 
 function SpotPositionCard({ position, onOpen, onForceSell, busy }) {
+  const [open, setOpen] = useState(false);
+  const pnl = Number(position.unrealized_pnl_usdt || 0);
+  const dot =
+    position.protection_status === "protected"
+      ? "#0ECB81"
+      : position.protection_status === "attention_required"
+        ? "#F6465D"
+        : "#d4a853";
   return (
-    <Card hover>
-      <button type="button" className="block w-full text-left" onClick={() => onOpen(position)}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <CoinLogo pair={position.symbol} size={34} />
-            <div>
-              <p className="font-mono text-sm font-semibold text-white">
-                {position.symbol}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <StatusBadge tone="info">AutoTrade</StatusBadge>
-                <StatusBadge tone={protectionTone(position)}>
-                  {protectionLabel(position)}
-                </StatusBadge>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className={`font-mono text-sm tabular-nums ${pnlColor(position.unrealized_pnl_usdt)}`}>
-              {fmtUsd(position.unrealized_pnl_usdt)}
-            </p>
-            <p className={`font-mono text-[10px] tabular-nums ${pnlColor(position.unrealized_pnl_usdt)}`}>
-              {fmtPct(position.unrealized_pnl_pct)}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/[0.06] pt-3">
-          <Metric label="Quantity" value={fmtNum(position.quantity, 8)} />
-          <Metric label="Invested" value={fmtUsd(position.entry_notional_usdt)} />
-          <Metric label="Value now" value={fmtUsd(position.current_value_usdt)} />
-          <Metric label="Entry" value={fmtNum(position.entry_price, 8)} />
-          <Metric label="Current" value={fmtNum(position.current_price, 8)} />
-          <Metric label="Take profit" value={fmtNum(position.take_profit, 8)} tone="good" />
-          <Metric label="Stop loss" value={fmtNum(position.stop_loss, 8)} tone="bad" />
-        </div>
-        <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-white/[0.06] pt-3 font-mono text-[9px] text-text-muted">
-          <span>Click for signal and execution detail</span>
-          <span>Synced {fmtDateTime(position.last_synced_at)}</span>
-        </div>
+    <Card padded={false} hover>
+      {/* Summary row — tap to expand (action-row progressive disclosure) */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left"
+      >
+        <CoinLogo pair={position.symbol} size={30} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="font-mono text-sm font-semibold text-white">{position.symbol}</span>
+            <span
+              className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+              style={{ background: dot }}
+              title={protectionLabel(position)}
+            />
+          </span>
+          <span className="mt-0.5 block font-mono text-[10px] text-text-secondary">
+            {fmtUsd(position.current_value_usdt)} · AutoTrade
+          </span>
+        </span>
+        <span className="text-right">
+          <span className={`block font-mono text-sm tabular-nums ${pnlColor(pnl)}`}>
+            {fmtUsd(pnl)}
+          </span>
+          <span className={`block font-mono text-[10px] tabular-nums ${pnlColor(pnl)}`}>
+            {fmtPct(position.unrealized_pnl_pct)}
+          </span>
+        </span>
+        <svg
+          className={`h-4 w-4 flex-shrink-0 text-text-secondary transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </button>
-      <div className="mt-3 flex justify-end border-t border-white/[0.06] pt-3">
-        <EmergencyButton disabled={busy} onClick={() => onForceSell(position)}>
-          Force sell
-        </EmergencyButton>
-      </div>
+
+      {/* Detail — revealed inline on tap */}
+      {open ? (
+        <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <StatusBadge tone="info">AutoTrade</StatusBadge>
+            <StatusBadge tone={protectionTone(position)}>
+              {protectionLabel(position)}
+            </StatusBadge>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <Metric label="Quantity" value={fmtNum(position.quantity, 8)} />
+            <Metric label="Invested" value={fmtUsd(position.entry_notional_usdt)} />
+            <Metric label="Value now" value={fmtUsd(position.current_value_usdt)} />
+            <Metric label="Entry" value={fmtNum(position.entry_price, 8)} />
+            <Metric label="Current" value={fmtNum(position.current_price, 8)} />
+            <Metric label="Take profit" value={fmtNum(position.take_profit, 8)} tone="good" />
+            <Metric label="Stop loss" value={fmtNum(position.stop_loss, 8)} tone="bad" />
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+            <button
+              type="button"
+              onClick={() => onOpen(position)}
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary hover:text-gold-light"
+            >
+              Signal &amp; execution detail →
+            </button>
+            <EmergencyButton disabled={busy} onClick={() => onForceSell(position)}>
+              Force sell
+            </EmergencyButton>
+          </div>
+          <p className="mt-2 font-mono text-[9px] text-text-secondary">
+            Synced {fmtDateTime(position.last_synced_at)}
+          </p>
+        </div>
+      ) : null}
     </Card>
   );
 }

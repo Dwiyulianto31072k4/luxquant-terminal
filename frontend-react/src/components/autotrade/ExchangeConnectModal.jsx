@@ -1,7 +1,7 @@
 // src/components/autotrade/ExchangeConnectModal.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant — AutoTrade · Connect Binance modal
-// Two-pane premium layout: left = guidance (permissions + safety),
+// Two-pane premium layout: left = guidance (permissions + IP + safety),
 // right = key form. Stacks to one column on mobile, scroll-safe with
 // navbar/tab-bar clearance. Logic/props unchanged.
 // ════════════════════════════════════════════════════════════════
@@ -12,6 +12,10 @@ import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
 import { BinanceIcon } from "./BrandIcons";
 
 const INITIAL_FORM = { label: "", api_key: "", api_secret: "" };
+
+// AutoTrade execution server. Whitelist this on the Binance API key when the
+// key is IP-restricted, otherwise Binance rejects every spot/futures order.
+const AUTOTRADE_SERVER_IP = "187.127.135.84";
 
 const PERMISSIONS = [
   { label: "Enable Reading", state: "yes" },
@@ -32,6 +36,40 @@ function PermIcon({ state }) {
     <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#0ECB81]/12 text-[10px] text-[#0ECB81]">
       ✓
     </span>
+  );
+}
+
+function ServerIpBlock() {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(AUTOTRADE_SERVER_IP);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard unavailable — user can copy manually */
+    }
+  };
+
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-gold-primary/30 bg-gold-primary/[0.06] px-3.5 py-3">
+      <div className="min-w-0">
+        <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+          AutoTrade server IP
+        </p>
+        <p className="mt-0.5 select-all font-mono text-sm tracking-wide text-white">
+          {AUTOTRADE_SERVER_IP}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={copy}
+        className="flex-shrink-0 rounded-md border border-gold-primary/30 bg-gold-primary/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary transition-colors hover:bg-gold-primary/20"
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
   );
 }
 
@@ -155,7 +193,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
               </p>
 
               <div className="mt-7">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted/70">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                   Required permissions
                 </p>
                 <ul className="mt-3 space-y-2.5">
@@ -171,7 +209,7 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                       >
                         {perm.label}
                         {perm.state === "optional" ? (
-                          <span className="text-text-muted/60"> · optional</span>
+                          <span className="text-text-muted"> · optional</span>
                         ) : null}
                         {perm.state === "no" ? (
                           <span className="text-[#F6465D]/60"> · never enable</span>
@@ -182,14 +220,20 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
                 </ul>
               </div>
 
-              <div className="mt-7 space-y-3 border-t border-white/[0.06] pt-5">
-                <p className="text-xs leading-5 text-text-muted">
+              {/* IP access restriction */}
+              <div className="mt-7 border-t border-white/[0.06] pt-5">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+                  IP access restriction
+                </p>
+                <p className="mt-2 text-xs leading-5 text-text-muted">
+                  To enable spot &amp; futures trading on an IP-restricted key,
+                  add the AutoTrade server IP below to your Binance API key.
+                  Without it, Binance rejects every order.
+                </p>
+                <ServerIpBlock />
+                <p className="mt-3 text-xs leading-5 text-text-muted">
                   Keys are encrypted at rest and never leave the AutoTrade
                   backend.
-                </p>
-                <p className="text-xs leading-5 text-text-muted">
-                  If you restrict the key to trusted IPs, whitelist your
-                  AutoTrade server IP — otherwise Binance rejects every request.
                 </p>
               </div>
             </div>

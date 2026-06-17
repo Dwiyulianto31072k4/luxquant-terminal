@@ -23,14 +23,16 @@ export default {
         text: {
           primary: "#ffffff",
           secondary: "#b8a89a",
-          muted: "#6b5c52",
+          // Bumped from #6b5c52 (3.16:1 — failed WCAG AA) to #a59585 (6.98:1).
+          // Same warm gold-gray, now readable; opacity variants (/70 ≈ 3.85:1)
+          // also lift above the old base. Theme/gold/bg unchanged.
+          muted: "#a59585",
         },
         positive: "#4ade80",
         negative: "#f87171",
         warning: "#fbbf24",
       },
       fontFamily: {
-        // === REVISI FONT ===
         display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
         body: ["Plus Jakarta Sans", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
