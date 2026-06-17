@@ -381,7 +381,7 @@ const SignalModal = ({
       gridColor: "rgba(212, 168, 83, 0.06)",
       hide_top_toolbar: false,
       hide_legend: false,
-      hide_side_toolbar: false,
+      hide_side_toolbar: window.innerWidth < 768,
       allow_symbol_change: true,
       save_image: true,
       calendar: false,
@@ -453,10 +453,10 @@ const SignalModal = ({
         gridColor: "rgba(212, 168, 83, 0.05)",
         hide_top_toolbar: false,
         hide_legend: false,
-        hide_side_toolbar: false,
+        hide_side_toolbar: window.innerWidth < 768,
         allow_symbol_change: true,
         save_image: false,
-        studies: ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"],
+        studies: [],
         support_host: "https://www.tradingview.com",
       });
 
@@ -1402,7 +1402,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
             {/* HEADER */}
             <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-3 sm:px-4 py-2 z-10">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <CoinLogo pair={signal?.pair} size={28} />
                   <div className="min-w-0 flex-1">
@@ -1437,7 +1437,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-gold-primary/40 text-gold-primary"
   >
     <svg className="w-2.5 h-2.5 relative z-10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
-    <span className="relative z-10">How to use indicator</span>
+    <span className="relative z-10"><span className="sm:hidden">Indicator</span><span className="hidden sm:inline">How to use indicator</span></span>
   </button>
 </div>
 
@@ -1447,7 +1447,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-1 sm:flex-nowrap sm:gap-1.5 sm:flex-shrink-0">
                   {/* ═══ TOMBOL JOURNAL (HEADER) ═══ */}
                   <button
                     onClick={() => {
