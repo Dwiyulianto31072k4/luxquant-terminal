@@ -1424,12 +1424,21 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   onClick={() => setShowCoinUtility(true)}
 />
 
-{/* Baris 2b: BTC Correlation Badge */}
-<div className="mt-1">
+{/* Baris 2b: BTC Correlation Badge + How-to-use-indicator */}
+<div className="mt-1 flex items-center gap-1.5 flex-wrap">
   <BTCCorrelationBadge
     signalId={signal?.signal_id}
     onClick={() => setShowBtcCorrelation(true)}
   />
+  <button
+    onClick={() => setShowIndicatorGuide(true)}
+    title="How to use indicator"
+    aria-label="How to use indicator"
+    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-gold-primary/40 text-gold-primary"
+  >
+    <svg className="w-2.5 h-2.5 relative z-10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
+    <span className="relative z-10">How to use indicator</span>
+  </button>
 </div>
 
                     {/* Baris 3: Timestamp */}
@@ -1505,17 +1514,6 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </button>
                     ))}
                   </div>
-                  <button
-                    onClick={() => setShowIndicatorGuide(true)}
-                    title="How to read the chart"
-                    aria-label="Indicator guide"
-                    className="w-7 h-7 flex items-center justify-center text-gold-primary/80 hover:text-gold-primary bg-[#0a0a0a] hover:bg-gold-primary/15 border border-gold-primary/25 hover:border-gold-primary/50 rounded-lg transition-all flex-shrink-0 ml-1"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <circle cx="12" cy="12" r="9" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7M12 16h.01" />
-                    </svg>
-                  </button>
                   <button
                     onClick={handleCloseClick}
                     className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0 ml-1 sm:ml-2"
@@ -2357,6 +2355,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
       {/* === STYLES === */}
       <style>{`
+        .lq-guide-btn { background: linear-gradient(110deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.12) 40%, rgba(255,225,150,0.55) 50%, rgba(212,168,83,0.12) 60%, rgba(212,168,83,0.12) 100%); background-size: 220% 100%; animation: lqShimmer 2.6s linear infinite; box-shadow: 0 0 6px rgba(212,168,83,0.35); transition: box-shadow .3s, transform .15s; }
+        .lq-guide-btn:hover { box-shadow: 0 0 14px rgba(212,168,83,0.7); transform: translateY(-1px); }
+        @keyframes lqShimmer { 0% { background-position: 200% 0; } 100% { background-position: -120% 0; } }
+        @media (prefers-reduced-motion: reduce) { .lq-guide-btn { animation: none; } }
         .signal-modal-overlay { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; isolation: isolate; }
         .signal-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85); }
         .signal-modal-container { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; }
