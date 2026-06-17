@@ -53,6 +53,7 @@ const SignalModal = ({
 
   // State untuk Share signal (toast "Link copied")
   const [shareCopied, setShareCopied] = useState(false);
+  const [savingImg, setSavingImg] = useState(false);
 
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
@@ -479,7 +480,6 @@ const SignalModal = ({
   };
 
   // ── Save image for Instagram (separate from link share) ──
-  const [savingImg, setSavingImg] = useState(false);
   const handleSaveImage = async (e) => {
     e?.stopPropagation?.();
     const sid = signal?.signal_id ?? signal?.id;
