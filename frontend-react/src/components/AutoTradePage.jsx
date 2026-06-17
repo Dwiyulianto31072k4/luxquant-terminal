@@ -161,6 +161,51 @@ function TabStrip({ tabs, value, onChange }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// SideNav — vertical section nav (Azure resource-menu pattern).
+//   Desktop only; mobile uses the horizontal TabStrip instead.
+//   Active item: gold pill + left rail accent (matches Performance Hub).
+// ════════════════════════════════════════════════════════════════
+function SideNav({ tabs, value, onChange }) {
+  return (
+    <nav className="sticky top-20 space-y-0.5" aria-label="AutoTrade sections">
+      <p className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted/60">
+        Sections
+      </p>
+      {tabs.map((item) => {
+        const on = value === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onChange(item.id)}
+            aria-current={on ? "page" : undefined}
+            className={`group relative w-full rounded-md px-3 py-2 text-left transition-colors ${
+              on ? "" : "hover:bg-white/[0.03]"
+            }`}
+            style={on ? { background: "rgba(212,168,83,0.10)" } : undefined}
+          >
+            {on ? (
+              <span
+                className="absolute -left-[9px] top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full"
+                style={{ background: "#d4a853", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
+              />
+            ) : null}
+            <span
+              className={`font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
+                on ? "" : "text-text-muted group-hover:text-white"
+              }`}
+              style={on ? { color: "#ecd6a3" } : undefined}
+            >
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 function getStoredAutotradeToken() {
   return (
     localStorage.getItem(AUTOTRADE_TOKEN_KEY) ||
@@ -821,10 +866,16 @@ export default function AutoTradePage() {
             onManageAccount={() => openSettings("connections")}
           />
 
-          {/* Tabs — scrollable underline strip (see TabStrip) */}
-          <TabStrip tabs={TABS} value={tab} onChange={setTab} />
-
-          <div className="pt-2">
+          {/* Desktop: vertical side nav · Mobile: scrollable strip */}
+          <div className="flex gap-6 lg:gap-8">
+            <aside className="hidden lg:block w-48 flex-shrink-0">
+              <SideNav tabs={TABS} value={tab} onChange={setTab} />
+            </aside>
+            <div className="min-w-0 flex-1">
+              <div className="lg:hidden mb-4">
+                <TabStrip tabs={TABS} value={tab} onChange={setTab} />
+              </div>
+              <div className="pt-1 lg:pt-0">
             {tab === "overview" ? (
               <AutoTradeOverview
                 portfolio={portfolio}
@@ -874,6 +925,8 @@ export default function AutoTradePage() {
             ) : null}
 
             {tab === "signals" ? <SignalQueue /> : null}
+              </div>
+            </div>
           </div>
         </>
       )}
