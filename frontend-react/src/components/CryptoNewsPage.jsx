@@ -1,8 +1,9 @@
 // src/components/CryptoNewsPage.jsx
 // ════════════════════════════════════════════════════════════════
-// LuxQuant Terminal — Crypto News v5 (Flowscan-density redesign)
-// Uniform 1:1 dense grid · brand favicons · info-dense
-// Replaces hero/featured/headline-card variants with single UniformCard.
+// LuxQuant Terminal — Crypto News v6 (Editorial hierarchy redesign)
+// Lead hero + secondary 2-up + scannable list rows (NN/g best practice)
+// Desktop: lead → secondary → list. Mobile: lead → small left-thumb rows.
+// Boxed gold-edge cards · brand favicons · info-dense · high-contrast chips
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -17,7 +18,6 @@ const LUXQUANT_LOGO = "/logo.png";
 const TRADINGVIEW_IMAGE = "/news-flow-tradingview.jpg";
 
 // Domains that should display their own promo/marketing image as full-bleed thumbnail
-// (instead of the standard favicon-in-glass-card pattern)
 const FULL_BLEED_BRAND_IMAGES = {
   "tradingview.com": TRADINGVIEW_IMAGE,
 };
@@ -72,7 +72,6 @@ const shortDomain = (domain) => {
     .replace(".org", "");
 };
 
-// Build favicon URL via Google's favicon service (cached, fast, reliable)
 const getFaviconUrl = (domain, size = 128) => {
   if (!domain) return null;
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
@@ -89,6 +88,12 @@ const getVideoSrc = (item) => {
   if (!url || (typeof url === "string" && url.trim() === "")) return null;
   return url;
 };
+
+const hasBrandImage = (item) =>
+  Object.keys(FULL_BLEED_BRAND_IMAGES).some((d) => item?.domain?.includes(d));
+
+// "Visual" = has a real image OR a full-bleed brand promo (good enough to anchor a hero)
+const hasVisual = (item) => !!getImageSrc(item) || hasBrandImage(item);
 
 // Auto-categorize by title keywords (lightweight, client-side)
 const CATEGORY_RULES = [
@@ -130,19 +135,10 @@ const DomainBadge = ({ domain, size = "sm" }) => {
   );
 };
 
-// Note: Old CategoryChip removed — superseded by FilterChip in section 9
-
-// BrandThumbnail — three modes:
-//   1. FULL-BLEED BRAND IMAGE — for domains in FULL_BLEED_BRAND_IMAGES (e.g. TradingView).
-//      Renders the brand image as a cover-fitted thumbnail, no wrapper card.
-//   2. LUXQUANT LOGO — for headline content (no real image, no recognizable domain favicon).
-//      Renders the LuxQuant 量子智引 logo centered on luxury gold gradient.
-//   3. FAVICON GLASS CARD — fallback for all other domains. Fetches favicon from Google,
-//      displays in a glass-effect card with domain name underneath.
+// BrandThumbnail — full-bleed brand image / LuxQuant logo / favicon glass card
 const BrandThumbnail = ({ domain, isHeadline = false }) => {
   const color = getDomainColor(domain);
 
-  // MODE 1: Full-bleed brand promo image (e.g. TradingView)
   const fullBleedImageKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) =>
     domain?.includes(d)
   );
@@ -161,7 +157,6 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
     );
   }
 
-  // MODE 2: LuxQuant logo for headlines / aggregated news
   if (isHeadline) {
     return (
       <div
@@ -171,7 +166,6 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
             "radial-gradient(circle at 50% 40%, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.04) 55%, rgba(0,0,0,0.4) 100%)",
         }}
       >
-        {/* Subtle grid texture */}
         <div
           className="absolute inset-0 opacity-25"
           style={{
@@ -182,7 +176,6 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
             backgroundSize: "18px 18px",
           }}
         />
-        {/* Gold corner accent */}
         <div
           className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
           style={{
@@ -190,7 +183,6 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
               "linear-gradient(135deg, transparent 50%, rgba(212,168,83,0.22) 50%)",
           }}
         />
-        {/* LuxQuant logo */}
         <div className="relative z-10 flex flex-col items-center gap-2">
           <img
             src={LUXQUANT_LOGO}
@@ -211,12 +203,10 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
     );
   }
 
-  // MODE 3: Standard favicon-in-glass-card fallback
   const faviconUrl = getFaviconUrl(domain, 128);
   return <FaviconGlassCard domain={domain} faviconUrl={faviconUrl} color={color} />;
 };
 
-// Helper sub-component for MODE 3 (extracted to keep useState scoped correctly)
 const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
   const [faviconFailed, setFaviconFailed] = useState(false);
 
@@ -227,7 +217,6 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
         background: `radial-gradient(circle at 35% 25%, ${color}28 0%, ${color}06 55%, ${color}14 100%)`,
       }}
     >
-      {/* Subtle grid texture */}
       <div
         className="absolute inset-0 opacity-25"
         style={{
@@ -238,7 +227,6 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
           backgroundSize: "18px 18px",
         }}
       />
-      {/* Corner accent */}
       <div
         className="absolute top-0 right-0 w-12 h-12 pointer-events-none"
         style={{
@@ -287,6 +275,60 @@ const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
     </div>
   );
 };
+
+// RowThumb — compact thumbnail for list rows (image / brand promo / favicon / initials)
+const RowThumb = ({ item }) => {
+  const [failed, setFailed] = useState(false);
+  const imgSrc = getImageSrc(item);
+  const color = getDomainColor(item.domain);
+
+  if (imgSrc) {
+    return (
+      <img
+        src={imgSrc}
+        alt=""
+        loading="lazy"
+        className="w-full h-full object-cover"
+        onError={(e) => { e.target.style.display = "none"; }}
+      />
+    );
+  }
+
+  const brandKey = Object.keys(FULL_BLEED_BRAND_IMAGES).find((d) => item.domain?.includes(d));
+  if (brandKey) {
+    return (
+      <img
+        src={FULL_BLEED_BRAND_IMAGES[brandKey]}
+        alt=""
+        loading="lazy"
+        className="w-full h-full object-cover"
+        style={{ objectPosition: "10% center" }}
+      />
+    );
+  }
+
+  const fav = getFaviconUrl(item.domain, 64);
+  return (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}1a` }}>
+      {fav && !failed ? (
+        <img src={fav} alt="" className="w-7 h-7 object-contain" onError={() => setFailed(true)} />
+      ) : (
+        <span className="font-mono text-[11px] font-bold" style={{ color }}>
+          {shortDomain(item.domain).slice(0, 2).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Reusable gold hairline edges (left / right / top) — boxed card language
+const GoldEdges = () => (
+  <>
+    <span className="absolute left-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
+    <span className="absolute right-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
+    <span className="absolute top-0 inset-x-0 h-px z-20 pointer-events-none" style={{ background: "linear-gradient(90deg, transparent, rgba(212,168,83,0.4), transparent)" }} />
+  </>
+);
 
 // ════════════════════════════════════════════
 // 3. NEWS DETAIL MODAL
@@ -458,18 +500,14 @@ const PulseTicker = ({ items, onSelect }) => {
         .group:hover .ticker-track { animation-play-state: paused; }
       `}</style>
 
-      {/* Left fade */}
       <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-[#0c0a10] to-transparent" />
-      {/* Right fade */}
       <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-[#0c0a10] to-transparent" />
 
-      {/* Live label */}
       <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: "0 0 8px #ef4444" }} />
         <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-red-400/90">Live</span>
       </div>
 
-      {/* Ticker */}
       <div className="flex ticker-track py-2.5 pl-24" style={{ width: "fit-content" }}>
         {[...ticker, ...ticker].map((item, i) => (
           <button
@@ -496,63 +534,100 @@ const PulseTicker = ({ items, onSelect }) => {
 };
 
 // ════════════════════════════════════════════
-// 5. UNIFORM CARD — single card type for all items
+// 5. EDITORIAL CARDS — LeadCard, SecondaryCard, ListRow
 // ════════════════════════════════════════════
-//
-// Layout (square 1:1):
-//   ┌──────────────────────┐
-//   │  [thumbnail or       │  ← image area (object-cover)
-//   │   brand fallback]    │
-//   │  [domain badge TL]   │
-//   │  [photo badge TR]    │
-//   ├──────────────────────┤
-//   │  Title (2-line clamp)│  ← compact footer
-//   │  domain · time       │
-//   └──────────────────────┘
-//
-// All items use this — articles, photos, headlines — visually unified.
 
-const UniformCard = ({ item, onSelect, variant = "default" }) => {
+// LeadCard — hero. Desktop: image left (44%) + content. Mobile: image top + content.
+const LeadCard = ({ item, onSelect }) => {
+  const imgSrc = getImageSrc(item);
+  const isHeadline = item.content_type === "headline";
+  const hasVideo = !!getVideoSrc(item);
+
+  return (
+    <article
+      onClick={() => onSelect(item)}
+      className="group relative cursor-pointer rounded-md overflow-hidden bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 transition-all duration-300 flex flex-col lg:flex-row lg:min-h-[230px]"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}
+    >
+      <GoldEdges />
+
+      {/* Image */}
+      <div className="relative w-full lg:w-[44%] flex-shrink-0 aspect-[16/10] lg:aspect-auto overflow-hidden bg-black/30">
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            onError={(e) => { e.target.style.display = "none"; }}
+          />
+        ) : (
+          <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
+        )}
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
+              <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center gap-2.5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/85">Lead Story</span>
+        <h2
+          className="text-white text-lg sm:text-xl lg:text-2xl leading-tight group-hover:text-gold-primary transition-colors line-clamp-3"
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-0.02em" }}
+        >
+          {item.title}
+        </h2>
+        {item.description && (
+          <p className="text-text-secondary/80 text-[12.5px] sm:text-[13px] leading-relaxed line-clamp-2">
+            {item.description}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mt-1">
+          <DomainBadge domain={item.domain} size="lg" />
+          <span className="text-text-muted text-[10px] font-mono">{timeAgo(item.created_at)}</span>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+// SecondaryCard — medium card: landscape image top + title + meta (desktop tier)
+const SecondaryCard = ({ item, onSelect }) => {
   const imgSrc = getImageSrc(item);
   const color = getDomainColor(item.domain);
-  const isPhoto = item.content_type === "photo";
-  const isHeadline = variant === "headline" || item.content_type === "headline";
+  const isHeadline = item.content_type === "headline";
   const hasVideo = !!getVideoSrc(item);
 
   return (
     <article
       onClick={() => onSelect(item)}
       className="group relative cursor-pointer rounded-md overflow-hidden bg-[#0a0805] border border-white/[0.08] hover:border-gold-primary/30 hover:bg-white/[0.04] transition-all duration-300 flex flex-col"
-      style={{
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      }}
+      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
     >
-      {/* Gold hairline edges — left/right/top (mirrors BTC page) */}
-      <span className="absolute left-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
-      <span className="absolute right-0 inset-y-0 w-px z-20 pointer-events-none" style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.5), transparent)" }} />
-      <span className="absolute top-0 inset-x-0 h-px z-20 pointer-events-none" style={{ background: "linear-gradient(90deg, transparent, rgba(212,168,83,0.35), transparent)" }} />
-      {/* Image / thumbnail area — square aspect */}
-      <div className="relative w-full aspect-square overflow-hidden flex-shrink-0">
+      <GoldEdges />
+
+      <div className="relative w-full aspect-[16/10] overflow-hidden flex-shrink-0">
         {imgSrc ? (
           <img
             src={imgSrc}
             alt=""
             loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            onError={(e) => { e.target.style.display = "none"; }}
           />
         ) : (
           <BrandThumbnail domain={item.domain} isHeadline={isHeadline} />
         )}
-
-        {/* Subtle bottom gradient for badge legibility when image present */}
         {imgSrc && (
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
         )}
-
-        {/* Play badge for video items */}
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/55 border border-white/30 backdrop-blur-sm">
@@ -562,29 +637,11 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
             </span>
           </div>
         )}
-
-        {/* NEWS badge — top-right, only for headlines (kept as content type indicator) */}
-        {isHeadline && !isPhoto && (
-          <div className="absolute top-2 right-2 z-10">
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-[0.15em] backdrop-blur-sm bg-gold-primary/25 text-gold-primary border border-gold-primary/50">
-              news
-            </span>
-          </div>
-        )}
-
-        {/* Hover overlay tint */}
-        <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-          style={{
-            background: `linear-gradient(180deg, ${color}00 60%, ${color}15 100%)`,
-          }}
-        />
       </div>
 
-      {/* Footer — title + meta */}
-      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
+      <div className="p-3 flex flex-col gap-1.5 flex-1">
         <h4
-          className="text-white text-[11.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
+          className="text-white text-[13px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
           title={item.title}
         >
@@ -603,6 +660,52 @@ const UniformCard = ({ item, onSelect, variant = "default" }) => {
   );
 };
 
+// ListRow — scannable horizontal row: thumbnail left + title + source · time
+const ListRow = ({ item, onSelect }) => {
+  const color = getDomainColor(item.domain);
+  const hasVideo = !!getVideoSrc(item);
+
+  return (
+    <button
+      onClick={() => onSelect(item)}
+      className="group relative w-full flex gap-3 p-2.5 rounded-md text-left hover:bg-white/[0.03] transition-colors border-b border-white/[0.04] last:border-b-0"
+    >
+      {/* Gold left accent on hover */}
+      <span
+        className="absolute left-0 inset-y-2.5 w-px opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: "linear-gradient(180deg, transparent, rgba(212,168,83,0.6), transparent)" }}
+      />
+      <div className="relative w-[72px] h-[72px] rounded-md overflow-hidden flex-shrink-0 bg-[#0a0805] border border-white/[0.06]">
+        <RowThumb item={item} />
+        {hasVideo && (
+          <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-black/55 border border-white/30">
+              <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <h4
+          className="text-white text-[12.5px] leading-snug line-clamp-2 group-hover:text-gold-primary transition-colors"
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+          title={item.title}
+        >
+          {item.title}
+        </h4>
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className="font-mono text-[9px] uppercase tracking-wider" style={{ color }}>
+            {shortDomain(item.domain)}
+          </span>
+          <span className="text-text-muted/60 text-[9px] font-mono">· {timeAgo(item.created_at)}</span>
+        </div>
+      </div>
+    </button>
+  );
+};
+
 // ════════════════════════════════════════════
 // 6. SIDEBAR — Trending, Sources, Activity
 // ════════════════════════════════════════════
@@ -613,7 +716,6 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
 
   return (
     <div className="space-y-3">
-      {/* TRENDING NOW */}
       {trending?.trending?.length > 0 && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4 relative overflow-hidden">
           <div
@@ -651,7 +753,6 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
         </div>
       )}
 
-      {/* TOP SOURCES */}
       {topDomains.length > 0 && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -691,7 +792,6 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
         </div>
       )}
 
-      {/* ACTIVITY */}
       {stats && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -815,43 +915,58 @@ const Pagination = ({ page, totalPages, onChange }) => {
 };
 
 // ════════════════════════════════════════════
-// 8. LOADING SKELETON — uniform grid
+// 8. LOADING SKELETON — editorial layout
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
-  <div className="space-y-4">
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-      {[...Array(15)].map((_, i) => (
-        <div
-          key={i}
-          className="rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse"
-        >
-          <div className="aspect-square bg-white/5" />
-          <div className="p-2.5 space-y-1.5">
-            <div className="h-2.5 bg-white/5 rounded w-3/4" />
-            <div className="h-2 bg-white/5 rounded w-1/2" />
-          </div>
+  <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
+    <div className="flex-1 min-w-0 space-y-4">
+      {/* Lead skeleton */}
+      <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse flex flex-col lg:flex-row lg:min-h-[230px]">
+        <div className="w-full lg:w-[44%] aspect-[16/10] lg:aspect-auto bg-white/5" />
+        <div className="flex-1 p-5 space-y-3">
+          <div className="h-2.5 w-20 bg-white/5 rounded" />
+          <div className="h-5 w-5/6 bg-white/5 rounded" />
+          <div className="h-3 w-full bg-white/5 rounded" />
+          <div className="h-3 w-2/3 bg-white/5 rounded" />
         </div>
-      ))}
+      </div>
+      {/* Secondary skeleton */}
+      <div className="hidden lg:grid lg:grid-cols-2 gap-3">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+            <div className="aspect-[16/10] bg-white/5" />
+            <div className="p-3 space-y-1.5">
+              <div className="h-2.5 bg-white/5 rounded w-3/4" />
+              <div className="h-2 bg-white/5 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Rows skeleton */}
+      <div className="space-y-1">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex gap-3 p-2.5 animate-pulse">
+            <div className="w-[72px] h-[72px] rounded-md bg-white/5 flex-shrink-0" />
+            <div className="flex-1 space-y-2 py-2">
+              <div className="h-2.5 bg-white/5 rounded w-5/6" />
+              <div className="h-2 bg-white/5 rounded w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
+    <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+      <div className="rounded-xl bg-white/[0.02] border border-white/5 h-52 animate-pulse" />
+    </aside>
   </div>
 );
 
 // ════════════════════════════════════════════
-// 9. FILTER BAR — search + type + category (redesigned)
+// 9. FILTER BAR — search + type + category (high-contrast chips)
 // ════════════════════════════════════════════
-//
-// Design principles:
-// - Single visual container (1 card unifies all filter controls)
-// - Consistent chip sizing (h-7, all chips identical height)
-// - No inline form-style labels — segments separated by subtle divider
-// - Search dominant at top; filter chips below with visual rhythm
-// - Active state: gold accent (consistent with brand)
-// - Hover state: subtle bg lift, no border flash
 
 const FilterChip = ({ active, onClick, children, color }) => {
-  // Unified chip — same dimensions for type & category filters
-  // `color` optional: overrides active state color (used by category chips for per-category color)
   const baseClass =
     "inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-200 whitespace-nowrap";
   if (active && color) {
@@ -928,7 +1043,6 @@ const FilterBar = ({
           "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
       }}
     >
-      {/* SEARCH ROW */}
       <div className="p-3 sm:p-4 border-b border-white/[0.04]">
         <div className="relative">
           <svg
@@ -970,9 +1084,7 @@ const FilterBar = ({
         </div>
       </div>
 
-      {/* FILTERS ROW — type chips + divider + category chips, all same height */}
       <div className="px-3 sm:px-4 py-3 flex flex-wrap items-center gap-1.5">
-        {/* Type chips */}
         {typeOptions.map((f) => {
           const isActive = activeFilter === f.k;
           return (
@@ -983,22 +1095,13 @@ const FilterBar = ({
           );
         })}
 
-        {/* Subtle vertical divider between type & category */}
-        <span
-          className="h-5 w-px mx-1.5 bg-white/[0.08]"
-          aria-hidden="true"
-        />
+        <span className="h-5 w-px mx-1.5 bg-white/[0.08]" aria-hidden="true" />
 
-        {/* Category: All */}
-        <FilterChip
-          active={!activeCategory}
-          onClick={() => onCategoryChange(null)}
-        >
+        <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)}>
           <span className="opacity-60">◆</span>
           <span>All</span>
         </FilterChip>
 
-        {/* Per-category chips */}
         {CATEGORY_RULES.map((cat) => {
           const isActive = activeCategory === cat.key;
           const count = categoryCounts[cat.key];
@@ -1030,7 +1133,6 @@ const FilterBar = ({
 // ════════════════════════════════════════════
 
 const CryptoNewsPage = () => {
-  // ── State ──────────────────────────────
   const [allItems, setAllItems] = useState([]);
   const [stats, setStats] = useState(null);
   const [trending, setTrending] = useState(null);
@@ -1046,7 +1148,6 @@ const CryptoNewsPage = () => {
 
   const searchTimeout = useRef(null);
 
-  // ── Fetch ──────────────────────────────
   const fetchFeed = useCallback(
     async (pg = 1) => {
       try {
@@ -1127,12 +1228,10 @@ const CryptoNewsPage = () => {
   };
 
   // ── Derived state ──────────────────────
-  // Auto-categorize all items once
   const itemsWithCategory = useMemo(() => {
     return allItems.map((item) => ({ ...item, _category: categorizeItem(item) }));
   }, [allItems]);
 
-  // Counts per category
   const categoryCounts = useMemo(() => {
     const counts = {};
     itemsWithCategory.forEach((item) => {
@@ -1141,31 +1240,60 @@ const CryptoNewsPage = () => {
     return counts;
   }, [itemsWithCategory]);
 
-  // Filter by selected category
   const filteredItems = useMemo(() => {
     if (!activeCategory) return itemsWithCategory;
     return itemsWithCategory.filter((item) => item._category === activeCategory);
   }, [itemsWithCategory, activeCategory]);
 
-  // Pulse ticker: 12 latest non-photo (shown only on page 1, no search)
+  // Pulse ticker: 12 latest non-photo (page 1, no search)
   const pulseItems = useMemo(() => {
     if (page !== 1 || searchQuery) return [];
     return allItems.filter((i) => i.content_type !== "photo").slice(0, 12);
   }, [allItems, page, searchQuery]);
 
-  // Latest Headlines section (max 5, only when no search/category filter narrowing)
-  const headlinesSection = useMemo(() => {
-    if (page !== 1 || searchQuery || activeCategory || activeFilter === "headline") return [];
-    return filteredItems.filter((i) => i.content_type === "headline").slice(0, 5);
-  }, [filteredItems, page, searchQuery, activeCategory, activeFilter]);
+  // Editorial hierarchy is used only on the unfiltered main feed (page 1)
+  const heroEnabled =
+    page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
 
-  // Main grid: everything except items shown in Latest Headlines section
-  const mainGridItems = useMemo(() => {
-    const usedIds = new Set(headlinesSection.map((h) => h.id));
-    return filteredItems.filter((i) => !usedIds.has(i.id));
-  }, [filteredItems, headlinesSection]);
+  // Partition into lead / secondary / list — prefer visual items for hero tiers
+  const { lead, secondary, listItems } = useMemo(() => {
+    if (!heroEnabled || filteredItems.length === 0) {
+      return { lead: null, secondary: [], listItems: filteredItems };
+    }
+    const used = new Set();
+    const leadItem = filteredItems.find(hasVisual) || filteredItems[0];
+    if (leadItem) used.add(leadItem.id);
+
+    const sec = [];
+    for (const it of filteredItems) {
+      if (sec.length >= 2) break;
+      if (used.has(it.id)) continue;
+      if (hasVisual(it)) {
+        sec.push(it);
+        used.add(it.id);
+      }
+    }
+    // backfill if fewer than 2 visual items available
+    if (sec.length < 2) {
+      for (const it of filteredItems) {
+        if (sec.length >= 2) break;
+        if (!used.has(it.id)) {
+          sec.push(it);
+          used.add(it.id);
+        }
+      }
+    }
+    const list = filteredItems.filter((it) => !used.has(it.id));
+    return { lead: leadItem, secondary: sec, listItems: list };
+  }, [filteredItems, heroEnabled]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const sectionLabel = activeCategory
+    ? CATEGORY_RULES.find((c) => c.key === activeCategory)?.label
+    : searchQuery
+    ? "Results"
+    : "Top Stories";
 
   // ── Render ─────────────────────────────
   return (
@@ -1226,57 +1354,47 @@ const CryptoNewsPage = () => {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-          <div className="flex-1 min-w-0 space-y-5">
-            {/* LATEST HEADLINES — uniform card grid, separate section */}
-            {headlinesSection.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3 rounded-full bg-gold-primary" />
-                    <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                      Latest Headlines
-                    </h2>
-                  </div>
-                  <span className="text-[10px] font-mono text-text-muted">
-                    {headlinesSection.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {headlinesSection.map((item) => (
-                    <UniformCard
-                      key={item.id}
-                      item={item}
-                      onSelect={setSelectedItem}
-                      variant="headline"
-                    />
-                  ))}
-                </div>
+          <div className="flex-1 min-w-0 space-y-4">
+            {/* Section label */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-1 h-3 rounded-full bg-gold-primary" />
+                <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
+                  {sectionLabel}
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono text-text-muted">
+                {filteredItems.length} stories
+              </span>
+            </div>
+
+            {/* LEAD HERO */}
+            {lead && <LeadCard item={lead} onSelect={setSelectedItem} />}
+
+            {/* SECONDARY (desktop only — 2-up) */}
+            {secondary.length > 0 && (
+              <div className="hidden lg:grid lg:grid-cols-2 gap-3">
+                {secondary.map((it) => (
+                  <SecondaryCard key={it.id} item={it} onSelect={setSelectedItem} />
+                ))}
               </div>
             )}
 
-            {/* MAIN GRID — uniform 5-column dense */}
-            {mainGridItems.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3 rounded-full bg-gold-primary" />
-                    <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                      {activeCategory
-                        ? CATEGORY_RULES.find((c) => c.key === activeCategory)?.label
-                        : "All Stories"}
-                    </h2>
-                  </div>
-                  <span className="text-[10px] font-mono text-text-muted">
-                    {mainGridItems.length} stories
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {mainGridItems.map((item) => (
-                    <UniformCard key={item.id} item={item} onSelect={setSelectedItem} />
-                  ))}
-                </div>
+            {/* LIST — desktop (long tail, excludes secondary) */}
+            {listItems.length > 0 && (
+              <div className="hidden lg:flex lg:flex-col">
+                {listItems.map((it) => (
+                  <ListRow key={it.id} item={it} onSelect={setSelectedItem} />
+                ))}
               </div>
             )}
+
+            {/* LIST — mobile (secondary folded in as rows; BTC-news style) */}
+            <div className="flex flex-col lg:hidden">
+              {[...secondary, ...listItems].map((it) => (
+                <ListRow key={it.id} item={it} onSelect={setSelectedItem} />
+              ))}
+            </div>
 
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
           </div>
@@ -1293,7 +1411,6 @@ const CryptoNewsPage = () => {
           </aside>
         </div>
       )}
-
     </div>
   );
 };
