@@ -1,9 +1,9 @@
 // frontend-react/src/services/shareSignal.js
 // ================================================================
-// Share a signal. Mobile: native sheet with the actual image FILE
-// (IG-friendly; WA/TG get photo + caption + link). Desktop: copy link.
-// Image comes from /api/v1/og/signal/{id}/image (combined chart if
-// TP2+, brand teaser otherwise) — same logic as the OG preview.
+// Share a signal as a referral-tagged link. WA/TG/Discord/X render
+// the rich OG preview (image + title + desc) automatically from the
+// link, so we share text + url and let each platform unfurl it.
+// Desktop without Web Share → copy text + link to clipboard.
 // ================================================================
 
 import { referralApi } from "./referralApi";
@@ -90,24 +90,9 @@ const buildTitle = (signal) => {
     : `${P} · LuxQuant signal`;
 };
 
-// Fetch the best share image as a File (for native file sharing).
-const fetchShareImageFile = async (signal, signalId) => {
-  try {
-    const resp = await fetch(`${getOrigin()}/api/v1/og/signal/${signalId}/image`);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const safe = (signal?.pair || "luxquant").replace(/[^A-Za-z0-9]/g, "");
-    return new File([blob], `${safe || "luxquant"}.png`, {
-      type: blob.type || "image/png",
-    });
-  } catch {
-    return null;
-  }
-};
-
 /**
  * shareSignal(signal, opts?)
- * method ∈ 'web-share-image' | 'web-share' | 'clipboard' | 'cancelled' | 'failed'
+ * method ∈ 'web-share' | 'clipboard' | 'cancelled' | 'failed'
  */
 export const shareSignal = async (signal, opts = {}) => {
   const signalId = signal?.signal_id ?? signal?.id;
@@ -118,24 +103,8 @@ export const shareSignal = async (signal, opts = {}) => {
 
   if (code) referralApi.trackShare(code, "signal_share").catch(() => {});
 
-  const canNativeShare = typeof navigator !== "undefined" && !!navigator.share;
-
-  // 1) Mobile: share the actual image file (best for IG + still great on WA/TG).
-  if (canNativeShare && signalId != null) {
-    const file = await fetchShareImageFile(signal, signalId);
-    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], text: `${text}\n\n${url}`, title });
-        return { ok: true, method: "web-share-image" };
-      } catch (err) {
-        if (err && err.name === "AbortError") return { ok: false, method: "cancelled" };
-        // else fall through to link share
-      }
-    }
-  }
-
-  // 2) Native link share (rich preview card on WA/TG).
-  if (canNativeShare) {
+  // Native link share → WA/TG/Discord render the rich OG preview card.
+  if (typeof navigator !== "undefined" && navigator.share) {
     try {
       await navigator.share({ title, text, url });
       return { ok: true, method: "web-share" };
@@ -144,7 +113,7 @@ export const shareSignal = async (signal, opts = {}) => {
     }
   }
 
-  // 3) Desktop: copy message + link.
+  // Desktop fallback: copy message + link.
   const clip = `${text}\n\n${url}`;
   try {
     if (navigator.clipboard?.writeText) {
