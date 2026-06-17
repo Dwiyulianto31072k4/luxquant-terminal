@@ -61,6 +61,7 @@ const SignalModal = ({
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
   const [showCoinUtility, setShowCoinUtility] = useState(false);
   const [showBtcCorrelation, setShowBtcCorrelation] = useState(false);
+  const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
 
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
