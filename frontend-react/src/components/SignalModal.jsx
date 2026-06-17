@@ -54,6 +54,7 @@ const SignalModal = ({
   // State untuk Share signal (toast "Link copied")
   const [shareCopied, setShareCopied] = useState(false);
   const [savingImg, setSavingImg] = useState(false);
+  const [tweetUrl, setTweetUrl] = useState(null);
 
   const [overrideSignal, setOverrideSignal] = useState(null);
   const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
@@ -69,6 +70,22 @@ const SignalModal = ({
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  // Fetch X tweet URL for this signal (TP2+ posts only); hides IG button if none.
+  useEffect(() => {
+    const cs = overrideSignal || signal;
+    const sid = cs?.signal_id ?? cs?.id;
+    if (!isOpen || !sid) { setTweetUrl(null); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/v1/og/signal/${sid}/tweet`);
+        const d = await r.json();
+        if (alive) setTweetUrl(d?.url || null);
+      } catch { if (alive) setTweetUrl(null); }
+    })();
+    return () => { alive = false; };
+  }, [isOpen, overrideSignal, signal]);
 
   // 2. Fetch data detail sinyal saat modal dibuka
   useEffect(() => {
@@ -479,44 +496,24 @@ const SignalModal = ({
     }
   };
 
-  // ── Save image for Instagram (separate from link share) ──
-  const handleSaveImage = async (e) => {
+  // ── Share to Instagram via X tweet link (card-friendly) ──
+  const handleShareTweet = async (e) => {
     e?.stopPropagation?.();
-    const sid = signal?.signal_id ?? signal?.id;
-    if (!sid || savingImg) return;
-    setSavingImg(true);
+    if (!tweetUrl) return;
     try {
-      const resp = await fetch(`/api/v1/og/signal/${sid}/image`);
-      const blob = await resp.blob();
-      // Guard: kalau bukan gambar (mis. HTML error), jangan lanjut.
-      if (!blob.type.startsWith("image/")) throw new Error("not an image");
-      const pair = (signal?.pair || "luxquant").replace(/[^A-Za-z0-9]/g, "");
-      const fname = `${pair}-LuxQuant.png`;
-      const file = new File([blob], fname, { type: blob.type });
-
-      // HP: native share file (langsung bisa ke Instagram Story / save).
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          return;
-        } catch (err) {
-          if (err && err.name === "AbortError") return;
-        }
+      if (navigator.share) {
+        await navigator.share({ url: tweetUrl });
+        return;
       }
-      // Desktop / fallback: download ke device.
-      const objUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objUrl;
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objUrl);
-    } catch (_) {
-      // diam-diam gagal; tombol share link tetap tersedia
-    } finally {
-      setSavingImg(false);
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
     }
+    // Fallback: copy tweet link.
+    try {
+      await navigator.clipboard?.writeText(tweetUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (_) {}
   };
 
   // === SAFE MATH HELPERS (Anti-Crash) ===
@@ -1525,16 +1522,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     </svg>
                   </button>
 
-                  {/* SAVE IMAGE (Instagram) — sebelah kiri Share */}
-                  <button
-                    onClick={handleSaveImage}
-                    disabled={savingImg}
-                    title="Save image for Instagram"
-                    aria-label="Save image for Instagram"
-                    className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg transition-all ml-1 disabled:opacity-50"
-                  >
-                    {Ic.instagram("w-3.5 h-3.5")}
-                  </button>
+                  {/* INSTAGRAM (share X tweet link) — only when a tweet exists */}
+                  {tweetUrl && (
+                    <button
+                      onClick={handleShareTweet}
+                      title="Share to Instagram"
+                      aria-label="Share to Instagram"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg transition-all ml-1"
+                    >
+                      {Ic.instagram("w-3.5 h-3.5")}
+                    </button>
+                  )}
                   {/* SHARE — paling kanan header */}
                   <div className="relative flex-shrink-0">
                     <button
