@@ -112,47 +112,80 @@ const TopPerformers = () => {
   if (loading && !data) {
     return (
       <div className="mb-10">
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-6">
           <span className="h-px w-8 bg-gold-primary/40" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-            {t('top.title')}
-          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{t('top.title')}</span>
           <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
         </div>
-        <div className="rounded-xl border border-white/[0.06] bg-[#0a0805] p-5 animate-pulse">
-          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-11 bg-white/[0.03] rounded-lg" />)}</div>
+        <div className="rounded-2xl border border-white/[0.06] bg-[#0a0805] p-5 animate-pulse">
+          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-12 bg-white/[0.03] rounded-lg" />)}</div>
         </div>
       </div>
     );
   }
 
+  // Solid podium medal (gold / silver / bronze) — filled SVG; plain number otherwise
+  const rankBadge = (rank) => {
+    if (rank <= 3) {
+      const m = rank === 1
+        ? { face: '#f0d890', body: '#d4a853', ring: '#8b6914', ink: '#3a2a08' }
+        : rank === 2
+          ? { face: '#eef1f4', body: '#c2c7cf', ring: '#8b9099', ink: '#2c2f34' }
+          : { face: '#e8b68a', body: '#c0875a', ring: '#8a5a34', ink: '#3a230f' };
+      return (
+        <span className="relative inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0">
+          <svg viewBox="0 0 32 32" className="w-full h-full drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+            <circle cx="16" cy="16" r="14" fill={m.body} />
+            <circle cx="16" cy="16" r="14" fill="none" stroke={m.ring} strokeWidth="2" />
+            <path d="M16 4a12 12 0 0 1 8.5 3.5A12 12 0 0 0 16 18 12 12 0 0 0 7.5 7.5 12 12 0 0 1 16 4z" fill={m.face} opacity="0.9" />
+            <circle cx="16" cy="14.5" r="8.5" fill={m.face} />
+          </svg>
+          <span className="absolute font-mono text-[11px] sm:text-xs font-bold" style={{ color: m.ink }}>{rank}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="font-mono text-xs tabular-nums text-text-muted/45 w-7 sm:w-8 text-center flex-shrink-0">
+        {String(rank).padStart(2, '0')}
+      </span>
+    );
+  };
+
+  const subBits = [];
+  if (data?.unique_pairs) subBits.push(`${data.unique_pairs} coins`);
+  if (data?.total_tp_hits || data?.total_tp4) subBits.push(`${data.total_tp_hits || data.total_tp4} targets hit`);
+  if (data?.period) subBits.push(formatPeriod(data.period));
+
   return (
     <div className="mb-10 relative">
-      {/* === UNIFIED HEADER: line-label-line + date range pills (Flowscan style) === */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
-          {t('top.title')}
-        </span>
-        <span className="h-px flex-1 min-w-[20px] bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
+      {/* ═══ HEADER — eyebrow · title · sub (AutoTrade style) + range pills ═══ */}
+      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 mb-2.5">
+            <span className="h-px w-8 bg-gold-primary/50" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold-primary/80">{t('top.title')}</span>
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 sm:w-7 sm:h-7 text-gold-primary flex-shrink-0">
+              <path d="M6 4h12v2h3v3a4 4 0 0 1-4 4 6 6 0 0 1-4 3v2h3v2H8v-2h3v-2a6 6 0 0 1-4-3 4 4 0 0 1-4-4V6h3V4zm-1 4H4v1a2 2 0 0 0 1 1.7V8zm15 0h-1v2.7A2 2 0 0 0 20 9V8z" />
+            </svg>
+            Top Gainers
+          </h2>
+          <p className="font-mono text-[11px] text-text-muted mt-1.5 tracking-wide">
+            {subBits.length > 0 ? subBits.join('  ·  ') : 'Best-performing signal calls, ranked by peak gain.'}
+          </p>
+        </div>
 
-        {/* Period inline pill */}
-        {data?.period && (
-          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted hidden md:inline">
-            {formatPeriod(data.period)}
-          </span>
-        )}
-
-        {/* Date range pills */}
-        <div className="flex items-center gap-1.5 ml-auto md:ml-2">
+        {/* range pills — segmented */}
+        <div className="flex items-center gap-1 p-1 rounded-xl border border-white/[0.07] bg-[#0a0805] self-start md:self-auto overflow-x-auto">
           {presets.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => handlePresetClick(key)}
-              className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all whitespace-nowrap ${
                 activeFilter === key
-                  ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
-                  : 'bg-white/[0.03] text-text-muted hover:bg-white/[0.06] hover:text-white border border-transparent'
+                  ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary shadow-[0_0_14px_-4px_rgba(212,168,83,0.5)]'
+                  : 'border border-transparent text-text-muted hover:bg-white/[0.05] hover:text-white'
               }`}
             >
               {label}
@@ -161,189 +194,119 @@ const TopPerformers = () => {
         </div>
       </div>
 
-      {/* === CUSTOM DATE PICKER === */}
+      {/* ═══ CUSTOM DATE PICKER ═══ */}
       {showCustom && (
         <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl border border-white/[0.06] bg-[#0a0805]">
           <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.from')}</span>
-          <input
-            type="date"
-            value={customFrom}
-            onChange={e => setCustomFrom(e.target.value)}
-            className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
-          />
+          <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]" />
           <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.to')}</span>
-          <input
-            type="date"
-            value={customTo}
-            onChange={e => setCustomTo(e.target.value)}
-            className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]"
-          />
-          <button
-            onClick={handleCustomApply}
-            disabled={!customFrom || !customTo}
-            className="px-4 py-1.5 bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 transition-all rounded-lg font-mono text-[10px] uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {t('top.apply')}
-          </button>
+          <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]" />
+          <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="px-4 py-1.5 bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 transition-all rounded-lg font-mono text-[10px] uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed">{t('top.apply')}</button>
         </div>
       )}
 
-      {/* === STATS STRIP — one cohesive panel, hairline dividers via gap-px (de-boxed) === */}
+      {/* ═══ STATS STRIP — stat cards with solid SVG icons ═══ */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-3 rounded-xl border border-white/[0.06] overflow-hidden relative bg-white/[0.05]">
+        <div className="mb-3 rounded-2xl border border-white/[0.07] overflow-hidden relative bg-white/[0.05]">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px">
-            <StatItem label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')} />
-            <StatItem label={t('top.unique_pairs')} value={data.unique_pairs || '\u2014'} sub={t('top.pairs_sub')} />
             <StatItem
-              label="Best Gain"
-              value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '\u2014'}
-              sub="Top single call"
-              isProfit
+              label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="9" opacity="0.2" /><circle cx="12" cy="12" r="5.5" opacity="0.45" /><circle cx="12" cy="12" r="2.4" /></svg>}
+            />
+            <StatItem
+              label={t('top.unique_pairs')} value={data.unique_pairs || '—'} sub={t('top.pairs_sub')}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.35" /><ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.6" /><ellipse cx="12" cy="7.5" rx="7" ry="2.8" /></svg>}
+            />
+            <StatItem
+              label="Best Gain" value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '—'} sub="Top single call" isProfit
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="10" opacity="0.18" /><path d="M12 6.5l5.5 6.5h-3.3v4.5h-4.4V13H6.5L12 6.5z" /></svg>}
             />
             <StatItem
               label={t('top.avg_dur')}
               value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'}
               sub={t('top.dur_sub')}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="13" r="8.5" opacity="0.2" /><circle cx="12" cy="13" r="1.6" /><rect x="11.1" y="6.5" width="1.8" height="7" rx="0.9" /><rect x="9" y="2" width="6" height="2" rx="1" /></svg>}
             />
           </div>
         </div>
       )}
 
       {data && (data.total_tp_hits || data.total_tp4) === 0 && !loading && (
-        <div className="text-center py-8 mb-3 rounded-xl border border-white/[0.06] bg-[#0a0805]">
+        <div className="text-center py-8 mb-3 rounded-2xl border border-white/[0.06] bg-[#0a0805]">
           <p className="text-text-muted font-mono text-xs uppercase tracking-wider">{t('top.no_tp')}</p>
         </div>
       )}
 
-      {/* === TABLE: Top Gainers — flat, airy, gain as hero === */}
+      {/* ═══ LEADERBOARD — gain as hero, podium medals ═══ */}
       {data && data.top_gainers?.length > 0 && (
         <div className={loading ? 'opacity-50' : ''}>
-          <div className="rounded-xl border border-white/[0.06] bg-[#0a0805] overflow-hidden relative">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+          <div className="rounded-2xl border border-white/[0.07] bg-[#0a0805] overflow-hidden relative">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
 
-            {/* Column headers */}
-            <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
-              <span className="text-right">#</span>
+            {/* Column headers (desktop) */}
+            <div className="hidden sm:grid grid-cols-[3rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
+              <span className="text-center">#</span>
               <span>Asset</span>
               <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
               <span className="text-right">{t('top.duration') || 'Duration'}</span>
               <span className="text-right">Gain</span>
             </div>
 
-            {/* Mobile mini header */}
+            {/* Mini header (mobile) */}
             <div className="sm:hidden px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between">
-              <span className="font-mono text-[10px] text-text-muted uppercase tracking-[0.2em]">
-                Asset
-              </span>
-              <span className="font-mono text-[9px] text-text-muted uppercase tracking-wider">
-                {data.top_gainers.length} pairs
-              </span>
+              <span className="font-mono text-[10px] text-text-muted uppercase tracking-[0.2em]">Leaderboard</span>
+              <span className="font-mono text-[9px] text-text-muted uppercase tracking-wider">{data.top_gainers.length} pairs</span>
             </div>
 
-            {/* Rows */}
             <div className="divide-y divide-white/[0.04]">
               {data.top_gainers.map((item, idx) => {
                 const rank = idx + 1;
                 const isPodium = idx < 3;
-                const podiumBorder = idx === 0
-                  ? 'border-gold-primary/60'
-                  : idx === 1
-                    ? 'border-gold-primary/35'
-                    : idx === 2
-                      ? 'border-gold-primary/20'
-                      : 'border-transparent';
+                const podiumBorder = idx === 0 ? 'border-gold-primary/70' : idx === 1 ? 'border-gold-primary/40' : idx === 2 ? 'border-gold-primary/25' : 'border-transparent';
                 const fillPct = intensityPct(item.gain_pct);
 
                 return (
                   <div
                     key={idx}
                     onClick={() => handleItemClick(item)}
-                    className={`relative overflow-hidden border-l-2 ${podiumBorder} hover:bg-white/[0.025] transition-colors cursor-pointer group`}
+                    style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}
+                    className={`tp-row relative overflow-hidden border-l-2 ${podiumBorder} hover:bg-white/[0.025] transition-colors cursor-pointer group`}
                   >
-                    {/* Log-scaled intensity fill (behind content, subtle) */}
-                    <div
-                      className="absolute inset-y-0 left-0 bg-profit/[0.035] pointer-events-none"
-                      style={{ width: `${fillPct}%` }}
-                    />
+                    {/* log-scaled intensity fill */}
+                    <div className="absolute inset-y-0 left-0 bg-profit/[0.04] pointer-events-none transition-[width] duration-500" style={{ width: `${fillPct}%` }} />
+                    {isPodium && <div className="absolute inset-y-0 left-0 w-px bg-gold-primary/30 pointer-events-none" />}
 
-                    {/* Desktop: grid layout */}
-                    <div className="hidden sm:grid grid-cols-[2.5rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-4 items-center relative">
-                      {/* Rank */}
-                      <div className={`font-mono text-xs tabular-nums text-right ${
-                        isPodium ? 'text-gold-primary' : 'text-text-muted/50'
-                      }`}>
-                        {String(rank).padStart(2, '0')}
-                      </div>
-
-                      {/* Coin */}
+                    {/* Desktop grid */}
+                    <div className="hidden sm:grid grid-cols-[3rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-4 items-center relative">
+                      <div className="flex justify-center">{rankBadge(rank)}</div>
                       <div className="flex items-center gap-3 min-w-0">
-                        <CoinLogo pair={cleanPair(item.pair)} size={28} />
-                        <span className="text-white font-mono text-[15px] font-semibold group-hover:text-gold-primary transition-colors truncate">
-                          {coinSymbol(item.pair)}
-                        </span>
-                        {item.signal_count > 1 && (
-                          <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">
-                            ×{item.signal_count}
-                          </span>
-                        )}
+                        <CoinLogo pair={cleanPair(item.pair)} size={30} />
+                        <span className="text-white font-mono text-[15px] font-semibold group-hover:text-gold-primary transition-colors truncate">{coinSymbol(item.pair)}</span>
+                        {item.signal_count > 1 && <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
                       </div>
-
-                      {/* Entry */}
-                      <div className="text-right font-mono text-xs text-text-muted tabular-nums">
-                        ${formatPrice(item.entry)}
-                      </div>
-
-                      {/* Duration */}
-                      <div className="text-right font-mono text-[11px] text-text-muted/70">
-                        {item.duration_display}
-                      </div>
-
-                      {/* Gain — hero */}
+                      <div className="text-right font-mono text-xs text-text-muted tabular-nums">${formatPrice(item.entry)}</div>
+                      <div className="text-right font-mono text-[11px] text-text-muted/70">{item.duration_display}</div>
                       <div className="text-right">
-                        <div className="font-mono text-lg font-semibold text-profit tabular-nums leading-none">
-                          +{formatGainDisplay(item.gain_pct)}
-                        </div>
-                        {item.tp_price > 0 && (
-                          <div className="font-mono text-[9px] text-text-muted/40 tabular-nums mt-1">
-                            peak ${formatPrice(item.tp_price)}
-                          </div>
-                        )}
+                        <div className={`font-mono text-lg font-bold text-profit tabular-nums leading-none ${isPodium ? 'drop-shadow-[0_0_10px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
+                        {item.tp_price > 0 && <div className="font-mono text-[9px] text-text-muted/40 tabular-nums mt-1">peak ${formatPrice(item.tp_price)}</div>}
                       </div>
                     </div>
 
-                    {/* Mobile: stacked layout */}
-                    <div className="sm:hidden flex items-center gap-3 px-4 py-3.5 relative">
-                      <div className={`w-7 font-mono text-xs tabular-nums text-right flex-shrink-0 ${
-                        isPodium ? 'text-gold-primary' : 'text-text-muted/50'
-                      }`}>
-                        {String(rank).padStart(2, '0')}
-                      </div>
-                      <CoinLogo pair={cleanPair(item.pair)} size={26} />
+                    {/* Mobile stacked */}
+                    <div className="sm:hidden flex items-center gap-3 px-3.5 py-3.5 relative">
+                      {rankBadge(rank)}
+                      <CoinLogo pair={cleanPair(item.pair)} size={28} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-white font-mono text-sm font-semibold group-hover:text-gold-primary transition-colors">
-                            {coinSymbol(item.pair)}
-                          </span>
-                          {item.signal_count > 1 && (
-                            <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded">
-                              ×{item.signal_count}
-                            </span>
-                          )}
+                          <span className="text-white font-mono text-sm font-semibold group-hover:text-gold-primary transition-colors truncate">{coinSymbol(item.pair)}</span>
+                          {item.signal_count > 1 && <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded flex-shrink-0">×{item.signal_count}</span>}
                         </div>
-                        <div className="font-mono text-[10px] text-text-muted/60 tabular-nums mt-0.5">
-                          ${formatPrice(item.entry)} · {item.duration_display}
-                        </div>
+                        <div className="font-mono text-[10px] text-text-muted/60 tabular-nums mt-0.5 truncate">${formatPrice(item.entry)} · {item.duration_display}</div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="font-mono text-base font-semibold text-profit tabular-nums">
-                          +{formatGainDisplay(item.gain_pct)}
-                        </div>
-                        {item.tp_price > 0 && (
-                          <div className="font-mono text-[8px] text-text-muted/40 tabular-nums">
-                            ${formatPrice(item.tp_price)}
-                          </div>
-                        )}
+                        <div className={`font-mono text-base font-bold text-profit tabular-nums ${isPodium ? 'drop-shadow-[0_0_8px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
+                        {item.tp_price > 0 && <div className="font-mono text-[8px] text-text-muted/40 tabular-nums">peak ${formatPrice(item.tp_price)}</div>}
                       </div>
                     </div>
                   </div>
@@ -358,6 +321,12 @@ const TopPerformers = () => {
         </div>
       )}
 
+      <style>{`
+        @keyframes tpRowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .tp-row { animation: tpRowIn 0.4s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
+      `}</style>
+
       {/* === MODAL (unchanged logic) === */}
       {modalOpen && modalItem && (
         <SignalDetailModal item={modalItem} detail={signalDetail} loading={detailLoading}
@@ -366,25 +335,19 @@ const TopPerformers = () => {
           onOpenHistory={openHistoryModal} />
       )}
 
-      <SignalModal
-        signal={historyModalSignal}
-        isOpen={historyModalOpen}
-        onClose={closeHistoryModal}
-        initialTab="history"
-      />
+      <SignalModal signal={historyModalSignal} isOpen={historyModalOpen} onClose={closeHistoryModal} initialTab="history" />
     </div>
   );
 };
 
-// === STAT ITEM — flat cell inside the unified strip (hairline dividers from parent gap) ===
-const StatItem = ({ label, value, sub, isProfit = false }) => (
-  <div className="bg-[#0a0805] px-4 py-4 sm:py-5 hover:bg-white/[0.015] transition-colors relative">
-    <p className="font-mono text-[10px] text-text-muted uppercase tracking-[0.22em] mb-2.5">
-      {label}
-    </p>
-    <p className={`font-mono text-2xl sm:text-3xl font-light tabular-nums leading-none ${isProfit ? 'text-profit' : 'text-white'}`}>
-      {value}
-    </p>
+// === STAT ITEM — flat cell inside the unified strip, with solid SVG icon ===
+const StatItem = ({ label, value, sub, icon, isProfit = false }) => (
+  <div className="group relative bg-[#0a0805] px-4 py-4 sm:px-5 sm:py-5 hover:bg-white/[0.015] transition-colors">
+    <div className="flex items-start justify-between gap-2 mb-3">
+      <p className="font-mono text-[10px] text-text-muted uppercase tracking-[0.22em] leading-tight">{label}</p>
+      <span className={`w-7 h-7 flex items-center justify-center rounded-md flex-shrink-0 transition-transform group-hover:scale-110 ${isProfit ? 'text-profit bg-profit/10' : 'text-gold-primary/80 bg-gold-primary/[0.08]'}`}>{icon}</span>
+    </div>
+    <p className={`font-mono text-2xl sm:text-3xl font-light tabular-nums leading-none ${isProfit ? 'text-profit' : 'text-white'}`}>{value}</p>
     <p className="font-mono text-[9px] text-text-muted/60 uppercase tracking-wider mt-2">{sub}</p>
   </div>
 );
