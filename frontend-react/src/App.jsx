@@ -32,6 +32,7 @@ const MarketsPage = lazy(() => import("./components/MarketsPage"));
 const ApiKeysPage = lazy(() => import("./components/ApiKeysPage"));
 const AnalyzePage = lazy(() => import("./components/AnalyzePage"));
 const WatchlistPage = lazy(() => import("./components/WatchlistPage"));
+const WatchlistTabs = lazy(() => import("./components/WatchlistTabs"));
 const TipsPage = lazy(() => import("./components/TipsPage"));
 const UserManagementPage = lazy(
   () => import("./components/UserManagementPage"),
@@ -1575,7 +1576,7 @@ function App() {
                 <RequireAuth>
                   <AppShell>
                     <PremiumGate>
-                      <WatchlistPage />
+                      <WatchlistTabs />
                     </PremiumGate>
                   </AppShell>
                 </RequireAuth>
