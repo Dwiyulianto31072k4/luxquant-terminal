@@ -19,9 +19,13 @@ function loadPdfJsRuntime() {
   if (!pdfJsRuntimePromise) {
     pdfJsRuntimePromise = Promise.all([
       import("pdfjs-dist"),
-      import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+      import("pdfjs-dist/build/pdf.worker.min.mjs?worker"),
     ]).then(([pdfjsLib, workerModule]) => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
+      const PdfWorker = workerModule.default;
+      if (pdfjsLib.GlobalWorkerOptions.workerPort) {
+        pdfjsLib.GlobalWorkerOptions.workerPort.terminate?.();
+      }
+      pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
       return pdfjsLib;
     });
   }
@@ -408,7 +412,7 @@ function ReportPdfModal({ modal, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden bg-[#020102]/94 text-white backdrop-blur-2xl"
+      className="fixed inset-0 z-[100000] overflow-hidden bg-[#020102]/96 text-white backdrop-blur-2xl"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
@@ -416,8 +420,8 @@ function ReportPdfModal({ modal, onClose }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_2%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_74%_16%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.78),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
 
-      <div className="relative mx-auto flex h-[calc(100vh-24px)] w-[calc(100vw-24px)] translate-y-3 flex-col overflow-hidden rounded-[22px] border border-white/[0.12] bg-[#070507]/96 shadow-[0_30px_140px_rgba(0,0,0,0.78)] ring-1 ring-[#d4a853]/10">
-        <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/95 px-4 py-3 md:px-5">
+      <div className="relative mx-auto flex h-[calc(100dvh-16px)] w-[calc(100vw-16px)] translate-y-2 flex-col overflow-hidden rounded-[20px] border border-white/[0.12] bg-[#070507]/98 shadow-[0_30px_140px_rgba(0,0,0,0.82)] ring-1 ring-[#d4a853]/10 md:h-[calc(100dvh-20px)] md:w-[calc(100vw-20px)] md:translate-y-2.5">
+        <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/98 px-3 py-2.5 md:px-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -431,7 +435,7 @@ function ReportPdfModal({ modal, onClose }) {
                   {generatedLabel}
                 </span>
               </div>
-              <h3 className="mt-2 max-w-[72vw] truncate text-base font-semibold tracking-[-0.01em] text-white/90 md:text-xl">
+              <h3 className="mt-1.5 max-w-[72vw] truncate text-sm font-semibold tracking-[-0.01em] text-white/90 md:text-lg">
                 {modal.title}
               </h3>
             </div>
@@ -462,8 +466,8 @@ function ReportPdfModal({ modal, onClose }) {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 xl:grid-cols-[292px_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#090608]/92 p-3 xl:block">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,18vw,292px)_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#090608]/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
               <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -474,14 +478,14 @@ function ReportPdfModal({ modal, onClose }) {
                 </p>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="grid gap-2 xl:grid-cols-1">
                 <ReaderMetric label="BTC at report" value={formatMoney(item.btc_price)} />
                 <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} />
                 <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} />
                 <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
 
-              <div className="mt-auto rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
+              <div className="mt-auto hidden rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-3 xl:block">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
                   Dynamic preview
                 </div>
@@ -492,7 +496,7 @@ function ReportPdfModal({ modal, onClose }) {
             </div>
           </aside>
 
-          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_30%),linear-gradient(180deg,#130e12,#070507)] p-2 md:p-3">
+          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_30%),linear-gradient(180deg,#130e12,#070507)] p-1.5 md:p-2.5">
             <CompassPdfViewer url={modal.url} title={modal.title || "Compass report PDF"} />
           </main>
         </div>
@@ -520,8 +524,8 @@ function CompassPdfViewer({ url, title }) {
 
     const measure = () => {
       const rect = target.getBoundingClientRect();
-      const sidePadding = rect.width >= 980 ? 64 : rect.width >= 640 ? 40 : 24;
-      const maxReadableWidth = rect.width >= 1500 ? 1180 : 1040;
+      const sidePadding = rect.width >= 1200 ? 36 : rect.width >= 760 ? 28 : 18;
+      const maxReadableWidth = rect.width >= 1600 ? 1320 : rect.width >= 1200 ? 1180 : 1040;
       const nextWidth = Math.max(300, Math.min(rect.width - sidePadding, maxReadableWidth));
       setAvailableWidth(nextWidth);
     };
@@ -622,13 +626,13 @@ function CompassPdfViewer({ url, title }) {
   const zoomIn = () => setZoom((value) => Math.min(1.45, Number((value + 0.1).toFixed(2))));
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#0b090b] shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#100c0f]/95 px-3 py-2.5 md:px-4">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.10] bg-[#0b090b] shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-[#100c0f]/95 px-3 py-2 md:px-4">
         <div className="min-w-0">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
             Fit reader
           </div>
-          <div className="mt-1 max-w-[58vw] truncate text-sm font-semibold text-white/80">
+          <div className="mt-1 max-w-[54vw] truncate text-xs font-semibold text-white/78 md:text-sm">
             {title}
           </div>
         </div>
@@ -679,7 +683,7 @@ function CompassPdfViewer({ url, title }) {
 
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,#161115,#0c090c)] px-3 py-4 md:px-5 md:py-5"
+        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,#161115,#0c090c)] px-2 py-3 md:px-4 md:py-4"
       >
         {status === "loading" && (
           <div className="flex h-full min-h-[420px] items-center justify-center text-center">
@@ -700,7 +704,7 @@ function CompassPdfViewer({ url, title }) {
         )}
 
         {status === "ready" && pdf && (
-          <div className="mx-auto flex w-full max-w-[1240px] flex-col items-center gap-5 pb-8">
+          <div className="mx-auto flex w-full max-w-[1400px] flex-col items-center gap-4 pb-6">
             {Array.from({ length: pageCount }, (_, index) => {
               const pageNumber = index + 1;
               return (
