@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
-PDF_STYLE_VERSION = "v5"
+PDF_STYLE_VERSION = "v6"
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -378,9 +378,6 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 arrow = 4 if target_x >= current_x else -4
                 c.line(target_x, rail_y + 43, target_x - arrow, rail_y + 47)
                 c.line(target_x, rail_y + 43, target_x - arrow, rail_y + 39)
-                c.setFillColor(colors.HexColor("#d4a853"))
-                c.setFont("Helvetica-Bold", 7)
-                c.drawCentredString((current_x + target_x) / 2, rail_y + 50, "projected touch")
 
             label_rows = {"current": 154, "target": 136, "magnet": 44, "invalidation": 29}
             magnet_count = 0
