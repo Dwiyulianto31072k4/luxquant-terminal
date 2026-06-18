@@ -453,12 +453,9 @@ const CoinsTab = () => {
       const d = await r.json();
       const sig = d.items && d.items[0];
       if (sig && sig.signal_id) {
-        setSelectedSignal({
-          signal_id: sig.signal_id,
-          pair: sig.pair || pair,
-          status: sig.status || "open",
-          created_at: sig.created_at,
-        });
+        // Pass the FULL item — SignalModal reads entry/targets/stops/volume_rank
+        // from the prop directly (same shape SignalsPage passes).
+        setSelectedSignal({ ...sig, pair: sig.pair || pair, status: sig.status || "open" });
       } else {
         console.warn("[MoneyFlow] no signal found for", pair);
       }
