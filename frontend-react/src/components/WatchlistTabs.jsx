@@ -1,7 +1,7 @@
 // src/components/WatchlistTabs.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — Watchlist shell (2-tab)
-// Pill horizontal: Watching (coin-based waitlist) | Tracking (signal-based)
+// Pill horizontal SOLID gold (active) | Watching (waitlist) + Tracking
 // Tracking = WatchlistPage apa adanya (gak diutak-atik).
 // Ganti DEFAULT_TAB ke "watching" kalau mau anticipation-first.
 // ════════════════════════════════════════════════════════════════
@@ -9,7 +9,9 @@ import { useState } from "react";
 import WatchingTab from "./WatchingTab";
 import WatchlistPage from "./WatchlistPage";
 
-const DEFAULT_TAB = "tracking"; // "watching" | "tracking"
+const DEFAULT_TAB = "watching"; // "watching" | "tracking"
+
+const GOLD_GRADIENT = "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)";
 
 const TABS = [
   {
@@ -35,45 +37,52 @@ const WatchlistTabs = () => {
 
   return (
     <>
-      {/* Pill tab bar — horizontal (own container, aligns with tab content below) */}
+      {/* Pill tab bar — solid gold active */}
       <div className="max-w-[1400px] mx-auto px-4 pt-8 -mb-2">
-      <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide">
-        {TABS.map((tb) => {
-          const active = tab === tb.key;
-          return (
-            <button
-              key={tb.key}
-              onClick={() => setTab(tb.key)}
-              className={`shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all ${
-                active
-                  ? "bg-gold-primary/[0.08] border-gold-primary/40"
-                  : "bg-transparent border-white/[0.07] hover:border-white/[0.15]"
-              }`}
-            >
-              <span
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  active ? "bg-gold-primary/[0.12]" : "bg-white/[0.04]"
+        <div className="flex flex-nowrap gap-2.5 overflow-x-auto scrollbar-hide">
+          {TABS.map((tb) => {
+            const active = tab === tb.key;
+            return (
+              <button
+                key={tb.key}
+                onClick={() => setTab(tb.key)}
+                className={`shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-200 ${
+                  active
+                    ? "border-gold-primary/60 -translate-y-px"
+                    : "bg-white/[0.02] border-white/[0.07] hover:border-white/[0.15] hover:bg-white/[0.04]"
                 }`}
+                style={
+                  active
+                    ? { background: GOLD_GRADIENT, boxShadow: "0 8px 24px rgba(212,168,83,0.35)" }
+                    : undefined
+                }
               >
-                <svg
-                  className={`w-[18px] h-[18px] ${active ? "text-gold-primary" : "text-text-muted"}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                <span
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    active ? "bg-black/15" : "bg-white/[0.04]"
+                  }`}
                 >
-                  {tb.icon}
-                </svg>
-              </span>
-              <span className="text-left">
-                <span className={`block text-sm font-medium leading-tight ${active ? "text-white" : "text-text-secondary"}`}>
-                  {tb.label}
+                  <svg
+                    className={`w-[18px] h-[18px] ${active ? "text-[#0a0805]" : "text-text-muted"}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    {tb.icon}
+                  </svg>
                 </span>
-                <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-text-muted/70 mt-0.5">
-                  {tb.sublabel}
+                <span className="text-left">
+                  <span className={`block text-sm font-semibold leading-tight ${active ? "text-[#0a0805]" : "text-text-secondary"}`}>
+                    {tb.label}
+                  </span>
+                  <span className={`block font-mono text-[10px] uppercase tracking-[0.08em] mt-0.5 ${active ? "text-[#0a0805]/55" : "text-text-muted/70"}`}>
+                    {tb.sublabel}
+                  </span>
                 </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Active tab (self-wraps its own max-w container) */}
