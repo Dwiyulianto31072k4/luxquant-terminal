@@ -46,7 +46,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
               BTC Compass
             </span>
             <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${statusTone(healthStatus)}`}
+              className={`rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${statusTone(healthStatus)}`}
             >
               {healthStatus === "healthy" ? "Data healthy" : "Data needs check"}
             </span>
@@ -138,47 +138,68 @@ function todayLabel() {
 
 function WorkspaceTabs({ activeTab, onChange, tabs }) {
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/70 p-2 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className="grid gap-2 md:grid-cols-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onChange(tab.key)}
-            className={`rounded-xl border px-4 py-3 text-left transition ${
-              activeTab === tab.key
-                ? "border-[#d4a853]/35 bg-[#d4a853]/10 text-white"
-                : "border-white/[0.06] bg-black/10 text-white/45 hover:bg-white/[0.04] hover:text-white/70"
-            }`}
-          >
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-              {tab.eyebrow}
-            </div>
-            <div className="mt-1 text-sm font-semibold">{tab.label}</div>
-            <div className="mt-1 text-xs leading-5 text-white/40">{tab.description}</div>
-          </button>
-        ))}
+    <section className="rounded-xl border border-white/[0.08] bg-[#0d0d12]/70 p-1.5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="grid gap-1.5 md:grid-cols-3">
+        {tabs.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onChange(tab.key)}
+              className={`group relative flex min-h-[74px] items-center gap-3 rounded-lg border px-3 py-3 text-left transition ${
+                active
+                  ? "border-[#d4a853]/35 bg-[#d4a853]/10 text-white shadow-[0_0_0_1px_rgba(212,168,83,0.05)_inset]"
+                  : "border-white/[0.06] bg-black/10 text-white/45 hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-white/70"
+              }`}
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border font-mono text-sm ${
+                  active
+                    ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-[#f5c451]"
+                    : "border-white/[0.08] bg-white/[0.02] text-white/35 group-hover:text-white/65"
+                }`}
+              >
+                {tab.icon}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                  {tab.eyebrow}
+                </span>
+                <span className="mt-1 block text-sm font-semibold">{tab.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-white/40">{tab.description}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function ChartPanel() {
+function ChartPanel({ report }) {
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
-      <div className="mb-4">
-        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-          Price context
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+            Price context
+          </div>
+          <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+            BTC projection chart
+          </h2>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-white/40">
+            Candles confirm where price is trading now. Compass projection adds magnets,
+            zones, and invalidation so the trader can see why a bearish or bullish read
+            may target a specific area.
+          </p>
         </div>
-        <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
-          BTC chart
-        </h2>
-        <p className="mt-1 text-xs leading-5 text-white/40">
-          Use the chart after reading the stance, not before. It is here to
-          confirm context, not to overload the first impression.
-        </p>
+        <div className="rounded-md border border-white/[0.08] bg-black/20 px-3 py-2 text-right font-mono text-[10px] text-white/35">
+          <div className="uppercase tracking-[0.14em]">Chart basis</div>
+          <div className="mt-1 text-white/60">Live BTC candles + Compass report</div>
+        </div>
       </div>
-      <PriceChart />
+      <PriceChart report={report} />
     </section>
   );
 }
@@ -265,21 +286,24 @@ export default function AIArenaPageV6() {
   const workspaceTabs = [
     {
       key: "read",
+      icon: "01",
       eyebrow: "Today",
       label: "Market Read",
       description: "24h stance, drivers, levels, risk, and holder context.",
     },
     {
       key: "evaluation",
+      icon: "02",
       eyebrow: "Reset",
       label: "Evaluation",
       description: "Hit, miss, and pending table starting from today.",
     },
     {
       key: "chart",
+      icon: "03",
       eyebrow: "Context",
       label: "BTC Chart",
-      description: "Price confirmation after the read, not before it.",
+      description: "Projection, magnets, zones, and price confirmation.",
     },
   ];
 
@@ -324,7 +348,7 @@ export default function AIArenaPageV6() {
           />
         )}
 
-        {activeWorkspace === "chart" && <ChartPanel />}
+        {activeWorkspace === "chart" && <ChartPanel report={report} />}
 
         <footer className="border-t border-white/[0.06] pt-6 text-center">
           <p className="text-[11px] font-mono leading-relaxed text-white/30">

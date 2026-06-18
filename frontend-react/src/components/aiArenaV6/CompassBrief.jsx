@@ -41,7 +41,7 @@ function Badge({ children, tone = "neutral" }) {
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]",
+        "inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]",
         badgeTone(tone),
       )}
     >
@@ -55,7 +55,7 @@ function DetailButton({ children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg border border-[#d4a853]/20 bg-[#d4a853]/10 px-3 py-2 text-[11px] font-medium text-[#f5c451] transition hover:border-[#d4a853]/40 hover:bg-[#d4a853]/15"
+      className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-3 py-2 text-[11px] font-medium text-[#f5c451] transition hover:border-[#d4a853]/40 hover:bg-[#d4a853]/15"
     >
       {children}
     </button>
@@ -444,21 +444,32 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
 function DetailTabRail({ activeTab, onChange, tabs }) {
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-white/[0.06] bg-black/10 p-2">
-      {tabs.map((tab) => (
-        <button
-          key={tab.key}
-          type="button"
-          onClick={() => onChange(tab.key)}
-          className={cx(
-            "whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] transition",
-            activeTab === tab.key
-              ? "border border-[#d4a853]/30 bg-[#d4a853]/12 text-[#f5c451] shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
-              : "border border-transparent text-white/35 hover:bg-white/[0.04] hover:text-white/65",
-          )}
-        >
-          {tab.label}
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const active = activeTab === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={cx(
+              "group flex items-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] transition",
+              active
+                ? "border-[#d4a853]/30 bg-[#d4a853]/12 text-[#f5c451] shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
+                : "border-transparent text-white/35 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white/65",
+            )}
+          >
+            <span
+              className={cx(
+                "flex h-5 w-5 items-center justify-center rounded border text-[10px]",
+                active ? "border-[#d4a853]/25 text-[#f5c451]" : "border-white/[0.06] text-white/30 group-hover:text-white/60",
+              )}
+            >
+              {tab.icon}
+            </span>
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -674,11 +685,11 @@ export default function CompassBrief({
     risk: "Invalidation detail",
   }[modal];
   const detailTabs = [
-    { key: "drivers", label: "Drivers" },
-    { key: "levels", label: "Levels" },
-    { key: "news", label: "News" },
-    { key: "risk", label: "Risk" },
-    { key: "holder", label: "Holder" },
+    { key: "drivers", icon: "D", label: "Drivers" },
+    { key: "levels", icon: "L", label: "Levels" },
+    { key: "news", icon: "N", label: "News" },
+    { key: "risk", icon: "R", label: "Risk" },
+    { key: "holder", icon: "H", label: "Holder" },
   ];
 
   return (

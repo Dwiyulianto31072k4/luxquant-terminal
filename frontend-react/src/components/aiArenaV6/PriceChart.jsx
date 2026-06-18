@@ -1,20 +1,10 @@
 // frontend-react/src/components/aiArenaV6/PriceChart.jsx
 // ════════════════════════════════════════════════════════════
-// PRICE CHART — Lightweight Charts v5 wrapper (v2 — fix-pass)
-// ────────────────────────────────────────────────────────────
-// Renders BTC OHLC + 4 MA overlays + volume subpane +
-// liquidation/key-level price lines + zone bands.
-//
-// FIX vs v1:
-// • Single consolidated useEffect for chart updates — eliminates
-//   race between data setData and createPriceLine calls.
-// • Price lines created in same effect as setData, after MA series
-//   have data, guaranteeing series state is settled.
-// • Strong support / strong resistance now rendered (deduped vs cluster).
-// • try/catch removed around createPriceLine so errors surface.
-// • Defensive null check on createPriceLine return.
+// PRICE CHART — trader projection view
+// Renders BTC OHLC + technical overlays, Compass zones, liquidity
+// magnets, and the current projected touch/invalidation context.
 // ════════════════════════════════════════════════════════════
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
   CandlestickSeries,
@@ -24,7 +14,7 @@ import {
   LineStyle,
 } from "lightweight-charts";
 import { getChartData } from "../../services/aiArenaV6Api";
-import { formatPrice, formatPct } from "./constants";
+import { directionArrow, directionColor, directionLabel, formatPrice, formatPct } from "./constants";
 import Tooltip from "./Tooltip";
 
 // ────────────────────────────────────────────────────────────
@@ -36,14 +26,15 @@ const COLORS = {
   grid: "rgba(212, 168, 83, 0.04)",
   border: "rgba(212, 168, 83, 0.15)",
   gold: "#d4a853",
+  projection: "#f5c451",
   candleUp: "#4ade80",
   candleDown: "#f87171",
   ema20: "#60a5fa",
   ema50: "#a78bfa",
   sma100: "#fbbf24",
   sma200: "#f472b6",
-  liqLong: "#4ade80",
-  liqShort: "#f87171",
+  magnetAbove: "#f87171",
+  magnetBelow: "#4ade80",
   support: "rgba(74, 222, 128, 0.7)",
   resistance: "rgba(248, 113, 113, 0.7)",
   strongSupport: "rgba(74, 222, 128, 1)",
@@ -69,17 +60,32 @@ const MA_CONFIG = [
   { key: "sma200", label: "SMA 200", color: COLORS.sma200, width: 1 },
 ];
 
+const LAYER_LABELS = {
+  projection: "Projection",
+  magnets: "Magnets",
+  zones: "Zones",
+  levels: "Key levels",
+  trend: "Trend MA",
+};
+
 const sortByTime = (arr) =>
   Array.isArray(arr) ? [...arr].sort((a, b) => (a.time || 0) - (b.time || 0)) : [];
 
+const toNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
 // Dedup price lines that are within 0.05% — merge title
 const dedupPriceLines = (lines) => {
-  const sorted = [...lines].sort((a, b) => a.price - b.price);
+  const valid = lines.filter((line) => toNumber(line.price) != null);
+  const sorted = [...valid].sort((a, b) => a.price - b.price);
   const out = [];
   for (const line of sorted) {
     const last = out[out.length - 1];
     if (last && Math.abs(line.price - last.price) / Math.max(last.price, 1) < 0.0005) {
       last.title = `${last.title} · ${line.title}`;
+      last.lineWidth = Math.max(last.lineWidth || 1, line.lineWidth || 1);
       continue;
     }
     out.push({ ...line });
@@ -90,7 +96,7 @@ const dedupPriceLines = (lines) => {
 // ════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════
-export default function PriceChart() {
+export default function PriceChart({ report }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const candleSeriesRef = useRef(null);
@@ -105,8 +111,13 @@ export default function PriceChart() {
   const [maVisible, setMaVisible] = useState({
     ema20: true, ema50: true, sma100: true, sma200: false,
   });
-  const [showLiq, setShowLiq] = useState(true);
-  const [showZones, setShowZones] = useState(true);
+  const [layers, setLayers] = useState({
+    projection: true,
+    magnets: true,
+    zones: true,
+    levels: true,
+    trend: true,
+  });
   const [crosshair, setCrosshair] = useState(null);
 
   // Fetch
@@ -182,9 +193,7 @@ export default function PriceChart() {
       lastValueVisible: false,
       priceLineVisible: false,
     });
-    volume.priceScale().applyOptions({
-      scaleMargins: { top: 0.82, bottom: 0 },
-    });
+    volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     volumeSeriesRef.current = volume;
 
     MA_CONFIG.forEach(({ key, color, width }) => {
@@ -230,6 +239,16 @@ export default function PriceChart() {
     };
   }, []);
 
+  const tech = data?.technicals || {};
+  const lastPrice = tech.price ?? data?.candles?.[data.candles.length - 1]?.close ?? report?.btc_price;
+  const firstClose = data?.candles?.[0]?.close;
+  const pctMove = (lastPrice && firstClose) ? ((lastPrice - firstClose) / firstClose) * 100 : null;
+  const labelText = data?.label || `${tf} chart`;
+  const zones = useMemo(() => mergeZonesFromReportAndChart(report, data?.zones_to_watch), [report, data?.zones_to_watch]);
+  const magnetLines = useMemo(() => getMagnetLines(report), [report]);
+  const projection = useMemo(() => buildProjection(report, lastPrice, zones), [report, lastPrice, zones]);
+  const visibleMaCount = Object.values(maVisible).filter(Boolean).length;
+
   // ────────────────────────────────────────────────────────────
   // CONSOLIDATED data → chart sync
   // Single effect, runs in correct order, no race conditions.
@@ -252,7 +271,7 @@ export default function PriceChart() {
       const line = maSeriesRef.current[key];
       if (!line) return;
       line.setData(sortByTime(ms[key]));
-      line.applyOptions({ visible: !!maVisible[key] });
+      line.applyOptions({ visible: !!layers.trend && !!maVisible[key] });
     });
 
     // 4. Clear old price lines BEFORE creating new
@@ -264,44 +283,43 @@ export default function PriceChart() {
     // 5. Build new price lines list
     const newLines = [];
 
-    if (showLiq) {
+    if (layers.levels) {
       const liq = data.liquidation_levels || {};
       const kl = data.key_levels || {};
 
       if (liq.nearest_long_cluster) newLines.push({
-        price: liq.nearest_long_cluster, color: COLORS.liqLong,
+        price: liq.nearest_long_cluster, color: COLORS.magnetBelow,
         lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
-        title: `Liq Long`,
+        title: "Long liq",
       });
       if (liq.nearest_short_cluster) newLines.push({
-        price: liq.nearest_short_cluster, color: COLORS.liqShort,
+        price: liq.nearest_short_cluster, color: COLORS.magnetAbove,
         lineStyle: LineStyle.Dotted, lineWidth: 2, axisLabelVisible: true,
-        title: `Liq Short`,
+        title: "Short liq",
       });
       if (kl.support) newLines.push({
         price: kl.support, color: COLORS.support,
         lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
-        title: `Support`,
+        title: "Support",
       });
       if (kl.resistance) newLines.push({
         price: kl.resistance, color: COLORS.resistance,
         lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true,
-        title: `Resistance`,
+        title: "Resistance",
       });
       if (kl.strong_support) newLines.push({
         price: kl.strong_support, color: COLORS.strongSupport,
         lineStyle: LineStyle.Solid, lineWidth: 1, axisLabelVisible: true,
-        title: `Strong Sup`,
+        title: "Bull invalid",
       });
       if (kl.strong_resistance) newLines.push({
         price: kl.strong_resistance, color: COLORS.strongResistance,
         lineStyle: LineStyle.Solid, lineWidth: 1, axisLabelVisible: true,
-        title: `Strong Res`,
+        title: "Bear invalid",
       });
     }
 
-    if (showZones) {
-      const zones = data.zones_to_watch || {};
+    if (layers.zones) {
       const zoneDefs = [
         { key: "demand", color: COLORS.zoneDemandLine, label: "Demand" },
         { key: "fair_value", color: COLORS.zoneFairLine, label: "Fair" },
@@ -313,20 +331,54 @@ export default function PriceChart() {
         newLines.push({
           price: z.high, color,
           lineStyle: LineStyle.SparseDotted, lineWidth: 1, axisLabelVisible: false,
-          title: `${label} ↑`,
+          title: `${label} high`,
         });
         newLines.push({
           price: z.low, color,
           lineStyle: LineStyle.SparseDotted, lineWidth: 1, axisLabelVisible: false,
-          title: `${label} ↓`,
+          title: `${label} low`,
         });
       });
     }
 
-    // 6. Dedup overlapping lines (e.g., long_cluster == strong_support at $76,200)
+    if (layers.magnets) {
+      magnetLines.forEach((line) => {
+        newLines.push({
+          price: line.price,
+          color: line.side === "above" ? COLORS.magnetAbove : COLORS.magnetBelow,
+          lineStyle: line.nearest ? LineStyle.Dashed : LineStyle.Dotted,
+          lineWidth: line.nearest ? 2 : 1,
+          axisLabelVisible: true,
+          title: line.nearest ? `${line.label}` : line.label,
+        });
+      });
+    }
+
+    if (layers.projection && projection?.target) {
+      newLines.push({
+        price: projection.target,
+        color: COLORS.projection,
+        lineStyle: LineStyle.Solid,
+        lineWidth: 2,
+        axisLabelVisible: true,
+        title: "Projected touch",
+      });
+      if (projection.secondaryTarget) {
+        newLines.push({
+          price: projection.secondaryTarget,
+          color: COLORS.projection,
+          lineStyle: LineStyle.LargeDashed,
+          lineWidth: 1,
+          axisLabelVisible: true,
+          title: "Next reaction",
+        });
+      }
+    }
+
+    // 6. Dedup overlapping lines
     const deduped = dedupPriceLines(newLines);
 
-    // 7. Attach price lines (no try/catch — surface real errors)
+    // 7. Attach price lines
     deduped.forEach((opts) => {
       const pl = candles.createPriceLine(opts);
       if (pl) allPriceLinesRef.current.push(pl);
@@ -334,22 +386,19 @@ export default function PriceChart() {
 
     // 8. Fit
     chart.timeScale().fitContent();
-  }, [data, showLiq, showZones]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, layers, maVisible, zones, magnetLines, projection]);
 
   // MA visibility toggle (no data reload)
   useEffect(() => {
     MA_CONFIG.forEach(({ key }) => {
       const line = maSeriesRef.current[key];
-      if (line) line.applyOptions({ visible: !!maVisible[key] });
+      if (line) line.applyOptions({ visible: !!layers.trend && !!maVisible[key] });
     });
-  }, [maVisible]);
+  }, [maVisible, layers.trend]);
 
-  // Derived
-  const tech = data?.technicals || {};
-  const lastPrice = tech.price ?? data?.candles?.[data.candles.length - 1]?.close;
-  const firstClose = data?.candles?.[0]?.close;
-  const pctMove = (lastPrice && firstClose) ? ((lastPrice - firstClose) / firstClose) * 100 : null;
-  const labelText = data?.label || `${tf} chart`;
+  const toggleLayer = (key) => {
+    setLayers((current) => ({ ...current, [key]: !current[key] }));
+  };
 
   // ════════════════════════════════════════════════════════════
   // RENDER
@@ -363,15 +412,15 @@ export default function PriceChart() {
           <div className="w-8 lg:w-12 h-0.5 bg-gradient-to-r from-gold-primary to-transparent" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Price Chart</h2>
+              <h2 className="font-display text-xl lg:text-2xl font-semibold text-white">Projection Chart</h2>
               <Tooltip termKey="confluence">
-                <span className="text-text-muted text-[10px] font-mono px-1.5 py-0.5 rounded border border-gold-primary/15">
+                <span className="text-text-muted text-[10px] font-mono px-1.5 py-0.5 rounded-md border border-gold-primary/15">
                   {labelText}
                 </span>
               </Tooltip>
             </div>
             <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              BTC price action with trend and key zones
+              Real BTC candles with selectable projection, magnet, zone, and trend layers
             </p>
           </div>
         </div>
@@ -390,12 +439,12 @@ export default function PriceChart() {
             </div>
           )}
 
-          <div className="flex bg-bg-card/80 rounded-xl p-1 border border-gold-primary/10">
+          <div className="flex rounded-lg border border-gold-primary/10 bg-bg-card/80 p-1">
             {TIMEFRAMES.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setTf(opt.value)}
-                className={`px-2.5 lg:px-3 py-1 lg:py-1.5 rounded-lg text-[10px] lg:text-xs font-semibold transition-all ${
+                className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all lg:px-3 lg:py-1.5 lg:text-xs ${
                   tf === opt.value
                     ? "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow"
                     : "text-text-muted hover:text-white"
@@ -409,41 +458,65 @@ export default function PriceChart() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 lg:gap-3 flex-wrap mb-3">
-        {MA_CONFIG.map(({ key, label, color }) => (
-          <button
-            key={key}
-            onClick={() => setMaVisible((v) => ({ ...v, [key]: !v[key] }))}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all border ${
-              maVisible[key]
-                ? "bg-bg-card/60 border-white/10 text-white"
-                : "bg-transparent border-white/5 text-text-muted hover:text-white"
-            }`}
-          >
-            <span
-              className="inline-block w-3 h-0.5 rounded-full transition-opacity"
-              style={{ background: color, opacity: maVisible[key] ? 1 : 0.3 }}
-            />
-            {label}
-          </button>
-        ))}
+      <ProjectionPanel projection={projection} lastPrice={lastPrice} />
 
-        {/* Liq Levels button hidden — worker v6 doesn't generate liquidation_levels yet.
-            Re-enable after Coinglass/Binance integration. */}
-        {/* <span className="w-px h-4 bg-white/10 mx-1" />
-        <button
-          onClick={() => setShowLiq((v) => !v)}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold transition-all border ${
-            showLiq ? "bg-gold-primary/10 border-gold-primary/25 text-gold-primary" : "bg-transparent border-white/5 text-text-muted hover:text-white"
-          }`}
-          title="Liquidation clusters & key levels"
-        >
-          ◆ Liq Levels
-        </button> */}
-        <span className="w-px h-4 bg-white/10 mx-1" />
+      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted/70">
+            Select chart layers
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(LAYER_LABELS).map(([key, label]) => {
+              const active = !!layers[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleLayer(key)}
+                  className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.1em] transition ${
+                    active
+                      ? "border-[#d4a853]/30 bg-[#d4a853]/10 text-[#f5c451]"
+                      : "border-white/[0.06] bg-black/10 text-white/35 hover:border-white/[0.12] hover:text-white/65"
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-sm ${active ? "bg-[#f5c451]" : "bg-white/20"}`} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-white/[0.06] bg-black/15 p-1.5 text-[10px] font-mono text-white/45 lg:min-w-[390px]">
+          <DataBasis label="Candles" value="Live BTC" detail={`${tf} OHLCV`} />
+          <DataBasis label="Projection" value={projection?.directionLabel || "Neutral"} detail="Compass read" />
+          <DataBasis label="Liquidity" value={projection?.liquidityConfidence || "Model"} detail="Magnet map" />
+        </div>
       </div>
 
-      <div className="relative">
+      {layers.trend && (
+        <div className="mt-3 flex items-center gap-2 lg:gap-3 flex-wrap">
+          {MA_CONFIG.map(({ key, label, color }) => (
+            <button
+              key={key}
+              onClick={() => setMaVisible((v) => ({ ...v, [key]: !v[key] }))}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all border ${
+                maVisible[key]
+                  ? "bg-bg-card/60 border-white/10 text-white"
+                  : "bg-transparent border-white/5 text-text-muted hover:text-white"
+              }`}
+            >
+              <span
+                className="inline-block w-3 h-0.5 rounded-sm transition-opacity"
+                style={{ background: color, opacity: maVisible[key] ? 1 : 0.3 }}
+              />
+              {label}
+            </button>
+          ))}
+          <span className="text-[10px] font-mono text-white/30">{visibleMaCount}/4 active</span>
+        </div>
+      )}
+
+      <div className="relative mt-4">
         {crosshair && (
           <div className="absolute top-2 left-2 z-10 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-primary/85 backdrop-blur-md border border-gold-primary/20 text-[10px] font-mono">
             <span className="text-text-muted">O <span className="text-white">{formatPrice(crosshair.open)}</span></span>
@@ -476,7 +549,7 @@ export default function PriceChart() {
               <p className="text-negative text-xs">⚠ {error}</p>
               <button
                 onClick={() => fetchData(tf)}
-                className="px-3 py-1.5 rounded-lg text-[10px] font-semibold bg-gold-primary/15 border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/25 transition-all"
+                className="px-3 py-1.5 rounded-md text-[10px] font-semibold bg-gold-primary/15 border border-gold-primary/30 text-gold-primary hover:bg-gold-primary/25 transition-all"
               >
                 Retry
               </button>
@@ -494,11 +567,11 @@ export default function PriceChart() {
         </div>
       )}
 
-      {data?.zones_to_watch && !loading && showZones && (
+      {Object.keys(zones || {}).length > 0 && !loading && layers.zones && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <ZoneChip label="Demand" zone={data.zones_to_watch.demand} tint={COLORS.zoneDemand} accent={COLORS.candleUp} arrow="↓" currentPrice={lastPrice} />
-          <ZoneChip label="Fair Value" zone={data.zones_to_watch.fair_value} tint={COLORS.zoneFair} accent={COLORS.gold} arrow="→" currentPrice={lastPrice} />
-          <ZoneChip label="Supply" zone={data.zones_to_watch.supply} tint={COLORS.zoneSupply} accent={COLORS.candleDown} arrow="↑" currentPrice={lastPrice} />
+          <ZoneChip label="Demand" zone={zones.demand} tint={COLORS.zoneDemand} accent={COLORS.candleUp} arrow="↓" currentPrice={lastPrice} />
+          <ZoneChip label="Fair Value" zone={zones.fair_value} tint={COLORS.zoneFair} accent={COLORS.gold} arrow="→" currentPrice={lastPrice} />
+          <ZoneChip label="Supply" zone={zones.supply} tint={COLORS.zoneSupply} accent={COLORS.candleDown} arrow="↑" currentPrice={lastPrice} />
         </div>
       )}
 
@@ -512,6 +585,92 @@ export default function PriceChart() {
           charts by TradingView
         </a>
       </div>
+    </div>
+  );
+}
+
+function ProjectionPanel({ projection, lastPrice }) {
+  if (!projection) {
+    return (
+      <div className="rounded-xl border border-white/[0.06] bg-black/15 p-4 text-sm text-white/45">
+        Projection detail is waiting for the latest Compass report.
+      </div>
+    );
+  }
+
+  const toneColor = directionColor(projection.direction);
+  return (
+    <div className="grid gap-3 rounded-xl border border-white/[0.08] bg-black/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-md border text-lg"
+            style={{ borderColor: `${toneColor}55`, background: `${toneColor}18`, color: toneColor }}
+          >
+            {directionArrow(projection.direction)}
+          </span>
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
+              {projection.horizonLabel}
+            </div>
+            <h3 className="mt-0.5 text-xl font-semibold leading-tight text-white/90">
+              {projection.title}
+            </h3>
+          </div>
+        </div>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55">
+          {projection.explanation}
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {projection.reasons.slice(0, 4).map((reason, index) => (
+            <div key={`${reason.label}-${index}`} className="rounded-md border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+              <div className="text-[9px] font-mono uppercase tracking-[0.12em] text-white/30">{reason.label}</div>
+              <div className="mt-1 text-xs leading-5 text-white/65">{reason.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-1">
+        <ProjectionStat
+          label="Potential touch"
+          value={projection.target ? formatPrice(projection.target) : "—"}
+          hint={projection.target ? `${distanceFrom(lastPrice, projection.target)} from current` : "waiting"}
+          tone={projection.direction}
+        />
+        <ProjectionStat
+          label="Next reaction area"
+          value={projection.reactionLabel || "—"}
+          hint={projection.reactionWhy || "zone not available"}
+        />
+        <ProjectionStat
+          label="Invalidation watch"
+          value={projection.invalidation || "—"}
+          hint="condition that weakens this read"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProjectionStat({ label, value, hint, tone }) {
+  return (
+    <div className="rounded-md border border-white/[0.06] bg-[#0d0d12]/70 p-3">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{label}</div>
+      <div className="mt-1 font-mono text-lg font-semibold text-white/90" style={{ color: tone ? directionColor(tone) : undefined }}>
+        {value}
+      </div>
+      {hint && <div className="mt-1 text-[10px] leading-4 text-white/40">{hint}</div>}
+    </div>
+  );
+}
+
+function DataBasis({ label, value, detail }) {
+  return (
+    <div className="rounded-md border border-white/[0.05] bg-white/[0.025] px-2.5 py-2">
+      <div className="text-[8px] uppercase tracking-[0.12em] text-white/25">{label}</div>
+      <div className="mt-1 text-white/75">{value}</div>
+      <div className="mt-0.5 text-[9px] text-white/30">{detail}</div>
     </div>
   );
 }
@@ -549,16 +708,16 @@ function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
         </div>
         {inZone && (
           <span style={{ color: accent }} className="text-[9px] font-mono font-bold flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: accent }} /> ACTIVE
+            <span className="w-1.5 h-1.5 rounded-sm animate-pulse" style={{ background: accent }} /> ACTIVE
           </span>
         )}
       </div>
       <p className="text-white font-mono text-xs tabular-nums">
         {formatPrice(zone.low)} <span className="text-text-muted">–</span> {formatPrice(zone.high)}
       </p>
-      {zone.notes && (
+      {(zone.why || zone.liquidity_note || zone.notes) && (
         <p className="text-text-muted text-[9px] mt-1 line-clamp-2 leading-snug">
-          {zone.notes}
+          {zone.why || zone.liquidity_note || zone.notes}
         </p>
       )}
     </div>
@@ -579,4 +738,227 @@ function bbHint(bw) {
   if (bw < 3) return "squeeze";
   if (bw < 6) return "normal";
   return "expansion";
+}
+
+function getInnerReport(report) {
+  return report?.report || report || {};
+}
+
+function readable(value) {
+  const label = String(value || "unknown").replaceAll("_", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function getHorizon(report, key) {
+  const inner = getInnerReport(report);
+  const verdict = inner.verdict || {};
+  const summary = report?.verdict_summary || {};
+  if (key === "24h") return verdict.tactical_24h || summary.tactical_24h || null;
+  if (key === "72h") return verdict.secondary_7d || summary.secondary_7d || null;
+  return verdict.primary_30d || summary.primary_30d || null;
+}
+
+function getRows(report) {
+  return getInnerReport(report)?.evidence_matrix?.rows || [];
+}
+
+function getRow(report, key) {
+  return getRows(report).find((row) => row.key === key);
+}
+
+function rowScore(row, horizon = "24h") {
+  return row?.horizons?.[horizon] || {};
+}
+
+function firstEvidence(row) {
+  const item = row?.evidence?.[0];
+  if (!item) return null;
+  return `${item.metric}: ${item.value}`;
+}
+
+function normalizeZone(zone) {
+  if (!zone) return null;
+  const low = toNumber(zone.low ?? zone.price_low);
+  const high = toNumber(zone.high ?? zone.price_high);
+  if (low == null || high == null) return null;
+  return {
+    kind: zone.kind,
+    low,
+    high,
+    why: zone.why,
+    liquidity_note: zone.liquidity_note,
+    notes: zone.notes,
+  };
+}
+
+function mergeZonesFromReportAndChart(report, chartZones) {
+  const merged = {};
+  ["demand", "fair_value", "supply"].forEach((key) => {
+    const normalized = normalizeZone(chartZones?.[key]);
+    if (normalized) merged[key] = { ...normalized, kind: key };
+  });
+
+  const reportZones = getInnerReport(report)?.verdict?.zones_to_watch || [];
+  if (Array.isArray(reportZones)) {
+    reportZones.forEach((zone) => {
+      const key = zone.kind;
+      const normalized = normalizeZone(zone);
+      if (!key || !normalized) return;
+      merged[key] = { ...(merged[key] || {}), ...normalized, kind: key };
+    });
+  }
+  return merged;
+}
+
+function normalizeMagnet(magnet, side) {
+  if (magnet == null) return null;
+  if (typeof magnet === "number") return { price: magnet, value: null, side };
+  const price = toNumber(magnet.price);
+  if (price == null) return null;
+  return {
+    price,
+    value: toNumber(magnet.value),
+    side: side || magnet.side,
+  };
+}
+
+function getLiquidity(report) {
+  return getInnerReport(report)?.liquidity || {};
+}
+
+function getMagnets(report) {
+  return getLiquidity(report)?.magnets || {};
+}
+
+function getMagnetLines(report) {
+  const magnets = getMagnets(report);
+  const out = [];
+  const nearestAbove = normalizeMagnet(magnets.nearest_above, "above");
+  const nearestBelow = normalizeMagnet(magnets.nearest_below, "below");
+
+  if (nearestAbove) out.push({ ...nearestAbove, side: "above", nearest: true, label: "Magnet above" });
+  if (nearestBelow) out.push({ ...nearestBelow, side: "below", nearest: true, label: "Magnet below" });
+
+  (magnets.magnets_above || []).slice(0, 3).forEach((magnet, index) => {
+    const normalized = normalizeMagnet(magnet, "above");
+    if (normalized) out.push({ ...normalized, side: "above", nearest: false, label: `Above ${index + 1}` });
+  });
+  (magnets.magnets_below || []).slice(0, 3).forEach((magnet, index) => {
+    const normalized = normalizeMagnet(magnet, "below");
+    if (normalized) out.push({ ...normalized, side: "below", nearest: false, label: `Below ${index + 1}` });
+  });
+
+  const seen = new Set();
+  return out.filter((line) => {
+    const key = `${line.side}-${Math.round(line.price * 10)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function distanceFrom(current, target) {
+  const cur = toNumber(current);
+  const tgt = toNumber(target);
+  if (cur == null || tgt == null || cur === 0) return "—";
+  const pct = ((tgt - cur) / cur) * 100;
+  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`;
+}
+
+function zoneLabel(zone) {
+  if (!zone) return null;
+  return `${formatPrice(zone.low)}–${formatPrice(zone.high)}`;
+}
+
+function getLiquidityConfidence(report) {
+  const liquidity = getLiquidity(report);
+  const magnets = getMagnets(report);
+  const confidence = toNumber(liquidity.model_confidence ?? magnets.model_confidence);
+  if (confidence != null) return `${Math.round(confidence * 100)}% confidence`;
+  return readable(magnets.confidence_label || liquidity.status || "model");
+}
+
+function buildProjection(report, lastPrice, zones) {
+  if (!report) return null;
+  const tactical = getHorizon(report, "24h") || {};
+  const swing = getHorizon(report, "72h") || {};
+  const cycle = getHorizon(report, "cycle") || {};
+  const direction = String(tactical.direction || "neutral").toLowerCase();
+  const directionLabelText = directionLabel(direction);
+  const priceRow = getRow(report, "price_action");
+  const liquidityRow = getRow(report, "liquidity");
+  const priceScore = rowScore(priceRow, "24h");
+  const liquidityScore = rowScore(liquidityRow, "24h");
+  const magnets = getMagnets(report);
+  const nearestAbove = normalizeMagnet(magnets.nearest_above, "above");
+  const nearestBelow = normalizeMagnet(magnets.nearest_below, "below");
+  const demand = zones?.demand;
+  const fair = zones?.fair_value;
+  const supply = zones?.supply;
+
+  let target = null;
+  let secondaryTarget = null;
+  let reactionLabel = null;
+  let reactionWhy = null;
+  let invalidation = null;
+  let explanation = "Compass is waiting for enough directional evidence to project a cleaner touch area.";
+
+  if (direction === "bearish") {
+    target = nearestBelow?.price ?? demand?.high ?? demand?.low ?? null;
+    secondaryTarget = demand?.low ?? null;
+    reactionLabel = zoneLabel(demand) || (nearestBelow ? formatPrice(nearestBelow.price) : null);
+    reactionWhy = demand?.liquidity_note || demand?.why || "nearest downside magnet / demand reaction area";
+    invalidation = supply ? `Clean hold above ${formatPrice(supply.low)}` : (nearestAbove ? `Acceptance above ${formatPrice(nearestAbove.price)}` : null);
+    explanation = `The 24h read is bearish at ${tactical.confidence ?? "—"}% confidence. If sellers keep control, the first realistic touch is ${target ? formatPrice(target) : "the nearest downside magnet"}; below that, demand at ${reactionLabel || "the lower zone"} becomes the reaction area.`;
+  } else if (direction === "bullish") {
+    target = nearestAbove?.price ?? supply?.low ?? supply?.high ?? null;
+    secondaryTarget = supply?.high ?? null;
+    reactionLabel = zoneLabel(supply) || (nearestAbove ? formatPrice(nearestAbove.price) : null);
+    reactionWhy = supply?.liquidity_note || supply?.why || "nearest upside magnet / supply reaction area";
+    invalidation = demand ? `Lose ${formatPrice(demand.high)}` : (nearestBelow ? `Acceptance below ${formatPrice(nearestBelow.price)}` : null);
+    explanation = `The 24h read is bullish at ${tactical.confidence ?? "—"}% confidence. If bids stay in control, the first realistic touch is ${target ? formatPrice(target) : "the nearest upside magnet"}; above that, supply at ${reactionLabel || "the upper zone"} becomes the next reaction area.`;
+  } else {
+    const aboveDistance = nearestAbove?.price && lastPrice ? Math.abs(nearestAbove.price - lastPrice) : Infinity;
+    const belowDistance = nearestBelow?.price && lastPrice ? Math.abs(lastPrice - nearestBelow.price) : Infinity;
+    target = aboveDistance <= belowDistance ? nearestAbove?.price : nearestBelow?.price;
+    secondaryTarget = aboveDistance <= belowDistance ? nearestBelow?.price : nearestAbove?.price;
+    reactionLabel = fair ? zoneLabel(fair) : "range midpoint";
+    reactionWhy = fair?.why || "neutral read favors range confirmation before directional follow-through";
+    invalidation = demand && supply ? `Break outside ${formatPrice(demand.low)} / ${formatPrice(supply.high)}` : null;
+    explanation = `The 24h read is neutral at ${tactical.confidence ?? "—"}% confidence. The chart should be treated as a range map first: nearest magnet touch is more important than forcing direction.`;
+  }
+
+  const reasons = [
+    {
+      label: "24h stance",
+      value: `${directionLabelText} with ${tactical.confidence ?? "—"}% confidence; 72h is ${directionLabel(swing.direction)} and holder context is ${directionLabel(cycle.direction)}.`,
+    },
+    priceRow && {
+      label: "Price action",
+      value: `${directionLabel(priceScore.direction)}: ${firstEvidence(priceRow) || priceRow.rationale || "latest candle/range evidence"}.`,
+    },
+    liquidityRow && {
+      label: "Liquidity",
+      value: `${directionLabel(liquidityScore.direction)}: ${firstEvidence(liquidityRow) || liquidityRow.rationale || "magnet evidence available"}.`,
+    },
+    {
+      label: "Magnet distance",
+      value: `Above ${nearestAbove ? `${formatPrice(nearestAbove.price)} (${distanceFrom(lastPrice, nearestAbove.price)})` : "—"}; below ${nearestBelow ? `${formatPrice(nearestBelow.price)} (${distanceFrom(lastPrice, nearestBelow.price)})` : "—"}.`,
+    },
+  ].filter(Boolean);
+
+  return {
+    direction,
+    directionLabel: directionLabelText,
+    horizonLabel: "24h projection",
+    title: `${directionLabelText} read: potential touch ${target ? formatPrice(target) : "not ready"}`,
+    explanation,
+    reasons,
+    target,
+    secondaryTarget,
+    reactionLabel,
+    reactionWhy,
+    invalidation,
+    liquidityConfidence: getLiquidityConfidence(report),
+  };
 }
