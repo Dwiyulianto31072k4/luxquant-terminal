@@ -14,10 +14,12 @@ Authentication: Reuses existing patterns. Latest is public-readable for now;
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -35,6 +37,73 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _as_report_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _iso_datetime(value: Any) -> str | None:
+    if not value:
+        return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
+def _archive_item(row, pdf_status: dict[str, Any] | None = None, pdf_error: str | None = None) -> dict[str, Any]:
+    report_json = _as_report_dict(row.report_json)
+    verdict = report_json.get("verdict") or {}
+    tactical = verdict.get("tactical_24h") or {}
+    swing = verdict.get("secondary_7d") or {}
+    holder = verdict.get("primary_30d") or {}
+    event_risk = report_json.get("event_risk") or {}
+    liquidity = report_json.get("liquidity") or {}
+    magnets = liquidity.get("magnets") or {}
+    critique = report_json.get("critique") or {}
+
+    pdf_status = pdf_status or {}
+    return {
+        "id": row.id,
+        "report_id": row.report_id,
+        "timestamp": _iso_datetime(row.timestamp),
+        "btc_price": row.btc_price,
+        "headline": row.bluf_text or verdict.get("headline"),
+        "summary": verdict.get("narrative"),
+        "tactical_24h": {
+            "direction": row.tactical_direction_24h or tactical.get("direction"),
+            "confidence": row.tactical_confidence_24h or tactical.get("confidence"),
+            "rationale": tactical.get("rationale"),
+        },
+        "swing_72h": {
+            "direction": row.secondary_direction_7d or swing.get("direction"),
+            "confidence": row.secondary_confidence_7d or swing.get("confidence"),
+        },
+        "holder_context": {
+            "direction": row.primary_direction_30d or holder.get("direction"),
+            "confidence": row.primary_confidence_30d or holder.get("confidence"),
+        },
+        "event_risk": event_risk.get("risk_level") or "unknown",
+        "liquidity_status": liquidity.get("status") or ("available" if liquidity.get("available") else "unknown"),
+        "nearest_magnet_above": (magnets.get("nearest_above") or {}).get("price") if isinstance(magnets.get("nearest_above"), dict) else magnets.get("nearest_above"),
+        "nearest_magnet_below": (magnets.get("nearest_below") or {}).get("price") if isinstance(magnets.get("nearest_below"), dict) else magnets.get("nearest_below"),
+        "critique_decision": row.critique_decision or critique.get("decision"),
+        "is_anomaly_triggered": row.is_anomaly_triggered,
+        "pdf_ready": bool(pdf_status.get("pdf_ready")),
+        "pdf_size_bytes": pdf_status.get("pdf_size_bytes"),
+        "pdf_filename": pdf_status.get("pdf_filename"),
+        "pdf_error": pdf_error,
+        "pdf_url": f"/api/v1/ai-arena/v6/reports/{row.report_id}/pdf",
+    }
+
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -65,7 +134,7 @@ def get_latest_report(db: Session = Depends(get_db)) -> dict[str, Any]:
 
     from app.services.compass_dashboard_health import build_dashboard_health
 
-    report_json = row.report_json or {}
+    report_json = _as_report_dict(row.report_json)
     return {
         "id": row.id,
         "report_id": row.report_id,
@@ -97,6 +166,97 @@ def get_latest_report(db: Session = Depends(get_db)) -> dict[str, Any]:
         ),
         "report": report_json,
     }
+
+
+
+
+# ════════════════════════════════════════════════════════════════════════
+# GET /report-archive + GET /reports/{report_id}/pdf
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/report-archive")
+def get_report_archive(
+    limit: int = Query(18, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """Return recent Compass reports and their archived PDF status."""
+    sql = text("""
+        SELECT
+            id, report_id, timestamp, btc_price,
+            primary_direction_30d, primary_confidence_30d,
+            secondary_direction_7d, secondary_confidence_7d,
+            tactical_direction_24h, tactical_confidence_24h,
+            cycle_score, cycle_phase,
+            critique_decision, bluf_text,
+            is_anomaly_triggered, report_json
+        FROM ai_arena_reports
+        WHERE schema_version = 'v6.1'
+        ORDER BY timestamp DESC
+        LIMIT :limit
+    """)
+    rows = db.execute(sql, {"limit": limit}).all()
+
+    items = []
+    for row in rows:
+        pdf_status = None
+        pdf_error = None
+        try:
+            from app.services.compass_report_pdf import ensure_report_pdf, report_pdf_status
+
+            ensure_report_pdf(row.report_id, row.report_json or {}, report_timestamp=row.timestamp)
+            pdf_status = report_pdf_status(row.report_id)
+        except Exception as exc:  # keep catalog usable even if PDF dependency is not installed yet
+            pdf_error = type(exc).__name__
+        items.append(_archive_item(row, pdf_status=pdf_status, pdf_error=pdf_error))
+
+    return {
+        "count": len(items),
+        "limit": limit,
+        "items": items,
+    }
+
+
+@router.get("/reports/{report_id}/pdf")
+def get_report_pdf(
+    report_id: str,
+    force: bool = Query(False),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_subscription),
+):
+    """Open one archived Compass report as an inline PDF."""
+    sql = text("""
+        SELECT id, report_id, timestamp, report_json
+        FROM ai_arena_reports
+        WHERE schema_version = 'v6.1'
+          AND report_id = :report_id
+        LIMIT 1
+    """)
+    row = db.execute(sql, {"report_id": report_id}).first()
+    if not row:
+        raise HTTPException(404, "Compass report not found")
+
+    try:
+        from app.services.compass_report_pdf import ensure_report_pdf
+
+        path = ensure_report_pdf(
+            row.report_id,
+            row.report_json or {},
+            report_timestamp=row.timestamp,
+            force=force,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            503,
+            f"Compass PDF report is not ready yet: {type(exc).__name__}",
+        ) from exc
+
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=path.name,
+        content_disposition_type="inline",
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════

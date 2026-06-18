@@ -75,6 +75,27 @@ export async function getOperationalHealth() {
 }
 
 /**
+ * Fetch archived Compass reports with PDF status.
+ */
+export async function getReportArchive({ limit = 18 } = {}) {
+  const { data } = await api.get(`${V6_BASE}/report-archive`, {
+    params: { limit },
+  });
+  return data;
+}
+
+/**
+ * Fetch a single Compass PDF as a Blob for authenticated in-page preview.
+ */
+export async function getReportPdfBlob(reportId, { force = false } = {}) {
+  const { data } = await api.get(`${V6_BASE}/reports/${encodeURIComponent(reportId)}/pdf`, {
+    params: force ? { force: true } : {},
+    responseType: 'blob',
+  });
+  return data;
+}
+
+/**
  * Fetch chart data for the embedded price chart.
  * Reuses v4 endpoint /api/v1/ai-arena/chart-data.
  * @param {string} tf - '1D' | '4H' | '1H'
@@ -92,5 +113,7 @@ export default {
   getLiquidityValidation,
   getEventRisk,
   getOperationalHealth,
+  getReportArchive,
+  getReportPdfBlob,
   getChartData,
 };

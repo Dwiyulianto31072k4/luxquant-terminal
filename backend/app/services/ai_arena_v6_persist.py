@@ -155,9 +155,24 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
 
         db.commit()
 
+        try:
+            from app.services.compass_report_pdf import ensure_report_pdf
+
+            ensure_report_pdf(
+                bundle.report_id,
+                bundle.model_dump(mode="json"),
+                report_timestamp=called_at,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Compass PDF archive generation skipped for %s (%s)",
+                bundle.report_id,
+                type(exc).__name__,
+            )
+
         logger.info(
             f"Persisted v6 report {bundle.report_id} (pk={report_pk}) "
-            f"+ 4 pending outcomes"
+            f"+ {len(outcomes_to_create)} pending outcomes"
         )
         return report_pk
 

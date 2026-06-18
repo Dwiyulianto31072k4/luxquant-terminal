@@ -23,6 +23,7 @@ ccxt==4.2.25
 numpy==1.26.3
 pandas==2.2.0
 ta==0.11.0
+reportlab==4.2.5
 
 # AI & Jobs
 openai==1.12.0
