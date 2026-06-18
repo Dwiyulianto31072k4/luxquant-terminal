@@ -49,6 +49,7 @@ const getTypeToken = (type, data) => {
     watchlist_update: { tone: "gold",    label: "WATCH" },
     sub_expiry:       { tone: "danger",  label: "EXPIRY" },
     admin_broadcast:  { tone: "neutral", label: "BROADCAST" },
+    coin_called:      { tone: "gold",    label: "CALLED" },
   };
   return map[type] || { tone: "neutral", label: "INFO" };
 };
@@ -109,6 +110,7 @@ const NotificationsPage = () => {
     { key: "watchlist_update", label: t("notifications.type_watchlist_update") || "Watchlist" },
     { key: "sub_expiry",       label: t("notifications.type_sub_expiry") || "Expiry" },
     { key: "admin_broadcast",  label: t("notifications.type_admin_broadcast") || "Broadcast" },
+    { key: "coin_called",      label: t("notifications.type_coin_called") || "Watchlist Calls" },
   ];
 
   // ── Fetch ──
@@ -174,7 +176,7 @@ const NotificationsPage = () => {
 
   const handleNotificationClick = (notif) => {
     if (!notif.is_read) handleMarkAsRead(notif.id);
-    if (notif.type === "btcdom_call" || notif.type === "watchlist_update") navigate("/signals");
+    if (notif.type === "btcdom_call" || notif.type === "watchlist_update" || notif.type === "coin_called") navigate("/signals");
     else if (notif.type === "daily_results") navigate("/analytics");
     else if (notif.type === "sub_expiry") navigate("/pricing");
   };

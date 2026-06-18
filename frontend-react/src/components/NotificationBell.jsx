@@ -31,6 +31,7 @@ const getTypeToken = (type, data) => {
     watchlist_update: { tone: "gold",    label: "WATCH" },
     sub_expiry:       { tone: "danger",  label: "EXPIRY" },
     admin_broadcast:  { tone: "neutral", label: "BROADCAST" },
+    coin_called:      { tone: "gold",    label: "CALLED" },
   };
   return map[type] || { tone: "neutral", label: "INFO" };
 };
@@ -151,6 +152,7 @@ const NotificationBell = () => {
       navigate("/signals");
     else if (notif.type === "daily_results") navigate("/analytics");
     else if (notif.type === "sub_expiry") navigate("/pricing");
+    else if (notif.type === "coin_called") navigate("/signals");
     else navigate("/notifications");
   };
 

@@ -24,6 +24,7 @@ export const notificationsEn = {
   type_watchlist_update: "Watchlist",
   type_sub_expiry: "Subscription",
   type_admin_broadcast: "Announcement",
+  type_coin_called: "Watchlist Calls",
   // Notification content
   price_up: "price surged",
   price_down: "price dropped",
@@ -68,6 +69,7 @@ export const notificationsZh = {
   type_watchlist_update: "自选列表",
   type_sub_expiry: "订阅",
   type_admin_broadcast: "公告",
+  type_coin_called: "自选币呼叫",
   // Notification content
   price_up: "价格飙升",
   price_down: "价格下跌",
