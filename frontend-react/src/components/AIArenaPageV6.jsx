@@ -26,6 +26,7 @@ import {
   getModelCalibration,
   getLiquidityValidation,
   getEventRisk,
+  getOperationalHealth,
 } from "../services/aiArenaV6Api";
 
 // V6 components — Batch 1
@@ -53,6 +54,7 @@ import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
 import EvidenceMatrixPanel from "./aiArenaV6/EvidenceMatrixPanel";
 import ModelCalibrationPanel from "./aiArenaV6/ModelCalibrationPanel";
 import DecisionContextPanel from "./aiArenaV6/DecisionContextPanel";
+import OperationalStatusPanel from "./aiArenaV6/OperationalStatusPanel";
 
 // ─────────────────────────────────────────────────────────────────────
 // Placeholder for Price Chart (Batch 2 Turn 2)
@@ -205,6 +207,7 @@ export default function AIArenaPageV6() {
   const [modelCalibration, setModelCalibration] = useState(null);
   const [liquidityValidation, setLiquidityValidation] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
+  const [operationalHealth, setOperationalHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -218,13 +221,22 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [latestRes, ledgerRes, trackRes, calibrationRes, liquidityRes, eventRiskRes] = await Promise.allSettled([
+      const [
+        latestRes,
+        ledgerRes,
+        trackRes,
+        calibrationRes,
+        liquidityRes,
+        eventRiskRes,
+        operationalRes,
+      ] = await Promise.allSettled([
         getLatestReport(),
         getLedger({ days: 14 }),
         getTrackRecord({ days: 30 }),
         getModelCalibration({ days: 90 }),
         getLiquidityValidation({ limit: 25 }),
         getEventRisk(),
+        getOperationalHealth(),
       ]);
 
       if (latestRes.status === "fulfilled") {
@@ -270,6 +282,13 @@ export default function AIArenaPageV6() {
       } else {
         console.warn("[v6] event-risk fetch failed:", eventRiskRes.reason);
         setEventRisk(null);
+      }
+
+      if (operationalRes.status === "fulfilled") {
+        setOperationalHealth(operationalRes.value);
+      } else {
+        console.warn("[v6] operational health fetch failed:", operationalRes.reason);
+        setOperationalHealth(null);
       }
     } catch (e) {
       console.error("[v6] load error:", e);
@@ -335,6 +354,9 @@ export default function AIArenaPageV6() {
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
         />
+
+        {/* Phase 7: runtime alerts and runbook-backed monitoring */}
+        <OperationalStatusPanel data={operationalHealth} />
 
         {/* Phase 6: evidence and data health before narrative interpretation */}
         <DecisionContextPanel data={dashboardHealth} />

@@ -67,6 +67,14 @@ export async function getEventRisk() {
 }
 
 /**
+ * Fetch Phase 7 operational health, alert rules, and runbook references.
+ */
+export async function getOperationalHealth() {
+  const { data } = await api.get(`${V6_BASE}/operational-health`);
+  return data;
+}
+
+/**
  * Fetch chart data for the embedded price chart.
  * Reuses v4 endpoint /api/v1/ai-arena/chart-data.
  * @param {string} tf - '1D' | '4H' | '1H'
@@ -83,5 +91,6 @@ export default {
   getModelCalibration,
   getLiquidityValidation,
   getEventRisk,
+  getOperationalHealth,
   getChartData,
 };

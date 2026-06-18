@@ -200,3 +200,23 @@ remains available for audit.
 Phase 6 has `decision_authority=false`. It does not modify verdict direction or
 confidence. Its role is to make the limits of the current reading visible before
 the user reaches the AI narrative.
+
+## Phase 7 Monitoring Alerts And Runbooks
+
+Phase 7 adds an operational-health contract for the Compass runtime. It watches
+service availability, Redis, report freshness, dashboard-health generation,
+evidence source health, scheduled report generation, outcome evaluation, and
+the liquidation-validation stream.
+
+The operational contract publishes:
+
+- one overall runtime status: `healthy`, `degraded`, or `critical`;
+- check-level status, severity, detail, metadata, and runbook key;
+- active alerts derived from unhealthy checks;
+- latest report identity and dashboard-health status;
+- stale and expired report thresholds;
+- a stable link to `docs/compass-operational-runbook.md`.
+
+Phase 7 has `decision_authority=false`. Operational health can warn that the
+current read should not be trusted as fresh, but it cannot change market
+direction, confidence, zones, invalidation, or narrative conclusions.

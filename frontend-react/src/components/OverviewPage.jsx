@@ -296,7 +296,7 @@ const OverviewPage = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-center mb-4">
-                      <span className="font-mono text-3xl lg:text-4xl font-light text-white tabular-nums leading-none">{data.fearGreed.value}</span>
+                      <span className="font-mono text-3xl lg:text-4xl font-light tabular-nums leading-none" style={{ color: fgStroke(data.fearGreed.value) }}>{data.fearGreed.value}</span>
                       <span className="font-mono text-[9px] uppercase tracking-[0.2em] mt-1" style={{ color: fgStroke(data.fearGreed.value) }}>{data.fearGreed.label}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-3 w-full">
@@ -308,7 +308,7 @@ const OverviewPage = () => {
                           color: data.fearGreed.value > data.fearGreed.lastWeek ? '#56c996'
                             : data.fearGreed.value < data.fearGreed.lastWeek ? '#e07288' : '#a59585'
                         }}>
-                          {data.fearGreed.value > data.fearGreed.lastWeek ? `↑ ${t('overview.up')}` : data.fearGreed.value < data.fearGreed.lastWeek ? `↓ ${t('overview.down')}` : `— ${t('overview.flat')}`}
+                          {data.fearGreed.value > data.fearGreed.lastWeek ? t('overview.up') : data.fearGreed.value < data.fearGreed.lastWeek ? t('overview.down') : t('overview.flat')}
                         </p>
                       </div>
                     </div>
@@ -441,28 +441,34 @@ const DerivativesPulseCard = ({ data, t }) => {
         {/* LONG/SHORT BARS */}
         {ls && (
           <div className="mb-4 space-y-3">
-            {Object.entries(ls).map(([sym, val]) => (
-              <div key={sym}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-mono text-xs text-white">{sym}</span>
-                  <div className="flex items-center gap-2 font-mono text-[10px] tabular-nums">
-                    <span className="flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-profit" />
-                      <span className="text-profit">{val.long}%</span>
-                    </span>
-                    <span className="text-text-muted">/</span>
-                    <span className="flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-loss" />
-                      <span className="text-loss">{val.short}%</span>
+            <div className="flex items-center gap-3 font-mono text-[8px] uppercase tracking-wider text-text-muted/70">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-profit" />Long</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-loss" />Short</span>
+            </div>
+            {Object.entries(ls).map(([sym, val]) => {
+              const longPct = Number(val.long) || 0;
+              const shortPct = Number(val.short) || 0;
+              const netLong = longPct >= shortPct;
+              return (
+                <div key={sym}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-xs text-white font-semibold">{sym}</span>
+                    <span className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${netLong ? 'text-profit border-profit/30 bg-profit/10' : 'text-loss border-loss/30 bg-loss/10'}`}>
+                      {netLong ? 'Net Long' : 'Net Short'}
                     </span>
                   </div>
+                  <div className="relative flex h-3.5 overflow-hidden rounded-md bg-white/[0.04]">
+                    <div className="bg-gradient-to-r from-profit/70 to-profit flex items-center pl-1.5 transition-all duration-700" style={{ width: `${longPct}%` }}>
+                      {longPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{longPct}%</span>}
+                    </div>
+                    <div className="bg-gradient-to-l from-loss/70 to-loss flex items-center justify-end pr-1.5 transition-all duration-700" style={{ width: `${shortPct}%` }}>
+                      {shortPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{shortPct}%</span>}
+                    </div>
+                    <span className="absolute inset-y-0 left-1/2 w-px bg-white/15 pointer-events-none" />
+                  </div>
                 </div>
-                <div className="flex h-1.5 overflow-hidden bg-white/[0.04] rounded-full">
-                  <div className="bg-profit transition-all duration-700" style={{ width: `${val.long}%` }} />
-                  <div className="bg-loss transition-all duration-700" style={{ width: `${val.short}%` }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -470,7 +476,7 @@ const DerivativesPulseCard = ({ data, t }) => {
         {oi && (
           <div className="flex justify-between items-center py-2.5 px-3 bg-white/[0.02] border border-white/[0.06] mb-3 rounded-lg">
             <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.total_oi')}</span>
-            <span className="text-white font-mono text-sm tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
+            <span className="text-gold-primary font-mono text-base font-light tabular-nums">{formatLargeNumber(oi.total_usd)}</span>
           </div>
         )}
 

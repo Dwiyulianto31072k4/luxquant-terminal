@@ -235,3 +235,17 @@ async def get_event_risk(
     from app.services.compass_event_risk import get_event_risk_snapshot
 
     return await get_event_risk_snapshot()
+
+# ════════════════════════════════════════════════════════════════════════
+# GET /operational-health
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/operational-health")
+def get_compass_operational_health(
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """Return Phase 7 runtime health, alerts, and runbook references."""
+    from app.services.compass_operational_health import get_operational_health
+
+    return get_operational_health(db)
