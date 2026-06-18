@@ -40,12 +40,14 @@ from app.api.routes import ai_arena
 from app.api.routes import ai_arena_v6
 from app.api.routes import enrichment_v3
 from app.api.routes import btc_correlation
+from app.api.routes import og_share
 from app.api.routes.autotrade import router as autotrade_router
 from app.api.routes.autotrade_auth import router as autotrade_auth_router 
 
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
+from app.api.routes.coin_watch import router as coin_watch_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
 from app.api.routes.crypto_news_endpoint import router as crypto_news_feed_router
@@ -152,10 +154,12 @@ app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
 app.include_router(public_analytics.router, prefix="/api/public/v1", tags=["public-analytics"])
 app.include_router(btc_correlation.router, prefix="/api/v1/signals", tags=["btc-correlation"])
+app.include_router(og_share.router, prefix="/api/v1", tags=["og-share"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(market_overview.router, prefix="/api/v1/market", tags=["market-overview"])
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(watchlist.router, prefix="/api/v1", tags=["watchlist"])
+app.include_router(coin_watch_router, prefix="/api/v1", tags=["coin-watch"])
 app.include_router(coingecko.router, prefix="/api/v1/coingecko", tags=["coingecko"])
 app.include_router(tips.router, prefix="/api/v1", tags=["tips"])
 app.include_router(telegram_auth_router, prefix="/api/v1")

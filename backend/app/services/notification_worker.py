@@ -256,6 +256,64 @@ def generate_subscription_expiry_notifications(db):
     return created
 
 
+def generate_coin_called_notifications(db):
+    """
+    Check for NEW signal calls on coins in any user's coin_watch (waitlist).
+    Creates per-user notifications when a watched coin gets called.
+    Only notifies for calls created AFTER the user started watching the coin,
+    so adding a coin doesn't backfill old/already-open signals.
+    Uses source_type='signal', source_id=signal_id, type='coin_called'.
+    """
+    created = 0
+
+    rows = db.execute(text("""
+        SELECT DISTINCT cw.user_id, s.signal_id, s.pair, s.entry, s.risk_level
+        FROM coin_watch cw
+        JOIN signals s ON s.pair = cw.symbol
+        WHERE s.status = 'open'
+          AND s.created_at::timestamptz >= cw.created_at
+          AND NOT EXISTS (
+              SELECT 1 FROM notifications n
+              WHERE n.user_id = cw.user_id
+              AND n.source_type = 'signal'
+              AND n.source_id = s.signal_id
+              AND n.type = 'coin_called'
+          )
+        ORDER BY cw.user_id ASC
+    """)).fetchall()
+
+    for r in rows:
+        user_id, signal_id, pair, entry, risk_level = r
+
+        coin = (pair or "").replace("USDT", "") or pair
+        entry_str = f"{float(entry)}" if entry is not None else "N/A"
+        title = f"{coin} has been called"
+        body = f"A coin on your watchlist just got a new signal. Entry {entry_str}, risk {risk_level or 'N/A'}."
+        data = {
+            "signal_id": signal_id,
+            "pair": pair,
+            "entry": float(entry) if entry is not None else None,
+            "risk_level": risk_level,
+        }
+
+        db.execute(text("""
+            INSERT INTO notifications (user_id, type, title, body, data, source_type, source_id, created_at)
+            VALUES (:user_id, 'coin_called', :title, :body, :data, 'signal', :source_id, NOW())
+            ON CONFLICT DO NOTHING
+        """), {
+            "user_id": user_id,
+            "title": title,
+            "body": body,
+            "data": json.dumps(data),
+            "source_id": signal_id,
+        })
+        created += 1
+
+    if created > 0:
+        db.commit()
+    return created
+
+
 # ============================================
 # CLEANUP OLD NOTIFICATIONS
 # ============================================
@@ -292,12 +350,13 @@ async def notification_worker_loop():
                 btcdom_count = generate_btcdom_notifications(db)
                 wl_count = generate_watchlist_notifications(db)
                 sub_count = generate_subscription_expiry_notifications(db)
+                cc_count = generate_coin_called_notifications(db)
 
-                total = cm_count + btcdom_count + wl_count + sub_count
+                total = cm_count + btcdom_count + wl_count + sub_count + cc_count
                 elapsed = round((time.time() - start) * 1000)
 
                 if total > 0:
-                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub) in {elapsed}ms")
+                    print(f"🔔 Notifications: +{total} new ({cm_count} channel, {btcdom_count} btcdom, {wl_count} watchlist, {sub_count} sub, {cc_count} coin) in {elapsed}ms")
 
                 # Cleanup every hour (check via Redis flag)
                 if is_redis_available():
