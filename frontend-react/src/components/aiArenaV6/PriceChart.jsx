@@ -371,7 +371,7 @@ export default function PriceChart() {
               </Tooltip>
             </div>
             <p className="text-text-muted text-[10px] lg:text-xs mt-0.5">
-              BTCUSDT · candles + EMAs + liquidation magnets
+              BTC price action with trend and key zones
             </p>
           </div>
         </div>

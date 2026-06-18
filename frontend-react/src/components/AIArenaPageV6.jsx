@@ -1,149 +1,76 @@
-// frontend-react/src/components/AIArenaPageV6.jsx
-/**
- * AI Arena v6 — Main Page
- * =======================
- * Wires together all v6 components.
- *
- * BATCH 2 TURN 1: 4 placeholders replaced with real components
- *   - Triple Screen   ✓
- *   - Zones to Watch  ✓
- *   - What Changed    ✓
- *   - Risk Watch      ✓
- *
- * Still placeholder (Batch 2 Turn 2):
- *   - Price Chart (uses lightweight-charts)
- *
- * Layout: Hero → Cycle → [Price Chart placeholder] → Triple Screen
- *      → Zones → Confluence → Reasoning → What Changed
- *      → Ledger → Risk Watch
- */
-
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  getLatestReport,
-  getLedger,
-  getTrackRecord,
-  getModelCalibration,
-  getLiquidityValidation,
   getEventRisk,
+  getLatestReport,
   getOperationalHealth,
 } from "../services/aiArenaV6Api";
 
-// V6 components — Batch 1
-import VerdictHero from "./aiArenaV6/VerdictHero";
-import CycleCompass from "./aiArenaV6/CycleCompass";
-import ThreeLayerConfluence from "./aiArenaV6/ThreeLayerConfluence";
-import AIReasoningWalkthrough from "./aiArenaV6/AIReasoningWalkthrough";
-import VerdictLedger from "./aiArenaV6/VerdictLedger";
-
-// V6 components — Batch 2 Turn 1 (NEW)
-import TripleScreen from "./aiArenaV6/TripleScreen";
-import ZonesToWatch from "./aiArenaV6/ZonesToWatch";
-import WhatChanged from "./aiArenaV6/WhatChanged";
-import RiskWatch from "./aiArenaV6/RiskWatch";
-
-// V6 components — Batch 2 Turn 2 (NEW — final)
+import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
 
-// V6 components — v6.2 (NEW — adopted from v4)
-import HeaderStatStrip from "./aiArenaV6/HeaderStatStrip";
-import InstitutionalFlowRadar from "./aiArenaV6/InstitutionalFlowRadar";
-import MacroPulse from "./aiArenaV6/MacroPulse";
-import LiquidityValidationPanel from "./aiArenaV6/LiquidityValidationPanel";
-import EventRiskPanel from "./aiArenaV6/EventRiskPanel";
-import EvidenceMatrixPanel from "./aiArenaV6/EvidenceMatrixPanel";
-import ModelCalibrationPanel from "./aiArenaV6/ModelCalibrationPanel";
-import DecisionContextPanel from "./aiArenaV6/DecisionContextPanel";
-import OperationalStatusPanel from "./aiArenaV6/OperationalStatusPanel";
-
-// ─────────────────────────────────────────────────────────────────────
-// Placeholder for Price Chart (Batch 2 Turn 2)
-// ─────────────────────────────────────────────────────────────────────
-function PlaceholderSection({ title, note }) {
-  return (
-    <section className="mb-8">
-      <div className="flex items-baseline justify-between mb-4">
-        <h2
-          className="text-2xl text-white/90"
-          style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 500,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {title}
-        </h2>
-        <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-white/40">
-          Coming next
-        </span>
-      </div>
-      <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-8 text-center">
-        <p className="text-white/40 text-sm italic mb-1">
-          {note || "Component pending generation"}
-        </p>
-        <p className="text-[11px] font-mono text-white/25">
-          Backend data is ready, UI scaffold incoming
-        </p>
-      </div>
-    </section>
-  );
+function statusTone(status) {
+  const value = String(status || "").toLowerCase();
+  if (value === "healthy") {
+    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
+  }
+  if (value === "critical" || value === "unavailable") {
+    return "border-red-400/20 bg-red-400/10 text-red-300";
+  }
+  if (value === "degraded" || value === "stale") {
+    return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+  }
+  return "border-white/10 bg-white/5 text-white/45";
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Header
-// ─────────────────────────────────────────────────────────────────────
-function PageHeader({ report, onRefresh, refreshing }) {
-  const lastUpdate = report?.timestamp ? new Date(report.timestamp) : null;
-  const ageMin = lastUpdate
-    ? Math.round((Date.now() - lastUpdate.getTime()) / 60000)
-    : null;
+function formatAge(timestamp) {
+  if (!timestamp) return "not updated";
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return "not updated";
+  const minutes = Math.max(0, Math.round((Date.now() - parsed.getTime()) / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
 
-
+function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
   return (
-    <header className="mb-6 pb-4 border-b border-white/5">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <header className="border-b border-white/[0.06] pb-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-<span className="text-[10px] font-mono uppercase tracking-wider text-white/40">
-              BTC compass
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              BTC Compass
+            </span>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${statusTone(healthStatus)}`}
+            >
+              {healthStatus === "healthy" ? "Data healthy" : "Data needs check"}
             </span>
           </div>
-          <h1
-            className="text-3xl md:text-4xl text-white"
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 500,
-              letterSpacing: "-0.025em",
-            }}
-          >
-            AI Research
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl">
+            Market read, simplified
           </h1>
-          <p className="text-sm text-white/50 mt-1">
-            Multi-horizon synthesis of macro, derivatives, and on-chain
-            intelligence
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
+            Start with the stance, then read the reason, price areas, and
+            invalidation. Technical source detail stays behind the scenes.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-mono">
-          {ageMin !== null && (
-            <div className="text-right">
-              <div className="text-white/40 uppercase tracking-wider text-[10px]">
-                Last update
-              </div>
-              <div className="text-white/70">
-                {ageMin < 60
-                  ? `${ageMin}m ago`
-                  : `${Math.round(ageMin / 60)}h ago`}
-              </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right font-mono text-xs">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">
+              Updated
             </div>
-          )}
-<button
+            <div className="text-white/65">{formatAge(report?.timestamp)}</div>
+          </div>
+          <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="px-3 py-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-colors disabled:opacity-50 text-white/80"
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white/75 transition-colors hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50"
           >
-            {refreshing ? "..." : "↻ refresh"}
+            {refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </div>
@@ -151,44 +78,39 @@ function PageHeader({ report, onRefresh, refreshing }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Loading state
-// ─────────────────────────────────────────────────────────────────────
 function LoadingState() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="flex min-h-[60vh] items-center justify-center">
       <div className="text-center">
         <div
-          className="w-12 h-12 mx-auto mb-4 rounded-full border-2 animate-spin"
+          className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2"
           style={{
             borderColor: "rgba(255,255,255,0.1)",
-            borderTopColor: "#f5c451",
+            borderTopColor: "#d4a853",
           }}
         />
-        <p className="text-sm text-white/50 font-mono">
-          Loading AI Research v6...
+        <p className="font-mono text-sm text-white/45">
+          Building the latest Compass read...
         </p>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Error state
-// ─────────────────────────────────────────────────────────────────────
 function ErrorState({ error, onRetry }) {
   return (
-    <div className="min-h-[40vh] flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-4xl mb-3">⚠</div>
-        <h3 className="text-lg text-white/80 mb-2">Could not load report</h3>
-        <p className="text-sm text-white/50 mb-4 font-mono">
-          {error || "Unknown error"}
+    <div className="flex min-h-[45vh] items-center justify-center">
+      <div className="max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-6 text-center">
+        <h3 className="text-lg font-medium text-white/85">
+          Compass read could not load
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-white/45">
+          {error || "The latest market read is temporarily unavailable."}
         </p>
         <button
           type="button"
           onClick={onRetry}
-          className="px-4 py-2 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-white/80 text-sm"
+          className="mt-5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/75 hover:bg-white/[0.08]"
         >
           Try again
         </button>
@@ -197,15 +119,8 @@ function ErrorState({ error, onRetry }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Main page
-// ─────────────────────────────────────────────────────────────────────
 export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
-  const [ledger, setLedger] = useState(null);
-  const [trackRecord, setTrackRecord] = useState(null);
-  const [modelCalibration, setModelCalibration] = useState(null);
-  const [liquidityValidation, setLiquidityValidation] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
   const [operationalHealth, setOperationalHealth] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -221,78 +136,24 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [
-        latestRes,
-        ledgerRes,
-        trackRes,
-        calibrationRes,
-        liquidityRes,
-        eventRiskRes,
-        operationalRes,
-      ] = await Promise.allSettled([
+      const [latestRes, eventRiskRes, operationalRes] = await Promise.allSettled([
         getLatestReport(),
-        getLedger({ days: 14 }),
-        getTrackRecord({ days: 30 }),
-        getModelCalibration({ days: 90 }),
-        getLiquidityValidation({ limit: 25 }),
         getEventRisk(),
         getOperationalHealth(),
       ]);
 
-      if (latestRes.status === "fulfilled") {
-        setReport(latestRes.value);
-      } else {
+      if (latestRes.status !== "fulfilled") {
         throw latestRes.reason || new Error("Failed to load latest report");
       }
 
-      if (ledgerRes.status === "fulfilled") {
-        setLedger(ledgerRes.value);
-      } else {
-        console.warn("[v6] ledger fetch failed:", ledgerRes.reason);
-        setLedger({ items: [], count: 0 });
-      }
-
-      if (trackRes.status === "fulfilled") {
-        setTrackRecord(trackRes.value);
-      } else {
-        console.warn("[v6] track-record fetch failed:", trackRes.reason);
-        setTrackRecord({
-          window_days: 30,
-          horizons: {},
-          overall: { total: 0, hit: 0, miss: 0, hit_rate: null },
-        });
-      }
-
-      if (calibrationRes.status === "fulfilled") {
-        setModelCalibration(calibrationRes.value);
-      } else {
-        console.warn("[v6] model calibration fetch failed:", calibrationRes.reason);
-        setModelCalibration(null);
-      }
-
-      if (liquidityRes.status === "fulfilled") {
-        setLiquidityValidation(liquidityRes.value);
-      } else {
-        console.warn("[v6] liquidity validation fetch failed:", liquidityRes.reason);
-        setLiquidityValidation(null);
-      }
-
-      if (eventRiskRes.status === "fulfilled") {
-        setEventRisk(eventRiskRes.value);
-      } else {
-        console.warn("[v6] event-risk fetch failed:", eventRiskRes.reason);
-        setEventRisk(null);
-      }
-
-      if (operationalRes.status === "fulfilled") {
-        setOperationalHealth(operationalRes.value);
-      } else {
-        console.warn("[v6] operational health fetch failed:", operationalRes.reason);
-        setOperationalHealth(null);
-      }
-    } catch (e) {
-      console.error("[v6] load error:", e);
-      setError(e?.message || String(e));
+      setReport(latestRes.value);
+      setEventRisk(eventRiskRes.status === "fulfilled" ? eventRiskRes.value : null);
+      setOperationalHealth(
+        operationalRes.status === "fulfilled" ? operationalRes.value : null,
+      );
+    } catch (err) {
+      console.error("[v6] load error:", err);
+      setError(err?.message || String(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -303,11 +164,10 @@ export default function AIArenaPageV6() {
     loadAll(false);
   }, [loadAll]);
 
-  // ───── Render states ─────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
+      <div className="min-h-screen text-white">
+        <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
           <LoadingState />
         </div>
       </div>
@@ -316,29 +176,19 @@ export default function AIArenaPageV6() {
 
   if (error && !report) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
+      <div className="min-h-screen text-white">
+        <div className="mx-auto max-w-6xl px-4 py-8 md:px-6">
           <ErrorState error={error} onRetry={() => loadAll(false)} />
         </div>
       </div>
     );
   }
 
-  // ───── Pull v6 fields from response ─────
-  const innerReport = report?.report || {};
-  const layerBriefs = innerReport?.layer_briefs || {};
-  const overallSetup = layerBriefs?.overall_setup;
-  const verdict = innerReport?.verdict || {};
-  const reasoningChain = verdict?.reasoning_chain || [];
-  const critique = innerReport?.critique || null;
-
-  // Batch 2 fields
-  const tripleScreen = verdict?.triple_screen || [];
-  const zonesToWatch = verdict?.zones_to_watch || [];
-  const whatChanged = verdict?.what_changed || null;
-  const riskScenarios = verdict?.risk_scenarios || [];
-  const evidenceMatrix = innerReport?.evidence_matrix || null;
   const dashboardHealth = report?.dashboard_health || null;
+  const healthStatus =
+    operationalHealth?.status === "healthy" && dashboardHealth?.status === "healthy"
+      ? "healthy"
+      : operationalHealth?.status || dashboardHealth?.status || "unknown";
 
   return (
     <div
@@ -348,90 +198,40 @@ export default function AIArenaPageV6() {
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
     >
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-8">
+      <div className="mx-auto max-w-6xl space-y-7 px-4 py-8 md:px-6">
         <PageHeader
           report={report}
+          healthStatus={healthStatus}
           onRefresh={() => loadAll(true)}
           refreshing={refreshing}
         />
 
-        {/* Phase 7: runtime alerts and runbook-backed monitoring */}
-        <OperationalStatusPanel data={operationalHealth} />
-
-        {/* Phase 6: evidence and data health before narrative interpretation */}
-        <DecisionContextPanel data={dashboardHealth} />
-
-        {/* 1. Verdict Hero */}
-        <VerdictHero
+        <CompassBrief
           report={report}
-          btcPrice={report?.btc_price}
           dashboardHealth={dashboardHealth}
+          operationalHealth={operationalHealth}
+          eventRisk={eventRisk}
         />
 
-        {/* Phase 4 detail: deterministic evidence audit by horizon */}
-        <EvidenceMatrixPanel data={evidenceMatrix} />
+        <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
+          <div className="mb-4">
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              Price context
+            </div>
+            <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+              BTC chart
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-white/40">
+              Use the chart after reading the stance, not before. It is here to
+              confirm context, not to overload the first impression.
+            </p>
+          </div>
+          <PriceChart />
+        </section>
 
-        {/* 1b. Header Stat Strip — v6.2 (4 unique stats: F&G, Confluence, AI Verdict, Pipeline) */}
-        <HeaderStatStrip data={report} />
-        {/* 2. Cycle Compass */}
-        <CycleCompass report={report} />
-
-        {/* 3. Price Chart — Batch 2 Turn 2 — Lightweight Charts v5 */}
-        <PriceChart />
-
-        {/* Phase 2: estimated liquidation model validation */}
-        <LiquidityValidationPanel data={liquidityValidation} />
-
-        {/* 4. Triple Screen — NEW Batch 2 Turn 1 */}
-        <TripleScreen tripleScreen={tripleScreen} />
-
-        {/* 4b. Institutional Flow Radar — v6.2 (NEW) */}
-        <InstitutionalFlowRadar />
-        {/* 5. Zones to Watch — NEW Batch 2 Turn 1 */}
-        <ZonesToWatch
-          zones={zonesToWatch}
-          currentPrice={report?.btc_price}
-        />
-
-        {/* 6. Three-Layer Confluence */}
-        <ThreeLayerConfluence
-          layerBriefs={layerBriefs}
-          overallSetup={overallSetup}
-        />
-
-        {/* 6b. Macro Pulse — v6.2 (NEW) */}
-        <MacroPulse />
-
-        {/* Phase 3: structured headlines and scheduled event risk */}
-        <EventRiskPanel data={eventRisk} />
-
-        {/* 7. AI Reasoning Walkthrough */}
-        <AIReasoningWalkthrough
-          reasoningChain={reasoningChain}
-          critique={critique}
-        />
-
-        {/* 8. What Changed — NEW Batch 2 Turn 1 */}
-        <WhatChanged
-          whatChanged={whatChanged}
-          timestamp={report?.timestamp}
-        />
-
-        {/* 9. Verdict Ledger */}
-        <ModelCalibrationPanel data={modelCalibration} />
-
-        {/* 9b. Verdict history */}
-        <VerdictLedger trackRecord={trackRecord} ledger={ledger} />
-
-        {/* 10. Risk Watch — NEW Batch 2 Turn 1 */}
-        <RiskWatch riskScenarios={riskScenarios} />
-
-        {/* Footer */}
-        <footer className="mt-12 pt-6 border-t border-white/5 text-center">
-          <p className="text-[11px] font-mono text-white/30 leading-relaxed">
-            LuxQuant AI Research v6 · Multi-stage AI pipeline · Auto-refreshed
-            every 6 hours · Not
-            financial advice
+        <footer className="border-t border-white/[0.06] pt-6 text-center">
+          <p className="text-[11px] font-mono leading-relaxed text-white/30">
+            LuxQuant BTC Compass. Decision support only, not financial advice.
           </p>
         </footer>
       </div>
