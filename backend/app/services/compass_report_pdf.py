@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
+PDF_STYLE_VERSION = "v2"
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -41,7 +42,7 @@ def _safe_report_id(report_id: str) -> str:
 
 
 def report_pdf_path(report_id: str) -> Path:
-    return PDF_DIR / f"compass_{_safe_report_id(report_id)}.pdf"
+    return PDF_DIR / f"compass_{PDF_STYLE_VERSION}_{_safe_report_id(report_id)}.pdf"
 
 
 def _parse_timestamp(value: Any) -> datetime:
@@ -193,26 +194,27 @@ def _projection(report: dict[str, Any]) -> dict[str, str]:
 
 def _make_styles():
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
     base = getSampleStyleSheet()
     return {
         "title": ParagraphStyle(
             "CompassTitle",
-            parent=base["Title"],
+            parent=base["Heading1"],
             fontName="Helvetica-Bold",
-            fontSize=28,
-            leading=32,
+            fontSize=23,
+            leading=27,
             textColor=colors.HexColor("#f8fafc"),
-            spaceAfter=8,
+            alignment=TA_LEFT,
+            spaceAfter=7,
         ),
         "subtitle": ParagraphStyle(
             "CompassSubtitle",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=10.5,
-            leading=16,
+            fontSize=9.4,
+            leading=13.5,
             textColor=colors.HexColor("#a8a29e"),
             spaceAfter=12,
         ),
@@ -229,8 +231,8 @@ def _make_styles():
             "CompassSection",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=15,
-            leading=18,
+            fontSize=13.5,
+            leading=16,
             textColor=colors.HexColor("#f8fafc"),
             spaceBefore=8,
             spaceAfter=8,
@@ -239,24 +241,24 @@ def _make_styles():
             "CompassBody",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=9.2,
-            leading=13.5,
+            fontSize=8.6,
+            leading=12.5,
             textColor=colors.HexColor("#d6d3d1"),
         ),
         "muted": ParagraphStyle(
             "CompassMuted",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=8,
-            leading=11.5,
+            fontSize=7.5,
+            leading=10.5,
             textColor=colors.HexColor("#8b8580"),
         ),
         "metric": ParagraphStyle(
             "CompassMetric",
             parent=base["BodyText"],
             fontName="Helvetica-Bold",
-            fontSize=17,
-            leading=20,
+            fontSize=14.5,
+            leading=17,
             textColor=colors.HexColor("#f8fafc"),
         ),
         "small_center": ParagraphStyle(
@@ -285,14 +287,14 @@ def _card(title: str, value: str, detail: str, styles, accent: str = "#d4a853"):
     from reportlab.platypus import Table, TableStyle
 
     data = [[_p(title.upper(), styles["eyebrow"])], [_p(value, styles["metric"])], [_p(detail, styles["muted"])]]
-    table = Table(data, colWidths=[160], hAlign="LEFT")
+    table = Table(data, colWidths=[156], hAlign="LEFT")
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#141016")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#120d11")),
         ("BOX", (0, 0), (-1, -1), 0.7, colors.HexColor(accent)),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
     return table
 
@@ -306,15 +308,15 @@ def _table(rows: list[list[Any]], styles, col_widths: list[float] | None = None)
         prepared.append([cell if hasattr(cell, "wrap") else _p(cell, styles["body"]) for cell in row])
     table = Table(prepared, colWidths=col_widths, hAlign="LEFT", repeatRows=1 if len(prepared) > 1 else 0)
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#21151a")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#171014")),
         ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#e7e5e4")),
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#332025")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#2a2023")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 7),
         ("RIGHTPADDING", (0, 0), (-1, -1), 7),
         ("TOPPADDING", (0, 0), (-1, -1), 6),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#0d0d12"), colors.HexColor("#120d11")]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#0b090c"), colors.HexColor("#100c0f")]),
     ]))
     return table
 
@@ -324,15 +326,21 @@ def _page(canvas, doc):
 
     width, height = doc.pagesize
     canvas.saveState()
-    canvas.setFillColor(colors.HexColor("#080609"))
+    canvas.setFillColor(colors.HexColor("#070506"))
     canvas.rect(0, 0, width, height, fill=1, stroke=0)
-    canvas.setFillColor(colors.HexColor("#2b0d10"))
-    canvas.rect(0, height - 92, width, 92, fill=1, stroke=0)
+    canvas.setFillColor(colors.HexColor("#0f0a0d"))
+    canvas.rect(0, height - 48, width, 48, fill=1, stroke=0)
+    canvas.setFillColor(colors.HexColor("#3a1114"))
+    canvas.rect(0, height - 48, width, 3, fill=1, stroke=0)
+    canvas.setStrokeColor(colors.HexColor("#2a2023"))
+    canvas.setLineWidth(0.5)
+    canvas.line(doc.leftMargin, height - 48, width - doc.rightMargin, height - 48)
     canvas.setFillColor(colors.HexColor("#d4a853"))
-    canvas.setFont("Helvetica-Bold", 8)
-    canvas.drawString(doc.leftMargin, height - 32, "LUXQUANT BTC COMPASS")
+    canvas.setFont("Helvetica-Bold", 7.5)
+    canvas.drawString(doc.leftMargin, height - 27, "LUXQUANT BTC COMPASS")
     canvas.setFillColor(colors.HexColor("#8b8580"))
     canvas.setFont("Helvetica", 7)
+    canvas.drawRightString(width - doc.rightMargin, height - 27, "ARCHIVED MARKET READ")
     canvas.drawRightString(width - doc.rightMargin, 22, f"Page {doc.page}")
     canvas.drawString(doc.leftMargin, 22, "Decision support only. Not financial advice.")
     canvas.restoreState()
@@ -360,10 +368,10 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=A4,
-        rightMargin=18 * mm,
-        leftMargin=18 * mm,
-        topMargin=28 * mm,
-        bottomMargin=18 * mm,
+        rightMargin=16 * mm,
+        leftMargin=16 * mm,
+        topMargin=19 * mm,
+        bottomMargin=17 * mm,
         title=f"BTC Compass Report {report_id}",
         author="LuxQuant",
     )
@@ -380,7 +388,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         _card("24h trader read", _title((_as_dict(verdict.get("tactical_24h"))).get("direction")), f"{(_as_dict(verdict.get('tactical_24h'))).get('confidence', '-')}% confidence", styles, "#7f1d1d"),
         _card("72h swing", _title((_as_dict(verdict.get("secondary_7d"))).get("direction")), f"{(_as_dict(verdict.get('secondary_7d'))).get('confidence', '-')}% confidence", styles, "#854d0e"),
         _card("Holder context", _title((_as_dict(verdict.get("primary_30d"))).get("direction")), f"{(_as_dict(verdict.get('primary_30d'))).get('confidence', '-')}% confidence", styles, "#065f46"),
-    ]], colWidths=[170, 170, 170])
+    ]], colWidths=[166, 166, 166])
     cards.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
     story.append(cards)
     story.append(Spacer(1, 12))
@@ -393,7 +401,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         ["Reaction area", projection["reaction"]],
         ["Invalidation watch", projection["invalidation"]],
         ["Reason", projection["why"]],
-    ], styles, [120, 390]))
+    ], styles, [118, 376]))
     story.append(Spacer(1, 10))
 
     story.append(_p("Price Areas", styles["section"]))
@@ -407,7 +415,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         zone_rows.append([_title(zone.get("kind")), _zone_label(zone), detail])
     if len(zone_rows) == 1:
         zone_rows.append(["-", "-", "No zones recorded."])
-    story.append(_table(zone_rows, styles, [90, 120, 300]))
+    story.append(_table(zone_rows, styles, [80, 110, 304]))
 
     story.append(PageBreak())
     story.append(_p("Reasoning Breakdown", styles["section"]))
@@ -423,7 +431,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         ])
     if len(reasoning_rows) == 1:
         reasoning_rows.append(["-", "-", "-", "No reasoning chain recorded."])
-    story.append(_table(reasoning_rows, styles, [105, 135, 135, 135]))
+    story.append(_table(reasoning_rows, styles, [95, 130, 130, 139]))
     story.append(Spacer(1, 10))
 
     story.append(_p("Evidence Matrix", styles["section"]))
@@ -442,7 +450,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         ])
     if len(matrix_rows) == 1:
         matrix_rows.append(["-", "-", "-", "-", "No evidence matrix recorded."])
-    story.append(_table(matrix_rows, styles, [92, 72, 72, 45, 229]))
+    story.append(_table(matrix_rows, styles, [88, 70, 70, 42, 224]))
 
     story.append(PageBreak())
     story.append(_p("Liquidity And Event Risk", styles["section"]))
@@ -455,7 +463,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         ["Nearest magnet below", f"{_money(_magnet_price(magnets.get('nearest_below')))} ({_distance(report.get('btc_price'), _magnet_price(magnets.get('nearest_below')))})"],
         ["Event risk", _title(event_risk.get("risk_level"))],
         ["Current warning", _text((event_risk.get("warnings") or [event_risk.get("summary") or "-"])[0])],
-    ], styles, [135, 375]))
+    ], styles, [125, 369]))
     story.append(Spacer(1, 10))
 
     story.append(_p("News And Calendar Preview", styles["section"]))
@@ -470,7 +478,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
             news_rows.append(["Calendar", f"{title} - {when}", _title(item.get("impact") or item.get("importance") or "context")])
     if len(news_rows) == 1:
         news_rows.append(["-", "-", "No news/calendar items archived."])
-    story.append(_table(news_rows, styles, [75, 325, 110]))
+    story.append(_table(news_rows, styles, [70, 314, 110]))
 
     story.append(Spacer(1, 10))
     story.append(_p("Quality Audit", styles["section"]))
@@ -482,7 +490,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
     audit_rows.append(["Cycle context", f"Score {_score(cycle.get('score'))}; phase {_title(cycle.get('phase'))}"])
     if verdict.get("what_changed"):
         audit_rows.append(["Changed from previous read", _text(verdict.get("what_changed"))])
-    story.append(_table(audit_rows, styles, [135, 375]))
+    story.append(_table(audit_rows, styles, [125, 369]))
 
     doc.build(story, onFirstPage=_page, onLaterPages=_page)
 

@@ -385,41 +385,117 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
 function ReportPdfModal({ modal, onClose }) {
   if (!modal) return null;
+
+  const item = modal.item || {};
+  const pdfSrc = `${modal.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&page=1`;
+  const direction = item.tactical_24h?.direction;
+  const confidence = item.tactical_24h?.confidence;
+  const generatedLabel = formatDateTime(item.timestamp);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-3 py-4 backdrop-blur-sm">
-      <div className="flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0b090c] shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3 md:px-5">
+    <div
+      className="fixed inset-0 z-50 overflow-hidden bg-[#030102]/90 text-white backdrop-blur-xl"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Compass PDF preview"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_8%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_78%_18%,rgba(127,29,29,0.18),transparent_34%),linear-gradient(180deg,rgba(32,5,8,0.62),rgba(3,1,2,0.94))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/50 to-transparent" />
+
+      <div className="relative mx-auto flex h-[94vh] w-[min(1500px,calc(100vw-28px))] translate-y-[3vh] flex-col overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#080608]/95 shadow-[0_28px_120px_rgba(0,0,0,0.72)] ring-1 ring-[#d4a853]/10">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] bg-[#0c080b]/95 px-4 py-3 md:px-5">
           <div className="min-w-0">
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-              Compass PDF preview
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+                Compass reader
+              </span>
+              <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
+                {readableLabel(direction)} {confidence ?? "-"}%
+              </span>
+              <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-white/45">
+                {generatedLabel}
+              </span>
             </div>
-            <h3 className="mt-1 truncate text-base font-semibold text-white/90 md:text-lg">
+            <h3 className="mt-2 max-w-4xl truncate text-base font-semibold tracking-[-0.01em] text-white/90 md:text-xl">
               {modal.title}
             </h3>
           </div>
           <div className="flex items-center gap-2">
             <a
               href={modal.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+            >
+              New tab
+            </a>
+            <a
+              href={modal.url}
               download={modal.filename || "compass-report.pdf"}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/[0.08]"
+              className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-3 py-2 text-xs font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15"
             >
               Download
             </a>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/[0.08]"
+              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
             >
               Close
             </button>
           </div>
+        </header>
+
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[304px_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#0a070a]/92 p-4 lg:flex lg:flex-col">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                Reading brief
+              </div>
+              <p className="mt-2 line-clamp-5 text-sm leading-6 text-white/58">
+                {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
+              </p>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              <ReaderMetric label="BTC at report" value={formatMoney(item.btc_price)} />
+              <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} />
+              <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} />
+              <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
+            </div>
+
+            <div className="mt-auto rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                Cleaner preview
+              </div>
+              <p className="mt-2 text-xs leading-5 text-white/45">
+                The native PDF toolbar and thumbnail rail are hidden when the browser supports PDF open parameters. Use download/new tab if your browser overrides it.
+              </p>
+            </div>
+          </aside>
+
+          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_34%),linear-gradient(180deg,#141014,#080608)] p-3 md:p-5">
+            <div className="h-full overflow-hidden rounded-2xl border border-white/[0.10] bg-[#1a1518] p-2 shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]">
+              <iframe
+                title={modal.title || "Compass report PDF"}
+                src={pdfSrc}
+                className="h-full w-full rounded-xl border-0 bg-[#121212]"
+              />
+            </div>
+          </main>
         </div>
-        <iframe
-          title={modal.title || "Compass report PDF"}
-          src={modal.url}
-          className="h-full w-full bg-white"
-        />
       </div>
+    </div>
+  );
+}
+
+function ReaderMetric({ label, value }) {
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-black/20 p-3">
+      <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">
+        {label}
+      </div>
+      <div className="mt-1 truncate font-mono text-sm text-white/75">{value || "-"}</div>
     </div>
   );
 }
@@ -505,6 +581,7 @@ export default function AIArenaPageV6() {
         url,
         title: item.headline || item.report_id,
         filename: item.pdf_filename || `compass-${item.report_id}.pdf`,
+        item,
       });
     } catch (err) {
       console.error("[v6] pdf open error:", err);
@@ -526,6 +603,15 @@ export default function AIArenaPageV6() {
       pdfUrlRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!pdfModal) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closePdfModal();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pdfModal, closePdfModal]);
 
   if (loading) {
     return (
