@@ -220,14 +220,14 @@ const OverviewPage = () => {
         <>
           {/* ERROR BANNER */}
           {marketError && (
-            <CardShell hover={false} className="border-loss/30 px-4 py-3 flex items-center justify-between">
-              <p className="text-loss text-xs font-mono uppercase tracking-wider flex items-center gap-2">
+            <CardShell hover={false} className="border-red-500/30 px-4 py-3 flex items-center justify-between">
+              <p className="text-red-400 text-xs font-mono uppercase tracking-wider flex items-center gap-2">
                 <IconAlert className="w-3.5 h-3.5" />
                 {t('overview.error_api')}
               </p>
               <button
                 onClick={() => { setMarketLoading(true); fetchAll(); }}
-                className="px-3 py-1 bg-loss/10 text-loss border border-loss/20 hover:bg-loss/15 hover:border-loss/30 transition-all text-[10px] font-mono uppercase tracking-wider rounded"
+                className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 hover:border-red-500/30 transition-all text-[10px] font-mono uppercase tracking-wider rounded"
               >
                 {t('overview.retry')}
               </button>
@@ -305,8 +305,8 @@ const OverviewPage = () => {
                       <div className="text-center">
                         <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted mb-1.5">{t('overview.trend')}</p>
                         <p className="font-mono text-sm tabular-nums" style={{
-                          color: data.fearGreed.value > data.fearGreed.lastWeek ? '#56c996'
-                            : data.fearGreed.value < data.fearGreed.lastWeek ? '#e07288' : '#a59585'
+                          color: data.fearGreed.value > data.fearGreed.lastWeek ? '#4ade80'
+                            : data.fearGreed.value < data.fearGreed.lastWeek ? '#f87171' : '#a59585'
                         }}>
                           {data.fearGreed.value > data.fearGreed.lastWeek ? t('overview.up') : data.fearGreed.value < data.fearGreed.lastWeek ? t('overview.down') : t('overview.flat')}
                         </p>
@@ -392,9 +392,9 @@ const SectorPerformance = ({ categories, trending, t }) => {
         {/* HOT */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-profit shadow-[0_0_8px] shadow-profit/60" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-profit">{t('overview.hot')}</p>
-            <span className="h-px flex-1 bg-gradient-to-r from-profit/30 to-transparent" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-500/60" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-400">{t('overview.hot')}</p>
+            <span className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent" />
           </div>
           <div className="space-y-0.5">
             {gainers.length > 0 ? gainers.map((cat, idx) => (
@@ -408,9 +408,9 @@ const SectorPerformance = ({ categories, trending, t }) => {
         {/* COOL */}
         <div className="p-4 lg:p-5">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-loss shadow-[0_0_8px] shadow-loss/60" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-loss">{t('overview.cool')}</p>
-            <span className="h-px flex-1 bg-gradient-to-r from-loss/30 to-transparent" />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_8px] shadow-red-500/60" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-red-400">{t('overview.cool')}</p>
+            <span className="h-px flex-1 bg-gradient-to-r from-red-500/30 to-transparent" />
           </div>
           <div className="space-y-0.5">
             {losers.length > 0 ? losers.map((cat, idx) => (
@@ -442,8 +442,8 @@ const DerivativesPulseCard = ({ data, t }) => {
         {ls && (
           <div className="mb-4 space-y-3">
             <div className="flex items-center gap-3 font-mono text-[8px] uppercase tracking-wider text-text-muted/70">
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-profit" />Long</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-loss" />Short</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-400" />Long</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-red-400" />Short</span>
             </div>
             {Object.entries(ls).map(([sym, val]) => {
               const longPct = Number(val.long) || 0;
@@ -453,15 +453,15 @@ const DerivativesPulseCard = ({ data, t }) => {
                 <div key={sym}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs text-white font-semibold">{sym}</span>
-                    <span className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${netLong ? 'text-profit border-profit/30 bg-profit/10' : 'text-loss border-loss/30 bg-loss/10'}`}>
+                    <span className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border ${netLong ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10'}`}>
                       {netLong ? 'Net Long' : 'Net Short'}
                     </span>
                   </div>
                   <div className="relative flex h-3.5 overflow-hidden rounded-md bg-white/[0.04]">
-                    <div className="bg-gradient-to-r from-profit/70 to-profit flex items-center pl-1.5 transition-all duration-700" style={{ width: `${longPct}%` }}>
+                    <div className="bg-gradient-to-r from-emerald-500 to-emerald-400 flex items-center pl-1.5 transition-all duration-700" style={{ width: `${longPct}%` }}>
                       {longPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{longPct}%</span>}
                     </div>
-                    <div className="bg-gradient-to-l from-loss/70 to-loss flex items-center justify-end pr-1.5 transition-all duration-700" style={{ width: `${shortPct}%` }}>
+                    <div className="bg-gradient-to-l from-red-500 to-red-400 flex items-center justify-end pr-1.5 transition-all duration-700" style={{ width: `${shortPct}%` }}>
                       {shortPct >= 16 && <span className="font-mono text-[9px] text-black/75 font-bold tabular-nums">{shortPct}%</span>}
                     </div>
                     <span className="absolute inset-y-0 left-1/2 w-px bg-white/15 pointer-events-none" />
@@ -485,24 +485,24 @@ const DerivativesPulseCard = ({ data, t }) => {
           <div className="pt-2 border-t border-white/[0.06]">
             <div className="flex items-center justify-between mb-2.5">
               <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{t('overview.funding')}</span>
-              <span className={`font-mono text-[10px] tabular-nums ${funding.avg_rate >= 0 ? 'text-profit' : 'text-loss'}`}>
+              <span className={`font-mono text-[10px] tabular-nums ${funding.avg_rate >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {t('overview.avg')} {funding.avg_rate >= 0 ? '+' : ''}{funding.avg_rate}%
               </span>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div className="space-y-1">
                 {(funding.most_long || []).slice(0, 3).map((f, i) => (
-                  <div key={`l${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-profit/[0.06] border border-profit/15 rounded-sm">
+                  <div key={`l${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-emerald-500/[0.06] border border-emerald-500/20 rounded-sm">
                     <span className="font-mono text-white">{f.symbol}</span>
-                    <span className="font-mono text-profit tabular-nums">+{f.rate_pct}%</span>
+                    <span className="font-mono text-emerald-400 tabular-nums">+{f.rate_pct}%</span>
                   </div>
                 ))}
               </div>
               <div className="space-y-1">
                 {(funding.most_short || []).slice(0, 3).map((f, i) => (
-                  <div key={`s${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-loss/[0.06] border border-loss/15 rounded-sm">
+                  <div key={`s${i}`} className="flex justify-between items-center text-[10px] py-1 px-1.5 bg-red-500/[0.06] border border-red-500/20 rounded-sm">
                     <span className="font-mono text-white">{f.symbol}</span>
-                    <span className="font-mono text-loss tabular-nums">{f.rate_pct}%</span>
+                    <span className="font-mono text-red-400 tabular-nums">{f.rate_pct}%</span>
                   </div>
                 ))}
               </div>
@@ -570,10 +570,10 @@ const FGStat = ({ label, value }) => (
  * Fear & Greed color scale — muted, not neon
  */
 const fgStroke = (val) => {
-  if (val >= 75) return '#56c996'; // profit (extreme greed)
+  if (val >= 75) return '#4ade80'; // profit (extreme greed)
   if (val >= 50) return '#d4a853'; // gold (greed/neutral high)
   if (val >= 25) return '#fbbf24'; // amber muted (fear)
-  return '#e07288'; // loss (extreme fear)
+  return '#f87171'; // loss (extreme fear)
 };
 
 /**
@@ -588,7 +588,7 @@ const MetricCard = ({ label, value, change, icon }) => (
     </div>
     <p className="font-mono text-2xl lg:text-[28px] font-light text-white tabular-nums leading-none">{value}</p>
     {change !== undefined && (
-      <p className={`font-mono text-[11px] tabular-nums mt-2 inline-flex items-center gap-1 ${change >= 0 ? 'text-profit' : 'text-loss'}`}>
+      <p className={`font-mono text-[11px] tabular-nums mt-2 inline-flex items-center gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
         <span className="text-[8px]">{change >= 0 ? '▲' : '▼'}</span>{change >= 0 ? '+' : ''}{change?.toFixed(2)}%
       </p>
     )}
@@ -612,7 +612,7 @@ const CoinRow = ({ coin, rank, isLoser }) => (
     </div>
     <div className="text-right flex-shrink-0">
       <p className="font-mono text-sm text-white tabular-nums">${coin.current_price?.toLocaleString()}</p>
-      <p className={`font-mono text-[11px] tabular-nums ${isLoser ? 'text-loss' : 'text-profit'}`}>
+      <p className={`font-mono text-[11px] tabular-nums ${isLoser ? 'text-red-400' : 'text-emerald-400'}`}>
         {(coin.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(coin.price_change_percentage_24h || 0).toFixed(2)}%
       </p>
     </div>
@@ -630,7 +630,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
       rel="noopener noreferrer"
       className="relative flex items-center justify-between py-2 px-2 hover:bg-white/[0.02] transition-all cursor-pointer group rounded-md overflow-hidden"
     >
-      <div className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? 'bg-loss/[0.05]' : 'bg-profit/[0.05]'}`} style={{ width: `${fillPct}%` }} />
+      <div className={`absolute inset-y-0 left-0 pointer-events-none ${isNeg ? 'bg-red-500/[0.05]' : 'bg-emerald-500/[0.05]'}`} style={{ width: `${fillPct}%` }} />
       <div className="relative flex items-center gap-3 min-w-0 flex-1">
         <span className="font-mono text-[10px] text-text-muted/60 w-4 text-right tabular-nums">{rank}</span>
         <div className="flex -space-x-1.5 flex-shrink-0">
@@ -650,7 +650,7 @@ const SectorRow = ({ cat, rank, isNeg, maxAbs = 1 }) => {
         <span className="font-mono text-[10px] text-text-muted tabular-nums hidden sm:inline">
           {formatLargeNumber(cat.market_cap)}
         </span>
-        <span className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${isNeg ? 'text-loss' : 'text-profit'}`}>
+        <span className={`font-mono text-xs tabular-nums min-w-[56px] text-right ${isNeg ? 'text-red-400' : 'text-emerald-400'}`}>
           {change >= 0 ? '+' : ''}{change?.toFixed(2)}%
         </span>
       </div>
