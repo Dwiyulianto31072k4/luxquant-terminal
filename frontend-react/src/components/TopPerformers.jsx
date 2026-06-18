@@ -151,10 +151,6 @@ const TopPerformers = () => {
     );
   };
 
-  const subBits = [];
-  if (data?.unique_pairs) subBits.push(`${data.unique_pairs} coins`);
-  if (data?.total_tp_hits || data?.total_tp4) subBits.push(`${data.total_tp_hits || data.total_tp4} targets hit`);
-  if (data?.period) subBits.push(formatPeriod(data.period));
 
   return (
     <div className="mb-10 relative">
@@ -165,15 +161,10 @@ const TopPerformers = () => {
             <span className="h-px w-8 bg-gold-primary/50" />
             <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold-primary/80">{t('top.title')}</span>
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 sm:w-7 sm:h-7 text-gold-primary flex-shrink-0">
-              <path d="M6 4h12v2h3v3a4 4 0 0 1-4 4 6 6 0 0 1-4 3v2h3v2H8v-2h3v-2a6 6 0 0 1-4-3 4 4 0 0 1-4-4V6h3V4zm-1 4H4v1a2 2 0 0 0 1 1.7V8zm15 0h-1v2.7A2 2 0 0 0 20 9V8z" />
-            </svg>
-            Top Gainers
-          </h2>
-          <p className="font-mono text-[11px] text-text-muted mt-1.5 tracking-wide">
-            {subBits.length > 0 ? subBits.join('  ·  ') : 'Best-performing signal calls, ranked by peak gain.'}
-          </p>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">Top Gainers</h2>
+          {data?.period && (
+            <p className="font-mono text-[11px] text-text-muted mt-1.5 tracking-wide">{formatPeriod(data.period)}</p>
+          )}
         </div>
 
         {/* range pills — segmented */}
@@ -451,7 +442,7 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
               {onOpenHistory && (
                 <button
                   onClick={() => onOpenHistory(item)}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/50 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
+                  className="lq-shine relative overflow-hidden hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/40 hover:bg-gold-primary/20 hover:border-gold-primary/60 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
                   title="Open full signal history"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -519,29 +510,60 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
                 {/* ── SIGNAL JOURNEY — glowing nodes + gradient progress track ── */}
                 <div>
                   <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">{t('top.journey')}</h4>
-                  <div className="bg-[#0d0d0d] rounded-xl border border-gold-primary/10 p-4 sm:p-6 w-full overflow-x-auto custom-scrollbar">
-                    <div className="flex items-start min-w-[560px] relative pt-1 pb-2">
-                      {/* base track */}
-                      <div className="absolute top-[18px] left-[7%] right-[7%] h-[2px] bg-white/[0.05] rounded-full z-0" />
+                  <div className="bg-[#0d0d0d] rounded-xl border border-gold-primary/10 p-4 sm:p-5">
+                    {/* MOBILE — vertical timeline (no horizontal scroll) */}
+                    <div className="sm:hidden">
                       {events.map((ev, i) => {
                         const c = themeColors[ev.key] || themeColors.gold;
                         const isLast = i === events.length - 1;
-                        const nextC = !isLast ? (themeColors[events[i + 1].key] || themeColors.gold) : null;
                         return (
-                          <div key={i} className="relative flex flex-col items-center flex-1 min-w-[78px] z-10 group">
-                            {/* gradient connecting segment to next node */}
-                            {!isLast && (
-                              <div className={`absolute top-[18px] left-1/2 w-full h-[2px] z-0 rounded-full bg-gradient-to-r ${c.from} ${nextC.to}`} />
-                            )}
-                            {/* glowing node */}
-                            <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-white shadow-[0_0_18px_-2px] ${c.dot} ${c.glow} ${isLast ? 'ring-2 ring-white/10' : ''}`}>
-                              {i === 0 ? (
-                                <span className="w-2.5 h-2.5 rounded-full bg-white/90" />
-                              ) : ev.isSL ? (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                              ) : (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <div key={i} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-[0_0_14px_-3px] ${c.dot} ${c.glow}`}>
+                                {i === 0 ? (
+                                  <span className="w-2 h-2 rounded-full bg-white/90" />
+                                ) : ev.isSL ? (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                )}
+                            </div>
+                            {!isLast && <div className={`w-0.5 flex-1 min-h-[20px] my-1 rounded-full ${c.dot} opacity-30`} />}
+                          </div>
+                          <div className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-[12px] font-bold ${c.text}`}>{ev.label}</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-white/70 whitespace-nowrap">{ev.time}</span>
+                            </div>
+                            {ev.sub && <p className="text-[10px] text-text-muted mt-0.5">{ev.sub}</p>}
+                            {ev.detail && <p className={`text-[11px] font-mono mt-0.5 ${ev.isSL ? 'text-loss' : 'text-profit'}`}>{ev.detail}</p>}
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* DESKTOP — horizontal timeline (width scales to step count) */}
+                    <div className="hidden sm:block overflow-x-auto custom-scrollbar">
+                      <div className="flex items-start relative pt-1 pb-2" style={{ minWidth: `${Math.max(events.length * 112, 460)}px` }}>
+                        <div className="absolute top-[18px] left-[7%] right-[7%] h-[2px] bg-white/[0.05] rounded-full z-0" />
+                        {events.map((ev, i) => {
+                          const c = themeColors[ev.key] || themeColors.gold;
+                          const isLast = i === events.length - 1;
+                          const nextC = !isLast ? (themeColors[events[i + 1].key] || themeColors.gold) : null;
+                          return (
+                            <div key={i} className="relative flex flex-col items-center flex-1 z-10 group">
+                              {!isLast && (
+                                <div className={`absolute top-[18px] left-1/2 w-full h-[2px] z-0 rounded-full bg-gradient-to-r ${c.from} ${nextC.to}`} />
                               )}
+                              <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-white shadow-[0_0_18px_-2px] ${c.dot} ${c.glow} ${isLast ? 'ring-2 ring-white/10' : ''}`}>
+                                {i === 0 ? (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-white/90" />
+                                ) : ev.isSL ? (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                )}
                             </div>
                             <div className="mt-3 text-center flex flex-col items-center gap-1 px-1 w-full">
                               <span className={`text-[10px] sm:text-[11px] font-bold tracking-wide truncate w-full ${c.text}`} title={ev.label}>{ev.label}</span>
@@ -551,7 +573,8 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
                             </div>
                           </div>
                         );
-                      })}
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -570,7 +593,7 @@ const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onN
         </div>
       </div>
       {lightboxImg && (<div className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setLightboxImg(null)}><img src={lightboxImg} alt="Full" className="max-w-full max-h-[95vh] object-contain rounded-xl shadow-2xl border border-white/10" onClick={e => e.stopPropagation()} /><button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full transition-colors backdrop-blur-sm" onClick={() => setLightboxImg(null)}><svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
-      <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px;height:6px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(212,168,83,.3);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,.5)}@keyframes smBI{from{opacity:0}to{opacity:1}}@keyframes smBO{from{opacity:1}to{opacity:0}}@keyframes smCI{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes smCO{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.97)}}@keyframes smUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}@keyframes smDn{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}`}</style>
+      <style>{`.custom-scrollbar::-webkit-scrollbar{width:4px;height:6px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(212,168,83,.3);border-radius:4px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,.5)}@keyframes smBI{from{opacity:0}to{opacity:1}}@keyframes smBO{from{opacity:1}to{opacity:0}}@keyframes smCI{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}@keyframes smCO{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.97)}}@keyframes smUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}@keyframes smDn{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}.lq-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(240,216,144,0.55) 50%,transparent 65%);transform:translateX(-130%);animation:lqShine 3s ease-in-out infinite;pointer-events:none}@keyframes lqShine{0%,55%{transform:translateX(-130%)}100%{transform:translateX(130%)}}@media (prefers-reduced-motion:reduce){.lq-shine::after{animation:none;opacity:0}}`}</style>
     </div>
   );
   return createPortal(modalContent, document.body);
