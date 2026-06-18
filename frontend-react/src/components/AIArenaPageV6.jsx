@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   getEventRisk,
   getLatestReport,
+  getLedger,
   getOperationalHealth,
+  getTrackRecord,
 } from "../services/aiArenaV6Api";
 
 import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
+import VerdictLedger from "./aiArenaV6/VerdictLedger";
 
 function statusTone(status) {
   const value = String(status || "").toLowerCase();
@@ -123,6 +126,8 @@ export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
   const [operationalHealth, setOperationalHealth] = useState(null);
+  const [trackRecord, setTrackRecord] = useState(null);
+  const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -136,10 +141,12 @@ export default function AIArenaPageV6() {
     setError(null);
 
     try {
-      const [latestRes, eventRiskRes, operationalRes] = await Promise.allSettled([
+      const [latestRes, eventRiskRes, operationalRes, trackRecordRes, ledgerRes] = await Promise.allSettled([
         getLatestReport(),
         getEventRisk(),
         getOperationalHealth(),
+        getTrackRecord({ days: 30 }),
+        getLedger({ days: 14 }),
       ]);
 
       if (latestRes.status !== "fulfilled") {
@@ -151,6 +158,8 @@ export default function AIArenaPageV6() {
       setOperationalHealth(
         operationalRes.status === "fulfilled" ? operationalRes.value : null,
       );
+      setTrackRecord(trackRecordRes.status === "fulfilled" ? trackRecordRes.value : null);
+      setLedger(ledgerRes.status === "fulfilled" ? ledgerRes.value : null);
     } catch (err) {
       console.error("[v6] load error:", err);
       setError(err?.message || String(err));
@@ -212,6 +221,8 @@ export default function AIArenaPageV6() {
           operationalHealth={operationalHealth}
           eventRisk={eventRisk}
         />
+
+        <VerdictLedger trackRecord={trackRecord} ledger={ledger} />
 
         <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
           <div className="mb-4">

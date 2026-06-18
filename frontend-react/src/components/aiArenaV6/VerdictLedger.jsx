@@ -286,7 +286,7 @@ export default function VerdictLedger({ trackRecord, ledger }) {
               letterSpacing: "-0.02em",
             }}
           >
-            Verdict Ledger
+            Compass Track Record
           </h2>
           <span className="text-xs font-mono text-white/40">
             {trackRecord?.window_days
@@ -296,7 +296,7 @@ export default function VerdictLedger({ trackRecord, ledger }) {
         </div>
         <Tooltip termKey="confluence">
           <span className="text-xs text-white/40 font-mono cursor-help border-b border-dotted border-white/20">
-            How is this measured?
+            How is this judged?
           </span>
         </Tooltip>
       </div>
@@ -321,9 +321,9 @@ export default function VerdictLedger({ trackRecord, ledger }) {
               Track record warming up
             </div>
             <p className="text-xs text-white/50 leading-relaxed">
-              No verdicts have completed their evaluation horizon yet. The first
-              24h verdicts will be evaluated within 24 hours of their call. Stats
-              will populate automatically as horizons elapse.
+              No previous reads have finished their evaluation window yet. The first
+              24h reads are judged after 24 hours, then the table fills itself
+              as each horizon finishes.
             </p>
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function VerdictLedger({ trackRecord, ledger }) {
         {/* Table header with filter pills */}
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 flex-wrap gap-2">
           <span className="text-xs font-mono uppercase tracking-wider text-white/50">
-            History · {filtered.length} verdicts
+            Evaluation table · {filtered.length} reads
           </span>
           <div className="flex items-center gap-1">
             {[
@@ -396,8 +396,8 @@ export default function VerdictLedger({ trackRecord, ledger }) {
           <div className="p-8 text-center">
             <p className="text-white/40 text-sm italic">
               {filter === "all"
-                ? "No verdicts in this window"
-                : `No ${filter} verdicts in this window`}
+                ? "No evaluated reads in this window"
+                : `No ${filter} reads in this window`}
             </p>
           </div>
         )}
@@ -405,9 +405,7 @@ export default function VerdictLedger({ trackRecord, ledger }) {
 
       {/* Footer note */}
       <p className="mt-3 text-[11px] text-white/30 font-mono leading-relaxed">
-        Hit thresholds: bullish &gt; +1% · bearish &lt; −1% · neutral within
-        ±2%. Reports cached every 6h, outcomes evaluated hourly as horizons
-        elapse.
+        This is the accountability layer: previous reads are marked hit, miss, or pending after their horizon ends. Use it to judge how reliable Compass has been recently, not as the main trade signal.
       </p>
     </section>
   );
