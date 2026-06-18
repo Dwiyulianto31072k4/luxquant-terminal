@@ -14,6 +14,8 @@ import WhaleAlertPage from "./WhaleAlertPage";
 import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 // ═══════════════════════════════════════════
 // Format helpers
 // ═══════════════════════════════════════════
@@ -437,74 +439,75 @@ const CoinsTab = () => {
     return () => { alive = false; };
   }, []);
 
-  // Resolve a LuxQuant-called coin → its LATEST signal, then open SignalModal.
-  // NOTE: we do NOT trust server-side sort/pagination params (endpoint may use
-  // different names — size/ordering/fastapi-pagination — and silently ignore
-  // page_size/sort_by, returning the OLDEST match). So we pull a generous page
-  // and pick the newest client-side, filtering to this exact pair and
-  // preferring still-active signals as a tie-breaker.
+  // Resolve a LuxQuant-called coin → its ACTIVE signal, then open SignalModal.
+  //
+  // IMPORTANT: the coin object here only has { symbol, is_luxquant_signal, ... }
+  // — no signal_id, no pair. And /api/v1/signals/?pair=XXX returns CLOSED signals
+  // only (history), so the live signal (status open/tp1..tp4) is never in it.
+  //
+  // The source of truth for *active* signals is the SAME feed Potential Trades
+  // uses: GET /api/v1/signals/bulk-7d → { items: [...] }. We fetch it (with the
+  // same Bearer auth as SignalsPage), find this coin's pair, prefer the active /
+  // newest one, and hand the FULL object to SignalModal — identical to the path
+  // SignalsTable rows take (setSelectedSignal(signal)).
   const openSignal = async (c) => {
-    const pair = (c.pair || `${c.symbol}USDT`).toUpperCase();
     const sym = String(c.symbol || "").toUpperCase();
+    const pair = (c.pair || `${sym}USDT`).toUpperCase();
     setLoadingSym(c.symbol);
     try {
-      const qs = new URLSearchParams({
-        pair,
-        page_size: "50",
-        size: "50",
-        limit: "50",
-        sort_by: "created_at",
-        sort_order: "desc",
-        ordering: "-created_at",
-      });
-      const r = await fetch(`/api/v1/signals/?${qs.toString()}`);
+      const token = localStorage.getItem("access_token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders });
       if (!r.ok) {
-        console.warn("[MoneyFlow] signals lookup HTTP", r.status, "for", pair);
+        console.warn("[MoneyFlow] bulk-7d HTTP", r.status, "for", pair);
         return;
       }
       const d = await r.json();
       const items = Array.isArray(d.items) ? d.items
-        : Array.isArray(d.results) ? d.results
+        : Array.isArray(d.signals) ? d.signals
+        : Array.isArray(d.data) ? d.data
         : Array.isArray(d) ? d
         : [];
       if (!items.length) {
-        console.warn("[MoneyFlow] no signal found for", pair);
+        console.warn("[MoneyFlow] bulk-7d empty for", pair);
         return;
       }
 
       const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const wantPair = norm(pair);
       const wantSym = norm(sym);
-      // keep only this coin's signals (server may ignore the pair filter)
       let cand = items.filter((x) => {
         const xp = norm(x.pair || x.symbol);
         return xp === wantPair || xp === wantSym || xp === wantSym + "USDT";
       });
-      if (!cand.length) cand = items;
+      if (!cand.length) {
+        console.warn("[MoneyFlow] no active signal in bulk-7d for", pair);
+        return;
+      }
 
       const ts = (x) => {
-        const v = x.created_at || x.createdAt || x.created || x.entry_time ||
-                  x.entry_at || x.opened_at || x.timestamp || x.updated_at;
+        const v = x.created_at || x.createdAt || x.called_at || x.entry_at ||
+                  x.opened_at || x.updated_at || x.last_update_at;
         const t = v ? Date.parse(v) : NaN;
-        if (!Number.isNaN(t)) return t;
-        const id = Number(x.signal_id);
-        return Number.isNaN(id) ? 0 : id;
+        return Number.isNaN(t) ? 0 : t;
       };
       const isClosed = (x) => /closed|cancel|expired|stopped/i.test(String(x.status || ""));
 
       cand.sort((a, b) => {
-        const diff = ts(b) - ts(a);          // newest first
-        if (diff !== 0) return diff;
-        return (isClosed(a) ? 1 : 0) - (isClosed(b) ? 1 : 0); // active wins ties
+        // active before closed, then newest first
+        const ca = isClosed(a) ? 1 : 0;
+        const cb = isClosed(b) ? 1 : 0;
+        if (ca !== cb) return ca - cb;
+        return ts(b) - ts(a);
       });
 
       const sig = cand[0];
       if (sig && sig.signal_id) {
-        // Pass the FULL item — SignalModal reads entry/targets/stops/volume_rank
-        // from the prop directly (same shape SignalsPage passes).
-        setSelectedSignal({ ...sig, pair: sig.pair || pair, status: sig.status || "open" });
+        // Hand off the FULL item — SignalModal reads everything it needs from the
+        // prop (same shape SignalsTable passes). pair guaranteed for safety.
+        setSelectedSignal({ ...sig, pair: sig.pair || pair });
       } else {
-        console.warn("[MoneyFlow] no signal found for", pair);
+        console.warn("[MoneyFlow] resolved signal missing signal_id for", pair);
       }
     } catch (e) {
       console.error("[MoneyFlow] openSignal error", e);
