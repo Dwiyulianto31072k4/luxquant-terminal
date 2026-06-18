@@ -13,6 +13,21 @@ import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 
+let pdfJsRuntimePromise;
+
+function loadPdfJsRuntime() {
+  if (!pdfJsRuntimePromise) {
+    pdfJsRuntimePromise = Promise.all([
+      import("pdfjs-dist"),
+      import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+    ]).then(([pdfjsLib, workerModule]) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
+      return pdfjsLib;
+    });
+  }
+  return pdfJsRuntimePromise;
+}
+
 function statusTone(status) {
   const value = String(status || "").toLowerCase();
   if (value === "healthy") {
@@ -387,105 +402,410 @@ function ReportPdfModal({ modal, onClose }) {
   if (!modal) return null;
 
   const item = modal.item || {};
-  const pdfSrc = `${modal.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&page=1`;
   const direction = item.tactical_24h?.direction;
   const confidence = item.tactical_24h?.confidence;
   const generatedLabel = formatDateTime(item.timestamp);
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden bg-[#030102]/90 text-white backdrop-blur-xl"
+      className="fixed inset-0 z-50 overflow-hidden bg-[#020102]/94 text-white backdrop-blur-2xl"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_8%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_78%_18%,rgba(127,29,29,0.18),transparent_34%),linear-gradient(180deg,rgba(32,5,8,0.62),rgba(3,1,2,0.94))]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/50 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_2%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_74%_16%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.78),rgba(2,1,2,0.96))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
 
-      <div className="relative mx-auto flex h-[94vh] w-[min(1500px,calc(100vw-28px))] translate-y-[3vh] flex-col overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#080608]/95 shadow-[0_28px_120px_rgba(0,0,0,0.72)] ring-1 ring-[#d4a853]/10">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] bg-[#0c080b]/95 px-4 py-3 md:px-5">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
-                Compass reader
-              </span>
-              <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
-                {readableLabel(direction)} {confidence ?? "-"}%
-              </span>
-              <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-white/45">
-                {generatedLabel}
-              </span>
+      <div className="relative mx-auto flex h-[calc(100vh-24px)] w-[calc(100vw-24px)] translate-y-3 flex-col overflow-hidden rounded-[22px] border border-white/[0.12] bg-[#070507]/96 shadow-[0_30px_140px_rgba(0,0,0,0.78)] ring-1 ring-[#d4a853]/10">
+        <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/95 px-4 py-3 md:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+                  Compass reader
+                </span>
+                <span className={`rounded-md border px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] ${directionClasses(direction)}`}>
+                  {readableLabel(direction)} {confidence ?? "-"}%
+                </span>
+                <span className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-white/45">
+                  {generatedLabel}
+                </span>
+              </div>
+              <h3 className="mt-2 max-w-[72vw] truncate text-base font-semibold tracking-[-0.01em] text-white/90 md:text-xl">
+                {modal.title}
+              </h3>
             </div>
-            <h3 className="mt-2 max-w-4xl truncate text-base font-semibold tracking-[-0.01em] text-white/90 md:text-xl">
-              {modal.title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={modal.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
-            >
-              New tab
-            </a>
-            <a
-              href={modal.url}
-              download={modal.filename || "compass-report.pdf"}
-              className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-3 py-2 text-xs font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15"
-            >
-              Download
-            </a>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2">
+              <a
+                href={modal.url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+              >
+                New tab
+              </a>
+              <a
+                href={modal.url}
+                download={modal.filename || "compass-report.pdf"}
+                className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-3 py-2 text-xs font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15"
+              >
+                Download
+              </a>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/[0.16] hover:bg-white/[0.08]"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[304px_minmax(0,1fr)]">
-          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#0a070a]/92 p-4 lg:flex lg:flex-col">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-                Reading brief
+        <div className="grid min-h-0 flex-1 xl:grid-cols-[292px_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#090608]/92 p-3 xl:block">
+            <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                  Reading brief
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/58">
+                  {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
+                </p>
               </div>
-              <p className="mt-2 line-clamp-5 text-sm leading-6 text-white/58">
-                {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
-              </p>
-            </div>
 
-            <div className="mt-3 grid gap-2">
-              <ReaderMetric label="BTC at report" value={formatMoney(item.btc_price)} />
-              <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} />
-              <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} />
-              <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
-            </div>
-
-            <div className="mt-auto rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-                Cleaner preview
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <ReaderMetric label="BTC at report" value={formatMoney(item.btc_price)} />
+                <ReaderMetric label="Magnet below" value={formatMoney(item.nearest_magnet_below)} />
+                <ReaderMetric label="Magnet above" value={formatMoney(item.nearest_magnet_above)} />
+                <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
-              <p className="mt-2 text-xs leading-5 text-white/45">
-                The native PDF toolbar and thumbnail rail are hidden when the browser supports PDF open parameters. Use download/new tab if your browser overrides it.
-              </p>
+
+              <div className="mt-auto rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
+                <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                  Dynamic preview
+                </div>
+                <p className="mt-2 text-xs leading-5 text-white/45">
+                  This reader renders the PDF pages directly with PDF.js, then fits each page to the available reading width. No browser toolbar, no thumbnail rail, and less wasted space.
+                </p>
+              </div>
             </div>
           </aside>
 
-          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_34%),linear-gradient(180deg,#141014,#080608)] p-3 md:p-5">
-            <div className="h-full overflow-hidden rounded-2xl border border-white/[0.10] bg-[#1a1518] p-2 shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]">
-              <iframe
-                title={modal.title || "Compass report PDF"}
-                src={pdfSrc}
-                className="h-full w-full rounded-xl border-0 bg-[#121212]"
-              />
-            </div>
+          <main className="min-h-0 bg-[radial-gradient(circle_at_top,rgba(212,168,83,0.08),transparent_30%),linear-gradient(180deg,#130e12,#070507)] p-2 md:p-3">
+            <CompassPdfViewer url={modal.url} title={modal.title || "Compass report PDF"} />
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+function CompassPdfViewer({ url, title }) {
+  const shellRef = useRef(null);
+  const scrollRef = useRef(null);
+  const pageRefs = useRef({});
+  const [availableWidth, setAvailableWidth] = useState(760);
+  const [pdfJsLib, setPdfJsLib] = useState(null);
+  const [pdf, setPdf] = useState(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoom, setZoom] = useState(1);
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const target = shellRef.current;
+    if (!target) return undefined;
+
+    const measure = () => {
+      const rect = target.getBoundingClientRect();
+      const sidePadding = rect.width >= 980 ? 64 : rect.width >= 640 ? 40 : 24;
+      const maxReadableWidth = rect.width >= 1500 ? 1180 : 1040;
+      const nextWidth = Math.max(300, Math.min(rect.width - sidePadding, maxReadableWidth));
+      setAvailableWidth(nextWidth);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPdfJsLib(null);
+    setStatus("loading");
+    setError(null);
+
+    loadPdfJsRuntime()
+      .then((runtime) => {
+        if (!cancelled) setPdfJsLib(runtime);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[compass-pdf] runtime load error", err);
+        setError(err?.message || "PDF renderer could not load.");
+        setStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!url || !pdfJsLib) return undefined;
+    let cancelled = false;
+    setPdf(null);
+    setPageCount(0);
+    setCurrentPage(1);
+    setStatus("loading");
+    setError(null);
+
+    const task = pdfJsLib.getDocument({ url });
+    task.promise
+      .then((document) => {
+        if (cancelled) return;
+        setPdf(document);
+        setPageCount(document.numPages);
+        setStatus("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[compass-pdf] load error", err);
+        setError(err?.message || "PDF could not be rendered.");
+        setStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+      task.destroy();
+    };
+  }, [url, pdfJsLib]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !pageCount) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target?.dataset?.page) {
+          setCurrentPage(Number(visible.target.dataset.page));
+        }
+      },
+      { root, threshold: [0.35, 0.55, 0.75] },
+    );
+
+    Object.values(pageRefs.current).forEach((element) => {
+      if (element) observer.observe(element);
+    });
+    return () => observer.disconnect();
+  }, [pageCount, pdf]);
+
+  const scrollToPage = useCallback((pageNumber) => {
+    pageRefs.current[pageNumber]?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, []);
+
+  const goToPage = useCallback(
+    (offset) => {
+      const nextPage = Math.min(pageCount, Math.max(1, currentPage + offset));
+      scrollToPage(nextPage);
+    },
+    [currentPage, pageCount, scrollToPage],
+  );
+
+  const zoomOut = () => setZoom((value) => Math.max(0.72, Number((value - 0.1).toFixed(2))));
+  const zoomIn = () => setZoom((value) => Math.min(1.45, Number((value + 0.1).toFixed(2))));
+
+  return (
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border border-white/[0.10] bg-[#0b090b] shadow-[0_18px_70px_rgba(0,0,0,0.45)_inset]" ref={shellRef}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#100c0f]/95 px-3 py-2.5 md:px-4">
+        <div className="min-w-0">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+            Fit reader
+          </div>
+          <div className="mt-1 max-w-[58vw] truncate text-sm font-semibold text-white/80">
+            {title}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+          <button
+            type="button"
+            onClick={() => goToPage(-1)}
+            disabled={currentPage <= 1}
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+          >
+            Prev
+          </button>
+          <span className="rounded-md border border-white/[0.08] bg-black/25 px-2.5 py-1.5 text-white/55">
+            {currentPage} / {pageCount || "-"}
+          </span>
+          <button
+            type="button"
+            onClick={() => goToPage(1)}
+            disabled={!pageCount || currentPage >= pageCount}
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07] disabled:opacity-35"
+          >
+            Next
+          </button>
+          <span className="mx-1 hidden h-5 w-px bg-white/[0.08] sm:block" />
+          <button
+            type="button"
+            onClick={zoomOut}
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07]"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom(1)}
+            className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2.5 py-1.5 text-[#f5c451] transition hover:bg-[#d4a853]/15"
+          >
+            Fit {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={zoomIn}
+            className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/60 transition hover:bg-white/[0.07]"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-auto bg-[linear-gradient(180deg,#161115,#0c090c)] px-3 py-4 md:px-5 md:py-5"
+      >
+        {status === "loading" && (
+          <div className="flex h-full min-h-[420px] items-center justify-center text-center">
+            <div>
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#d4a853]" />
+              <div className="font-mono text-xs uppercase tracking-[0.18em] text-white/35">
+                Rendering PDF
+              </div>
+            </div>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="mx-auto mt-10 max-w-md rounded-2xl border border-red-400/15 bg-red-400/[0.04] p-5 text-center">
+            <h4 className="text-base font-semibold text-white/85">PDF preview failed</h4>
+            <p className="mt-2 text-sm leading-6 text-red-100/65">{error}</p>
+          </div>
+        )}
+
+        {status === "ready" && pdf && (
+          <div className="mx-auto flex w-full max-w-[1240px] flex-col items-center gap-5 pb-8">
+            {Array.from({ length: pageCount }, (_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <div
+                  key={pageNumber}
+                  data-page={pageNumber}
+                  ref={(element) => {
+                    pageRefs.current[pageNumber] = element;
+                  }}
+                  className="w-full scroll-mt-4"
+                >
+                  <PdfPageCanvas
+                    pdf={pdf}
+                    pageNumber={pageNumber}
+                    pageCount={pageCount}
+                    availableWidth={availableWidth}
+                    zoom={zoom}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PdfPageCanvas({ pdf, pageNumber, pageCount, availableWidth, zoom }) {
+  const canvasRef = useRef(null);
+  const renderTaskRef = useRef(null);
+  const [pageSize, setPageSize] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const canvas = canvasRef.current;
+    if (!pdf || !canvas || !availableWidth) return undefined;
+
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+      renderTaskRef.current = null;
+    }
+
+    setError(null);
+
+    pdf.getPage(pageNumber)
+      .then((page) => {
+        if (cancelled) return null;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const fitScale = availableWidth / baseViewport.width;
+        const scale = Math.max(0.42, Math.min(fitScale * zoom, 2.65));
+        const viewport = page.getViewport({ scale });
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        const context = canvas.getContext("2d", { alpha: false });
+
+        canvas.width = Math.floor(viewport.width * pixelRatio);
+        canvas.height = Math.floor(viewport.height * pixelRatio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.fillStyle = "#070506";
+        context.fillRect(0, 0, viewport.width, viewport.height);
+
+        const renderTask = page.render({ canvasContext: context, viewport });
+        renderTaskRef.current = renderTask;
+        setPageSize({ width: viewport.width, height: viewport.height });
+        return renderTask.promise;
+      })
+      .catch((err) => {
+        if (cancelled || err?.name === "RenderingCancelledException") return;
+        console.error("[compass-pdf] page render error", err);
+        setError(err?.message || "Page could not render.");
+      });
+
+    return () => {
+      cancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+    };
+  }, [pdf, pageNumber, availableWidth, zoom]);
+
+  return (
+    <article className="mx-auto overflow-hidden rounded-xl border border-white/[0.10] bg-[#060506] shadow-[0_22px_90px_rgba(0,0,0,0.55)]" style={{ width: pageSize?.width ? Math.floor(pageSize.width) : Math.floor(availableWidth) }}>
+      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d090c] px-3 py-2 font-mono text-[10px] text-white/35">
+        <span>Page {pageNumber}</span>
+        <span>{pageNumber} / {pageCount}</span>
+      </div>
+      <div className="relative bg-[#050405]">
+        {!pageSize && !error && (
+          <div className="flex h-[520px] items-center justify-center text-[10px] font-mono uppercase tracking-[0.18em] text-white/25">
+            Rendering page
+          </div>
+        )}
+        {error && (
+          <div className="p-8 text-center text-sm text-red-200/80">
+            {error}
+          </div>
+        )}
+        <canvas ref={canvasRef} className="block max-w-full" aria-label={`PDF page ${pageNumber}`} />
+      </div>
+    </article>
   );
 }
 

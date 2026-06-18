@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
-PDF_STYLE_VERSION = "v2"
+PDF_STYLE_VERSION = "v3"
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -452,7 +452,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         matrix_rows.append(["-", "-", "-", "-", "No evidence matrix recorded."])
     story.append(_table(matrix_rows, styles, [88, 70, 70, 42, 224]))
 
-    story.append(PageBreak())
+    story.append(Spacer(1, 10))
     story.append(_p("Liquidity And Event Risk", styles["section"]))
     magnets = _as_dict(liquidity.get("magnets"))
     story.append(_table([
