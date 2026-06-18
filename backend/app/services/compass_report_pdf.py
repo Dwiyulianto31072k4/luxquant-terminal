@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
-PDF_STYLE_VERSION = "v4"
+PDF_STYLE_VERSION = "v5"
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -284,7 +284,7 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
         def __init__(self):
             super().__init__()
             self.width = 494
-            self.height = 170
+            self.height = 190
             self.levels = _collect_projection_levels(report, projection)
 
         def wrap(self, availWidth, availHeight):
@@ -299,7 +299,7 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
             top = height - 18
             chart_left = pad_x
             chart_right = width - pad_x
-            rail_y = 78
+            rail_y = 92
             price_values: list[float] = []
             for level in self.levels:
                 if level.get("kind") == "zone":
@@ -382,7 +382,7 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 c.setFont("Helvetica-Bold", 7)
                 c.drawCentredString((current_x + target_x) / 2, rail_y + 50, "projected touch")
 
-            label_rows = {"current": 132, "target": 117, "magnet": 31, "invalidation": 18}
+            label_rows = {"current": 154, "target": 136, "magnet": 44, "invalidation": 29}
             magnet_count = 0
             for level in self.levels:
                 if level.get("kind") == "zone":
@@ -395,14 +395,19 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
                 c.setFillColor(color)
                 c.circle(x, rail_y, 3.1, fill=1, stroke=0)
                 y = label_rows.get(level["kind"], 18)
+                label_x = x
                 if level["kind"] == "magnet":
                     y += (magnet_count % 2) * 12
+                    label_x += -24 if "below" in level["label"].lower() else 24
                     magnet_count += 1
+                elif level["kind"] == "invalidation":
+                    label_x += -28 if "bullish" in level["label"].lower() else 28
+                label_x = max(42, min(width - 42, label_x))
                 c.setFont("Helvetica-Bold", 6.8)
-                c.drawCentredString(x, y, level["label"])
+                c.drawCentredString(label_x, y, level["label"])
                 c.setFont("Helvetica", 6.5)
                 c.setFillColor(colors.HexColor("#d6d3d1"))
-                c.drawCentredString(x, y - 9, _money(level["price"]))
+                c.drawCentredString(label_x, y - 9, _money(level["price"]))
 
             c.setFillColor(colors.HexColor("#8b8580"))
             c.setFont("Helvetica", 7)
@@ -413,7 +418,7 @@ def _projection_chart(report: dict[str, Any], projection: dict[str, str], genera
 
 
 def _event_summary_tables(event_risk: dict[str, Any], styles) -> list[Any]:
-    from reportlab.platypus import Spacer
+    from reportlab.platypus import KeepTogether, Spacer
 
     flowables: list[Any] = []
     topics = event_risk.get("topics") or []
@@ -427,8 +432,10 @@ def _event_summary_tables(event_risk: dict[str, Any], styles) -> list[Any]:
                     _title(topic.get("dominant_tone")),
                     _title(topic.get("impact")),
                 ])
-        flowables.append(_p("News Topic Distribution", styles["section"]))
-        flowables.append(_table(topic_rows, styles, [210, 55, 95, 80]))
+        flowables.append(KeepTogether([
+            _p("News Topic Distribution", styles["section"]),
+            _table(topic_rows, styles, [210, 55, 95, 80]),
+        ]))
         flowables.append(Spacer(1, 8))
 
     headline_rows = [["Headline", "Source", "Impact", "Age"]]
@@ -443,8 +450,10 @@ def _event_summary_tables(event_risk: dict[str, Any], styles) -> list[Any]:
         ])
     if len(headline_rows) == 1:
         headline_rows.append(["-", "-", "-", "No relevant headlines archived."])
-    flowables.append(_p("Relevant Headlines", styles["section"]))
-    flowables.append(_table(headline_rows, styles, [260, 75, 80, 35]))
+    flowables.append(KeepTogether([
+        _p("Relevant Headlines", styles["section"]),
+        _table(headline_rows, styles, [260, 75, 80, 35]),
+    ]))
     flowables.append(Spacer(1, 8))
 
     event_rows = [["Event", "When", "Impact", "Forecast / Previous"]]
@@ -466,9 +475,20 @@ def _event_summary_tables(event_risk: dict[str, Any], styles) -> list[Any]:
         ])
     if len(event_rows) == 1:
         event_rows.append(["-", "-", "-", "No relevant events archived."])
-    flowables.append(_p("Upcoming Macro Calendar", styles["section"]))
-    flowables.append(_table(event_rows, styles, [210, 105, 65, 70]))
+    flowables.append(KeepTogether([
+        _p("Upcoming Macro Calendar", styles["section"]),
+        _table(event_rows, styles, [210, 105, 65, 70]),
+    ]))
     return flowables
+
+
+def _section_table(title: str, rows: list[list[Any]], styles, col_widths: list[float] | None = None):
+    from reportlab.platypus import KeepTogether
+
+    return KeepTogether([
+        _p(title, styles["section"]),
+        _table(rows, styles, col_widths),
+    ])
 
 
 def _make_styles():
@@ -687,7 +707,6 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
     ], styles, [118, 376]))
     story.append(Spacer(1, 10))
 
-    story.append(_p("Price Areas", styles["section"]))
     zone_rows = [["Zone", "Price Area", "Why It Matters"]]
     for zone in verdict.get("zones_to_watch") or []:
         if not isinstance(zone, dict):
@@ -698,7 +717,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         zone_rows.append([_title(zone.get("kind")), _zone_label(zone), detail])
     if len(zone_rows) == 1:
         zone_rows.append(["-", "-", "No zones recorded."])
-    story.append(_table(zone_rows, styles, [80, 110, 304]))
+    story.append(_section_table("Price Areas", zone_rows, styles, [80, 110, 304]))
     story.append(Spacer(1, 8))
 
     invalidation_rows = [["Thesis", "Level", "Why It Matters"]]
@@ -711,8 +730,7 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
             ])
     if len(invalidation_rows) == 1:
         invalidation_rows.append(["-", "-", "No invalidation levels recorded."])
-    story.append(_p("Invalidation Levels", styles["section"]))
-    story.append(_table(invalidation_rows, styles, [120, 80, 294]))
+    story.append(_section_table("Invalidation Levels", invalidation_rows, styles, [120, 80, 294]))
 
     story.append(PageBreak())
     story.append(_p("Reasoning Breakdown", styles["section"]))
@@ -750,9 +768,8 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
     story.append(_table(matrix_rows, styles, [88, 70, 70, 42, 224]))
 
     story.append(Spacer(1, 10))
-    story.append(_p("Liquidity And Event Risk", styles["section"]))
     magnets = _as_dict(liquidity.get("magnets"))
-    story.append(_table([
+    liquidity_rows = [
         ["Field", "Value"],
         ["Liquidity health", _title(liquidity.get("status") or ("available" if liquidity.get("available") else "unavailable"))],
         ["Model confidence", _pct(liquidity.get("model_confidence") or magnets.get("model_confidence"), scale_one=True)],
@@ -760,23 +777,24 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
         ["Nearest magnet below", f"{_money(_magnet_price(magnets.get('nearest_below')))} ({_distance(report.get('btc_price'), _magnet_price(magnets.get('nearest_below')))})"],
         ["Event risk", _title(event_risk.get("risk_level"))],
         ["Current warning", _text((event_risk.get("warnings") or [event_risk.get("summary") or "-"])[0])],
-    ], styles, [125, 369]))
+    ]
+    story.append(_section_table("Liquidity And Event Risk", liquidity_rows, styles, [125, 369]))
     story.append(Spacer(1, 10))
 
     story.append(PageBreak())
-    story.append(_p("News, Calendar, And Event Risk", styles["section"]))
     windows = _as_dict(event_risk.get("windows"))
     next_24h = _as_dict(windows.get("next_24h"))
     next_72h = _as_dict(windows.get("next_72h"))
     adjustment = _as_dict(event_risk.get("confidence_adjustment"))
-    story.append(_table([
+    news_risk_rows = [
         ["Field", "Value"],
         ["Risk level", _title(event_risk.get("risk_level"))],
         ["Confidence guardrail", f"-{_text(adjustment.get('penalty_points'), '0')} pts; cannot create or flip direction"],
         ["Next 24h", f"{_text(next_24h.get('event_count'), '0')} events; {_text(next_24h.get('high_impact_count'), '0')} high impact"],
         ["Next 72h", f"{_text(next_72h.get('event_count'), '0')} events; {_text(next_72h.get('high_impact_count'), '0')} high impact"],
         ["Current warning", _text((event_risk.get("warnings") or [event_risk.get("summary") or "-"])[0])],
-    ], styles, [135, 359]))
+    ]
+    story.append(_section_table("News, Calendar, And Event Risk", news_risk_rows, styles, [135, 359]))
     story.append(Spacer(1, 8))
     story.extend(_event_summary_tables(event_risk, styles))
 
