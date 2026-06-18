@@ -441,6 +441,28 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
   );
 }
 
+function DetailTabRail({ activeTab, onChange, tabs }) {
+  return (
+    <div className="flex gap-1 overflow-x-auto border-b border-white/[0.06] bg-black/10 p-2">
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => onChange(tab.key)}
+          className={cx(
+            "whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] transition",
+            activeTab === tab.key
+              ? "border border-[#d4a853]/30 bg-[#d4a853]/12 text-[#f5c451] shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
+              : "border border-transparent text-white/35 hover:bg-white/[0.04] hover:text-white/65",
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Modal({ title, children, onClose }) {
   if (!title) return null;
   return (
@@ -625,6 +647,7 @@ export default function CompassBrief({
   eventRisk,
 }) {
   const [modal, setModal] = useState(null);
+  const [activeTab, setActiveTab] = useState("drivers");
   if (!report) return null;
 
   const inner = report.report || {};
@@ -650,6 +673,13 @@ export default function CompassBrief({
     holder: "72h and holder context",
     risk: "Invalidation detail",
   }[modal];
+  const detailTabs = [
+    { key: "drivers", label: "Drivers" },
+    { key: "levels", label: "Levels" },
+    { key: "news", label: "News" },
+    { key: "risk", label: "Risk" },
+    { key: "holder", label: "Holder" },
+  ];
 
   return (
     <div className="space-y-7">
@@ -669,34 +699,61 @@ export default function CompassBrief({
         onDetail={() => setModal("trader")}
       />
 
-      <section>
-        <SectionTitle eyebrow="24h drivers" title="What is moving the short-term read">
+      <section className={cx(card, "overflow-hidden")}>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              Detail workspace
+            </div>
+            <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+              Open only the layer you need
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-white/40">
+              The main read stays short. Drill into drivers, levels, news, risk, or holder context only when needed.
+            </p>
+          </div>
           <DetailButton onClick={() => setModal("allMetrics")}>Open all metrics</DetailButton>
-        </SectionTitle>
-        <div className="grid gap-3 md:grid-cols-2">
-          {driverRows.map((row) => (
-            <MetricPreviewCard key={row.key} row={row} horizon="24h" onDetail={() => setModal(row.key === "liquidity" ? "liquidity" : "trader")} />
-          ))}
+        </div>
+        <DetailTabRail activeTab={activeTab} onChange={setActiveTab} tabs={detailTabs} />
+        <div className="p-5">
+          {activeTab === "drivers" && (
+            <div>
+              <SectionTitle eyebrow="24h drivers" title="What is moving the short-term read">
+                <DetailButton onClick={() => setModal("allMetrics")}>Open all metrics</DetailButton>
+              </SectionTitle>
+              <div className="grid gap-3 md:grid-cols-2">
+                {driverRows.map((row) => (
+                  <MetricPreviewCard key={row.key} row={row} horizon="24h" onDetail={() => setModal(row.key === "liquidity" ? "liquidity" : "trader")} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "levels" && (
+            <div>
+              <SectionTitle eyebrow="Price map" title="Levels to watch for the next move">
+                <DetailButton onClick={() => setModal("liquidity")}>Open levels + liquidity</DetailButton>
+              </SectionTitle>
+              <ZoneList zones={zones} currentPrice={price} onDetail={() => setModal("liquidity")} />
+            </div>
+          )}
+
+          {activeTab === "news" && <NewsPreview eventRisk={eventRisk} onDetail={() => setModal("news")} />}
+
+          {activeTab === "risk" && (
+            <div>
+              <SectionTitle eyebrow="Invalidation" title="What can break the short-term read">
+                <DetailButton onClick={() => setModal("risk")}>Open risk detail</DetailButton>
+              </SectionTitle>
+              <RiskList risks={risks} onDetail={() => setModal("risk")} />
+            </div>
+          )}
+
+          {activeTab === "holder" && (
+            <HolderContext cycle={cycle} swing={swing} rows={rows} onDetail={() => setModal("holder")} />
+          )}
         </div>
       </section>
-
-      <NewsPreview eventRisk={eventRisk} onDetail={() => setModal("news")} />
-
-      <section>
-        <SectionTitle eyebrow="Price map" title="Levels to watch for the next move">
-          <DetailButton onClick={() => setModal("liquidity")}>Open levels + liquidity</DetailButton>
-        </SectionTitle>
-        <ZoneList zones={zones} currentPrice={price} onDetail={() => setModal("liquidity")} />
-      </section>
-
-      <section>
-        <SectionTitle eyebrow="Invalidation" title="What can break the short-term read">
-          <DetailButton onClick={() => setModal("risk")}>Open risk detail</DetailButton>
-        </SectionTitle>
-        <RiskList risks={risks} onDetail={() => setModal("risk")} />
-      </section>
-
-      <HolderContext cycle={cycle} swing={swing} rows={rows} onDetail={() => setModal("holder")} />
 
       <Modal title={modalTitle} onClose={() => setModal(null)}>
         {modal === "trader" && <EvidenceModalContent report={report} horizon="24h" />}

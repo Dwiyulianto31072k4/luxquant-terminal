@@ -122,12 +122,74 @@ function ErrorState({ error, onRetry }) {
   );
 }
 
+function startOfTodayIso() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+function todayLabel() {
+  return new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function WorkspaceTabs({ activeTab, onChange, tabs }) {
+  return (
+    <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/70 p-2 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="grid gap-2 md:grid-cols-3">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={`rounded-xl border px-4 py-3 text-left transition ${
+              activeTab === tab.key
+                ? "border-[#d4a853]/35 bg-[#d4a853]/10 text-white"
+                : "border-white/[0.06] bg-black/10 text-white/45 hover:bg-white/[0.04] hover:text-white/70"
+            }`}
+          >
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+              {tab.eyebrow}
+            </div>
+            <div className="mt-1 text-sm font-semibold">{tab.label}</div>
+            <div className="mt-1 text-xs leading-5 text-white/40">{tab.description}</div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChartPanel() {
+  return (
+    <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
+      <div className="mb-4">
+        <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+          Price context
+        </div>
+        <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
+          BTC chart
+        </h2>
+        <p className="mt-1 text-xs leading-5 text-white/40">
+          Use the chart after reading the stance, not before. It is here to
+          confirm context, not to overload the first impression.
+        </p>
+      </div>
+      <PriceChart />
+    </section>
+  );
+}
+
 export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
   const [operationalHealth, setOperationalHealth] = useState(null);
   const [trackRecord, setTrackRecord] = useState(null);
   const [ledger, setLedger] = useState(null);
+  const [activeWorkspace, setActiveWorkspace] = useState("read");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -146,7 +208,7 @@ export default function AIArenaPageV6() {
         getEventRisk(),
         getOperationalHealth(),
         getTrackRecord({ days: 30 }),
-        getLedger({ days: 14 }),
+        getLedger({ days: 1 }),
       ]);
 
       if (latestRes.status !== "fulfilled") {
@@ -198,6 +260,28 @@ export default function AIArenaPageV6() {
     operationalHealth?.status === "healthy" && dashboardHealth?.status === "healthy"
       ? "healthy"
       : operationalHealth?.status || dashboardHealth?.status || "unknown";
+  const resetSince = startOfTodayIso();
+  const resetLabel = `Today reset · ${todayLabel()}`;
+  const workspaceTabs = [
+    {
+      key: "read",
+      eyebrow: "Today",
+      label: "Market Read",
+      description: "24h stance, drivers, levels, risk, and holder context.",
+    },
+    {
+      key: "evaluation",
+      eyebrow: "Reset",
+      label: "Evaluation",
+      description: "Hit, miss, and pending table starting from today.",
+    },
+    {
+      key: "chart",
+      eyebrow: "Context",
+      label: "BTC Chart",
+      description: "Price confirmation after the read, not before it.",
+    },
+  ];
 
   return (
     <div
@@ -215,30 +299,32 @@ export default function AIArenaPageV6() {
           refreshing={refreshing}
         />
 
-        <CompassBrief
-          report={report}
-          dashboardHealth={dashboardHealth}
-          operationalHealth={operationalHealth}
-          eventRisk={eventRisk}
+        <WorkspaceTabs
+          activeTab={activeWorkspace}
+          onChange={setActiveWorkspace}
+          tabs={workspaceTabs}
         />
 
-        <VerdictLedger trackRecord={trackRecord} ledger={ledger} />
+        {activeWorkspace === "read" && (
+          <CompassBrief
+            report={report}
+            dashboardHealth={dashboardHealth}
+            operationalHealth={operationalHealth}
+            eventRisk={eventRisk}
+          />
+        )}
 
-        <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
-          <div className="mb-4">
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-              Price context
-            </div>
-            <h2 className="mt-1 text-xl font-medium text-white/90 md:text-2xl">
-              BTC chart
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-white/40">
-              Use the chart after reading the stance, not before. It is here to
-              confirm context, not to overload the first impression.
-            </p>
-          </div>
-          <PriceChart />
-        </section>
+        {activeWorkspace === "evaluation" && (
+          <VerdictLedger
+            trackRecord={trackRecord}
+            ledger={ledger}
+            resetSince={resetSince}
+            resetLabel={resetLabel}
+            pageSize={8}
+          />
+        )}
+
+        {activeWorkspace === "chart" && <ChartPanel />}
 
         <footer className="border-t border-white/[0.06] pt-6 text-center">
           <p className="text-[11px] font-mono leading-relaxed text-white/30">
