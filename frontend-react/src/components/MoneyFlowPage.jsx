@@ -437,25 +437,34 @@ const CoinsTab = () => {
     return () => { alive = false; };
   }, []);
 
-  // Resolve a LuxQuant-called coin → its latest signal, then open SignalModal
+  // Resolve a LuxQuant-called coin → its latest signal, then open SignalModal.
+  // Uses the confirmed-mounted /api/v1/signals/ list (filter by pair, newest first).
   const openSignal = async (c) => {
     const pair = (c.pair || `${c.symbol}USDT`).toUpperCase();
     setLoadingSym(c.symbol);
     try {
-      const r = await fetch(`/api/v1/analytics/coin/${pair}?limit=1`);
-      if (r.ok) {
-        const d = await r.json();
-        const sig = d.signals && d.signals[0];
-        if (sig && sig.signal_id) {
-          setSelectedSignal({
-            signal_id: sig.signal_id,
-            pair,
-            status: sig.status || "open",
-            created_at: sig.created_at,
-          });
-        }
+      const r = await fetch(
+        `/api/v1/signals/?pair=${encodeURIComponent(pair)}&page_size=1&sort_by=created_at&sort_order=desc`
+      );
+      if (!r.ok) {
+        console.warn("[MoneyFlow] signals lookup HTTP", r.status, "for", pair);
+        return;
       }
-    } catch { /* noop */ } finally {
+      const d = await r.json();
+      const sig = d.items && d.items[0];
+      if (sig && sig.signal_id) {
+        setSelectedSignal({
+          signal_id: sig.signal_id,
+          pair: sig.pair || pair,
+          status: sig.status || "open",
+          created_at: sig.created_at,
+        });
+      } else {
+        console.warn("[MoneyFlow] no signal found for", pair);
+      }
+    } catch (e) {
+      console.error("[MoneyFlow] openSignal error", e);
+    } finally {
       setLoadingSym(null);
     }
   };
