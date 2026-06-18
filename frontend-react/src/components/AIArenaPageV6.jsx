@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   getEventRisk,
   getLatestReport,
@@ -262,10 +263,23 @@ function readableLabel(value) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
+function ReportArchivePanel({ archive, report, loadingId, error, onOpenPdf }) {
   const items = archive?.items || [];
   const readyCount = items.filter((item) => item.pdf_ready).length;
   const latest = items[0];
+  const pageSize = 4;
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const pageEnd = Math.min(items.length, pageStart + pageSize);
+  const pagedItems = useMemo(
+    () => items.slice(pageStart, pageStart + pageSize),
+    [items, pageStart],
+  );
+
+  useEffect(() => {
+    setPage((current) => Math.min(Math.max(current, 1), pageCount));
+  }, [pageCount]);
 
   if (!archive) {
     return (
@@ -281,124 +295,205 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
     );
   }
 
-  return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className="border-b border-white/[0.06] p-5 md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-              Report library
-            </div>
-            <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
-              Saved Compass PDFs
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
-              Every market read is archived as a readable PDF. Open one report to review the stance, projection, magnets, levels, risk, and quality audit without exposing raw data-source plumbing.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
-              <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Reports</div>
-              <div className="mt-1 text-white/80">{items.length}</div>
-            </div>
-            <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] px-3 py-2">
-              <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">PDF ready</div>
-              <div className="mt-1 text-emerald-300">{readyCount}</div>
-            </div>
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
-              <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Latest</div>
-              <div className="mt-1 text-white/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
-            </div>
-          </div>
-        </div>
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-red-200/85">
-            {error}
-          </div>
-        )}
-      </div>
+  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index + 1);
 
-      <div className="grid gap-3 p-4 md:grid-cols-2 md:p-5">
-        {items.map((item) => {
-          const loading = loadingId === item.report_id;
-          const direction = item.tactical_24h?.direction;
-          const confidence = item.tactical_24h?.confidence;
-          return (
-            <article
-              key={item.report_id}
-              className="group rounded-xl border border-white/[0.07] bg-black/20 p-4 transition hover:border-[#d4a853]/30 hover:bg-[#d4a853]/[0.035]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/35">
-                      {formatDateTime(item.timestamp)}
-                    </span>
-                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] ${directionClasses(direction)}`}>
-                      {readableLabel(direction)} {confidence ?? "-"}%
-                    </span>
-                    <span className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] text-white/40">
-                      {formatMoney(item.btc_price)}
-                    </span>
-                  </div>
-                  <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-white/90">
-                    {item.headline || "Compass report"}
-                  </h3>
-                </div>
-                <span
-                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
-                    item.pdf_ready
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                      : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+  return (
+    <div className="space-y-5">
+      {report && (
+        <section className="overflow-hidden rounded-2xl border border-[#d4a853]/15 bg-[#0d0d12]/85 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.06] p-5 md:p-6">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                Live context
+              </div>
+              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
+                BTC chart + Compass projection
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+                Read the saved PDF as the archive, then use this chart to see the current BTC candles, projected touch, magnets, reaction zone, and invalidation lines in one place.
+              </p>
+            </div>
+            <div className="rounded-lg border border-[#d4a853]/15 bg-[#d4a853]/[0.055] px-3 py-2 text-right font-mono text-[10px] text-[#f5c451]">
+              <div className="uppercase tracking-[0.14em] text-[#d4a853]/70">Projection layer</div>
+              <div className="mt-1 text-white/65">Live BTC + latest Compass</div>
+            </div>
+          </div>
+          <div className="p-3 md:p-5">
+            <PriceChart report={report} />
+          </div>
+        </section>
+      )}
+
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+        <div className="border-b border-white/[0.06] p-5 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                Report library
+              </div>
+              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
+                Saved Compass PDFs
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+                Four reports per page. Each card shows the stance, price, magnets, and risk snapshot before opening the full archived PDF.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
+              <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Reports</div>
+                <div className="mt-1 text-white/80">{items.length}</div>
+              </div>
+              <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">PDF ready</div>
+                <div className="mt-1 text-emerald-300">{readyCount}</div>
+              </div>
+              <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Latest</div>
+                <div className="mt-1 text-white/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
+              </div>
+            </div>
+          </div>
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-400/15 bg-red-400/[0.04] px-4 py-3 text-sm text-red-200/85">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {items.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
+            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
+              Showing <span className="text-white/65">{pageStart + 1}-{pageEnd}</span> of <span className="text-white/65">{items.length}</span>
+            </div>
+            <div className="flex items-center gap-1.5 font-mono text-[10px]">
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                disabled={page <= 1}
+                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Prev
+              </button>
+              {pageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => setPage(pageNumber)}
+                  className={`h-8 min-w-8 rounded-md border px-2 transition ${
+                    pageNumber === page
+                      ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-[#f5c451]"
+                      : "border-white/[0.07] bg-black/20 text-white/40 hover:border-white/[0.14] hover:text-white/70"
                   }`}
                 >
-                  {item.pdf_ready ? "PDF ready" : "PDF pending"}
-                </span>
-              </div>
-
-              <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/45">
-                {item.summary || item.tactical_24h?.rationale || "Archived Compass report with full breakdown."}
-              </p>
-
-              <div className="mt-4 grid gap-2 text-xs md:grid-cols-3">
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Magnet below</div>
-                  <div className="mt-1 font-mono text-white/70">{formatMoney(item.nearest_magnet_below)}</div>
-                </div>
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Magnet above</div>
-                  <div className="mt-1 font-mono text-white/70">{formatMoney(item.nearest_magnet_above)}</div>
-                </div>
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Risk</div>
-                  <div className="mt-1 font-mono text-white/70">{readableLabel(item.event_risk)}</div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
-                <div className="font-mono text-[10px] text-white/35">
-                  {item.pdf_ready ? `${formatBytes(item.pdf_size_bytes)} archived` : item.pdf_error || "Generator pending"}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenPdf(item)}
-                  disabled={loading}
-                  className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-4 py-2 text-sm font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {loading ? "Opening..." : "Open PDF"}
+                  {pageNumber}
                 </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                disabled={page >= pageCount}
+                className="rounded-md border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 text-white/55 transition hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
-      {items.length === 0 && (
-        <div className="p-8 text-center text-sm text-white/40">
-          No archived Compass reports yet. The next scheduled report will create the first PDF.
+        <div className="grid gap-3 p-4 md:grid-cols-2 md:p-5">
+          {pagedItems.map((item, index) => {
+            const loading = loadingId === item.report_id;
+            const direction = item.tactical_24h?.direction;
+            const confidence = item.tactical_24h?.confidence;
+            const bearish = String(direction || "").toLowerCase() === "bearish";
+            const bullish = String(direction || "").toLowerCase() === "bullish";
+            const accent = bullish ? "emerald" : bearish ? "red" : "amber";
+            const ringClass = bullish
+              ? "hover:border-emerald-400/35"
+              : bearish
+                ? "hover:border-red-400/35"
+                : "hover:border-[#d4a853]/35";
+            return (
+              <article
+                key={item.report_id}
+                className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(135deg,rgba(255,255,255,0.035),rgba(0,0,0,0.22))] p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
+              >
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/45 to-transparent opacity-60" />
+                <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#d4a853]/10 blur-3xl transition group-hover:bg-[#d4a853]/15" />
+
+                <div className="relative flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-white/[0.08] bg-black/20 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-white/35">
+                        #{pageStart + index + 1}
+                      </span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-white/35">
+                        {formatDateTime(item.timestamp)}
+                      </span>
+                      <span className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] ${directionClasses(direction)}`}>
+                        {readableLabel(direction)} {confidence ?? "-"}%
+                      </span>
+                    </div>
+                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-white/92">
+                      {item.headline || "Compass report"}
+                    </h3>
+                  </div>
+                  <div className="shrink-0 text-right font-mono">
+                    <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">BTC</div>
+                    <div className="mt-1 text-sm text-white/80">{formatMoney(item.btc_price)}</div>
+                  </div>
+                </div>
+
+                <p className="relative mt-3 line-clamp-3 text-sm leading-6 text-white/45">
+                  {item.summary || item.tactical_24h?.rationale || "Archived Compass report with full breakdown."}
+                </p>
+
+                <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
+                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Below magnet</div>
+                    <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_below)}</div>
+                  </div>
+                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Above magnet</div>
+                    <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_above)}</div>
+                  </div>
+                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                    <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Event risk</div>
+                    <div className="mt-1 font-mono text-white/75">{readableLabel(item.event_risk)}</div>
+                  </div>
+                </div>
+
+                <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+                  <span
+                    className={`rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
+                      item.pdf_ready
+                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                        : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+                    }`}
+                  >
+                    {item.pdf_ready ? `${formatBytes(item.pdf_size_bytes)} ready` : item.pdf_error || "Pending"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenPdf(item)}
+                    disabled={loading}
+                    className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-4 py-2 text-sm font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {loading ? "Opening..." : "Open reader"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
-      )}
-    </section>
+
+        {items.length === 0 && (
+          <div className="p-8 text-center text-sm text-white/40">
+            No archived Compass reports yet. The next scheduled report will create the first PDF.
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -410,19 +505,19 @@ function ReportPdfModal({ modal, onClose }) {
   const confidence = item.tactical_24h?.confidence;
   const generatedLabel = formatDateTime(item.timestamp);
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[100000] overflow-hidden bg-[#020102]/96 text-white backdrop-blur-2xl"
+      className="fixed inset-0 z-[100000] flex items-center justify-center overflow-hidden bg-[#020102]/88 p-2 text-white backdrop-blur-2xl sm:p-3 lg:p-5"
       role="dialog"
       aria-modal="true"
       aria-label="Compass PDF preview"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_2%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_74%_16%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.78),rgba(2,1,2,0.96))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(212,168,83,0.16),transparent_28%),radial-gradient(circle_at_80%_12%,rgba(127,29,29,0.20),transparent_34%),linear-gradient(180deg,rgba(30,5,7,0.72),rgba(2,1,2,0.96))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
 
-      <div className="relative mx-auto flex h-[calc(100dvh-16px)] w-[calc(100vw-16px)] translate-y-2 flex-col overflow-hidden rounded-[20px] border border-white/[0.12] bg-[#070507]/98 shadow-[0_30px_140px_rgba(0,0,0,0.82)] ring-1 ring-[#d4a853]/10 md:h-[calc(100dvh-20px)] md:w-[calc(100vw-20px)] md:translate-y-2.5">
+      <div className="relative flex h-[min(920px,calc(100dvh-24px))] max-h-[calc(100dvh-24px)] w-[min(1540px,calc(100vw-24px))] flex-col overflow-hidden rounded-[22px] border border-[#d4a853]/20 bg-[#070507]/98 shadow-[0_30px_140px_rgba(0,0,0,0.82)] ring-1 ring-white/[0.06] sm:h-[min(920px,calc(100dvh-32px))] sm:max-h-[calc(100dvh-32px)] sm:w-[min(1540px,calc(100vw-32px))]">
         <header className="shrink-0 border-b border-white/[0.08] bg-[#0b0709]/98 px-3 py-2.5 md:px-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
@@ -435,11 +530,11 @@ function ReportPdfModal({ modal, onClose }) {
                   {generatedLabel}
                 </span>
               </div>
-              <h3 className="mt-1.5 max-w-[72vw] truncate text-sm font-semibold tracking-[-0.01em] text-white/90 md:text-lg">
+              <h3 className="mt-1.5 max-w-[68vw] truncate text-sm font-semibold tracking-[-0.01em] text-white/90 md:text-lg">
                 {modal.title}
               </h3>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <a
                 href={modal.url}
                 target="_blank"
@@ -466,14 +561,14 @@ function ReportPdfModal({ modal, onClose }) {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,18vw,292px)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[clamp(220px,17vw,286px)_minmax(0,1fr)]">
           <aside className="hidden min-h-0 border-r border-white/[0.08] bg-[#090608]/92 p-2.5 lg:block">
             <div className="flex h-full flex-col gap-3 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
+              <div className="rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
                   Reading brief
                 </div>
-                <p className="mt-2 text-sm leading-6 text-white/58">
+                <p className="mt-2 text-sm leading-6 text-white/62">
                   {item.summary || item.tactical_24h?.rationale || "Full Compass breakdown is archived in this report."}
                 </p>
               </div>
@@ -485,12 +580,12 @@ function ReportPdfModal({ modal, onClose }) {
                 <ReaderMetric label="Event risk" value={readableLabel(item.event_risk)} />
               </div>
 
-              <div className="mt-auto hidden rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-3 xl:block">
+              <div className="mt-auto rounded-2xl border border-white/[0.08] bg-black/20 p-3">
                 <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-                  Dynamic preview
+                  Reader mode
                 </div>
-                <p className="mt-2 text-xs leading-5 text-white/45">
-                  This reader renders the PDF pages directly with PDF.js, then fits each page to the available reading width. No browser toolbar, no thumbnail rail, and less wasted space.
+                <p className="mt-2 text-xs leading-5 text-white/42">
+                  The window stays inside the viewport. Scroll only this reader, not the whole app behind it.
                 </p>
               </div>
             </div>
@@ -503,6 +598,8 @@ function ReportPdfModal({ modal, onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 function CompassPdfViewer({ url, title }) {
@@ -937,6 +1034,15 @@ export default function AIArenaPageV6() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pdfModal, closePdfModal]);
 
+  useEffect(() => {
+    if (!pdfModal) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [pdfModal]);
+
   if (loading) {
     return (
       <div className="min-h-screen text-white">
@@ -1041,6 +1147,7 @@ export default function AIArenaPageV6() {
         {activeWorkspace === "archive" && (
           <ReportArchivePanel
             archive={reportArchive}
+            report={report}
             loadingId={pdfLoadingId}
             error={pdfError}
             onOpenPdf={openReportPdf}
