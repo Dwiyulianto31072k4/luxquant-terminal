@@ -437,21 +437,68 @@ const CoinsTab = () => {
     return () => { alive = false; };
   }, []);
 
-  // Resolve a LuxQuant-called coin → its latest signal, then open SignalModal.
-  // Uses the confirmed-mounted /api/v1/signals/ list (filter by pair, newest first).
+  // Resolve a LuxQuant-called coin → its LATEST signal, then open SignalModal.
+  // NOTE: we do NOT trust server-side sort/pagination params (endpoint may use
+  // different names — size/ordering/fastapi-pagination — and silently ignore
+  // page_size/sort_by, returning the OLDEST match). So we pull a generous page
+  // and pick the newest client-side, filtering to this exact pair and
+  // preferring still-active signals as a tie-breaker.
   const openSignal = async (c) => {
     const pair = (c.pair || `${c.symbol}USDT`).toUpperCase();
+    const sym = String(c.symbol || "").toUpperCase();
     setLoadingSym(c.symbol);
     try {
-      const r = await fetch(
-        `/api/v1/signals/?pair=${encodeURIComponent(pair)}&page_size=1&sort_by=created_at&sort_order=desc`
-      );
+      const qs = new URLSearchParams({
+        pair,
+        page_size: "50",
+        size: "50",
+        limit: "50",
+        sort_by: "created_at",
+        sort_order: "desc",
+        ordering: "-created_at",
+      });
+      const r = await fetch(`/api/v1/signals/?${qs.toString()}`);
       if (!r.ok) {
         console.warn("[MoneyFlow] signals lookup HTTP", r.status, "for", pair);
         return;
       }
       const d = await r.json();
-      const sig = d.items && d.items[0];
+      const items = Array.isArray(d.items) ? d.items
+        : Array.isArray(d.results) ? d.results
+        : Array.isArray(d) ? d
+        : [];
+      if (!items.length) {
+        console.warn("[MoneyFlow] no signal found for", pair);
+        return;
+      }
+
+      const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const wantPair = norm(pair);
+      const wantSym = norm(sym);
+      // keep only this coin's signals (server may ignore the pair filter)
+      let cand = items.filter((x) => {
+        const xp = norm(x.pair || x.symbol);
+        return xp === wantPair || xp === wantSym || xp === wantSym + "USDT";
+      });
+      if (!cand.length) cand = items;
+
+      const ts = (x) => {
+        const v = x.created_at || x.createdAt || x.created || x.entry_time ||
+                  x.entry_at || x.opened_at || x.timestamp || x.updated_at;
+        const t = v ? Date.parse(v) : NaN;
+        if (!Number.isNaN(t)) return t;
+        const id = Number(x.signal_id);
+        return Number.isNaN(id) ? 0 : id;
+      };
+      const isClosed = (x) => /closed|cancel|expired|stopped/i.test(String(x.status || ""));
+
+      cand.sort((a, b) => {
+        const diff = ts(b) - ts(a);          // newest first
+        if (diff !== 0) return diff;
+        return (isClosed(a) ? 1 : 0) - (isClosed(b) ? 1 : 0); // active wins ties
+      });
+
+      const sig = cand[0];
       if (sig && sig.signal_id) {
         // Pass the FULL item — SignalModal reads entry/targets/stops/volume_rank
         // from the prop directly (same shape SignalsPage passes).
