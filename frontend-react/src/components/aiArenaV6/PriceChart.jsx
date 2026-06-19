@@ -113,10 +113,10 @@ export default function PriceChart({ report }) {
   });
   const [layers, setLayers] = useState({
     projection: true,
-    magnets: true,
-    zones: true,
-    levels: true,
-    trend: true,
+    magnets: false,
+    zones: false,
+    levels: false,
+    trend: false,
   });
   const [crosshair, setCrosshair] = useState(null);
 
@@ -248,6 +248,7 @@ export default function PriceChart({ report }) {
   const magnetLines = useMemo(() => getMagnetLines(report), [report]);
   const projection = useMemo(() => buildProjection(report, lastPrice, zones), [report, lastPrice, zones]);
   const visibleMaCount = Object.values(maVisible).filter(Boolean).length;
+  const chartRead = useMemo(() => buildChartRead({ report, data, tech, lastPrice, firstClose, pctMove, zones, magnetLines, projection, tf }), [report, data, tech, lastPrice, firstClose, pctMove, zones, magnetLines, projection, tf]);
 
   // ────────────────────────────────────────────────────────────
   // CONSOLIDATED data → chart sync
@@ -567,6 +568,8 @@ export default function PriceChart({ report }) {
         </div>
       )}
 
+      {data && !loading && <ChartReadPanel read={chartRead} />}
+
       {Object.keys(zones || {}).length > 0 && !loading && layers.zones && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <ZoneChip label="Demand" zone={zones.demand} tint={COLORS.zoneDemand} accent={COLORS.candleUp} arrow="↓" currentPrice={lastPrice} />
@@ -687,6 +690,113 @@ function StatPill({ label, value, hint }) {
   );
 }
 
+
+function ChartReadPanel({ read }) {
+  if (!read) return null;
+  const toneColor = directionColor(read.direction);
+  return (
+    <section className="mt-4 overflow-hidden rounded-xl border border-[#d4a853]/15 bg-[#0b0b10]/80 shadow-[0_1px_0_rgba(255,255,255,0.035)_inset]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
+        <div className="max-w-4xl">
+          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+            AI chart reasoning
+          </div>
+          <h3 className="mt-1 text-lg font-semibold leading-tight text-white/90 lg:text-xl">
+            {read.title}
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-white/55">
+            {read.summary}
+          </p>
+        </div>
+        <div
+          className="rounded-lg border px-3 py-2 text-right font-mono"
+          style={{ borderColor: `${toneColor}44`, background: `${toneColor}12` }}
+        >
+          <div className="text-[8px] uppercase tracking-[0.14em] text-white/35">Mode</div>
+          <div className="mt-1 text-sm font-semibold" style={{ color: toneColor }}>
+            {read.mode}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-4 xl:grid-cols-[0.92fr_1.08fr]">
+        <div className="space-y-3">
+          <div className="rounded-lg border border-[#d4a853]/15 bg-[#d4a853]/[0.055] p-3">
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">
+              What to do with it
+            </div>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              {read.tradePlan}
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {read.keyNumbers.map((item) => (
+              <MarketNumber key={item.label} item={item} />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          {read.explanations.map((item) => (
+            <ReasonRow key={item.title} item={item} />
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-white/[0.06] p-4">
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/30">Technical tape</div>
+            <p className="mt-1 text-xs text-white/45">These numbers explain whether the projected touch is clean, stretched, or noisy.</p>
+          </div>
+          <div className="text-[10px] font-mono text-white/30">Projection layer is the default view</div>
+        </div>
+        <div className="grid gap-2 lg:grid-cols-4">
+          {read.metrics.map((metric) => (
+            <MetricExplain key={metric.label} metric={metric} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MarketNumber({ item }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.025] p-3">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{item.label}</div>
+      <div className="mt-1 font-mono text-base font-semibold tabular-nums text-white/90">{item.value}</div>
+      <div className="mt-1 text-[10px] leading-4 text-white/45">{item.detail}</div>
+    </div>
+  );
+}
+
+function ReasonRow({ item }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-black/15 p-3">
+      <div className="flex items-start gap-2">
+        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-sm bg-[#d4a853]" />
+        <div>
+          <div className="text-sm font-semibold text-white/85">{item.title}</div>
+          <p className="mt-1 text-xs leading-5 text-white/50">{item.body}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricExplain({ metric }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-[#0d0d12]/70 p-3">
+      <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{metric.label}</div>
+      <div className="mt-1 font-mono text-sm font-semibold text-white/90">{metric.value}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#d4a853]/75">{metric.state}</div>
+      <p className="mt-1 text-[10px] leading-4 text-white/45">{metric.reason}</p>
+    </div>
+  );
+}
+
 function ZoneChip({ label, zone, tint, accent, arrow, currentPrice }) {
   if (!zone) return null;
   const inZone =
@@ -738,6 +848,175 @@ function bbHint(bw) {
   if (bw < 3) return "squeeze";
   if (bw < 6) return "normal";
   return "expansion";
+}
+
+
+function compactMoney(value) {
+  const number = toNumber(value);
+  if (number == null) return "—";
+  return formatPrice(number);
+}
+
+function zoneRead(currentPrice, zone, label) {
+  if (zone?.low == null || zone?.high == null) return `${label} zone is not available in this read.`;
+  const price = toNumber(currentPrice);
+  const range = `${formatPrice(zone.low)}-${formatPrice(zone.high)}`;
+  if (price == null) return `${label} sits at ${range}.`;
+  if (price >= zone.low && price <= zone.high) return `BTC is inside ${label.toLowerCase()} at ${range}. This is a decision area, not a chase area.`;
+  if (price < zone.low) return `BTC is below ${label.toLowerCase()} at ${range}. Regaining it would improve structure.`;
+  return `BTC is above ${label.toLowerCase()} at ${range}. A retest can act as confirmation if buyers defend it.`;
+}
+
+function pickNearestMagnet(magnetLines, side) {
+  return (magnetLines || []).find((line) => line.side === side && line.nearest) || (magnetLines || []).find((line) => line.side === side) || null;
+}
+
+function metricReason(label, value, state) {
+  const lower = String(state || "").toLowerCase();
+  if (label === "RSI 14") {
+    if (lower === "oversold") return "Momentum is stretched to the downside. Late shorts need confirmation because snapback risk rises below 30.";
+    if (lower === "weak") return "Momentum is weak but not exhausted. Sellers still have pressure, yet the best short entries need failed bounces.";
+    if (lower === "neutral") return "Momentum is balanced. Price levels matter more than oscillator direction.";
+    if (lower === "overbought") return "Upside momentum is stretched. Fresh longs need acceptance above resistance, not just a green candle.";
+    return "Momentum is firm. Pullbacks can be bought only if key demand holds.";
+  }
+  if (label === "EMA Spread") {
+    if (lower.includes("bearish")) return `Short moving averages are below pressure by ${value}. Trend still leans defensive until price reclaims the stack.`;
+    return `Moving average structure is supportive by ${value}. Pullbacks are healthier if price holds above the fast averages.`;
+  }
+  if (label === "MACD") {
+    if (Number(value) < 0) return "Histogram is below zero, so downside momentum is still heavier. Watch whether it improves into the projected touch.";
+    if (Number(value) > 0) return "Histogram is above zero, so momentum is improving. Breakout attempts have better quality if volume follows.";
+    return "MACD is flat enough that the level reaction matters more than the indicator.";
+  }
+  if (label === "BB Bandwidth") {
+    if (lower === "expansion") return "Volatility is expanding. Levels can overshoot, so wait for candle acceptance/rejection around the line.";
+    if (lower === "squeeze") return "Volatility is compressed. A clean break from the range can travel fast once it starts.";
+    return "Volatility is normal. Level-to-level trading is more reliable than breakout chasing.";
+  }
+  return "Use this as context, then let price confirm at the projection level.";
+}
+
+function buildMetricExplain(tech) {
+  const rsi = toNumber(tech?.rsi_14);
+  const ema = toNumber(tech?.ema_spread_pct);
+  const macd = toNumber(tech?.macd?.histogram);
+  const bandwidth = toNumber(tech?.bollinger?.bandwidth);
+  const rows = [
+    { label: "RSI 14", raw: rsi, value: rsi != null ? rsi.toFixed(1) : "—", state: rsiHint(rsi) || "waiting" },
+    { label: "EMA Spread", raw: ema, value: ema != null ? `${ema.toFixed(2)}%` : "—", state: tech?.ema_bullish_cross ? "bullish stack" : "bearish stack" },
+    { label: "MACD", raw: macd, value: macd != null ? macd.toFixed(1) : "—", state: tech?.macd?.crossover || "neutral" },
+    { label: "BB Bandwidth", raw: bandwidth, value: bandwidth != null ? `${bandwidth.toFixed(2)}%` : "—", state: bbHint(bandwidth) || "waiting" },
+  ];
+  return rows.map((row) => ({ ...row, reason: metricReason(row.label, row.value, row.state) }));
+}
+
+function buildChartRead({ report, data, tech, lastPrice, firstClose, pctMove, zones, magnetLines, projection, tf }) {
+  if (!data || !projection) return null;
+  const tactical = getHorizon(report, "24h") || {};
+  const swing = getHorizon(report, "72h") || {};
+  const cycle = getHorizon(report, "cycle") || {};
+  const direction = projection.direction || String(tactical.direction || "neutral").toLowerCase();
+  const directionText = directionLabel(direction);
+  const price = toNumber(lastPrice);
+  const reportPrice = toNumber(report?.btc_price ?? getInnerReport(report)?.btc_price);
+  const above = pickNearestMagnet(magnetLines, "above");
+  const below = pickNearestMagnet(magnetLines, "below");
+  const demand = zones?.demand;
+  const fair = zones?.fair_value;
+  const supply = zones?.supply;
+  const candleCount = tech?.candle_count || data?.candles?.length || 0;
+  const moveLabel = pctMove != null ? `${pctMove >= 0 ? "+" : ""}${pctMove.toFixed(2)}%` : "—";
+  const targetDistance = projection.target ? distanceFrom(price, projection.target) : "—";
+  const aboveDistance = above ? distanceFrom(price, above.price) : "—";
+  const belowDistance = below ? distanceFrom(price, below.price) : "—";
+  const priceAction = getRow(report, "price_action");
+  const liquidityRow = getRow(report, "liquidity");
+  const priceScore = rowScore(priceAction, "24h");
+  const liqScore = rowScore(liquidityRow, "24h");
+
+  const neutralPlan = `Treat this as a range map. The first job is to see whether BTC accepts or rejects ${projection.target ? formatPrice(projection.target) : "the projected touch"}; after that, use ${projection.reactionLabel || "the reaction zone"} as the decision area.`;
+  const bearishPlan = `Do not chase the red candle. Let sellers prove control into ${projection.target ? formatPrice(projection.target) : "the downside touch"}; if demand fails, look for continuation toward ${projection.secondaryTarget ? formatPrice(projection.secondaryTarget) : projection.reactionLabel || "the next demand area"}. The read weakens if BTC holds above ${projection.invalidation || "invalidation"}.`;
+  const bullishPlan = `Do not buy the top of the push. Let bids reclaim/hold the projection area near ${projection.target ? formatPrice(projection.target) : "the upside touch"}; if supply breaks with acceptance, the next reaction becomes ${projection.secondaryTarget ? formatPrice(projection.secondaryTarget) : projection.reactionLabel || "upper supply"}. The read weakens if BTC loses ${projection.invalidation || "invalidation"}.`;
+
+  const tradePlan = direction === "bearish" ? bearishPlan : direction === "bullish" ? bullishPlan : neutralPlan;
+
+  const keyNumbers = [
+    {
+      label: "Current BTC",
+      value: compactMoney(price),
+      detail: `${tf} live chart, ${candleCount} bars. ${firstClose ? `Move from first candle: ${moveLabel}.` : "Waiting for enough candles."}`,
+    },
+    reportPrice && {
+      label: "Report price",
+      value: compactMoney(reportPrice),
+      detail: `Compass projection was anchored here. Current gap: ${distanceFrom(reportPrice, price)} from report price.`,
+    },
+    {
+      label: "Projected touch",
+      value: projection.target ? compactMoney(projection.target) : "—",
+      detail: `${targetDistance} from current. This is the first decision line, not an automatic entry.`,
+    },
+    {
+      label: "Next reaction",
+      value: projection.secondaryTarget ? compactMoney(projection.secondaryTarget) : projection.reactionLabel || "—",
+      detail: projection.reactionWhy || "Use this area after the first touch is accepted or rejected.",
+    },
+    {
+      label: "Magnet above",
+      value: above ? compactMoney(above.price) : "—",
+      detail: above ? `${aboveDistance} from current. Upside liquidity can attract price if bids reclaim control.` : "No upside magnet available in this read.",
+    },
+    {
+      label: "Magnet below",
+      value: below ? compactMoney(below.price) : "—",
+      detail: below ? `${belowDistance} from current. Downside liquidity can attract price if sellers keep control.` : "No downside magnet available in this read.",
+    },
+    {
+      label: "Invalidation",
+      value: projection.invalidation || "—",
+      detail: "If this condition is met, the current projection should be reduced or ignored.",
+    },
+    {
+      label: "Liquidity read",
+      value: projection.liquidityConfidence || "—",
+      detail: `${directionLabel(liqScore.direction)} liquidity layer. ${firstEvidence(liquidityRow) || "Magnet map available."}`,
+    },
+  ].filter(Boolean);
+
+  const explanations = [
+    {
+      title: "1. Start from the projection, not every line at once",
+      body: `Default chart layer is now Projection only. The active line shows the first realistic touch: ${projection.target ? formatPrice(projection.target) : "not ready"}. Magnets, zones, key levels, and trend MAs are optional audit layers you can turn on one by one.`,
+    },
+    {
+      title: "2. Price context defines whether the touch is tradable",
+      body: `${directionLabel(priceScore.direction)} price action. ${firstEvidence(priceAction) || priceAction?.rationale || "The latest candle structure is mixed."} Current BTC at ${compactMoney(price)} is ${projection.target ? distanceFrom(price, projection.target) : "—"} from the projected touch.`,
+    },
+    {
+      title: "3. Magnets explain where stops/liquidity can pull price",
+      body: `Nearest upside magnet is ${above ? `${formatPrice(above.price)} (${aboveDistance})` : "not available"}; nearest downside magnet is ${below ? `${formatPrice(below.price)} (${belowDistance})` : "not available"}. When price is between both, let the stronger side prove control before entering.`,
+    },
+    {
+      title: "4. Zones tell you where reaction matters",
+      body: `${zoneRead(price, demand, "Demand")} ${zoneRead(price, fair, "Fair value")} ${zoneRead(price, supply, "Supply")}`,
+    },
+    {
+      title: "5. Horizon conflict controls position size",
+      body: `24h is ${directionText} at ${tactical.confidence ?? "—"}% confidence, 72h is ${directionLabel(swing.direction)}, and holder context is ${directionLabel(cycle.direction)}. If horizons conflict, the setup is a level-to-level trade, not a conviction swing.`,
+    },
+  ];
+
+  return {
+    direction,
+    mode: `${directionText} ${tactical.confidence ?? "—"}%`,
+    title: `${directionText} chart map: first decision near ${projection.target ? formatPrice(projection.target) : "the projected touch"}`,
+    summary: "This chart is a trader map: candles show the live tape, the projection marks the first touch, magnets show where liquidity can pull, zones show where reaction should happen, and invalidation tells you when the read stops working.",
+    tradePlan,
+    keyNumbers,
+    explanations,
+    metrics: buildMetricExplain(tech),
+  };
 }
 
 function getInnerReport(report) {
