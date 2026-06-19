@@ -253,7 +253,7 @@ const ProfilePage = () => {
     } catch (err) {
       if (err.message === 'cancelled') return; // user batal — diam
       if (err.message === 'not-ready') {
-        showToast(t('profile.telegram_not_ready', 'Telegram lagi disiapkan, coba lagi.'), 'error');
+        showToast(t('profile.telegram_not_ready', 'Telegram is still loading. Please try again.'), 'error');
       } else {
         showToast(err.response?.data?.detail || t('profile.telegram_link_failed'), 'error');
       }

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ensureTelegram } from '../../utils/telegramLoader';
 import LeftBrandPanel, { MobileGlobeSection, TypewriterLine } from './LeftBrandPanel';
 import ReferralBanner from './ReferralBanner';
 
@@ -13,12 +14,24 @@ const LoginPage = () => {
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  // Telegram widget readiness — tombol Telegram dikunci sampai script siap,
+  // supaya klik pertama tidak pernah jatuh ke error "not-ready".
+  const [telegramReady, setTelegramReady] = useState(!!window.Telegram?.Login?.auth);
   const { loginWithGoogle, loginWithTelegram, loginWithDiscord, error, setError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) navigate('/', { replace: true });
   }, [isAuthenticated, navigate]);
+
+  // Preload Telegram widget on mount; unlock the button once ready.
+  useEffect(() => {
+    let alive = true;
+    ensureTelegram()
+      .then(() => { if (alive) setTelegramReady(true); })
+      .catch(() => { /* tetap terkunci; user pakai Google/Discord */ });
+    return () => { alive = false; };
+  }, []);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -168,8 +181,8 @@ const LoginPage = () => {
               icon={<TelegramIcon />}
               text={a('continue_telegram')}
               onClick={handleTelegramLogin}
-              loading={telegramLoading}
-              loadingText={a('connecting')}
+              loading={!telegramReady || telegramLoading}
+              loadingText={!telegramReady ? a('preparing') : a('connecting')}
             />
             <LoginButton
               icon={<DiscordIcon />}

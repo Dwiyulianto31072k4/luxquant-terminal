@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
       telegramUser = await openTelegramAuth(); // popup kebuka sinkron di sini
     } catch (err) {
       if (err.message === 'cancelled') throw err; // user batal — diam
-      const message = 'Telegram belum siap. Refresh halaman lalu coba lagi.';
+      const message = 'Telegram is still loading. Please try again in a moment.';
       setError(message);
       throw new Error(message);
     }
