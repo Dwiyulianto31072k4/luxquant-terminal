@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from 'react-i18next';
 import api from '../services/authApi';
+import { ensureTelegram, openTelegramAuth } from '../utils/telegramLoader';
 import CountryCurrencyPicker from './CountryCurrencyPicker';
 import VipGroupCard from './VipGroupCard';
 import { convertPrice, formatLocalPrice, formatUsdtPrice } from '../utils/currencyHelpers';
@@ -61,6 +62,10 @@ const ProfilePage = () => {
   useEffect(() => { if (user) setUsername(user.username || ''); }, [user]);
   useEffect(() => { fetchConnections(); }, []);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 3500); return () => clearTimeout(timer); }, [toast]);
+
+  // Preload Telegram widget script saat halaman dibuka, supaya tombol
+  // "Link / Replace" Telegram langsung siap pakai begitu diklik.
+  useEffect(() => { ensureTelegram().catch(() => {}); }, []);
 
   // Fetch BTC live ticker every 30s for the preview section
   useEffect(() => {
@@ -233,53 +238,28 @@ const ProfilePage = () => {
   };
 
   // ─── Telegram ───
-  const handleLinkTelegram = useCallback(() => {
-    setLinkingTelegram(true);
+  // Pakai openTelegramAuth() yang sama dengan login flow — deterministik,
+  // tidak ada inject <script> per-klik. Popup OAuth Telegram kebuka langsung.
+  // PENTING: openTelegramAuth() dipanggil sebelum await pertama (anti popup-blocker).
+  const handleLinkTelegram = useCallback(async () => {
     const isReplace = isTelegramLinked;
-
-    window.onTelegramAuth = async (telegramUser) => {
-      try {
-        const res = await api.post('/api/v1/profile/link-telegram', telegramUser);
-        setUser(res.data); fetchConnections();
-        showToast(isReplace ? t('profile.telegram_replaced') : t('profile.telegram_linked'));
-      } catch (err) { showToast(err.response?.data?.detail || t('profile.telegram_link_failed'), 'error'); }
-      finally { setLinkingTelegram(false); const c = document.getElementById('tg-link-overlay'); if (c) document.body.removeChild(c); }
-    };
-
-    const overlay = document.createElement('div');
-    overlay.id = 'tg-link-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);';
-
-    const card = document.createElement('div');
-    card.style.cssText = 'background:#12090d;padding:32px;border-radius:20px;border:1px solid rgba(212,168,83,0.25);text-align:center;min-width:320px;max-width:380px;box-shadow:0 25px 50px rgba(0,0,0,0.5);';
-
-    card.innerHTML = `
-      <div style="margin-bottom:16px;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="#0088cc"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-      </div>
-      <p style="color:#e8ddd0;margin-bottom:8px;font-size:18px;font-weight:700;">${isReplace ? t('profile.telegram_replace_title') : t('profile.telegram_link_title')}</p>
-      <p style="color:#6b5c52;margin-bottom:24px;font-size:13px;line-height:1.6;">${isReplace ? t('profile.telegram_replace_desc') : t('profile.telegram_link_desc')}</p>
-      <div id="tg-widget-slot" style="display:flex;justify-content:center;margin-bottom:20px;"></div>
-    `;
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = t('profile.cancel');
-    closeBtn.style.cssText = 'color:#8a7a6e;background:none;border:1px solid rgba(212,168,83,0.2);padding:10px 32px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;';
-    closeBtn.onclick = () => { document.body.removeChild(overlay); setLinkingTelegram(false); };
-    card.appendChild(closeBtn);
-    overlay.appendChild(card);
-    overlay.onclick = (e) => { if (e.target === overlay) { document.body.removeChild(overlay); setLinkingTelegram(false); } };
-    document.body.appendChild(overlay);
-
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'LuxQuantTerminalBot');
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.setAttribute('data-radius', '12');
-    script.async = true;
-    document.getElementById('tg-widget-slot')?.appendChild(script);
+    setLinkingTelegram(true);
+    try {
+      const telegramUser = await openTelegramAuth();
+      const res = await api.post('/api/v1/profile/link-telegram', telegramUser);
+      setUser(res.data);
+      fetchConnections();
+      showToast(isReplace ? t('profile.telegram_replaced') : t('profile.telegram_linked'));
+    } catch (err) {
+      if (err.message === 'cancelled') return; // user batal — diam
+      if (err.message === 'not-ready') {
+        showToast(t('profile.telegram_not_ready', 'Telegram lagi disiapkan, coba lagi.'), 'error');
+      } else {
+        showToast(err.response?.data?.detail || t('profile.telegram_link_failed'), 'error');
+      }
+    } finally {
+      setLinkingTelegram(false);
+    }
   }, [t, isTelegramLinked]);
 
   // ─── Discord ───
