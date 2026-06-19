@@ -263,7 +263,7 @@ function readableLabel(value) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function ReportArchivePanel({ archive, report, loadingId, error, onOpenPdf }) {
+function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
   const items = archive?.items || [];
   const readyCount = items.filter((item) => item.pdf_ready).length;
   const latest = items[0];
@@ -299,31 +299,6 @@ function ReportArchivePanel({ archive, report, loadingId, error, onOpenPdf }) {
 
   return (
     <div className="space-y-5">
-      {report && (
-        <section className="overflow-hidden rounded-2xl border border-[#d4a853]/15 bg-[#0d0d12]/85 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.06] p-5 md:p-6">
-            <div>
-              <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-                Live context
-              </div>
-              <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
-                BTC chart + Compass projection
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
-                Read the saved PDF as the archive, then use this chart to see the current BTC candles, projected touch, magnets, reaction zone, and invalidation lines in one place.
-              </p>
-            </div>
-            <div className="rounded-lg border border-[#d4a853]/15 bg-[#d4a853]/[0.055] px-3 py-2 text-right font-mono text-[10px] text-[#f5c451]">
-              <div className="uppercase tracking-[0.14em] text-[#d4a853]/70">Projection layer</div>
-              <div className="mt-1 text-white/65">Live BTC + latest Compass</div>
-            </div>
-          </div>
-          <div className="p-3 md:p-5">
-            <PriceChart report={report} />
-          </div>
-        </section>
-      )}
-
       <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
         <div className="border-b border-white/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -407,7 +382,6 @@ function ReportArchivePanel({ archive, report, loadingId, error, onOpenPdf }) {
             const confidence = item.tactical_24h?.confidence;
             const bearish = String(direction || "").toLowerCase() === "bearish";
             const bullish = String(direction || "").toLowerCase() === "bullish";
-            const accent = bullish ? "emerald" : bearish ? "red" : "amber";
             const ringClass = bullish
               ? "hover:border-emerald-400/35"
               : bearish
@@ -434,7 +408,7 @@ function ReportArchivePanel({ archive, report, loadingId, error, onOpenPdf }) {
                         {readableLabel(direction)} {confidence ?? "-"}%
                       </span>
                     </div>
-                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-white/92">
+                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold leading-snug text-white/90">
                       {item.headline || "Compass report"}
                     </h3>
                   </div>

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 PDF_DIR = Path(os.getenv("COMPASS_REPORT_PDF_DIR", "/opt/luxquant/compass-report-pdfs"))
-PDF_STYLE_VERSION = "v6"
+PDF_STYLE_VERSION = "v7"
 
 
 class CompassPdfGenerationError(RuntimeError):
@@ -196,19 +196,19 @@ def _projection(report: dict[str, Any]) -> dict[str, str]:
         target = nearest_below or (demand or {}).get("price_high") or (demand or {}).get("price_low")
         reaction = _zone_label(demand or {}) if demand else _money(nearest_below)
         invalidation = (supply or {}).get("price_low") or nearest_above
-        why = "Seller control points to the nearest downside magnet first, then demand becomes the reaction area."
+        why = "Sellers have the short-term tape. The first objective is the downside magnet; if price reaches it, watch demand for either absorption or a clean breakdown."
     elif direction == "bullish":
         target = nearest_above or (supply or {}).get("price_low") or (supply or {}).get("price_high")
         reaction = _zone_label(supply or {}) if supply else _money(nearest_above)
         invalidation = (demand or {}).get("price_high") or nearest_below
-        why = "Bid control points to the nearest upside magnet first, then supply becomes the reaction area."
+        why = "Bids have the short-term tape. The first objective is the upside magnet; if price reaches it, watch supply for rejection or breakout acceptance."
     else:
         above_distance = abs(float(nearest_above) - float(price)) if nearest_above and price else 10**9
         below_distance = abs(float(price) - float(nearest_below)) if nearest_below and price else 10**9
         target = nearest_above if above_distance <= below_distance else nearest_below
         reaction = _zone_label(fair or {}) if fair else "Range midpoint"
         invalidation = None
-        why = "Neutral stance means the first useful read is the nearest magnet touch, not forced direction."
+        why = "The market is not giving a clean directional edge. Treat the nearest magnet as a touch area first, then wait for acceptance or rejection before leaning harder."
 
     return {
         "direction": _title(direction),
@@ -488,6 +488,76 @@ def _section_table(title: str, rows: list[list[Any]], styles, col_widths: list[f
     ])
 
 
+def _confidence_guardrail(confidence: Any) -> str:
+    value = _float(confidence)
+    if value is None:
+        return "Size conviction from confirmation, not from the headline alone."
+    if value < 55:
+        return "Edge is thin. Avoid chasing; wait for price to react at the level."
+    if value < 65:
+        return "Moderate edge. Trade smaller unless the trigger confirms cleanly."
+    return "Stronger edge, but still respect invalidation and event risk."
+
+
+def _primary_playbook(report: dict[str, Any], projection: dict[str, str]) -> list[list[Any]]:
+    verdict = _as_dict(report.get("verdict"))
+    event_risk = _as_dict(report.get("event_risk"))
+    tactical = _as_dict(verdict.get("tactical_24h"))
+    direction = str(tactical.get("direction") or "neutral").lower()
+    confidence = tactical.get("confidence", "-")
+    risk_level = _title(event_risk.get("risk_level"))
+    warning = _text((event_risk.get("warnings") or [event_risk.get("summary") or "-"])[0])
+
+    if direction == "bearish":
+        plan = "Do not chase into the hole. Let price test the projected touch, then look for rejection/absorption at demand."
+        trigger = f"Sellers keep control while price trades below the invalidation watch: {projection['invalidation']}."
+    elif direction == "bullish":
+        plan = "Do not buy the top of the move. Let price clear the projected touch or pull back into demand with buyers defending."
+        trigger = f"Bids keep control while price holds above the invalidation watch: {projection['invalidation']}."
+    else:
+        plan = "Range first. Wait for a magnet touch and confirmation before forcing a directional trade."
+        trigger = f"Acceptance outside the current range matters more than the first touch: {projection['invalidation']}."
+
+    return [
+        ["Decision point", "Market read", "Trader action"],
+        ["24h bias", f"{projection['direction']} at {projection['confidence']} confidence", _confidence_guardrail(confidence)],
+        ["First objective", f"{projection['target']} ({projection['distance']} from report price)", "Use this as the first touch/decision area, not an automatic entry."],
+        ["Reaction zone", projection["reaction"], plan],
+        ["Invalidation", projection["invalidation"], trigger],
+        ["Event filter", f"{risk_level}: {warning}", "If major news is near, reduce confidence and wait for the post-event reaction."],
+    ]
+
+
+def _detail_pointer_rows(report: dict[str, Any]) -> list[list[Any]]:
+    verdict = _as_dict(report.get("verdict"))
+    event_risk = _as_dict(report.get("event_risk"))
+    evidence = _as_dict(report.get("evidence_matrix"))
+    rows = evidence.get("rows") or []
+    strongest = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        h24 = _as_dict(_as_dict(row.get("horizons")).get("24h"))
+        score = abs(_float(h24.get("weighted_score")) or 0)
+        if row.get("role") == "context_only":
+            continue
+        strongest.append((score, _title(row.get("label") or row.get("key")), _title(h24.get("direction")), _row_evidence(row)))
+    strongest.sort(reverse=True, key=lambda item: item[0])
+    top_driver = strongest[0] if strongest else None
+    levels_count = len([z for z in verdict.get("zones_to_watch") or [] if isinstance(z, dict)])
+    risk_count = len([r for r in verdict.get("risk_scenarios") or [] if isinstance(r, dict)])
+    headline_count = len([h for h in event_risk.get("headlines") or [] if isinstance(h, dict)])
+
+    return [
+        ["Mention in this report", "What to check", "Open this detail"],
+        ["Drivers", top_driver[3] if top_driver else "Directional evidence and score table.", "AI Research > Market Read > Drivers > Open all metrics"],
+        ["Levels", f"{levels_count} zone(s), magnets, and invalidation areas are archived.", "AI Research > Market Read > Levels, or BTC Chart for live candles"],
+        ["News", f"{headline_count} relevant headline(s) plus scheduled events are included.", "AI Research > Market Read > News > Open news detail"],
+        ["Risk", f"{risk_count} scenario(s) define what can break the read.", "AI Research > Market Read > Risk > Open risk detail"],
+        ["Holder", "72h and cycle context explain whether the trader read fights or aligns with the bigger tape.", "AI Research > Market Read > Holder"],
+    ]
+
+
 def _make_styles():
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -689,19 +759,30 @@ def _build_story(report: dict[str, Any], report_id: str, report_timestamp: Any, 
     story.append(cards)
     story.append(Spacer(1, 10))
 
-    story.append(_p("Projection At Report Time", styles["section"]))
+    story.append(_p("Trader Playbook", styles["section"]))
+    story.append(_p(
+        "Start here: bias is only useful after you know the first touch, the reaction zone, the invalidation line, and where to audit the evidence inside the app.",
+        styles["subtitle"],
+    ))
+    story.append(_table(_primary_playbook(report, projection), styles, [92, 148, 254]))
+    story.append(Spacer(1, 10))
+
+    story.append(_p("BTC Projection Snapshot At Report Time", styles["section"]))
     story.append(_projection_chart(report, projection, generated_at))
     story.append(Spacer(1, 8))
 
-    story.append(_p("Trader Projection", styles["section"]))
+    story.append(_p("How To Read The Projection", styles["section"]))
     story.append(_table([
-        ["Field", "Read"],
+        ["Field", "Market read"],
         ["24h stance", f"{projection['direction']} at {projection['confidence']} confidence"],
         ["Potential touch", f"{projection['target']} ({projection['distance']} from report price)"],
         ["Reaction area", projection["reaction"]],
         ["Invalidation watch", projection["invalidation"]],
-        ["Reason", projection["why"]],
+        ["Tape logic", projection["why"]],
     ], styles, [118, 376]))
+    story.append(Spacer(1, 10))
+
+    story.append(_section_table("Where To Open The Detail", _detail_pointer_rows(report), styles, [118, 176, 200]))
     story.append(Spacer(1, 10))
 
     zone_rows = [["Zone", "Price Area", "Why It Matters"]]

@@ -443,33 +443,40 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
 
 function DetailTabRail({ activeTab, onChange, tabs }) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-white/[0.06] bg-black/10 p-2">
-      {tabs.map((tab) => {
-        const active = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onChange(tab.key)}
-            className={cx(
-              "group flex items-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] transition",
-              active
-                ? "border-[#d4a853]/30 bg-[#d4a853]/12 text-[#f5c451] shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
-                : "border-transparent text-white/35 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white/65",
-            )}
-          >
-            <span
+    <div className="border-b border-white/[0.06] bg-black/10 p-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        {tabs.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onChange(tab.key)}
               className={cx(
-                "flex h-5 w-5 items-center justify-center rounded border text-[10px]",
-                active ? "border-[#d4a853]/25 text-[#f5c451]" : "border-white/[0.06] text-white/30 group-hover:text-white/60",
+                "group flex min-h-[64px] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
+                active
+                  ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-white shadow-[0_0_0_1px_rgba(212,168,83,0.06)_inset]"
+                  : "border-white/[0.06] bg-white/[0.018] text-white/45 hover:border-white/[0.12] hover:bg-white/[0.045] hover:text-white/75",
               )}
             >
-              {tab.icon}
-            </span>
-            {tab.label}
-          </button>
-        );
-      })}
+              <span
+                className={cx(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold",
+                  active
+                    ? "border-[#d4a853]/35 bg-[#d4a853]/14 text-[#f5c451]"
+                    : "border-white/[0.08] bg-black/15 text-white/35 group-hover:text-white/65",
+                )}
+              >
+                {tab.icon}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-white/90">{tab.label}</span>
+                <span className="mt-0.5 block text-[10px] leading-4 text-white/38">{tab.description}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -685,11 +692,11 @@ export default function CompassBrief({
     risk: "Invalidation detail",
   }[modal];
   const detailTabs = [
-    { key: "drivers", icon: "D", label: "Drivers" },
-    { key: "levels", icon: "L", label: "Levels" },
-    { key: "news", icon: "N", label: "News" },
-    { key: "risk", icon: "R", label: "Risk" },
-    { key: "holder", icon: "H", label: "Holder" },
+    { key: "drivers", icon: "01", label: "Drivers", description: "Bias & evidence" },
+    { key: "levels", icon: "02", label: "Levels", description: "Magnets & zones" },
+    { key: "news", icon: "03", label: "News", description: "Headline risk" },
+    { key: "risk", icon: "04", label: "Risk", description: "Invalidation" },
+    { key: "holder", icon: "05", label: "Holder", description: "72h & cycle" },
   ];
 
   return (
