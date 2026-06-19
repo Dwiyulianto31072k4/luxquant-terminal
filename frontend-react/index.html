@@ -2,15 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0506" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://unpkg.com" />
+
+    <!-- Favicon + share-sheet / search logo -->
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://luxquant.tw/" />
+
+    <!-- ════════════════════════════════════════════════
+         PRIMARY SEO
+         ════════════════════════════════════════════════ -->
+    <title>LuxQuant Terminal — Algorithmic Crypto Signals</title>
+    <meta
+      name="description"
+      content="LuxQuant Terminal is your quantitative edge in crypto. Algorithmic signals, on-chain intelligence, and live market data in one terminal — informed by data, decided by you."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="author" content="LuxQuant" />
+
+    <!-- ════════════════════════════════════════════════
+         OPEN GRAPH (WhatsApp / Telegram / Discord / FB / LinkedIn)
+         ════════════════════════════════════════════════ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LuxQuant Terminal" />
+    <meta property="og:title" content="LuxQuant Terminal — Algorithmic Crypto Signals" />
+    <meta
+      property="og:description"
+      content="Your quantitative edge in crypto. Algorithmic signals, on-chain intelligence, and automated execution in one terminal. Bull or bear, informed by data and decided by you."
+    />
+    <meta property="og:url" content="https://luxquant.tw/" />
+    <meta property="og:image" content="https://luxquant.tw/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="LuxQuant Terminal — algorithmic crypto trading" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- ════════════════════════════════════════════════
+         TWITTER / X
+         ════════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@luxquantcrypto" />
+    <meta name="twitter:title" content="LuxQuant Terminal — Algorithmic Crypto Signals" />
+    <meta
+      name="twitter:description"
+      content="Your quantitative edge in crypto. Bull or bear, informed by data and decided by you."
+    />
+    <meta name="twitter:image" content="https://luxquant.tw/og-default.png" />
+
+    <!-- ════════════════════════════════════════════════
+         STRUCTURED DATA (JSON-LD)
+         Helps Google show the logo and understand the product;
+         a prerequisite for earning sitelinks over time.
+         ════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://luxquant.tw/#organization",
+            "name": "LuxQuant",
+            "url": "https://luxquant.tw/",
+            "logo": "https://luxquant.tw/logo.png",
+            "sameAs": ["https://x.com/luxquantcrypto"]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://luxquant.tw/#website",
+            "name": "LuxQuant Terminal",
+            "url": "https://luxquant.tw/",
+            "publisher": { "@id": "https://luxquant.tw/#organization" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "LuxQuant Terminal",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web",
+            "url": "https://luxquant.tw/",
+            "description": "A quantitative crypto trading terminal with algorithmic signals, risk scoring, on-chain intelligence, AI research, and automated execution.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "Free tier available; premium tiers unlock signals, AutoTrade, on-chain intelligence, and AI research."
+            }
+          }
+        ]
+      }
+    </script>
+
     <script async src="https://telegram.org/js/telegram-widget.js?22"></script>
-    <title>LuxQuant Terminal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>
