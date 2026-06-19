@@ -337,7 +337,6 @@ def _overall_status(
     minimum_coverage = min(coverages) if coverages else None
     unavailable = sum(source["status"] == "unavailable" for source in sources)
     stale = sum(source["status"] == "stale" for source in sources)
-    conflicts = any(item["comparison"] == "conflict" for item in horizons.values())
     if (
         not matrix_available
         or freshness["status"] == "unavailable"
@@ -350,7 +349,6 @@ def _overall_status(
         freshness["status"] == "stale"
         or unavailable > 0
         or stale > 0
-        or conflicts
         or minimum_coverage < 0.8
     ):
         return "degraded"

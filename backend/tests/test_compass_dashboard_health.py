@@ -148,6 +148,28 @@ def test_phase6_report_age_downgrades_effective_source_health():
     assert all(source["status"] == "stale" for source in summary["sources"])
 
 
+def test_phase6_conflicted_read_keeps_data_health_when_sources_are_fresh():
+    report = deepcopy(_report())
+    report["evidence_matrix"]["horizons"]["24h"].update({
+        "bias": "bearish",
+        "score": -0.22,
+        "coverage": 1.0,
+        "verdict_comparison": "conflict",
+    })
+
+    summary = build_dashboard_health(report, now=NOW)
+
+    assert summary["status"] == "healthy"
+    assert summary["source_counts"] == {
+        "fresh": 5,
+        "stale": 0,
+        "unavailable": 0,
+        "total": 5,
+    }
+    assert summary["horizons"]["24h"]["support"] == "conflicted"
+    assert any(issue["key"] == "verdict_conflict_24h" for issue in summary["issues"])
+
+
 def test_phase6_low_coverage_and_conflicting_verdict_are_explicit():
     report = deepcopy(_report())
     report["evidence_matrix"]["horizons"]["24h"].update({
