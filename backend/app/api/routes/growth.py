@@ -554,3 +554,132 @@ def user_activity(
         "sparkline_30d": sparkline,
         "generated_at": _iso(w["now"]),
     }
+
+
+# ════════════════════════════════════════════════════════════════════
+# Activity Feed (global stream) + Most Active Users (sortable)
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/activity-feed")
+def activity_feed(
+    feature: str = Query(None, description="filter by feature (fx|signals|watchlist|...)"),
+    limit: int = Query(50, ge=1, le=200),
+    before_id: int = Query(None, description="pagination: return events with id < before_id"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Global activity stream: who touched which feature, when (newest first)."""
+    where = []
+    params = {"limit": limit}
+    if feature:
+        where.append("e.feature = :feature")
+        params["feature"] = feature
+    if before_id:
+        where.append("e.id < :before_id")
+        params["before_id"] = before_id
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT e.id, e.occurred_at, e.feature,
+                   u.id AS user_id, u.username, u.telegram_username,
+                   u.admin_telegram_username, u.role, u.avatar_url
+            FROM user_activity_events e
+            JOIN users u ON u.id = e.user_id
+            {where_sql}
+            ORDER BY e.occurred_at DESC
+            LIMIT :limit
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    events = [{
+        "id": int(r["id"]),
+        "user_id": int(r["user_id"]),
+        "username": r["username"],
+        "telegram_username": _effective_telegram(r),
+        "role": r["role"],
+        "avatar_url": r["avatar_url"],
+        "feature": r["feature"],
+        "occurred_at": _iso(r["occurred_at"]),
+    } for r in rows]
+
+    return {
+        "events": events,
+        "count": len(events),
+        "next_before_id": events[-1]["id"] if events else None,
+        "generated_at": _iso(_now()),
+    }
+
+
+@router.get("/active-users")
+def active_users(
+    sort_by: str = Query("last_seen", description="last_seen | event_count | feature"),
+    window: str = Query("30d", description="7d | 30d | all"),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Per-user activity summary, sortable by recency / volume / dominant feature."""
+    w = _windows()
+    params = {"limit": limit}
+    if window == "7d":
+        time_filter = "WHERE e.occurred_at >= :d7"
+        params["d7"] = w["d7"]
+    elif window == "30d":
+        time_filter = "WHERE e.occurred_at >= :d30"
+        params["d30"] = w["d30"]
+    else:
+        time_filter = ""
+
+    order = {
+        "last_seen": "last_seen DESC NULLS LAST",
+        "event_count": "event_count DESC, last_seen DESC NULLS LAST",
+        "feature": "top_feature ASC, event_count DESC",
+    }.get(sort_by, "last_seen DESC NULLS LAST")
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT u.id, u.username, u.telegram_username, u.admin_telegram_username,
+                   u.role, u.avatar_url,
+                   agg.last_seen, agg.event_count, agg.top_feature
+            FROM (
+                SELECT e.user_id,
+                       MAX(e.occurred_at) AS last_seen,
+                       COUNT(*) AS event_count,
+                       (SELECT feature FROM user_activity_events e2
+                        WHERE e2.user_id = e.user_id
+                        ORDER BY e2.occurred_at DESC LIMIT 1) AS top_feature
+                FROM user_activity_events e
+                {time_filter}
+                GROUP BY e.user_id
+            ) agg
+            JOIN users u ON u.id = agg.user_id
+            ORDER BY {order}
+            LIMIT :limit
+            """
+        ),
+        params,
+    ).mappings().all()
+
+    users = [{
+        "user_id": int(r["id"]),
+        "username": r["username"],
+        "telegram_username": _effective_telegram(r),
+        "role": r["role"],
+        "avatar_url": r["avatar_url"],
+        "last_seen": _iso(r["last_seen"]),
+        "event_count": int(r["event_count"] or 0),
+        "last_feature": r["top_feature"],
+    } for r in rows]
+
+    return {
+        "users": users,
+        "count": len(users),
+        "sort_by": sort_by,
+        "window": window,
+        "generated_at": _iso(w["now"]),
+    }

@@ -45,6 +45,9 @@ from app.services.outreach_service import (
     get_reach_summary,
 )
 
+# VIP group invite (Telegram) — used by /users/{id}/vip-invite
+from app.services.telegram_group import create_one_time_invite_link, is_in_group, send_dm
+
 # Optional models for /users/{id}/full detail (referral activity)
 # Wrapped in try/except so admin.py still loads even if these don't exist.
 try:
@@ -525,6 +528,155 @@ async def revoke_subscription(
 
 # ════════════════════════════════════════════
 # 5. Expiring Subscriptions Alert
+# ════════════════════════════════════════════
+
+
+@router.post("/users/{user_id}/vip-invite")
+async def admin_generate_vip_invite(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a one-time VIP group invite link for a user (admin-initiated).
+
+    Guards:
+    - User must exist
+    - User must have a linked telegram_id (else cannot be tracked/kicked)
+    Returns invite link + a flag if the user is already in the group.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    if not user.telegram_id:
+        raise HTTPException(
+            status_code=400,
+            detail="User belum link Telegram. Minta user connect Telegram dulu di profile sebelum bisa di-invite ke VIP group.",
+        )
+
+    # If already inside, no need for a new link
+    already = await is_in_group(user.telegram_id)
+    if already is True:
+        # keep flag in sync
+        if not user.telegram_in_group:
+            user.telegram_in_group = True
+            db.commit()
+        return {
+            "already_member": True,
+            "invite_link": None,
+            "message": "User sudah jadi member VIP group.",
+        }
+
+    invite_link = await create_one_time_invite_link(
+        expire_seconds=3600,
+        name=f"admin-u{user.id}",
+    )
+    if not invite_link:
+        raise HTTPException(
+            status_code=502,
+            detail="Gagal membuat invite link. Coba lagi sebentar.",
+        )
+
+def _build_followup_message(invite_link: str) -> str:
+    return (
+        "Hi! \U0001F44B Your LuxQuant VIP subscription is active \u2014 but you "
+        "haven't joined the VIP signal group yet.\n\n"
+        "Inside the VIP group you get:\n"
+        "\u2022 Real-time trading signals & entries\n"
+        "\u2022 Market announcements & updates\n"
+        "\u2022 Exclusive analysis and alerts\n\n"
+        "Tap the link below to join (valid 1 hour, one-time use):\n"
+        f"{invite_link}\n\n"
+        "See you inside! \u2014 LuxQuant Team"
+    )
+
+
+async def _do_vip_followup(user, db) -> dict:
+    """Core: validate, generate invite, DM the user. Returns a result dict."""
+    if not user.telegram_id:
+        return {"ok": False, "reason": "no_telegram",
+                "message": "User belum link Telegram \u2014 bot tidak bisa kirim DM."}
+
+    if not user.has_active_access:
+        return {"ok": False, "reason": "no_access",
+                "message": "User tidak punya akses aktif."}
+
+    already = await is_in_group(user.telegram_id)
+    if already is True:
+        if not user.telegram_in_group:
+            user.telegram_in_group = True
+            db.commit()
+        return {"ok": False, "reason": "already_member",
+                "message": "User sudah di VIP group."}
+
+    invite_link = await create_one_time_invite_link(
+        expire_seconds=3600, name=f"followup-u{user.id}",
+    )
+    if not invite_link:
+        return {"ok": False, "reason": "invite_failed",
+                "message": "Gagal membuat invite link."}
+
+    sent = await send_dm(user.telegram_id, _build_followup_message(invite_link))
+    if not sent:
+        return {"ok": False, "reason": "dm_failed", "invite_link": invite_link,
+                "message": "DM gagal \u2014 user mungkin belum pernah /start bot."}
+
+    return {"ok": True, "reason": "sent", "invite_link": invite_link,
+            "message": "Follow-up terkirim via bot."}
+
+
+@router.post("/users/{user_id}/vip-followup")
+async def admin_vip_followup(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Send an adaptive VIP follow-up DM (invite link) to a single user."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    result = await _do_vip_followup(user, db)
+    return result
+
+
+@router.post("/users/vip-followup-bulk")
+async def admin_vip_followup_bulk(
+    payload: dict,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Bulk VIP follow-up. Body: {"user_ids": [1,2,3]}. Capped at 50/call."""
+    user_ids = payload.get("user_ids") or []
+    if not isinstance(user_ids, list) or not user_ids:
+        raise HTTPException(status_code=400, detail="user_ids kosong")
+    user_ids = user_ids[:50]
+
+    sent = 0
+    skipped = 0
+    failed = 0
+    details = []
+    for uid in user_ids:
+        user = db.query(User).filter(User.id == uid).first()
+        if not user:
+            skipped += 1
+            continue
+        r = await _do_vip_followup(user, db)
+        details.append({"user_id": uid, "username": user.username,
+                        "ok": r["ok"], "reason": r["reason"]})
+        if r["ok"]:
+            sent += 1
+        elif r["reason"] in ("no_telegram", "no_access", "already_member"):
+            skipped += 1
+        else:
+            failed += 1
+
+    return {
+        "sent": sent, "skipped": skipped, "failed": failed,
+        "total": len(user_ids), "details": details,
+    }
+
+
 # ════════════════════════════════════════════
 
 @router.get("/expiring-subscriptions")
