@@ -4,9 +4,19 @@
 // Two-pane premium layout: left = guidance (permissions + IP + safety),
 // right = key form. Stacks to one column on mobile, scroll-safe with
 // navbar/tab-bar clearance. Logic/props unchanged.
+//
+// FIX (mobile "messy top" bug): the modal previously rendered as a
+// regular child inside the page tree. If any ancestor (app shell /
+// layout / sticky header) creates its own stacking context, a fixed
+// z-[100000] element is only stacked *within that context* — not
+// above the whole document. That let the real app navbar show through
+// undimmed above the modal card. Rendering through a portal straight
+// into document.body guarantees the backdrop always sits above every
+// other element, including the navbar, on every device.
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { checkBinanceKeys, saveBinanceKeys } from "../../services/autotradeApi";
 import { Notice, GoldButton, GhostButton } from "./AutoTradeUI";
 import { BinanceIcon } from "./BrandIcons";
@@ -123,6 +133,17 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
+  // Lock background scroll while the modal is open so the page behind it
+  // (navbar included) can't visibly scroll/shift under the backdrop.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const canSubmit = form.api_key.trim() && form.api_secret.trim();
@@ -151,12 +172,16 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
-  return (
+  const modal = (
     <div className="fixed inset-0 z-[100000] overflow-y-auto overscroll-contain">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
       <div
         onClick={onClose}
-        className="relative flex min-h-full items-start justify-center px-4 pt-20 pb-28 sm:items-center sm:py-10"
+        className="relative flex min-h-full items-start justify-center px-4 pb-10 sm:items-center sm:py-10"
+        style={{
+          paddingTop: "max(1.5rem, env(safe-area-inset-top, 0px) + 1rem)",
+          paddingBottom: "max(2rem, env(safe-area-inset-bottom, 0px) + 1.5rem)",
+        }}
       >
         <div
           onClick={(event) => event.stopPropagation()}
@@ -179,8 +204,8 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
               <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold-primary/80">
                 Exchange
               </p>
-              <div className="mt-3 flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
+              <div className="mt-3 flex items-center gap-3 pr-10">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-[#F3BA2F]/10 text-[#F3BA2F]">
                   <BinanceIcon className="h-6 w-6" />
                 </span>
                 <h2 className="text-2xl font-semibold tracking-tight text-white">
@@ -307,4 +332,6 @@ export default function ExchangeConnectModal({ isOpen, onClose, onSuccess }) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
