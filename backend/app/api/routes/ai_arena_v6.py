@@ -291,6 +291,8 @@ def get_verdict_ledger(
                 'direction', vo.direction,
                 'price_at_horizon', vo.price_at_horizon,
                 'move_pct', vo.move_pct,
+                'threshold_pct', vo.threshold_pct,
+                'neutral_band_pct', vo.neutral_band_pct,
                 'outcome', vo.outcome,
                 'evaluated_at', vo.evaluated_at
               ) ORDER BY

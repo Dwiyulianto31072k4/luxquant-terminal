@@ -20,6 +20,9 @@ export const adminApi = {
     provider,      // ← NEW: google/telegram/discord/local
     activity,      // ← NEW: active_7d | dormant_30d | never_logged_in
     reach,         // ← NEW: has_tg | has_dc | has_email | unreachable | admin_enriched
+    vipState,      // ← NEW: in_group | outside_group | no_telegram
+    anomaly,       // ← NEW: paid_outside | paid_no_tg | expired_inside
+    source,        // ← NEW: payment | legacy | lifetime | admin | telegram_vip | discord_premium
     sortBy,
     sortOrder,
     page,
@@ -32,6 +35,9 @@ export const adminApi = {
     if (provider) params.provider = provider;
     if (activity) params.activity = activity;
     if (reach) params.reach = reach;
+    if (vipState) params.vip_state = vipState;
+    if (anomaly) params.anomaly = anomaly;
+    if (source) params.source = source;
     if (sortBy) params.sort_by = sortBy;
     if (sortOrder) params.sort_order = sortOrder;
     if (page) params.page = page;

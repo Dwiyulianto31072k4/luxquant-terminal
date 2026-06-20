@@ -151,6 +151,31 @@ function HorizonStatCard({ horizon, stats }) {
 // ─────────────────────────────────────────────────────────────────────
 // Sub-component: outcome badge for a horizon
 // ─────────────────────────────────────────────────────────────────────
+function outcomeExplanation(outcome) {
+  const move = Number(outcome.move_pct);
+  const hasMove = Number.isFinite(move);
+  const threshold = Number(outcome.threshold_pct ?? 1);
+  const neutralBand = Number(outcome.neutral_band_pct ?? 2);
+  const direction = String(outcome.direction || "").toLowerCase();
+
+  if (direction === "neutral") {
+    if (!hasMove) return `Neutral is a hit only inside ±${neutralBand.toFixed(1)}%.`;
+    const side = move > 0 ? "above" : "below";
+    const result = outcome.outcome === "miss" ? "MISS" : "HIT";
+    return `Neutral rule: final move must stay inside ±${neutralBand.toFixed(1)}%. BTC finished ${Math.abs(move).toFixed(2)}% ${side} the call price: ${result}.`;
+  }
+
+  if (direction === "bullish") {
+    return `Bullish rule: final move must reach +${threshold.toFixed(1)}% or more.`;
+  }
+
+  if (direction === "bearish") {
+    return `Bearish rule: final move must reach -${threshold.toFixed(1)}% or less.`;
+  }
+
+  return "Outcome rule unavailable.";
+}
+
 function OutcomeBadge({ outcome }) {
   if (!outcome) {
     return <span className="text-white/20 text-xs font-mono">—</span>;
@@ -166,14 +191,11 @@ function OutcomeBadge({ outcome }) {
         color: style.fg,
         border: `1px solid ${style.border}`,
       }}
-      title={
-        `${outcome.direction} @ ${outcome.horizon}` +
+      title={`${outcome.direction} @ ${outcome.horizon}` +
         (outcome.move_pct != null
-          ? ` · move ${outcome.move_pct > 0 ? "+" : ""}${Number(
-              outcome.move_pct
-            ).toFixed(2)}%`
-          : "")
-      }
+          ? ` · move ${outcome.move_pct > 0 ? "+" : ""}${Number(outcome.move_pct).toFixed(2)}%`
+          : "") +
+        ` · ${outcomeExplanation(outcome)}`}
     >
       {style.label}
     </span>
@@ -399,7 +421,7 @@ export default function VerdictLedger({ ledger, pageSize = 8 }) {
             The scorecard resets at the start of each day. It does not remove earlier Compass reads: the retained audit ledger below stays available for review.
           </p>
         </div>
-        <Tooltip termKey="confluence">
+        <Tooltip termKey="verdict-evaluation">
           <span className="cursor-help border-b border-dotted border-white/20 font-mono text-xs text-white/40">
             How is this judged?
           </span>
@@ -427,6 +449,12 @@ export default function VerdictLedger({ ledger, pageSize = 8 }) {
           </div>
         </div>
       )}
+
+      <div className="mb-3 grid gap-2 rounded-xl border border-white/[0.06] bg-black/15 p-3 text-[11px] leading-relaxed text-white/55 md:grid-cols-3">
+        <div><span className="font-mono text-[#8ee5b7]">BULLISH HIT</span> at +1.0% or more</div>
+        <div><span className="font-mono text-[#ff9a9a]">BEARISH HIT</span> at -1.0% or less</div>
+        <div><span className="font-mono text-[#cbd5e1]">NEUTRAL HIT</span> only inside ±2.0%</div>
+      </div>
 
       <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-3 py-3">

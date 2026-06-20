@@ -9,7 +9,7 @@ import { FilterIcon, ChevronDownIcon, XCircleIcon } from './Icons';
 import { Select } from './primitives';
 import { palette, surface, tint, motion } from './designSystem';
 
-const FILTER_KEYS = ['role', 'status', 'provider', 'activity', 'reach'];
+const FILTER_KEYS = ['role', 'status', 'provider', 'activity', 'reach', 'vipState', 'anomaly', 'source'];
 
 export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
   const [expanded, setExpanded] = useState(false);
@@ -113,6 +113,7 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
               options={[
                 { value: null, label: 'All Status' },
                 { value: 'active', label: 'Active' },
+                { value: 'grace', label: 'Grace period' },
                 { value: 'inactive', label: 'Banned' },
                 { value: 'expiring', label: 'Expiring (7d)' },
                 { value: 'expired', label: 'Expired' },
@@ -128,6 +129,33 @@ export const FilterPanel = ({ filters, onChange, onReset, stats }) => {
                 { value: 'telegram', label: 'Telegram' },
                 { value: 'discord', label: 'Discord' },
                 { value: 'local', label: 'Email / Local' },
+              ]}
+            />
+            <Select
+              label="VIP Group"
+              value={filters.vipState}
+              onChange={update('vipState')}
+              options={[
+                { value: null, label: 'All VIP States' },
+                { value: 'in_group', label: 'In group' },
+                { value: 'outside_group', label: 'Outside group' },
+                { value: 'no_telegram', label: 'No Telegram linked' },
+              ]}
+            />
+            <Select
+              label="Source"
+              value={filters.source}
+              onChange={update('source')}
+              options={[
+                { value: null, label: 'All Sources' },
+                { value: 'payment', label: 'Payment' },
+                { value: 'legacy', label: 'Legacy' },
+                { value: 'lifetime', label: 'Lifetime' },
+                { value: 'admin', label: 'Admin grant' },
+                { value: 'admin_approve', label: 'Admin approve' },
+                { value: 'telegram_vip', label: 'Telegram VIP' },
+                { value: 'discord_premium', label: 'Discord premium' },
+                { value: 'manual_admin_record', label: 'Manual record' },
               ]}
             />
             <Select

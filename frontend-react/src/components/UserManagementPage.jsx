@@ -48,8 +48,84 @@ const DEFAULT_FILTERS = {
   provider: null,
   activity: null,
   reach: null,
+  vipState: null,
+  anomaly: null,
+  source: null,
   sortBy: 'created_at',
   sortOrder: 'desc',
+};
+
+// ════════════════════════════════════════════════════════════════════
+// Anomaly quick-filter chips — one-click drift detection
+// ════════════════════════════════════════════════════════════════════
+
+const ANOMALY_CHIPS = [
+  {
+    key: 'paid_outside',
+    statKey: 'anomaly_paid_outside',
+    label: 'Paid, outside group',
+    hint: 'Active access + linked Telegram, but not in VIP group → send invite',
+    color: palette.gold[300],
+  },
+  {
+    key: 'paid_no_tg',
+    statKey: 'anomaly_paid_no_tg',
+    label: 'Paid, no Telegram',
+    hint: 'Active access but no Telegram linked → ask them to connect TG',
+    color: '#5aa9e6',
+  },
+  {
+    key: 'expired_inside',
+    statKey: 'anomaly_expired_inside',
+    label: 'Expired, still in group',
+    hint: 'Subscription expired but still inside VIP group → should be kicked',
+    color: palette.red[400],
+  },
+];
+
+const AnomalyChips = ({ stats, active, onToggle }) => {
+  if (!stats) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span
+        className="text-[10px] uppercase tracking-[0.15em] font-semibold mr-1"
+        style={{ color: 'rgba(255,255,255,0.4)' }}
+      >
+        Anomalies
+      </span>
+      {ANOMALY_CHIPS.map((chip) => {
+        const count = stats[chip.statKey] ?? 0;
+        const isActive = active === chip.key;
+        const isEmpty = count === 0;
+        return (
+          <button
+            key={chip.key}
+            onClick={() => onToggle(isActive ? null : chip.key)}
+            disabled={isEmpty}
+            title={chip.hint}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{
+              background: isActive ? tint(chip.color, 0.18) : tint(chip.color, 0.06),
+              color: chip.color,
+              border: `1px solid ${tint(chip.color, isActive ? 0.5 : 0.2)}`,
+              opacity: isEmpty ? 0.4 : 1,
+              cursor: isEmpty ? 'default' : 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <AlertTriangleIcon size={12} />
+            <span>{chip.label}</span>
+            <span
+              className="tabular-nums font-bold px-1.5 py-0.5 rounded-full text-[10px]"
+              style={{ background: tint(chip.color, 0.2) }}
+            >
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -201,6 +277,9 @@ const UserManagementPage = () => {
         provider: filters.provider || undefined,
         activity: filters.activity || undefined,
         reach: filters.reach || undefined,
+        vipState: filters.vipState || undefined,
+        anomaly: filters.anomaly || undefined,
+        source: filters.source || undefined,
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder,
         page,
@@ -434,6 +513,12 @@ const UserManagementPage = () => {
       <ExpiringSoonPanel
         expiringUsers={expiringUsers}
         onExtend={(u) => setGrantModal(u)}
+      />
+
+      <AnomalyChips
+        stats={stats}
+        active={filters.anomaly}
+        onToggle={(key) => setFilters({ ...DEFAULT_FILTERS, anomaly: key })}
       />
 
       <UsersSearchBar

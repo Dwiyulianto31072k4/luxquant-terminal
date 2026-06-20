@@ -111,6 +111,10 @@ export const GLOSSARY = {
     title: 'Cycle Position Score',
     desc: 'Composite 0-100 dari MVRV-Z, Puell, Mayer, dan Reserve Risk. 0 = cycle bottom, 100 = cycle top. Membantu user identify "where in cycle we are right now".',
   },
+  'verdict-evaluation': {
+    title: 'How Compass outcomes are judged',
+    desc: 'Compass compares the BTC price at the call with the price when its horizon ends. Bullish is a hit at +1% or more; bearish is a hit at -1% or less; neutral is a hit only when the final move stays inside ±2%. A neutral miss means BTC moved more than 2% in either direction, so the market was not actually range-bound.',
+  },
   'confluence': {
     title: 'Three-Layer Confluence',
     desc: 'Aggregasi rule-based dari 3 layer (Macro, Smart Money, On-chain). 3↑ = strong bullish, 3↓ = strong bearish, mixed = uncertain. AI verdict harus consider confluence — high confidence butuh confluence.',
