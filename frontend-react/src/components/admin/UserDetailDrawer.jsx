@@ -388,14 +388,233 @@ const ActivityPulse = ({ userId }) => {
 };
 
 /* ════════════════════════════════════════
+   VIP Access Diagnostic — translates 5 raw columns into a verdict + action
+   ════════════════════════════════════════ */
+
+const hasActiveAccess = (user) => {
+  if (user.role === 'admin') return true;
+  if (!['premium', 'subscriber'].includes(user.role)) return false;
+  if (!user.subscription_expires_at) return true; // lifetime
+  return new Date(user.subscription_expires_at) > new Date();
+};
+
+const computeVipDiagnosis = (user) => {
+  const active = hasActiveAccess(user);
+  const hasTg = !!user.telegram_id;
+  const inGroup = !!user.telegram_in_group;
+  const graceUntil = user.telegram_grace_until
+    ? new Date(user.telegram_grace_until)
+    : null;
+  const inGrace = graceUntil && graceUntil > new Date();
+  const expDate = user.subscription_expires_at
+    ? formatDate(user.subscription_expires_at)
+    : 'Lifetime';
+
+  // healthy
+  if (active && hasTg && inGroup) {
+    return {
+      tone: 'ok', color: '#34d399', icon: 'check',
+      title: 'Healthy — akses aktif & di dalam VIP group',
+      detail: 'Tidak ada tindakan diperlukan.',
+      action: null,
+      signals: { access: `Active · ${expDate}`, tg: 'Linked', group: 'Inside' },
+    };
+  }
+  // active + linked + outside -> invite
+  if (active && hasTg && !inGroup) {
+    return {
+      tone: 'warn', color: '#d4a853', icon: 'alert',
+      title: 'Bayar aktif, link TG, tapi di luar group',
+      detail: 'Sudah link Telegram & akses aktif, tapi belum join (atau keluar) VIP group. Generate invite link untuk mengundang ulang.',
+      action: 'invite',
+      signals: { access: `Active · ${expDate}`, tg: 'Linked', group: 'Outside' },
+    };
+  }
+  // active + no telegram -> link first
+  if (active && !hasTg) {
+    return {
+      tone: 'info', color: '#5aa9e6', icon: 'telegram',
+      title: 'Bayar aktif, tapi belum link Telegram',
+      detail: 'User login lewat Google/Discord & sudah bayar, tapi belum connect Telegram — jadi belum bisa di-invite ke VIP group. Minta user link TG dulu di profile.',
+      action: 'email_link_tg',
+      signals: { access: `Active · ${expDate}`, tg: 'Not linked', group: 'n/a' },
+    };
+  }
+  // expired + in grace + inside
+  if (!active && inGroup && inGrace) {
+    return {
+      tone: 'warn', color: '#fbbf24', icon: 'alert',
+      title: 'Expired — dalam grace period',
+      detail: `Langganan sudah lewat tapi masih dalam masa tenggang. Akan otomatis di-kick saat grace habis (${formatDate(user.telegram_grace_until)}).`,
+      action: null,
+      signals: { access: 'Expired (grace)', tg: hasTg ? 'Linked' : 'Not linked', group: 'Inside' },
+    };
+  }
+  // expired + inside + no grace -> anomaly (should be kicked)
+  if (!active && inGroup && !inGrace) {
+    return {
+      tone: 'danger', color: '#f87171', icon: 'alert',
+      title: 'Expired tapi masih di dalam group',
+      detail: 'Langganan sudah habis & di luar masa grace, tapi user masih ada di VIP group. Worker harusnya kick — cek subscription_worker, atau kick manual.',
+      action: null,
+      signals: { access: 'Expired', tg: hasTg ? 'Linked' : 'Not linked', group: 'Inside (anomaly)' },
+    };
+  }
+  // free / no access, outside
+  return {
+    tone: 'neutral', color: '#6b5c52', icon: 'user',
+    title: 'No active access',
+    detail: 'User tidak punya akses aktif. Wajar berada di luar VIP group.',
+    action: null,
+    signals: { access: 'None', tg: hasTg ? 'Linked' : 'Not linked', group: inGroup ? 'Inside' : 'Outside' },
+  };
+};
+
+const SignalCell = ({ label, value, good }) => (
+  <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px' }}>
+    <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
+    <div className="text-[12px] font-medium" style={{ color: good === true ? '#34d399' : good === false ? '#f87171' : 'rgba(255,255,255,0.45)' }}>{value}</div>
+  </div>
+);
+
+const VipDiagnostic = ({ user, onInvited, onToast }) => {
+  const [busy, setBusy] = useState(false);
+  const [inviteLink, setInviteLink] = useState(null);
+  const d = computeVipDiagnosis(user);
+
+  const tg = !!user.telegram_id;
+  const inGroup = !!user.telegram_in_group;
+  const active = hasActiveAccess(user);
+
+  const handleInvite = async () => {
+    setBusy(true);
+    try {
+      const res = await adminApi.generateVipInvite(user.id);
+      if (res.already_member) {
+        onToast?.('User sudah jadi member VIP group.', 'success');
+        onInvited?.();
+      } else if (res.invite_link) {
+        setInviteLink(res.invite_link);
+        try { await navigator.clipboard.writeText(res.invite_link); } catch {}
+        onToast?.('Invite link dibuat & disalin ke clipboard.', 'success');
+      }
+    } catch (e) {
+      onToast?.(e.response?.data?.detail || 'Gagal membuat invite link', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCopyLinkTgMsg = async () => {
+    const msg = `Hi! Langgananmu di LuxQuant sudah aktif. Untuk join VIP signal group di Telegram, silakan connect akun Telegram kamu dulu di halaman Profile (Settings → Connected Accounts → Telegram → Link), lalu klik "Join VIP Group". Terima kasih!`;
+    try { await navigator.clipboard.writeText(msg); onToast?.('Pesan arahan disalin ke clipboard.', 'success'); }
+    catch { onToast?.('Gagal menyalin', 'error'); }
+  };
+
+  return (
+    <Section title="VIP Access Diagnostic" Icon={AlertTriangleIcon}>
+      <div style={{ background: `${d.color}0f`, border: `1px solid ${d.color}4d`, borderRadius: 10, padding: 14 }}>
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangleIcon size={16} style={{ color: d.color }} />
+          <span className="text-[13px] font-medium" style={{ color: d.color }}>{d.title}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-2.5">
+          <SignalCell label="Paid access" value={d.signals.access} good={active} />
+          <SignalCell label="Telegram" value={d.signals.tg} good={tg} />
+          <SignalCell label="VIP group" value={d.signals.group} good={inGroup ? true : (d.signals.group === 'n/a' ? null : false)} />
+        </div>
+        <div className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{d.detail}</div>
+
+        {d.action === 'invite' && !inviteLink && (
+          <button onClick={handleInvite} disabled={busy}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
+            style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: busy ? 'wait' : 'pointer' }}>
+            <ExternalLinkIcon size={13} /> {busy ? 'Generating…' : 'Generate invite link'}
+          </button>
+        )}
+        {d.action === 'email_link_tg' && (
+          <button onClick={handleCopyLinkTgMsg}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
+            style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: 'pointer' }}>
+            <SendIcon size={13} /> Copy pesan "connect Telegram"
+          </button>
+        )}
+        {inviteLink && (
+          <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgba(255,255,255,0.04)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+            <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Invite link (sudah disalin · valid 1 jam)</div>
+            {inviteLink}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+};
+
+/* ════════════════════════════════════════
+   Account Timeline — chronological lifecycle from existing data
+   ════════════════════════════════════════ */
+
+const TimelineRow = ({ icon: Icon, color, label, date, last }) => (
+  <div className="flex gap-3">
+    <div className="flex flex-col items-center">
+      <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+        style={{ background: `${color}1a`, border: `1px solid ${color}4d` }}>
+        <Icon size={11} style={{ color }} />
+      </div>
+      {!last && <div className="w-px flex-1 my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+    </div>
+    <div className="pb-3 min-w-0">
+      <div className="text-[12px] font-medium text-white/80">{label}</div>
+      <div className="text-[10px] tabular-nums" style={{ color: 'rgba(255,255,255,0.4)' }}>{date}</div>
+    </div>
+  </div>
+);
+
+const AccountTimeline = ({ data }) => {
+  const { user, payments } = data;
+  const events = [];
+
+  if (user.created_at)
+    events.push({ ts: user.created_at, icon: SparklesIcon, color: '#d4a853', label: `Akun dibuat (via ${user.auth_provider || 'unknown'})` });
+  if (user.first_login_at)
+    events.push({ ts: user.first_login_at, icon: UserIcon, color: '#5aa9e6', label: 'Login pertama' });
+
+  (payments || []).filter((p) => p.status === 'confirmed').forEach((p) => {
+    events.push({ ts: p.verified_at || p.created_at, icon: StarIcon, color: '#34d399', label: `Pembayaran confirmed${p.plan_label ? ` · ${p.plan_label}` : ''} ($${p.final_amount || p.amount_usdt})` });
+  });
+
+  if (user.subscription_granted_at)
+    events.push({ ts: user.subscription_granted_at, icon: StarIcon, color: '#fbbf24', label: `Subscription granted${user.subscription_source ? ` (${user.subscription_source})` : ''}` });
+  if (user.subscription_expires_at)
+    events.push({ ts: user.subscription_expires_at, icon: ClockIcon, color: new Date(user.subscription_expires_at) > new Date() ? '#34d399' : '#f87171', label: new Date(user.subscription_expires_at) > new Date() ? 'Subscription berlaku sampai' : 'Subscription expired' });
+
+  events.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+
+  if (events.length === 0) return null;
+
+  return (
+    <Section title="Account Timeline" Icon={ClockIcon}>
+      <div className="pl-0.5">
+        {events.map((e, i) => (
+          <TimelineRow key={i} icon={e.icon} color={e.color} label={e.label}
+            date={formatDateTime(e.ts)} last={i === events.length - 1} />
+        ))}
+      </div>
+    </Section>
+  );
+};
+
+/* ════════════════════════════════════════
    Tab 1: Overview
    ════════════════════════════════════════ */
 
-const OverviewTab = ({ data }) => {
+const OverviewTab = ({ data, onUserUpdated, onToast }) => {
   const { user } = data;
   return (
     <div className="space-y-6">
       <UserHero user={user} />
+
+      <VipDiagnostic user={user} onInvited={onUserUpdated} onToast={onToast} />
 
       <Section title="Account Info" Icon={UserIcon}>
         <div className="grid grid-cols-2 gap-2">
@@ -412,6 +631,8 @@ const OverviewTab = ({ data }) => {
       </Section>
 
       <ActivityPulse userId={user.id} />
+
+      <AccountTimeline data={data} />
 
       {user.role === 'subscriber' && (
         <Section title="Subscription" Icon={StarIcon}>
@@ -1035,6 +1256,7 @@ export const UserDetailDrawer = ({
   userId,
   onClose,
   onUserUpdated,
+  onToast,
   templates,
 }) => {
   const [data, setData] = useState(null);
@@ -1237,7 +1459,13 @@ export const UserDetailDrawer = ({
 
           {data && !loading && (
             <>
-              {activeTab === 'overview' && <OverviewTab data={data} />}
+              {activeTab === 'overview' && (
+                <OverviewTab
+                  data={data}
+                  onUserUpdated={() => { fetchData(); onUserUpdated && onUserUpdated(); }}
+                  onToast={onToast}
+                />
+              )}
               {activeTab === 'contact' && (
                 <ContactTab
                   data={data}

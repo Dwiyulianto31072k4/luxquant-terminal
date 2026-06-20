@@ -597,7 +597,8 @@ const UserManagementPage = () => {
         <UserDetailDrawer
           userId={drawerUserId}
           onClose={() => setDrawerUserId(null)}
-          onUserUpdated={() => { fetchUsers(); fetchContactStats(); }}
+          onUserUpdated={() => { fetchUsers(); fetchContactStats(); fetchStats(); }}
+          onToast={showToast}
           templates={templates}
         />
       )}

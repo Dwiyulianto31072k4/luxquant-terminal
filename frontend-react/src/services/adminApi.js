@@ -82,6 +82,12 @@ export const adminApi = {
     return response.data;
   },
 
+  // Generate one-time VIP group invite link (admin-initiated)
+  generateVipInvite: async (userId) => {
+    const response = await api.post(`/api/v1/admin/users/${userId}/vip-invite`);
+    return response.data;
+  },
+
   // ════════════════════════════════════════
   // Admin Outreach (Layer Outreach) — NEW
   // ════════════════════════════════════════
