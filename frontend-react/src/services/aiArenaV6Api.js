@@ -17,7 +17,7 @@ export async function getLatestReport() {
 
 /**
  * Fetch verdict ledger for last N days.
- * @param {number} days - 1-90, default 14
+ * @param {number} days - 1-365, default 14
  * @param {string|null} horizon - '24h' | '72h' | '7d' | '30d' | null (all)
  * Returns: { window_days, horizon_filter, count, items: [...] }
  */

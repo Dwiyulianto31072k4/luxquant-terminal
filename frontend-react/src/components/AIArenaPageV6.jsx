@@ -7,7 +7,6 @@ import {
   getOperationalHealth,
   getReportArchive,
   getReportPdfBlob,
-  getTrackRecord,
 } from "../services/aiArenaV6Api";
 
 import CompassBrief from "./aiArenaV6/CompassBrief";
@@ -142,20 +141,6 @@ function ErrorState({ error, onRetry }) {
       </div>
     </div>
   );
-}
-
-function startOfTodayIso() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString();
-}
-
-function todayLabel() {
-  return new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function WorkspaceTabs({ activeTab, onChange, tabs }) {
@@ -899,7 +884,6 @@ export default function AIArenaPageV6() {
   const [report, setReport] = useState(null);
   const [eventRisk, setEventRisk] = useState(null);
   const [operationalHealth, setOperationalHealth] = useState(null);
-  const [trackRecord, setTrackRecord] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [reportArchive, setReportArchive] = useState(null);
   const [activeWorkspace, setActiveWorkspace] = useState("read");
@@ -924,15 +908,15 @@ export default function AIArenaPageV6() {
         latestRes,
         eventRiskRes,
         operationalRes,
-        trackRecordRes,
         ledgerRes,
         archiveRes,
       ] = await Promise.allSettled([
         getLatestReport(),
         getEventRisk(),
         getOperationalHealth(),
-        getTrackRecord({ days: 30 }),
-        getLedger({ days: 1 }),
+        // Keep the daily scorecard in the UI, but load the audit ledger too.
+        // A date reset must never make prior Compass outcomes disappear.
+        getLedger({ days: 365 }),
         getReportArchive({ limit: 18 }),
       ]);
 
@@ -945,7 +929,6 @@ export default function AIArenaPageV6() {
       setOperationalHealth(
         operationalRes.status === "fulfilled" ? operationalRes.value : null,
       );
-      setTrackRecord(trackRecordRes.status === "fulfilled" ? trackRecordRes.value : null);
       setLedger(ledgerRes.status === "fulfilled" ? ledgerRes.value : null);
       setReportArchive(archiveRes.status === "fulfilled" ? archiveRes.value : null);
     } catch (err) {
@@ -1042,8 +1025,6 @@ export default function AIArenaPageV6() {
     operationalHealth?.status === "healthy" && dashboardHealth?.status === "healthy"
       ? "healthy"
       : operationalHealth?.status || dashboardHealth?.status || "unknown";
-  const resetSince = startOfTodayIso();
-  const resetLabel = `Today reset · ${todayLabel()}`;
   const workspaceTabs = [
     {
       key: "read",
@@ -1055,9 +1036,9 @@ export default function AIArenaPageV6() {
     {
       key: "evaluation",
       icon: "02",
-      eyebrow: "Reset",
+      eyebrow: "Audit",
       label: "Evaluation",
-      description: "Hit, miss, and pending table starting from today.",
+      description: "Today scorecard with a retained audit history.",
     },
     {
       key: "chart",
@@ -1108,10 +1089,7 @@ export default function AIArenaPageV6() {
 
         {activeWorkspace === "evaluation" && (
           <VerdictLedger
-            trackRecord={trackRecord}
             ledger={ledger}
-            resetSince={resetSince}
-            resetLabel={resetLabel}
             pageSize={8}
           />
         )}

@@ -297,9 +297,9 @@ function buildScopedTrackRecord(items, windowLabel = "today") {
   };
 }
 
-function scopedItems(items, resetSince) {
-  if (!resetSince) return items;
-  const since = new Date(resetSince);
+function scopedItems(items, sinceValue) {
+  if (!sinceValue) return items;
+  const since = new Date(sinceValue);
   if (Number.isNaN(since.getTime())) return items;
   return items.filter((item) => {
     const timestamp = new Date(item.timestamp);
@@ -307,47 +307,67 @@ function scopedItems(items, resetSince) {
   });
 }
 
-export default function VerdictLedger({
-  trackRecord,
-  ledger,
-  resetSince = null,
-  resetLabel = "track record",
-  pageSize = 8,
-}) {
+function startOfTodayIso() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+const AUDIT_WINDOWS = [
+  { key: "today", label: "Today", days: 0 },
+  { key: "7d", label: "7 days", days: 7 },
+  { key: "30d", label: "30 days", days: 30 },
+  { key: "all", label: "All retained", days: null },
+];
+
+function auditWindowSince(windowKey) {
+  if (windowKey === "today") return startOfTodayIso();
+  const window = AUDIT_WINDOWS.find((item) => item.key === windowKey);
+  if (!window?.days) return null;
+  return new Date(Date.now() - window.days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export default function VerdictLedger({ ledger, pageSize = 8 }) {
   const [filter, setFilter] = useState("all"); // all | hit | miss | pending
+  const [auditWindow, setAuditWindow] = useState("all");
   const [page, setPage] = useState(1);
 
   const items = ledger?.items || [];
-  const scoped = useMemo(() => scopedItems(items, resetSince), [items, resetSince]);
-  const effectiveTrackRecord = useMemo(
-    () => (resetSince ? buildScopedTrackRecord(scoped, resetLabel) : trackRecord),
-    [resetSince, resetLabel, scoped, trackRecord],
+  const todayItems = useMemo(
+    () => scopedItems(items, startOfTodayIso()),
+    [items],
+  );
+  const todayTrackRecord = useMemo(
+    () => buildScopedTrackRecord(todayItems, "Today"),
+    [todayItems],
+  );
+  const auditItems = useMemo(
+    () => scopedItems(items, auditWindowSince(auditWindow)),
+    [auditWindow, items],
   );
 
   const filtered = useMemo(() => {
-    if (filter === "all") return scoped;
-    return scoped.filter((it) => {
+    if (filter === "all") return auditItems;
+    return auditItems.filter((it) => {
       if (!it.outcomes) return false;
-      return it.outcomes.some((o) => o.outcome === filter);
+      return it.outcomes.some((outcome) => outcome.outcome === filter);
     });
-  }, [scoped, filter]);
+  }, [auditItems, filter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const startIndex = (page - 1) * pageSize;
   const visibleRows = filtered.slice(startIndex, startIndex + pageSize);
   const firstVisible = filtered.length ? startIndex + 1 : 0;
   const lastVisible = Math.min(startIndex + pageSize, filtered.length);
-  const totalEvaluated = effectiveTrackRecord?.overall?.total ?? 0;
+  const totalEvaluated = todayTrackRecord.overall.total;
   const hasAnyEvaluated = totalEvaluated > 0;
-  const windowText = resetSince
-    ? resetLabel
-    : effectiveTrackRecord?.window_days
-      ? `last ${effectiveTrackRecord.window_days}d`
-      : "track record";
+  const auditWindowLabel =
+    AUDIT_WINDOWS.find((item) => item.key === auditWindow)?.label ||
+    "All retained";
 
   useEffect(() => {
     setPage(1);
-  }, [filter, resetSince, items.length]);
+  }, [filter, auditWindow, items.length]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -355,7 +375,6 @@ export default function VerdictLedger({
 
   return (
     <section className="mb-8 rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      {/* Header */}
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -373,105 +392,101 @@ export default function VerdictLedger({
               Compass Track Record
             </h2>
             <span className="rounded-full border border-[#d4a853]/20 bg-[#d4a853]/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-[#f5c451]">
-              {windowText}
+              Today scorecard
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-white/40">
-            Reset view starts from today. Older outcomes are kept in the database for audit, but this scorecard begins clean from the reset window.
+            The scorecard resets at the start of each day. It does not remove earlier Compass reads: the retained audit ledger below stays available for review.
           </p>
         </div>
         <Tooltip termKey="confluence">
-          <span className="text-xs text-white/40 font-mono cursor-help border-b border-dotted border-white/20">
+          <span className="cursor-help border-b border-dotted border-white/20 font-mono text-xs text-white/40">
             How is this judged?
           </span>
         </Tooltip>
       </div>
 
-      {/* Track record stats — 4 horizon cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        {HORIZON_ORDER.map((h) => (
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {HORIZON_ORDER.map((horizon) => (
           <HorizonStatCard
-            key={h}
-            horizon={h}
-            stats={effectiveTrackRecord?.horizons?.[h]}
+            key={horizon}
+            horizon={horizon}
+            stats={todayTrackRecord.horizons[horizon]}
           />
         ))}
       </div>
 
-      {/* Empty state if no reads evaluated yet */}
       {!hasAnyEvaluated && (
-        <div className="rounded-xl border border-[#d4a853]/15 bg-[#d4a853]/[0.04] p-4 mb-5 flex items-start gap-3">
-          <span className="text-base shrink-0 text-[#d4a853]">•</span>
+        <div className="mb-5 flex items-start gap-3 rounded-xl border border-[#d4a853]/15 bg-[#d4a853]/[0.04] p-4">
+          <span className="shrink-0 text-base text-[#d4a853]">•</span>
           <div>
-            <div className="text-sm text-white/80 mb-1">
-              Fresh reset is warming up
-            </div>
-            <p className="text-xs text-white/50 leading-relaxed">
-              Today has no completed hit/miss outcomes yet. Pending rows can already appear below, then 24h outcomes will start resolving after their horizon ends.
+            <div className="mb-1 text-sm text-white/80">Today is still warming up</div>
+            <p className="text-xs leading-relaxed text-white/50">
+              No verdict from today has completed its horizon yet. Earlier resolved reads remain available in Audit history below, while today&apos;s 24h outcomes begin resolving after their horizon ends.
             </p>
           </div>
         </div>
       )}
 
-      {/* History table */}
-      <div className="rounded-xl border border-white/5 bg-black/20 overflow-hidden">
-        {/* Table header with filter pills */}
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5 flex-wrap gap-2">
+      <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-3 py-3">
           <div>
             <span className="text-xs font-mono uppercase tracking-wider text-white/50">
-              Evaluation table · {filtered.length} reads
+              Audit history · {filtered.length} reads
             </span>
             <div className="mt-0.5 text-[10px] font-mono text-white/30">
-              Showing {firstVisible}-{lastVisible} of {filtered.length}
+              {auditWindowLabel} · showing {firstVisible}-{lastVisible} of {filtered.length}
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {AUDIT_WINDOWS.map((window) => (
+              <button
+                key={window.key}
+                type="button"
+                onClick={() => setAuditWindow(window.key)}
+                className={`rounded px-2 py-1 text-[11px] font-mono transition-colors ${
+                  auditWindow === window.key
+                    ? "bg-[#d4a853]/15 text-[#f5c451]"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
+                }`}
+              >
+                {window.label}
+              </button>
+            ))}
+            <span className="mx-1 h-4 w-px bg-white/10" aria-hidden="true" />
             {[
               { key: "all", label: "All" },
               { key: "hit", label: "Hits" },
               { key: "miss", label: "Misses" },
               { key: "pending", label: "Pending" },
-            ].map((f) => (
+            ].map((outcomeFilter) => (
               <button
-                key={f.key}
+                key={outcomeFilter.key}
                 type="button"
-                onClick={() => setFilter(f.key)}
-                className={`text-[11px] font-mono px-2 py-1 rounded transition-colors ${
-                  filter === f.key
+                onClick={() => setFilter(outcomeFilter.key)}
+                className={`rounded px-2 py-1 text-[11px] font-mono transition-colors ${
+                  filter === outcomeFilter.key
                     ? "bg-white/10 text-white"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
                 }`}
               >
-                {f.label}
+                {outcomeFilter.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Table body */}
         {visibleRows.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    When
-                  </th>
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    BTC
-                  </th>
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    30d
-                  </th>
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    7d
-                  </th>
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    24h
-                  </th>
-                  <th className="text-left py-2 px-3 text-[10px] font-mono uppercase tracking-wider text-white/40">
-                    Outcomes (24h/72h/7d/30d)
-                  </th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">When</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">BTC</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">30d</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">7d</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">24h</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">Outcomes (24h/72h/7d/30d)</th>
                 </tr>
               </thead>
               <tbody>
@@ -483,35 +498,33 @@ export default function VerdictLedger({
           </div>
         ) : (
           <div className="p-8 text-center">
-            <p className="text-white/40 text-sm italic">
+            <p className="text-sm italic text-white/40">
               {filter === "all"
-                ? "No evaluated reads in this reset window"
-                : `No ${filter} reads in this reset window`}
+                ? "No Compass reads in this audit window"
+                : `No ${filter} reads in this audit window`}
             </p>
           </div>
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 px-3 py-3">
-          <p className="text-[11px] text-white/30 font-mono leading-relaxed">
-            This is the accountability layer. It tells you whether previous reads resolved correctly after their horizon, not what to trade right now.
+          <p className="text-[11px] font-mono leading-relaxed text-white/30">
+            Daily scorecards reset. Audit history does not. Use this ledger to verify how prior Compass reads resolved after each horizon, not to decide a new trade.
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 disabled:opacity-30 hover:bg-white/[0.06]"
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
             >
               Prev
             </button>
-            <span className="text-[11px] font-mono text-white/40">
-              Page {page} / {pageCount}
-            </span>
+            <span className="text-[11px] font-mono text-white/40">Page {page} / {pageCount}</span>
             <button
               type="button"
               disabled={page >= pageCount}
               onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 disabled:opacity-30 hover:bg-white/[0.06]"
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
             >
               Next
             </button>

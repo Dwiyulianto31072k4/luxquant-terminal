@@ -265,12 +265,12 @@ def get_report_pdf(
 
 @router.get("/ledger")
 def get_verdict_ledger(
-    days: int = Query(14, ge=1, le=90),
+    days: int = Query(14, ge=1, le=365),
     horizon: Optional[str] = Query(None, regex="^(24h|72h|7d|30d)$"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    Return verdict ledger for last N days.
+    Return verdict ledger for the requested audit window (up to 365 days).
 
     Each row = one verdict with all 4 horizon outcomes joined.
     Used to render the Verdict Ledger UI table.
