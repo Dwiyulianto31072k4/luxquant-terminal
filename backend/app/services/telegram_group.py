@@ -20,6 +20,8 @@ from typing import Optional
 
 import httpx
 
+_TG_PROXY = os.getenv("TELEGRAM_PROXY") or None
+
 logger = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv(
@@ -36,7 +38,7 @@ _PRESENT_STATUSES = ("creator", "administrator", "member", "restricted")
 async def _post(method: str, payload: dict, timeout: float = 10.0) -> Optional[dict]:
     """POST ke Bot API. Return result dict kalau ok, else None."""
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, proxy=_TG_PROXY) as client:
             resp = await client.post(f"{TELEGRAM_API}/{method}", json=payload)
             if resp.status_code != 200:
                 logger.warning(

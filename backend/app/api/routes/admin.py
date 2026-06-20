@@ -114,6 +114,27 @@ async def get_admin_stats(
         User.subscription_expires_at.is_(None)
     ).scalar()
 
+    # ── Anomaly counts (DB-vs-reality drift) ──
+    _active_access = or_(
+        User.role == "admin",
+        and_(
+            User.role.in_(["premium", "subscriber"]),
+            or_(User.subscription_expires_at.is_(None), User.subscription_expires_at > now),
+        ),
+    )
+    anomaly_paid_outside = db.query(func.count(User.id)).filter(
+        _active_access, User.telegram_id.isnot(None), User.telegram_in_group == False
+    ).scalar() or 0
+    anomaly_paid_no_tg = db.query(func.count(User.id)).filter(
+        _active_access, User.telegram_id.is_(None)
+    ).scalar() or 0
+    anomaly_expired_inside = db.query(func.count(User.id)).filter(
+        User.role.in_(["premium", "subscriber"]),
+        User.subscription_expires_at.isnot(None),
+        User.subscription_expires_at <= now,
+        User.telegram_in_group == True,
+    ).scalar() or 0
+
     # New users in last 30 days
     new_users_30d = db.query(func.count(User.id)).filter(
         User.created_at >= thirty_days
@@ -138,6 +159,9 @@ async def get_admin_stats(
         "lifetime_subscribers": lifetime,
         "expiring_soon": expiring_soon,
         "expired_not_downgraded": expired,
+        "anomaly_paid_outside": anomaly_paid_outside,
+        "anomaly_paid_no_tg": anomaly_paid_no_tg,
+        "anomaly_expired_inside": anomaly_expired_inside,
         "new_users_30d": new_users_30d,
         "auth_providers": {provider: count for provider, count in provider_stats},
         "confirmed_payments": confirmed_payments,
@@ -160,6 +184,9 @@ async def list_users(
     provider: Optional[str] = Query(None, description="Filter by auth_provider: google/telegram/discord/local"),
     activity: Optional[str] = Query(None, description="active_7d | dormant_30d | never_logged_in"),
     reach: Optional[str] = Query(None, description="has_tg | has_dc | has_email | unreachable | admin_enriched"),
+    vip_state: Optional[str] = Query(None, description="in_group | outside_group | no_telegram"),
+    anomaly: Optional[str] = Query(None, description="paid_outside | paid_no_tg | expired_inside"),
+    source: Optional[str] = Query(None, description="subscription_source exact match"),
     sort_by: Optional[str] = Query("created_at", description="Sort: created_at, username, role, subscription_expires_at"),
     sort_order: Optional[str] = Query("desc", description="asc or desc"),
     page: int = Query(1, ge=1),
@@ -279,6 +306,59 @@ async def list_users(
                     User.email.like("%@discord.luxquant.tw"),
                 ),
             )
+        )
+
+    # ── VIP group state filter ──
+    if vip_state == "in_group":
+        query = query.filter(User.telegram_in_group == True)
+    elif vip_state == "outside_group":
+        query = query.filter(
+            User.telegram_in_group == False,
+            User.telegram_id.isnot(None),
+        )
+    elif vip_state == "no_telegram":
+        query = query.filter(User.telegram_id.is_(None))
+
+    # ── Subscription source filter ──
+    if source:
+        query = query.filter(User.subscription_source == source)
+
+    # ── Anomaly filter (DB-vs-reality drift detection) ──
+    # active access (SQL form of User.has_active_access):
+    #   role=admin, OR role in (premium, subscriber) with null/future expiry
+    _active_access = or_(
+        User.role == "admin",
+        and_(
+            User.role.in_(["premium", "subscriber"]),
+            or_(
+                User.subscription_expires_at.is_(None),
+                User.subscription_expires_at > now,
+            ),
+        ),
+    )
+    _expired = and_(
+        User.role.in_(["premium", "subscriber"]),
+        User.subscription_expires_at.isnot(None),
+        User.subscription_expires_at <= now,
+    )
+    if anomaly == "paid_outside":
+        # active + linked TG + outside group -> needs invite
+        query = query.filter(
+            _active_access,
+            User.telegram_id.isnot(None),
+            User.telegram_in_group == False,
+        )
+    elif anomaly == "paid_no_tg":
+        # active + no TG linked -> needs to link Telegram first
+        query = query.filter(
+            _active_access,
+            User.telegram_id.is_(None),
+        )
+    elif anomaly == "expired_inside":
+        # expired but still inside group -> should be kicked
+        query = query.filter(
+            _expired,
+            User.telegram_in_group == True,
         )
 
     # Count total sebelum pagination

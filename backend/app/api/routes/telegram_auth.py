@@ -26,6 +26,8 @@ import logging
 from datetime import datetime, timezone
 
 import httpx
+
+_TG_PROXY = os.getenv("TELEGRAM_PROXY") or None
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -426,7 +428,7 @@ def _maybe_claim_legacy(db: Session, user: User, final_source: str, is_legacy: b
 async def _check_vip_membership(telegram_user_id: int) -> bool:
     """Cek apakah Telegram user adalah member VIP group."""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, proxy=_TG_PROXY) as client:
             response = await client.get(
                 f"{TELEGRAM_API}/getChatMember",
                 params={

@@ -14,6 +14,8 @@ from typing import Optional
 
 import httpx
 
+_TG_PROXY = os.getenv("TELEGRAM_PROXY") or None
+
 logger = logging.getLogger("autotrade.notifier")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -87,7 +89,7 @@ class Notifier:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, proxy=_TG_PROXY) as client:
                 resp = await client.post(url, json=payload)
                 if resp.status_code != 200:
                     logger.warning(f"Telegram send failed: {resp.status_code} {resp.text[:200]}")
