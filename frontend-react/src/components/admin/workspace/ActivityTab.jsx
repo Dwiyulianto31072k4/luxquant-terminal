@@ -474,6 +474,174 @@ const AtRiskPanel = ({ data, loading }) => {
 };
 
 // ════════════════════════════════════════════════════════════════════
+// Live Activity Feed — global stream (who touched which feature, when)
+// ════════════════════════════════════════════════════════════════════
+
+const FEED_FILTERS = [
+  { value: null, label: 'All' },
+  { value: 'signals', label: 'Signals' },
+  { value: 'fx', label: 'FX' },
+  { value: 'watchlist', label: 'Watchlist' },
+  { value: 'markets', label: 'Markets' },
+  { value: 'autotrade', label: 'AutoTrade' },
+];
+
+const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
+  <Surface variant="raised" padding="p-5" className="h-full">
+    <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+      <div className="flex items-center gap-2">
+        <ActivityIcon size={14} style={{ color: palette.teal[400] }} />
+        <h3 className="text-sm font-semibold text-white tracking-tight">Live Activity</h3>
+        {lastHour != null && (
+          <span
+            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full"
+            style={{ background: tint(palette.teal[400], 0.1), color: palette.teal[400] }}
+          >
+            <span className="w-1 h-1 rounded-full animate-pulse" style={{ background: palette.teal[400] }} />
+            {lastHour} last hour
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 flex-wrap">
+        {FEED_FILTERS.map((f) => {
+          const active = feature === f.value;
+          return (
+            <button
+              key={f.label}
+              onClick={() => onFilter(f.value)}
+              className="text-[9.5px] px-2 py-0.5 rounded font-medium"
+              style={{
+                background: active ? tint(palette.gold[300], 0.12) : surface.base.bg,
+                color: active ? palette.gold[300] : palette.warm[400],
+                border: `1px solid ${active ? tint(palette.gold[300], 0.25) : 'transparent'}`,
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+    <p className="text-[11px] mb-3" style={{ color: palette.warm[500] }}>
+      Feature touches across the platform, newest first (hourly granularity).
+    </p>
+
+    {loading ? (
+      <div className="flex items-center justify-center py-10">
+        <Spinner size={16} tone={palette.teal[400]} />
+      </div>
+    ) : !events || events.length === 0 ? (
+      <EmptyState Icon={ActivityIcon} tone={palette.teal[400]} title="No activity yet" description="Feature touches will stream in here." />
+    ) : (
+      <div className="space-y-0.5 max-h-[420px] overflow-y-auto pr-1">
+        {events.map((e) => {
+          const accent = featureAccent(e.feature);
+          return (
+            <div key={e.id} className="flex items-center gap-2.5 py-1.5 px-1.5 rounded-md hover:bg-white/[0.02]">
+              <Avatar src={e.avatar_url} name={e.username} size="xs" tone={accent} />
+              <div className="min-w-0 flex-1 text-[11.5px]">
+                <span className="font-medium text-white truncate">{e.username || `#${e.user_id}`}</span>
+                <span style={{ color: palette.warm[500] }}> · </span>
+                <span style={{ color: accent }}>{featureLabel(e.feature)}</span>
+              </div>
+              <span className="text-[9.5px] tabular-nums shrink-0" style={{ color: palette.warm[500] }}>
+                {relativeTime(e.occurred_at)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </Surface>
+);
+
+// ════════════════════════════════════════════════════════════════════
+// Most Active Users — sortable summary table
+// ════════════════════════════════════════════════════════════════════
+
+const USER_SORTS = [
+  { value: 'last_seen', label: 'Last seen' },
+  { value: 'event_count', label: 'Most events' },
+  { value: 'feature', label: 'Feature' },
+];
+const USER_WINDOWS = [
+  { value: '7d', label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: 'all', label: 'All' },
+];
+
+const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindow }) => (
+  <Surface variant="raised" padding="p-5" className="h-full">
+    <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+      <div className="flex items-center gap-2">
+        <FlameIcon size={14} style={{ color: palette.orange[400] }} />
+        <h3 className="text-sm font-semibold text-white tracking-tight">Most Active Users</h3>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1">
+          {USER_WINDOWS.map((wv) => {
+            const active = win === wv.value;
+            return (
+              <button key={wv.value} onClick={() => onWindow(wv.value)}
+                className="text-[9.5px] px-1.5 py-0.5 rounded font-medium"
+                style={{ background: active ? tint(palette.teal[400], 0.12) : surface.base.bg, color: active ? palette.teal[400] : palette.warm[400] }}>
+                {wv.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-1">
+          {USER_SORTS.map((s) => {
+            const active = sortBy === s.value;
+            return (
+              <button key={s.value} onClick={() => onSort(s.value)}
+                className="text-[9.5px] px-2 py-0.5 rounded font-medium"
+                style={{ background: active ? tint(palette.gold[300], 0.12) : surface.base.bg, color: active ? palette.gold[300] : palette.warm[400], border: `1px solid ${active ? tint(palette.gold[300], 0.25) : 'transparent'}` }}>
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+    <p className="text-[11px] mb-3" style={{ color: palette.warm[500] }}>
+      Who is active, when they were last seen, and their latest feature.
+    </p>
+
+    {loading ? (
+      <div className="flex items-center justify-center py-10">
+        <Spinner size={16} tone={palette.orange[400]} />
+      </div>
+    ) : !users || users.length === 0 ? (
+      <EmptyState Icon={UsersIcon} tone={palette.orange[400]} title="No active users" description="Activity in this window will appear here." />
+    ) : (
+      <div className="max-h-[420px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 px-2 pb-1.5 text-[8.5px] uppercase tracking-wider sticky top-0"
+          style={{ color: palette.warm[500], background: surface.raised.bg }}>
+          <span>User</span><span>Last seen</span><span>Feature</span><span className="text-right">Events</span>
+        </div>
+        <div className="space-y-0.5">
+          {users.map((u) => {
+            const accent = featureAccent(u.last_feature || 'x');
+            return (
+              <div key={u.user_id} className="grid grid-cols-[1.6fr_1fr_1fr_auto] gap-2 items-center px-2 py-1.5 rounded-md hover:bg-white/[0.02]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Avatar src={u.avatar_url} name={u.username} size="xs" tone={accent} />
+                  <span className="text-[11.5px] font-medium text-white truncate">{u.username || `#${u.user_id}`}</span>
+                </div>
+                <span className="text-[10.5px] tabular-nums" style={{ color: palette.warm[300] }}>{relativeTime(u.last_seen)}</span>
+                <span className="text-[10.5px] truncate" style={{ color: accent }}>{u.last_feature ? featureLabel(u.last_feature) : '—'}</span>
+                <span className="text-[11px] tabular-nums text-right text-white">{u.event_count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </Surface>
+);
+
+// ════════════════════════════════════════════════════════════════════
 // Main
 // ════════════════════════════════════════════════════════════════════
 
@@ -482,6 +650,11 @@ export const ActivityTab = () => {
   const [funnel, setFunnel] = useState(null);
   const [hotLeads, setHotLeads] = useState(null);
   const [atRisk, setAtRisk] = useState(null);
+  const [feed, setFeed] = useState(null);
+  const [feedFeature, setFeedFeature] = useState(null);
+  const [activeUsers, setActiveUsers] = useState(null);
+  const [auSort, setAuSort] = useState('last_seen');
+  const [auWindow, setAuWindow] = useState('30d');
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -492,16 +665,20 @@ export const ActivityTab = () => {
     else setLoading(true);
     setError(null);
     try {
-      const [ov, fn, hl, ar] = await Promise.all([
+      const [ov, fn, hl, ar, fd, au] = await Promise.all([
         growthApi.getOverview(),
         growthApi.getFeatureFunnel(30),
         growthApi.getHotLeads({ minActiveDays: 3, limit: 25 }),
         growthApi.getAtRisk({ dormantDays: 14, limit: 25 }),
+        growthApi.getActivityFeed({ feature: feedFeature, limit: 40 }),
+        growthApi.getActiveUsers({ sortBy: auSort, window: auWindow, limit: 30 }),
       ]);
       setOverview(ov);
       setFunnel(fn);
       setHotLeads(hl);
       setAtRisk(ar);
+      setFeed(fd);
+      setActiveUsers(au);
     } catch (e) {
       console.error('Failed to load growth data:', e);
       setError('Failed to load growth analytics. Try refreshing.');
@@ -509,10 +686,16 @@ export const ActivityTab = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [feedFeature, auSort, auWindow]);
 
   useEffect(() => {
     fetchAll(false);
+  }, [fetchAll]);
+
+  // Auto-refresh every 30s (live feel)
+  useEffect(() => {
+    const t = setInterval(() => fetchAll(true), 30000);
+    return () => clearInterval(t);
   }, [fetchAll]);
 
   return (
@@ -598,6 +781,25 @@ export const ActivityTab = () => {
           </div>
         </Surface>
       )}
+
+      {/* Live activity + most active users */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <LiveActivityFeed
+          events={feed?.events}
+          loading={loading}
+          feature={feedFeature}
+          onFilter={setFeedFeature}
+          lastHour={overview?.dau != null ? feed?.count : null}
+        />
+        <ActiveUsersTable
+          users={activeUsers?.users}
+          loading={loading}
+          sortBy={auSort}
+          window={auWindow}
+          onSort={setAuSort}
+          onWindow={setAuWindow}
+        />
+      </div>
 
       {/* Feature funnel */}
       <FeatureFunnel funnel={funnel} loading={loading} />

@@ -44,4 +44,21 @@ export const growthApi = {
     );
     return response.data;
   },
+
+  // Global activity feed (who touched which feature, newest first)
+  getActivityFeed: async ({ feature = null, limit = 50, beforeId = null } = {}) => {
+    const params = { limit };
+    if (feature) params.feature = feature;
+    if (beforeId) params.before_id = beforeId;
+    const response = await api.get('/api/v1/workspace/growth/activity-feed', { params });
+    return response.data;
+  },
+
+  // Per-user activity summary, sortable (last_seen | event_count | feature)
+  getActiveUsers: async ({ sortBy = 'last_seen', window = '30d', limit = 50 } = {}) => {
+    const response = await api.get('/api/v1/workspace/growth/active-users', {
+      params: { sort_by: sortBy, window, limit },
+    });
+    return response.data;
+  },
 };
