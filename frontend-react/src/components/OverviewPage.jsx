@@ -1,3 +1,4 @@
+import Seo from "./Seo";
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TopPerformers from './TopPerformers';
@@ -188,6 +189,11 @@ const OverviewPage = () => {
 
   return (
     <div className="space-y-5 lg:space-y-7">
+      <Seo
+        title="Market Overview — Live Crypto Data &amp; Analytics | LuxQuant Terminal"
+        description="Live crypto market overview: top movers, market data, and quantitative analytics. Informed by data, decided by you."
+        path="/home"
+      />
       <TopPerformers />
 
       {/* SECTION EYEBROW */}

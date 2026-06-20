@@ -1,3 +1,4 @@
+import Seo from "../Seo";
 // src/components/subscription/PricingPage.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -176,6 +177,11 @@ const PricingPage = () => {
 
   return (
     <div className="relative overflow-hidden min-h-screen">
+      <Seo
+        title="Pricing &amp; Plans — LuxQuant Terminal"
+        description="LuxQuant Terminal pricing and plans. Unlock algorithmic analysis, on-chain intelligence, AutoTrade, and AI research. Free tier available."
+        path="/pricing"
+      />
       <style>{`
         @keyframes admin-pulse-glow {
           0%, 100% {

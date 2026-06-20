@@ -1,3 +1,4 @@
+import { HelmetProvider } from "react-helmet-async";
 // src/App.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — URL-Based Routing v3 + Lazy Loading
@@ -1320,6 +1321,7 @@ function LoginPageWrapper() {
 // ════════════════════════════════════════
 function App() {
   return (
+    <HelmetProvider>
     <BrowserRouter>
       <AuthProvider>
         <InAppBrowserBanner />
@@ -1700,6 +1702,7 @@ function App() {
         </CurrencyProvider>
       </AuthProvider>
     </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

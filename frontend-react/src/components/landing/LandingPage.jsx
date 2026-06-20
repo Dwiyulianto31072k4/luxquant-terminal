@@ -1,3 +1,4 @@
+import Seo from "../Seo";
 // src/components/landing/LandingPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -1455,6 +1456,11 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-bg-primary text-white relative pb-0 overflow-x-hidden">
+      <Seo
+        title="LuxQuant Terminal: Crypto Market Intelligence & Analytics"
+        description="Turn market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Bull or bear, informed by data and decided by you."
+        path="/"
+      />
       {/* GLOBAL ANIMATION STYLES */}
       <style>{`
         @keyframes flyOutRightAnim {
