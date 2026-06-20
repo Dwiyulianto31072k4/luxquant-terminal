@@ -511,6 +511,31 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
     catch { onToast?.('Gagal menyalin', 'error'); }
   };
 
+  const [fuBusy, setFuBusy] = useState(false);
+  const handleFollowup = async () => {
+    setFuBusy(true);
+    try {
+      const res = await adminApi.vipFollowup(user.id);
+      if (res.ok) {
+        onToast?.('Follow-up terkirim ke @' + (user.username || user.id) + ' via bot.', 'success');
+        if (res.invite_link) setInviteLink(res.invite_link);
+        onInvited?.();
+      } else if (res.reason === 'dm_failed') {
+        onToast?.('Bot tidak bisa DM user ini (belum /start bot). Link tetap dibuat.', 'error');
+        if (res.invite_link) setInviteLink(res.invite_link);
+      } else if (res.reason === 'already_member') {
+        onToast?.('User sudah di VIP group.', 'success');
+        onInvited?.();
+      } else {
+        onToast?.(res.message || 'Follow-up gagal.', 'error');
+      }
+    } catch (e) {
+      onToast?.(e.response?.data?.detail || 'Follow-up gagal.', 'error');
+    } finally {
+      setFuBusy(false);
+    }
+  };
+
   return (
     <Section title="VIP Access Diagnostic" Icon={AlertTriangleIcon}>
       <div style={{ background: `${d.color}0f`, border: `1px solid ${d.color}4d`, borderRadius: 10, padding: 14 }}>
@@ -526,11 +551,18 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
         <div className="text-[12px] leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{d.detail}</div>
 
         {d.action === 'invite' && !inviteLink && (
-          <button onClick={handleInvite} disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
-            style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: busy ? 'wait' : 'pointer' }}>
-            <ExternalLinkIcon size={13} /> {busy ? 'Generating…' : 'Generate invite link'}
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleFollowup} disabled={fuBusy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
+              style={{ background: '#34d39924', color: '#34d399', border: '1px solid #34d3994d', cursor: fuBusy ? 'wait' : 'pointer' }}>
+              <SendIcon size={13} /> {fuBusy ? 'Sending…' : 'Send follow-up via bot'}
+            </button>
+            <button onClick={handleInvite} disabled={busy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
+              style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: busy ? 'wait' : 'pointer' }}>
+              <ExternalLinkIcon size={13} /> {busy ? 'Generating…' : 'Just generate link'}
+            </button>
+          </div>
         )}
         {d.action === 'email_link_tg' && (
           <button onClick={handleCopyLinkTgMsg}

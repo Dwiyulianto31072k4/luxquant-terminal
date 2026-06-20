@@ -88,6 +88,20 @@ export const adminApi = {
     return response.data;
   },
 
+  // Send adaptive VIP follow-up DM (invite link) to one user via bot
+  vipFollowup: async (userId) => {
+    const response = await api.post(`/api/v1/admin/users/${userId}/vip-followup`);
+    return response.data;
+  },
+
+  // Bulk VIP follow-up. userIds: number[] (capped 50/call server-side)
+  vipFollowupBulk: async (userIds) => {
+    const response = await api.post('/api/v1/admin/users/vip-followup-bulk', {
+      user_ids: userIds,
+    });
+    return response.data;
+  },
+
   // ════════════════════════════════════════
   // Admin Outreach (Layer Outreach) — NEW
   // ════════════════════════════════════════
