@@ -4,13 +4,20 @@
 // Lead hero + secondary 2-up + scannable list rows (NN/g best practice)
 // Desktop: lead → secondary → list. Mobile: lead → small left-thumb rows.
 // Boxed gold-edge cards · brand favicons · info-dense · high-contrast chips
+//
+// NOTE (activity-tracking fix): semua fetch ke backend sekarang lewat
+// instance `api` (src/services/authApi.js) bukan `fetch()` polos, supaya
+// Bearer token tersisip otomatis (lewat axios interceptor) kalau user
+// sedang login. Endpoint /crypto-news-feed/* tetap publik (boleh diakses
+// tanpa login), tapi dengan ini ActivityTrackerMiddleware di backend bisa
+// mencatat kunjungan halaman News untuk user yang sedang login.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { GoldButton, GhostButton } from "./autotrade/AutoTradeUI";
 import Modal from "./ui/Modal";
+import api from "../services/authApi";
 
-const API_BASE = "/api/v1";
 const PAGE_SIZE = 30;
 
 // Brand assets (in /public — referenced by absolute path)
@@ -341,9 +348,8 @@ const NewsModal = ({ item, onClose }) => {
   useEffect(() => {
     if (!item?.id) return;
     setLoading(true);
-    fetch(`${API_BASE}/crypto-news-feed/extract/${item.id}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setExtract(data); })
+    api.get(`/api/v1/crypto-news-feed/extract/${item.id}`)
+      .then((res) => { if (res.data) setExtract(res.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [item?.id]);
@@ -1152,17 +1158,15 @@ const CryptoNewsPage = () => {
     async (pg = 1) => {
       try {
         setLoading(true);
-        const params = new URLSearchParams({
+        const params = {
           limit: PAGE_SIZE,
           offset: (pg - 1) * PAGE_SIZE,
-        });
-        if (activeFilter !== "all") params.set("content_type", activeFilter);
-        if (searchQuery) params.set("search", searchQuery);
-        const res = await fetch(`${API_BASE}/crypto-news-feed/feed?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setAllItems(data.items || []);
-        setTotal(data.total || 0);
+        };
+        if (activeFilter !== "all") params.content_type = activeFilter;
+        if (searchQuery) params.search = searchQuery;
+        const res = await api.get(`/api/v1/crypto-news-feed/feed`, { params });
+        setAllItems(res.data.items || []);
+        setTotal(res.data.total || 0);
       } catch (err) {
         console.error("News feed error:", err);
       } finally {
@@ -1175,11 +1179,11 @@ const CryptoNewsPage = () => {
   const fetchMeta = useCallback(async () => {
     try {
       const [sR, tR] = await Promise.all([
-        fetch(`${API_BASE}/crypto-news-feed/stats`),
-        fetch(`${API_BASE}/crypto-news-feed/trending`),
+        api.get(`/api/v1/crypto-news-feed/stats`),
+        api.get(`/api/v1/crypto-news-feed/trending`),
       ]);
-      if (sR.ok) setStats(await sR.json());
-      if (tR.ok) setTrending(await tR.json());
+      setStats(sR.data);
+      setTrending(tR.data);
     } catch (err) {
       console.error("News meta error:", err);
     }

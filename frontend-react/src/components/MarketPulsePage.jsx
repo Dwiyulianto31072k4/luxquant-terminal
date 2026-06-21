@@ -1,9 +1,20 @@
+// src/components/MarketPulsePage.jsx
+//
+// NOTE (activity-tracking fix): semua fetch ke backend LuxQuant
+// (/api/v1/market-pulse/*) sekarang lewat instance `api`
+// (src/services/authApi.js) bukan `fetch()` polos, supaya Bearer token
+// tersisip otomatis (lewat axios interceptor) kalau user sedang login.
+// Endpoint market-pulse tetap publik (boleh diakses tanpa login), tapi
+// dengan ini ActivityTrackerMiddleware di backend bisa mencatat
+// kunjungan halaman Market Pulse untuk user yang sedang login.
+// Fetch ke Binance/Bybit di CoinChartModal TIDAK diubah — itu API publik
+// pihak ketiga (bukan backend kita), jadi tidak relevan untuk tracking.
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import api from "../services/authApi";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -133,32 +144,31 @@ const MarketPulsePage = () => {
   const [heatmapSortMode, setHeatmapSortMode] = useState("events");
   const [chartModalPair, setChartModalPair] = useState(null);
 
-  // ═════════ FETCH ═════════ (LOGIC IDENTICAL)
+  // ═════════ FETCH ═════════ (LOGIC IDENTICAL, transport via `api` instance)
 
   const fetchData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
 
-      const params = new URLSearchParams({ limit: "200" });
-      if (sourceFilter !== "all") params.set("source", sourceFilter);
-      if (timeframeFilter !== "all") params.set("timeframe", timeframeFilter);
-      if (selectedCoin) params.set("pair", selectedCoin);
+      const params = { limit: "200" };
+      if (sourceFilter !== "all") params.source = sourceFilter;
+      if (timeframeFilter !== "all") params.timeframe = timeframeFilter;
+      if (selectedCoin) params.pair = selectedCoin;
 
       const [feedRes, statsRes, moversRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/api/v1/market-pulse/feed?${params}`),
-        fetch(`${API_BASE}/api/v1/market-pulse/stats`),
-        fetch(`${API_BASE}/api/v1/market-pulse/top-movers?period=${moverPeriod}`),
+        api.get(`/api/v1/market-pulse/feed`, { params }),
+        api.get(`/api/v1/market-pulse/stats`),
+        api.get(`/api/v1/market-pulse/top-movers`, { params: { period: moverPeriod } }),
       ]);
 
-      if (feedRes.status === "fulfilled" && feedRes.value.ok) {
-        const data = await feedRes.value.json();
-        setFeed(data.events || []);
+      if (feedRes.status === "fulfilled") {
+        setFeed(feedRes.value.data.events || []);
       }
-      if (statsRes.status === "fulfilled" && statsRes.value.ok) {
-        setStats(await statsRes.value.json());
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data);
       }
-      if (moversRes.status === "fulfilled" && moversRes.value.ok) {
-        setTopMovers(await moversRes.value.json());
+      if (moversRes.status === "fulfilled") {
+        setTopMovers(moversRes.value.data);
       }
 
       setLastUpdated(new Date());
@@ -180,9 +190,8 @@ const MarketPulsePage = () => {
       setCoinDetail(null);
       return;
     }
-    fetch(`${API_BASE}/api/v1/market-pulse/coin/${selectedCoin}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setCoinDetail(data))
+    api.get(`/api/v1/market-pulse/coin/${selectedCoin}`)
+      .then((res) => setCoinDetail(res.data))
       .catch(() => setCoinDetail(null));
   }, [selectedCoin]);
 
@@ -1827,7 +1836,8 @@ const CoinChartModal = ({ pair, onClose }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleClose]);
 
-  // Fetch metrics — IDENTICAL logic
+  // Fetch metrics — IDENTICAL logic (external Binance/Bybit public APIs,
+  // tidak melalui backend kita, jadi tetap pakai fetch() biasa)
   useEffect(() => {
     let cancelled = false;
     setMetrics({ ticker: null, funding: null, openInterest: null, ratio: null });
