@@ -130,7 +130,7 @@ const RowActionButton = ({ Icon, tone, title, onClick }) => (
   </button>
 );
 
-const RowActions = ({ user, onView, onGrant, onRevoke, onToggleActive }) => (
+const RowActions = ({ user, onView, onGrant, onRevoke, onToggleActive, onSendMessage }) => (
   <div className="flex items-center justify-end gap-1">
     <RowActionButton Icon={EyeIcon} tone={palette.blue[400]} title="View Details" onClick={onView} />
     {user.role !== 'admin' && (
@@ -174,6 +174,7 @@ const DesktopTable = ({
   onGrant,
   onRevoke,
   onToggleActive,
+  onSendMessage,
 }) => (
   <table className="w-full text-sm">
     <thead>
@@ -264,6 +265,7 @@ const DesktopTable = ({
                 onGrant={() => onGrant(u)}
                 onRevoke={() => onRevoke(u.id, u.username)}
                 onToggleActive={() => onToggleActive(u.id, u.username, u.is_active)}
+                onSendMessage={() => onSendMessage && onSendMessage(u)}
               />
             </td>
           </tr>
@@ -285,6 +287,7 @@ const MobileCardStack = ({
   onGrant,
   onRevoke,
   onToggleActive,
+  onSendMessage,
 }) => (
   <div className="divide-y" style={{ '--tw-divide-opacity': 1 }}>
     {users.map((u) => {
@@ -359,6 +362,7 @@ export const UsersTable = ({
   onGrant,
   onRevoke,
   onToggleActive,
+  onSendMessage,
   onResetFilters,
 }) => {
   const allVisibleSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
@@ -411,6 +415,7 @@ export const UsersTable = ({
               onGrant={onGrant}
               onRevoke={onRevoke}
               onToggleActive={onToggleActive}
+              onSendMessage={onSendMessage}
             />
           </div>
           <div className="md:hidden">
@@ -422,6 +427,7 @@ export const UsersTable = ({
               onGrant={onGrant}
               onRevoke={onRevoke}
               onToggleActive={onToggleActive}
+              onSendMessage={onSendMessage}
             />
           </div>
         </>

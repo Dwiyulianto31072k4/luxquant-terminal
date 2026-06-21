@@ -102,6 +102,15 @@ export const adminApi = {
     return response.data;
   },
 
+  // Send a custom admin message to a user via bot (Telegram DM)
+  sendMessage: async (userId, { text, withInvite = false } = {}) => {
+    const response = await api.post(`/api/v1/admin/users/${userId}/send-message`, {
+      text,
+      with_invite: withInvite,
+    });
+    return response.data;
+  },
+
   // ════════════════════════════════════════
   // Admin Outreach (Layer Outreach) — NEW
   // ════════════════════════════════════════

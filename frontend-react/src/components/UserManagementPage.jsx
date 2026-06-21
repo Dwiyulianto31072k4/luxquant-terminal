@@ -19,6 +19,7 @@ import { UsersSearchBar } from './admin/users/UsersSearchBar';
 import { UsersTable } from './admin/users/UsersTable';
 import { UsersPagination } from './admin/users/UsersPagination';
 import { GrantModal } from './admin/users/GrantModal';
+import { SendMessageModal } from './admin/users/SendMessageModal';
 import { ConfirmModal } from './admin/users/ConfirmModal';
 
 // Shared admin pieces
@@ -241,6 +242,7 @@ const UserManagementPage = () => {
   const [grantModal, setGrantModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [drawerUserId, setDrawerUserId] = useState(null);
+  const [sendMsgUser, setSendMsgUser] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -412,6 +414,24 @@ const UserManagementPage = () => {
     });
   };
 
+  // ── Send custom message via bot ──
+  const handleSendMessage = async ({ text, withInvite }) => {
+    if (!sendMsgUser) return;
+    try {
+      const res = await adminApi.sendMessage(sendMsgUser.id, { text, withInvite });
+      if (res.ok) {
+        showToast(`Message sent to @${sendMsgUser.username} via bot`);
+      } else if (res.reason === 'dm_failed') {
+        showToast('Bot could not DM this user (they may not have started the bot).', 'error');
+      } else {
+        showToast(res.message || 'Failed to send', 'error');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to send message', 'error');
+      throw err;
+    }
+  };
+
   // ── Bulk actions ──
   const handleBulkExport = () => {
     const filename = `users_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -552,6 +572,7 @@ const UserManagementPage = () => {
           onGrant={(u) => setGrantModal(u)}
           onRevoke={handleRevoke}
           onToggleActive={handleToggleActive}
+          onSendMessage={(u) => setSendMsgUser(u)}
           onResetFilters={() => setFilters(DEFAULT_FILTERS)}
         />
         <UsersPagination
@@ -581,6 +602,13 @@ const UserManagementPage = () => {
           user={grantModal}
           onClose={() => setGrantModal(null)}
           onGrant={handleGrant}
+        />
+      )}
+      {sendMsgUser && (
+        <SendMessageModal
+          user={sendMsgUser}
+          onClose={() => setSendMsgUser(null)}
+          onSend={handleSendMessage}
         />
       )}
       {confirmModal && (
