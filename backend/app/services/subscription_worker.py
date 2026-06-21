@@ -194,6 +194,62 @@ async def _kick_past_grace(db, now):
     return kicked
 
 
+# Max membership checks per cycle (rate-limit safety).
+RECONCILE_CAP = 40
+
+
+async def _reconcile_in_group(db, now):
+    """Fix stale telegram_in_group flags.
+
+    Targets users who *should* be in the group (active access + linked TG)
+    but are flagged as outside — they may have joined via invite link without
+    re-logging into the web app. Re-checks actual membership and flips the
+    flag to TRUE when they're really inside.
+
+    Capped + throttled to stay well under Telegram rate limits.
+    """
+    rows = db.execute(
+        text("""
+            SELECT id, telegram_id
+            FROM users
+            WHERE telegram_in_group = FALSE
+              AND telegram_id IS NOT NULL
+              AND (
+                role = 'admin'
+                OR (role IN ('premium', 'subscriber')
+                    AND (subscription_expires_at IS NULL
+                         OR subscription_expires_at > :now))
+              )
+            ORDER BY updated_at ASC NULLS FIRST
+            LIMIT :cap
+        """),
+        {"now": now, "cap": RECONCILE_CAP},
+    ).fetchall()
+
+    fixed = 0
+    for r in rows:
+        present = await is_in_group(r.telegram_id)
+        if present is None:
+            # API failure — skip, retry next cycle.
+            await asyncio.sleep(0.3)
+            continue
+        if present:
+            db.execute(
+                text("""
+                    UPDATE users
+                    SET telegram_in_group = TRUE,
+                        updated_at = NOW()
+                    WHERE id = :id
+                """),
+                {"id": r.id},
+            )
+            db.commit()
+            fixed += 1
+        await asyncio.sleep(0.3)
+
+    return fixed
+
+
 async def subscription_expiry_loop():
     """Check and expire subscriptions + manage VIP grace/kick + payments."""
     print(
@@ -215,6 +271,7 @@ async def subscription_expiry_loop():
                 expired = await _expire_and_start_grace(db, now)
                 reminded = await _send_final_reminders(db, now)
                 kicked = await _kick_past_grace(db, now)
+                reconciled = await _reconcile_in_group(db, now)
 
                 result_pay = db.execute(
                     text("""
@@ -229,10 +286,11 @@ async def subscription_expiry_loop():
                 expired_payments = result_pay.rowcount
                 db.commit()
 
-                if expired or kicked or reminded or expired_payments:
+                if expired or kicked or reminded or expired_payments or reconciled:
                     logger.info(
                         f"♻️ Subscription worker: expired {expired} users, "
                         f"reminded {reminded}, kicked {kicked}, "
+                        f"reconciled {reconciled} in-group, "
                         f"expired {expired_payments} payments"
                     )
             finally:

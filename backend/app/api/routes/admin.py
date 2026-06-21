@@ -677,6 +677,53 @@ async def admin_vip_followup_bulk(
     }
 
 
+@router.post("/users/{user_id}/send-message")
+async def admin_send_message(
+    user_id: int,
+    payload: dict,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Send a custom admin message to a user via the bot (DM).
+
+    Body: {"text": "...", "with_invite": false}
+    If with_invite is true and the user has active access but is outside the
+    group, a one-time invite link is appended to the message.
+    """
+    text_msg = (payload.get("text") or "").strip()
+    with_invite = bool(payload.get("with_invite"))
+    if not text_msg:
+        raise HTTPException(status_code=400, detail="Pesan kosong")
+    if len(text_msg) > 3500:
+        raise HTTPException(status_code=400, detail="Pesan terlalu panjang (max 3500 char)")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if not user.telegram_id:
+        return {"ok": False, "reason": "no_telegram",
+                "message": "User belum link Telegram \u2014 bot tidak bisa kirim DM."}
+
+    final_msg = text_msg
+    invite_link = None
+    if with_invite and user.has_active_access:
+        already = await is_in_group(user.telegram_id)
+        if already is not True:
+            invite_link = await create_one_time_invite_link(
+                expire_seconds=3600, name=f"msg-u{user.id}",
+            )
+            if invite_link:
+                final_msg = f"{text_msg}\n\n{invite_link}"
+
+    sent = await send_dm(user.telegram_id, final_msg)
+    if not sent:
+        return {"ok": False, "reason": "dm_failed",
+                "message": "DM gagal \u2014 user mungkin belum pernah /start bot."}
+
+    return {"ok": True, "reason": "sent", "invite_link": invite_link,
+            "message": "Pesan terkirim via bot."}
+
+
 # ════════════════════════════════════════════
 
 @router.get("/expiring-subscriptions")

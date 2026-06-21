@@ -44,3 +44,7 @@ __pycache__/
 *.pyc
 .font-bak-*/
 .bak-coinintel/
+
+# runtime data (jangan di-commit)
+backend/avatars/
+backend/rebackfill_backups/
