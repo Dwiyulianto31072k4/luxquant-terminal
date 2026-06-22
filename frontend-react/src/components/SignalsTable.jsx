@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import SignalModal from './SignalModal';
 import CoinLogo from './CoinLogo';
 import StarButton from './StarButton';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +15,19 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
  * SignalsTable — Full Original + Strong Color Fix (emerald-400 & red-400)
  * Tidak ada yang dihapus. Hanya warna yang diubah.
  *
- * COLUMN PICKER (NEW):
+ * ROUTING FIX (NEW):
+ * - SignalsTable used to own its OWN `selectedSignal` state and render its OWN
+ *   <SignalModal>, completely independent from the one in SignalsPage. That
+ *   meant the `onRowClick` prop passed down from the parent was silently
+ *   ignored, two separate modal instances existed, and `onSwitchSignal` (used
+ *   by the History tab) only worked on the parent's instance — which almost
+ *   never opened via normal row clicks.
+ * - Fixed: this component no longer owns any modal state. Every place that
+ *   used to call its local `setSelectedSignal(signal)` now calls the
+ *   `onRowClick` prop instead, so SignalsPage (URL-driven via useSearchParams)
+ *   is the single source of truth for which signal/tab is open.
+ *
+ * COLUMN PICKER:
  * - User bisa pilih kolom mana yang ditampilkan di tabel desktop lewat tombol
  *   "Columns" di kanan atas. Preferensi disimpan di localStorage, jadi pilihan
  *   user persist antar-sesi. Kolom Star + Pair selalu tampil (identitas baris).
@@ -163,6 +174,7 @@ const SignalsTable = ({
   sortBy,
   sortOrder,
   onSort,
+  onRowClick,
   onPricesUpdate,
   allPairs,
   coinIntel = {},
@@ -173,7 +185,6 @@ const SignalsTable = ({
 }) => {
   const { t } = useTranslation();
 
-  const [selectedSignal, setSelectedSignal] = useState(null);
   const [expandedCards, setExpandedCards] = useState({}); // mobile card expand, keyed by signal_id (survives 15s price refresh)
   const [selectedCoinIntel, setSelectedCoinIntel] = useState(null); // coin object for CoinDetailModal
   const [showVerdictHint, setShowVerdictHint] = useState(false);    // verdict coachmark (auto-shows on load)
@@ -829,7 +840,7 @@ const SignalsTable = ({
 
             <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
               <button
-                onClick={() => setSelectedSignal(signal)}
+                onClick={() => onRowClick && onRowClick(signal)}
                 className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary hover:text-gold-light"
               >
                 Open full signal →
@@ -1025,7 +1036,7 @@ const SignalsTable = ({
                     return (
                       <tr
                         key={signal.signal_id || idx}
-                        onClick={() => setSelectedSignal(signal)}
+                        onClick={() => onRowClick && onRowClick(signal)}
                         className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors group"
                       >
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1387,8 +1398,6 @@ const SignalsTable = ({
           `}</style>
         </div>
       )}
-
-      <SignalModal signal={selectedSignal} isOpen={!!selectedSignal} onClose={() => setSelectedSignal(null)} />
 
       {selectedCoinIntel && (
         <CoinDetailModal

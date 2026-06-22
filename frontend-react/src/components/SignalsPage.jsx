@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
@@ -144,7 +145,6 @@ const SignalsPage = () => {
   const [allSignals, setAllSignals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSignal, setSelectedSignal] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [stats, setStats] = useState(null);
 
@@ -242,29 +242,45 @@ const SignalsPage = () => {
     return () => clearInterval(interval);
   }, [fetchBulkSignals]);
 
-  // ── Deep-link: buka 1 signal dari ?signal=<id> (link share) langsung ke modal ──
-  const deepLinkHandled = useRef(false);
-  useEffect(() => {
-    if (deepLinkHandled.current) return;
-    if (loading || allSignals.length === 0) return;
+  // ── Modal sinyal didorong oleh URL: ?signal=<id>&tab=chart|trade|research|history ──
+  // Sumber kebenaran tunggal — buka via klik baris, deep-link, atau back/forward
+  // browser semuanya lewat query param yang sama, jadi selalu konsisten.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedSignalId = searchParams.get("signal");
+  const selectedTab = searchParams.get("tab") || "chart";
+  const selectedSignal = useMemo(() => {
+    if (!selectedSignalId) return null;
+    return allSignals.find((s) => String(s.signal_id) === String(selectedSignalId)) || null;
+  }, [selectedSignalId, allSignals]);
 
-    const params = new URLSearchParams(window.location.search);
-    const sid = params.get("signal");
-    deepLinkHandled.current = true;
-    if (!sid) return;
+  const openSignal = useCallback((sig, tab = "chart") => {
+    if (!sig) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("signal", String(sig.signal_id));
+      if (tab && tab !== "chart") next.set("tab", tab);
+      else next.delete("tab");
+      return next;
+    });
+  }, [setSearchParams]);
 
-    const match = allSignals.find((s) => String(s.signal_id) === String(sid));
-    if (match) setSelectedSignal(match);
+  const closeSignal = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("signal");
+      next.delete("tab");
+      return next;
+    });
+  }, [setSearchParams]);
 
-    // Bersihin ?signal biar refresh ga buka modal lagi; ?ref dibiarin.
-    params.delete("signal");
-    const qs = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash
-    );
-  }, [loading, allSignals]);
+  const changeSignalTab = useCallback((tab) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab && tab !== "chart") next.set("tab", tab);
+      else next.delete("tab");
+      return next;
+    });
+  }, [setSearchParams]);
 
   useEffect(() => {
     setPage(1);
@@ -1168,7 +1184,7 @@ const SignalsPage = () => {
       </div>
 
       {/* BTC Dominance Alert — self-contained (has its own expand) */}
-      <BtcDomAlert allSignals={allSignals} onSignalClick={setSelectedSignal} />
+      <BtcDomAlert allSignals={allSignals} onSignalClick={(sig) => openSignal(sig)} />
 
       {/* ERROR / TABLE */}
       {error && (
@@ -1194,7 +1210,7 @@ const SignalsPage = () => {
         <SignalsTable
           signals={signals}
           loading={loading}
-          onRowClick={setSelectedSignal}
+          onRowClick={(sig) => openSignal(sig)}
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSort={handleSort}
@@ -1218,11 +1234,10 @@ const SignalsPage = () => {
           key={selectedSignal.signal_id}
           signal={selectedSignal}
           isOpen={!!selectedSignal}
-          onClose={() => setSelectedSignal(null)}
-          onSwitchSignal={(newSignal) => {
-            setSelectedSignal(null);
-            setTimeout(() => setSelectedSignal(newSignal), 100);
-          }}
+          initialTab={selectedTab}
+          onTabChange={changeSignalTab}
+          onClose={closeSignal}
+          onSwitchSignal={(newSignal) => openSignal(newSignal, "chart")}
         />
       )}
     </div>

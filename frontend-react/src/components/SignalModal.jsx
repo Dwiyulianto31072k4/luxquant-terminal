@@ -30,6 +30,7 @@ const SignalModal = ({
   onClose,
   onSwitchSignal,
   initialTab = "chart",
+  onTabChange,
 }) => {
   const { t } = useTranslation();
   const { currency, rates, shouldShowLocal } = useCurrency();
@@ -72,6 +73,13 @@ const SignalModal = ({
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  // 1b. ROUTING FIX: sinkronkan tab aktif dari URL (?tab=...) — penting untuk
+  // kasus di mana signal-nya SAMA (tidak remount) tapi user pencet tombol
+  // back/forward browser dan hanya parameter `tab` yang berubah.
+  useEffect(() => {
+    if (isOpen) setActiveTab(initialTab);
+  }, [initialTab, isOpen]);
 
   // Fetch X tweet URL for this signal (TP2+ posts only); hides IG button if none.
   useEffect(() => {
@@ -1506,7 +1514,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     ].map(({ id, label, icon }) => (
                       <button
                         key={id}
-                        onClick={() => setActiveTab(id)}
+                        onClick={() => { setActiveTab(id); onTabChange && onTabChange(id); }}
                         className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-semibold transition-all whitespace-nowrap ${activeTab === id ? "bg-gold-primary text-black" : "text-text-secondary hover:text-white hover:bg-white/5"}`}
                       >
                         {icon}
