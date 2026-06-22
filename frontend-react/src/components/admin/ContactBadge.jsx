@@ -223,12 +223,14 @@ function _buildReachFromUser(u) {
   if (!u) return { telegram: {}, discord: {}, email: {} };
 
   let tg = { available: false, value: null, deep_link: null, source: null };
-  if (u.admin_telegram_username) {
-    const v = u.admin_telegram_username.replace(/^@/, '').trim();
-    if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: 'admin' };
-  } else if (u.telegram_username) {
+  // Real OAuth username (refreshed on each login) is the source of truth.
+  // Admin-entered handle is only a fallback when there's no real username.
+  if (u.telegram_username) {
     const v = u.telegram_username.replace(/^@/, '').trim();
     if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: 'oauth' };
+  } else if (u.admin_telegram_username) {
+    const v = u.admin_telegram_username.replace(/^@/, '').trim();
+    if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: 'admin' };
   }
 
   let dc = { available: false, value: null, deep_link: null, source: null };

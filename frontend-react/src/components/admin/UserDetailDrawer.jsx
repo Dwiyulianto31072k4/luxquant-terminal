@@ -848,7 +848,7 @@ const ContactTab = ({ data, onContactUpdate }) => {
                 style={{ color: '#d4a853' }}
               >
                 <TelegramIcon size={11} colored />
-                Telegram Username
+                Admin Telegram Note
               </label>
               <input
                 type="text"
@@ -863,10 +863,16 @@ const ContactTab = ({ data, onContactUpdate }) => {
               />
               {user.telegram_username && (
                 <p
-                  className="text-[9px] mt-1"
-                  style={{ color: '#6b5c52' }}
+                  className="text-[10px] mt-1 flex items-center gap-1"
+                  style={{ color: '#34d399' }}
                 >
-                  OAuth value: @{user.telegram_username}
+                  <span style={{ color: '#6b5c52' }}>Real username (from login):</span>
+                  <strong>@{user.telegram_username}</strong>
+                </p>
+              )}
+              {!user.telegram_username && (
+                <p className="text-[9px] mt-1" style={{ color: '#6b5c52' }}>
+                  No login-linked Telegram yet — admin note used as fallback.
                 </p>
               )}
             </div>
