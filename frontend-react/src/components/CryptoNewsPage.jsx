@@ -19,7 +19,7 @@ import Modal from "./ui/Modal";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
 // Brand assets (in /public — referenced by absolute path)
 const LUXQUANT_LOGO = "/logo.png";
@@ -1019,26 +1019,39 @@ const LoadingSkeleton = () => (
         <div className="h-3 w-2/3 bg-white/5 rounded" />
       </div>
     </div>
-    {/* Secondary skeleton (4-up) */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
-          <div className="aspect-[16/10] bg-white/5" />
-          <div className="p-3 space-y-1.5">
-            <div className="h-2.5 bg-white/5 rounded w-3/4" />
-            <div className="h-2 bg-white/5 rounded w-1/2" />
+    {/* Desktop skeleton: secondary 4-up + more cards */}
+    <div className="hidden lg:block space-y-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+            <div className="aspect-[16/10] bg-white/5" />
+            <div className="p-3 space-y-1.5">
+              <div className="h-2.5 bg-white/5 rounded w-3/4" />
+              <div className="h-2 bg-white/5 rounded w-1/2" />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="grow basis-[320px] max-w-[700px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+            <div className="aspect-[16/10] bg-white/5" />
+            <div className="p-3 space-y-1.5">
+              <div className="h-2.5 bg-white/5 rounded w-3/4" />
+              <div className="h-2 bg-white/5 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-    {/* More stories skeleton (flex-justified) */}
-    <div className="flex flex-wrap gap-3">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className="grow basis-[300px] sm:basis-[340px] xl:basis-[360px] max-w-[820px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
-          <div className="aspect-[16/10] bg-white/5" />
-          <div className="p-3 space-y-1.5">
-            <div className="h-2.5 bg-white/5 rounded w-3/4" />
-            <div className="h-2 bg-white/5 rounded w-1/2" />
+    {/* Mobile skeleton: compact rows */}
+    <div className="flex flex-col gap-2 lg:hidden">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="flex gap-3 p-2.5 animate-pulse">
+          <div className="w-[72px] h-[72px] rounded-md bg-white/5 flex-shrink-0" />
+          <div className="flex-1 space-y-2 py-2">
+            <div className="h-2.5 bg-white/5 rounded w-5/6" />
+            <div className="h-2 bg-white/5 rounded w-1/3" />
           </div>
         </div>
       ))}
@@ -1585,41 +1598,46 @@ const CryptoNewsPage = () => {
               </span>
             </div>
 
-            {/* LEAD HERO */}
+            {/* LEAD HERO — the only big element on mobile */}
             {lead && <LeadCard item={lead} onSelect={openArticle} />}
 
-            {/* SECONDARY — top-stories tier (4 cards, steps down from lead) */}
-            {secondary.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {secondary.map((it) => (
-                  <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
-                ))}
-              </div>
-            )}
-
-            {/* MORE STORIES — uniform image-card grid (replaces thin list rows) */}
-            {listItems.length > 0 && (
-              <div className="space-y-3 pt-2">
-                {lead && (
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-3 rounded-full bg-gold-primary/70" />
-                    <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
-                      More Stories
-                    </h3>
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {listItems.map((it) => (
-                    <div
-                      key={it.id}
-                      className="grow basis-[300px] sm:basis-[340px] xl:basis-[360px] max-w-[820px]"
-                    >
-                      <SecondaryCard item={it} onSelect={openArticle} />
-                    </div>
+            {/* ── DESKTOP (lg+): secondary 4-up + More Stories filled card grid ── */}
+            <div className="hidden lg:block space-y-4">
+              {secondary.length > 0 && (
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                  {secondary.map((it) => (
+                    <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+
+              {listItems.length > 0 && (
+                <div className="space-y-3 pt-1">
+                  {lead && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-1 h-3 rounded-full bg-gold-primary/70" />
+                      <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
+                        More Stories
+                      </h3>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-3">
+                    {listItems.map((it) => (
+                      <div key={it.id} className="grow basis-[320px] max-w-[700px]">
+                        <SecondaryCard item={it} onSelect={openArticle} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── MOBILE (<lg): only the lead is big; everything else = compact rows ── */}
+            <div className="flex flex-col lg:hidden">
+              {[...secondary, ...listItems].map((it) => (
+                <ListRow key={it.id} item={it} onSelect={openArticle} />
+              ))}
+            </div>
 
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>
