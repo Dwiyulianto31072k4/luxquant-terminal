@@ -2147,10 +2147,16 @@ const CoinChartModal = ({ pair, onClose }) => {
           <MetricLS ratio={metrics.ratio} />
         </div>
 
-        {/* Region-block fallback note */}
-        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] bg-white/[0.01] flex-shrink-0 relative z-10">
-          <p className="text-[9px] font-mono text-text-muted/45 leading-relaxed text-center sm:text-left">
-            Metrics above are pulled from Binance/Bybit. If they show "—", the data may be blocked in your region — try enabling a VPN and reopening.
+        {/* Region-block fallback note — glowing VPN hint */}
+        <div className="px-4 sm:px-5 py-2 border-t border-gold-primary/[0.07] bg-gradient-to-r from-gold-primary/[0.05] via-transparent to-transparent flex-shrink-0 relative z-10 overflow-hidden">
+          <p className="mp-vpn-hint text-[9px] font-mono leading-relaxed flex items-center justify-center sm:justify-start gap-1.5">
+            <svg className="mp-vpn-ico h-3 w-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <span className="text-center sm:text-left">
+              Metrics above are pulled from Binance/Bybit. If they show "—", the data may be blocked in your region — <span className="mp-vpn-key">try enabling a VPN and reopening</span>.
+            </span>
           </p>
         </div>
 
@@ -2310,6 +2316,26 @@ const MetricLS = ({ ratio }) => {
 
 const PulseStyles = () => (
   <style>{`
+
+    @keyframes mp-hint-glow {
+      0%, 100% { opacity: 0.7;  text-shadow: 0 0 4px rgba(212,168,83,0.12); }
+      50%      { opacity: 1;    text-shadow: 0 0 9px rgba(212,168,83,0.38), 0 0 16px rgba(212,168,83,0.18); }
+    }
+    @keyframes mp-hint-key-glow {
+      0%, 100% { text-shadow: 0 0 5px rgba(212,168,83,0.45); }
+      50%      { text-shadow: 0 0 11px rgba(243,210,138,0.95), 0 0 20px rgba(212,168,83,0.55); }
+    }
+    @keyframes mp-hint-ico {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(212,168,83,0.3)); transform: scale(1); }
+      50%      { filter: drop-shadow(0 0 6px rgba(212,168,83,0.75)); transform: scale(1.1); }
+    }
+    .mp-vpn-hint { color: rgba(212,168,83,0.62); animation: mp-hint-glow 3s ease-in-out infinite; }
+    .mp-vpn-hint .mp-vpn-key { color: #f3d28a; font-weight: 600; animation: mp-hint-key-glow 3s ease-in-out infinite; }
+    .mp-vpn-hint .mp-vpn-ico { color: #e8c073; animation: mp-hint-ico 3s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .mp-vpn-hint, .mp-vpn-hint .mp-vpn-key, .mp-vpn-hint .mp-vpn-ico { animation: none; }
+    }
+
     @keyframes pulse-tape-scroll {
       0% { transform: translateX(0); }
       100% { transform: translateX(-50%); }
