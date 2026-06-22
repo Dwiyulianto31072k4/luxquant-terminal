@@ -48,4 +48,23 @@ export const notificationApi = {
     const response = await api.post('/api/v1/notifications/broadcast', { title, body, type });
     return response.data;
   },
+
+  // ── Preferences (Layer 2) ──
+
+  // Get notification preferences (per-type in_app/telegram + telegram_linked flag)
+  getPreferences: async () => {
+    const response = await api.get('/api/v1/notifications/preferences');
+    return response.data;
+  },
+
+  // Update one preference. Throws with detail 'LINK_TELEGRAM_REQUIRED'
+  // if telegram=true but account not linked.
+  updatePreference: async (type, inApp, telegram) => {
+    const response = await api.put('/api/v1/notifications/preferences', {
+      type,
+      in_app: inApp,
+      telegram,
+    });
+    return response.data;
+  },
 };

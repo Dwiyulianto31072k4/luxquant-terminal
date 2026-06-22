@@ -61,7 +61,13 @@ def _get_read_cutoff(db: Session, user_id: int) -> datetime:
 
 # SQL constants
 
-SQL_VISIBLE = "(n.user_id = :uid OR n.user_id IS NULL)"
+SQL_VISIBLE = (
+    "(n.user_id = :uid OR n.user_id IS NULL) "
+    "AND NOT EXISTS ("
+    "  SELECT 1 FROM notification_preferences np "
+    "  WHERE np.user_id = :uid AND np.notif_type = n.type AND np.in_app = false"
+    ")"
+)
 
 SQL_UNREAD = (
     "n.created_at > :read_at "
