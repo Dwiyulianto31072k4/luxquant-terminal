@@ -17,6 +17,7 @@ import {
   PlusIcon,
   MinusIcon,
   BanIcon,
+  SendIcon,
   CheckCircleIcon,
   UsersIcon,
 } from '../Icons';
@@ -133,6 +134,9 @@ const RowActionButton = ({ Icon, tone, title, onClick }) => (
 const RowActions = ({ user, onView, onGrant, onRevoke, onToggleActive, onSendMessage }) => (
   <div className="flex items-center justify-end gap-1">
     <RowActionButton Icon={EyeIcon} tone={palette.blue[400]} title="View Details" onClick={onView} />
+    {user.telegram_id && onSendMessage && (
+      <RowActionButton Icon={SendIcon} tone={palette.teal[400]} title="Send message via bot" onClick={onSendMessage} />
+    )}
     {user.role !== 'admin' && (
       <>
         <RowActionButton
