@@ -1291,12 +1291,6 @@ const CryptoNewsPage = () => {
     return itemsWithCategory.filter((item) => item._category === activeCategory);
   }, [itemsWithCategory, activeCategory]);
 
-  // Pulse ticker: 12 latest non-photo (page 1, no search)
-  const pulseItems = useMemo(() => {
-    if (page !== 1 || searchQuery) return [];
-    return allItems.filter((i) => i.content_type !== "photo").slice(0, 12);
-  }, [allItems, page, searchQuery]);
-
   // Editorial hierarchy is used only on the unfiltered main feed (page 1)
   const heroEnabled =
     page === 1 && !searchQuery && !activeCategory && activeFilter === "all";
@@ -1306,23 +1300,24 @@ const CryptoNewsPage = () => {
     if (!heroEnabled || filteredItems.length === 0) {
       return { lead: null, secondary: [], listItems: filteredItems };
     }
+    const SECONDARY_COUNT = 4; // lead + 4 = 5 top stories
     const used = new Set();
     const leadItem = filteredItems.find(hasVisual) || filteredItems[0];
     if (leadItem) used.add(leadItem.id);
 
     const sec = [];
     for (const it of filteredItems) {
-      if (sec.length >= 2) break;
+      if (sec.length >= SECONDARY_COUNT) break;
       if (used.has(it.id)) continue;
       if (hasVisual(it)) {
         sec.push(it);
         used.add(it.id);
       }
     }
-    // backfill if fewer than 2 visual items available
-    if (sec.length < 2) {
+    // backfill if fewer than SECONDARY_COUNT visual items available
+    if (sec.length < SECONDARY_COUNT) {
       for (const it of filteredItems) {
-        if (sec.length >= 2) break;
+        if (sec.length >= SECONDARY_COUNT) break;
         if (!used.has(it.id)) {
           sec.push(it);
           used.add(it.id);
@@ -1359,9 +1354,6 @@ const CryptoNewsPage = () => {
           Crypto News
         </h1>
       </header>
-
-      {/* PULSE TICKER */}
-      {pulseItems.length > 0 && <PulseTicker items={pulseItems} onSelect={openArticle} />}
 
       {/* FILTERS */}
       <FilterBar
@@ -1417,30 +1409,33 @@ const CryptoNewsPage = () => {
             {/* LEAD HERO */}
             {lead && <LeadCard item={lead} onSelect={openArticle} />}
 
-            {/* SECONDARY (desktop only — 2-up) */}
+            {/* SECONDARY — top-stories tier (4 cards, steps down from lead) */}
             {secondary.length > 0 && (
-              <div className="hidden lg:grid lg:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 {secondary.map((it) => (
                   <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
             )}
 
-            {/* LIST — desktop (long tail, excludes secondary) */}
+            {/* MORE STORIES — uniform image-card grid (replaces thin list rows) */}
             {listItems.length > 0 && (
-              <div className="hidden lg:flex lg:flex-col">
-                {listItems.map((it) => (
-                  <ListRow key={it.id} item={it} onSelect={openArticle} />
-                ))}
+              <div className="space-y-3 pt-2">
+                {lead && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-3 rounded-full bg-gold-primary/70" />
+                    <h3 className="text-[10px] font-mono uppercase tracking-[0.25em] text-text-muted">
+                      More Stories
+                    </h3>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {listItems.map((it) => (
+                    <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+                  ))}
+                </div>
               </div>
             )}
-
-            {/* LIST — mobile (secondary folded in as rows; BTC-news style) */}
-            <div className="flex flex-col lg:hidden">
-              {[...secondary, ...listItems].map((it) => (
-                <ListRow key={it.id} item={it} onSelect={openArticle} />
-              ))}
-            </div>
 
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
           </div>
