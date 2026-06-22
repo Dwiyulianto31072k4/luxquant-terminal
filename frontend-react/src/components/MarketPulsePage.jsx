@@ -2147,6 +2147,13 @@ const CoinChartModal = ({ pair, onClose }) => {
           <MetricLS ratio={metrics.ratio} />
         </div>
 
+        {/* Region-block fallback note */}
+        <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] bg-white/[0.01] flex-shrink-0 relative z-10">
+          <p className="text-[9px] font-mono text-text-muted/45 leading-relaxed text-center sm:text-left">
+            Metrics above are pulled from Binance/Bybit. If they show "—", the data may be blocked in your region — try enabling a VPN and reopening.
+          </p>
+        </div>
+
         <div className="px-4 sm:px-5 py-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/40 bg-white/[0.01] flex-shrink-0 relative z-10">
           <span className="uppercase tracking-[0.15em]">
             Chart · TradingView · Metrics · Binance Futures
