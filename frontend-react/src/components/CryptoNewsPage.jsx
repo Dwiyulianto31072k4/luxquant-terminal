@@ -717,12 +717,12 @@ const ListRow = ({ item, onSelect }) => {
 // 6. SIDEBAR — Trending, Sources, Activity
 // ════════════════════════════════════════════
 
-const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
+const TrendingSidebar = ({ trending, stats, onSearchTopic, horizontal = false }) => {
   const topDomains = stats?.top_domains?.slice(0, 6) || [];
   const maxDC = topDomains.length > 0 ? topDomains[0].count : 1;
 
   return (
-    <div className="space-y-3">
+    <div className={horizontal ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" : "space-y-3"}>
       {trending?.trending?.length > 0 && (
         <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4 relative overflow-hidden">
           <div
@@ -862,6 +862,88 @@ const TrendingSidebar = ({ trending, stats, onSearchTopic }) => {
 };
 
 // ════════════════════════════════════════════
+// 6b. COLLAPSIBLE INSIGHTS — Trending/Sources/Activity below search
+//     Progressive disclosure: default collapsed, state persisted.
+// ════════════════════════════════════════════
+
+const INSIGHTS_KEY = "luxquant.news.insightsOpen";
+
+const CollapsibleInsights = ({ trending, stats, onSearchTopic }) => {
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(INSIGHTS_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(INSIGHTS_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const trendCount = trending?.trending?.length || 0;
+  const srcCount = stats?.top_domains?.length || 0;
+
+  return (
+    <div
+      className="rounded-2xl border border-white/[0.06] overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, rgba(255,255,255,0.008) 100%)",
+      }}
+    >
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between px-3 sm:px-4 py-3 group"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-1 h-3.5 rounded-full bg-gold-primary flex-shrink-0" />
+          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-white/85 group-hover:text-white transition-colors">
+            Market Insights
+          </span>
+          <span className="hidden sm:inline text-[9px] font-mono text-text-muted/70 truncate">
+            {trendCount} trending · {srcCount} sources · {stats?.total ?? 0} stories
+          </span>
+        </div>
+        <span className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/60 group-hover:text-text-muted transition-colors">
+            {open ? "Hide" : "Show"}
+          </span>
+          <svg
+            className={`w-4 h-4 text-text-muted transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-3 sm:px-4 pb-4 pt-2 border-t border-white/[0.04]">
+          <TrendingSidebar
+            trending={trending}
+            stats={stats}
+            onSearchTopic={onSearchTopic}
+            horizontal
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════
 // 7. PAGINATION
 // ════════════════════════════════════════════
 
@@ -926,46 +1008,41 @@ const Pagination = ({ page, totalPages, onChange }) => {
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
-  <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-    <div className="flex-1 min-w-0 space-y-4">
-      {/* Lead skeleton */}
-      <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse flex flex-col lg:flex-row lg:min-h-[230px]">
-        <div className="w-full lg:w-[44%] aspect-[16/10] lg:aspect-auto bg-white/5" />
-        <div className="flex-1 p-5 space-y-3">
-          <div className="h-2.5 w-20 bg-white/5 rounded" />
-          <div className="h-5 w-5/6 bg-white/5 rounded" />
-          <div className="h-3 w-full bg-white/5 rounded" />
-          <div className="h-3 w-2/3 bg-white/5 rounded" />
-        </div>
-      </div>
-      {/* Secondary skeleton */}
-      <div className="hidden lg:grid lg:grid-cols-2 gap-3">
-        {[...Array(2)].map((_, i) => (
-          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
-            <div className="aspect-[16/10] bg-white/5" />
-            <div className="p-3 space-y-1.5">
-              <div className="h-2.5 bg-white/5 rounded w-3/4" />
-              <div className="h-2 bg-white/5 rounded w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* Rows skeleton */}
-      <div className="space-y-1">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="flex gap-3 p-2.5 animate-pulse">
-            <div className="w-[72px] h-[72px] rounded-md bg-white/5 flex-shrink-0" />
-            <div className="flex-1 space-y-2 py-2">
-              <div className="h-2.5 bg-white/5 rounded w-5/6" />
-              <div className="h-2 bg-white/5 rounded w-1/3" />
-            </div>
-          </div>
-        ))}
+  <div className="space-y-4">
+    {/* Lead skeleton */}
+    <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse flex flex-col lg:flex-row lg:min-h-[230px]">
+      <div className="w-full lg:w-[44%] aspect-[16/10] lg:aspect-auto bg-white/5" />
+      <div className="flex-1 p-5 space-y-3">
+        <div className="h-2.5 w-20 bg-white/5 rounded" />
+        <div className="h-5 w-5/6 bg-white/5 rounded" />
+        <div className="h-3 w-full bg-white/5 rounded" />
+        <div className="h-3 w-2/3 bg-white/5 rounded" />
       </div>
     </div>
-    <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
-      <div className="rounded-xl bg-white/[0.02] border border-white/5 h-52 animate-pulse" />
-    </aside>
+    {/* Secondary skeleton (4-up) */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+          <div className="aspect-[16/10] bg-white/5" />
+          <div className="p-3 space-y-1.5">
+            <div className="h-2.5 bg-white/5 rounded w-3/4" />
+            <div className="h-2 bg-white/5 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+    {/* More stories skeleton (card grid) */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+          <div className="aspect-[16/10] bg-white/5" />
+          <div className="p-3 space-y-1.5">
+            <div className="h-2.5 bg-white/5 rounded w-3/4" />
+            <div className="h-2 bg-white/5 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -1368,6 +1445,13 @@ const CryptoNewsPage = () => {
         stats={stats}
       />
 
+      {/* MARKET INSIGHTS — collapsible (Trending / Sources / Activity) */}
+      <CollapsibleInsights
+        trending={trending}
+        stats={stats}
+        onSearchTopic={handleSearchTopic}
+      />
+
       {/* CONTENT */}
       {loading ? (
         <LoadingSkeleton />
@@ -1391,8 +1475,7 @@ const CryptoNewsPage = () => {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-5">
-          <div className="flex-1 min-w-0 space-y-4">
+        <div className="space-y-4">
             {/* Section label */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1411,7 +1494,7 @@ const CryptoNewsPage = () => {
 
             {/* SECONDARY — top-stories tier (4 cards, steps down from lead) */}
             {secondary.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {secondary.map((it) => (
                   <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                 ))}
@@ -1429,7 +1512,7 @@ const CryptoNewsPage = () => {
                     </h3>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {listItems.map((it) => (
                     <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                   ))}
@@ -1438,18 +1521,6 @@ const CryptoNewsPage = () => {
             )}
 
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
-          </div>
-
-          {/* SIDEBAR */}
-          <aside className="w-full lg:w-72 xl:w-80 flex-shrink-0">
-            <div className="lg:sticky lg:top-20">
-              <TrendingSidebar
-                trending={trending}
-                stats={stats}
-                onSearchTopic={handleSearchTopic}
-              />
-            </div>
-          </aside>
         </div>
       )}
     </div>
