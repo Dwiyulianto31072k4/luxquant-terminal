@@ -1031,10 +1031,10 @@ const LoadingSkeleton = () => (
         </div>
       ))}
     </div>
-    {/* More stories skeleton (card grid) */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+    {/* More stories skeleton (flex-justified) */}
+    <div className="flex flex-wrap gap-3">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+        <div key={i} className="grow basis-[300px] sm:basis-[340px] xl:basis-[360px] max-w-[820px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
           <div className="aspect-[16/10] bg-white/5" />
           <div className="p-3 space-y-1.5">
             <div className="h-2.5 bg-white/5 rounded w-3/4" />
@@ -1047,54 +1047,156 @@ const LoadingSkeleton = () => (
 );
 
 // ════════════════════════════════════════════
-// 9. FILTER BAR — search + type + category (high-contrast chips)
+// 9. FILTER BAR — search + type + category (solid chips, SVG icons)
 // ════════════════════════════════════════════
 
-const FilterChip = ({ active, onClick, children, color }) => {
-  const baseClass =
-    "inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-200 whitespace-nowrap";
-  if (active && color) {
+const GOLD = "#d4a853";
+
+// Choose readable text color (near-black / white) against a solid fill
+const pickTextColor = (hex) => {
+  const h = (hex || GOLD).replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? "#0c0a08" : "#ffffff";
+};
+
+// Monochrome SVG icon set. Generic categories = stroke icons (nav-style),
+// brand marks (BTC/ETH) = accurate filled logos from simple-icons.
+const Icon = ({ name, className = "w-3.5 h-3.5", style }) => {
+  const s = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+  const fillProps = { fill: "currentColor" };
+  switch (name) {
+    case "all":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <rect x="3" y="3" width="8" height="8" rx="2" />
+          <rect x="13" y="3" width="8" height="8" rx="2" />
+          <rect x="3" y="13" width="8" height="8" rx="2" />
+          <rect x="13" y="13" width="8" height="8" rx="2" />
+        </svg>
+      );
+    case "article":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M4 5h13v14H6a2 2 0 0 1-2-2V5Z" />
+          <path d="M17 8h3v9a2 2 0 0 1-2 2" />
+          <path d="M7 8.5h7M7 12h7M7 15.5h4" />
+        </svg>
+      );
+    case "photo":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="8.5" cy="9" r="1.5" />
+          <path d="M21 16l-5-5L5 20" />
+        </svg>
+      );
+    case "headline":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M3 11v2a1 1 0 0 0 1 1h2l9 5V5L6 10H4a1 1 0 0 0-1 1Z" />
+          <path d="M17.5 9a3 3 0 0 1 0 6" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M12 3l1.9 5.6L19.5 10l-5.6 1.4L12 17l-1.9-5.6L4.5 10l5.6-1.4L12 3Z" />
+        </svg>
+      );
+    case "bitcoin":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...fillProps}>
+          <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z" />
+        </svg>
+      );
+    case "ethereum":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...fillProps}>
+          <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
+        </svg>
+      );
+    case "altcoins":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <circle cx="9" cy="9" r="5.5" />
+          <path d="M14.4 6.2A5.5 5.5 0 1 1 16.2 17" />
+        </svg>
+      );
+    case "macro":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M3 21h18M5 10l7-5 7 5M5 10h14M6 10v8M10 10v8M14 10v8M18 10v8" />
+        </svg>
+      );
+    case "defi":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4L12 2.5Z" />
+          <path d="M12 7.5l4 2.3v4.4L12 16.5l-4-2.3V9.8L12 7.5Z" />
+        </svg>
+      );
+    case "listings":
+      return (
+        <svg viewBox="0 0 24 24" className={className} style={style} {...s}>
+          <path d="M11 3H4a1 1 0 0 0-1 1v7l9.5 9.5a1 1 0 0 0 1.4 0l6.6-6.6a1 1 0 0 0 0-1.4L11 3Z" />
+          <circle cx="7.2" cy="7.2" r="1.3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const FilterChip = ({ active, onClick, children, color, icon }) => {
+  const accent = color || GOLD;
+  const base =
+    "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-mono uppercase tracking-[0.08em] transition-all duration-150 whitespace-nowrap border";
+
+  if (active) {
+    const txt = pickTextColor(accent);
     return (
       <button
         onClick={onClick}
-        className={baseClass}
+        className={`${base} font-semibold`}
         style={{
-          background: `${color}18`,
-          color,
-          border: `1px solid ${color}40`,
-          boxShadow: `inset 0 0 0 1px ${color}08`,
+          background: accent,
+          color: txt,
+          borderColor: accent,
+          boxShadow: `0 2px 12px ${accent}55`,
         }}
       >
+        {icon && <Icon name={icon} />}
         {children}
       </button>
     );
   }
+
   return (
     <button
       onClick={onClick}
-      className={`${baseClass} ${
-        active
-          ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-          : "bg-white/[0.05] text-white/80 border border-white/[0.13] hover:bg-white/[0.08] hover:text-white hover:border-white/25"
-      }`}
+      className={`${base} bg-[#17130d] border-white/[0.08] text-white/65 hover:text-white hover:border-white/20 hover:bg-[#211a11]`}
     >
+      {icon && <Icon name={icon} style={{ color: accent }} className="w-3.5 h-3.5 opacity-90" />}
       {children}
     </button>
   );
 };
 
-const ChipCount = ({ value, active, color }) => {
+const ChipCount = ({ value, active }) => {
   if (value === undefined || value === null) return null;
   return (
     <span
-      className="text-[9px] font-mono tabular-nums px-1.5 py-px rounded ml-0.5"
-      style={{
-        background: active
-          ? color
-            ? `${color}25`
-            : "rgba(212, 168, 83, 0.2)"
-          : "rgba(255,255,255,0.1)",
-      }}
+      className="text-[9px] font-mono font-semibold tabular-nums px-1.5 py-px rounded ml-0.5"
+      style={{ background: active ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.08)" }}
     >
       {value}
     </span>
@@ -1113,10 +1215,10 @@ const FilterBar = ({
   stats,
 }) => {
   const typeOptions = [
-    { k: "all", label: "All", count: stats?.total },
-    { k: "article", label: "Articles", count: stats?.articles },
-    { k: "photo", label: "Photos", count: stats?.photos },
-    { k: "headline", label: "Headlines", count: stats?.headlines },
+    { k: "all", label: "All", count: stats?.total, icon: "all" },
+    { k: "article", label: "Articles", count: stats?.articles, icon: "article" },
+    { k: "photo", label: "Photos", count: stats?.photos, icon: "photo" },
+    { k: "headline", label: "Headlines", count: stats?.headlines, icon: "headline" },
   ];
 
   return (
@@ -1172,7 +1274,7 @@ const FilterBar = ({
         {typeOptions.map((f) => {
           const isActive = activeFilter === f.k;
           return (
-            <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)}>
+            <FilterChip key={f.k} active={isActive} onClick={() => onFilterChange(f.k)} icon={f.icon}>
               {f.label}
               <ChipCount value={f.count} active={isActive} />
             </FilterChip>
@@ -1181,9 +1283,8 @@ const FilterBar = ({
 
         <span className="h-5 w-px mx-1.5 bg-white/[0.08]" aria-hidden="true" />
 
-        <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)}>
-          <span className="opacity-60">◆</span>
-          <span>All</span>
+        <FilterChip active={!activeCategory} onClick={() => onCategoryChange(null)} icon="sparkles">
+          All
         </FilterChip>
 
         {CATEGORY_RULES.map((cat) => {
@@ -1193,17 +1294,12 @@ const FilterBar = ({
             <FilterChip
               key={cat.key}
               active={isActive}
-              color={isActive ? cat.color : undefined}
+              color={cat.color}
+              icon={cat.key}
               onClick={() => onCategoryChange(isActive ? null : cat.key)}
             >
-              <span
-                className="leading-none text-[13px]"
-                style={{ color: isActive ? cat.color : undefined, opacity: isActive ? 1 : 0.7 }}
-              >
-                {cat.icon}
-              </span>
-              <span>{cat.label}</span>
-              <ChipCount value={count} active={isActive} color={isActive ? cat.color : undefined} />
+              {cat.label}
+              <ChipCount value={count} active={isActive} />
             </FilterChip>
           );
         })}
@@ -1512,9 +1608,14 @@ const CryptoNewsPage = () => {
                     </h3>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="flex flex-wrap gap-3">
                   {listItems.map((it) => (
-                    <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
+                    <div
+                      key={it.id}
+                      className="grow basis-[300px] sm:basis-[340px] xl:basis-[360px] max-w-[820px]"
+                    >
+                      <SecondaryCard item={it} onSelect={openArticle} />
+                    </div>
                   ))}
                 </div>
               </div>
