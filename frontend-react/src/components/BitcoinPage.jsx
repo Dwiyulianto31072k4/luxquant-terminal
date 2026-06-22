@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import NewsPreviewModal from "./NewsPreviewModal";
 
 const API_BASE = "/api/v1";
@@ -26,8 +27,27 @@ const BitcoinPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newsPage, setNewsPage] = useState(0);
-  const [selectedArticle, setSelectedArticle] = useState(null);
   const NEWS_PER_PAGE = 12;
+
+  // Modal berita URL-driven: ?news=<index dalam news.articles>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedNewsIdx = searchParams.get("news");
+
+  const openArticle = useCallback((idx) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("news", String(idx));
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const closeArticle = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("news");
+      return next;
+    });
+  }, [setSearchParams]);
 
   useEffect(() => {
     fetchAll();
@@ -92,6 +112,12 @@ const BitcoinPage = () => {
   const supplyPct =
     data.maxSupply > 0 ? (data.circulatingSupply / data.maxSupply) * 100 : 0;
   const { technical, network, onchain, news } = extra;
+
+  const selectedArticle = useMemo(() => {
+    if (selectedNewsIdx == null) return null;
+    const i = Number(selectedNewsIdx);
+    return news?.articles?.[i] ?? null;
+  }, [selectedNewsIdx, news]);
 
   return (
     <div className="space-y-5">
@@ -791,7 +817,7 @@ const BitcoinPage = () => {
                     {news.articles.slice(0, 2).map((a, i) => (
                       <div
                         key={i}
-                        onClick={() => setSelectedArticle(a)}
+                        onClick={() => openArticle(i)}
                         className="group cursor-pointer"
                       >
                         <div className="bg-[#120809] rounded-md overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
@@ -837,7 +863,7 @@ const BitcoinPage = () => {
                   {pagedArticles.map((a, i) => (
                     <div
                       key={i}
-                      onClick={() => setSelectedArticle(a)}
+                      onClick={() => openArticle(2 + newsPage * NEWS_PER_PAGE + i)}
                       className="group cursor-pointer"
                     >
                       <div className="flex gap-3 bg-[#120809] rounded-sm overflow-hidden border border-white/[0.04] hover:border-gold-primary/25 transition-all duration-200 h-full">
@@ -926,7 +952,7 @@ const BitcoinPage = () => {
       {selectedArticle && (
         <NewsPreviewModal
           article={selectedArticle}
-          onClose={() => setSelectedArticle(null)}
+          onClose={closeArticle}
         />
       )}
     </div>

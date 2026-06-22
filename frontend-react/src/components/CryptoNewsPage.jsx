@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { GoldButton, GhostButton } from "./autotrade/AutoTradeUI";
 import Modal from "./ui/Modal";
 import api from "../services/authApi";
+import { useSearchParams } from "react-router-dom";
 
 const PAGE_SIZE = 30;
 
@@ -1145,7 +1146,11 @@ const CryptoNewsPage = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [selectedItem, setSelectedItem] = useState(null);
+
+  // Modal artikel URL-driven: ?article=<id>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedArticleId = searchParams.get("article");
+  const articleCacheRef = useRef(new Map());
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeCategory, setActiveCategory] = useState(null);
@@ -1198,6 +1203,43 @@ const CryptoNewsPage = () => {
     }, 60000);
     return () => clearInterval(iv);
   }, [activeFilter, searchQuery, page, fetchFeed, fetchMeta]);
+
+
+  // ── Article modal (URL-driven, dgn cache spy modal ga ilang saat refresh) ──
+  useEffect(() => {
+    for (const it of allItems) {
+      if (it && it.id != null) articleCacheRef.current.set(String(it.id), it);
+    }
+  }, [allItems]);
+
+  const selectedItem = useMemo(() => {
+    if (!selectedArticleId) return null;
+    return (
+      allItems.find((it) => String(it.id) === String(selectedArticleId)) ||
+      articleCacheRef.current.get(String(selectedArticleId)) ||
+      null
+    );
+  }, [selectedArticleId, allItems]);
+
+  const openArticle = useCallback((item) => {
+    if (!item || item.id == null) return;
+    articleCacheRef.current.set(String(item.id), item);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("article", String(item.id));
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const closeArticle = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("article");
+      return next;
+    });
+  }, [setSearchParams]);
+
+  // ── Handlers ───────────────────────────
 
   // ── Handlers ───────────────────────────
   const handleSearchInput = (val) => {
@@ -1302,7 +1344,7 @@ const CryptoNewsPage = () => {
   // ── Render ─────────────────────────────
   return (
     <div className="space-y-5 sm:space-y-6">
-      {selectedItem && <NewsModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
+      {selectedItem && <NewsModal item={selectedItem} onClose={closeArticle} />}
 
       {/* HEADER */}
       <header className="pb-3 border-b border-white/5">
@@ -1319,7 +1361,7 @@ const CryptoNewsPage = () => {
       </header>
 
       {/* PULSE TICKER */}
-      {pulseItems.length > 0 && <PulseTicker items={pulseItems} onSelect={setSelectedItem} />}
+      {pulseItems.length > 0 && <PulseTicker items={pulseItems} onSelect={openArticle} />}
 
       {/* FILTERS */}
       <FilterBar
@@ -1373,13 +1415,13 @@ const CryptoNewsPage = () => {
             </div>
 
             {/* LEAD HERO */}
-            {lead && <LeadCard item={lead} onSelect={setSelectedItem} />}
+            {lead && <LeadCard item={lead} onSelect={openArticle} />}
 
             {/* SECONDARY (desktop only — 2-up) */}
             {secondary.length > 0 && (
               <div className="hidden lg:grid lg:grid-cols-2 gap-3">
                 {secondary.map((it) => (
-                  <SecondaryCard key={it.id} item={it} onSelect={setSelectedItem} />
+                  <SecondaryCard key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
             )}
@@ -1388,7 +1430,7 @@ const CryptoNewsPage = () => {
             {listItems.length > 0 && (
               <div className="hidden lg:flex lg:flex-col">
                 {listItems.map((it) => (
-                  <ListRow key={it.id} item={it} onSelect={setSelectedItem} />
+                  <ListRow key={it.id} item={it} onSelect={openArticle} />
                 ))}
               </div>
             )}
@@ -1396,7 +1438,7 @@ const CryptoNewsPage = () => {
             {/* LIST — mobile (secondary folded in as rows; BTC-news style) */}
             <div className="flex flex-col lg:hidden">
               {[...secondary, ...listItems].map((it) => (
-                <ListRow key={it.id} item={it} onSelect={setSelectedItem} />
+                <ListRow key={it.id} item={it} onSelect={openArticle} />
               ))}
             </div>
 

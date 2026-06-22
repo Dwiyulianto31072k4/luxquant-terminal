@@ -6,6 +6,8 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 
 const API = "/api/v1/onchain";
 const PER_PAGE = 30;
@@ -133,7 +135,16 @@ const OnchainPage = () => {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [tokenFilter, setTokenFilter] = useState("all");
   const [minUsd, setMinUsd] = useState(0);
-  const [selectedAlert, setSelectedAlert] = useState(null);
+
+  // ── Modal alert is URL-driven: ?alert=<id> ──
+  // Sumber kebenaran tunggal lewat query param, jadi tombol back nutup modal
+  // dan link bisa di-share. Objek alert di-cache (lihat effect di bawah) biar
+  // modal yang lagi kebuka nggak ilang pas auto-refresh 60s / ganti filter
+  // ngebangun ulang list feed.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedAlertId = searchParams.get("alert");
+  const alertCacheRef = useRef(new Map());
+
   const refreshRef = useRef(null);
 
   // ── Fetch feed (uses ONLY backend-supported params) ──
@@ -187,6 +198,43 @@ const OnchainPage = () => {
     }, REFRESH_INTERVAL);
     return () => clearInterval(refreshRef.current);
   }, [fetchFeed, fetchStats]);
+
+  // ── Cache setiap alert yang lewat, biar modal yang lagi kebuka nggak hilang
+  //    saat feed di-rebuild (refresh 60s / ganti filter / pindah halaman). ──
+  useEffect(() => {
+    for (const a of alerts) {
+      if (a && a.id != null) alertCacheRef.current.set(String(a.id), a);
+    }
+  }, [alerts]);
+
+  // Alert yang ditampilkan modal, diturunkan dari ?alert=<id>: cari di list
+  // sekarang dulu, fallback ke cache. null kalau ga ketemu (modal nutup).
+  const selectedAlert = useMemo(() => {
+    if (!selectedAlertId) return null;
+    return (
+      alerts.find((a) => String(a.id) === String(selectedAlertId)) ||
+      alertCacheRef.current.get(String(selectedAlertId)) ||
+      null
+    );
+  }, [selectedAlertId, alerts]);
+
+  const openAlert = useCallback((alert) => {
+    if (!alert || alert.id == null) return;
+    alertCacheRef.current.set(String(alert.id), alert);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("alert", String(alert.id));
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const closeAlert = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("alert");
+      return next;
+    });
+  }, [setSearchParams]);
 
   // ── Filter handlers ──
   const handleTypeFilter = (t) => { setAlertType(t); setPage(1); };
@@ -450,7 +498,7 @@ const OnchainPage = () => {
                     key={alert.id}
                     alert={alert}
                     isHighlight={isHighlight(alert)}
-                    onClick={() => setSelectedAlert(alert)}
+                    onClick={() => openAlert(alert)}
                   />
                 ))}
               </div>
@@ -473,7 +521,7 @@ const OnchainPage = () => {
       </div>
 
       {selectedAlert && (
-        <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
+        <AlertModal alert={selectedAlert} onClose={closeAlert} />
       )}
 
       <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-text-muted/50">
@@ -804,7 +852,14 @@ const AlertModal = ({ alert, onClose }) => {
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
-  return (
+  // Kunci scroll background selama modal kebuka (cegah halaman ke-scroll di
+  // belakang modal).
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const modalContent = (
     <div
       className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
       onClick={onClose}
@@ -949,6 +1004,8 @@ const AlertModal = ({ alert, onClose }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 

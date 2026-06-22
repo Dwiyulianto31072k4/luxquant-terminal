@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 import api from "../services/authApi";
+import { useSearchParams } from "react-router-dom";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -140,9 +141,10 @@ const MarketPulsePage = () => {
   const [moverPeriod, setMoverPeriod] = useState("1h");
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  // === Heatmap sort mode + Chart Modal ===
+  // === Heatmap sort mode + Chart Modal (URL-driven: ?pair=BTCUSDT) ===
   const [heatmapSortMode, setHeatmapSortMode] = useState("events");
-  const [chartModalPair, setChartModalPair] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chartModalPair = searchParams.get("pair");
 
   // ═════════ FETCH ═════════ (LOGIC IDENTICAL, transport via `api` instance)
 
@@ -354,7 +356,20 @@ const MarketPulsePage = () => {
   };
 
   const openChartModal = (pair) => {
-    setChartModalPair(pair);
+    if (!pair) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("pair", pair);
+      return next;
+    });
+  };
+
+  const closeChartModal = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("pair");
+      return next;
+    });
   };
 
   const flashMovesPreview = useMemo(() => {
@@ -503,7 +518,7 @@ const MarketPulsePage = () => {
       </div>
 
       {chartModalPair && (
-        <CoinChartModal pair={chartModalPair} onClose={() => setChartModalPair(null)} />
+        <CoinChartModal pair={chartModalPair} onClose={closeChartModal} />
       )}
     </div>
   );
