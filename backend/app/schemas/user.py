@@ -237,6 +237,8 @@ class AdminUserResponse(BaseModel):
     avatar_url: Optional[str] = None
     telegram_id: Optional[int] = None
     telegram_username: Optional[str] = None
+    telegram_in_group: Optional[bool] = False
+    telegram_grace_until: Optional[datetime] = None
     discord_id: Optional[int] = None
     discord_username: Optional[str] = None
     subscription_expires_at: Optional[datetime] = None

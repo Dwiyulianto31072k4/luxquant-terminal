@@ -226,10 +226,10 @@ def _build_placeholders(user: User, db: Session) -> Dict[str, str]:
 def _telegram_deep_link(user: User) -> Optional[str]:
     """Build https://t.me/{username} if reachable."""
     username = None
-    if user.admin_telegram_username:
-        username = user.admin_telegram_username.strip().lstrip("@")
-    elif user.telegram_username:
+    if user.telegram_username:
         username = user.telegram_username.strip().lstrip("@")
+    elif user.admin_telegram_username:
+        username = user.admin_telegram_username.strip().lstrip("@")
     if not username:
         return None
     return f"https://t.me/{username}"
@@ -378,12 +378,12 @@ def get_reach_summary(user: User) -> Dict[str, Any]:
     # Telegram
     tg_source = None
     tg_value = None
-    if user.admin_telegram_username:
-        tg_source = "admin"
-        tg_value = user.admin_telegram_username.strip().lstrip("@")
-    elif user.telegram_username:
+    if user.telegram_username:
         tg_source = "oauth"
         tg_value = user.telegram_username.strip().lstrip("@")
+    elif user.admin_telegram_username:
+        tg_source = "admin"
+        tg_value = user.admin_telegram_username.strip().lstrip("@")
 
     # Discord
     dc_source = None

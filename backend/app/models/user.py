@@ -116,12 +116,14 @@ class User(Base):
 
     @property
     def effective_telegram_username(self):
-        """Telegram handle for outreach. Priority: admin override > oauth."""
-        if self.admin_telegram_username:
-            v = self.admin_telegram_username.strip().lstrip('@')
-            return v or None
+        """Telegram handle for display/contact. Priority: real oauth username > admin note.
+        (Real username refreshes on each login; admin note is only a fallback.)"""
         if self.telegram_username:
-            return self.telegram_username.strip().lstrip('@') or None
+            v = self.telegram_username.strip().lstrip('@')
+            if v:
+                return v
+        if self.admin_telegram_username:
+            return self.admin_telegram_username.strip().lstrip('@') or None
         return None
 
     @property
