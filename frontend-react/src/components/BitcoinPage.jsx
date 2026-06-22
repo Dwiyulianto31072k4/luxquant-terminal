@@ -49,6 +49,11 @@ const BitcoinPage = () => {
     });
   }, [setSearchParams]);
 
+  const selectedArticle = useMemo(() => {
+    if (selectedNewsIdx == null) return null;
+    return extra.news?.articles?.[Number(selectedNewsIdx)] ?? null;
+  }, [selectedNewsIdx, extra.news]);
+
   useEffect(() => {
     fetchAll();
     const i1 = setInterval(fetchAll, 60000);
@@ -112,12 +117,6 @@ const BitcoinPage = () => {
   const supplyPct =
     data.maxSupply > 0 ? (data.circulatingSupply / data.maxSupply) * 100 : 0;
   const { technical, network, onchain, news } = extra;
-
-  const selectedArticle = useMemo(() => {
-    if (selectedNewsIdx == null) return null;
-    const i = Number(selectedNewsIdx);
-    return news?.articles?.[i] ?? null;
-  }, [selectedNewsIdx, news]);
 
   return (
     <div className="space-y-5">
