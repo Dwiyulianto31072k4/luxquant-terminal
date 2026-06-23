@@ -142,14 +142,14 @@ const TelegramNudgeModal = () => {
 
   const benefits = isLink
     ? [
-        t('nudge.link_b1', 'Real-time trade signals delivered to your Telegram'),
-        t('nudge.link_b2', 'Instant alerts for market moves & news'),
-        t('nudge.link_b3', 'Access to the exclusive VIP signal group'),
+        t('nudge.link_b1', 'New signal alerts the moment they fire'),
+        t('nudge.link_b2', 'Market moves, news & important updates'),
+        t('nudge.link_b3', 'Stay in the loop without opening the app'),
       ]
     : [
-        t('nudge.join_b1', 'Live signals the moment they fire'),
+        t('nudge.join_b1', 'Signals & alerts delivered as they happen'),
         t('nudge.join_b2', 'Exclusive analysis & announcements'),
-        t('nudge.join_b3', 'Direct line to the LuxQuant community'),
+        t('nudge.join_b3', 'Stay updated without checking the app'),
       ];
 
   return (
@@ -190,13 +190,13 @@ const TelegramNudgeModal = () => {
           {/* title */}
           <h3 className="text-white text-lg font-semibold leading-snug" style={{ fontFamily: '"Playfair Display", serif' }}>
             {isLink
-              ? t('nudge.link_title', 'Connect Telegram to unlock signals')
-              : t('nudge.join_title', "You're almost there — join the VIP group")}
+              ? t('nudge.link_title', 'Get notified — never miss a move')
+              : t('nudge.join_title', "One step left — join to get notified")}
           </h3>
           <p className="text-text-muted/70 text-xs mt-1.5 leading-relaxed">
             {isLink
-              ? t('nudge.link_sub', 'Link your Telegram account to start receiving real-time alerts.')
-              : t('nudge.join_sub', 'Your access is active. Join the VIP group to start getting signals.')}
+              ? t('nudge.link_sub', 'Link your Telegram to get updates pushed straight to you — no need to keep checking the app.')
+              : t('nudge.join_sub', 'Your access is active. Join the VIP group to get signals and updates pushed to you in real time.')}
           </p>
 
           {/* benefits */}
