@@ -53,6 +53,11 @@ const getTypeToken = (type, data) => {
     coin_called:      { tone: "gold",    label: "CALLED" },
     news:             { tone: "neutral", label: "NEWS" },
     market_pulse:     { tone: "gold",    label: "PULSE" },
+    autotrade_position_closed:      { tone: "neutral", label: "AUTO" },
+    autotrade_execution_failed:     { tone: "danger",  label: "AUTO" },
+    autotrade_risk_limit:           { tone: "gold",    label: "AUTO" },
+    autotrade_rate_limit:           { tone: "gold",    label: "AUTO" },
+    autotrade_position_unprotected: { tone: "danger",  label: "AUTO" },
   };
   return map[type] || { tone: "neutral", label: "INFO" };
 };
@@ -115,6 +120,7 @@ const NotificationsPage = () => {
     { key: "coin_called",      label: t("notifications.type_coin_called") || "Watchlist Calls" },
     { key: "news",             label: t("notifications.type_news") || "News" },
     { key: "market_pulse",     label: t("notifications.type_market_pulse") || "Market Pulse" },
+    { key: "autotrade",        label: "AutoTrade" },
     { key: "sub_expiry",       label: t("notifications.type_sub_expiry") || "Expiry" },
     { key: "admin_broadcast",  label: t("notifications.type_admin_broadcast") || "Broadcast" },
   ];
@@ -186,6 +192,7 @@ const NotificationsPage = () => {
     else if (notif.type === "sub_expiry") navigate("/pricing");
     else if (notif.type === "news") navigate("/news");
     else if (notif.type === "market_pulse") navigate("/pulse");
+    else if (notif.type && notif.type.startsWith("autotrade")) navigate("/autotrade");
   };
 
   // ── Group by date ──
