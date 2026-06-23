@@ -22,11 +22,20 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import api from '../services/authApi';
 
-const MAX_SHOWS = 4;
-const COOLDOWN_DAYS = 3;
 const INITIAL_DELAY_MS = 5000;
-const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 const LS_KEY = 'lq_tg_nudge_v1';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Cooldown grows with how many times we've shown it — gentle reminder that
+// never fully stops, just gets rarer over time.
+//   shows 1-2  -> 3 days
+//   shows 3-4  -> 7 days
+//   shows 5+   -> 30 days (about monthly, forever)
+const cooldownFor = (shows) => {
+  if (shows >= 4) return 30 * DAY_MS;
+  if (shows >= 2) return 7 * DAY_MS;
+  return 3 * DAY_MS;
+};
 
 // ── localStorage helpers (safe — wrapped in try/catch) ──
 const readState = () => {
@@ -46,10 +55,10 @@ const writeState = (next) => {
 };
 
 // Decide whether a given stage is eligible to show right now.
+// Never hard-stops; cooldown just widens as shows accumulate.
 const stageEligible = (state, stage) => {
   const s = state[stage] || { shows: 0, lastDismissed: 0 };
-  if (s.shows >= MAX_SHOWS) return false;
-  if (s.lastDismissed && Date.now() - s.lastDismissed < COOLDOWN_MS) return false;
+  if (s.lastDismissed && Date.now() - s.lastDismissed < cooldownFor(s.shows)) return false;
   return true;
 };
 
