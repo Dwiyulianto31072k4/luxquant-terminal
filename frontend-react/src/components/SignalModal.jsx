@@ -1276,8 +1276,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   )}
                 </div>
                 <div className="flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className={`font-mono font-bold leading-none ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-white"}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className={`font-mono font-bold leading-none truncate ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-white"}`}>
                       {formatPrice(livePrice)}
                     </p>
                     <LocalPriceLine usdtValue={livePrice} size="md" />
@@ -1301,14 +1301,12 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         <div className="lq-card lq-card--gold">
           {goldLine}
           <div className="p-2.5 bg-gradient-to-br from-gold-primary/[0.1] to-gold-primary/[0.02]">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-gold-primary/60 text-[9px] uppercase tracking-[0.14em] font-medium mb-0.5">{t("modal.entry")}</p>
-                <p className={`font-mono font-bold text-gold-primary leading-none ${isCompact ? "text-base" : "text-lg"}`}>{formatPrice(signal?.entry)}</p>
-                <LocalPriceLine usdtValue={signal?.entry} size="md" />
-              </div>
-              <p className="text-[9px] text-gold-primary/55 font-medium flex-shrink-0 ml-2">{formatShortDateTime(signal?.created_at)}</p>
+            <div className="flex items-center justify-between gap-2 mb-0.5">
+              <p className="text-gold-primary/60 text-[9px] uppercase tracking-[0.14em] font-medium">{t("modal.entry")}</p>
+              <p className="text-[9px] text-gold-primary/55 font-medium flex-shrink-0 whitespace-nowrap">{formatShortDateTime(signal?.created_at)}</p>
             </div>
+            <p className={`font-mono font-bold text-gold-primary leading-none truncate ${isCompact ? "text-base" : "text-lg"}`}>{formatPrice(signal?.entry)}</p>
+            <LocalPriceLine usdtValue={signal?.entry} size="md" />
           </div>
         </div>
 
@@ -1328,21 +1326,21 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((tg, i) => (
-              <div key={i} className={`lq-tile p-1.5 ${
+              <div key={i} className={`lq-tile p-2 ${
                 tg.hit
                   ? "bg-green-500/[0.08] border-green-500/25 hover:!border-green-500/55 hover:bg-green-500/[0.14]"
                   : "bg-white/[0.02] hover:bg-white/[0.05]"
               }`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="flex items-center gap-1">
-                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold ${
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="flex items-center gap-1 min-w-0">
+                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold flex-shrink-0 ${
                       tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-white/45"
                     }`}>{tg.hit ? "✓" : i + 1}</span>
-                    <span className={`text-[10px] font-bold ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
+                    <span className={`text-[10px] font-bold truncate ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
                   </span>
-                  <span className={`text-[9px] font-mono font-bold ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
+                  <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
                 </div>
-                <p className={`text-[11px] font-mono leading-none ${tg.hit ? "text-white" : "text-white/55"}`}>{formatPrice(tg.value)}</p>
+                <p className={`text-[11px] font-mono leading-none truncate ${tg.hit ? "text-white" : "text-white/55"}`}>{formatPrice(tg.value)}</p>
                 <LocalPriceLine usdtValue={tg.value} size="sm" />
               </div>
             ))}
@@ -1358,16 +1356,16 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {stops.map((s, i) => (
-                <div key={i} className={`lq-tile p-1.5 ${
+                <div key={i} className={`lq-tile p-2 ${
                   s.hit
                     ? "bg-red-500/[0.08] border-red-500/25 hover:!border-red-500/55 hover:bg-red-500/[0.14]"
                     : "bg-white/[0.02] hover:bg-white/[0.05]"
                 }`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[10px] font-bold ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
-                    <span className={`text-[9px] font-mono font-bold ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-[10px] font-bold truncate ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
+                    <span className={`text-[9px] font-mono font-bold flex-shrink-0 ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
                   </div>
-                  <p className={`text-[11px] font-mono leading-none ${s.hit ? "text-white" : "text-white/55"}`}>{formatPrice(s.value)}</p>
+                  <p className={`text-[11px] font-mono leading-none truncate ${s.hit ? "text-white" : "text-white/55"}`}>{formatPrice(s.value)}</p>
                   <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
@@ -1451,17 +1449,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
           <div className="lq-card bg-[#0c0b09] p-2 space-y-1.5">
             {signal?.volume_rank_num && (
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider flex items-center gap-1.5">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
-                <span className="text-[11px] font-bold text-white font-mono">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider flex items-center gap-1.5 min-w-0">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
+                <span className="text-[11px] font-bold text-white font-mono flex-shrink-0">
                   #{signal.volume_rank_num}<span className="text-white/35 text-[9px] font-normal ml-0.5">/ {signal.volume_rank_den}</span>
                 </span>
               </div>
             )}
             {signal?.risk_level && (
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider">{t("modal.risk_level")}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider min-w-0">{t("modal.risk_level")}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
                   signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-green-500/15 text-green-400" :
                   signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-red-500/15 text-red-400" :
                   "bg-yellow-500/15 text-yellow-400"
@@ -1469,9 +1467,9 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               </div>
             )}
             {signal?.market_cap && (
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-white/40 uppercase tracking-wider">{t("modal.market_cap")}</span>
-                <span className="text-[10px] text-white font-medium">{signal.market_cap}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider min-w-0">{t("modal.market_cap")}</span>
+                <span className="text-[10px] text-white font-medium flex-shrink-0 text-right">{signal.market_cap}</span>
               </div>
             )}
           </div>
@@ -1528,7 +1526,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     onClick={() => setShowIndicatorGuide(true)}
     title="How to use indicator"
     aria-label="How to use indicator"
-    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-gold-primary/40 text-gold-primary"
+    className="lq-guide-btn group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase tracking-wide overflow-hidden border border-gold-primary/40 text-gold-primary"
   >
     <svg className="w-2.5 h-2.5 relative z-10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3a1 1 0 0 1 1 1v15h16a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="6" y="11" width="3" height="6" rx="1"/><rect x="11" y="7" width="3" height="10" rx="1"/><rect x="16" y="9" width="3" height="8" rx="1"/></svg>
     <span className="relative z-10"><span className="sm:hidden">Indicator</span><span className="hidden sm:inline">How to use indicator</span></span>
@@ -1670,7 +1668,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       className="w-full h-full"
                     />
                   </div>
-                  <div className="hidden lg:block w-52 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
+                  <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 bg-[#0a0a0a] border-l border-gold-primary/20 overflow-y-auto custom-scrollbar">
                     {renderTargetsPanel("sidebar")}
                   </div>
                   <div className="lg:hidden flex-shrink-0 bg-[#0a0a0a] border-t border-gold-primary/20 overflow-y-auto custom-scrollbar mobile-targets-panel">
@@ -2452,7 +2450,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         /* === Boxy card system (news-card style) === */
         .lq-card {
           position: relative;
-          border-radius: 10px;                       /* boxy, bukan lonjong */
+          border-radius: 2px;                        /* kotak — sudut tegas, no lonjong */
           border: 1px solid rgba(212,168,83,.14);
           background: #0c0b09;
           overflow: hidden;
@@ -2482,11 +2480,20 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         /* inner tiles (TP / SL / exchange dll) */
         .lq-tile {
-          border-radius: 6px;
+          border-radius: 2px;
           border: 1px solid rgba(255,255,255,.06);
           transition: border-color .2s ease, background-color .2s ease, transform .12s ease;
         }
         .lq-tile:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.16); }
+
+        /* === SQUARE EVERYTHING === square semua sudut di dalam modal,
+           kecuali .rounded-full (dot live, ping, drag handle) yang memang bulat */
+        .signal-modal-content .rounded,
+        .signal-modal-content .rounded-sm,
+        .signal-modal-content .rounded-md,
+        .signal-modal-content .rounded-lg,
+        .signal-modal-content .rounded-xl,
+        .signal-modal-content .rounded-2xl { border-radius: 2px !important; }
 
         @media (prefers-reduced-motion: reduce) {
           .lq-card, .lq-card:hover, .lq-tile, .lq-tile:hover { transform: none; transition: none; }
