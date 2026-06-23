@@ -47,6 +47,7 @@ from app.api.routes.autotrade_auth import router as autotrade_auth_router
 from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
+from app.api.routes.notification_preferences import router as notification_prefs_router
 from app.api.routes.coin_watch import router as coin_watch_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
@@ -182,6 +183,7 @@ app.include_router(autotrade_router, prefix="/api/v1", tags=["autotrade"])
 app.include_router(coin_profile_router, prefix="/api/v1/coin-profile", tags=["coin-profile"])
 app.include_router(profile_router, prefix="/api/v1", tags=["profile"])
 app.include_router(notifications_router, prefix="/api/v1", tags=["notifications"])
+app.include_router(notification_prefs_router, prefix="/api/v1", tags=["notification-preferences"])
 app.include_router(journal_router, prefix="/api/v1")
 app.include_router(market_pulse_router, prefix="/api/v1/market-pulse", tags=["market-pulse"])
 app.include_router(crypto_news_feed_router, prefix="/api/v1/crypto-news-feed", tags=["crypto-news-feed"])
