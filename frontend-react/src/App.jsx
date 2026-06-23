@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
+import TelegramNudgeModal from "./components/TelegramNudgeModal";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -1325,6 +1326,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <InAppBrowserBanner />
+        <TelegramNudgeModal />
         <CurrencyProvider>
           <Routes>
             {/* Landing */}
