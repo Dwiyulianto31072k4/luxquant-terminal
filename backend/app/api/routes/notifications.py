@@ -65,7 +65,7 @@ SQL_VISIBLE = (
     "(n.user_id = :uid OR n.user_id IS NULL) "
     "AND NOT EXISTS ("
     "  SELECT 1 FROM notification_preferences np "
-    "  WHERE np.user_id = :uid AND np.notif_type = n.type AND np.in_app = false"
+    "  WHERE np.user_id = :uid AND np.notif_type = CASE WHEN n.type LIKE 'autotrade%' THEN 'autotrade' ELSE n.type END AND np.in_app = false"
     ")"
 )
 

@@ -37,6 +37,7 @@ NOTIF_REGISTRY = [
     {"type": "market_pulse",     "label": "Market Pulse",    "group": "market",  "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "sub_expiry",       "label": "Subscription",    "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
     {"type": "admin_broadcast",  "label": "Announcements",   "group": "account", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
+    {"type": "autotrade",        "label": "AutoTrade",       "group": "autotrade", "telegram_eligible": True, "default_in_app": True, "default_telegram": False},
 ]
 _REGISTRY_BY_TYPE = {r["type"]: r for r in NOTIF_REGISTRY}
 
