@@ -325,64 +325,117 @@ const SignalModal = ({
     fetchPeakPrice();
   }, [isOpen, signal, signalDetail]);
 
-  // 4b. Live price + derivatives metrics (polling 10s, full client-side)
+  // 4b. Live price + derivatives metrics (polling 10s) — Binance -> Bybit fallback
   useEffect(() => {
     if (!isOpen || !signal?.pair) return;
     const symbol = (signal.pair || "").replace(/USDT$/i, "") + "USDT";
+    let alive = true;
+
+    const applyData = (d) => {
+      if (!alive || !d) return;
+      if (d.price > 0) setLivePrice(d.price);
+      if (d.change24h !== null && d.change24h !== undefined) setLiveChange24h(d.change24h);
+      setDerivMetrics({
+        funding: d.funding, nextFundingMs: d.nextFundingMs,
+        oiUsd: d.oiUsd, oiChange24h: d.oiChange24h,
+        lsLong: d.lsLong, lsShort: d.lsShort,
+      });
+    };
+
+    // --- Binance Futures (primary) ---
+    const fetchBinance = async () => {
+      const [pmRes, oiRes, lsRes, oi24Res, tickRes] = await Promise.allSettled([
+        fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
+        fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
+        fetch(`https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`),
+        fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`),
+        fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`),
+      ]);
+      if (pmRes.status !== "fulfilled" || !pmRes.value.ok) return null;
+      const pm = await pmRes.value.json();
+      const price = parseFloat(pm.markPrice);
+      if (!(price > 0)) return null;
+      const out = { price, funding: parseFloat(pm.lastFundingRate) * 100,
+        nextFundingMs: parseInt(pm.nextFundingTime),
+        oiUsd: null, oiChange24h: null, lsLong: null, lsShort: null, change24h: null };
+      if (oiRes.status === "fulfilled" && oiRes.value.ok) {
+        const o = await oiRes.value.json();
+        out.oiUsd = parseFloat(o.openInterest) * price;
+      }
+      if (oi24Res.status === "fulfilled" && oi24Res.value.ok) {
+        const a = await oi24Res.value.json();
+        if (Array.isArray(a) && a.length >= 2) {
+          const old = parseFloat(a[0].sumOpenInterestValue);
+          const now = parseFloat(a[a.length - 1].sumOpenInterestValue);
+          if (old > 0) out.oiChange24h = ((now - old) / old) * 100;
+        }
+      }
+      if (lsRes.status === "fulfilled" && lsRes.value.ok) {
+        const l = await lsRes.value.json();
+        if (Array.isArray(l) && l.length) {
+          out.lsLong = Math.round(parseFloat(l[0].longAccount) * 100);
+          out.lsShort = Math.round(parseFloat(l[0].shortAccount) * 100);
+        }
+      }
+      if (tickRes.status === "fulfilled" && tickRes.value.ok) {
+        const t = await tickRes.value.json();
+        out.change24h = parseFloat(t.priceChangePercent);
+      }
+      return out;
+    };
+
+    // --- Bybit (fallback — accessible from ID/more regions) ---
+    const fetchBybit = async () => {
+      const [tkRes, oiRes, lsRes] = await Promise.allSettled([
+        fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`),
+        fetch(`https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${symbol}&intervalTime=1h&limit=25`),
+        fetch(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${symbol}&period=1h&limit=1`),
+      ]);
+      if (tkRes.status !== "fulfilled" || !tkRes.value.ok) return null;
+      const tj = await tkRes.value.json();
+      const t = tj?.result?.list?.[0];
+      if (!t) return null;
+      const price = parseFloat(t.markPrice || t.lastPrice);
+      if (!(price > 0)) return null;
+      const out = {
+        price,
+        funding: parseFloat(t.fundingRate || 0) * 100,
+        nextFundingMs: t.nextFundingTime ? parseInt(t.nextFundingTime) : null,
+        change24h: t.price24hPcnt != null ? parseFloat(t.price24hPcnt) * 100 : null,
+        oiUsd: t.openInterestValue ? parseFloat(t.openInterestValue)
+              : (t.openInterest ? parseFloat(t.openInterest) * price : null),
+        oiChange24h: null, lsLong: null, lsShort: null,
+      };
+      if (oiRes.status === "fulfilled" && oiRes.value.ok) {
+        const oj = await oiRes.value.json();
+        const list = oj?.result?.list || [];
+        if (list.length >= 2) {
+          const now = parseFloat(list[0].openInterest);
+          const old = parseFloat(list[list.length - 1].openInterest);
+          if (old > 0) out.oiChange24h = ((now - old) / old) * 100;
+        }
+      }
+      if (lsRes.status === "fulfilled" && lsRes.value.ok) {
+        const lj = await lsRes.value.json();
+        const l = lj?.result?.list?.[0];
+        if (l) {
+          out.lsLong = Math.round(parseFloat(l.buyRatio) * 100);
+          out.lsShort = Math.round(parseFloat(l.sellRatio) * 100);
+        }
+      }
+      return out;
+    };
 
     const fetchLiveData = async () => {
-      try {
-        const [pmRes, oiRes, lsRes, oi24Res] = await Promise.allSettled([
-          fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
-          fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
-          fetch(`https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`),
-          fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`),
-        ]);
-
-        if (pmRes.status === "fulfilled" && pmRes.value.ok) {
-          const pm = await pmRes.value.json();
-          const markPrice = parseFloat(pm.markPrice);
-          const fundingRate = parseFloat(pm.lastFundingRate) * 100;
-          const nextFundingMs = parseInt(pm.nextFundingTime);
-          if (markPrice > 0) setLivePrice(markPrice);
-
-          let oiUsd = null, oiChange24h = null;
-          if (oiRes.status === "fulfilled" && oiRes.value.ok) {
-            const oiData = await oiRes.value.json();
-            oiUsd = parseFloat(oiData.openInterest) * markPrice;
-          }
-          if (oi24Res.status === "fulfilled" && oi24Res.value.ok) {
-            const oi24 = await oi24Res.value.json();
-            if (Array.isArray(oi24) && oi24.length >= 2) {
-              const oldest = parseFloat(oi24[0].sumOpenInterestValue);
-              const newest = parseFloat(oi24[oi24.length - 1].sumOpenInterestValue);
-              if (oldest > 0) oiChange24h = ((newest - oldest) / oldest) * 100;
-            }
-          }
-          let lsLong = null, lsShort = null;
-          if (lsRes.status === "fulfilled" && lsRes.value.ok) {
-            const lsData = await lsRes.value.json();
-            if (Array.isArray(lsData) && lsData.length > 0) {
-              lsLong = Math.round(parseFloat(lsData[0].longAccount) * 100);
-              lsShort = Math.round(parseFloat(lsData[0].shortAccount) * 100);
-            }
-          }
-          setDerivMetrics({ funding: fundingRate, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort });
-        }
-      } catch (_) {}
-
-      try {
-        const tickRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`);
-        if (tickRes.ok) {
-          const tick = await tickRes.json();
-          setLiveChange24h(parseFloat(tick.priceChangePercent));
-        }
-      } catch (_) {}
+      let data = null;
+      try { data = await fetchBinance(); } catch (_) {}
+      if (!data) { try { data = await fetchBybit(); } catch (_) {} }
+      applyData(data);
     };
 
     fetchLiveData();
     const iv = setInterval(fetchLiveData, 10000);
-    return () => clearInterval(iv);
+    return () => { alive = false; clearInterval(iv); };
   }, [isOpen, signal?.pair]);
 
   // 5. Handle tombol Escape (Esc)
