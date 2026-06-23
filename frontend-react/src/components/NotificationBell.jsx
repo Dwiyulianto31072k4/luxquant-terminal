@@ -32,6 +32,13 @@ const getTypeToken = (type, data) => {
     sub_expiry:       { tone: "danger",  label: "EXPIRY" },
     admin_broadcast:  { tone: "neutral", label: "BROADCAST" },
     coin_called:      { tone: "gold",    label: "CALLED" },
+    news:             { tone: "neutral", label: "NEWS" },
+    market_pulse:     { tone: "gold",    label: "PULSE" },
+    autotrade_position_closed:      { tone: "neutral", label: "AUTO" },
+    autotrade_execution_failed:     { tone: "danger",  label: "AUTO" },
+    autotrade_risk_limit:           { tone: "gold",    label: "AUTO" },
+    autotrade_rate_limit:           { tone: "gold",    label: "AUTO" },
+    autotrade_position_unprotected: { tone: "danger",  label: "AUTO" },
   };
   return map[type] || { tone: "neutral", label: "INFO" };
 };
@@ -153,6 +160,8 @@ const NotificationBell = () => {
     else if (notif.type === "daily_results") navigate("/analytics");
     else if (notif.type === "sub_expiry") navigate("/pricing");
     else if (notif.type === "coin_called") navigate("/signals");
+    else if (notif.type === "market_pulse") navigate("/pulse");
+    else if (notif.type && notif.type.startsWith("autotrade")) navigate("/autotrade");
     else navigate("/notifications");
   };
 

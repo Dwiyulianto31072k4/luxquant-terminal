@@ -7,8 +7,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { notificationApi } from "../services/notificationApi";
 
-const GROUP_ORDER = ["signals", "market", "account"];
+const GROUP_ORDER = ["autotrade", "signals", "market", "account"];
 const GROUP_LABEL = {
+  autotrade: "AutoTrade",
   signals: "Signals",
   market: "Market",
   account: "Account",
