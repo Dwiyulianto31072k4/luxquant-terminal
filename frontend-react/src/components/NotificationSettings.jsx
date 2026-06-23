@@ -132,7 +132,7 @@ const NotificationSettings = ({ t, navigate }) => {
               </p>
               <p className="text-xs text-text-muted leading-relaxed">
                 Link your Telegram in profile, then start{" "}
-                <span className="font-mono text-gold-primary/80">@LuxQuantTerminalBot</span>{" "}
+                <span className="font-mono text-gold-primary/80">@LuxQuantAlert_Bot</span>{" "}
                 so the bot can message you. Until then, Telegram delivery stays locked.
               </p>
             </div>
@@ -148,7 +148,7 @@ const NotificationSettings = ({ t, navigate }) => {
         <div className="rounded-md border border-white/[0.06] bg-white/[0.01] p-3">
           <p className="text-xs text-text-muted leading-relaxed">
             Telegram linked. Make sure you've started{" "}
-            <span className="font-mono text-gold-primary/80">@LuxQuantTerminalBot</span>{" "}
+            <span className="font-mono text-gold-primary/80">@LuxQuantAlert_Bot</span>{" "}
             in Telegram, otherwise the bot can't deliver messages to you.
           </p>
         </div>
