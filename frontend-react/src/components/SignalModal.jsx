@@ -1213,12 +1213,10 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
 
-    // Reusable gold accent line (efek emas di atas kartu)
     const goldLine = (
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
     );
 
-    // OPSI B: paywall untuk redacted (open signal + non-subscriber)
     if (isRedacted) {
       return (
         <div className="p-2.5 space-y-2">
@@ -1247,7 +1245,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
     return (
       <div className="p-2.5 space-y-2">
-        {/* premium-panel-v3 */}
+        {/* premium-panel-v4 */}
 
         {/* ── LIVE PRICE + PnL ── */}
         {livePrice && (() => {
@@ -1322,57 +1320,50 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </button>
         )}
 
-        {/* ── TARGETS ── */}
+        {/* ── TARGETS (grid tile / kotak) ── */}
         <div className="relative rounded-xl border border-green-500/12 overflow-hidden bg-[#0c0b09] p-2">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
           <p className="text-[9px] uppercase tracking-[0.14em] text-green-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
             {Ic.target("w-3 h-3")} {t("modal.targets")}
           </p>
-          <div className={isCompact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5"}>
+          <div className="grid grid-cols-2 gap-1.5">
             {targets.map((tg, i) => (
-              <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border ${
-                tg.hit ? "bg-green-500/[0.08] border-green-500/20" : "bg-white/[0.02] border-white/[0.06]"
+              <div key={i} className={`rounded-lg border p-1.5 ${
+                tg.hit ? "bg-green-500/[0.08] border-green-500/25" : "bg-white/[0.02] border-white/[0.06]"
               }`}>
-                <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
-                  tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-white/45"
-                }`}>
-                  {tg.hit ? "✓" : i + 1}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="flex items-center gap-1">
+                    <span className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold ${
+                      tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-white/45"
+                    }`}>{tg.hit ? "✓" : i + 1}</span>
+                    <span className={`text-[10px] font-bold ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
+                  </span>
+                  <span className={`text-[9px] font-mono font-bold ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[10px] font-semibold ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
-                    <span className={`text-[10px] font-mono font-bold ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[10px] font-mono ${tg.hit ? "text-white/85" : "text-white/45"}`}>{formatPrice(tg.value)}</span>
-                    {tg.hit && tg.reachedAt && !isCompact && (
-                      <span className="text-[8px] text-green-400/50 truncate">✓ {formatShortDateTime(tg.reachedAt)}</span>
-                    )}
-                  </div>
-                  <LocalPriceLine usdtValue={tg.value} size="sm" />
-                </div>
+                <p className={`text-[11px] font-mono leading-none ${tg.hit ? "text-white" : "text-white/55"}`}>{formatPrice(tg.value)}</p>
+                <LocalPriceLine usdtValue={tg.value} size="sm" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── STOP LOSS ── */}
+        {/* ── STOP LOSS (grid tile / kotak) ── */}
         {stops.length > 0 && (
           <div className="relative rounded-xl border border-red-500/12 overflow-hidden bg-[#0c0909] p-2">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
             <p className="text-[9px] uppercase tracking-[0.14em] text-red-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
               {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
             </p>
-            <div className={isCompact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5"}>
+            <div className="grid grid-cols-2 gap-1.5">
               {stops.map((s, i) => (
-                <div key={i} className={`px-2 py-1.5 rounded-lg border ${
-                  s.hit ? "bg-red-500/[0.08] border-red-500/20" : "bg-white/[0.02] border-white/[0.06]"
+                <div key={i} className={`rounded-lg border p-1.5 ${
+                  s.hit ? "bg-red-500/[0.08] border-red-500/25" : "bg-white/[0.02] border-white/[0.06]"
                 }`}>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={`text-[10px] font-semibold ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
-                    <span className={`text-[10px] font-mono font-bold ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-[10px] font-bold ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
+                    <span className={`text-[9px] font-mono font-bold ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
                   </div>
-                  <span className={`text-[10px] font-mono block ${s.hit ? "text-white/85" : "text-white/45"}`}>{formatPrice(s.value)}</span>
+                  <p className={`text-[11px] font-mono leading-none ${s.hit ? "text-white" : "text-white/55"}`}>{formatPrice(s.value)}</p>
                   <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
@@ -1380,7 +1371,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           </div>
         )}
 
-        {/* ── DERIVATIVES (live perp metrics) ── */}
+        {/* ── DERIVATIVES (tile kotak + L/S bar chart) ── */}
         {derivMetrics && (() => {
           const { funding, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort } = derivMetrics;
           const countdown = formatCountdown(nextFundingMs);
@@ -1393,78 +1384,66 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                 <span className="text-[8.5px] uppercase tracking-[0.14em] text-white/40 font-medium">Derivatives · Perp</span>
               </div>
 
-              <div className="divide-y divide-white/[0.05]">
-                {/* Funding */}
-                <div className="flex items-center justify-between px-2.5 py-2">
-                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Funding</span>
-                  <div className="text-right">
-                    <span className={`text-[11px] font-mono font-bold block leading-tight ${fundingPos ? "text-red-400" : "text-green-400"}`}>
-                      {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
-                    </span>
-                    <span className="text-[8px] text-white/35">
-                      {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · in ${countdown}` : ""}
-                    </span>
-                  </div>
+              {/* Funding + OI sebagai 2 tile kotak */}
+              <div className="grid grid-cols-2 gap-px bg-white/[0.05]">
+                <div className="p-2.5 bg-[#0d0b08]">
+                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Funding</p>
+                  <p className={`text-[12px] font-mono font-bold leading-none ${fundingPos ? "text-red-400" : "text-green-400"}`}>
+                    {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
+                  </p>
+                  <p className="text-[7.5px] text-white/35 mt-1 leading-tight">
+                    {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · ${countdown}` : ""}
+                  </p>
                 </div>
-
-                {/* Open Interest */}
-                <div className="flex items-center justify-between px-2.5 py-2">
-                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Open Interest</span>
-                  <div className="text-right">
-                    <span className="text-[11px] font-mono font-bold text-white block leading-tight">{formatOiUsd(oiUsd)}</span>
-                    {oiChange24h !== null && (
-                      <span className={`text-[8px] font-mono ${oiChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
-                        {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% · 24h
-                      </span>
-                    )}
-                  </div>
+                <div className="p-2.5 bg-[#0d0b08]">
+                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Open Interest</p>
+                  <p className="text-[12px] font-mono font-bold text-white leading-none">{formatOiUsd(oiUsd)}</p>
+                  {oiChange24h !== null && (
+                    <p className={`text-[7.5px] font-mono mt-1 leading-tight ${oiChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                      {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% · 24h
+                    </p>
+                  )}
                 </div>
-
-                {/* L/S Top Traders — bar sejajar full width */}
-                {lsLong !== null && lsShort !== null && (
-                  <div className="px-2.5 py-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] text-white/40 uppercase tracking-wider">L/S · Top Traders</span>
-                      <span className="text-[11px] font-mono font-bold">
-                        <span className="text-green-400">{lsLong}%</span>
-                        <span className="text-white/25 mx-1">/</span>
-                        <span className="text-red-400">{lsShort}%</span>
-                      </span>
-                    </div>
-                    <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5">
-                      <div className="h-full bg-green-500/70" style={{ width: `${lsLong}%` }} />
-                      <div className="h-full bg-red-500/60" style={{ width: `${lsShort}%` }} />
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Footer: disclaimer + links */}
-              <div className="px-2.5 py-2 border-t border-white/[0.05] bg-black/20">
-                <p className="text-[7.5px] text-white/28 leading-relaxed mb-1.5">
-                  Metrics from Binance/Bybit. If "—", data may be blocked in your region — try a VPN.
-                </p>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { label: "TradingView", url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P` },
-                    { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
-                    { label: "Binance", url: `https://www.binance.com/en/futures/${signal?.pair || ""}` },
-                  ].map((link, i, arr) => (
-                    <span key={link.label} className="flex items-center gap-1.5">
-                      <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                         className="text-[8px] text-white/30 hover:text-gold-primary/70 transition-colors">
-                        {link.label}
-                      </a>
-                      {i < arr.length - 1 && <span className="text-white/15 text-[8px]">·</span>}
-                    </span>
-                  ))}
+              {/* L/S bar chart */}
+              {lsLong !== null && lsShort !== null && (
+                <div className="px-2.5 py-2.5 border-t border-white/[0.05]">
+                  <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-mono font-bold text-green-400 w-8 flex-shrink-0">{lsLong}%</span>
+                    <div className="flex-1 flex h-2.5 rounded-full overflow-hidden bg-white/5">
+                      <div className="h-full bg-gradient-to-r from-green-500/80 to-green-400/55" style={{ width: `${lsLong}%` }} />
+                      <div className="h-full bg-gradient-to-r from-red-400/55 to-red-500/80" style={{ width: `${lsShort}%` }} />
+                    </div>
+                    <span className="text-[12px] font-mono font-bold text-red-400 w-8 text-right flex-shrink-0">{lsShort}%</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[7.5px] uppercase tracking-wider text-green-400/50 font-medium">Long</span>
+                    <span className="text-[7.5px] uppercase tracking-wider text-red-400/50 font-medium">Short</span>
+                  </div>
                 </div>
+              )}
+
+              {/* Links (tanpa disclaimer) */}
+              <div className="px-2.5 py-1.5 border-t border-white/[0.05] bg-black/20 flex items-center gap-1.5 flex-wrap">
+                {[
+                  { label: "TradingView", url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P` },
+                  { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
+                  { label: "Binance", url: `https://www.binance.com/en/futures/${signal?.pair || ""}` },
+                ].map((link, i, arr) => (
+                  <span key={link.label} className="flex items-center gap-1.5">
+                    <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                       className="text-[8px] text-white/30 hover:text-gold-primary/70 transition-colors">{link.label}</a>
+                    {i < arr.length - 1 && <span className="text-white/15 text-[8px]">·</span>}
+                  </span>
+                ))}
               </div>
             </div>
           );
         })()}
 
-        {/* ── META: volume rank / risk / market cap ── */}
+        {/* ── META: volume / risk / cap ── */}
         {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
           <div className="relative rounded-xl border border-gold-primary/10 overflow-hidden bg-[#0c0b09] p-2 space-y-1.5">
             {signal?.volume_rank_num && (
