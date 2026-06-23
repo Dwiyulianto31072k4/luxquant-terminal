@@ -1213,358 +1213,249 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
 
-    // OPSI B: If signal is redacted (open signal + non-subscriber),
-    // show paywall overlay instead of entry/TP/SL details
+    // Reusable gold accent line (efek emas di atas kartu)
+    const goldLine = (
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+    );
+
+    // OPSI B: paywall untuk redacted (open signal + non-subscriber)
     if (isRedacted) {
       return (
-        <div className={isCompact ? "p-2.5 space-y-1.5" : "p-2.5 space-y-2"}>
-          <div className="relative bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-lg p-6 border border-gold-primary/30 min-h-[280px] flex flex-col items-center justify-center text-center">
+        <div className="p-2.5 space-y-2">
+          <div className="relative bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-gold-primary/30 min-h-[280px] flex flex-col items-center justify-center text-center overflow-hidden">
+            {goldLine}
             <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gold-primary"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h3 className="text-white font-bold text-base mb-2">
-              Premium Live Signal
-            </h3>
+            <h3 className="text-white font-bold text-base mb-2">Premium Live Signal</h3>
             <p className="text-white/60 text-xs leading-relaxed max-w-[260px] mb-4">
               This signal is still{" "}
-              <span className="text-gold-primary font-semibold">
-                open and running
-              </span>
-              . Subscribe to view live entry, take-profits, stop-loss, and
-              charts.
+              <span className="text-gold-primary font-semibold">open and running</span>. Subscribe to view live entry, take-profits, stop-loss, and charts.
             </p>
-            <button
-              onClick={() => {
-                window.location.href = "/pricing";
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]"
-            >
-              {Ic.lock("w-3.5 h-3.5")}
-              Subscribe to Unlock
+            <button onClick={() => { window.location.href = "/pricing"; }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
+              {Ic.lock("w-3.5 h-3.5")} Subscribe to Unlock
             </button>
-            <p className="text-[10px] text-white/40 mt-3">
-              Closed signals are visible for free as track record proof.
-            </p>
+            <p className="text-[10px] text-white/40 mt-3">Closed signals are visible for free as track record proof.</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className={isCompact ? "p-2.5 space-y-1.5" : "p-2.5 space-y-2"}>
-        {/* Live Price + PnL */}
+      <div className="p-2.5 space-y-2">
+        {/* premium-panel-v3 */}
+
+        {/* ── LIVE PRICE + PnL ── */}
         {livePrice && (() => {
           const entryNum = signal?.entry ? Number(signal.entry) : 0;
           const pnlRaw = entryNum > 0 ? ((livePrice - entryNum) / entryNum) * 100 : null;
           const isShortDir = signal?.target1 && Number(signal.target1) < entryNum;
           const pnlPct = isShortDir && pnlRaw !== null ? -pnlRaw : pnlRaw;
-          const isProfit = pnlPct !== null && pnlPct > 0;
-          const isLoss = pnlPct !== null && pnlPct < 0;
+          const up = pnlPct !== null && pnlPct > 0;
+          const down = pnlPct !== null && pnlPct < 0;
           return (
-            <div className={`rounded-lg border p-2 ${
-              isProfit ? "bg-green-500/[0.06] border-green-500/20" :
-              isLoss   ? "bg-red-500/[0.06] border-red-500/20" :
-                         "bg-white/[0.02] border-white/[0.08]"
+            <div className={`relative rounded-xl border overflow-hidden ${
+              up ? "border-green-500/25" : down ? "border-red-500/25" : "border-white/10"
             }`}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+              {goldLine}
+              <div className={`p-2.5 ${up ? "bg-green-500/[0.05]" : down ? "bg-red-500/[0.05]" : "bg-white/[0.02]"}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                    </span>
+                    <span className="text-[9px] uppercase tracking-[0.14em] text-white/45 font-medium">Live · Mark</span>
                   </span>
-                  <span className="text-[8px] uppercase tracking-wider text-white/40">Live \u00b7 mark</span>
+                  {liveChange24h !== null && (
+                    <span className={`text-[9px] font-mono font-semibold ${liveChange24h >= 0 ? "text-green-400/80" : "text-red-400/80"}`}>
+                      {liveChange24h >= 0 ? "+" : ""}{liveChange24h.toFixed(2)}% · 24h
+                    </span>
+                  )}
                 </div>
-                {liveChange24h !== null && (
-                  <span className={`text-[8px] font-mono font-semibold ${liveChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
-                    {liveChange24h >= 0 ? "+" : ""}{liveChange24h.toFixed(2)}% 24h
-                  </span>
-                )}
-              </div>
-              <div className="flex items-end justify-between gap-1">
-                <div>
-                  <p className={`font-mono font-bold leading-none ${isCompact ? "text-sm" : "text-base"} ${
-                    isProfit ? "text-green-400" : isLoss ? "text-red-400" : "text-white"
-                  }`}>
-                    {formatPrice(livePrice)}
-                  </p>
-                  <LocalPriceLine usdtValue={livePrice} size="sm" />
+                <div className="flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className={`font-mono font-bold leading-none ${isCompact ? "text-lg" : "text-xl"} ${up ? "text-green-400" : down ? "text-red-400" : "text-white"}`}>
+                      {formatPrice(livePrice)}
+                    </p>
+                    <LocalPriceLine usdtValue={livePrice} size="md" />
+                  </div>
+                  {pnlPct !== null && (
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-bold flex-shrink-0 border ${
+                      up ? "bg-green-500/15 text-green-400 border-green-500/20" :
+                      down ? "bg-red-500/15 text-red-400 border-red-500/20" :
+                      "bg-white/5 text-white/50 border-white/10"
+                    }`}>
+                      {up ? "▲" : down ? "▼" : "•"} {Math.abs(pnlPct).toFixed(2)}%
+                    </span>
+                  )}
                 </div>
-                {pnlPct !== null && (
-                  <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold flex-shrink-0 ${
-                    isProfit ? "bg-green-500/15 text-green-400" :
-                    isLoss   ? "bg-red-500/15 text-red-400" :
-                               "bg-white/5 text-white/40"
-                  }`}>
-                    {isProfit ? "\u25b2" : isLoss ? "\u25bc" : "~"}
-                    {" "}{Math.abs(pnlPct).toFixed(2)}%
-                  </span>
-                )}
               </div>
             </div>
           );
         })()}
 
-        <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gold-primary/70 text-[8px] uppercase tracking-wider font-medium">
-                {t("modal.entry")}
-              </p>
-              <p
-                className={`font-mono font-bold text-gold-primary ${isCompact ? "text-sm" : "text-lg"}`}
-              >
-                {formatPrice(signal?.entry)}
-              </p>
-              <LocalPriceLine usdtValue={signal?.entry} size={isCompact ? "sm" : "md"} />
+        {/* ── ENTRY ── */}
+        <div className="relative rounded-xl border border-gold-primary/25 overflow-hidden">
+          {goldLine}
+          <div className="p-2.5 bg-gradient-to-br from-gold-primary/[0.1] to-gold-primary/[0.02]">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-gold-primary/60 text-[9px] uppercase tracking-[0.14em] font-medium mb-0.5">{t("modal.entry")}</p>
+                <p className={`font-mono font-bold text-gold-primary leading-none ${isCompact ? "text-base" : "text-lg"}`}>{formatPrice(signal?.entry)}</p>
+                <LocalPriceLine usdtValue={signal?.entry} size="md" />
+              </div>
+              <p className="text-[9px] text-gold-primary/55 font-medium flex-shrink-0 ml-2">{formatShortDateTime(signal?.created_at)}</p>
             </div>
-            <p className="text-[9px] text-gold-primary/70">
-              {formatShortDateTime(signal?.created_at)}
-            </p>
           </div>
         </div>
 
-        {/* Deep Analysis Button */}
+        {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
-          <button
-            onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]"
-          >
-            {Ic.cpu("w-3.5 h-3.5")}
-            <span>Deep Analysis</span>
+          <button onClick={() => setShowDeepAnalysis(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
+            {Ic.cpu("w-3.5 h-3.5")}<span>Deep Analysis</span>
           </button>
         )}
 
-        {isCompact ? (
-          <div className="grid grid-cols-2 gap-1.5">
-            {targets.map((t, i) => (
-              <div
-                key={i}
-                className={`px-2 py-1.5 rounded-lg ${t.hit ? "bg-green-500/10 border border-green-500/20" : "bg-white/[0.02] border border-white/5"}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className={`w-4 h-4 rounded text-[7px] font-bold flex items-center justify-center ${t.hit ? "bg-green-500 text-white" : "bg-gray-700 text-gray-400"}`}
-                    >
-                      {t.hit ? "✓" : i + 1}
-                    </div>
-                    <div>
-                      <span
-                        className={`text-[10px] font-semibold ${t.hit ? "text-green-400" : "text-text-muted"}`}
-                      >
-                        {t.label}
-                      </span>
-                      <p
-                        className={`text-[9px] font-mono ${t.hit ? "text-white/70" : "text-text-muted/60"}`}
-                      >
-                        {formatPrice(t.value)}
-                      </p>
-                      <LocalPriceLine usdtValue={t.value} size="sm" />
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono font-bold ${t.hit ? "text-green-400" : "text-text-muted"}`}
-                  >
-                    +{t.pct}%
-                  </span>
+        {/* ── TARGETS ── */}
+        <div className="relative rounded-xl border border-green-500/12 overflow-hidden bg-[#0c0b09] p-2">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
+          <p className="text-[9px] uppercase tracking-[0.14em] text-green-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
+            {Ic.target("w-3 h-3")} {t("modal.targets")}
+          </p>
+          <div className={isCompact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5"}>
+            {targets.map((tg, i) => (
+              <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border ${
+                tg.hit ? "bg-green-500/[0.08] border-green-500/20" : "bg-white/[0.02] border-white/[0.06]"
+              }`}>
+                <div className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${
+                  tg.hit ? "bg-green-500 text-black" : "bg-white/10 text-white/45"
+                }`}>
+                  {tg.hit ? "✓" : i + 1}
                 </div>
-                {t.hit && t.reachedAt && (
-                  <p className="text-[8px] text-green-400/60 mt-0.5 pl-[22px]">
-                    ✓ {formatShortDateTime(t.reachedAt)}
-                  </p>
-                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[10px] font-semibold ${tg.hit ? "text-green-400" : "text-white/70"}`}>{tg.label}</span>
+                    <span className={`text-[10px] font-mono font-bold ${tg.hit ? "text-green-400" : "text-white/50"}`}>+{tg.pct}%</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[10px] font-mono ${tg.hit ? "text-white/85" : "text-white/45"}`}>{formatPrice(tg.value)}</span>
+                    {tg.hit && tg.reachedAt && !isCompact && (
+                      <span className="text-[8px] text-green-400/50 truncate">✓ {formatShortDateTime(tg.reachedAt)}</span>
+                    )}
+                  </div>
+                  <LocalPriceLine usdtValue={tg.value} size="sm" />
+                </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="bg-[#111]/80 rounded-lg p-2 border border-green-500/15">
-            <p className="text-green-400 text-[9px] uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
-              {Ic.target("w-3 h-3")} {t("modal.targets")}
+        </div>
+
+        {/* ── STOP LOSS ── */}
+        {stops.length > 0 && (
+          <div className="relative rounded-xl border border-red-500/12 overflow-hidden bg-[#0c0909] p-2">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
+            <p className="text-[9px] uppercase tracking-[0.14em] text-red-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
+              {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
             </p>
-            <div className="space-y-1">
-              {targets.map((t, i) => (
-                <div
-                  key={i}
-                  className={`p-1.5 rounded ${t.hit ? "bg-green-500/10 border border-green-500/20" : "bg-white/[0.02] border border-white/5"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className={`w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center ${t.hit ? "bg-green-500 text-white" : "bg-gray-700 text-gray-400"}`}
-                      >
-                        {t.hit ? "✓" : i + 1}
-                      </div>
-                      <span
-                        className={`text-[10px] font-medium ${t.hit ? "text-green-400" : "text-text-muted"}`}
-                      >
-                        {t.label}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[10px] font-mono ${t.hit ? "text-green-400" : "text-text-muted"}`}
-                    >
-                      +{t.pct}%
-                    </span>
-                  </div>
-                  <p
-                    className={`text-[10px] font-mono mt-0.5 ${t.hit ? "text-white" : "text-text-muted"}`}
-                  >
-                    {formatPrice(t.value)}
-                  </p>
-                  <LocalPriceLine usdtValue={t.value} size="sm" />
-                  {t.hit && t.reachedAt && (
-                    <p className="text-[8px] text-green-400/60 mt-0.5">
-                      ✓ {formatShortDateTime(t.reachedAt)}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {stops.length > 0 &&
-          (isCompact ? (
-            <div className="flex gap-1.5">
+            <div className={isCompact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5"}>
               {stops.map((s, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 px-2 py-1.5 rounded-lg ${s.hit ? "bg-red-500/10 border border-red-500/20" : "bg-white/[0.02] border border-white/5"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-semibold ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                    >
-                      {s.label}{" "}
-                      <span className="font-mono text-[9px]">
-                        {formatPrice(s.value)}
-                      </span>
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono font-bold ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                    >
-                      {s.pct}%
-                    </span>
+                <div key={i} className={`px-2 py-1.5 rounded-lg border ${
+                  s.hit ? "bg-red-500/[0.08] border-red-500/20" : "bg-white/[0.02] border-white/[0.06]"
+                }`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[10px] font-semibold ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
+                    <span className={`text-[10px] font-mono font-bold ${s.hit ? "text-red-400" : "text-white/50"}`}>{s.pct}%</span>
                   </div>
+                  <span className={`text-[10px] font-mono block ${s.hit ? "text-white/85" : "text-white/45"}`}>{formatPrice(s.value)}</span>
                   <LocalPriceLine usdtValue={s.value} size="sm" />
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="bg-[#111]/80 rounded-lg p-2 border border-red-500/15">
-              <p className="text-red-400 text-[9px] uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
-                {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
-              </p>
-              <div className="space-y-1">
-                {stops.map((s, i) => (
-                  <div
-                    key={i}
-                    className={`p-1.5 rounded ${s.hit ? "bg-red-500/10 border border-red-500/20" : "bg-white/[0.02] border border-white/5"}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-[10px] font-medium ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                      >
-                        {s.label}
-                      </span>
-                      <span
-                        className={`text-[10px] font-mono ${s.hit ? "text-red-400" : "text-text-muted"}`}
-                      >
-                        {s.pct}%
-                      </span>
-                    </div>
-                  <p
-                      className={`text-[10px] font-mono mt-0.5 ${s.hit ? "text-white" : "text-text-muted"}`}
-                    >
-                      {formatPrice(s.value)}
-                    </p>
-                    <LocalPriceLine usdtValue={s.value} size="sm" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}  
-        {/* Derivatives Metrics */}
+          </div>
+        )}
+
+        {/* ── DERIVATIVES (live perp metrics) ── */}
         {derivMetrics && (() => {
           const { funding, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort } = derivMetrics;
           const countdown = formatCountdown(nextFundingMs);
           const fundingPos = funding > 0;
           return (
-            <div className="rounded-lg border border-white/[0.06] bg-[#0d0d0d] overflow-hidden">
-              <div className="px-2 py-1 border-b border-white/[0.04] flex items-center gap-1">
-                <svg className="w-2.5 h-2.5 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-                <span className="text-[7.5px] uppercase tracking-wider text-white/30 font-medium">Derivatives \u00b7 Perp</span>
+            <div className="relative rounded-xl border border-gold-primary/12 overflow-hidden bg-[#0d0b08]">
+              {goldLine}
+              <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
+                <svg className="w-2.5 h-2.5 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span className="text-[8.5px] uppercase tracking-[0.14em] text-white/40 font-medium">Derivatives · Perp</span>
               </div>
-              <div className="divide-y divide-white/[0.04]">
-                <div className="flex items-center justify-between px-2 py-1.5">
-                  <span className="text-[8px] text-white/35 uppercase tracking-wider">Funding</span>
+
+              <div className="divide-y divide-white/[0.05]">
+                {/* Funding */}
+                <div className="flex items-center justify-between px-2.5 py-2">
+                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Funding</span>
                   <div className="text-right">
-                    <span className={`text-[10px] font-mono font-bold block ${fundingPos ? "text-red-400" : "text-green-400"}`}>
+                    <span className={`text-[11px] font-mono font-bold block leading-tight ${fundingPos ? "text-red-400" : "text-green-400"}`}>
                       {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
                     </span>
-                    <span className="text-[7.5px] text-white/30 leading-tight">
-                      {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` \u00b7 in ${countdown}` : ""}
+                    <span className="text-[8px] text-white/35">
+                      {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · in ${countdown}` : ""}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between px-2 py-1.5">
-                  <span className="text-[8px] text-white/35 uppercase tracking-wider">Open Interest</span>
+
+                {/* Open Interest */}
+                <div className="flex items-center justify-between px-2.5 py-2">
+                  <span className="text-[9px] text-white/40 uppercase tracking-wider">Open Interest</span>
                   <div className="text-right">
-                    <span className="text-[10px] font-mono font-bold text-white block">{formatOiUsd(oiUsd)}</span>
+                    <span className="text-[11px] font-mono font-bold text-white block leading-tight">{formatOiUsd(oiUsd)}</span>
                     {oiChange24h !== null && (
-                      <span className={`text-[7.5px] font-mono leading-tight ${oiChange24h >= 0 ? "text-green-400/60" : "text-red-400/60"}`}>
-                        {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% \u00b7 24h
+                      <span className={`text-[8px] font-mono ${oiChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                        {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% · 24h
                       </span>
                     )}
                   </div>
                 </div>
+
+                {/* L/S Top Traders — bar sejajar full width */}
                 {lsLong !== null && lsShort !== null && (
-                  <div className="px-2 py-1.5">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[8px] text-white/35 uppercase tracking-wider">L/S \u00b7 top traders</span>
-                      <span className="text-[10px] font-mono font-bold">
+                  <div className="px-2.5 py-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-wider">L/S · Top Traders</span>
+                      <span className="text-[11px] font-mono font-bold">
                         <span className="text-green-400">{lsLong}%</span>
-                        <span className="text-white/20 mx-0.5">/</span>
+                        <span className="text-white/25 mx-1">/</span>
                         <span className="text-red-400">{lsShort}%</span>
                       </span>
                     </div>
-                    <div className="h-1 rounded-full bg-red-500/25 overflow-hidden">
-                      <div className="h-full bg-green-500/60 rounded-full transition-all duration-500" style={{ width: `${lsLong}%` }} />
+                    <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5">
+                      <div className="h-full bg-green-500/70" style={{ width: `${lsLong}%` }} />
+                      <div className="h-full bg-red-500/60" style={{ width: `${lsShort}%` }} />
                     </div>
                   </div>
                 )}
               </div>
-              <div className="px-2 py-1.5 border-t border-white/[0.04] bg-white/[0.01]">
-                <p className="text-[7px] text-white/22 leading-relaxed mb-1">
-                  Metrics from Binance. If "\u2014", data may be blocked \u2014 try VPN.
+
+              {/* Footer: disclaimer + links */}
+              <div className="px-2.5 py-2 border-t border-white/[0.05] bg-black/20">
+                <p className="text-[7.5px] text-white/28 leading-relaxed mb-1.5">
+                  Metrics from Binance/Bybit. If "—", data may be blocked in your region — try a VPN.
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {[
                     { label: "TradingView", url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P` },
                     { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
-                    { label: "Binance Futures", url: `https://www.binance.com/en/futures/${signal?.pair || ""}` },
+                    { label: "Binance", url: `https://www.binance.com/en/futures/${signal?.pair || ""}` },
                   ].map((link, i, arr) => (
                     <span key={link.label} className="flex items-center gap-1.5">
                       <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                         className="text-[7.5px] text-white/28 hover:text-gold-primary/70 transition-colors">
+                         className="text-[8px] text-white/30 hover:text-gold-primary/70 transition-colors">
                         {link.label}
                       </a>
-                      {i < arr.length - 1 && <span className="text-white/15 text-[7px]">\u00b7</span>}
+                      {i < arr.length - 1 && <span className="text-white/15 text-[8px]">·</span>}
                     </span>
                   ))}
                 </div>
@@ -1573,84 +1464,35 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           );
         })()}
 
-        {!isCompact && (
-          <>
+        {/* ── META: volume rank / risk / market cap ── */}
+        {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
+          <div className="relative rounded-xl border border-gold-primary/10 overflow-hidden bg-[#0c0b09] p-2 space-y-1.5">
             {signal?.volume_rank_num && (
-              <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/15">
-                <p className="text-text-muted text-[9px] uppercase tracking-wider font-medium mb-0.5 flex items-center gap-1.5">
-                  {Ic.bars("w-3 h-3")} {t("modal.vol_rank")}
-                </p>
-                <p className="text-base font-bold text-white">
-                  #{signal.volume_rank_num}
-                  <span className="text-text-muted text-xs font-normal ml-1">
-                    / {signal.volume_rank_den}
-                  </span>
-                </p>
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider flex items-center gap-1.5">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
+                <span className="text-[11px] font-bold text-white font-mono">
+                  #{signal.volume_rank_num}<span className="text-white/35 text-[9px] font-normal ml-0.5">/ {signal.volume_rank_den}</span>
+                </span>
               </div>
             )}
-            {(signal?.risk_level || signal?.market_cap) && (
-              <div className="bg-[#111]/80 rounded-lg p-2 border border-gold-primary/10 space-y-1">
-                {signal.risk_level && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-text-muted text-[9px]">
-                      {t("modal.risk_level")}
-                    </span>
-                    <span
-                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-green-500/15 text-green-400" : signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-red-500/15 text-red-400" : "bg-yellow-500/15 text-yellow-400"}`}
-                    >
-                      {signal.risk_level}
-                    </span>
-                  </div>
-                )}
-                {signal.market_cap && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-text-muted text-[9px]">
-                      {t("modal.market_cap")}
-                    </span>
-                    <span className="text-white text-[9px] font-medium">
-                      {signal.market_cap}
-                    </span>
-                  </div>
-                )}
+            {signal?.risk_level && (
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider">{t("modal.risk_level")}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                  signal.risk_level?.toLowerCase()?.startsWith("low") ? "bg-green-500/15 text-green-400" :
+                  signal.risk_level?.toLowerCase()?.startsWith("high") ? "bg-red-500/15 text-red-400" :
+                  "bg-yellow-500/15 text-yellow-400"
+                }`}>{signal.risk_level}</span>
               </div>
             )}
-          </>
+            {signal?.market_cap && (
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-white/40 uppercase tracking-wider">{t("modal.market_cap")}</span>
+                <span className="text-[10px] text-white font-medium">{signal.market_cap}</span>
+              </div>
+            )}
+          </div>
         )}
-        {isCompact &&
-          (signal.volume_rank_num ||
-            signal.risk_level ||
-            signal.market_cap) && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {signal.volume_rank_num && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
-                  <span className="text-text-muted">{Ic.bars("w-3 h-3")}</span>
-                  <span className="text-white text-[10px] font-bold">
-                    #{signal.volume_rank_num}
-                  </span>
-                  <span className="text-text-muted text-[9px]">
-                    / {signal.volume_rank_den}
-                  </span>
-                </div>
-              )}
-              {signal.risk_level && (
-                <div
-                  className={`px-2 py-1 rounded-lg text-[9px] font-bold ${signal.risk_level?.toLowerCase().startsWith("low") ? "bg-green-500/15 text-green-400 border border-green-500/20" : signal.risk_level?.toLowerCase().startsWith("high") ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-yellow-500/15 text-yellow-400 border border-yellow-500/20"}`}
-                >
-                  {signal.risk_level}
-                </div>
-              )}
-              {signal.market_cap && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-[#111]/80 rounded-lg border border-gold-primary/10">
-                  <span className="text-text-muted text-[9px]">
-                    {t("modal.cap")}
-                  </span>
-                  <span className="text-white text-[9px] font-medium">
-                    {signal.market_cap}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
       </div>
     );
   };
