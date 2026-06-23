@@ -9,8 +9,8 @@ import CoinCategoryBadge from "./CoinCategoryBadge";
 import CoinUtilityModal from "./CoinUtilityModal";
 import { useCurrency } from "../context/CurrencyContext";
 import { convertPrice, formatLocalPrice } from "../utils/currencyHelpers";
-import BTCCorrelationBadge from "./BTCCorrelationBadge";     
-import BTCCorrelationModal from "./BTCCorrelationModal";  
+import BTCCorrelationBadge from "./BTCCorrelationBadge";
+import BTCCorrelationModal from "./BTCCorrelationModal";
 import { Ic } from "./signalIcons";
 import { shareSignal } from "../services/shareSignal";
 import IndicatorGuideModal from "./IndicatorGuideModal";
@@ -378,8 +378,8 @@ const SignalModal = ({
         }
       }
       if (tickRes.status === "fulfilled" && tickRes.value.ok) {
-        const t = await tickRes.value.json();
-        out.change24h = parseFloat(t.priceChangePercent);
+        const tk = await tickRes.value.json();
+        out.change24h = parseFloat(tk.priceChangePercent);
       }
       return out;
     };
@@ -393,17 +393,17 @@ const SignalModal = ({
       ]);
       if (tkRes.status !== "fulfilled" || !tkRes.value.ok) return null;
       const tj = await tkRes.value.json();
-      const t = tj?.result?.list?.[0];
-      if (!t) return null;
-      const price = parseFloat(t.markPrice || t.lastPrice);
+      const tk = tj?.result?.list?.[0];
+      if (!tk) return null;
+      const price = parseFloat(tk.markPrice || tk.lastPrice);
       if (!(price > 0)) return null;
       const out = {
         price,
-        funding: parseFloat(t.fundingRate || 0) * 100,
-        nextFundingMs: t.nextFundingTime ? parseInt(t.nextFundingTime) : null,
-        change24h: t.price24hPcnt != null ? parseFloat(t.price24hPcnt) * 100 : null,
-        oiUsd: t.openInterestValue ? parseFloat(t.openInterestValue)
-              : (t.openInterest ? parseFloat(t.openInterest) * price : null),
+        funding: parseFloat(tk.fundingRate || 0) * 100,
+        nextFundingMs: tk.nextFundingTime ? parseInt(tk.nextFundingTime) : null,
+        change24h: tk.price24hPcnt != null ? parseFloat(tk.price24hPcnt) * 100 : null,
+        oiUsd: tk.openInterestValue ? parseFloat(tk.openInterestValue)
+              : (tk.openInterest ? parseFloat(tk.openInterest) * price : null),
         oiChange24h: null, lsLong: null, lsShort: null,
       };
       if (oiRes.status === "fulfilled" && oiRes.value.ok) {
@@ -790,7 +790,7 @@ const SignalModal = ({
       hit: hitTargets[3],
       reachedAt: getUpdateInfo("tp4")?.update_at,
     },
-  ].filter((t) => t.value);
+  ].filter((tp) => tp.value);
 
   const stops = [
     {
@@ -1210,6 +1210,8 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
   };
 
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
+  // STYLING: semua wrapper kartu sekarang pakai .lq-card (boxy + hover glow),
+  // tile dalam pakai .lq-tile. Logika & data tidak berubah.
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
 
@@ -1220,7 +1222,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     if (isRedacted) {
       return (
         <div className="p-2.5 space-y-2">
-          <div className="relative bg-gradient-to-br from-gold-primary/10 to-gold-primary/5 rounded-xl p-6 border border-gold-primary/30 min-h-[280px] flex flex-col items-center justify-center text-center overflow-hidden">
+          <div className="lq-card lq-card--gold p-6 min-h-[280px] flex flex-col items-center justify-center text-center bg-gradient-to-br from-gold-primary/10 to-gold-primary/5">
             {goldLine}
             <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary">
@@ -1234,7 +1236,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <span className="text-gold-primary font-semibold">open and running</span>. Subscribe to view live entry, take-profits, stop-loss, and charts.
             </p>
             <button onClick={() => { window.location.href = "/pricing"; }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
               {Ic.lock("w-3.5 h-3.5")} Subscribe to Unlock
             </button>
             <p className="text-[10px] text-white/40 mt-3">Closed signals are visible for free as track record proof.</p>
@@ -1245,7 +1247,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
     return (
       <div className="p-2.5 space-y-2">
-        {/* premium-panel-v4 */}
+        {/* premium-panel-v5 (boxy) */}
 
         {/* ── LIVE PRICE + PnL ── */}
         {livePrice && (() => {
@@ -1256,9 +1258,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const up = pnlPct !== null && pnlPct > 0;
           const down = pnlPct !== null && pnlPct < 0;
           return (
-            <div className={`relative rounded-xl border overflow-hidden ${
-              up ? "border-green-500/25" : down ? "border-red-500/25" : "border-white/10"
-            }`}>
+            <div className={`lq-card ${up ? "lq-card--green" : down ? "lq-card--red" : ""}`}>
               {goldLine}
               <div className={`p-2.5 ${up ? "bg-green-500/[0.05]" : down ? "bg-red-500/[0.05]" : "bg-white/[0.02]"}`}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -1283,7 +1283,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     <LocalPriceLine usdtValue={livePrice} size="md" />
                   </div>
                   {pnlPct !== null && (
-                    <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-bold flex-shrink-0 border ${
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-bold flex-shrink-0 border ${
                       up ? "bg-green-500/15 text-green-400 border-green-500/20" :
                       down ? "bg-red-500/15 text-red-400 border-red-500/20" :
                       "bg-white/5 text-white/50 border-white/10"
@@ -1298,7 +1298,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         })()}
 
         {/* ── ENTRY ── */}
-        <div className="relative rounded-xl border border-gold-primary/25 overflow-hidden">
+        <div className="lq-card lq-card--gold">
           {goldLine}
           <div className="p-2.5 bg-gradient-to-br from-gold-primary/[0.1] to-gold-primary/[0.02]">
             <div className="flex items-center justify-between">
@@ -1315,21 +1315,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {/* ── DEEP ANALYSIS ── */}
         {signalDetail?.enrichment && (
           <button onClick={() => setShowDeepAnalysis(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-md text-[10px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/20 hover:border-gold-primary/40 transition-all active:scale-[0.98]">
             {Ic.cpu("w-3.5 h-3.5")}<span>Deep Analysis</span>
           </button>
         )}
 
         {/* ── TARGETS (grid tile / kotak) ── */}
-        <div className="relative rounded-xl border border-green-500/12 overflow-hidden bg-[#0c0b09] p-2">
+        <div className="lq-card lq-card--green bg-[#0c0b09] p-2">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
           <p className="text-[9px] uppercase tracking-[0.14em] text-green-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
             {Ic.target("w-3 h-3")} {t("modal.targets")}
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             {targets.map((tg, i) => (
-              <div key={i} className={`rounded-lg border p-1.5 ${
-                tg.hit ? "bg-green-500/[0.08] border-green-500/25" : "bg-white/[0.02] border-white/[0.06]"
+              <div key={i} className={`lq-tile p-1.5 ${
+                tg.hit
+                  ? "bg-green-500/[0.08] border-green-500/25 hover:!border-green-500/55 hover:bg-green-500/[0.14]"
+                  : "bg-white/[0.02] hover:bg-white/[0.05]"
               }`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1">
@@ -1349,15 +1351,17 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── STOP LOSS (grid tile / kotak) ── */}
         {stops.length > 0 && (
-          <div className="relative rounded-xl border border-red-500/12 overflow-hidden bg-[#0c0909] p-2">
+          <div className="lq-card lq-card--red bg-[#0c0909] p-2">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
             <p className="text-[9px] uppercase tracking-[0.14em] text-red-400/80 font-medium mb-2 flex items-center gap-1.5 px-0.5">
               {Ic.stop("w-3 h-3")} {t("modal.stop_loss")}
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {stops.map((s, i) => (
-                <div key={i} className={`rounded-lg border p-1.5 ${
-                  s.hit ? "bg-red-500/[0.08] border-red-500/25" : "bg-white/[0.02] border-white/[0.06]"
+                <div key={i} className={`lq-tile p-1.5 ${
+                  s.hit
+                    ? "bg-red-500/[0.08] border-red-500/25 hover:!border-red-500/55 hover:bg-red-500/[0.14]"
+                    : "bg-white/[0.02] hover:bg-white/[0.05]"
                 }`}>
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-[10px] font-bold ${s.hit ? "text-red-400" : "text-white/70"}`}>{s.label}</span>
@@ -1377,7 +1381,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           const countdown = formatCountdown(nextFundingMs);
           const fundingPos = funding > 0;
           return (
-            <div className="relative rounded-xl border border-gold-primary/12 overflow-hidden bg-[#0d0b08]">
+            <div className="lq-card lq-card--gold bg-[#0d0b08]">
               {goldLine}
               <div className="px-2.5 py-1.5 border-b border-white/[0.05] flex items-center gap-1.5">
                 <svg className="w-2.5 h-2.5 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -1386,7 +1390,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
               {/* Funding + OI sebagai 2 tile kotak */}
               <div className="grid grid-cols-2 gap-px bg-white/[0.05]">
-                <div className="p-2.5 bg-[#0d0b08]">
+                <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
                   <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Funding</p>
                   <p className={`text-[12px] font-mono font-bold leading-none ${fundingPos ? "text-red-400" : "text-green-400"}`}>
                     {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
@@ -1395,7 +1399,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                     {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` · ${countdown}` : ""}
                   </p>
                 </div>
-                <div className="p-2.5 bg-[#0d0b08]">
+                <div className="p-2.5 bg-[#0d0b08] transition-colors hover:bg-white/[0.03]">
                   <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1">Open Interest</p>
                   <p className="text-[12px] font-mono font-bold text-white leading-none">{formatOiUsd(oiUsd)}</p>
                   {oiChange24h !== null && (
@@ -1412,7 +1416,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <p className="text-[8px] text-white/40 uppercase tracking-wider mb-1.5">L/S · Top Traders</p>
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-mono font-bold text-green-400 w-8 flex-shrink-0">{lsLong}%</span>
-                    <div className="flex-1 flex h-2.5 rounded-full overflow-hidden bg-white/5">
+                    <div className="flex-1 flex h-2.5 rounded-sm overflow-hidden bg-white/5">
                       <div className="h-full bg-gradient-to-r from-green-500/80 to-green-400/55" style={{ width: `${lsLong}%` }} />
                       <div className="h-full bg-gradient-to-r from-red-400/55 to-red-500/80" style={{ width: `${lsShort}%` }} />
                     </div>
@@ -1445,7 +1449,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         {/* ── META: volume / risk / cap ── */}
         {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
-          <div className="relative rounded-xl border border-gold-primary/10 overflow-hidden bg-[#0c0b09] p-2 space-y-1.5">
+          <div className="lq-card bg-[#0c0b09] p-2 space-y-1.5">
             {signal?.volume_rank_num && (
               <div className="flex items-center justify-between">
                 <span className="text-[9px] text-white/40 uppercase tracking-wider flex items-center gap-1.5">{Ic.bars("w-3 h-3")} {t("modal.vol_rank")}</span>
@@ -1559,7 +1563,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                         window.location.href = "/journal";
                       }, 300);
                     }}
-                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded text-[10px] sm:text-[11px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all mr-0.5 sm:mr-1"
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-gold-primary/10 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 hover:border-gold-primary/60 transition-all mr-0.5 sm:mr-1"
                     title="Journal This Trade"
                   >
                     <svg
@@ -1579,7 +1583,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </button>
                   {/* END TOMBOL JOURNAL */}
 
-                  <div className="flex items-center bg-[#111] rounded-lg p-0.5 border border-gold-primary/15">
+                  <div className="flex items-center bg-[#111] rounded-md p-0.5 border border-gold-primary/15">
                     {[
                       { id: "chart", label: t("modal.chart"), icon: (
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><rect x="7" y="10" width="3" height="7" rx="0.5" /><rect x="13.5" y="6" width="3" height="11" rx="0.5" /></svg>
@@ -1606,7 +1610,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                   <button
                     onClick={handleCloseClick}
-                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-lg transition-all flex-shrink-0 ml-1 sm:ml-2"
+                    className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-white bg-[#0a0a0a] hover:bg-red-500/20 border border-gold-primary/20 hover:border-red-500/50 rounded-md transition-all flex-shrink-0 ml-1 sm:ml-2"
                   >
                     <svg
                       className="w-3.5 h-3.5"
@@ -1629,7 +1633,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShareTweet}
                       title="Share to Instagram"
                       aria-label="Share to Instagram"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.instagram("w-3.5 h-3.5")}
                     </button>
@@ -1640,7 +1644,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       onClick={handleShare}
                       title="Share signal"
                       aria-label="Share signal"
-                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-lg transition-all ml-1"
+                      className="w-7 h-7 flex items-center justify-center text-gold-primary drop-shadow-[0_0_5px_rgba(212,168,83,0.55)] bg-[#0a0a0a] hover:bg-gold-primary/15 hover:drop-shadow-[0_0_9px_rgba(212,168,83,0.9)] border border-gold-primary/30 hover:border-gold-primary/60 rounded-md transition-all ml-1"
                     >
                       {Ic.share("w-3.5 h-3.5")}
                     </button>
@@ -1687,7 +1691,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Gambar Before & After / TV */}
                     {!entryImg && !afterImg ? (
-                      <div className="w-full h-[350px] sm:h-[450px] bg-[#0d0d0d] rounded-xl border border-white/5 overflow-hidden relative shadow-lg">
+                      <div className="lq-card w-full h-[350px] sm:h-[450px] bg-[#0d0d0d] relative shadow-lg">
                         <div
                           id="tv_chart_modal_side"
                           className="absolute inset-0 w-full h-full"
@@ -1702,7 +1706,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {t("modal.before_entry")}
                             </span>
                             {entryPrice > 0 && (
-                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5 flex items-center">
+                              <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center">
                                 Entry:{" "}
                                 <span className="text-white ml-1">
                                   ${formatPrice(entryPrice)}
@@ -1712,7 +1716,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                           {entryImg ? (
                             <div
-                              className="relative group rounded-xl overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full cursor-zoom-in shadow-md"
+                              className="lq-card relative group bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full cursor-zoom-in shadow-md"
                               onClick={() => setLightboxImg(entryImg)}
                             >
                               <img
@@ -1722,13 +1726,13 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 loading="lazy"
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center pointer-events-none">
-                                <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded font-medium backdrop-blur-sm shadow-xl">
+                                <span className="opacity-0 group-hover:opacity-100 bg-black/80 text-white text-[10px] sm:text-xs px-3 py-1.5 rounded-md font-medium backdrop-blur-sm shadow-xl">
                                   Fullscreen
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-xl border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
+                            <div className="rounded-lg border border-dashed border-white/10 bg-[#0d0d0d] flex flex-col items-center justify-center h-[250px] sm:h-[300px] w-full text-text-muted">
                               {Ic.clock("w-6 h-6 mb-2 opacity-60")}
                               <p className="text-xs">Waiting for Chart</p>
                             </div>
@@ -1767,7 +1771,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               {showInteractiveRight && afterImg && (
                                 <button
                                   onClick={() => setShowTV(false)}
-                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded border border-white/5 transition-colors"
+                                  className="text-[9px] sm:text-[10px] text-text-muted hover:text-white flex items-center gap-1 bg-[#0d0d0d] hover:bg-white/5 px-2 py-1 rounded-md border border-white/5 transition-colors"
                                 >
                                   <svg
                                     className="w-3 h-3"
@@ -1786,7 +1790,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 </button>
                               )}
                               {lastPrice > 0 && (
-                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded border border-white/5 flex items-center gap-1">
+                                <span className="text-[10px] sm:text-[11px] font-mono font-medium text-white/80 bg-[#0d0d0d] px-2 py-1 rounded-md border border-white/5 flex items-center gap-1">
                                   Last:{" "}
                                   <span className="text-white">
                                     ${formatPrice(lastPrice)}
@@ -1803,7 +1807,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             </div>
                           </div>
                           {showInteractiveRight ? (
-                            <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md">
+                            <div className="lq-card relative bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md">
                               <div
                                 id="tv_chart_modal_side"
                                 className="absolute inset-0 w-full h-full"
@@ -1811,7 +1815,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             </div>
                           ) : (
                             <div
-                              className={`relative group rounded-xl overflow-hidden border bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md ${isStopped ? "border-red-500/20" : "border-white/10"}`}
+                              className={`lq-card ${isStopped ? "lq-card--red" : "lq-card--green"} relative group bg-[#0d0d0d] h-[250px] sm:h-[300px] w-full shadow-md`}
                             >
                               <img
                                 src={afterImg}
@@ -1828,7 +1832,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10">
                                 <button
                                   onClick={() => setShowTV(true)}
-                                  className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-lg font-bold text-xs transition-colors border border-white/20 flex items-center gap-2"
+                                  className="px-4 py-2 bg-white/10 text-white hover:bg-white/20 rounded-md font-bold text-xs transition-colors border border-white/20 flex items-center gap-2"
                                 >
                                   <span>Interactive Chart</span>
                                   <svg
@@ -1860,7 +1864,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* Peak Price (FULL WIDTH) */}
                     {peakPrice && entryPrice > 0 && (
-                      <div className="bg-[#0d0d0d] border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-center gap-4 shadow-sm">
+                      <div className="lq-card lq-card--green bg-[#0d0d0d] p-4 flex flex-col sm:flex-row items-center justify-center gap-4 shadow-sm">
                         <div className="flex flex-col items-center sm:items-end">
                           <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-widest text-center sm:text-right">
                             Highest Price After Called
@@ -1871,7 +1875,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           <span className="text-lg font-mono font-bold text-white">
                             ${formatPrice(peakPrice)}
                           </span>
-                          <span className="text-sm font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 font-mono">
+                          <span className="text-sm font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20 font-mono">
                             {peakPricePct}%
                           </span>
                         </div>
@@ -1883,7 +1887,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
                         {Ic.clock("w-4 h-4")} Signal Journey
                       </h4>
-                      <div className="bg-[#0d0d0d] rounded-xl border border-white/5 p-4 w-full overflow-x-auto custom-scrollbar">
+                      <div className="lq-card bg-[#0d0d0d] p-4 w-full overflow-x-auto custom-scrollbar">
                         <div className="flex items-start min-w-[600px] relative pt-2 pb-4">
                           <div className="absolute top-[20px] left-8 right-8 h-[2px] bg-white/5 z-0" />
                           {timeline.map((ev, i) => {
@@ -1946,7 +1950,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={signalDetail.message_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all group text-blue-400"
+                            className="lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b from-blue-500/10 to-blue-900/10 !border-blue-500/20 hover:!border-blue-500/45 hover:bg-blue-500/20 group text-blue-400"
                           >
                             {Ic.send("w-5 h-5")}
                             <span className="text-blue-400 text-[9px] sm:text-[10px] font-bold group-hover:text-blue-300 truncate w-full text-center">
@@ -1962,7 +1966,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b ${link.color} rounded-lg border border-white/5 hover:bg-white/5 transition-all group`}
+                            className={`lq-tile flex flex-col items-center gap-1.5 p-2 w-[calc(33.333%-0.5rem)] sm:w-[calc(20%-0.75rem)] max-w-[140px] bg-gradient-to-b ${link.color} hover:bg-white/5 group`}
                           >
                             <img
                               src={link.logo}
@@ -2000,7 +2004,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </p>
                     </div>
                     {coinInfoLoading && (
-                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-4 sm:mb-5 animate-pulse">
+                      <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5 animate-pulse">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-8 h-8 rounded-full bg-gold-primary/10" />
                           <div>
@@ -2016,7 +2020,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </div>
                     )}
                     {coinInfo && (
-                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-gold-primary/15 mb-4 sm:mb-5">
+                      <div className="lq-card lq-card--gold p-3 sm:p-4 mb-4 sm:mb-5">
                         <div className="flex items-center gap-3 mb-3">
                           {coinInfo.image_thumb && (
                             <img
@@ -2173,7 +2177,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.homepage}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-gold-primary/70 hover:text-gold-primary bg-gold-primary/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.globe("w-3 h-3")} {t("modal.website")}
                               </a>
@@ -2183,7 +2187,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://twitter.com/${coinInfo.links.twitter}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-blue-400/70 hover:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.xLogo("w-3 h-3")} @{coinInfo.links.twitter}
                               </a>
@@ -2193,7 +2197,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={`https://t.me/${coinInfo.links.telegram}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-cyan-400/70 hover:text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.send("w-3 h-3")} Telegram
                               </a>
@@ -2203,7 +2207,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.subreddit}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-orange-400/70 hover:text-orange-400 bg-orange-500/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.chat("w-3 h-3")} Reddit
                               </a>
@@ -2213,7 +2217,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                                 href={coinInfo.links.github}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded transition-colors"
+                                className="flex items-center gap-1 text-[9px] text-gray-400/70 hover:text-gray-400 bg-gray-500/10 px-2 py-1 rounded-md transition-colors"
                               >
                                 {Ic.code("w-3 h-3")} GitHub
                               </a>
@@ -2223,7 +2227,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </div>
                     )}
                     {!coinInfo && !coinInfoLoading && (
-                      <div className="bg-[#111] rounded-xl p-3 sm:p-4 border border-white/5 mb-4 sm:mb-5 text-center">
+                      <div className="lq-card p-3 sm:p-4 mb-4 sm:mb-5 text-center">
                         <p className="text-text-muted text-xs">
                           {t("modal.no_info")}{" "}
                           <span className="text-gold-primary font-mono">
@@ -2235,11 +2239,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
                     {/* === AI PROMPT GENERATOR SECTION === */}
                     <div className="mb-4 sm:mb-5">
-                      <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] rounded-xl border border-gold-primary/20 overflow-hidden">
+                      <div className="lq-card lq-card--gold bg-gradient-to-br from-[#111] to-[#0d0d0d]">
                         {/* Header */}
                         <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-gold-primary/10 bg-gold-primary/5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-gold-primary/15 border border-gold-primary/25 flex items-center justify-center text-gold-primary">
+                            <div className="w-6 h-6 rounded-md bg-gold-primary/15 border border-gold-primary/25 flex items-center justify-center text-gold-primary">
                               {Ic.cpu("w-3.5 h-3.5")}
                             </div>
                             <div>
@@ -2254,7 +2258,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                           </div>
                           <button
                             onClick={handleCopyPrompt}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all duration-300 ${
                               promptCopied
                                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
                                 : "bg-gold-primary/15 text-gold-primary border border-gold-primary/25 hover:bg-gold-primary/25 hover:text-gold-primary active:scale-95"
@@ -2344,7 +2348,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-lg transition-all group border active:scale-95`}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r ${link.color} rounded-md transition-all group border active:scale-95`}
                           >
                             <img
                               src={link.logo}
@@ -2445,6 +2449,49 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
       {/* === STYLES === */}
       <style>{`
+        /* === Boxy card system (news-card style) === */
+        .lq-card {
+          position: relative;
+          border-radius: 10px;                       /* boxy, bukan lonjong */
+          border: 1px solid rgba(212,168,83,.14);
+          background: #0c0b09;
+          overflow: hidden;
+          transition: border-color .25s ease, box-shadow .25s ease,
+                      background-color .25s ease, transform .15s ease;
+        }
+        .lq-card:hover {
+          border-color: rgba(212,168,83,.45);
+          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(212,168,83,.12);
+          transform: translateY(-1px);
+        }
+        .lq-card:active { transform: translateY(0); }
+
+        .lq-card--green { border-color: rgba(34,197,94,.18); }
+        .lq-card--green:hover {
+          border-color: rgba(34,197,94,.5);
+          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(34,197,94,.14);
+        }
+
+        .lq-card--red { border-color: rgba(239,68,68,.18); }
+        .lq-card--red:hover {
+          border-color: rgba(239,68,68,.5);
+          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(239,68,68,.14);
+        }
+
+        .lq-card--gold { border-color: rgba(212,168,83,.28); }
+
+        /* inner tiles (TP / SL / exchange dll) */
+        .lq-tile {
+          border-radius: 6px;
+          border: 1px solid rgba(255,255,255,.06);
+          transition: border-color .2s ease, background-color .2s ease, transform .12s ease;
+        }
+        .lq-tile:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.16); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .lq-card, .lq-card:hover, .lq-tile, .lq-tile:hover { transform: none; transition: none; }
+        }
+
         .lq-guide-btn { background: linear-gradient(110deg, rgba(212,168,83,0.12) 0%, rgba(212,168,83,0.12) 40%, rgba(255,225,150,0.55) 50%, rgba(212,168,83,0.12) 60%, rgba(212,168,83,0.12) 100%); background-size: 220% 100%; animation: lqShimmer 2.6s linear infinite; box-shadow: 0 0 6px rgba(212,168,83,0.35); transition: box-shadow .3s, transform .15s; }
         .lq-guide-btn:hover { box-shadow: 0 0 14px rgba(212,168,83,0.7); transform: translateY(-1px); }
         @keyframes lqShimmer { 0% { background-position: 200% 0; } 100% { background-position: -120% 0; } }
