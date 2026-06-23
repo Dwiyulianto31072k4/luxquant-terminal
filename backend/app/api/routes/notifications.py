@@ -110,8 +110,11 @@ async def get_notifications(
     params = {"uid": current_user.id, "read_at": read_at}
 
     if type_filter:
-        conditions.append("n.type = :type_filter")
-        params["type_filter"] = type_filter
+        if type_filter == "autotrade":
+            conditions.append("n.type LIKE 'autotrade%'")
+        else:
+            conditions.append("n.type = :type_filter")
+            params["type_filter"] = type_filter
 
     if unread_only:
         conditions.append(SQL_UNREAD)
