@@ -63,6 +63,9 @@ const SignalModal = ({
   const [showCoinUtility, setShowCoinUtility] = useState(false);
   const [showBtcCorrelation, setShowBtcCorrelation] = useState(false);
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
+  const [livePrice, setLivePrice] = useState(null);
+  const [liveChange24h, setLiveChange24h] = useState(null);
+  const [derivMetrics, setDerivMetrics] = useState(null);
 
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
@@ -321,6 +324,66 @@ const SignalModal = ({
 
     fetchPeakPrice();
   }, [isOpen, signal, signalDetail]);
+
+  // 4b. Live price + derivatives metrics (polling 10s, full client-side)
+  useEffect(() => {
+    if (!isOpen || !signal?.pair) return;
+    const symbol = (signal.pair || "").replace(/USDT$/i, "") + "USDT";
+
+    const fetchLiveData = async () => {
+      try {
+        const [pmRes, oiRes, lsRes, oi24Res] = await Promise.allSettled([
+          fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
+          fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`),
+          fetch(`https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`),
+          fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=25`),
+        ]);
+
+        if (pmRes.status === "fulfilled" && pmRes.value.ok) {
+          const pm = await pmRes.value.json();
+          const markPrice = parseFloat(pm.markPrice);
+          const fundingRate = parseFloat(pm.lastFundingRate) * 100;
+          const nextFundingMs = parseInt(pm.nextFundingTime);
+          if (markPrice > 0) setLivePrice(markPrice);
+
+          let oiUsd = null, oiChange24h = null;
+          if (oiRes.status === "fulfilled" && oiRes.value.ok) {
+            const oiData = await oiRes.value.json();
+            oiUsd = parseFloat(oiData.openInterest) * markPrice;
+          }
+          if (oi24Res.status === "fulfilled" && oi24Res.value.ok) {
+            const oi24 = await oi24Res.value.json();
+            if (Array.isArray(oi24) && oi24.length >= 2) {
+              const oldest = parseFloat(oi24[0].sumOpenInterestValue);
+              const newest = parseFloat(oi24[oi24.length - 1].sumOpenInterestValue);
+              if (oldest > 0) oiChange24h = ((newest - oldest) / oldest) * 100;
+            }
+          }
+          let lsLong = null, lsShort = null;
+          if (lsRes.status === "fulfilled" && lsRes.value.ok) {
+            const lsData = await lsRes.value.json();
+            if (Array.isArray(lsData) && lsData.length > 0) {
+              lsLong = Math.round(parseFloat(lsData[0].longAccount) * 100);
+              lsShort = Math.round(parseFloat(lsData[0].shortAccount) * 100);
+            }
+          }
+          setDerivMetrics({ funding: fundingRate, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort });
+        }
+      } catch (_) {}
+
+      try {
+        const tickRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`);
+        if (tickRes.ok) {
+          const tick = await tickRes.json();
+          setLiveChange24h(parseFloat(tick.priceChangePercent));
+        }
+      } catch (_) {}
+    };
+
+    fetchLiveData();
+    const iv = setInterval(fetchLiveData, 10000);
+    return () => clearInterval(iv);
+  }, [isOpen, signal?.pair]);
 
   // 5. Handle tombol Escape (Esc)
   useEffect(() => {
@@ -1076,6 +1139,23 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     );
   };
 
+  const formatCountdown = (ms) => {
+    if (!ms) return null;
+    const diff = ms - Date.now();
+    if (diff <= 0) return "now";
+    const totalSec = Math.floor(diff / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  const formatOiUsd = (val) => {
+    if (!val || val <= 0) return "\u2014";
+    if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
+    if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
+    return `$${(val / 1e3).toFixed(1)}K`;
+  };
+
   // === renderTargetsPanel === (Diubah jadi fungsi biasa agar tidak re-mount)
   const renderTargetsPanel = (layout) => {
     const isCompact = layout === "bottom";
@@ -1133,6 +1213,58 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
     return (
       <div className={isCompact ? "p-2.5 space-y-1.5" : "p-2.5 space-y-2"}>
+        {/* Live Price + PnL */}
+        {livePrice && (() => {
+          const entryNum = signal?.entry ? Number(signal.entry) : 0;
+          const pnlRaw = entryNum > 0 ? ((livePrice - entryNum) / entryNum) * 100 : null;
+          const isShortDir = signal?.target1 && Number(signal.target1) < entryNum;
+          const pnlPct = isShortDir && pnlRaw !== null ? -pnlRaw : pnlRaw;
+          const isProfit = pnlPct !== null && pnlPct > 0;
+          const isLoss = pnlPct !== null && pnlPct < 0;
+          return (
+            <div className={`rounded-lg border p-2 ${
+              isProfit ? "bg-green-500/[0.06] border-green-500/20" :
+              isLoss   ? "bg-red-500/[0.06] border-red-500/20" :
+                         "bg-white/[0.02] border-white/[0.08]"
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                  </span>
+                  <span className="text-[8px] uppercase tracking-wider text-white/40">Live \u00b7 mark</span>
+                </div>
+                {liveChange24h !== null && (
+                  <span className={`text-[8px] font-mono font-semibold ${liveChange24h >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                    {liveChange24h >= 0 ? "+" : ""}{liveChange24h.toFixed(2)}% 24h
+                  </span>
+                )}
+              </div>
+              <div className="flex items-end justify-between gap-1">
+                <div>
+                  <p className={`font-mono font-bold leading-none ${isCompact ? "text-sm" : "text-base"} ${
+                    isProfit ? "text-green-400" : isLoss ? "text-red-400" : "text-white"
+                  }`}>
+                    {formatPrice(livePrice)}
+                  </p>
+                  <LocalPriceLine usdtValue={livePrice} size="sm" />
+                </div>
+                {pnlPct !== null && (
+                  <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold flex-shrink-0 ${
+                    isProfit ? "bg-green-500/15 text-green-400" :
+                    isLoss   ? "bg-red-500/15 text-red-400" :
+                               "bg-white/5 text-white/40"
+                  }`}>
+                    {isProfit ? "\u25b2" : isLoss ? "\u25bc" : "~"}
+                    {" "}{Math.abs(pnlPct).toFixed(2)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="bg-gradient-to-br from-gold-primary/15 to-gold-primary/5 rounded-lg p-2 border border-gold-primary/30">
           <div className="flex items-center justify-between">
             <div>
@@ -1312,6 +1444,82 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               </div>
             </div>
           ))}  
+        {/* Derivatives Metrics */}
+        {derivMetrics && (() => {
+          const { funding, nextFundingMs, oiUsd, oiChange24h, lsLong, lsShort } = derivMetrics;
+          const countdown = formatCountdown(nextFundingMs);
+          const fundingPos = funding > 0;
+          return (
+            <div className="rounded-lg border border-white/[0.06] bg-[#0d0d0d] overflow-hidden">
+              <div className="px-2 py-1 border-b border-white/[0.04] flex items-center gap-1">
+                <svg className="w-2.5 h-2.5 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span className="text-[7.5px] uppercase tracking-wider text-white/30 font-medium">Derivatives \u00b7 Perp</span>
+              </div>
+              <div className="divide-y divide-white/[0.04]">
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <span className="text-[8px] text-white/35 uppercase tracking-wider">Funding</span>
+                  <div className="text-right">
+                    <span className={`text-[10px] font-mono font-bold block ${fundingPos ? "text-red-400" : "text-green-400"}`}>
+                      {funding >= 0 ? "+" : ""}{funding.toFixed(4)}%
+                    </span>
+                    <span className="text-[7.5px] text-white/30 leading-tight">
+                      {fundingPos ? "longs pay" : "shorts pay"}{countdown ? ` \u00b7 in ${countdown}` : ""}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <span className="text-[8px] text-white/35 uppercase tracking-wider">Open Interest</span>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono font-bold text-white block">{formatOiUsd(oiUsd)}</span>
+                    {oiChange24h !== null && (
+                      <span className={`text-[7.5px] font-mono leading-tight ${oiChange24h >= 0 ? "text-green-400/60" : "text-red-400/60"}`}>
+                        {oiChange24h >= 0 ? "+" : ""}{oiChange24h.toFixed(2)}% \u00b7 24h
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {lsLong !== null && lsShort !== null && (
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[8px] text-white/35 uppercase tracking-wider">L/S \u00b7 top traders</span>
+                      <span className="text-[10px] font-mono font-bold">
+                        <span className="text-green-400">{lsLong}%</span>
+                        <span className="text-white/20 mx-0.5">/</span>
+                        <span className="text-red-400">{lsShort}%</span>
+                      </span>
+                    </div>
+                    <div className="h-1 rounded-full bg-red-500/25 overflow-hidden">
+                      <div className="h-full bg-green-500/60 rounded-full transition-all duration-500" style={{ width: `${lsLong}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="px-2 py-1.5 border-t border-white/[0.04] bg-white/[0.01]">
+                <p className="text-[7px] text-white/22 leading-relaxed mb-1">
+                  Metrics from Binance. If "\u2014", data may be blocked \u2014 try VPN.
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { label: "TradingView", url: `https://www.tradingview.com/chart/?symbol=BINANCE:${signal?.pair || ""}.P` },
+                    { label: "Metrics", url: `/market-pulse?pair=${signal?.pair || ""}` },
+                    { label: "Binance Futures", url: `https://www.binance.com/en/futures/${signal?.pair || ""}` },
+                  ].map((link, i, arr) => (
+                    <span key={link.label} className="flex items-center gap-1.5">
+                      <a href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                         className="text-[7.5px] text-white/28 hover:text-gold-primary/70 transition-colors">
+                        {link.label}
+                      </a>
+                      {i < arr.length - 1 && <span className="text-white/15 text-[7px]">\u00b7</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {!isCompact && (
           <>
             {signal?.volume_rank_num && (
