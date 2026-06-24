@@ -95,6 +95,7 @@ const UserCell = ({ user, onClick }) => (
             <SparklesIcon size={10} style={{ color: palette.gold[300] }} />
           </span>
         )}
+        <CrmDot status={user.crm_status} lastAt={user.last_followup_at} />
       </p>
       <p className="text-[10px] truncate font-mono" style={{ color: '#6b5c52' }}>
         {user.email}
@@ -102,6 +103,32 @@ const UserCell = ({ user, onClick }) => (
     </div>
   </button>
 );
+
+// ════════════════════════════════════════════════════════════════════
+// CRM touch indicator — has this user been followed up on?
+// ════════════════════════════════════════════════════════════════════
+const CRM_DOT = {
+  untouched: { color: '#6b5c52', label: 'Never contacted' },
+  open:      { color: palette.amber?.[400] || '#fbbf24', label: 'Follow-up in progress' },
+  tracked:   { color: palette.green[400], label: 'Tracked' },
+};
+const CrmDot = ({ status, lastAt }) => {
+  const cfg = CRM_DOT[status] || CRM_DOT.untouched;
+  const when = lastAt ? relativeTime(lastAt) : null;
+  const title = when ? `${cfg.label} · last touched ${when}` : cfg.label;
+  return (
+    <span title={title} className="inline-flex shrink-0" style={{ lineHeight: 0 }}>
+      <span
+        className="inline-block rounded-full"
+        style={{
+          width: 6, height: 6,
+          background: cfg.color,
+          boxShadow: status === 'open' ? `0 0 5px ${cfg.color}` : 'none',
+        }}
+      />
+    </span>
+  );
+};
 
 // ════════════════════════════════════════════════════════════════════
 // Row Actions
