@@ -25,6 +25,7 @@ import { ConfirmModal } from './admin/users/ConfirmModal';
 // Shared admin pieces
 import { FilterPanel } from './admin/FilterPanel';
 import { SegmentStrip } from './admin/users/SegmentStrip';
+import { CrmChips } from './admin/users/CrmChips';
 import { BulkActionBar, exportUsersToCsv } from './admin/BulkActionBar';
 import { UserDetailDrawer } from './admin/UserDetailDrawer';
 
@@ -47,6 +48,7 @@ import { palette, tint } from './admin/designSystem';
 const DEFAULT_FILTERS = {
   role: null,
   plan: null,
+  crm: null,
   status: null,
   provider: null,
   activity: null,
@@ -278,6 +280,7 @@ const UserManagementPage = () => {
         search: search || undefined,
         role: filters.role || undefined,
         plan: filters.plan || undefined,
+        crm: filters.crm || undefined,
         status: filters.status || undefined,
         provider: filters.provider || undefined,
         activity: filters.activity || undefined,
@@ -549,6 +552,10 @@ const UserManagementPage = () => {
         stats={stats}
         active={filters.anomaly}
         onToggle={(key) => setFilters({ ...DEFAULT_FILTERS, anomaly: key })}
+      />
+      <CrmChips
+        active={filters.crm}
+        onToggle={(key) => setFilters({ ...DEFAULT_FILTERS, crm: key })}
       />
 
       <UsersSearchBar
