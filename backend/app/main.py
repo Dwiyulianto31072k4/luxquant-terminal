@@ -48,6 +48,8 @@ from app.api.routes.coin_profile import router as coin_profile_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.notification_preferences import router as notification_prefs_router
+from app.api.routes.announcements import router as announcements_router
+from app.api.routes.admin_announcements import router as admin_announcements_router
 from app.api.routes.coin_watch import router as coin_watch_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
@@ -150,6 +152,8 @@ app.add_middleware(ActivityTrackerMiddleware)
 
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
+app.include_router(announcements_router, tags=["announcements"])
+app.include_router(admin_announcements_router, tags=["admin-announcements"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
 app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
@@ -215,6 +219,11 @@ if os.path.exists(NEWS_IMAGES_DIR):
     print(f"📷 News images directory mounted: {NEWS_IMAGES_DIR}")
 else:
     print(f"⚠️ News images directory not found: {NEWS_IMAGES_DIR}")
+
+# Serve announcement images as static files
+ANNOUNCEMENT_IMAGES_DIR = os.environ.get("ANNOUNCEMENT_IMAGES_DIR", "/opt/luxquant/announcement-images")
+os.makedirs(ANNOUNCEMENT_IMAGES_DIR, exist_ok=True)
+app.mount("/api/v1/announcement-images", StaticFiles(directory=ANNOUNCEMENT_IMAGES_DIR), name="announcement-images")
 
 # ═══════════════════════════════════════════
 # Serve news videos as static files
