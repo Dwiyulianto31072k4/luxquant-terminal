@@ -24,6 +24,7 @@ import { ConfirmModal } from './admin/users/ConfirmModal';
 
 // Shared admin pieces
 import { FilterPanel } from './admin/FilterPanel';
+import { SegmentStrip } from './admin/users/SegmentStrip';
 import { BulkActionBar, exportUsersToCsv } from './admin/BulkActionBar';
 import { UserDetailDrawer } from './admin/UserDetailDrawer';
 
@@ -45,6 +46,7 @@ import { palette, tint } from './admin/designSystem';
 
 const DEFAULT_FILTERS = {
   role: null,
+  plan: null,
   status: null,
   provider: null,
   activity: null,
@@ -275,6 +277,7 @@ const UserManagementPage = () => {
       const data = await adminApi.getUsers({
         search: search || undefined,
         role: filters.role || undefined,
+        plan: filters.plan || undefined,
         status: filters.status || undefined,
         provider: filters.provider || undefined,
         activity: filters.activity || undefined,
