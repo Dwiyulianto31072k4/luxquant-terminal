@@ -351,7 +351,7 @@ function formatGainDisplay(pct) { if (pct >= 10000) return (pct / 1000).toFixed(
 // SIGNAL DETAIL MODAL — logic intact, presentation redesigned
 // ================================================================
 
-const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onNavigate, onClose, cleanPair, t, onOpenHistory }) => {
+export const SignalDetailModal = ({ item, detail, loading, signalIds, currentIndex, onNavigate, onClose, cleanPair, t, onOpenHistory }) => {
   const [lightboxImg, setLightboxImg] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [showTV, setShowTV] = useState(false);

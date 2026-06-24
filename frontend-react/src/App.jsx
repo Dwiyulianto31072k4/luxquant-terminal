@@ -23,6 +23,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import InAppBrowserBanner from "./components/InAppBrowserBanner";
 import TelegramNudgeModal from "./components/TelegramNudgeModal";
+import AnnouncementModal from "./components/AnnouncementModal";
 
 // ════════════════════════════════════════
 // LAZY LOADED PAGES
@@ -50,6 +51,9 @@ const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
 const ReferralPage = lazy(() => import("./components/ReferralPage"));
 const LandingPage = lazy(() => import("./components/landing/LandingPage"));
+const LandingPageV2 = lazy(
+  () => import("./components/landing/v2/LandingPageV2"),
+);
 const LoginPage = lazy(() => import("./components/auth/LoginPage"));
 const GoogleCallback = lazy(() => import("./components/auth/GoogleCallback"));
 const DiscordCallback = lazy(() => import("./components/auth/DiscordCallback"));
@@ -247,7 +251,9 @@ function PremiumGate({ children }) {
 const NAV_ICON_PATHS = {
   "/home": (
     <>
-      <path d="M3 10.5 L12 3 L21 10.5" /><path d="M5 9.5 V20 a1 1 0 001 1 H18 a1 1 0 001-1 V9.5" /><path d="M9.5 21 v-6 h5 v6" />
+      <path d="M3 10.5 L12 3 L21 10.5" />
+      <path d="M5 9.5 V20 a1 1 0 001 1 H18 a1 1 0 001-1 V9.5" />
+      <path d="M9.5 21 v-6 h5 v6" />
     </>
   ),
   "/signals": (
@@ -256,8 +262,10 @@ const NAV_ICON_PATHS = {
   "/autotrade": (
     <>
       <rect x="3.5" y="7" width="11.5" height="9.5" rx="2.5" />
-      <path d="M9.25 7 V4.5" /><circle cx="9.25" cy="3.4" r="0.85" />
-      <circle cx="7" cy="11.3" r="1" /><circle cx="11.5" cy="11.3" r="1" />
+      <path d="M9.25 7 V4.5" />
+      <circle cx="9.25" cy="3.4" r="0.85" />
+      <circle cx="7" cy="11.3" r="1" />
+      <circle cx="11.5" cy="11.3" r="1" />
       <path d="M3.5 11 H2.2 M15 11 H16.3" />
       <circle cx="17.8" cy="17.3" r="2.1" />
       <path d="M17.8 14.6 v0.8 M17.8 20 v-0.8 M15.1 17.3 h0.8 M20.5 17.3 h-0.8 M16 15.5 l0.55 0.55 M19.6 19.1 l-0.55 -0.55 M19.6 15.5 l-0.55 0.55 M16 19.1 l0.55 -0.55" />
@@ -265,60 +273,98 @@ const NAV_ICON_PATHS = {
   ),
   "/ai-arena": (
     <>
-      <circle cx="11" cy="11" r="6" /><path d="M15.5 15.5 L21 21" /><path d="M11 8.5 v5 M8.5 11 h5" strokeOpacity="0.55" />
+      <circle cx="11" cy="11" r="6" />
+      <path d="M15.5 15.5 L21 21" />
+      <path d="M11 8.5 v5 M8.5 11 h5" strokeOpacity="0.55" />
     </>
   ),
   "/orderbook": (
     <>
-      <line x1="4" y1="6" x2="13" y2="6" /><line x1="4" y1="10" x2="10" y2="10" /><line x1="4" y1="14" x2="11" y2="14" /><line x1="4" y1="18" x2="9" y2="18" /><line x1="18" y1="4" x2="18" y2="20" /><path d="M15.5 17 L18 20 L20.5 17" />
+      <line x1="4" y1="6" x2="13" y2="6" />
+      <line x1="4" y1="10" x2="10" y2="10" />
+      <line x1="4" y1="14" x2="11" y2="14" />
+      <line x1="4" y1="18" x2="9" y2="18" />
+      <line x1="18" y1="4" x2="18" y2="20" />
+      <path d="M15.5 17 L18 20 L20.5 17" />
     </>
   ),
   "/markets": (
     <>
-      <rect x="5" y="8" width="4" height="11" rx="1" /><path d="M7 8 V5" /><rect x="15" y="4" width="4" height="13" rx="1" /><path d="M17 4 V2 M17 17 v3" />
+      <rect x="5" y="8" width="4" height="11" rx="1" />
+      <path d="M7 8 V5" />
+      <rect x="15" y="4" width="4" height="13" rx="1" />
+      <path d="M17 4 V2 M17 17 v3" />
     </>
   ),
-  "/market-pulse": (
-    <path d="M3 12 H7 L9 6 L13 18 L15 12 H21" />
-  ),
+  "/market-pulse": <path d="M3 12 H7 L9 6 L13 18 L15 12 H21" />,
   "/onchain": (
     <>
-      <circle cx="6" cy="6" r="2" /><circle cx="18" cy="6" r="2" /><circle cx="12" cy="14" r="2.4" /><circle cx="6" cy="20" r="1.8" /><circle cx="18" cy="20" r="1.8" /><line x1="7.4" y1="7.4" x2="10.4" y2="12.2" /><line x1="16.6" y1="7.4" x2="13.6" y2="12.2" /><line x1="10.6" y1="15.8" x2="7.2" y2="18.4" /><line x1="13.4" y1="15.8" x2="16.8" y2="18.4" />
+      <circle cx="6" cy="6" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <circle cx="12" cy="14" r="2.4" />
+      <circle cx="6" cy="20" r="1.8" />
+      <circle cx="18" cy="20" r="1.8" />
+      <line x1="7.4" y1="7.4" x2="10.4" y2="12.2" />
+      <line x1="16.6" y1="7.4" x2="13.6" y2="12.2" />
+      <line x1="10.6" y1="15.8" x2="7.2" y2="18.4" />
+      <line x1="13.4" y1="15.8" x2="16.8" y2="18.4" />
     </>
   ),
   "/money-flow": (
     <>
-      <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" /><path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
+      <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
+      <path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
     </>
   ),
   "/bitcoin": (
     <>
-      <circle cx="12" cy="12" r="9" /><path d="M10 7 V8 M10 16 V17 M13 7 V8 M13 16 V17" /><path d="M9 8 H14 a2 2 0 010 4 H9 M9 12 H15 a2 2 0 010 4 H9 V8 z" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 7 V8 M10 16 V17 M13 7 V8 M13 16 V17" />
+      <path d="M9 8 H14 a2 2 0 010 4 H9 M9 12 H15 a2 2 0 010 4 H9 V8 z" />
     </>
   ),
   "/crypto-news": (
     <>
-      <rect x="3" y="5" width="14" height="15" rx="1" /><path d="M17 8 H20 a1 1 0 011 1 V19 a1 1 0 01-1 1 H17" /><line x1="6" y1="9" x2="14" y2="9" /><line x1="6" y1="12" x2="14" y2="12" /><line x1="6" y1="15" x2="11" y2="15" />
+      <rect x="3" y="5" width="14" height="15" rx="1" />
+      <path d="M17 8 H20 a1 1 0 011 1 V19 a1 1 0 01-1 1 H17" />
+      <line x1="6" y1="9" x2="14" y2="9" />
+      <line x1="6" y1="12" x2="14" y2="12" />
+      <line x1="6" y1="15" x2="11" y2="15" />
     </>
   ),
   "/calendar": (
     <>
-      <rect x="3" y="5" width="18" height="16" rx="1" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="8" y1="3" x2="8" y2="7" /><line x1="16" y1="3" x2="16" y2="7" /><circle cx="8" cy="14" r="0.8" fill="currentColor" /><circle cx="12" cy="14" r="0.8" fill="currentColor" /><circle cx="16" cy="14" r="0.8" fill="currentColor" /><circle cx="8" cy="17.5" r="0.8" fill="currentColor" />
+      <rect x="3" y="5" width="18" height="16" rx="1" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="3" x2="8" y2="7" />
+      <line x1="16" y1="3" x2="16" y2="7" />
+      <circle cx="8" cy="14" r="0.8" fill="currentColor" />
+      <circle cx="12" cy="14" r="0.8" fill="currentColor" />
+      <circle cx="16" cy="14" r="0.8" fill="currentColor" />
+      <circle cx="8" cy="17.5" r="0.8" fill="currentColor" />
     </>
   ),
   "/performance": (
     <>
-      <path d="M3 3 v18 h18" /><path d="M7 14 l4-4 4 4 6-6" /><path d="M17 8 h4 v4" />
+      <path d="M3 3 v18 h18" />
+      <path d="M7 14 l4-4 4 4 6-6" />
+      <path d="M17 8 h4 v4" />
     </>
   ),
   "/journal": (
     <>
-      <rect x="4" y="3" width="14" height="18" rx="1" /><line x1="8" y1="3" x2="8" y2="21" /><line x1="11" y1="9" x2="15" y2="9" /><line x1="11" y1="13" x2="15" y2="13" /><path d="M11 17 L13 18 L16 15" />
+      <rect x="4" y="3" width="14" height="18" rx="1" />
+      <line x1="8" y1="3" x2="8" y2="21" />
+      <line x1="11" y1="9" x2="15" y2="9" />
+      <line x1="11" y1="13" x2="15" y2="13" />
+      <path d="M11 17 L13 18 L16 15" />
     </>
   ),
   "/portfolio": (
     <>
-      <rect x="3" y="7" width="18" height="14" rx="1" /><path d="M9 7 V5 a1 1 0 011-1 H14 a1 1 0 011 1 V7" /><line x1="3" y1="13" x2="21" y2="13" />
+      <rect x="3" y="7" width="18" height="14" rx="1" />
+      <path d="M9 7 V5 a1 1 0 011-1 H14 a1 1 0 011 1 V7" />
+      <line x1="3" y1="13" x2="21" y2="13" />
     </>
   ),
   "/watchlist": (
@@ -326,22 +372,28 @@ const NAV_ICON_PATHS = {
   ),
   "/tips": (
     <>
-      <path d="M9 18 h6 M10 21 h4" /><path d="M12 3 a6 6 0 0 1 4 10.5 c-0.7 0.7-1 1.3-1 2.5 H9 c0-1.2-0.3-1.8-1-2.5 A6 6 0 0 1 12 3 z" />
+      <path d="M9 18 h6 M10 21 h4" />
+      <path d="M12 3 a6 6 0 0 1 4 10.5 c-0.7 0.7-1 1.3-1 2.5 H9 c0-1.2-0.3-1.8-1-2.5 A6 6 0 0 1 12 3 z" />
     </>
   ),
   "/referral": (
     <>
-      <circle cx="8" cy="9" r="3" /><path d="M3 19 a5 5 0 0 1 10 0" /><path d="M16 7 h5 M18.5 4.5 v5" strokeOpacity="0.7" /><path d="M16 14 a4 4 0 0 1 5 4" />
+      <circle cx="8" cy="9" r="3" />
+      <path d="M3 19 a5 5 0 0 1 10 0" />
+      <path d="M16 7 h5 M18.5 4.5 v5" strokeOpacity="0.7" />
+      <path d="M16 14 a4 4 0 0 1 5 4" />
     </>
   ),
   "/api-keys": (
     <>
-      <circle cx="7.5" cy="15.5" r="3.5" /><path d="M10 13 L20 3 M17 6 L20 9 M14 9 L16 11" />
+      <circle cx="7.5" cy="15.5" r="3.5" />
+      <path d="M10 13 L20 3 M17 6 L20 9 M14 9 L16 11" />
     </>
   ),
   "/admin": (
     <>
-      <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" /><path d="M9 12 L11 14 L15 9.5" />
+      <path d="M12 3 L20 6 V12 c0 4-3 7-8 9 c-5-2-8-5-8-9 V6 Z" />
+      <path d="M9 12 L11 14 L15 9.5" />
     </>
   ),
 };
@@ -1323,387 +1375,401 @@ function LoginPageWrapper() {
 function App() {
   return (
     <HelmetProvider>
-    <BrowserRouter>
-      <AuthProvider>
-        <InAppBrowserBanner />
-        <TelegramNudgeModal />
-        <CurrencyProvider>
-          <Routes>
-            {/* Landing */}
-            <Route
-              path="/"
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <LandingPage />
-                </Suspense>
-              }
-            />
+      <BrowserRouter>
+        <AuthProvider>
+          <InAppBrowserBanner />
+          <TelegramNudgeModal />
+        <AnnouncementModal />
+          <CurrencyProvider>
+            <Routes>
+              {/* Landing */}
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <LandingPage />
+                  </Suspense>
+                }
+              />
 
-            {/* Auth */}
-            <Route path="/login" element={<LoginPageWrapper />} />
-            <Route
-              path="/auth/google/callback"
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <GoogleCallback />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/auth/discord/callback"
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <DiscordCallback />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/register"
-              element={<Navigate to="/login" replace />}
-            />
+              {/* Auth */}
+              <Route path="/login" element={<LoginPageWrapper />} />
+              <Route
+                path="/auth/google/callback"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <GoogleCallback />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/auth/discord/callback"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <DiscordCallback />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/register"
+                element={<Navigate to="/login" replace />}
+              />
 
-            {/* PUBLIC */}
-            <Route
-              path="/home"
-              element={
-                <AppShell>
-                  <OverviewPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/market-pulse"
-              element={
-                <RequireAuth>
+              {/* PUBLIC */}
+              <Route
+                path="/home"
+                element={
                   <AppShell>
-                    <MarketPulsePage />
+                    <OverviewPage />
                   </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/crypto-news"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <CryptoNewsPage />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/pricing"
-              element={
-                <AppShell>
-                  <PricingPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/payment"
-              element={
-                <AppShell>
-                  <PaymentPage />
-                </AppShell>
-              }
-            />
-            {/* Unified Performance hub (Overview / Daily / Research) */}
-            <Route
-              path="/performance"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PerformanceHub />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            {/* Legacy routes → redirect into the hub (keep bookmarks alive) */}
-            <Route
-              path="/analytics"
-              element={<Navigate to="/performance?view=overview" replace />}
-            />
-            <Route
-              path="/daily-performance"
-              element={<Navigate to="/performance?view=daily" replace />}
-            />
-            <Route
-              path="/daily-performance/edge-lab"
-              element={<Navigate to="/performance?view=research" replace />}
-            />
-            <Route
-              path="/journal"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <JournalPage />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/referral"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <ReferralPage />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <ProfilePage />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/api-keys"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <ApiKeysPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/notifications"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <NotificationsPage />
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-
-            {/* PREMIUM */}
-            <Route
-              path="/signals"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <SignalsPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/autotrade"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <AutoTradePage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/portfolio"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <PortfolioPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            {/* /ai-arena now renders v6 directly. Legacy v4 still accessible at /ai-arena/legacy for rollback. */}
-            <Route
-              path="/ai-arena"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <AIArenaPageV6 />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/ai-arena/v6"
-              element={<Navigate to="/ai-arena" replace />}
-            />
-            <Route
-              path="/ai-arena/legacy"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <AIArenaPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/bitcoin"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <BitcoinPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/markets"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <MarketsPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/watchlist"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <WatchlistTabs />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/tips"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <TipsPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/orderbook"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <OrderBookPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/calendar"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <MacroCalendarPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            {/* Money Flow — payung sektor/koin/whale (Whale Alert jadi tab di dalamnya) */}
-            <Route
-              path="/money-flow"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <MoneyFlowPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-            {/* /whale lama → redirect ke /money-flow (Whale Alert sekarang tab di sana) */}
-            <Route
-              path="/whale"
-              element={<Navigate to="/money-flow" replace />}
-            />
-            <Route
-              path="/onchain"
-              element={
-                <RequireAuth>
-                  <AppShell>
-                    <PremiumGate>
-                      <OnchainPage />
-                    </PremiumGate>
-                  </AppShell>
-                </RequireAuth>
-              }
-            />
-
-            {/* ADMIN */}
-            <Route
-              path="/admin"
-              element={<Navigate to="/admin/workspace" replace />}
-            />
-            <Route
-              path="/admin/workspace"
-              element={
-                <RequireAuth>
-                  <RequireAdmin>
+                }
+              />
+              <Route
+                path="/market-pulse"
+                element={
+                  <RequireAuth>
                     <AppShell>
-                      <AdminWorkspacePage />
+                      <MarketPulsePage />
                     </AppShell>
-                  </RequireAdmin>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={<Navigate to="/admin/workspace#users" replace />}
-            />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/crypto-news"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <CryptoNewsPage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/pricing"
+                element={
+                  <AppShell>
+                    <PricingPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/payment"
+                element={
+                  <AppShell>
+                    <PaymentPage />
+                  </AppShell>
+                }
+              />
+              {/* Unified Performance hub (Overview / Daily / Research) */}
+              <Route
+                path="/performance"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PerformanceHub />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              {/* Legacy routes → redirect into the hub (keep bookmarks alive) */}
+              <Route
+                path="/analytics"
+                element={<Navigate to="/performance?view=overview" replace />}
+              />
+              <Route
+                path="/daily-performance"
+                element={<Navigate to="/performance?view=daily" replace />}
+              />
+              <Route
+                path="/daily-performance/edge-lab"
+                element={<Navigate to="/performance?view=research" replace />}
+              />
+              <Route
+                path="/journal"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <JournalPage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/referral"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <ReferralPage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <ProfilePage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/api-keys"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <ApiKeysPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <NotificationsPage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
 
-            {/* Backward compat */}
-            <Route path="/terminal" element={<Navigate to="/home" replace />} />
-            <Route
-              path="/terminal/watchlist"
-              element={<Navigate to="/watchlist" replace />}
-            />
-            <Route
-              path="/terminal/referral"
-              element={<Navigate to="/referral" replace />}
-            />
-            <Route
-              path="/terminal/pricing"
-              element={<Navigate to="/pricing" replace />}
-            />
-            <Route
-              path="/terminal/payment"
-              element={<Navigate to="/payment" replace />}
-            />
-            <Route
-              path="/terminal/*"
-              element={<Navigate to="/home" replace />}
-            />
+              {/* PREMIUM */}
+              <Route
+                path="/signals"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <SignalsPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/autotrade"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <AutoTradePage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/portfolio"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <PortfolioPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              {/* /ai-arena now renders v6 directly. Legacy v4 still accessible at /ai-arena/legacy for rollback. */}
+              <Route
+                path="/ai-arena"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <AIArenaPageV6 />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/ai-arena/v6"
+                element={<Navigate to="/ai-arena" replace />}
+              />
+              <Route
+                path="/ai-arena/legacy"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <AIArenaPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/bitcoin"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <BitcoinPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/markets"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <MarketsPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/watchlist"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <WatchlistTabs />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/tips"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <TipsPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/orderbook"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <OrderBookPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <MacroCalendarPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              {/* Money Flow — payung sektor/koin/whale (Whale Alert jadi tab di dalamnya) */}
+              <Route
+                path="/money-flow"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <MoneyFlowPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              {/* /whale lama → redirect ke /money-flow (Whale Alert sekarang tab di sana) */}
+              <Route
+                path="/whale"
+                element={<Navigate to="/money-flow" replace />}
+              />
+              <Route
+                path="/onchain"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <OnchainPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
 
-            {/* 404 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </CurrencyProvider>
-      </AuthProvider>
-    </BrowserRouter>
+              {/* ADMIN */}
+              <Route
+                path="/admin"
+                element={<Navigate to="/admin/workspace" replace />}
+              />
+              <Route
+                path="/admin/workspace"
+                element={
+                  <RequireAuth>
+                    <RequireAdmin>
+                      <AppShell>
+                        <AdminWorkspacePage />
+                      </AppShell>
+                    </RequireAdmin>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={<Navigate to="/admin/workspace#users" replace />}
+              />
+
+              {/* Backward compat */}
+              <Route
+                path="/terminal"
+                element={<Navigate to="/home" replace />}
+              />
+              <Route
+                path="/terminal/watchlist"
+                element={<Navigate to="/watchlist" replace />}
+              />
+              <Route
+                path="/terminal/referral"
+                element={<Navigate to="/referral" replace />}
+              />
+              <Route
+                path="/terminal/pricing"
+                element={<Navigate to="/pricing" replace />}
+              />
+              <Route
+                path="/terminal/payment"
+                element={<Navigate to="/payment" replace />}
+              />
+              <Route
+                path="/terminal/*"
+                element={<Navigate to="/home" replace />}
+              />
+
+              {/* Landing V2 — preview */}
+              <Route
+                path="/v2"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <LandingPageV2 />
+                  </Suspense>
+                }
+              />
+
+              {/* 404 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </CurrencyProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </HelmetProvider>
   );
 }

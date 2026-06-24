@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -369,4 +370,22 @@ body {
     width: 60px;
     height: 60px;
   }
+}
+
+/* Landing V2 — force Poppins on the whole page (overrides font-display/font-mono) */
+.lp-v2,
+.lp-v2 * {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Landing V2 — typographic polish (MEXC-like crispness) */
+.lp-v2 {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+.lp-v2 h1,
+.lp-v2 h2,
+.lp-v2 h3 {
+  letter-spacing: -0.02em;
 }

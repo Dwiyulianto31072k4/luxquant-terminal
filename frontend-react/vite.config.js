@@ -3,55 +3,56 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  
+
   server: {
     port: 3000,
     host: true,
     allowedHosts: ['luxquant.tw'],
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8002',
-        changeOrigin: true
-      }
-    }
+        target: 'https://luxquant.tw',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
 
   build: {
     // Target modern browsers for smaller output
     target: 'es2020',
-    
+
     // Enable source maps for debugging (optional, remove for smaller builds)
     sourcemap: false,
-    
+
     // Increase chunk warning limit (recharts is big)
     chunkSizeWarningLimit: 600,
-    
+
     // CSS code splitting
     cssCodeSplit: true,
-    
+
     // Minification
     minify: 'esbuild',
-    
+
     rollupOptions: {
       output: {
         // Manual chunk splitting for optimal caching
         manualChunks: {
           // React core — changes rarely, cached long-term
           'vendor-react': ['react', 'react-dom'],
-          
+
           // Router — separate from react core
           'vendor-router': ['react-router-dom'],
-          
+
           // Charting libs — large, only needed in terminal
           'vendor-charts': ['recharts', 'lightweight-charts'],
-          
+
           // i18n — loaded on every page but separate chunk
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
-          
+
           // Axios — used everywhere but small
           'vendor-axios': ['axios'],
         },
-        
+
         // Cleaner chunk names
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
