@@ -1,20 +1,27 @@
 // src/components/landing/v2/sections/HeroSlider.jsx
 // ════════════════════════════════════════════════════════════════
-// Hero — 2-slide carousel.
-//   Slide 1: HeroSlideAlgo     (data/algo)
-//   Slide 2: HeroSlideStandard (statement)
-// Geser otomatis (8s) + swipe di mobile. Dots indikator kecil.
-// TANPA tombol panah kiri-kanan (sesuai permintaan).
-// Hormati prefers-reduced-motion. Animasi float/fly didefinisi sekali di sini.
+// Hero carousel
 //
-// Props: onNav(id), gainers
+// Slide 1 : Full-bleed cinematic video hero
+// Slide 2 : Algo / data slide
+// Slide 3 : Brand statement slide
+//
+// Semua slider navigation selalu horizontal di bawah.
+// Tidak ada dots vertikal di sisi kanan.
 // ════════════════════════════════════════════════════════════════
+
 import { useEffect, useRef, useState } from "react";
+import HeroSlideVideo from "./slides/HeroSlideVideo";
 import HeroSlideAlgo from "./slides/HeroSlideAlgo";
 import HeroSlideStandard from "./slides/HeroSlideStandard";
 
 const ROTATE_MS = 8000;
-const SLIDES = [HeroSlideAlgo, HeroSlideStandard];
+
+const SLIDES = [
+  HeroSlideVideo,
+  HeroSlideAlgo,
+  HeroSlideStandard,
+];
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -23,80 +30,215 @@ const prefersReducedMotion = () =>
 export default function HeroSlider({ onNav, gainers = [] }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const touchX = useRef(null);
+  const touchStartX = useRef(null);
 
-  // auto-advance
-  useEffect(() => {
-    if (paused || prefersReducedMotion()) return;
-    const iv = setInterval(() => setActive((a) => (a + 1) % SLIDES.length), ROTATE_MS);
-    return () => clearInterval(iv);
-  }, [paused, active]);
+  const ActiveSlide = SLIDES[active];
+  const isVideoSlide = ActiveSlide === HeroSlideVideo;
 
-  // swipe (mobile)
-  const onTouchStart = (e) => (touchX.current = e.touches[0].clientX);
-  const onTouchEnd = (e) => {
-    if (touchX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchX.current;
-    if (dx < -50) setActive((a) => (a + 1) % SLIDES.length);
-    else if (dx > 50) setActive((a) => (a - 1 + SLIDES.length) % SLIDES.length);
-    touchX.current = null;
+  const goToSlide = (index) => {
+    const total = SLIDES.length;
+    setActive((index + total) % total);
   };
 
-  const Active = SLIDES[active];
+  useEffect(() => {
+    if (paused || prefersReducedMotion()) return undefined;
+
+    const interval = window.setInterval(() => {
+      setActive((current) => (current + 1) % SLIDES.length);
+    }, ROTATE_MS);
+
+    return () => window.clearInterval(interval);
+  }, [paused]);
+
+  const handleTouchStart = (event) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartX.current === null) return;
+
+    const currentX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const distance = currentX - touchStartX.current;
+
+    if (distance < -55) {
+      goToSlide(active + 1);
+    } else if (distance > 55) {
+      goToSlide(active - 1);
+    }
+
+    touchStartX.current = null;
+  };
+
+  const handleTouchCancel = () => {
+    touchStartX.current = null;
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goToSlide(active + 1);
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goToSlide(active - 1);
+    }
+  };
 
   return (
     <section
       id="hero"
-      className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-12 lg:pt-24 xl:pt-28 pb-10 lg:pb-14 overflow-visible"
+      role="region"
+      aria-label="LuxQuant featured experiences"
+      aria-roledescription="carousel"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setPaused(false);
+        }
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      className="relative z-10 w-full overflow-hidden bg-bg-primary outline-none"
     >
-      {/* ambient gold glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none -z-10">
-        <div className="absolute inset-0 bg-gold-primary/[0.03] rounded-full blur-[160px]" />
+      {/* Ambient background glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[680px]"
+      >
+        <div className="absolute left-1/2 top-0 h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-gold-primary/[0.035] blur-[180px]" />
       </div>
 
-      {/* slide stage — min-height stabil biar gak loncat antar slide */}
-      <div className="relative flex items-center min-h-[560px] lg:min-h-[660px]">
-        <div key={active} className="w-full" style={{ animation: "v2HeroFade .6s ease-out both" }}>
-          <Active onNav={onNav} gainers={gainers} />
+      {/* Hero stage */}
+      <div
+        className={`relative z-10 flex items-start ${
+          isVideoSlide
+            ? "w-full"
+            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-10 pt-12 sm:px-6 lg:min-h-[680px] lg:px-8 lg:pb-12 lg:pt-24 xl:pt-28"
+        }`}
+      >
+        <div
+          key={active}
+          className="w-full"
+          style={{
+            animation: "v2HeroFade 700ms cubic-bezier(.22,.8,.2,1) both",
+          }}
+        >
+          <ActiveSlide onNav={onNav} gainers={gainers} />
         </div>
       </div>
 
-      {/* dots saja — TANPA panah kiri-kanan */}
-      <div className="flex items-center justify-center gap-2 mt-4">
-        {SLIDES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            aria-label={`Slide ${i + 1}`}
-            className={`h-1.5 rounded-sm transition-all duration-300 ${
-              i === active ? "w-8 bg-gold-primary" : "w-1.5 bg-white/15 hover:bg-white/30"
-            }`}
-          />
-        ))}
+      {/* Dots selalu bawah + horizontal */}
+      <div
+        className={[
+          "relative z-30 flex w-full items-center justify-center gap-2",
+          isVideoSlide
+            ? "-mt-2 pb-6 sm:-mt-3 sm:pb-8"
+            : "mt-1 pb-7 sm:mt-2 sm:pb-9",
+        ].join(" ")}
+        aria-label="Hero slide controls"
+      >
+        {SLIDES.map((_, index) => {
+          const isActive = active === index;
+
+          return (
+            <button
+              key={index}
+              type="button"
+              aria-label={`Go to slide ${index + 1}`}
+              aria-current={isActive ? "true" : undefined}
+              onClick={() => goToSlide(index)}
+              className={[
+                "h-1.5 rounded-full transition-all duration-300",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/80",
+                isActive
+                  ? "w-7 bg-gold-primary shadow-[0_0_12px_rgba(212,168,83,0.52)]"
+                  : "w-1.5 bg-white/30 hover:bg-white/65",
+              ].join(" ")}
+            />
+          );
+        })}
       </div>
 
-      {/* shared animations */}
       <style>{`
-        @keyframes v2Float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-        @keyframes v2HeroFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes v2HeroFade {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes v2Float {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+
+          50% {
+            transform: translateY(-12px);
+          }
+        }
+
         @keyframes v2FlyLeft {
-          0%{opacity:0;transform:translate(-50%,-50%) scale(.4);}
-          20%{opacity:1;transform:translate(-60px,-40px) scale(.95);}
-          80%{opacity:1;transform:translate(-150px,-80px) scale(.95);}
-          100%{opacity:0;transform:translate(-170px,-100px) scale(.85);}
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.4);
+          }
+
+          20% {
+            opacity: 1;
+            transform: translate(-60px, -40px) scale(.95);
+          }
+
+          80% {
+            opacity: 1;
+            transform: translate(-150px, -80px) scale(.95);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(-170px, -100px) scale(.85);
+          }
         }
+
         @keyframes v2FlyRight {
-          0%{opacity:0;transform:translate(-50%,-50%) scale(.4);}
-          20%{opacity:1;transform:translate(60px,-40px) scale(.95);}
-          80%{opacity:1;transform:translate(150px,-80px) scale(.95);}
-          100%{opacity:0;transform:translate(170px,-100px) scale(.85);}
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.4);
+          }
+
+          20% {
+            opacity: 1;
+            transform: translate(60px, -40px) scale(.95);
+          }
+
+          80% {
+            opacity: 1;
+            transform: translate(150px, -80px) scale(.95);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(170px, -100px) scale(.85);
+          }
         }
+
         @media (prefers-reduced-motion: reduce) {
-          [style*="v2Float"],[style*="v2Fly"],[style*="v2HeroFade"] { animation: none !important; }
+          [style*="v2Float"],
+          [style*="v2Fly"],
+          [style*="v2HeroFade"] {
+            animation: none !important;
+          }
         }
       `}</style>
     </section>

@@ -32,7 +32,7 @@ export default function ProofBar({ stats }) {
   ];
 
   return (
-    <section className="relative z-10 max-w-5xl mx-auto px-4 lg:px-8 pb-6 lg:pb-10">
+    <section className="relative z-10 max-w-5xl mx-auto px-4 lg:px-8 pt-12 lg:pt-20 pb-6 lg:pb-10">
       <div className="grid grid-cols-3 gap-2 lg:gap-6">
         {items.map((it, i) => (
           <div
@@ -41,7 +41,7 @@ export default function ProofBar({ stats }) {
           >
             <Laurel
               side="left"
-              className="w-5 h-11 sm:w-6 sm:h-14 lg:w-7 lg:h-16 flex-shrink-0 drop-shadow-[0_0_10px_rgba(212,168,83,0.25)]"
+              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-shadow-[0_0_10px_rgba(212,168,83,0.3)]"
             />
             <div className="text-center">
               {/* angka: gede + bold + gradasi emas halus (putih→emas) */}
@@ -60,7 +60,7 @@ export default function ProofBar({ stats }) {
             </div>
             <Laurel
               side="right"
-              className="w-5 h-11 sm:w-6 sm:h-14 lg:w-7 lg:h-16 flex-shrink-0 drop-shadow-[0_0_10px_rgba(212,168,83,0.25)]"
+              className="w-6 h-10 sm:w-7 sm:h-12 lg:w-8 lg:h-14 flex-shrink-0 drop-shadow-[0_0_10px_rgba(212,168,83,0.3)]"
             />
           </div>
         ))}

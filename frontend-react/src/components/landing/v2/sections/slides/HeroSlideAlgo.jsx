@@ -1,102 +1,124 @@
 // src/components/landing/v2/sections/slides/HeroSlideAlgo.jsx
 // ════════════════════════════════════════════════════════════════
-// SLIDE 1 — Algo/data hero, CENTERED (MEXC-style).
-// Semua di tengah: headline → subcopy → signup pill, device mockup
-// LuxQuant jadi visual fokus di tengah-bawah.
-// (Offer chip 🎁 + tombol Get Started Free / View Performance DIHAPUS
-//  — sesuai referensi MEXC/Synex: hero bersih, CTA-nya di signup pill.)
-// Hanya KONTEN slide — wrapper/animasi/glow ada di HeroSlider.
+// SLIDE 2 — Data + algorithm product proof.
+//
+// No repeated signup CTA here.
+// The first slide already owns conversion; this slide exists to show
+// LuxQuant as a live market-intelligence and algorithmic platform.
 // ════════════════════════════════════════════════════════════════
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../../../context/AuthContext";
-import FlyingGainer from "./FlyingGainer";
 
-const GOLD_BTN = {
-  background: "linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)",
-  color: "#0a0506",
-};
-
-export default function HeroSlideAlgo({ onNav, gainers = [] }) {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const goPlatform = () => navigate(isAuthenticated ? "/home" : "/login");
-
+export default function HeroSlideAlgo() {
   return (
-    <div className="w-full flex flex-col items-center text-center">
-      {/* headline */}
-      <h1 className="font-display font-bold text-white tracking-tight leading-[1.05] mb-5 text-[2.7rem] sm:text-[3.6rem] lg:text-[4.6rem]">
-        An{" "}
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">
-          Algorithm
-        </span>{" "}
-        Built to
-        <br className="hidden sm:block" /> Outsmart the Market.
-      </h1>
+    <div className="flex w-full flex-col items-center text-center">
+      {/* Headline */}
+      <div className="max-w-4xl">
+        <h1 className="font-display text-[2.7rem] font-bold leading-[0.98] tracking-[-0.045em] text-white sm:text-[3.75rem] lg:text-[4.8rem]">
+          Data Meets
+          <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b]">
+            Algorithmic Precision.
+          </span>
+        </h1>
 
-      {/* subcopy — regular weight, muted (MEXC-style; not thin) */}
-      <p className="text-white/60 font-normal text-base sm:text-lg leading-relaxed max-w-2xl mb-9">
-        Our engine runs <span className="text-white font-medium">24/7</span> —
-        scanning price action, derivatives flow, on-chain whale moves and
-        order-book liquidity into precise signals with strict risk management.
-      </p>
-
-      {/* signup pill — white (MEXC-style) */}
-      <div className="w-full max-w-md flex items-center gap-2 p-1.5 pl-5 rounded-full bg-white shadow-[0_10px_34px_rgba(0,0,0,0.4)] mb-12">
-        <span className="flex-1 text-left text-[12px] sm:text-[13px] text-[#1a1411] font-mono truncate">
-          Start using LuxQuant today
-        </span>
-        <button onClick={goPlatform} className="flex-shrink-0 px-5 py-2 rounded-full text-xs font-bold tracking-wide" style={GOLD_BTN}>
-          Sign Up
-        </button>
-        <button
-          onClick={() => navigate("/login")}
-          aria-label="Continue with Google"
-          className="flex-shrink-0 w-9 h-9 rounded-full bg-[#f3f3f3] border border-black/5 flex items-center justify-center hover:bg-[#e9e9e9] transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18A10.97 10.97 0 001 12c0 1.78.43 3.45 1.18 4.93l3.66-2.83z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
-          </svg>
-        </button>
+        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/60 sm:mt-6 sm:text-base lg:text-lg">
+          One live intelligence layer for market structure, flow, momentum,
+          and risk.
+        </p>
       </div>
 
-      {/* ── DEVICE VISUAL — static (no float) ── */}
-      <div className="relative w-full max-w-3xl mx-auto">
-        {/* ambient gold glow */}
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-[80%] h-48 bg-gold-primary/[0.10] blur-[120px] rounded-full pointer-events-none" />
+      {/* Product proof — dashboard + mobile app */}
+      <div className="relative mt-9 w-full max-w-[980px] px-2 pb-8 sm:mt-11 sm:px-8 sm:pb-12 lg:mt-12 lg:px-10">
+        {/* Cinematic product spotlight */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-x-24 -top-20 bottom-[-12%] -z-10"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_56%_52%_at_50%_39%,rgba(212,168,83,0.17),transparent_70%)] blur-2xl" />
+          <div className="absolute left-1/2 top-[22%] h-px w-[62%] -translate-x-1/2 bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent" />
+          <div className="absolute bottom-0 left-1/2 h-20 w-[60%] -translate-x-1/2 rounded-full bg-gold-primary/[0.08] blur-[82px]" />
+        </div>
 
-        {/* dashboard — FLAT panel (no laptop frame), rounded, static */}
-        <div className="relative z-10">
-          <span className="absolute top-0 left-1/2 -translate-x-1/2 w-[68%] h-px bg-gradient-to-r from-transparent via-gold-primary/50 to-transparent z-20" />
-          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden border border-white/[0.07] bg-bg-primary shadow-[0_30px_70px_rgba(0,0,0,0.6),0_0_40px_rgba(212,168,83,0.10)]">
+        {/* Desktop terminal */}
+        <div className="relative mx-auto w-[88%] sm:w-[90%] lg:w-[86%]">
+          <span
+            aria-hidden="true"
+            className="absolute left-1/2 top-0 z-20 h-px w-[68%] -translate-x-1/2 bg-gradient-to-r from-transparent via-gold-primary/70 to-transparent"
+          />
+
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-bg-primary shadow-[0_34px_84px_rgba(0,0,0,0.70),0_0_48px_rgba(212,168,83,0.12)] lg:rounded-2xl">
+            <div className="absolute inset-0 z-0 flex items-center justify-center bg-[#0a0506]">
+              <img
+                src="/logo.png"
+                alt=""
+                className="h-14 w-14 rounded-xl opacity-25"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+
             <img
               src="/mockups/hero-mac-dashboard.png"
-              alt="LuxQuant Dashboard"
-              className="w-full object-cover object-top"
-              onError={(e) => (e.target.style.display = "none")}
+              alt="LuxQuant live market intelligence dashboard"
+              className="relative z-10 block w-full object-cover object-top"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
             />
-            <div className="absolute inset-0 -z-10 flex items-center justify-center bg-[#0a0506]">
-              <img src="/logo.png" alt="" className="w-14 h-14 rounded-xl opacity-25" onError={(e) => (e.target.style.display = "none")} />
-            </div>
           </div>
         </div>
 
-        {/* phone — static realistic mockup (MEXC-style), overlap bottom-right */}
-        <div className="absolute -bottom-6 right-2 sm:right-6 lg:-right-4 z-30 w-[112px] sm:w-[150px] lg:w-[180px] aspect-[9/19.5]">
-          <div className="absolute inset-0 bg-black rounded-[1.7rem] lg:rounded-[2.5rem] border-[4px] lg:border-[6px] border-[#1c1c1c] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_40px_rgba(212,168,83,0.16)]">
-            {/* dynamic island */}
-            <div className="absolute top-1.5 lg:top-2 inset-x-0 z-30 flex justify-center">
-              <div className="w-[30%] h-[9px] lg:h-[15px] bg-black rounded-full" />
-            </div>
-            <div className="absolute inset-[2px] rounded-[1.5rem] lg:rounded-[2.1rem] overflow-hidden bg-bg-primary">
-              <img src="/mockup-hp.png" alt="LuxQuant Mobile" className="w-full h-full object-cover" onError={(e) => (e.target.style.display = "none")} />
-              <div className="absolute inset-0 -z-10 flex items-center justify-center bg-[#0a0506]">
-                <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl opacity-40" onError={(e) => (e.target.style.display = "none")} />
+        {/* Mobile application — visual ecosystem cue */}
+        <div className="absolute bottom-0 right-[2%] z-30 w-[108px] aspect-[9/19.5] sm:right-[4%] sm:w-[148px] lg:right-[5%] lg:w-[182px]">
+          {/* Titanium device rim */}
+          <div className="absolute inset-0 rounded-[1.85rem] bg-gradient-to-br from-[#67676c] via-[#1b1b1d] to-[#45454a] p-[2.5px] shadow-[0_24px_58px_rgba(0,0,0,0.88),0_0_40px_rgba(212,168,83,0.16)] lg:rounded-[2.6rem] lg:p-[3.5px]">
+            <div className="relative h-full w-full overflow-hidden rounded-[1.65rem] bg-black lg:rounded-[2.35rem]">
+              {/* Dynamic Island */}
+              <div className="absolute inset-x-0 top-1.5 z-30 flex justify-center lg:top-2.5">
+                <div className="h-[8px] w-[26%] rounded-full bg-black ring-1 ring-white/[0.06] lg:h-[14px]" />
+              </div>
+
+              <div className="absolute inset-[3px] overflow-hidden rounded-[0.9rem] bg-bg-primary lg:inset-[5px] lg:rounded-[1.3rem]">
+                <div className="absolute inset-0 z-0 flex items-center justify-center bg-[#0a0506]">
+                  <img
+                    src="/logo.png"
+                    alt=""
+                    className="h-9 w-9 rounded-xl opacity-40"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
+
+                <img
+                  src="/mockup-hp.png"
+                  alt="LuxQuant mobile application"
+                  className="relative z-10 h-full w-full object-cover object-top"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
               </div>
             </div>
           </div>
+
+          {/* Device side buttons */}
+          <span
+            aria-hidden="true"
+            className="absolute left-[-1.5px] top-[19%] h-[6%] w-[2px] rounded-l bg-gradient-to-b from-[#6a6a6e] to-[#2c2c2e]"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute left-[-1.5px] top-[29%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#6a6a6e] to-[#2c2c2e]"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute left-[-1.5px] top-[41%] h-[9%] w-[2px] rounded-l bg-gradient-to-b from-[#6a6a6e] to-[#2c2c2e]"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute right-[-1.5px] top-[27%] h-[12%] w-[2px] rounded-r bg-gradient-to-b from-[#6a6a6e] to-[#2c2c2e]"
+          />
         </div>
       </div>
     </div>

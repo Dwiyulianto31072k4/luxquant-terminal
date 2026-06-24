@@ -23,6 +23,7 @@ export const adminApi = {
     vipState,      // ← NEW: in_group | outside_group | no_telegram
     anomaly,       // ← NEW: paid_outside | paid_no_tg | expired_inside
     source,        // ← NEW: payment | legacy | lifetime | admin | telegram_vip | discord_premium
+    plan,          // ← NEW: lifetime | recurring
     sortBy,
     sortOrder,
     page,
@@ -38,6 +39,7 @@ export const adminApi = {
     if (vipState) params.vip_state = vipState;
     if (anomaly) params.anomaly = anomaly;
     if (source) params.source = source;
+    if (plan) params.plan = plan;
     if (sortBy) params.sort_by = sortBy;
     if (sortOrder) params.sort_order = sortOrder;
     if (page) params.page = page;

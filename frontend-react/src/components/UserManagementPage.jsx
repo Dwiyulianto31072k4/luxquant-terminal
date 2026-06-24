@@ -524,6 +524,13 @@ const UserManagementPage = () => {
 
       <UsersStatGrid stats={stats} />
 
+      <SegmentStrip
+        filters={filters}
+        stats={stats}
+        defaults={DEFAULT_FILTERS}
+        onSelect={setFilters}
+      />
+
       <ContactReachPanel
         contactStats={contactStats}
         filterReach={filters.reach}
