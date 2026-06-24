@@ -39,6 +39,7 @@ from app.schemas.user import (
 from app.schemas.subscription import PlanResponse, PlanUpdate
 
 # Outreach service (Layer Outreach)
+from app.models.workspace import AdminFollowup
 from app.services.outreach_service import (
     list_templates,
     render_template,
@@ -190,6 +191,8 @@ async def list_users(
     vip_state: Optional[str] = Query(None, description="in_group | outside_group | no_telegram"),
     anomaly: Optional[str] = Query(None, description="paid_outside | paid_no_tg | expired_inside"),
     source: Optional[str] = Query(None, description="subscription_source exact match"),
+    plan: Optional[str] = Query(None, description="lifetime | recurring (subscriber w/ expiry)"),
+    crm: Optional[str] = Query(None, description="untouched | open | tracked (CRM touch status)"),
     sort_by: Optional[str] = Query("created_at", description="Sort: created_at, username, role, subscription_expires_at"),
     sort_order: Optional[str] = Query("desc", description="asc or desc"),
     page: int = Query(1, ge=1),
@@ -220,6 +223,17 @@ async def list_users(
     # Role filter
     if role:
         query = query.filter(User.role == role)
+    # Plan filter (lifetime = no expiry + active access; recurring = has expiry)
+    if plan == "lifetime":
+        query = query.filter(
+            User.role.in_(['premium', 'subscriber']),
+            User.subscription_expires_at.is_(None),
+        )
+    elif plan == "recurring":
+        query = query.filter(
+            User.role.in_(['premium', 'subscriber']),
+            User.subscription_expires_at.isnot(None),
+        )
 
     # Status filter
     if status_filter == "active":
@@ -364,6 +378,29 @@ async def list_users(
             User.telegram_in_group == True,
         )
 
+    # ── CRM touch-status filter (join admin_followups) ──
+    if crm == "untouched":
+        # users with NO followup at all
+        touched_ids = db.query(AdminFollowup.user_id).filter(
+            AdminFollowup.user_id.isnot(None)
+        ).distinct().subquery()
+        query = query.filter(User.id.notin_(touched_ids))
+    elif crm == "open":
+        # users with an active (pending/in_progress) followup
+        open_ids = db.query(AdminFollowup.user_id).filter(
+            AdminFollowup.status.in_(["pending", "in_progress"])
+        ).distinct().subquery()
+        query = query.filter(User.id.in_(open_ids))
+    elif crm == "tracked":
+        # users who have followups but none currently open (all closed)
+        any_ids = db.query(AdminFollowup.user_id).filter(
+            AdminFollowup.user_id.isnot(None)
+        ).distinct().subquery()
+        open_ids2 = db.query(AdminFollowup.user_id).filter(
+            AdminFollowup.status.in_(["pending", "in_progress"])
+        ).distinct().subquery()
+        query = query.filter(User.id.in_(any_ids), User.id.notin_(open_ids2))
+
     # Count total sebelum pagination
     total = query.count()
 
@@ -387,12 +424,42 @@ async def list_users(
     offset = (page - 1) * page_size
     users = query.offset(offset).limit(page_size).all()
 
-    # Serialize with computed effective_* fields
+    # ── CRM touch status: batch-query followups for this page (no N+1) ──
+    page_user_ids = [u.id for u in users]
+    fu_map = {}  # user_id -> {"last_at": dt, "open": int}
+    if page_user_ids:
+        fu_rows = (
+            db.query(
+                AdminFollowup.user_id,
+                func.max(AdminFollowup.created_at).label("last_at"),
+                func.count(
+                    case((AdminFollowup.status.in_(["pending", "in_progress"]), 1))
+                ).label("open_cnt"),
+            )
+            .filter(AdminFollowup.user_id.in_(page_user_ids))
+            .group_by(AdminFollowup.user_id)
+            .all()
+        )
+        for row in fu_rows:
+            fu_map[row.user_id] = {"last_at": row.last_at, "open": row.open_cnt or 0}
+
+    # Serialize with computed effective_* fields + CRM status
     items = []
     for u in users:
         d = AdminUserResponse.model_validate(u).model_dump(mode="json")
         d["effective_telegram_username"] = u.effective_telegram_username
         d["effective_discord_handle"] = u.effective_discord_handle
+        fu = fu_map.get(u.id)
+        if not fu or not fu["last_at"]:
+            d["crm_status"] = "untouched"      # never had a followup
+            d["last_followup_at"] = None
+        elif fu["open"] > 0:
+            d["crm_status"] = "open"           # active followup in progress
+            d["last_followup_at"] = fu["last_at"].isoformat()
+        else:
+            d["crm_status"] = "tracked"        # had followups, all closed
+            d["last_followup_at"] = fu["last_at"].isoformat()
+        d["open_followups"] = fu["open"] if fu else 0
         items.append(d)
 
     return {
