@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { adminApi } from '../../services/adminApi';
+import { workspaceApi } from '../../services/workspaceApi';
 import { growthApi } from '../../services/growthApi';
 import { ContactBadge } from './ContactBadge';
 import { QuickSendPopover } from './QuickSendPopover';
@@ -640,6 +641,90 @@ const AccountTimeline = ({ data }) => {
    Tab 1: Overview
    ════════════════════════════════════════ */
 
+/* -- Follow-up history timeline (CRM) ------------------------------- */
+// hex -> rgba helper (avoids external tint dependency)
+const _fuRgba = (hex, a) => {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+const FU_STATUS = {
+  pending:     { color: '#fbbf24', label: 'Pending' },
+  in_progress: { color: '#5aa9e6', label: 'In progress' },
+  done:        { color: '#34d399', label: 'Done' },
+  cancelled:   { color: '#6b5c52', label: 'Cancelled' },
+};
+
+const FollowupTimeline = ({ userId }) => {
+  const [items, setItems] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    workspaceApi
+      .listFollowups({ user_id: userId })
+      .then((res) => { if (alive) setItems(res?.items || []); })
+      .catch(() => { if (alive) setItems([]); });
+    return () => { alive = false; };
+  }, [userId]);
+
+  return (
+    <Section title="Follow-up History" Icon={ClockIcon}>
+      {items === null ? (
+        <p className="text-[11px] text-text-muted/40">Loading...</p>
+      ) : items.length === 0 ? (
+        <p className="text-[11px] text-text-muted/40">
+          Belum ada follow-up untuk user ini.
+        </p>
+      ) : (
+        <div className="space-y-0">
+          {items.map((f, idx) => {
+            const st = FU_STATUS[f.status] || FU_STATUS.pending;
+            const isLast = idx === items.length - 1;
+            return (
+              <div key={f.id} className="flex gap-3">
+                <div className="flex flex-col items-center shrink-0">
+                  <span
+                    className="rounded-full mt-1"
+                    style={{ width: 9, height: 9, background: st.color, boxShadow: `0 0 6px ${_fuRgba(st.color, 0.5)}` }}
+                  />
+                  {!isLast && <span className="flex-1 w-px my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+                </div>
+                <div className="pb-4 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-white">{f.title}</span>
+                    <span
+                      className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
+                      style={{ background: _fuRgba(st.color, 0.12), color: st.color, border: `1px solid ${_fuRgba(st.color, 0.25)}` }}
+                    >
+                      {st.label}
+                    </span>
+                    {f.priority === 'urgent' && (
+                      <span className="text-[8px] uppercase font-bold tracking-wider px-1.5 py-px rounded"
+                        style={{ background: _fuRgba('#f87171', 0.12), color: '#f87171' }}>
+                        Urgent
+                      </span>
+                    )}
+                  </div>
+                  {f.note && (
+                    <p className="text-[11px] text-text-muted/60 mt-1 leading-relaxed">{f.note}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-text-muted/40 flex-wrap">
+                    {f.category && <span>{f.category}</span>}
+                    {f.category && <span>{'·'}</span>}
+                    <span>{formatDate(f.created_at)}</span>
+                    {f.creator?.username && <><span>{'·'}</span><span>by {f.creator.username}</span></>}
+                    {f.completed_at && <><span>{'·'}</span><span>done {relativeTime(f.completed_at)}</span></>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Section>
+  );
+};
+
 const OverviewTab = ({ data, onUserUpdated, onToast }) => {
   const { user } = data;
   return (
@@ -663,6 +748,7 @@ const OverviewTab = ({ data, onUserUpdated, onToast }) => {
       </Section>
 
       <ActivityPulse userId={user.id} />
+      <FollowupTimeline userId={user.id} />
 
       <AccountTimeline data={data} />
 
