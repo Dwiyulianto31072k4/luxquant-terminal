@@ -28,6 +28,7 @@ import { FinanceTab } from './admin/workspace/FinanceTab';
 import { TodoTab } from './admin/workspace/TodoTab';
 import { ActivityTab } from './admin/workspace/ActivityTab';
 import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
+import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
 
 // Design system
 import { palette, surface, tint, motion } from './admin/designSystem';
@@ -62,6 +63,7 @@ const TABS = [
   { id: 'todos',      label: 'TODOs',      description: 'Internal task board',           Icon: CheckSquareIcon,   accent: palette.orange[400] },
   { id: 'activity',   label: 'Activity',   description: 'Engagement & growth analytics', Icon: ActivityIcon,      accent: palette.teal[400] },
   { id: 'apikeys',    label: 'API',        description: 'Developer keys & abuse flags',  Icon: ShieldIcon,        accent: palette.gold[300] },
+  { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',         Icon: BroadcastConeIcon, accent: palette.purple[400] },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -69,7 +71,7 @@ const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
 // Sidebar groups — each references tab ids. Single-item groups don't collapse.
 const NAV_GROUPS = [
   { id: 'members',    label: 'Members',    note: 'Directory & access', tabIds: ['users'] },
-  { id: 'operations', label: 'Operations', note: 'Day-to-day ops',     tabIds: ['followups', 'marketing', 'todos'] },
+  { id: 'operations', label: 'Operations', note: 'Day-to-day ops',     tabIds: ['followups', 'marketing', 'todos', 'announcements'] },
   { id: 'finance',    label: 'Finance',    note: 'Revenue & payments', tabIds: ['finance'] },
   { id: 'system',     label: 'System',     note: 'Analytics & dev',    tabIds: ['activity', 'apikeys'] },
 ];
@@ -490,6 +492,7 @@ const AdminWorkspacePage = () => {
           {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
           {activeTab === 'activity' && <ActivityTab />}
           {activeTab === 'apikeys' && <ApiKeysTab />}
+          {activeTab === 'announcements' && <AnnouncementsTab />}
         </div>
       </div>
     </div>
