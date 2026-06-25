@@ -29,6 +29,17 @@ export async function getLedger({ days = 14, horizon = null } = {}) {
 }
 
 /**
+ * Fetch Compass 2.0 target-first scenario ledger.
+ * Legacy horizon history is intentionally excluded.
+ */
+export async function getScenarioLedger({ limit = 50 } = {}) {
+  const { data } = await api.get(`${V6_BASE}/scenario-ledger`, {
+    params: { limit },
+  });
+  return data;
+}
+
+/**
  * Fetch hit-rate stats per horizon.
  * @param {number} days - 7-180, default 30
  * Returns: { horizons: { '24h': {...}, ... }, overall: {...}, window_days }
@@ -108,6 +119,7 @@ export async function getChartData(tf = '4H') {
 export default {
   getLatestReport,
   getLedger,
+  getScenarioLedger,
   getTrackRecord,
   getModelCalibration,
   getLiquidityValidation,

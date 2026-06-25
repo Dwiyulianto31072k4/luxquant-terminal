@@ -1,21 +1,19 @@
 """
 LuxQuant AI Arena v6.1 — API Routes
 ======================================
-Endpoints for v6 reports, verdict ledger, and track record.
+Endpoints for v6 reports, Compass 2.0 scenario ledger, and archives.
 
 Routes (mounted at /api/v1/ai-arena/v6):
   GET /latest         — most recent v6 report (full JSON)
-  GET /ledger         — list of recent verdicts with outcomes (Verdict Ledger UI)
-  GET /track-record   — accuracy stats per horizon + overall
+  GET /scenario-ledger — Compass 2.0 target-first scenario contracts
 
 Authentication: Reuses existing patterns. Latest is public-readable for now;
-                ledger/track-record can be gated as needed.
+                evaluation/archive routes can be gated as needed.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -24,8 +22,6 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.models.ai_arena_v6 import AIArenaVerdictOutcome
-from app.services.verdict_outcome_evaluator import compute_track_record
 from app.api.deps import require_subscription
 
 router = APIRouter(prefix="/ai-arena/v6", tags=["AI Arena v6"])
@@ -270,73 +266,184 @@ def get_verdict_ledger(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    Return verdict ledger for the requested audit window (up to 365 days).
+    Retired legacy horizon ledger.
 
-    Each row = one verdict with all 4 horizon outcomes joined.
-    Used to render the Verdict Ledger UI table.
+    Compass 2.0 evaluates target-first scenario contracts instead of fixed
+    24h/72h/7d/30d outcome rows. Kept as a compatibility endpoint so older
+    clients fail closed instead of rendering mixed-schema audit history.
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
-
-    sql = text("""
-        SELECT
-            r.id, r.report_id, r.timestamp, r.btc_price,
-            r.primary_direction_30d, r.primary_confidence_30d,
-            r.secondary_direction_7d, r.tactical_direction_24h,
-            r.is_anomaly_triggered,
-            r.bluf_text,
-            -- Aggregate outcomes via JSON
-            (
-              SELECT json_agg(json_build_object(
-                'horizon', vo.horizon,
-                'direction', vo.direction,
-                'price_at_horizon', vo.price_at_horizon,
-                'move_pct', vo.move_pct,
-                'threshold_pct', vo.threshold_pct,
-                'neutral_band_pct', vo.neutral_band_pct,
-                'outcome', vo.outcome,
-                'evaluated_at', vo.evaluated_at
-              ) ORDER BY
-                CASE vo.horizon
-                  WHEN '24h' THEN 1
-                  WHEN '72h' THEN 2
-                  WHEN '7d' THEN 3
-                  WHEN '30d' THEN 4
-                END
-              )
-              FROM ai_arena_verdict_outcomes vo
-              WHERE vo.report_id = r.id
-            ) AS outcomes
-        FROM ai_arena_reports r
-        WHERE r.schema_version = 'v6.1'
-          AND r.timestamp >= :since
-        ORDER BY r.timestamp DESC
-    """)
-    rows = db.execute(sql, {"since": since}).all()
-
-    # Optional horizon filter (filter outcomes array client-side; or filter rows)
-    items = []
-    for r in rows:
-        outcomes = r.outcomes or []
-        if horizon:
-            outcomes = [o for o in outcomes if o["horizon"] == horizon]
-        items.append({
-            "id": r.id,
-            "report_id": r.report_id,
-            "timestamp": r.timestamp.isoformat() if r.timestamp else None,
-            "btc_price": r.btc_price,
-            "headline": r.bluf_text,
-            "primary_direction": r.primary_direction_30d,
-            "primary_confidence": r.primary_confidence_30d,
-            "secondary_direction": r.secondary_direction_7d,
-            "tactical_direction": r.tactical_direction_24h,
-            "is_anomaly": r.is_anomaly_triggered,
-            "outcomes": outcomes,
-        })
-
     return {
+        "schema": "legacy_horizon_retired",
+        "replacement": "/api/v1/ai-arena/v6/scenario-ledger",
         "window_days": days,
         "horizon_filter": horizon,
+        "count": 0,
+        "items": [],
+    }
+
+
+# ════════════════════════════════════════════════════════════════════════
+# GET /scenario-ledger
+# ════════════════════════════════════════════════════════════════════════
+
+def _num(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+@router.get("/scenario-ledger")
+def get_scenario_ledger(
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_subscription),
+) -> dict[str, Any]:
+    """
+    Compass 2.0 target-first ledger.
+
+    This intentionally excludes legacy horizon outcomes. Each row is one
+    structured scenario contract and, when available, its first-barrier
+    resolution.
+    """
+    sql = text("""
+        WITH event_summary AS (
+            SELECT
+                projection_id,
+                COUNT(*) AS event_count,
+                MAX(event_time) AS last_event_time
+            FROM compass_projection_events
+            GROUP BY projection_id
+        )
+        SELECT
+            c.projection_id,
+            c.read_id,
+            c.status,
+            c.primary_bias,
+            c.reference_price,
+            c.support_level,
+            c.support_trigger,
+            c.confirmation_level,
+            c.confirmation_trigger,
+            c.primary_touch_level,
+            c.primary_touch_trigger,
+            c.extension_low,
+            c.extension_high,
+            c.invalidation_level,
+            c.invalidation_trigger,
+            c.alternative_path,
+            c.market_mode,
+            c.expected_pace,
+            c.soft_review_after_minutes,
+            c.stale_after_minutes,
+            c.probabilities,
+            c.key_conditions,
+            c.key_risks,
+            c.active_from,
+            c.contract_json,
+            cr.report_id,
+            cr.issued_at,
+            r.bluf_text,
+            r.btc_price,
+            res.outcome,
+            res.first_barrier,
+            res.first_barrier_at,
+            res.first_barrier_price,
+            res.max_favorable_excursion_pct,
+            res.max_adverse_excursion_pct,
+            res.reason_codes,
+            res.interpretation,
+            res.resolved_at,
+            COALESCE(es.event_count, 0) AS event_count,
+            es.last_event_time
+        FROM compass_projection_contracts c
+        JOIN compass_reads cr ON cr.read_id = c.read_id
+        LEFT JOIN ai_arena_reports r ON r.id = cr.report_pk
+        LEFT JOIN compass_projection_resolutions res ON res.projection_id = c.projection_id
+        LEFT JOIN event_summary es ON es.projection_id = c.projection_id
+        ORDER BY c.active_from DESC
+        LIMIT :limit
+    """)
+    rows = db.execute(sql, {"limit": limit}).all()
+
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        contract_json = _as_report_dict(row.contract_json)
+        items.append({
+            "projection_id": row.projection_id,
+            "read_id": row.read_id,
+            "report_id": row.report_id,
+            "issued_at": _iso_datetime(row.issued_at or row.active_from),
+            "headline": row.bluf_text or contract_json.get("user_explanation"),
+            "status": row.status,
+            "primary_bias": row.primary_bias,
+            "market_mode": row.market_mode,
+            "reference_price": _num(row.reference_price),
+            "btc_price": _num(row.btc_price or row.reference_price),
+            "support": {
+                "level": _num(row.support_level),
+                "trigger": row.support_trigger,
+            },
+            "confirmation": {
+                "level": _num(row.confirmation_level),
+                "trigger": row.confirmation_trigger,
+            },
+            "primary_touch": {
+                "level": _num(row.primary_touch_level),
+                "trigger": row.primary_touch_trigger,
+            },
+            "extension_zone": {
+                "price_low": _num(row.extension_low),
+                "price_high": _num(row.extension_high),
+            },
+            "invalidation": {
+                "level": _num(row.invalidation_level),
+                "trigger": row.invalidation_trigger,
+            },
+            "alternative_path": row.alternative_path or [],
+            "probabilities": row.probabilities or {},
+            "key_conditions": row.key_conditions or [],
+            "key_risks": row.key_risks or [],
+            "review_policy": {
+                "expected_pace": row.expected_pace,
+                "soft_review_after_minutes": row.soft_review_after_minutes,
+                "stale_after_minutes": row.stale_after_minutes,
+            },
+            "events": {
+                "count": int(row.event_count or 0),
+                "last_event_time": _iso_datetime(row.last_event_time),
+            },
+            "resolution": {
+                "outcome": row.outcome,
+                "first_barrier": row.first_barrier,
+                "first_barrier_at": _iso_datetime(row.first_barrier_at),
+                "first_barrier_price": _num(row.first_barrier_price),
+                "mfe_pct": _num(row.max_favorable_excursion_pct),
+                "mae_pct": _num(row.max_adverse_excursion_pct),
+                "reason_codes": row.reason_codes or [],
+                "interpretation": row.interpretation,
+                "resolved_at": _iso_datetime(row.resolved_at),
+            } if row.outcome else None,
+        })
+
+    resolved = [item for item in items if item["resolution"]]
+    clean_hits = sum(1 for item in resolved if item["resolution"]["outcome"] in {"CLEAN_HIT", "RANGE_HELD"})
+    invalidated = sum(1 for item in resolved if item["resolution"]["outcome"] == "INVALIDATED_FIRST")
+
+    return {
+        "schema": "compass_2_target_first",
+        "legacy_horizon_history": "retired",
         "count": len(items),
+        "stats": {
+            "active": sum(1 for item in items if item["status"] == "ACTIVE"),
+            "resolved": len(resolved),
+            "pending": len(items) - len(resolved),
+            "clean_hits": clean_hits,
+            "invalidated_first": invalidated,
+            "hit_rate": clean_hits / len(resolved) if resolved else None,
+        },
         "items": items,
     }
 
@@ -350,8 +457,14 @@ def get_track_record(
     days: int = Query(30, ge=7, le=180),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Compute hit-rate stats per horizon over last N days."""
-    return compute_track_record(db, days=days)
+    """Retired fixed-horizon track record."""
+    return {
+        "schema": "legacy_horizon_retired",
+        "replacement": "/api/v1/ai-arena/v6/scenario-ledger",
+        "days": days,
+        "overall": {"hit_rate": None, "hits": 0, "misses": 0, "pending": 0},
+        "by_horizon": {},
+    }
 
 
 # ════════════════════════════════════════════════════════════════════════

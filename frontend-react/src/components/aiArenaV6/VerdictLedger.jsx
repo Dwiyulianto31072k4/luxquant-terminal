@@ -1,558 +1,369 @@
 // frontend-react/src/components/aiArenaV6/VerdictLedger.jsx
-/**
- * VerdictLedger — Accuracy stats + verdict history table
- * ======================================================
- * THE killer feature of v6.
- *
- * Track record shape (from /v6/track-record):
- *   {
- *     window_days: 30,
- *     horizons: {                  ← NOT by_horizon
- *       "24h": { total, hit, miss, hit_rate },
- *       "72h": {...}, "7d": {...}, "30d": {...}
- *     },
- *     overall: { total, hit, miss, hit_rate }
- *   }
- *
- * Ledger shape (from /v6/ledger):
- *   {
- *     window_days, horizon_filter, count,
- *     items: [                     ← NOT reports
- *       {
- *         id, report_id, timestamp, btc_price, headline,
- *         primary_direction, primary_confidence,
- *         secondary_direction, tactical_direction,
- *         is_anomaly,
- *         outcomes: [
- *           { horizon, direction, price_at_horizon, move_pct, outcome, evaluated_at }
- *         ]
- *       }
- *     ]
- *   }
- *
- * Note field names use no horizon suffix in the ledger response,
- * unlike the DB (which has primary_direction_30d etc).
- */
+// Compass 2.0 target-first evaluation ledger.
 
 import React, { useEffect, useMemo, useState } from "react";
-import Tooltip from "./Tooltip";
-import {
-  directionStyle,
-  outcomeStyle,
-  formatTimestamp,
-  formatPrice,
-  HORIZON_ORDER,
-  HORIZON_LABEL,
-} from "./constants";
+import { formatPrice, formatTimestamp } from "./constants";
 
-// ─────────────────────────────────────────────────────────────────────
-// Sub-component: stat card per horizon
-// ─────────────────────────────────────────────────────────────────────
-function HorizonStatCard({ horizon, stats }) {
-  const hitRate = stats?.hit_rate ?? null;
-  const total = stats?.total ?? 0;
-  const hits = stats?.hit ?? 0;       // /v6/track-record uses 'hit', not 'hits'
-  const misses = stats?.miss ?? 0;    // 'miss', not 'misses'
+const PAGE_SIZE = 6;
 
-  // Color tier based on hit rate
-  let color = "#94a3b8"; // gray when no data
-  let tier = "—";
-  if (hitRate !== null && total >= 3) {
-    if (hitRate >= 0.65) {
-      color = "#22c55e";
-      tier = "STRONG";
-    } else if (hitRate >= 0.50) {
-      color = "#f5c451";
-      tier = "OK";
-    } else {
-      color = "#ef4444";
-      tier = "WEAK";
-    }
-  } else if (total > 0 && total < 3) {
-    color = "#94a3b8";
-    tier = "LOW SAMPLE";
+function pct(value) {
+  if (value == null || Number.isNaN(Number(value))) return "--";
+  return `${Math.round(Number(value) * 100)}%`;
+}
+
+function minutesLabel(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes)) return "--";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
+}
+
+function biasTone(value) {
+  const text = String(value || "").toUpperCase();
+  if (text.includes("BULL") || text.includes("RISK_ON")) {
+    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
   }
+  if (text.includes("BEAR") || text.includes("RISK_OFF")) {
+    return "border-red-400/20 bg-red-400/10 text-red-300";
+  }
+  return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+}
+
+function outcomeTone(value) {
+  const text = String(value || "PENDING").toUpperCase();
+  if (["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
+    return "border-emerald-400/25 bg-emerald-400/10 text-emerald-300";
+  }
+  if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
+    return "border-red-400/25 bg-red-400/10 text-red-300";
+  }
+  if (text.includes("STALE") || text.includes("DATA")) {
+    return "border-amber-300/25 bg-amber-300/10 text-amber-200";
+  }
+  return "border-white/10 bg-white/[0.05] text-white/55";
+}
+
+function prettyToken(value) {
+  if (!value) return "Pending";
+  return String(value).replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function StatCard({ label, value, sub, tone = "neutral" }) {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-400/20 bg-emerald-400/[0.06]"
+      : tone === "red"
+        ? "border-red-400/20 bg-red-400/[0.06]"
+        : tone === "gold"
+          ? "border-[#d4a853]/25 bg-[#d4a853]/[0.07]"
+          : "border-white/[0.07] bg-white/[0.025]";
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:border-white/10 transition-colors">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-mono uppercase tracking-wider text-white/50">
-          {HORIZON_LABEL[horizon] || horizon}
-        </span>
-        <span
-          className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded"
-          style={{
-            backgroundColor: `${color}20`,
-            color,
-          }}
-        >
-          {tier}
-        </span>
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
+        {label}
       </div>
-
-      {/* Big number: hit rate */}
-      <div className="flex items-baseline gap-1 mb-2">
-        <span
-          className="text-3xl font-semibold tabular-nums"
-          style={{
-            fontFamily: "JetBrains Mono, monospace",
-            color: hitRate !== null ? color : "rgba(255,255,255,0.3)",
-          }}
-        >
-          {hitRate !== null ? (Number(hitRate) * 100).toFixed(0) : "—"}
-        </span>
-        <span className="text-base text-white/40 font-mono">%</span>
-        <span className="text-xs text-white/40 font-mono ml-1">hit</span>
+      <div className="font-mono text-2xl font-semibold tabular-nums text-white">
+        {value}
       </div>
-
-      {/* Hit/miss bar */}
-      {total > 0 ? (
-        <>
-          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden flex mb-2">
-            {hits > 0 && (
-              <div
-                className="h-full"
-                style={{
-                  width: `${(hits / total) * 100}%`,
-                  backgroundColor: "#22c55e",
-                }}
-              />
-            )}
-            {misses > 0 && (
-              <div
-                className="h-full"
-                style={{
-                  width: `${(misses / total) * 100}%`,
-                  backgroundColor: "#ef4444",
-                }}
-              />
-            )}
-          </div>
-
-          <div className="flex items-center justify-between text-[10px] font-mono text-white/50">
-            <span>
-              <span className="text-emerald-400">{hits}</span>
-              <span className="text-white/30"> / </span>
-              <span className="text-red-400">{misses}</span>
-            </span>
-            <span>n={total}</span>
-          </div>
-        </>
-      ) : (
-        <div className="text-[11px] font-mono text-white/30 italic">
-          No verdicts evaluated yet
-        </div>
-      )}
+      {sub && <div className="mt-1 text-xs leading-5 text-white/45">{sub}</div>}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Sub-component: outcome badge for a horizon
-// ─────────────────────────────────────────────────────────────────────
-function outcomeExplanation(outcome) {
-  const move = Number(outcome.move_pct);
-  const hasMove = Number.isFinite(move);
-  const threshold = Number(outcome.threshold_pct ?? 1);
-  const neutralBand = Number(outcome.neutral_band_pct ?? 2);
-  const direction = String(outcome.direction || "").toLowerCase();
-
-  if (direction === "neutral") {
-    if (!hasMove) return `Neutral is a hit only inside ±${neutralBand.toFixed(1)}%.`;
-    const side = move > 0 ? "above" : "below";
-    const result = outcome.outcome === "miss" ? "MISS" : "HIT";
-    return `Neutral rule: final move must stay inside ±${neutralBand.toFixed(1)}%. BTC finished ${Math.abs(move).toFixed(2)}% ${side} the call price: ${result}.`;
-  }
-
-  if (direction === "bullish") {
-    return `Bullish rule: final move must reach +${threshold.toFixed(1)}% or more.`;
-  }
-
-  if (direction === "bearish") {
-    return `Bearish rule: final move must reach -${threshold.toFixed(1)}% or less.`;
-  }
-
-  return "Outcome rule unavailable.";
-}
-
-function OutcomeBadge({ outcome }) {
-  if (!outcome) {
-    return <span className="text-white/20 text-xs font-mono">—</span>;
-  }
-
-  const style = outcomeStyle(outcome.outcome);
+function LevelTile({ label, level, trigger, tone = "neutral" }) {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-400/18 bg-emerald-400/[0.055]"
+      : tone === "red"
+        ? "border-red-400/18 bg-red-400/[0.055]"
+        : tone === "gold"
+          ? "border-[#d4a853]/20 bg-[#d4a853]/[0.06]"
+          : "border-white/[0.06] bg-white/[0.025]";
 
   return (
-    <span
-      className="inline-flex items-center justify-center w-7 h-5 rounded text-[10px] font-mono uppercase font-bold"
-      style={{
-        backgroundColor: style.bg,
-        color: style.fg,
-        border: `1px solid ${style.border}`,
-      }}
-      title={`${outcome.direction} @ ${outcome.horizon}` +
-        (outcome.move_pct != null
-          ? ` · move ${outcome.move_pct > 0 ? "+" : ""}${Number(outcome.move_pct).toFixed(2)}%`
-          : "") +
-        ` · ${outcomeExplanation(outcome)}`}
-    >
-      {style.label}
-    </span>
+    <div className={`rounded-xl border p-3 ${toneClass}`}>
+      <div className="mb-1 text-[9px] font-mono uppercase tracking-[0.18em] text-white/35">
+        {label}
+      </div>
+      <div className="font-mono text-base font-semibold tabular-nums text-white">
+        {formatPrice(level)}
+      </div>
+      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.08em] text-white/35">
+        {prettyToken(trigger)}
+      </div>
+    </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Sub-component: history table row
-// ─────────────────────────────────────────────────────────────────────
-function HistoryRow({ item }) {
-  // Group outcomes by horizon for ordered rendering
-  const outcomesByHorizon = useMemo(() => {
-    const map = {};
-    if (item.outcomes) {
-      item.outcomes.forEach((o) => {
-        map[o.horizon] = o;
-      });
-    }
-    return map;
-  }, [item.outcomes]);
-
-  const primaryDir = directionStyle(item.primary_direction);
-  const secondaryDir = directionStyle(item.secondary_direction);
-  const tacticalDir = directionStyle(item.tactical_direction);
+function ScenarioCard({ item }) {
+  const outcome = item.resolution?.outcome || "PENDING";
+  const probabilities = item.probabilities || {};
+  const review = item.review_policy || {};
 
   return (
-    <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-      {/* Timestamp */}
-      <td className="py-2.5 px-3 text-xs font-mono text-white/60 whitespace-nowrap">
-        {formatTimestamp(item.timestamp)}
-      </td>
-
-      {/* BTC price */}
-      <td className="py-2.5 px-3 text-xs font-mono text-white/80 tabular-nums whitespace-nowrap">
-        {formatPrice(item.btc_price)}
-      </td>
-
-      {/* 30d primary verdict */}
-      <td className="py-2.5 px-3 whitespace-nowrap">
-        <span
-          className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: primaryDir.bg, color: primaryDir.fg }}
-        >
-          {primaryDir.arrow} {item.primary_confidence ?? "—"}%
-        </span>
-      </td>
-
-      {/* 7d secondary verdict (no confidence in ledger response) */}
-      <td className="py-2.5 px-3 whitespace-nowrap">
-        <span
-          className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: secondaryDir.bg, color: secondaryDir.fg }}
-        >
-          {secondaryDir.arrow}
-        </span>
-      </td>
-
-      {/* 24h tactical verdict */}
-      <td className="py-2.5 px-3 whitespace-nowrap">
-        <span
-          className="inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: tacticalDir.bg, color: tacticalDir.fg }}
-        >
-          {tacticalDir.arrow}
-        </span>
-      </td>
-
-      {/* Outcomes per horizon */}
-      <td className="py-2.5 px-3">
-        <div className="flex items-center gap-1">
-          {HORIZON_ORDER.map((h) => (
-            <OutcomeBadge key={h} outcome={outcomesByHorizon[h]} />
-          ))}
+    <article className="rounded-2xl border border-white/[0.07] bg-[#09090d]/75 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
+              {formatTimestamp(item.issued_at)}
+            </span>
+            <span className={`rounded-md border px-2 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${biasTone(item.primary_bias)}`}>
+              {prettyToken(item.primary_bias)}
+            </span>
+            <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-[#f5c451]">
+              {prettyToken(item.market_mode)}
+            </span>
+          </div>
+          <h3 className="text-xl font-semibold tracking-[-0.02em] text-white md:text-2xl">
+            {item.headline || "BTC scenario contract"}
+          </h3>
+          <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/45">
+            <span>BTC at read: <span className="font-mono text-white/70">{formatPrice(item.reference_price)}</span></span>
+            <span>Primary probability: <span className="font-mono text-white/70">{pct((probabilities.primary ?? 0) / 100)}</span></span>
+            <span>Events logged: <span className="font-mono text-white/70">{item.events?.count ?? 0}</span></span>
+          </div>
         </div>
-      </td>
-    </tr>
+
+        <div className="flex flex-col items-start gap-2 text-left md:items-end md:text-right">
+          <span className={`rounded-lg border px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] ${outcomeTone(outcome)}`}>
+            {prettyToken(outcome)}
+          </span>
+          <span className="text-[11px] text-white/35">
+            First barrier decides the result
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-4 md:grid-cols-4">
+        <LevelTile
+          label="Projected touch"
+          level={item.primary_touch?.level}
+          trigger={item.primary_touch?.trigger}
+          tone="gold"
+        />
+        <LevelTile
+          label="Confirmation"
+          level={item.confirmation?.level}
+          trigger={item.confirmation?.trigger}
+          tone="neutral"
+        />
+        <LevelTile
+          label="Support / reaction"
+          level={item.support?.level}
+          trigger={item.support?.trigger}
+          tone="green"
+        />
+        <LevelTile
+          label="Invalidation"
+          level={item.invalidation?.level}
+          trigger={item.invalidation?.trigger}
+          tone="red"
+        />
+      </div>
+
+      <div className="grid gap-3 border-t border-white/[0.06] p-4 md:grid-cols-[1.2fr_0.8fr]">
+        <div>
+          <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/70">
+            What must happen
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {(item.key_conditions || []).slice(0, 4).map((condition, index) => (
+              <div key={`${condition}-${index}`} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3 text-xs leading-5 text-white/60">
+                {condition}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-red-300/70">
+            Risk watch
+          </div>
+          <div className="space-y-2">
+            {(item.key_risks || []).slice(0, 3).map((risk, index) => (
+              <div key={`${risk}-${index}`} className="rounded-xl border border-red-400/[0.12] bg-red-400/[0.045] p-3 text-xs leading-5 text-white/55">
+                {risk}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 text-[11px] text-white/35">
+        <div className="font-mono uppercase tracking-[0.12em]">
+          Review: soft {minutesLabel(review.soft_review_after_minutes)} / stale {minutesLabel(review.stale_after_minutes)}
+        </div>
+        <div className="font-mono uppercase tracking-[0.12em]">
+          ID {item.projection_id}
+        </div>
+      </div>
+    </article>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────
-function isResolved(outcome) {
-  return outcome?.outcome === "hit" || outcome?.outcome === "miss";
-}
-
-function buildScopedTrackRecord(items, windowLabel = "today") {
-  const horizons = HORIZON_ORDER.reduce((acc, horizon) => {
-    acc[horizon] = { total: 0, hit: 0, miss: 0, hit_rate: null };
-    return acc;
-  }, {});
-
-  items.forEach((item) => {
-    (item.outcomes || []).forEach((outcome) => {
-      if (!horizons[outcome.horizon] || !isResolved(outcome)) return;
-      horizons[outcome.horizon].total += 1;
-      horizons[outcome.horizon][outcome.outcome] += 1;
-    });
-  });
-
-  Object.values(horizons).forEach((stats) => {
-    stats.hit_rate = stats.total > 0 ? stats.hit / stats.total : null;
-  });
-
-  const overall = Object.values(horizons).reduce(
-    (acc, stats) => {
-      acc.total += stats.total;
-      acc.hit += stats.hit;
-      acc.miss += stats.miss;
-      return acc;
-    },
-    { total: 0, hit: 0, miss: 0, hit_rate: null },
-  );
-  overall.hit_rate = overall.total > 0 ? overall.hit / overall.total : null;
-
-  return {
-    window_days: null,
-    window_label: windowLabel,
-    horizons,
-    overall,
-  };
-}
-
-function scopedItems(items, sinceValue) {
-  if (!sinceValue) return items;
-  const since = new Date(sinceValue);
-  if (Number.isNaN(since.getTime())) return items;
-  return items.filter((item) => {
-    const timestamp = new Date(item.timestamp);
-    return !Number.isNaN(timestamp.getTime()) && timestamp >= since;
-  });
-}
-
-function startOfTodayIso() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString();
-}
-
-const AUDIT_WINDOWS = [
-  { key: "today", label: "Today", days: 0 },
-  { key: "7d", label: "7 days", days: 7 },
-  { key: "30d", label: "30 days", days: 30 },
-  { key: "all", label: "All retained", days: null },
-];
-
-function auditWindowSince(windowKey) {
-  if (windowKey === "today") return startOfTodayIso();
-  const window = AUDIT_WINDOWS.find((item) => item.key === windowKey);
-  if (!window?.days) return null;
-  return new Date(Date.now() - window.days * 24 * 60 * 60 * 1000).toISOString();
-}
-
-export default function VerdictLedger({ ledger, pageSize = 8 }) {
-  const [filter, setFilter] = useState("all"); // all | hit | miss | pending
-  const [auditWindow, setAuditWindow] = useState("all");
+export default function VerdictLedger({ ledger }) {
+  const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   const items = ledger?.items || [];
-  const todayItems = useMemo(
-    () => scopedItems(items, startOfTodayIso()),
-    [items],
-  );
-  const todayTrackRecord = useMemo(
-    () => buildScopedTrackRecord(todayItems, "Today"),
-    [todayItems],
-  );
-  const auditItems = useMemo(
-    () => scopedItems(items, auditWindowSince(auditWindow)),
-    [auditWindow, items],
-  );
+  const stats = ledger?.stats || {};
 
   const filtered = useMemo(() => {
-    if (filter === "all") return auditItems;
-    return auditItems.filter((it) => {
-      if (!it.outcomes) return false;
-      return it.outcomes.some((outcome) => outcome.outcome === filter);
-    });
-  }, [auditItems, filter]);
+    if (filter === "all") return items;
+    if (filter === "active") return items.filter((item) => item.status === "ACTIVE");
+    if (filter === "resolved") return items.filter((item) => item.resolution);
+    if (filter === "pending") return items.filter((item) => !item.resolution);
+    if (filter === "hit") {
+      return items.filter((item) => ["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(item.resolution?.outcome));
+    }
+    if (filter === "invalidated") {
+      return items.filter((item) => item.resolution?.outcome === "INVALIDATED_FIRST");
+    }
+    return items;
+  }, [filter, items]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const startIndex = (page - 1) * pageSize;
-  const visibleRows = filtered.slice(startIndex, startIndex + pageSize);
-  const firstVisible = filtered.length ? startIndex + 1 : 0;
-  const lastVisible = Math.min(startIndex + pageSize, filtered.length);
-  const totalEvaluated = todayTrackRecord.overall.total;
-  const hasAnyEvaluated = totalEvaluated > 0;
-  const auditWindowLabel =
-    AUDIT_WINDOWS.find((item) => item.key === auditWindow)?.label ||
-    "All retained";
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, auditWindow, items.length]);
+  }, [filter, items.length]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
   return (
-    <section className="mb-8 rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <section className="space-y-5 rounded-3xl border border-white/[0.08] bg-[#0b0b10]/80 p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-            Evaluation
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4a853]/75">
+            Compass 2.0 Evaluation
           </div>
-          <div className="mt-1 flex flex-wrap items-baseline gap-3">
-            <h2
-              className="text-2xl text-white/90"
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 500,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Compass Track Record
-            </h2>
-            <span className="rounded-full border border-[#d4a853]/20 bg-[#d4a853]/10 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-[#f5c451]">
-              Today scorecard
-            </span>
-          </div>
-          <p className="mt-2 max-w-2xl text-xs leading-5 text-white/40">
-            The scorecard resets at the start of each day. It does not remove earlier Compass reads: the retained audit ledger below stays available for review.
+          <h2 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-white">
+            Scenario resolution, not old horizon scorekeeping
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+            The old 24h/72h/7d/30d history has been retired because the schema changed.
+            This page now tracks the live contract: projected touch, confirmation,
+            invalidation, and which barrier resolves first.
           </p>
         </div>
-        <Tooltip termKey="verdict-evaluation">
-          <span className="cursor-help border-b border-dotted border-white/20 font-mono text-xs text-white/40">
-            How is this judged?
-          </span>
-        </Tooltip>
-      </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {HORIZON_ORDER.map((horizon) => (
-          <HorizonStatCard
-            key={horizon}
-            horizon={horizon}
-            stats={todayTrackRecord.horizons[horizon]}
-          />
-        ))}
-      </div>
-
-      {!hasAnyEvaluated && (
-        <div className="mb-5 flex items-start gap-3 rounded-xl border border-[#d4a853]/15 bg-[#d4a853]/[0.04] p-4">
-          <span className="shrink-0 text-base text-[#d4a853]">•</span>
-          <div>
-            <div className="mb-1 text-sm text-white/80">Today is still warming up</div>
-            <p className="text-xs leading-relaxed text-white/50">
-              No verdict from today has completed its horizon yet. Earlier resolved reads remain available in Audit history below, while today&apos;s 24h outcomes begin resolving after their horizon ends.
-            </p>
+        <div className="rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.07] px-4 py-3 text-right">
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+            Reset
+          </div>
+          <div className="mt-1 font-mono text-sm text-white">
+            Jun 25, 2026
           </div>
         </div>
-      )}
-
-      <div className="mb-3 grid gap-2 rounded-xl border border-white/[0.06] bg-black/15 p-3 text-[11px] leading-relaxed text-white/55 md:grid-cols-3">
-        <div><span className="font-mono text-[#8ee5b7]">BULLISH HIT</span> at +1.0% or more</div>
-        <div><span className="font-mono text-[#ff9a9a]">BEARISH HIT</span> at -1.0% or less</div>
-        <div><span className="font-mono text-[#cbd5e1]">NEUTRAL HIT</span> only inside ±2.0%</div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-3 py-3">
+      <div className="grid gap-3 md:grid-cols-5">
+        <StatCard label="Contracts" value={ledger?.count ?? 0} sub="Compass 2.0 only" tone="gold" />
+        <StatCard label="Active" value={stats.active ?? 0} sub="Still being watched" />
+        <StatCard label="Resolved" value={stats.resolved ?? 0} sub="First barrier known" />
+        <StatCard label="Clean hits" value={stats.clean_hits ?? 0} sub="Target/range respected" tone="green" />
+        <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} sub="Thesis broke first" tone="red" />
+      </div>
+
+      <div className="rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
+        <div className="mb-2 text-sm font-medium text-white">
+          New rulebook
+        </div>
+        <div className="grid gap-3 text-xs leading-5 text-white/55 md:grid-cols-3">
+          <p>
+            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">Target-first:</span>{" "}
+            the read is judged by levels, not by waiting for a fixed final price.
+          </p>
+          <p>
+            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">First barrier wins:</span>{" "}
+            target/confirmation/invalidation order determines the result.
+          </p>
+          <p>
+            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">Time is review:</span>{" "}
+            stale time triggers a re-check, not an automatic miss.
+          </p>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
           <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-white/50">
-              Audit history · {filtered.length} reads
-            </span>
-            <div className="mt-0.5 text-[10px] font-mono text-white/30">
-              {auditWindowLabel} · showing {firstVisible}-{lastVisible} of {filtered.length}
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
+              Scenario ledger
+            </div>
+            <div className="mt-1 text-sm text-white/70">
+              {filtered.length} contract{filtered.length === 1 ? "" : "s"} shown
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-1">
-            {AUDIT_WINDOWS.map((window) => (
-              <button
-                key={window.key}
-                type="button"
-                onClick={() => setAuditWindow(window.key)}
-                className={`rounded px-2 py-1 text-[11px] font-mono transition-colors ${
-                  auditWindow === window.key
-                    ? "bg-[#d4a853]/15 text-[#f5c451]"
-                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
-                }`}
-              >
-                {window.label}
-              </button>
-            ))}
-            <span className="mx-1 h-4 w-px bg-white/10" aria-hidden="true" />
+
+          <div className="flex flex-wrap gap-1">
             {[
-              { key: "all", label: "All" },
-              { key: "hit", label: "Hits" },
-              { key: "miss", label: "Misses" },
-              { key: "pending", label: "Pending" },
-            ].map((outcomeFilter) => (
+              ["all", "All"],
+              ["active", "Active"],
+              ["pending", "Pending"],
+              ["resolved", "Resolved"],
+              ["hit", "Hits"],
+              ["invalidated", "Invalidated"],
+            ].map(([key, label]) => (
               <button
-                key={outcomeFilter.key}
+                key={key}
                 type="button"
-                onClick={() => setFilter(outcomeFilter.key)}
-                className={`rounded px-2 py-1 text-[11px] font-mono transition-colors ${
-                  filter === outcomeFilter.key
-                    ? "bg-white/10 text-white"
-                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
+                onClick={() => setFilter(key)}
+                className={`rounded-lg px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition ${
+                  filter === key
+                    ? "bg-[#d4a853]/15 text-[#f5c451]"
+                    : "text-white/45 hover:bg-white/[0.06] hover:text-white/75"
                 }`}
               >
-                {outcomeFilter.label}
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        {visibleRows.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">When</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">BTC</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">30d</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">7d</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">24h</th>
-                  <th className="px-3 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-white/40">Outcomes (24h/72h/7d/30d)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((item) => (
-                  <HistoryRow key={item.id || item.report_id} item={item} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-8 text-center">
-            <p className="text-sm italic text-white/40">
-              {filter === "all"
-                ? "No Compass reads in this audit window"
-                : `No ${filter} reads in this audit window`}
-            </p>
-          </div>
-        )}
+        <div className="space-y-4 p-4">
+          {visible.length > 0 ? (
+            visible.map((item) => <ScenarioCard key={item.projection_id} item={item} />)
+          ) : (
+            <div className="rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02] p-10 text-center">
+              <div className="text-lg font-semibold text-white/80">
+                No Compass 2.0 scenario history yet
+              </div>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/45">
+                The old horizon ledger has been cleared. The next scheduled BTC Compass
+                read will create a new target-first contract here.
+              </p>
+            </div>
+          )}
+        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 px-3 py-3">
-          <p className="text-[11px] font-mono leading-relaxed text-white/30">
-            Daily scorecards reset. Audit history does not. Use this ledger to verify how prior Compass reads resolved after each horizon, not to decide a new trade.
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
+          <p className="text-[11px] leading-5 text-white/35">
+            Legacy retained audit is no longer shown here because it was judged by the old schema.
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
             >
               Prev
             </button>
-            <span className="text-[11px] font-mono text-white/40">Page {page} / {pageCount}</span>
+            <span className="font-mono text-[11px] text-white/40">
+              Page {page} / {pageCount}
+            </span>
             <button
               type="button"
               disabled={page >= pageCount}
               onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
             >
               Next
             </button>

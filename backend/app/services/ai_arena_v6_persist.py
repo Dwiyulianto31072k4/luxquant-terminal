@@ -16,20 +16,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.models.ai_arena_v6 import (
-    AIArenaVerdictOutcome,
-    DEFAULT_NEUTRAL_BAND_PCT,
-    DEFAULT_THRESHOLD_PCT,
-    HORIZONS_HOURS,
-)
 from app.services.compass_contract import ContractValidationError, validate_dynamic_scenario_contract
 from app.services.verdict_schema import ReportBundleV6
 
@@ -273,7 +266,7 @@ def _persist_dynamic_scenario_contract(
 
 def persist_report_to_db(bundle: ReportBundleV6) -> int:
     """
-    Insert v6 report into ai_arena_reports + create 4 pending outcome rows.
+    Insert v6 report into ai_arena_reports + persist Compass 2.0 contract.
 
     Returns the new ai_arena_reports.id (PK).
 
@@ -362,9 +355,6 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
         })
         report_pk = result.scalar()
 
-        # Create 4 pending outcome rows (one per horizon)
-        # Use 30d horizon's verdict as the canonical "verdict" for outcome tracking
-        # Logic: each horizon evaluates the verdict APPROPRIATE for that horizon
         called_at = datetime.now(timezone.utc)
 
         try:
@@ -376,29 +366,9 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
                 type(exc).__name__,
             )
 
-        # Reframe: only the edge-proven horizons are projected & evaluated.
-        # 7d/30d dropped as directional predictions (see ledger: 7d ~26%).
-        outcomes_to_create = [
-            ("24h", verdict.tactical_24h.direction, verdict.tactical_24h.confidence),
-            ("72h", verdict.secondary_7d.direction, verdict.secondary_7d.confidence),
-        ]
-
-        for horizon, direction, confidence in outcomes_to_create:
-            target_at = called_at + timedelta(hours=HORIZONS_HOURS[horizon])
-            outcome_row = AIArenaVerdictOutcome(
-                report_id=report_pk,
-                report_uuid=bundle.report_id,
-                horizon=horizon,
-                direction=direction,
-                confidence=confidence,
-                price_at_call=bundle.btc_price,
-                called_at=called_at,
-                horizon_target_at=target_at,
-                outcome="pending",
-                threshold_pct=DEFAULT_THRESHOLD_PCT,
-                neutral_band_pct=DEFAULT_NEUTRAL_BAND_PCT,
-            )
-            db.add(outcome_row)
+        # Compass 2.0 retires legacy horizon outcome rows. Resolution now belongs
+        # to compass_projection_contracts + compass_projection_events +
+        # compass_projection_resolutions, where target/invalidation first wins.
 
         db.commit()
 
@@ -419,7 +389,7 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
 
         logger.info(
             f"Persisted v6 report {bundle.report_id} (pk={report_pk}) "
-            f"+ {len(outcomes_to_create)} pending outcomes; Compass 2.0 contract attempted"
+            "+ Compass 2.0 contract attempted"
         )
         return report_pk
 

@@ -3,10 +3,10 @@ import { createPortal } from "react-dom";
 import {
   getEventRisk,
   getLatestReport,
-  getLedger,
   getOperationalHealth,
   getReportArchive,
   getReportPdfBlob,
+  getScenarioLedger,
 } from "../services/aiArenaV6Api";
 
 import CompassBrief from "./aiArenaV6/CompassBrief";
@@ -914,9 +914,7 @@ export default function AIArenaPageV6() {
         getLatestReport(),
         getEventRisk(),
         getOperationalHealth(),
-        // Keep the daily scorecard in the UI, but load the audit ledger too.
-        // A date reset must never make prior Compass outcomes disappear.
-        getLedger({ days: 365 }),
+        getScenarioLedger({ limit: 50 }),
         getReportArchive({ limit: 18 }),
       ]);
 
@@ -1038,7 +1036,7 @@ export default function AIArenaPageV6() {
       icon: "02",
       eyebrow: "Audit",
       label: "Evaluation",
-      description: "Today scorecard with a retained audit history.",
+      description: "Target-first scenario resolution only.",
     },
     {
       key: "chart",
