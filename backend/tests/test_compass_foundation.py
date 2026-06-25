@@ -14,6 +14,10 @@ from app.services.compass_event_risk import (
     build_event_risk_snapshot,
 )
 from app.services.compass_evidence_matrix import build_evidence_matrix
+from app.services.compass_contract import (
+    ContractValidationError,
+    validate_dynamic_scenario_contract,
+)
 from app.services.binance_liquidation_map import estimate_liquidation_map
 from app.services.binance_liquidation_validation import (
     match_event_to_forecast,
@@ -35,6 +39,7 @@ from app.services.verdict_schema import (
     RiskScenario,
     SelfCritique,
     TripleScreenItem,
+    DynamicScenarioContract,
 )
 
 
@@ -840,3 +845,82 @@ def test_complete_verdict_accepts_two_usable_price_zones():
     })
 
     assert [zone.kind for zone in verdict.zones_to_watch] == ["demand", "supply"]
+
+
+
+def _sample_dynamic_contract() -> dict:
+    return {
+        "primary_bias": "bullish_continuation",
+        "reference_price": 63_689,
+        "support": {
+            "level": 63_250,
+            "trigger": "15m_close_below",
+            "reason": "Protection from the latest higher-low area.",
+        },
+        "confirmation": {
+            "level": 64_120,
+            "trigger": "5m_close_above",
+            "reason": "A short timeframe close above supply confirms continuation.",
+        },
+        "primary_touch": {
+            "level": 64_650,
+            "trigger": "intrabar_touch",
+            "reason": "Nearest upside magnet and first measurable destination.",
+        },
+        "extension_zone": {
+            "price_low": 65_050,
+            "price_high": 65_400,
+            "reason": "Next overhead liquidity cluster after primary touch.",
+        },
+        "invalidation": {
+            "level": 62_950,
+            "trigger": "15m_close_below",
+            "reason": "A confirmed loss breaks the current higher-low thesis.",
+        },
+        "alternative_path": [62_350, 61_800],
+        "market_mode": "selective_risk_on",
+        "probabilities": {"primary": 62, "alternative": 28, "risk_tail": 10},
+        "review_policy": {
+            "expected_pace": "near_term",
+            "soft_review_after_minutes": 180,
+            "stale_after_minutes": 480,
+            "review_reason": "Scenario should make progress within a normal intraday volatility window.",
+        },
+        "key_conditions": [
+            "BTC holds above the $63,250 protection area.",
+            "Confirmation requires a 5m close above $64,120.",
+        ],
+        "key_risks": [
+            "A 15m close below $62,950 invalidates before target.",
+            "Alt breadth can lag if BTC strength becomes BTC-only.",
+        ],
+        "user_explanation": (
+            "BTC has an active upside path toward $64,650 while $62,950 remains the thesis break. "
+            "If confirmation fails and invalidation triggers first, the alternative path opens toward $62,350 then $61,800."
+        ),
+    }
+
+
+def test_dynamic_scenario_contract_accepts_target_first_map():
+    contract = validate_dynamic_scenario_contract(_sample_dynamic_contract())
+
+    assert isinstance(contract, DynamicScenarioContract)
+    assert contract.primary_bias == "BULLISH_CONTINUATION"
+    assert contract.market_mode == "SELECTIVE_RISK_ON"
+    assert contract.primary_touch.level == 64_650
+
+
+def test_dynamic_scenario_contract_rejects_ambiguous_directional_map():
+    bad_contract = _sample_dynamic_contract()
+    bad_contract["primary_touch"] = {
+        "level": 62_500,
+        "trigger": "intrabar_touch",
+        "reason": "Wrong side for a bullish projection.",
+    }
+
+    try:
+        validate_dynamic_scenario_contract(bad_contract)
+    except ContractValidationError as exc:
+        assert "bullish primary_touch" in str(exc)
+    else:
+        raise AssertionError("Expected invalid target side to be rejected")

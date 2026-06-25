@@ -144,6 +144,113 @@ class LayerBriefBundle(BaseModel):
         return _truncate(v, 480)
 
 
+class ScenarioTrigger(BaseModel):
+    """One deterministic trigger level in the Compass 2.0 scenario map."""
+    level: float = Field(gt=0)
+    trigger: Literal[
+        "intrabar_touch",
+        "5m_close_above", "5m_close_below",
+        "15m_close_above", "15m_close_below",
+        "1h_close_above", "1h_close_below",
+        "4h_close_above", "4h_close_below",
+        "1d_close_above", "1d_close_below",
+    ]
+    reason: str = Field(max_length=260)
+
+    @field_validator("trigger", mode="before")
+    @classmethod
+    def _normalize_trigger(cls, v):
+        return _lower_token(v)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _trim_reason(cls, v):
+        return _truncate(v, 260)
+
+
+class ScenarioZone(BaseModel):
+    """A price zone used for extensions or range interpretation."""
+    price_low: float = Field(gt=0)
+    price_high: float = Field(gt=0)
+    reason: str = Field(max_length=260)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _trim_reason(cls, v):
+        return _truncate(v, 260)
+
+
+class ScenarioProbabilities(BaseModel):
+    """Scenario probability mix. Used for calibration, not deterministic resolution."""
+    primary: int = Field(ge=0, le=100)
+    alternative: int = Field(ge=0, le=100)
+    risk_tail: int = Field(ge=0, le=100)
+
+
+class ScenarioReviewPolicy(BaseModel):
+    """Soft time policy. Time triggers review, not outcome truth."""
+    expected_pace: Literal["immediate", "near_term", "developing"]
+    soft_review_after_minutes: int = Field(ge=15, le=1440)
+    stale_after_minutes: int = Field(ge=30, le=4320)
+    review_reason: str = Field(max_length=260)
+
+    @field_validator("expected_pace", mode="before")
+    @classmethod
+    def _normalize_pace(cls, v):
+        return _lower_token(v)
+
+    @field_validator("review_reason", mode="before")
+    @classmethod
+    def _trim_reason(cls, v):
+        return _truncate(v, 260)
+
+
+class DynamicScenarioContract(BaseModel):
+    """
+    Compass 2.0 target-first scenario contract.
+
+    The LLM may propose this map, but deterministic code must later resolve it
+    from stored levels and observed events. Legacy horizon verdicts remain for
+    backward compatibility and are not the primary truth condition.
+    """
+    primary_bias: str = Field(max_length=48)
+    reference_price: float = Field(gt=0)
+    support: ScenarioTrigger
+    confirmation: ScenarioTrigger
+    primary_touch: ScenarioTrigger
+    extension_zone: ScenarioZone
+    invalidation: ScenarioTrigger
+    alternative_path: list[float] = Field(min_length=1, max_length=4)
+    market_mode: str = Field(max_length=48)
+    probabilities: ScenarioProbabilities
+    review_policy: ScenarioReviewPolicy
+    key_conditions: list[str] = Field(min_length=2, max_length=6)
+    key_risks: list[str] = Field(min_length=2, max_length=6)
+    user_explanation: str = Field(max_length=720)
+
+    @field_validator("primary_bias", "market_mode", mode="before")
+    @classmethod
+    def _normalize_tokens(cls, v):
+        return _upper_token(v)
+
+    @field_validator("alternative_path")
+    @classmethod
+    def _validate_path(cls, v: list[float]) -> list[float]:
+        if any(float(level) <= 0 for level in v):
+            raise ValueError("alternative_path levels must be positive")
+        return [float(level) for level in v]
+
+    @field_validator("key_conditions", "key_risks")
+    @classmethod
+    def _trim_lists(cls, v: list[str]) -> list[str]:
+        return [_truncate(item.strip(), 220) for item in v if item and item.strip()]
+
+    @field_validator("user_explanation", mode="before")
+    @classmethod
+    def _trim_explanation(cls, v):
+        return _truncate(v, 720)
+
+
 # ════════════════════════════════════════════════════════════════════════
 # Stage 2 — Complete Verdict (DeepSeek R1 reasons + decides)
 # ════════════════════════════════════════════════════════════════════════
@@ -327,6 +434,13 @@ class CompleteVerdict(BaseModel):
     triple_screen: list[TripleScreenItem] = Field(min_length=3, max_length=3)
     risk_scenarios: list[RiskScenario] = Field(min_length=2, max_length=6)
 
+    # Compass 2.0 dynamic scenario map. Optional for legacy/backfilled reports,
+    # required by the new Stage 2 prompt and contract validator before publish.
+    scenario_contract: Optional[DynamicScenarioContract] = Field(
+        default=None,
+        description="Target-first BTC forecast contract with levels and triggers",
+    )
+
     # What changed (vs previous verdict)
     what_changed: Optional[str] = Field(
         default=None,
@@ -454,6 +568,11 @@ __all__ = [
     "TacticalZone",
     "TripleScreenItem",
     "RiskScenario",
+    "ScenarioTrigger",
+    "ScenarioZone",
+    "ScenarioProbabilities",
+    "ScenarioReviewPolicy",
+    "DynamicScenarioContract",
     "CompleteVerdict",
     "SelfCritique",
     "ReportBundleV6",

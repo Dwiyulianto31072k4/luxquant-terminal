@@ -275,6 +275,28 @@ Produce a JSON object matching this exact schema:
   "secondary_7d": {"direction": "...", "confidence": 0-100, "rationale": "..."},
   "tactical_24h": {"direction": "...", "confidence": 0-100, "rationale": "..."},
 
+  "scenario_contract": {
+    "primary_bias": "BULLISH_CONTINUATION/BEARISH_CONTINUATION/NEUTRAL_RANGE/RISK_ON_CONTINUATION/RISK_OFF_CONTINUATION",
+    "reference_price": <current BTC number>,
+    "support": {"level": <number>, "trigger": "15m_close_below", "reason": "why this keeps/breaks protection"},
+    "confirmation": {"level": <number>, "trigger": "5m_close_above", "reason": "what confirms the path"},
+    "primary_touch": {"level": <number>, "trigger": "intrabar_touch", "reason": "first measurable destination"},
+    "extension_zone": {"price_low": <number>, "price_high": <number>, "reason": "where path can stretch after target"},
+    "invalidation": {"level": <number>, "trigger": "15m_close_below", "reason": "exact condition that breaks thesis"},
+    "alternative_path": [<number>, <number>],
+    "market_mode": "ALTCOIN_FRIENDLY/SELECTIVE_RISK_ON/BTC_ONLY_RISK_ON/DEFENSIVE/EMERGENCY_DE_RISK/CHOPPY_RANGE",
+    "probabilities": {"primary": 0-100, "alternative": 0-100, "risk_tail": 0-100},
+    "review_policy": {
+      "expected_pace": "immediate/near_term/developing",
+      "soft_review_after_minutes": <integer>,
+      "stale_after_minutes": <integer>,
+      "review_reason": "why this timing is appropriate"
+    },
+    "key_conditions": ["2-6 observed conditions with numbers"],
+    "key_risks": ["2-6 observed risks with numbers"],
+    "user_explanation": "trader-facing explanation of the path, confirmation, invalidation, and alternative"
+  },
+
   "reasoning_chain": [
     {"step": 1, "title": "≤80", "observation": "≤260", "interpretation": "≤260", "implication": "≤200"},
     ... (4-7 steps total)
@@ -308,12 +330,22 @@ Produce a JSON object matching this exact schema:
 CRITICAL principles:
 - Be evidence-based: every claim must trace to a brief / metric
 - NOTE: when the system locks direction (deterministic mode), treat the given direction as FINAL — you may only narrate and LOWER confidence, never flip direction.
-- Horizons: tactical_24h (24h) and secondary_7d (treat as 72-HOUR swing) are the ACTIONABLE projections — base them on smart_money, liquidity, and price action. primary_30d is CYCLE/MACRO CONTEXT only (a slow backdrop bias), NOT an actionable price call.
+- The scenario_contract is the primary product output. Horizon labels are legacy compatibility summaries only.
+- Horizons: tactical_24h and secondary_7d are summaries of the active contract, not the truth condition. primary_30d is CYCLE/MACRO CONTEXT only.
+- Always answer: BTC is projected toward which level, what confirms it, what invalidates it, and what path follows if invalidated.
+- The contract must be target-first: primary_touch and invalidation must be explicit levels with exact trigger rules.
+- Time is freshness/review metadata only. Do not define success as "green after 24h" or "red after 7d".
+- For bullish/risk-on contracts: primary_touch should be above reference_price and invalidation below reference_price.
+- For bearish/risk-off contracts: primary_touch should be below reference_price and invalidation above reference_price.
+- For neutral/range contracts: define the range boundary as primary_touch/extension and a clear invalidation/alternative path.
+- Use trigger tokens exactly: intrabar_touch, 5m_close_above, 5m_close_below, 15m_close_above, 15m_close_below, 1h_close_above, 1h_close_below, 4h_close_above, 4h_close_below, 1d_close_above, 1d_close_below.
+- Market mode must translate BTC to altcoin permission: ALTCOIN_FRIENDLY, SELECTIVE_RISK_ON, BTC_ONLY_RISK_ON, DEFENSIVE, EMERGENCY_DE_RISK, or CHOPPY_RANGE.
 - Specific, not vague: prefer "STH-MVRV at 0.99 signals neutral" over "on-chain looks ok"
 - Invalidation levels must be specific prices that would flip the thesis
 - Zones should reference real price levels, not theoretical
 - Reasoning chain shows your work — observation (data) → interpretation (meaning) → implication (action context)
 - If previous verdict differs from current, explain WHY in what_changed (data shifts, not opinion changes)
+- Never invent historical outcomes. You are drafting the current scenario contract; code will resolve target-first vs invalidation-first later.
 
 Return ONLY the JSON object."""
 
@@ -397,6 +429,13 @@ def _repair_json(raw: str) -> str:
     return s
 
 
+def _validate_stage2_dynamic_contract(verdict: CompleteVerdict) -> None:
+    """Ensure the new Stage 2 output contains a publishable scenario contract."""
+    from app.services.compass_contract import validate_dynamic_scenario_contract
+
+    validate_dynamic_scenario_contract(verdict.scenario_contract)
+
+
 async def stage2_reason(
     bundle: LayerBriefBundle,
     btc_price: float,
@@ -441,11 +480,41 @@ async def stage2_reason(
 
     try:
         verdict = CompleteVerdict.model_validate_json(raw_json)
+        _validate_stage2_dynamic_contract(verdict)
     except Exception as parse_err:
-        _log(f"WARN Stage 2: JSON parse failed ({type(parse_err).__name__}), attempting repair...")
-        repaired = _repair_json(raw_json)
-        verdict = CompleteVerdict.model_validate_json(repaired)
-        _log("Stage 2: JSON repaired successfully")
+        _log(f"WARN Stage 2: JSON/contract validation failed ({type(parse_err).__name__}), attempting repair...")
+        try:
+            repaired = _repair_json(raw_json)
+            verdict = CompleteVerdict.model_validate_json(repaired)
+            _validate_stage2_dynamic_contract(verdict)
+            _log("Stage 2: JSON/contract repaired successfully")
+        except Exception as repair_err:
+            _log(
+                "WARN Stage 2: repair still failed; retrying with explicit Compass 2.0 contract instruction "
+                f"({type(repair_err).__name__})"
+            )
+            resp = await deepseek_client.chat.completions.create(
+                model=MODEL_STAGE2,
+                messages=[
+                    {"role": "system", "content": STAGE2_SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": (
+                            user_prompt
+                            + "\n\nIMPORTANT: Your previous output failed Compass 2.0 validation. "
+                            + "Return complete valid JSON including scenario_contract with reference_price, support, confirmation, primary_touch, extension_zone, invalidation, alternative_path, market_mode, probabilities, review_policy, key_conditions, key_risks, and user_explanation. "
+                            + f"Validation error: {type(repair_err).__name__}: {str(repair_err)[:500]}"
+                        ),
+                    },
+                ],
+                response_format={"type": "json_object"},
+                max_tokens=8000,
+                temperature=0.2,
+            )
+            raw_json = resp.choices[0].message.content or "{}"
+            verdict = CompleteVerdict.model_validate_json(raw_json)
+            _validate_stage2_dynamic_contract(verdict)
+            _log("Stage 2: contract retry produced valid Compass 2.0 JSON")
 
     usage = resp.usage
     cost = _estimate_cost(MODEL_STAGE2, usage.prompt_tokens, usage.completion_tokens)

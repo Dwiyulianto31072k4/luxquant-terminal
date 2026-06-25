@@ -13,6 +13,8 @@ Pattern matches existing v4 worker (ai_arena_worker.py uses SessionLocal directl
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -28,9 +30,245 @@ from app.models.ai_arena_v6 import (
     DEFAULT_THRESHOLD_PCT,
     HORIZONS_HOURS,
 )
+from app.services.compass_contract import ContractValidationError, validate_dynamic_scenario_contract
 from app.services.verdict_schema import ReportBundleV6
 
 logger = logging.getLogger(__name__)
+
+
+def _stable_json_dumps(value: object) -> str:
+    """Compact JSON for SQL JSON/JSONB parameters."""
+    return json.dumps(value, default=str, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _persist_dynamic_scenario_contract(
+    db: Session,
+    bundle: ReportBundleV6,
+    report_pk: int,
+    called_at: datetime,
+) -> None:
+    """
+    Persist Compass 2.0 target-first contract and seed its event timeline.
+
+    Legacy/backfilled reports can still exist without scenario_contract. New
+    worker output should already validate before persistence.
+    """
+    try:
+        contract = validate_dynamic_scenario_contract(bundle.verdict.scenario_contract)
+    except ContractValidationError as exc:
+        logger.warning("Compass 2.0 contract skipped for %s: %s", bundle.report_id, exc)
+        return
+
+    contract_json = contract.model_dump(mode="json")
+    source_json = {
+        "report_id": bundle.report_id,
+        "schema_version": bundle.schema_version,
+        "generated_at": bundle.generated_at,
+        "critique_decision": bundle.critique.decision,
+        "cycle_position": bundle.cycle_position,
+        "liquidity": bundle.liquidity,
+        "event_risk": bundle.event_risk,
+        "evidence_matrix": bundle.evidence_matrix,
+    }
+    source_json_text = _stable_json_dumps(source_json)
+    snapshot_hash = hashlib.sha256(source_json_text.encode("utf-8")).hexdigest()
+
+    read_id = f"read_{bundle.report_id}"
+    projection_id = f"cmp_{bundle.report_id}_v1"
+    review_policy = contract.review_policy
+
+    db.execute(text("""
+        INSERT INTO compass_reads (
+            read_id,
+            report_pk,
+            report_id,
+            issued_at,
+            btc_reference_price,
+            snapshot_hash,
+            schema_version,
+            model_version,
+            prompt_version,
+            source_json
+        ) VALUES (
+            :read_id,
+            :report_pk,
+            :report_id,
+            :issued_at,
+            :btc_reference_price,
+            :snapshot_hash,
+            :schema_version,
+            :model_version,
+            :prompt_version,
+            CAST(:source_json AS JSONB)
+        )
+        ON CONFLICT (read_id) DO UPDATE SET
+            report_pk = EXCLUDED.report_pk,
+            report_id = EXCLUDED.report_id,
+            btc_reference_price = EXCLUDED.btc_reference_price,
+            snapshot_hash = EXCLUDED.snapshot_hash,
+            schema_version = EXCLUDED.schema_version,
+            model_version = EXCLUDED.model_version,
+            prompt_version = EXCLUDED.prompt_version,
+            source_json = EXCLUDED.source_json
+    """), {
+        "read_id": read_id,
+        "report_pk": report_pk,
+        "report_id": bundle.report_id,
+        "issued_at": called_at,
+        "btc_reference_price": contract.reference_price,
+        "snapshot_hash": snapshot_hash,
+        "schema_version": bundle.schema_version,
+        "model_version": bundle.cost_breakdown.get("stage2", {}).get("model", "unknown"),
+        "prompt_version": "compass_2_target_first_v1",
+        "source_json": source_json_text,
+    })
+
+    db.execute(text("""
+        INSERT INTO compass_projection_contracts (
+            projection_id,
+            read_id,
+            version,
+            status,
+            primary_bias,
+            reference_price,
+            support_level,
+            support_trigger,
+            confirmation_level,
+            confirmation_trigger,
+            primary_touch_level,
+            primary_touch_trigger,
+            extension_low,
+            extension_high,
+            invalidation_level,
+            invalidation_trigger,
+            alternative_path,
+            market_mode,
+            expected_pace,
+            soft_review_after_minutes,
+            stale_after_minutes,
+            probabilities,
+            key_conditions,
+            key_risks,
+            contract_json,
+            active_from
+        ) VALUES (
+            :projection_id,
+            :read_id,
+            1,
+            'ACTIVE',
+            :primary_bias,
+            :reference_price,
+            :support_level,
+            :support_trigger,
+            :confirmation_level,
+            :confirmation_trigger,
+            :primary_touch_level,
+            :primary_touch_trigger,
+            :extension_low,
+            :extension_high,
+            :invalidation_level,
+            :invalidation_trigger,
+            CAST(:alternative_path AS JSONB),
+            :market_mode,
+            :expected_pace,
+            :soft_review_after_minutes,
+            :stale_after_minutes,
+            CAST(:probabilities AS JSONB),
+            CAST(:key_conditions AS JSONB),
+            CAST(:key_risks AS JSONB),
+            CAST(:contract_json AS JSONB),
+            :active_from
+        )
+        ON CONFLICT (projection_id) DO UPDATE SET
+            status = EXCLUDED.status,
+            primary_bias = EXCLUDED.primary_bias,
+            reference_price = EXCLUDED.reference_price,
+            support_level = EXCLUDED.support_level,
+            support_trigger = EXCLUDED.support_trigger,
+            confirmation_level = EXCLUDED.confirmation_level,
+            confirmation_trigger = EXCLUDED.confirmation_trigger,
+            primary_touch_level = EXCLUDED.primary_touch_level,
+            primary_touch_trigger = EXCLUDED.primary_touch_trigger,
+            extension_low = EXCLUDED.extension_low,
+            extension_high = EXCLUDED.extension_high,
+            invalidation_level = EXCLUDED.invalidation_level,
+            invalidation_trigger = EXCLUDED.invalidation_trigger,
+            alternative_path = EXCLUDED.alternative_path,
+            market_mode = EXCLUDED.market_mode,
+            expected_pace = EXCLUDED.expected_pace,
+            soft_review_after_minutes = EXCLUDED.soft_review_after_minutes,
+            stale_after_minutes = EXCLUDED.stale_after_minutes,
+            probabilities = EXCLUDED.probabilities,
+            key_conditions = EXCLUDED.key_conditions,
+            key_risks = EXCLUDED.key_risks,
+            contract_json = EXCLUDED.contract_json
+    """), {
+        "projection_id": projection_id,
+        "read_id": read_id,
+        "primary_bias": contract.primary_bias,
+        "reference_price": contract.reference_price,
+        "support_level": contract.support.level,
+        "support_trigger": contract.support.trigger,
+        "confirmation_level": contract.confirmation.level,
+        "confirmation_trigger": contract.confirmation.trigger,
+        "primary_touch_level": contract.primary_touch.level,
+        "primary_touch_trigger": contract.primary_touch.trigger,
+        "extension_low": contract.extension_zone.price_low,
+        "extension_high": contract.extension_zone.price_high,
+        "invalidation_level": contract.invalidation.level,
+        "invalidation_trigger": contract.invalidation.trigger,
+        "alternative_path": _stable_json_dumps(contract.alternative_path),
+        "market_mode": contract.market_mode,
+        "expected_pace": review_policy.expected_pace,
+        "soft_review_after_minutes": review_policy.soft_review_after_minutes,
+        "stale_after_minutes": review_policy.stale_after_minutes,
+        "probabilities": _stable_json_dumps(contract.probabilities.model_dump(mode="json")),
+        "key_conditions": _stable_json_dumps(contract.key_conditions),
+        "key_risks": _stable_json_dumps(contract.key_risks),
+        "contract_json": _stable_json_dumps(contract_json),
+        "active_from": called_at,
+    })
+
+    event_json = {
+        "primary_bias": contract.primary_bias,
+        "reference_price": contract.reference_price,
+        "support": contract.support.model_dump(mode="json"),
+        "confirmation": contract.confirmation.model_dump(mode="json"),
+        "primary_touch": contract.primary_touch.model_dump(mode="json"),
+        "invalidation": contract.invalidation.model_dump(mode="json"),
+        "market_mode": contract.market_mode,
+        "review_policy": review_policy.model_dump(mode="json"),
+    }
+    db.execute(text("""
+        INSERT INTO compass_projection_events (
+            projection_id,
+            event_time,
+            event_type,
+            price,
+            source,
+            evidence_json
+        )
+        SELECT
+            :projection_id,
+            :event_time,
+            'FORECAST_ISSUED',
+            :price,
+            'ai_arena_v6_worker',
+            CAST(:evidence_json AS JSONB)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM compass_projection_events
+            WHERE projection_id = :projection_id
+              AND event_type = 'FORECAST_ISSUED'
+        )
+    """), {
+        "projection_id": projection_id,
+        "event_time": called_at,
+        "price": contract.reference_price,
+        "evidence_json": _stable_json_dumps(event_json),
+    })
+
+    logger.info("Persisted Compass 2.0 contract %s for report %s", projection_id, bundle.report_id)
 
 
 def persist_report_to_db(bundle: ReportBundleV6) -> int:
@@ -129,6 +367,15 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
         # Logic: each horizon evaluates the verdict APPROPRIATE for that horizon
         called_at = datetime.now(timezone.utc)
 
+        try:
+            _persist_dynamic_scenario_contract(db, bundle, report_pk, called_at)
+        except Exception as exc:
+            logger.warning(
+                "Compass 2.0 contract persistence skipped for %s (%s)",
+                bundle.report_id,
+                type(exc).__name__,
+            )
+
         # Reframe: only the edge-proven horizons are projected & evaluated.
         # 7d/30d dropped as directional predictions (see ledger: 7d ~26%).
         outcomes_to_create = [
@@ -172,7 +419,7 @@ def persist_report_to_db(bundle: ReportBundleV6) -> int:
 
         logger.info(
             f"Persisted v6 report {bundle.report_id} (pk={report_pk}) "
-            f"+ {len(outcomes_to_create)} pending outcomes"
+            f"+ {len(outcomes_to_create)} pending outcomes; Compass 2.0 contract attempted"
         )
         return report_pk
 
