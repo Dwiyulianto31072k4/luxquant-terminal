@@ -73,11 +73,11 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             </span>
           </div>
           <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl">
-            Market read, simplified
+            BTC Market Outlook
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-            Start with the stance, then read the reason, price areas, and
-            invalidation. Technical source detail stays behind the scenes.
+            Start with the 24h outlook for altcoin exposure, then check the
+            projection, key levels, risk, and daily backdrop in one flow.
           </p>
         </div>
 
@@ -1028,29 +1028,29 @@ export default function AIArenaPageV6() {
       key: "read",
       icon: "01",
       eyebrow: "Today",
-      label: "Market Read",
-      description: "24h stance, drivers, levels, risk, and holder context.",
+      label: "Market Outlook",
+      description: "24h direction, exposure guide, levels, and risk.",
     },
     {
       key: "evaluation",
       icon: "02",
       eyebrow: "Audit",
-      label: "Evaluation",
-      description: "Target-first scenario resolution only.",
+      label: "Projection Audit",
+      description: "Projected level, result, and explanation.",
     },
     {
       key: "chart",
       icon: "03",
       eyebrow: "Context",
-      label: "BTC Chart",
-      description: "Projection, magnets, zones, and price confirmation.",
+      label: "Projection Chart",
+      description: "Live candles with projection overlay.",
     },
     {
       key: "archive",
       icon: "04",
       eyebrow: "Library",
-      label: "Report PDFs",
-      description: "Saved Compass reads with in-page PDF preview.",
+      label: "Report Library",
+      description: "Archived outlooks and PDF guide.",
     },
   ];
 

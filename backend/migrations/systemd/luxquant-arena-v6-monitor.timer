@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxQuant BTC Compass 2.0 - Monitor Driven Trigger Timer
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=2min
+AccuracySec=15s
+Persistent=true
+Unit=luxquant-arena-v6-monitor.service
+
+[Install]
+WantedBy=timers.target

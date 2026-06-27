@@ -124,7 +124,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           {/* Center: Navigation.
               No absolute positioning: it only occupies the middle grid column. */}
           <nav
-            className="hidden min-w-0 xl:block"
+            className="hidden min-w-0 lg:block"
             aria-label="Main navigation"
           >
             <div className="flex items-center justify-center gap-0.5 whitespace-nowrap 2xl:gap-1">
@@ -153,7 +153,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
 
           {/* Right: Language + CTA.
               English appears only on sufficiently wide screens so it never overlaps nav. */}
-          <div className="hidden shrink-0 items-center gap-2 xl:flex 2xl:gap-4">
+          <div className="hidden shrink-0 items-center gap-2 lg:flex 2xl:gap-4">
             <button
               type="button"
               className="hidden items-center gap-1.5 whitespace-nowrap text-[13px] text-white/65 transition-colors hover:text-white 2xl:flex"
@@ -196,7 +196,7 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           <button
             type="button"
             onClick={() => setMobileOpen((value) => !value)}
-            className="p-2 text-white/70 transition-colors hover:text-white xl:hidden"
+            className="col-start-3 justify-self-end p-2 text-white/70 transition-colors hover:text-white lg:hidden"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}
           >

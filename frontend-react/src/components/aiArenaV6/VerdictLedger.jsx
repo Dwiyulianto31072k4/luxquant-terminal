@@ -1,33 +1,21 @@
 // frontend-react/src/components/aiArenaV6/VerdictLedger.jsx
-// Compass 2.0 target-first evaluation ledger.
+// Compass 2.0 target-first evaluation table.
 
 import React, { useEffect, useMemo, useState } from "react";
 import { formatPrice, formatTimestamp } from "./constants";
 
-const PAGE_SIZE = 6;
+const DEFAULT_PAGE_SIZE = 8;
 
-function pct(value) {
-  if (value == null || Number.isNaN(Number(value))) return "--";
-  return `${Math.round(Number(value) * 100)}%`;
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
 }
 
-function minutesLabel(value) {
-  const minutes = Number(value);
-  if (!Number.isFinite(minutes)) return "--";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
-}
-
-function biasTone(value) {
-  const text = String(value || "").toUpperCase();
-  if (text.includes("BULL") || text.includes("RISK_ON")) {
-    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
-  }
-  if (text.includes("BEAR") || text.includes("RISK_OFF")) {
-    return "border-red-400/20 bg-red-400/10 text-red-300";
-  }
-  return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+function prettyToken(value) {
+  if (!value) return "Pending";
+  return String(value)
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function outcomeTone(value) {
@@ -38,18 +26,81 @@ function outcomeTone(value) {
   if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
     return "border-red-400/25 bg-red-400/10 text-red-300";
   }
-  if (text.includes("STALE") || text.includes("DATA")) {
-    return "border-amber-300/25 bg-amber-300/10 text-amber-200";
+  if (text.includes("PENDING") || text.includes("ACTIVE")) {
+    return "border-sky-300/20 bg-sky-300/10 text-sky-200";
   }
-  return "border-white/10 bg-white/[0.05] text-white/55";
+  return "border-amber-300/25 bg-amber-300/10 text-amber-200";
 }
 
-function prettyToken(value) {
-  if (!value) return "Pending";
-  return String(value).replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+function biasTone(value) {
+  const text = String(value || "").toUpperCase();
+  if (text.includes("BULL") || text.includes("RISK_ON")) {
+    return "text-emerald-300";
+  }
+  if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) {
+    return "text-red-300";
+  }
+  return "text-amber-200";
 }
 
-function StatCard({ label, value, sub, tone = "neutral" }) {
+function asPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return `${number >= 0 ? "+" : ""}${number.toFixed(2)}%`;
+}
+
+function buildProjected(item) {
+  const bias = prettyToken(item.primary_bias);
+  const touch = item.primary_touch?.level;
+  const trigger = item.primary_touch?.trigger;
+  const mode = prettyToken(item.market_mode);
+  return {
+    title: touch ? `${bias} toward ${formatPrice(touch)}` : `${bias} scenario`,
+    meta: `${mode}${trigger ? ` · ${prettyToken(trigger)}` : ""}`,
+  };
+}
+
+function buildResult(item) {
+  const resolution = item.resolution;
+  if (!resolution) {
+    return {
+      label: "Pending",
+      meta: "Waiting for first barrier",
+      tone: "PENDING",
+    };
+  }
+  const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
+  return {
+    label: prettyToken(resolution.outcome),
+    meta: [
+      resolution.first_barrier ? prettyToken(resolution.first_barrier) : null,
+      resolution.first_barrier_price ? formatPrice(resolution.first_barrier_price) : null,
+      move,
+    ].filter(Boolean).join(" · "),
+    tone: resolution.outcome,
+  };
+}
+
+function buildExplanation(item) {
+  const resolution = item.resolution;
+  if (resolution?.interpretation) return resolution.interpretation;
+  if (resolution?.reason_codes?.length) return resolution.reason_codes.map(prettyToken).join(", ");
+
+  const touch = item.primary_touch?.level;
+  const invalidation = item.invalidation?.level;
+  const confirmation = item.confirmation?.level;
+  if (!resolution) {
+    return [
+      touch ? `Projected touch is ${formatPrice(touch)}` : null,
+      confirmation ? `confirmation near ${formatPrice(confirmation)}` : null,
+      invalidation ? `invalidation near ${formatPrice(invalidation)}` : null,
+    ].filter(Boolean).join("; ") || "Scenario is still active; result appears after a target, confirmation, or invalidation barrier resolves.";
+  }
+
+  return "Resolved by the first touched scenario barrier.";
+}
+
+function StatCard({ label, value, detail, tone = "neutral" }) {
   const toneClass =
     tone === "green"
       ? "border-emerald-400/20 bg-emerald-400/[0.06]"
@@ -60,151 +111,19 @@ function StatCard({ label, value, sub, tone = "neutral" }) {
           : "border-white/[0.07] bg-white/[0.025]";
 
   return (
-    <div className={`rounded-2xl border p-4 ${toneClass}`}>
-      <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
+    <div className={cx("rounded-2xl border p-4", toneClass)}>
+      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
         {label}
       </div>
-      <div className="font-mono text-2xl font-semibold tabular-nums text-white">
+      <div className="mt-2 font-mono text-2xl font-semibold tabular-nums text-white">
         {value}
       </div>
-      {sub && <div className="mt-1 text-xs leading-5 text-white/45">{sub}</div>}
+      {detail && <div className="mt-1 text-xs leading-5 text-white/45">{detail}</div>}
     </div>
   );
 }
 
-function LevelTile({ label, level, trigger, tone = "neutral" }) {
-  const toneClass =
-    tone === "green"
-      ? "border-emerald-400/18 bg-emerald-400/[0.055]"
-      : tone === "red"
-        ? "border-red-400/18 bg-red-400/[0.055]"
-        : tone === "gold"
-          ? "border-[#d4a853]/20 bg-[#d4a853]/[0.06]"
-          : "border-white/[0.06] bg-white/[0.025]";
-
-  return (
-    <div className={`rounded-xl border p-3 ${toneClass}`}>
-      <div className="mb-1 text-[9px] font-mono uppercase tracking-[0.18em] text-white/35">
-        {label}
-      </div>
-      <div className="font-mono text-base font-semibold tabular-nums text-white">
-        {formatPrice(level)}
-      </div>
-      <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.08em] text-white/35">
-        {prettyToken(trigger)}
-      </div>
-    </div>
-  );
-}
-
-function ScenarioCard({ item }) {
-  const outcome = item.resolution?.outcome || "PENDING";
-  const probabilities = item.probabilities || {};
-  const review = item.review_policy || {};
-
-  return (
-    <article className="rounded-2xl border border-white/[0.07] bg-[#09090d]/75 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
-              {formatTimestamp(item.issued_at)}
-            </span>
-            <span className={`rounded-md border px-2 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${biasTone(item.primary_bias)}`}>
-              {prettyToken(item.primary_bias)}
-            </span>
-            <span className="rounded-md border border-[#d4a853]/20 bg-[#d4a853]/10 px-2 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-[#f5c451]">
-              {prettyToken(item.market_mode)}
-            </span>
-          </div>
-          <h3 className="text-xl font-semibold tracking-[-0.02em] text-white md:text-2xl">
-            {item.headline || "BTC scenario contract"}
-          </h3>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/45">
-            <span>BTC at read: <span className="font-mono text-white/70">{formatPrice(item.reference_price)}</span></span>
-            <span>Primary probability: <span className="font-mono text-white/70">{pct((probabilities.primary ?? 0) / 100)}</span></span>
-            <span>Events logged: <span className="font-mono text-white/70">{item.events?.count ?? 0}</span></span>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-start gap-2 text-left md:items-end md:text-right">
-          <span className={`rounded-lg border px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] ${outcomeTone(outcome)}`}>
-            {prettyToken(outcome)}
-          </span>
-          <span className="text-[11px] text-white/35">
-            First barrier decides the result
-          </span>
-        </div>
-      </div>
-
-      <div className="grid gap-3 p-4 md:grid-cols-4">
-        <LevelTile
-          label="Projected touch"
-          level={item.primary_touch?.level}
-          trigger={item.primary_touch?.trigger}
-          tone="gold"
-        />
-        <LevelTile
-          label="Confirmation"
-          level={item.confirmation?.level}
-          trigger={item.confirmation?.trigger}
-          tone="neutral"
-        />
-        <LevelTile
-          label="Support / reaction"
-          level={item.support?.level}
-          trigger={item.support?.trigger}
-          tone="green"
-        />
-        <LevelTile
-          label="Invalidation"
-          level={item.invalidation?.level}
-          trigger={item.invalidation?.trigger}
-          tone="red"
-        />
-      </div>
-
-      <div className="grid gap-3 border-t border-white/[0.06] p-4 md:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/70">
-            What must happen
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {(item.key_conditions || []).slice(0, 4).map((condition, index) => (
-              <div key={`${condition}-${index}`} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3 text-xs leading-5 text-white/60">
-                {condition}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.18em] text-red-300/70">
-            Risk watch
-          </div>
-          <div className="space-y-2">
-            {(item.key_risks || []).slice(0, 3).map((risk, index) => (
-              <div key={`${risk}-${index}`} className="rounded-xl border border-red-400/[0.12] bg-red-400/[0.045] p-3 text-xs leading-5 text-white/55">
-                {risk}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3 text-[11px] text-white/35">
-        <div className="font-mono uppercase tracking-[0.12em]">
-          Review: soft {minutesLabel(review.soft_review_after_minutes)} / stale {minutesLabel(review.stale_after_minutes)}
-        </div>
-        <div className="font-mono uppercase tracking-[0.12em]">
-          ID {item.projection_id}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export default function VerdictLedger({ ledger }) {
+export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) {
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
 
@@ -213,20 +132,20 @@ export default function VerdictLedger({ ledger }) {
 
   const filtered = useMemo(() => {
     if (filter === "all") return items;
-    if (filter === "active") return items.filter((item) => item.status === "ACTIVE");
-    if (filter === "resolved") return items.filter((item) => item.resolution);
     if (filter === "pending") return items.filter((item) => !item.resolution);
+    if (filter === "resolved") return items.filter((item) => item.resolution);
     if (filter === "hit") {
       return items.filter((item) => ["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(item.resolution?.outcome));
     }
-    if (filter === "invalidated") {
-      return items.filter((item) => item.resolution?.outcome === "INVALIDATED_FIRST");
+    if (filter === "miss") {
+      return items.filter((item) => ["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(item.resolution?.outcome));
     }
     return items;
   }, [filter, items]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const start = (page - 1) * pageSize;
+  const visible = filtered.slice(start, start + pageSize);
 
   useEffect(() => {
     setPage(1);
@@ -237,137 +156,171 @@ export default function VerdictLedger({ ledger }) {
   }, [page, pageCount]);
 
   return (
-    <section className="space-y-5 rounded-3xl border border-white/[0.08] bg-[#0b0b10]/80 p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4a853]/75">
-            Compass 2.0 Evaluation
-          </div>
-          <h2 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-white">
-            Scenario resolution, not old horizon scorekeeping
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
-            The old 24h/72h/7d/30d history has been retired because the schema changed.
-            This page now tracks the live contract: projected touch, confirmation,
-            invalidation, and which barrier resolves first.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.07] px-4 py-3 text-right">
-          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
-            Reset
-          </div>
-          <div className="mt-1 font-mono text-sm text-white">
-            Jun 25, 2026
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-5">
-        <StatCard label="Contracts" value={ledger?.count ?? 0} sub="Compass 2.0 only" tone="gold" />
-        <StatCard label="Active" value={stats.active ?? 0} sub="Still being watched" />
-        <StatCard label="Resolved" value={stats.resolved ?? 0} sub="First barrier known" />
-        <StatCard label="Clean hits" value={stats.clean_hits ?? 0} sub="Target/range respected" tone="green" />
-        <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} sub="Thesis broke first" tone="red" />
-      </div>
-
-      <div className="rounded-2xl border border-[#d4a853]/15 bg-[#d4a853]/[0.045] p-4">
-        <div className="mb-2 text-sm font-medium text-white">
-          New rulebook
-        </div>
-        <div className="grid gap-3 text-xs leading-5 text-white/55 md:grid-cols-3">
-          <p>
-            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">Target-first:</span>{" "}
-            the read is judged by levels, not by waiting for a fixed final price.
-          </p>
-          <p>
-            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">First barrier wins:</span>{" "}
-            target/confirmation/invalidation order determines the result.
-          </p>
-          <p>
-            <span className="font-mono uppercase tracking-[0.12em] text-[#f5c451]">Time is review:</span>{" "}
-            stale time triggers a re-check, not an automatic miss.
-          </p>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/20">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
+    <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0b10]/85 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="border-b border-white/[0.06] p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
-              Scenario ledger
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4a853]/75">
+              Evaluation
             </div>
-            <div className="mt-1 text-sm text-white/70">
-              {filtered.length} contract{filtered.length === 1 ? "" : "s"} shown
-            </div>
+            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-white">
+              Projection accountability table
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+              Every row is judged by the target-first scenario map: what BTC was projected
+              to touch, which barrier resolved first, and why that result matters.
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-1">
-            {[
-              ["all", "All"],
-              ["active", "Active"],
-              ["pending", "Pending"],
-              ["resolved", "Resolved"],
-              ["hit", "Hits"],
-              ["invalidated", "Invalidated"],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilter(key)}
-                className={`rounded-lg px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition ${
-                  filter === key
-                    ? "bg-[#d4a853]/15 text-[#f5c451]"
-                    : "text-white/45 hover:bg-white/[0.06] hover:text-white/75"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.07] px-4 py-3 text-right">
+            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
+              Current schema
+            </div>
+            <div className="mt-1 font-mono text-sm text-white">
+              Target-first
+            </div>
           </div>
         </div>
 
-        <div className="space-y-4 p-4">
-          {visible.length > 0 ? (
-            visible.map((item) => <ScenarioCard key={item.projection_id} item={item} />)
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02] p-10 text-center">
-              <div className="text-lg font-semibold text-white/80">
-                No Compass 2.0 scenario history yet
-              </div>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/45">
-                The old horizon ledger has been cleared. The next scheduled BTC Compass
-                read will create a new target-first contract here.
-              </p>
-            </div>
-          )}
+        <div className="mt-5 grid gap-3 md:grid-cols-5">
+          <StatCard label="Reports" value={ledger?.count ?? 0} detail="Scenario rows" tone="gold" />
+          <StatCard label="Pending" value={stats.pending ?? 0} detail="Still active" />
+          <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
+          <StatCard label="Clean hits" value={stats.clean_hits ?? 0} detail="Projection respected" tone="green" />
+          <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="red" />
         </div>
+      </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
-          <p className="text-[11px] leading-5 text-white/35">
-            Legacy retained audit is no longer shown here because it was judged by the old schema.
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
+          Showing <span className="text-white/65">{filtered.length ? start + 1 : 0}-{Math.min(filtered.length, start + pageSize)}</span> of <span className="text-white/65">{filtered.length}</span>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {[
+            ["all", "All"],
+            ["pending", "Pending"],
+            ["resolved", "Resolved"],
+            ["hit", "Hits"],
+            ["miss", "Invalidated"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={cx(
+                "rounded-lg px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition",
+                filter === key
+                  ? "bg-[#d4a853]/15 text-[#f5c451]"
+                  : "text-white/45 hover:bg-white/[0.06] hover:text-white/75",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] border-collapse">
+          <thead>
+            <tr className="border-b border-white/[0.06] bg-white/[0.02] text-left">
+              {["No", "Report ID", "Waktu", "Projected", "Result", "Explanation"].map((header) => (
+                <th
+                  key={header}
+                  className="px-4 py-3 text-[10px] font-mono uppercase tracking-[0.16em] text-white/35"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((item, index) => {
+              const projected = buildProjected(item);
+              const result = buildResult(item);
+              return (
+                <tr key={item.projection_id || item.report_id} className="border-b border-white/[0.045] transition hover:bg-white/[0.025]">
+                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-white/45">
+                    {start + index + 1}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <div className="font-mono text-xs text-white/75">{item.report_id || "-"}</div>
+                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/30">
+                      ID {item.projection_id || "-"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top font-mono text-xs text-white/60">
+                    {formatTimestamp(item.issued_at)}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
+                      {projected.title}
+                    </div>
+                    <div className="mt-1 text-[11px] font-mono uppercase tracking-[0.08em] text-white/35">
+                      {projected.meta}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <span className={cx("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em]", outcomeTone(result.tone))}>
+                      {result.label}
+                    </span>
+                    {result.meta && (
+                      <div className="mt-2 max-w-[190px] text-[11px] leading-5 text-white/38">
+                        {result.meta}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <p className="max-w-xl text-sm leading-6 text-white/58">
+                      {buildExplanation(item)}
+                    </p>
+                    {!!(item.key_risks || []).length && !item.resolution && (
+                      <div className="mt-2 text-[11px] leading-5 text-red-200/55">
+                        Watch: {item.key_risks.slice(0, 2).join(" · ")}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {!visible.length && (
+        <div className="p-10 text-center">
+          <div className="text-lg font-semibold text-white/80">No evaluation rows yet</div>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/45">
+            The next BTC Compass scenario will create a projection row here, then the
+            resolver will mark it pending, hit, or invalidated based on the first barrier.
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
-            >
-              Prev
-            </button>
-            <span className="font-mono text-[11px] text-white/40">
-              Page {page} / {pageCount}
-            </span>
-            <button
-              type="button"
-              disabled={page >= pageCount}
-              onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:opacity-30"
-            >
-              Next
-            </button>
-          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-4 md:px-5">
+        <p className="max-w-2xl text-[11px] leading-5 text-white/35">
+          This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            Prev
+          </button>
+          <span className="font-mono text-[11px] text-white/40">
+            Page {page} / {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={page >= pageCount}
+            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            Next
+          </button>
         </div>
       </div>
     </section>

@@ -876,7 +876,7 @@ const LandingWinRateChart = ({ data }) => {
   );
 };
 
-const LivePerformanceStats = ({ data }) => {
+export const LivePerformanceStats = ({ data }) => {
   const navigate = useNavigate();
   const stats = data?.stats;
   const trendData = data?.win_rate_trend || [];
