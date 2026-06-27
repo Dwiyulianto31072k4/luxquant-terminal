@@ -731,3 +731,130 @@ def compute_insights(db: Session, pair: str) -> Dict[str, Any]:
         "peak_potential": _compute_peak_potential(rows),
         "risk_profile": _compute_risk_profile(rows),
     }
+
+
+def compute_insights_aggregate(
+    db: Session,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Aggregate journey insights across ALL pairs (whole platform).
+
+    Same output structure as compute_insights() but:
+      - no pair filter — every signal with journey coverage is included
+      - pair == "ALL", plus pairs_covered (distinct pairs in the window)
+      - optional date range filter on signals.created_at
+
+    Args:
+        db: SQLAlchemy session
+        start: inclusive lower bound, "YYYY-MM-DD" (optional)
+        end:   inclusive upper bound, "YYYY-MM-DD" (optional)
+
+    created_at is stored as ISO8601 TEXT, so we compare on its date prefix
+    (substr 1..10) which keeps the bounds inclusive on whole days.
+    """
+    where = ["j.coverage_status != 'unavailable'"]
+    params: Dict[str, Any] = {}
+    if start:
+        where.append("substr(s.created_at, 1, 10) >= :start")
+        params["start"] = start
+    if end:
+        where.append("substr(s.created_at, 1, 10) <= :end")
+        params["end"] = end
+    where_sql = " AND ".join(where)
+
+    query = text(f"""
+        SELECT
+            j.signal_id,
+            j.direction,
+            j.coverage_status,
+            j.events,
+            j.overall_mae_pct,
+            j.overall_mfe_pct,
+            j.initial_mae_pct,
+            j.initial_mae_before,
+            j.time_to_tp1_seconds,
+            j.time_to_outcome_seconds,
+            j.pct_time_above_entry,
+            j.tp_then_sl,
+            j.realized_outcome_pct,
+            j.missed_potential_pct,
+            s.status,
+            s.created_at,
+            s.pair
+        FROM signal_journey j
+        INNER JOIN signals s ON s.signal_id = j.signal_id
+        WHERE {where_sql}
+    """)
+
+    try:
+        result = db.execute(query, params)
+        rows = []
+        pairs = set()
+        for row in result.fetchall():
+            rows.append({
+                "signal_id": row[0],
+                "direction": row[1],
+                "coverage_status": row[2],
+                "events": row[3] or [],
+                "overall_mae_pct": row[4],
+                "overall_mfe_pct": row[5],
+                "initial_mae_pct": row[6],
+                "initial_mae_before": row[7],
+                "time_to_tp1_seconds": row[8],
+                "time_to_outcome_seconds": row[9],
+                "pct_time_above_entry": row[10],
+                "tp_then_sl": row[11],
+                "realized_outcome_pct": row[12],
+                "missed_potential_pct": row[13],
+                "status": row[14],
+                "created_at": row[15],
+            })
+            if row[16]:
+                pairs.add(row[16])
+    except Exception as e:
+        logger.error(f"[journey_insights] aggregate DB query failed: {e}")
+        return {
+            "available": False,
+            "reason": "query_failed",
+            "pair": "ALL",
+            "sample_size": 0,
+            "min_required": MIN_SAMPLE_SIZE,
+        }
+
+    sample_size = len(rows)
+
+    if sample_size == 0:
+        return {
+            "available": False,
+            "reason": "no_data",
+            "pair": "ALL",
+            "sample_size": 0,
+            "min_required": MIN_SAMPLE_SIZE,
+        }
+
+    if sample_size < MIN_SAMPLE_SIZE:
+        return {
+            "available": False,
+            "reason": "insufficient_data",
+            "pair": "ALL",
+            "sample_size": sample_size,
+            "min_required": MIN_SAMPLE_SIZE,
+        }
+
+    return {
+        "available": True,
+        "pair": "ALL",
+        "pairs_covered": len(pairs),
+        "sample_size": sample_size,
+        "min_required": MIN_SAMPLE_SIZE,
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+        "date_range": {"start": start, "end": end},
+        "entry_behavior": _compute_entry_behavior(rows),
+        "time_to_each_tp": _compute_time_to_each_tp(rows),
+        "drawdown_before_each_tp": _compute_drawdown_before_each_tp(rows),
+        "hit_rate_per_tp": _compute_hit_rate_per_tp(rows),
+        "peak_potential": _compute_peak_potential(rows),
+        "risk_profile": _compute_risk_profile(rows),
+    }
