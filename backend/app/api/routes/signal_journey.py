@@ -210,45 +210,6 @@ INSIGHTS_CACHE_TTL = 3600  # 1 hour
 
 
 @router.get(
-    '/journey-insights',
-    summary='Get aggregated journey insights across ALL pairs (whole platform)',
-)
-async def get_journey_insights_all(
-    start: Optional[str] = None,
-    end: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    """
-    Platform-wide journey insights — every signal across all pairs, not just one.
-
-    Optional query params:
-      - start / end: "YYYY-MM-DD" inclusive date range on signal creation.
-
-    Same section structure as the per-pair endpoint, with pair="ALL" and
-    pairs_covered. Cached in Redis for 1 hour per (start, end) window.
-    """
-    cache_key = f"lq:journey-insights:ALL:{start or '-'}:{end or '-'}"
-
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
-
-    try:
-        result = compute_insights_aggregate(db, start, end)
-    except Exception as e:
-        log.exception(f"compute_insights_aggregate failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to compute aggregate journey insights",
-        )
-
-    if result.get('available') is True:
-        cache_set(cache_key, result, ttl=INSIGHTS_CACHE_TTL)
-
-    return result
-
-
-@router.get(
     '/journey-insights/{pair}',
     summary='Journey insights for a pair (use pair=ALL for whole-platform aggregate)',
 )
