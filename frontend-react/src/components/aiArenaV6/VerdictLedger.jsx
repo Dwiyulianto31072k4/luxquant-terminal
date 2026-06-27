@@ -21,26 +21,26 @@ function prettyToken(value) {
 function outcomeTone(value) {
   const text = String(value || "PENDING").toUpperCase();
   if (["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
-    return "border-emerald-400/25 bg-emerald-400/10 text-emerald-300";
+    return "border-profit/25 bg-profit/10 text-profit";
   }
   if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
-    return "border-red-400/25 bg-red-400/10 text-red-300";
+    return "border-loss/25 bg-loss/10 text-loss";
   }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
-    return "border-sky-300/20 bg-sky-300/10 text-sky-200";
+    return "border-gold-primary/20 bg-gold-primary/10 text-gold-primary/90";
   }
-  return "border-amber-300/25 bg-amber-300/10 text-amber-200";
+  return "border-amber-500/25 bg-amber-500/10 text-amber-400";
 }
 
 function biasTone(value) {
   const text = String(value || "").toUpperCase();
   if (text.includes("BULL") || text.includes("RISK_ON")) {
-    return "text-emerald-300";
+    return "text-profit";
   }
   if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) {
-    return "text-red-300";
+    return "text-loss";
   }
-  return "text-amber-200";
+  return "text-amber-400";
 }
 
 function asPercent(value) {
@@ -103,22 +103,22 @@ function buildExplanation(item) {
 function StatCard({ label, value, detail, tone = "neutral" }) {
   const toneClass =
     tone === "green"
-      ? "border-emerald-400/20 bg-emerald-400/[0.06]"
+      ? "border-profit/20 bg-profit/[0.05]"
       : tone === "red"
-        ? "border-red-400/20 bg-red-400/[0.06]"
+        ? "border-loss/20 bg-loss/[0.05]"
         : tone === "gold"
-          ? "border-[#d4a853]/25 bg-[#d4a853]/[0.07]"
-          : "border-white/[0.07] bg-white/[0.025]";
+          ? "border-gold-primary/20 bg-gold-primary/[0.06]"
+          : "border-white/[0.04] bg-[#120809]";
 
   return (
-    <div className={cx("rounded-2xl border p-4", toneClass)}>
-      <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/35">
+    <div className={cx("rounded-sm border p-4", toneClass)}>
+      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
         {label}
       </div>
-      <div className="mt-2 font-mono text-2xl font-semibold tabular-nums text-white">
+      <div className="mt-2 font-mono text-2xl font-light tabular-nums tracking-tight text-white">
         {value}
       </div>
-      {detail && <div className="mt-1 text-xs leading-5 text-white/45">{detail}</div>}
+      {detail && <div className="mt-1 text-xs leading-5 text-text-muted/60">{detail}</div>}
     </div>
   );
 }
@@ -156,7 +156,8 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   }, [page, pageCount]);
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0b10]/85 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+      <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       <div className="border-b border-white/[0.06] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -172,7 +173,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.07] px-4 py-3 text-right">
+          <div className="rounded-sm border border-gold-primary/20 bg-gold-primary/[0.07] px-4 py-3 text-right">
             <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
               Current schema
             </div>
@@ -208,10 +209,10 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               type="button"
               onClick={() => setFilter(key)}
               className={cx(
-                "rounded-lg px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition",
+                "rounded-sm px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition",
                 filter === key
-                  ? "bg-[#d4a853]/15 text-[#f5c451]"
-                  : "text-white/45 hover:bg-white/[0.06] hover:text-white/75",
+                  ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
+                  : "border border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/75",
               )}
             >
               {label}
