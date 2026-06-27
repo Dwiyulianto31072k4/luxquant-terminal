@@ -121,6 +121,15 @@ async def lifespan(app: FastAPI):
     # Subscription expiry + VIP grace/kick worker (independent of Redis)
     start_subscription_worker()
 
+    # Platform-wide journey aggregate (all-pairs time-to-TP) — incremental,
+    # materialized in Postgres, refreshed hourly. Backfills on first run.
+    try:
+        from app.services.journey_aggregate import start_journey_aggregate_worker
+        start_journey_aggregate_worker()
+        print("📊 Journey aggregate worker started (incremental hourly)")
+    except Exception as e:
+        print(f"⚠️ Journey aggregate worker failed to start: {e}")
+
     # NOTE: AutoTrade engine runs as a separate systemd service
     # (luxquant-autotrade.service), not embedded in this uvicorn process.
 

@@ -241,11 +241,7 @@ async def get_journey_insights(
     pair_upper = pair.upper()
     is_all = pair_upper in ('ALL', 'AGGREGATE')
 
-    cache_key = (
-        f"lq:journey-insights:ALL:{start or '-'}:{end or '-'}"
-        if is_all
-        else f"lq:journey-insights:{pair_upper}"
-    )
+    cache_key = "lq:journey-insights:ALL" if is_all else f"lq:journey-insights:{pair_upper}"
 
     # Try cache first
     cached = cache_get(cache_key)
@@ -255,7 +251,11 @@ async def get_journey_insights(
     # Compute fresh
     try:
         if is_all:
-            result = compute_insights_aggregate(db, start, end)
+            # All-pairs aggregate is a pre-materialized accumulator (see
+            # journey_aggregate worker) — this is just an instant read, never
+            # a heavy synchronous walk over every signal.
+            from app.services.journey_aggregate import get_result as get_aggregate
+            result = get_aggregate(db)
         else:
             result = compute_insights(db, pair_upper)
     except Exception as e:

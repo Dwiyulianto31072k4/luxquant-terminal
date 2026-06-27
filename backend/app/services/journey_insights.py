@@ -737,6 +737,7 @@ def compute_insights_aggregate(
     db: Session,
     start: Optional[str] = None,
     end: Optional[str] = None,
+    cap: int = 15000,
 ) -> Dict[str, Any]:
     """
     Aggregate journey insights across ALL pairs (whole platform).
@@ -786,7 +787,10 @@ def compute_insights_aggregate(
         FROM signal_journey j
         INNER JOIN signals s ON s.signal_id = j.signal_id
         WHERE {where_sql}
+        ORDER BY s.created_at DESC
+        LIMIT :cap
     """)
+    params["cap"] = cap
 
     try:
         result = db.execute(query, params)
