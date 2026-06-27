@@ -169,7 +169,7 @@ export default function Performance({ data }) {
       fetch(url).then((r) => (r.ok ? r.json() : null)).then((j) => alive && j && set(j)).catch(() => {});
     grab("/api/v1/analytics/edge-lab?days=90&sector=all", setEdge);
     grab("/api/v1/analytics/wr-vs-btc?range=all", setWrbtc);
-    grab("/api/v1/signals/journey-insights", setTiming); // aggregate: all pairs
+    grab("/api/v1/signals/journey-insights/ALL", setTiming); // aggregate: all pairs
     return () => { alive = false; };
   }, []);
 

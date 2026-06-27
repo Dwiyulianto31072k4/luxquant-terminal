@@ -61,7 +61,9 @@ deploy_luxquant() {
     echo ""
     echo "📥 [1/6] Menarik kode terbaru dari GitHub..."
     cd "$LUXQUANT_PATH"
-    git pull origin main
+    DEPLOY_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    echo "   → Branch aktif: $DEPLOY_BRANCH"
+    git pull origin "$DEPLOY_BRANCH"
 
     # [2/6] Build frontend
     echo ""

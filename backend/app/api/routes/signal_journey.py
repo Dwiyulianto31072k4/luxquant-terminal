@@ -210,71 +210,42 @@ INSIGHTS_CACHE_TTL = 3600  # 1 hour
 
 
 @router.get(
-    '/journey-insights',
-    summary='Get aggregated journey insights across ALL pairs (whole platform)',
+    '/journey-insights/{pair}',
+    summary='Journey insights for a pair (use pair=ALL for whole-platform aggregate)',
 )
-async def get_journey_insights_all(
+async def get_journey_insights(
+    pair: str,
     start: Optional[str] = None,
     end: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
-    Platform-wide journey insights — every signal across all pairs, not just one.
+    Aggregate journey data across signals.
 
-    Optional query params:
-      - start / end: "YYYY-MM-DD" inclusive date range on signal creation.
+      - pair=ALL (or AGGREGATE): whole-platform aggregate across every pair,
+        with optional ?start=&end= (YYYY-MM-DD) date range on signal creation.
+      - pair=<SYMBOL>: single trading pair (History tab).
 
-    Same section structure as the per-pair endpoint, with pair="ALL" and
-    pairs_covered. Cached in Redis for 1 hour per (start, end) window.
-    """
-    cache_key = f"lq:journey-insights:ALL:{start or '-'}:{end or '-'}"
+    NOTE: deliberately served under the two-segment /journey-insights/{pair}
+    path — a bare /journey-insights would be shadowed by signals.py's
+    /{signal_id} route (mounted earlier under the same /signals prefix).
 
-    cached = cache_get(cache_key)
-    if cached:
-        return cached
+    Returns insights:
+      - entry_behavior, time_to_each_tp, drawdown_before_each_tp,
+        hit_rate_per_tp, peak_potential, risk_profile
 
-    try:
-        result = compute_insights_aggregate(db, start, end)
-    except Exception as e:
-        log.exception(f"compute_insights_aggregate failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to compute aggregate journey insights",
-        )
-
-    if result.get('available') is True:
-        cache_set(cache_key, result, ttl=INSIGHTS_CACHE_TTL)
-
-    return result
-
-
-@router.get(
-    '/journey-insights/{pair}',
-    summary='Get aggregated journey insights for a trading pair',
-)
-async def get_journey_insights(
-    pair: str,
-    db: Session = Depends(get_db),
-):
-    """
-    Aggregate journey data across all signals for a given pair.
-
-    Returns insights for History tab:
-      - entry_behavior: avg drawdown before TP1, smooth entry rate, time to TP1
-      - time_to_each_tp: avg/fastest/slowest per TP level
-      - drawdown_before_each_tp: avg + worst per TP transition
-      - hit_rate_per_tp: hit count, rate %, avg exit gain
-      - peak_potential: avg peak excursion, best peak ever, avg max gain
-      - risk_profile: avg/worst drawdown, time in profit, TP-then-SL warning
-
-    Cached in Redis for 1 hour per pair.
-
-    Response shape:
+    Cached in Redis for 1 hour. Response:
       - {available: true, ...sections...} — when sample size >= MIN_SAMPLE_SIZE
       - {available: false, reason: 'insufficient_data'|'no_data'} — otherwise
     """
     pair_upper = pair.upper()
-    cache_key = f"lq:journey-insights:{pair_upper}"
+    is_all = pair_upper in ('ALL', 'AGGREGATE')
+
+    cache_key = (
+        f"lq:journey-insights:ALL:{start or '-'}:{end or '-'}"
+        if is_all
+        else f"lq:journey-insights:{pair_upper}"
+    )
 
     # Try cache first
     cached = cache_get(cache_key)
@@ -283,7 +254,10 @@ async def get_journey_insights(
 
     # Compute fresh
     try:
-        result = compute_insights(db, pair_upper)
+        if is_all:
+            result = compute_insights_aggregate(db, start, end)
+        else:
+            result = compute_insights(db, pair_upper)
     except Exception as e:
         log.exception(f"compute_insights failed for {pair_upper}: {e}")
         raise HTTPException(
