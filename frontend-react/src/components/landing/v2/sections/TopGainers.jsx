@@ -42,13 +42,19 @@ const GainerCard = ({ item, onClick }) => (
           {symbolOf(item.pair)}
           <span className="text-text-muted font-normal">USDT</span>
         </p>
+        <span className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wider text-gold-primary/70">
+          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Called
+        </span>
       </div>
     </div>
     <p className="text-xl lg:text-2xl font-semibold text-profit leading-none tabular-nums">
       +{(item.gain_pct ?? 0).toFixed(1)}%
     </p>
     <p className="text-text-muted text-[10px] mt-1.5 uppercase tracking-wider">
-      Peak gain
+      Peak since call
     </p>
   </button>
 );
@@ -137,9 +143,12 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
   const hasData = gainers.length > 0;
   const canMarquee = items.length >= 6;
 
-  // stat kiri
-  const bestGain =
-    gainers.length > 0 ? Math.max(...gainers.map((g) => g.gain_pct || 0)) : null;
+  // stat kiri — best call (+ koin-nya biar tidak ambigu)
+  const bestGainer =
+    gainers.length > 0
+      ? gainers.reduce((a, b) => ((b.gain_pct || 0) > (a.gain_pct || 0) ? b : a))
+      : null;
+  const bestGain = bestGainer ? bestGainer.gain_pct || 0 : null;
   // ringkas angka gain besar (MEXC-style): 3.58M% / 12.4K% / 49.7%
   const fmtPct = (v) => {
     if (v == null) return "—";
@@ -150,9 +159,10 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
   const leftStats = [
     {
       // realized gain → hijau (profit), konsisten dgn % di kartu
-      label: "Best Performer",
+      label: "Best Call",
       value: fmtPct(bestGain),
       accent: "text-profit",
+      pair: bestGainer?.pair,
     },
     {
       // angka netral → putih (MEXC-clean, gak dipaksa warna brand)
@@ -172,27 +182,51 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
       id="signals-preview"
       className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 py-16 lg:py-24"
     >
-      {/* title — bold (judul boleh tebal), glow halus */}
-      <h2
-        className="text-center font-bold text-white text-3xl lg:text-5xl tracking-tight mb-12 lg:mb-16"
-        style={{ textShadow: "0 0 30px rgba(255,255,255,0.12)" }}
-      >
-        Top Gainers
-      </h2>
+      {/* header — framed as LuxQuant's own signal calls (not market noise) */}
+      <div className="text-center mb-12 lg:mb-16">
+        <span className="inline-flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.3em] text-gold-primary/75">
+          <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/55" />
+          Verified Track Record
+          <span className="h-px w-7 bg-gradient-to-l from-transparent to-gold-primary/55" />
+        </span>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.6fr] gap-8 lg:gap-12 items-center">
-        {/* ── LEFT: stats (bobot ringan — semibold, bukan black) ── */}
-        <div className="space-y-10 lg:space-y-12 text-center lg:text-left">
+        <h2
+          className="mt-5 font-bold text-white text-3xl lg:text-5xl tracking-tight"
+          style={{ textShadow: "0 0 30px rgba(255,255,255,0.12)" }}
+        >
+          Top Gainers We Called
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-2xl text-sm lg:text-base leading-relaxed text-white/55">
+          Not market noise — every coin below is a real LuxQuant entry. These
+          are the peak gains each one ran after our call.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-14 items-center">
+        {/* ── LEFT: stats — bigger, balanced, subtle gold accent ── */}
+        <div className="flex flex-col items-center gap-8 sm:flex-row sm:justify-center sm:gap-14 lg:flex-col lg:items-start lg:gap-11">
           {leftStats.map((s) => (
-            <div key={s.label}>
-              <p className="text-text-muted text-sm lg:text-base mb-2">
+            <div key={s.label} className="text-center lg:text-left">
+              <p className="mb-2.5 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-text-muted lg:justify-start lg:text-[13px]">
+                <span className="hidden h-px w-5 bg-gradient-to-r from-gold-primary/70 to-transparent lg:inline-block" />
                 {s.label}
               </p>
               <p
-                className={`font-semibold text-[2.1rem] lg:text-[2.7rem] leading-none tabular-nums ${s.accent}`}
+                className={`font-bold leading-none tabular-nums text-[2.4rem] lg:text-[3.6rem] xl:text-[4rem] ${s.accent}`}
               >
                 {s.value}
               </p>
+
+              {s.pair && (
+                <div className="mt-2.5 flex items-center justify-center gap-1.5 lg:justify-start">
+                  <CoinLogo pair={s.pair} size={18} />
+                  <span className="text-sm font-medium text-gold-primary/90">
+                    {symbolOf(s.pair)}
+                    <span className="text-text-muted font-normal">USDT</span>
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -222,7 +256,7 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
               ))}
             </div>
             <button
-              onClick={() => onNav?.("performance")}
+              onClick={() => navigate("/performance")}
               className="flex items-center gap-1 text-text-muted hover:text-gold-primary text-xs transition-colors"
             >
               More
@@ -293,15 +327,27 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
         </div>
       </div>
 
-      {/* Sign Up Now */}
-      <div className="flex justify-center mt-12 lg:mt-16">
+      {/* CTA — arahkan ke bukti lengkap di halaman Performance */}
+      <div className="flex flex-col items-center gap-3 mt-12 lg:mt-16">
         <button
-          onClick={goPlatform}
-          className="px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_20px_rgba(212,168,83,0.35)]"
+          onClick={() => navigate("/performance")}
+          className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(212,168,83,0.25)] hover:shadow-[0_6px_20px_rgba(212,168,83,0.35)]"
           style={GOLD_BTN}
         >
-          {isAuthenticated ? "Open Terminal" : "Sign Up Now"}
+          See Full Track Record
+          <svg
+            className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.4}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
+        <p className="text-text-muted text-xs">
+          Every call, verified and timestamped.
+        </p>
       </div>
 
       {/* === MODAL (reuse SignalDetailModal — portal ke body) === */}

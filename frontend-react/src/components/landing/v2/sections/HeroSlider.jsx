@@ -4,7 +4,6 @@
 //
 // Slide 1 : Full-bleed cinematic video hero
 // Slide 2 : Algo / data slide
-// Slide 3 : Brand statement slide
 //
 // Semua slider navigation selalu horizontal di bawah.
 // Tidak ada dots vertikal di sisi kanan.
@@ -13,14 +12,12 @@
 import { useEffect, useRef, useState } from "react";
 import HeroSlideVideo from "./slides/HeroSlideVideo";
 import HeroSlideAlgo from "./slides/HeroSlideAlgo";
-import HeroSlideStandard from "./slides/HeroSlideStandard";
 
 const ROTATE_MS = 8000;
 
 const SLIDES = [
   HeroSlideVideo,
   HeroSlideAlgo,
-  HeroSlideStandard,
 ];
 
 const prefersReducedMotion = () =>
@@ -104,7 +101,7 @@ export default function HeroSlider({ onNav, gainers = [] }) {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
-      className="relative z-10 w-full overflow-hidden bg-bg-primary outline-none"
+      className="relative z-10 w-full overflow-hidden outline-none"
     >
       {/* Ambient background glow */}
       <div
@@ -119,7 +116,7 @@ export default function HeroSlider({ onNav, gainers = [] }) {
         className={`relative z-10 flex items-start ${
           isVideoSlide
             ? "w-full"
-            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-10 pt-12 sm:px-6 lg:min-h-[680px] lg:px-8 lg:pb-12 lg:pt-24 xl:pt-28"
+            : "mx-auto min-h-[620px] w-full max-w-7xl px-4 pb-10 pt-28 sm:px-6 sm:pt-32 lg:min-h-[680px] lg:px-8 lg:pb-12 lg:pt-36 xl:pt-44"
         }`}
       >
         <div
