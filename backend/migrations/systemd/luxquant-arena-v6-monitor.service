@@ -1,5 +1,5 @@
 [Unit]
-Description=LuxQuant AI Arena v6 — Scheduled Report Generator
+Description=LuxQuant BTC Compass 2.0 - Monitor Driven Trigger
 After=network-online.target postgresql.service redis-server.service
 Wants=network-online.target
 
@@ -8,7 +8,7 @@ Type=oneshot
 User=root
 WorkingDirectory=/root/luxquant-terminal/backend
 Environment="PYTHONUNBUFFERED=1"
-ExecStart=/root/luxquant-terminal/backend/migrations/run_compass_with_lock.sh scheduled
+ExecStart=/root/luxquant-terminal/backend/migrations/run_compass_with_lock.sh monitor
 StandardOutput=journal
 StandardError=journal
-TimeoutStartSec=300
+TimeoutStartSec=420

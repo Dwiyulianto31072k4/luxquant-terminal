@@ -29,12 +29,12 @@ BG_GROUPS = {
     ),
 }
 WEIGHTS = {
-    "price_action": {"24h": 1.0, "72h": 0.8},
-    "liquidity": {"24h": 1.0, "72h": 0.6},
+    "price_action": {"24h": 1.2, "72h": 0.9},
+    "liquidity": {"24h": 1.1, "72h": 0.8},
     "derivatives": {"24h": 0.9, "72h": 0.7},
-    "smart_money": {"24h": 0.8, "72h": 0.8},
-    "macro": {"24h": 0.35, "72h": 0.8},
-    "onchain": {"24h": 0.25, "72h": 0.65},
+    "smart_money": {"24h": 0.35, "72h": 0.55},
+    "macro": {"24h": 0.0, "72h": 0.0},
+    "onchain": {"24h": 0.0, "72h": 0.0},
     "cycle_context": {"24h": 0.0, "72h": 0.0},
     "news_event_risk": {"24h": 0.0, "72h": 0.0},
 }
@@ -258,7 +258,7 @@ def _confluence_row(
     return {
         "key": key,
         "label": label,
-        "role": "directional_evidence",
+        "role": "daily_outlook" if key in {"macro", "onchain"} else "directional_evidence",
         "source": source,
         "source_health": health,
         "evidence": signal.get("evidence") or [],
@@ -501,7 +501,7 @@ def build_evidence_matrix(
         ),
         _confluence_row(
             key="smart_money",
-            label="Smart money positioning",
+            label="Fast positioning",
             source="BGeometrics top traders",
             signal=_subset_signal(
                 smart_layer,

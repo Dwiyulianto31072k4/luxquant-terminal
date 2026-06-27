@@ -2,11 +2,13 @@
 # ════════════════════════════════════════════════════════════════════════
 # LuxQuant AI Arena v6 — Systemd Timer Install Script
 # ════════════════════════════════════════════════════════════════════════
-# Installs 4 systemd units:
+# Installs 6 systemd units:
 #   1. luxquant-arena-v6.service        (one-shot worker)
 #   2. luxquant-arena-v6.timer          (4x/day at 00/06/12/18 UTC)
 #   3. luxquant-arena-v6-evaluator.service (one-shot outcome evaluator)
 #   4. luxquant-arena-v6-evaluator.timer   (hourly at minute 5)
+#   5. luxquant-arena-v6-monitor.service   (cheap BTC change detector)
+#   6. luxquant-arena-v6-monitor.timer     (every 2 minutes)
 #
 # Run as root from project root: bash backend/migrations/install_v6_timers.sh
 # ════════════════════════════════════════════════════════════════════════
@@ -28,6 +30,13 @@ if [[ ! -d "$SOURCE_DIR" ]]; then
     exit 1
 fi
 
+LOCK_RUNNER="$REPO_DIR/backend/migrations/run_compass_with_lock.sh"
+if [[ ! -f "$LOCK_RUNNER" ]]; then
+    echo "ERROR: Lock runner not found: $LOCK_RUNNER"
+    exit 1
+fi
+chmod 755 "$LOCK_RUNNER"
+
 echo "=== LuxQuant AI Arena v6 Timer Install ==="
 echo
 
@@ -39,6 +48,8 @@ UNITS=(
     "luxquant-arena-v6.timer"
     "luxquant-arena-v6-evaluator.service"
     "luxquant-arena-v6-evaluator.timer"
+    "luxquant-arena-v6-monitor.service"
+    "luxquant-arena-v6-monitor.timer"
 )
 
 echo "[1/4] Copying unit files to $TARGET_DIR..."
@@ -65,10 +76,13 @@ echo
 echo "[3/4] Enabling + starting timers..."
 systemctl enable luxquant-arena-v6.timer
 systemctl enable luxquant-arena-v6-evaluator.timer
+systemctl enable luxquant-arena-v6-monitor.timer
 systemctl start luxquant-arena-v6.timer
 systemctl start luxquant-arena-v6-evaluator.timer
+systemctl start luxquant-arena-v6-monitor.timer
 echo "  ✓ luxquant-arena-v6.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-evaluator.timer enabled + started"
+echo "  ✓ luxquant-arena-v6-monitor.timer enabled + started"
 
 # ─────────────────────────────────────────────────────────────────────
 # Verify
@@ -83,14 +97,18 @@ echo "=== Install complete ==="
 echo
 echo "Next scheduled runs:"
 echo "  - Worker:    every 6h at 00/06/12/18 UTC"
+echo "  - Monitor:   every 2 minutes, triggers full run on material BTC changes"
 echo "  - Evaluator: every hour at :05 UTC"
 echo
 echo "Useful commands:"
 echo "  systemctl list-timers luxquant-arena-v6*"
 echo "  systemctl status luxquant-arena-v6.timer"
+echo "  systemctl status luxquant-arena-v6-monitor.timer"
 echo "  journalctl -u luxquant-arena-v6.service -n 50"
+echo "  journalctl -u luxquant-arena-v6-monitor.service -n 50"
 echo "  journalctl -u luxquant-arena-v6-evaluator.service -n 50"
 echo
 echo "Manual trigger (test once):"
 echo "  systemctl start luxquant-arena-v6.service"
+echo "  systemctl start luxquant-arena-v6-monitor.service"
 echo "  systemctl start luxquant-arena-v6-evaluator.service"
