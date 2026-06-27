@@ -430,7 +430,11 @@ def get_scenario_ledger(
 
     resolved = [item for item in items if item["resolution"]]
     clean_hits = sum(1 for item in resolved if item["resolution"]["outcome"] in {"CLEAN_HIT", "RANGE_HELD"})
-    invalidated = sum(1 for item in resolved if item["resolution"]["outcome"] == "INVALIDATED_FIRST")
+    invalidated = sum(
+        1
+        for item in resolved
+        if item["resolution"]["outcome"] in {"INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"}
+    )
 
     return {
         "schema": "compass_2_target_first",

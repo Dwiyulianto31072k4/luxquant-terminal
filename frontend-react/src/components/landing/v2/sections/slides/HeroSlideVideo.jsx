@@ -1,28 +1,76 @@
-// src/components/landing/v2/sections/slides/HeroSlideVideo.jsx
-
 import HeroSignupPill from "../shared/HeroSignupPill";
 
 const PAGE_BG = "#0a0506";
+// Warm maroon the hero bottom fades INTO — matches the page's continuous
+// canvas below, so the hero→next-section transition has no black seam.
+const NEXT_BG = "#1d0c0d";
+
+const HEADLINE_TOP = "Read the Market."; // white
+const HEADLINE_BOTTOM = "Move With Conviction."; // gold
+
+const HERO_DESCRIPTION =
+  "Real time market intelligence, capital flow insight, and quantified risk analysis powered by a 24/7 engine with a transparent track record since 2023.";
+
+// Art-direction (responsive video):
+//   < sm  → portrait 9:16 clip, full-bleed, kedua wajah ter-frame tegak.
+//   ≥ sm  → landscape 16:9 clip (cinematic, framing diturunkan).
+// Taruh file portrait di: public/hero-video-mobile.mp4
+const VIDEO_DESKTOP = "/hero-video.mp4";
+const VIDEO_MOBILE = "/hero-video-mobile.mp4";
 
 export default function HeroSlideVideo() {
   return (
     <div
-      className="relative isolate min-h-[650px] w-full overflow-hidden bg-bg-primary sm:min-h-[700px] lg:min-h-[760px] xl:min-h-[800px]"
+      className="relative isolate min-h-[640px] w-full overflow-hidden bg-bg-primary sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]"
       style={{ backgroundColor: PAGE_BG }}
     >
-      {/* Full-bleed cinematic video */}
+      {/* ── VIDEO: mobile portrait (full-bleed, no empty bands) ── */}
       <video
-        className="absolute inset-0 h-full w-full scale-[1.015] object-cover object-[center_54%] opacity-[0.9]"
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.97] sm:hidden"
         autoPlay
         loop
         muted
         playsInline
         preload="auto"
       >
-        <source src="/hero-video.mp4" type="video/mp4" />
+        <source src={VIDEO_MOBILE} type="video/mp4" />
+        {/* fallback ke landscape kalau file mobile belum ada */}
+        <source src={VIDEO_DESKTOP} type="video/mp4" />
       </video>
 
-      {/* Fade atas-bawah: video menyatu ke background halaman */}
+      {/* ── VIDEO: desktop / tablet landscape (full-bleed) ── */}
+      <video
+        className="absolute inset-0 hidden h-full w-full scale-[1.05] object-cover opacity-[0.97] sm:block"
+        style={{ objectPosition: "50% 62%" }}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+      >
+        <source src={VIDEO_DESKTOP} type="video/mp4" />
+      </video>
+
+      {/* ═══════════════════ OVERLAYS (shared) ═══════════════════ */}
+
+      {/* Soft top blend for navbar readability */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[120px] sm:h-[130px] lg:h-[145px]"
+        style={{
+          background: `
+            linear-gradient(
+              180deg,
+              rgba(10, 5, 6, 0.42) 0%,
+              rgba(10, 5, 6, 0.24) 38%,
+              rgba(10, 5, 6, 0.08) 72%,
+              transparent 100%
+            )
+          `,
+        }}
+      />
+
+      {/* Main cinematic vertical fade → menyatu ke section berikutnya */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -30,20 +78,20 @@ export default function HeroSlideVideo() {
           background: `
             linear-gradient(
               180deg,
-              ${PAGE_BG} 0%,
-              rgba(10, 5, 6, 0.96) 6%,
-              rgba(10, 5, 6, 0.62) 17%,
-              rgba(10, 5, 6, 0.13) 38%,
-              rgba(10, 5, 6, 0.08) 57%,
-              rgba(10, 5, 6, 0.42) 76%,
-              rgba(10, 5, 6, 0.82) 91%,
-              ${PAGE_BG} 100%
+              rgba(10, 5, 6, 0.08) 0%,
+              rgba(10, 5, 6, 0.05) 20%,
+              rgba(10, 5, 6, 0.04) 44%,
+              rgba(10, 5, 6, 0.05) 64%,
+              rgba(29, 12, 13, 0.12) 80%,
+              rgba(29, 12, 13, 0.4) 92%,
+              rgba(29, 12, 13, 0.8) 98%,
+              ${NEXT_BG} 100%
             )
           `,
         }}
       />
 
-      {/* Fade kiri-kanan */}
+      {/* Side vignette */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -51,83 +99,144 @@ export default function HeroSlideVideo() {
           background: `
             linear-gradient(
               90deg,
-              ${PAGE_BG} 0%,
-              rgba(10, 5, 6, 0.93) 7%,
-              rgba(10, 5, 6, 0.55) 18%,
-              rgba(10, 5, 6, 0.14) 34%,
+              rgba(10, 5, 6, 0.7) 0%,
+              rgba(10, 5, 6, 0.34) 12%,
+              rgba(10, 5, 6, 0.1) 26%,
               transparent 50%,
-              rgba(10, 5, 6, 0.14) 67%,
-              rgba(10, 5, 6, 0.60) 85%,
-              ${PAGE_BG} 100%
+              rgba(10, 5, 6, 0.1) 74%,
+              rgba(10, 5, 6, 0.34) 88%,
+              rgba(10, 5, 6, 0.7) 100%
             )
           `,
         }}
       />
 
-      {/* Warm LuxQuant ambient glow */}
+      {/* Gold atmosphere */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background: `
             radial-gradient(
-              ellipse 52% 46% at 50% 48%,
-              rgba(212, 168, 83, 0.15) 0%,
-              rgba(212, 168, 83, 0.06) 38%,
-              transparent 74%
+              ellipse 58% 46% at 50% 32%,
+              rgba(255, 214, 102, 0.13) 0%,
+              rgba(236, 181, 57, 0.07) 34%,
+              rgba(212, 168, 83, 0.02) 58%,
+              transparent 78%
             )
           `,
         }}
       />
 
-      {/* Extra dark layer near navbar */}
+      {/* Text readability scrim — ringan (warm) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[220px]"
+        className="pointer-events-none absolute inset-0"
         style={{
           background: `
-            linear-gradient(
-              to bottom,
-              rgba(10, 5, 6, 0.82) 0%,
-              rgba(10, 5, 6, 0.30) 55%,
-              transparent 100%
+            radial-gradient(
+              ellipse 60% 38% at 50% 30%,
+              rgba(12, 5, 6, 0.34) 0%,
+              rgba(12, 5, 6, 0.2) 40%,
+              rgba(12, 5, 6, 0.08) 64%,
+              transparent 82%
             )
           `,
         }}
       />
 
-      {/* Hero content */}
-      <div className="relative z-10 mx-auto flex min-h-[650px] max-w-6xl flex-col items-center px-5 pb-10 pt-24 text-center sm:min-h-[700px] sm:px-8 sm:pt-28 lg:min-h-[760px] lg:px-10 lg:pb-12 lg:pt-32 xl:min-h-[800px] xl:pt-36">
-        <h1 className="max-w-5xl font-bold leading-[0.96] tracking-[-0.05em] text-[2.75rem] text-white sm:text-[4rem] lg:text-[5.4rem] xl:text-[6rem]">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f0cc7a] via-gold-primary to-[#b8860b]">
-            Precision
-          </span>
-          <span className="text-white">, in Motion.</span>
-        </h1>
+      {/* Bottom luxury glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%]"
+        style={{
+          background: `
+            radial-gradient(
+              ellipse 42% 38% at 50% 78%,
+              rgba(214, 154, 31, 0.1) 0%,
+              rgba(120, 56, 23, 0.04) 46%,
+              transparent 76%
+            )
+          `,
+        }}
+      />
 
-        <p className="mt-5 max-w-2xl text-sm leading-relaxed text-white/65 sm:mt-6 sm:text-base lg:text-lg">
-          A quantitative engine continuously reading market structure,
-          momentum, and opportunity around the clock.
-        </p>
+      {/* ═══════════════════ CONTENT ═══════════════════ */}
+      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-5 pb-9 pt-[12.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-10 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-12 lg:pt-[13rem] xl:min-h-[820px] xl:pt-[14.5rem]">
+        {/* Headline group — localized readability gradient behind text */}
+        <div className="relative flex w-full flex-col items-center">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[150%] w-[112%] max-w-[1180px] -translate-x-1/2 -translate-y-1/2"
+            style={{
+              background: `
+                radial-gradient(
+                  ellipse 60% 56% at 50% 48%,
+                  rgba(12, 5, 6, 0.42) 0%,
+                  rgba(12, 5, 6, 0.28) 36%,
+                  rgba(12, 5, 6, 0.12) 60%,
+                  transparent 82%
+                )
+              `,
+              filter: "blur(12px)",
+            }}
+          />
 
-        {/* Memastikan CTA duduk di area bawah video */}
+          <h1
+            className="relative z-10 max-w-6xl font-bold leading-[1.05] tracking-[-0.03em] text-[2.2rem] sm:text-[3.5rem] md:text-[4.2rem] lg:text-[5.1rem] xl:text-[5.7rem]"
+            style={{
+              textShadow:
+                "0 2px 30px rgba(0,0,0,0.42), 0 1px 4px rgba(0,0,0,0.3)",
+            }}
+          >
+            <span className="block text-balance text-white sm:whitespace-nowrap">
+              {HEADLINE_TOP}
+            </span>
+
+            <span
+              className="mt-1 block text-balance sm:whitespace-nowrap"
+              style={{
+                color: "#ffcb2e",
+                textShadow:
+                  "0 0 18px rgba(255, 203, 46, 0.5), 0 6px 16px rgba(0,0,0,0.28)",
+              }}
+            >
+              {HEADLINE_BOTTOM}
+            </span>
+          </h1>
+
+          <p
+            className="relative z-10 mx-auto mt-4 max-w-[33rem] text-[0.95rem] leading-snug text-white/82 sm:mt-7 sm:max-w-2xl sm:text-base sm:leading-relaxed lg:max-w-3xl lg:text-lg"
+            style={{ textShadow: "0 1px 16px rgba(0,0,0,0.6)" }}
+          >
+            {HERO_DESCRIPTION}
+          </p>
+        </div>
+
         <div className="flex-1" />
 
-        {/* Replaces: Quantitative Intelligence */}
-        <div className="w-full pb-6 pt-10 sm:pb-8">
+        <div className="w-full pb-2 pt-8 sm:pb-8 sm:pt-10 lg:pb-10">
           <HeroSignupPill
-            text="Start using LuxQuant today"
+            text="Access LuxQuant Terminal"
             className="!max-w-[360px] sm:!max-w-[400px]"
           />
         </div>
       </div>
 
-      {/* Seamless transition into next section */}
+      {/* Smooth transition to next section */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[150px]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[160px]"
         style={{
-          background: `linear-gradient(to bottom, transparent 0%, ${PAGE_BG} 100%)`,
+          background: `
+            linear-gradient(
+              180deg,
+              transparent 0%,
+              rgba(29, 12, 13, 0.18) 34%,
+              rgba(29, 12, 13, 0.64) 76%,
+              ${NEXT_BG} 100%
+            )
+          `,
         }}
       />
     </div>

@@ -528,6 +528,9 @@ class ReportBundleV6(BaseModel):
     liquidity: Optional[dict] = None
     # Structured news and economic-event context. Never owns direction.
     event_risk: Optional[dict] = None
+    # Slow daily macro/holder outlook metadata. Refreshed once per UTC daily
+    # close window, then reused by intraday/event-driven reports.
+    daily_outlook: Optional[dict] = None
     # Deterministic 24h/72h evidence audit. Never owns direction.
     evidence_matrix: Optional[dict] = None
     # Shadow validation: deterministic direction recorded alongside LLM (not shown to user).

@@ -420,7 +420,7 @@ def get_previous_verdict_context() -> Optional[dict]:
                 primary_direction_30d, primary_confidence_30d,
                 tactical_direction_24h, bluf_text
             FROM ai_arena_reports
-            WHERE schema_version = 'v6.1'
+            WHERE schema_version IN ('v6.1', 'v6.2')
             ORDER BY timestamp DESC
             LIMIT 1
         """)
@@ -465,8 +465,56 @@ def get_previous_evidence_matrix() -> Optional[dict]:
         db.close()
 
 
+def get_today_daily_outlook_context() -> Optional[dict]:
+    """
+    Return the first persisted 30d/daily outlook from the current UTC day.
+
+    Intraday/event-driven Compass reports should refresh tactical 24h, but keep
+    the slow macro/holder outlook stable until the next daily candle window.
+    """
+    db: Session = SessionLocal()
+    try:
+        row = db.execute(text("""
+            SELECT report_id, timestamp, report_json
+            FROM ai_arena_reports
+            WHERE schema_version IN ('v6.1', 'v6.2')
+              AND timestamp >= (date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')
+            ORDER BY timestamp ASC
+            LIMIT 1
+        """)).first()
+        if not row:
+            return None
+        report_json = row.report_json or {}
+        if isinstance(report_json, str):
+            try:
+                report_json = json.loads(report_json)
+            except Exception:
+                report_json = {}
+        if not isinstance(report_json, dict):
+            return None
+        verdict = (report_json.get("verdict") or {}).get("primary_30d") or {}
+        if not verdict:
+            return None
+        return {
+            "source_report_id": row.report_id,
+            "source_timestamp": row.timestamp.isoformat() if row.timestamp else None,
+            "direction": verdict.get("direction"),
+            "confidence": verdict.get("confidence"),
+            "rationale": verdict.get("rationale"),
+            # Reused by event-driven reports so macro/on-chain does not need a
+            # fresh collection or a fresh Stage 1 summary during the UTC day.
+            "layer_briefs": report_json.get("layer_briefs"),
+            "confluence": report_json.get("confluence"),
+            "cycle_position": report_json.get("cycle_position"),
+            "bg_snapshot_summary": report_json.get("bg_snapshot_summary"),
+        }
+    finally:
+        db.close()
+
+
 __all__ = [
     "persist_report_to_db",
     "get_previous_verdict_context",
     "get_previous_evidence_matrix",
+    "get_today_daily_outlook_context",
 ]

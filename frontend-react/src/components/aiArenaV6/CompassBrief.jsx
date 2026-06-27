@@ -139,42 +139,109 @@ function topRows(rows, horizon = "24h", limit = 4) {
     .slice(0, limit);
 }
 
-function buildTraderHeadline(tactical, swing, cycle) {
-  const shortDir = directionLabel(tactical?.direction);
-  const swingDir = directionLabel(swing?.direction);
-  const cycleDir = directionLabel(cycle?.direction);
-  if (!tactical) return "Short-term read is not available yet.";
-  if (tactical.direction === "bearish" && cycle?.direction === "bullish") {
-    return `24h projected ${shortDir}, while long-term context remains ${cycleDir}`;
-  }
-  if (tactical.direction === "bullish" && cycle?.direction === "bullish") {
-    return `24h leans ${shortDir}, with long-term context still ${cycleDir}`;
-  }
-  return `24h leans ${shortDir}; 72h context is ${swingDir}`;
+function tacticalRows(rows, horizon = "24h", limit = 4) {
+  const tacticalKeys = new Set(["price_action", "liquidity", "derivatives", "smart_money"]);
+  return topRows((rows || []).filter((row) => tacticalKeys.has(row.key)), horizon, limit);
 }
 
-function buildTraderSummary(tactical, swing, cycle, rows) {
-  const strongest = topRows(rows, "24h", 3);
+function outlookRows(rows, limit = 4) {
+  const outlookKeys = new Set(["macro", "onchain", "cycle_context"]);
+  return (rows || []).filter((row) => outlookKeys.has(row.key)).slice(0, limit);
+}
+
+function getContract(report) {
+  return report?.report?.verdict?.scenario_contract || null;
+}
+
+function marketModeCopy(mode) {
+  const value = String(mode || "").toUpperCase();
+  if (value === "ALTCOIN_FRIENDLY") {
+    return {
+      label: "Risk-on",
+      tone: "bullish",
+      text: "BTC backdrop allows stronger altcoin exposure after confirmation. Still avoid chasing into first resistance.",
+    };
+  }
+  if (value === "SELECTIVE_RISK_ON") {
+    return {
+      label: "Selective risk-on",
+      tone: "neutral",
+      text: "Exposure is allowed, but only on the cleanest setups. Keep size controlled and wait for BTC to respect the active level.",
+    };
+  }
+  if (value === "BTC_ONLY_RISK_ON") {
+    return {
+      label: "BTC-led only",
+      tone: "neutral",
+      text: "BTC is the cleaner expression. Keep altcoin exposure lighter unless alts confirm with relative strength.",
+    };
+  }
+  if (value === "DEFENSIVE") {
+    return {
+      label: "Defensive",
+      tone: "bearish",
+      text: "Reduce fresh altcoin exposure. Wait for reclaim/confirmation before adding high-beta positions.",
+    };
+  }
+  if (value === "EMERGENCY_DE_RISK") {
+    return {
+      label: "Protect capital",
+      tone: "bearish",
+      text: "No new high-beta exposure. Prioritize stops, cash, and waiting for the next stable structure.",
+    };
+  }
+  if (value === "CHOPPY_RANGE") {
+    return {
+      label: "Range only",
+      tone: "neutral",
+      text: "Treat BTC as level-to-level. Use smaller size and avoid conviction entries until range acceptance breaks.",
+    };
+  }
+  return {
+    label: "Selective",
+    tone: "neutral",
+    text: "Keep exposure measured until BTC confirms the active projection or invalidates it.",
+  };
+}
+
+function buildTraderHeadline(tactical) {
+  const shortDir = directionLabel(tactical?.direction);
+  if (!tactical) return "Short-term outlook is not available yet.";
+  if (tactical.direction === "bearish") {
+    return `Short-Term Outlook: ${shortDir} pressure until BTC reclaims structure`;
+  }
+  if (tactical.direction === "bullish") {
+    return `Short-Term Outlook: ${shortDir} while BTC holds the active level`;
+  }
+  return "Short-Term Outlook: Range-bound, wait for level acceptance";
+}
+
+function buildTraderSummary(tactical, rows, contract) {
+  const strongest = tacticalRows(rows, "24h", 3);
   const reasons = strongest
     .map((row) => `${row.label}: ${readable(rowScore(row, "24h").direction)}`)
     .join("; ");
-  const holder = cycle?.direction
-    ? `For longer-horizon holders, cycle context is still ${directionLabel(cycle.direction)} at ${cycle.confidence ?? "-"}%.`
-    : "Longer-horizon context is not available.";
-  return `${directionLabel(tactical?.direction)} 24h read at ${tactical?.confidence ?? "-"}% confidence. ${reasons || "Evidence detail is limited for this cycle."} ${holder}`;
+  const projection = contract?.primary_touch?.level
+    ? ` First projected touch: ${formatPrice(contract.primary_touch.level)}.`
+    : "";
+  const invalidation = contract?.invalidation?.level
+    ? ` Read weakens at ${formatPrice(contract.invalidation.level)}.`
+    : "";
+  return `${directionLabel(tactical?.direction)} 24h outlook at ${tactical?.confidence ?? "-"}% confidence. ${reasons || "Evidence detail is limited for this cycle."}.${projection}${invalidation}`;
 }
 
-function PrimaryTraderCard({ tactical, swing, cycle, rows, onDetail }) {
+function PrimaryTraderCard({ tactical, swing, cycle, rows, contract, onDetail }) {
   const dir = String(tactical?.direction || "neutral").toLowerCase();
   const color = directionColor(dir);
+  const exposure = marketModeCopy(contract?.market_mode);
   return (
     <section className={cx(card, "overflow-hidden")}>
       <div className="border-b border-white/[0.06] px-5 py-4 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={dir}>Trader focus: 24h</Badge>
-            <Badge tone={swing?.direction}>72h {directionLabel(swing?.direction)}</Badge>
-            <Badge tone={cycle?.direction}>Long-term {directionLabel(cycle?.direction)}</Badge>
+            <Badge tone={dir}>24h outlook</Badge>
+            <Badge tone={exposure.tone}>Alt exposure · {exposure.label}</Badge>
+            <Badge tone={swing?.direction}>72h context · {directionLabel(swing?.direction)}</Badge>
           </div>
           <DetailButton onClick={onDetail}>Open full 24h breakdown</DetailButton>
         </div>
@@ -183,14 +250,20 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, onDetail }) {
       <div className="grid gap-6 p-5 md:grid-cols-[1.3fr_0.7fr] md:p-6">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-            Short-term trader read
+            Short-term market outlook
           </div>
           <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.03em] text-white md:text-5xl">
-            {buildTraderHeadline(tactical, swing, cycle)}
+            {buildTraderHeadline(tactical)}
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-white/55">
-            {buildTraderSummary(tactical, swing, cycle, rows)}
+            {buildTraderSummary(tactical, rows, contract)}
           </p>
+          <div className="mt-5 rounded-2xl border border-[#d4a853]/20 bg-[#d4a853]/[0.055] p-4">
+            <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[#f5c451]">
+              Altcoin exposure guide
+            </div>
+            <p className="mt-2 text-sm leading-6 text-white/65">{exposure.text}</p>
+          </div>
         </div>
 
         <div className={cx(mutedCard, "p-5")}>
@@ -216,7 +289,7 @@ function PrimaryTraderCard({ tactical, swing, cycle, rows, onDetail }) {
               </div>
             </div>
             <div className="rounded-xl border border-white/[0.06] bg-black/15 p-3">
-              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">Holder</div>
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">Daily outlook</div>
               <div className={cx("mt-2 text-lg font-semibold", textTone(cycle?.direction))}>
                 {directionLabel(cycle?.direction)} {cycle?.confidence ?? "-"}%
               </div>
@@ -434,6 +507,78 @@ function HolderContext({ cycle, swing, rows, onDetail }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DailyOutlookPanel({ cycle, rows, dailyOutlook, onDetail }) {
+  const items = outlookRows(rows, 4);
+  const refreshed = dailyOutlook?.refreshed !== false;
+  return (
+    <section>
+      <SectionTitle eyebrow="Daily outlook" title="Macro and holder context, separated from the trade call">
+        <DetailButton onClick={onDetail}>Open daily context</DetailButton>
+      </SectionTitle>
+      <div className={cx(card, "p-5")}>
+        <div className="grid gap-4 md:grid-cols-[0.75fr_1.25fr]">
+          <div className={cx(mutedCard, "p-4")}>
+            <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">
+              Daily close model
+            </div>
+            <div className={cx("mt-3 text-3xl font-semibold", textTone(cycle?.direction))}>
+              {directionLabel(cycle?.direction)}
+            </div>
+            <div className="mt-1 font-mono text-[#d4a853]">
+              {cycle?.confidence ?? "-"}% context confidence
+            </div>
+            <p className="mt-4 text-sm leading-6 text-white/48">
+              This block is the slow backdrop. It should help decide maximum exposure,
+              not override the 24h tape. Daily outlook is best refreshed after the BTC
+              daily candle closes.
+            </p>
+            <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-3">
+              <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">
+                Cadence
+              </div>
+              <div className="mt-1 text-sm text-white/68">
+                {refreshed ? "Fresh daily outlook" : "Reused daily outlook"}
+              </div>
+              {dailyOutlook?.source_report_id && (
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-white/35">
+                  Source {dailyOutlook.source_report_id}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {items.map((row) => (
+              <div key={row.key} className="rounded-xl border border-white/[0.06] bg-black/15 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-white/85">{row.label}</div>
+                    <p className="mt-1 text-xs leading-5 text-white/42">{row.rationale}</p>
+                  </div>
+                  <Badge tone={(row.source_health || {}).status || "neutral"}>
+                    {readable((row.source_health || {}).status || "context")}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {(row.evidence || []).slice(0, 4).map((item, index) => (
+                    <div key={`${row.key}-${item.metric}-${index}`} className="rounded-lg border border-white/[0.05] bg-white/[0.025] p-2.5">
+                      <div className="truncate text-[9px] font-mono uppercase tracking-[0.12em] text-white/30">
+                        {item.metric}
+                      </div>
+                      <div className="mt-1 truncate font-mono text-xs text-white/75">
+                        {item.value ?? "-"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -670,11 +815,13 @@ export default function CompassBrief({
 
   const inner = report.report || {};
   const verdict = inner.verdict || {};
+  const dailyOutlook = inner.daily_outlook || null;
   const tactical = getHorizon(report, "24h");
   const swing = getHorizon(report, "72h");
   const cycle = getHorizon(report, "cycle");
+  const contract = getContract(report);
   const rows = getRows(report);
-  const driverRows = topRows(rows, "24h", 4);
+  const driverRows = tacticalRows(rows, "24h", 4);
   const price = report.btc_price;
   const zones = verdict.zones_to_watch || [];
   const risks = verdict.risk_scenarios || [];
@@ -692,11 +839,11 @@ export default function CompassBrief({
     risk: "Invalidation detail",
   }[modal];
   const detailTabs = [
-    { key: "drivers", icon: "01", label: "Drivers", description: "Bias & evidence" },
-    { key: "levels", icon: "02", label: "Levels", description: "Magnets & zones" },
-    { key: "news", icon: "03", label: "News", description: "Headline risk" },
-    { key: "risk", icon: "04", label: "Risk", description: "Invalidation" },
-    { key: "holder", icon: "05", label: "Holder", description: "72h & cycle" },
+    { key: "drivers", icon: "DR", label: "Market Drivers", description: "Price, liquidity, derivatives" },
+    { key: "levels", icon: "LV", label: "Price Levels", description: "Magnets, zones, invalidation" },
+    { key: "news", icon: "EV", label: "Events", description: "News and calendar risk" },
+    { key: "risk", icon: "RK", label: "Risk Rules", description: "What breaks the read" },
+    { key: "holder", icon: "DO", label: "Daily Outlook", description: "Macro, on-chain, holder context" },
   ];
 
   return (
@@ -714,7 +861,15 @@ export default function CompassBrief({
         swing={swing}
         cycle={cycle}
         rows={rows}
+        contract={contract}
         onDetail={() => setModal("trader")}
+      />
+
+      <DailyOutlookPanel
+        cycle={cycle}
+        rows={rows}
+        dailyOutlook={dailyOutlook}
+        onDetail={() => setModal("holder")}
       />
 
       <section className={cx(card, "overflow-hidden")}>
@@ -736,7 +891,7 @@ export default function CompassBrief({
         <div className="p-5">
           {activeTab === "drivers" && (
             <div>
-              <SectionTitle eyebrow="24h drivers" title="What is moving the short-term read">
+              <SectionTitle eyebrow="Market drivers" title="Why the short-term outlook looks this way">
                 <DetailButton onClick={() => setModal("allMetrics")}>Open all metrics</DetailButton>
               </SectionTitle>
               <div className="grid gap-3 md:grid-cols-2">

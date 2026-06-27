@@ -54,6 +54,7 @@ try:
     from app.services.ai_arena_v6_persist import (
         get_previous_evidence_matrix,
         get_previous_verdict_context,
+        get_today_daily_outlook_context,
         persist_report_to_db,
     )
     _PERSIST_AVAILABLE = True
@@ -62,6 +63,7 @@ except ImportError:
     _PERSIST_AVAILABLE = False
     get_previous_verdict_context = lambda: None  # noqa: E731
     get_previous_evidence_matrix = lambda: None  # noqa: E731
+    get_today_daily_outlook_context = lambda: None  # noqa: E731
     persist_report_to_db = lambda b: None  # noqa: E731
 
 load_dotenv()
@@ -254,22 +256,192 @@ async def stage1_compress(
     }
 
 
+def _summary_from_snapshot(snapshot: dict[str, bg_advanced.BGMetric]) -> dict:
+    return {
+        key: {
+            "value": metric.value,
+            "ok": metric.ok,
+            "error": metric.error,
+            "timestamp": metric.timestamp,
+            "fetched_at": metric.fetched_at,
+            "is_stale": metric.is_stale,
+        }
+        for key, metric in snapshot.items()
+    }
+
+
+def _snapshot_from_summary(summary: dict | None) -> dict[str, bg_advanced.BGMetric]:
+    """Rehydrate the daily macro snapshot before refreshing only fast inputs."""
+    hydrated: dict[str, bg_advanced.BGMetric] = {}
+    for key, raw in (summary or {}).items():
+        if not isinstance(raw, dict):
+            continue
+        hydrated[key] = bg_advanced.BGMetric(
+            key=key,
+            value=raw.get("value"),
+            timestamp=raw.get("timestamp"),
+            fetched_at=raw.get("fetched_at") or time.time(),
+            is_stale=bool(raw.get("is_stale")),
+            error=raw.get("error"),
+        )
+    return hydrated
+
+
+def _has_daily_snapshot(context: dict | None) -> bool:
+    if not context:
+        return False
+    return all(
+        context.get(key)
+        for key in ("layer_briefs", "confluence", "cycle_position", "bg_snapshot_summary")
+    )
+
+
+async def _fetch_intraday_bg(
+    client: bg_advanced.BGClient,
+) -> dict[str, bg_advanced.BGMetric]:
+    """Refresh the only BGeometrics tiers allowed to influence intraday output."""
+    smart, risk = await asyncio.gather(
+        client.fetch_tier("smart", force_refresh=True),
+        client.fetch_tier("risk", force_refresh=True),
+    )
+    return {**smart, **risk}
+
+
+def _intraday_tape_payload(
+    fast_snapshot: dict[str, bg_advanced.BGMetric],
+    liquidity_doc: dict | None,
+    event_risk_doc: dict | None,
+) -> dict:
+    metrics = []
+    for key, metric in fast_snapshot.items():
+        if metric.ok:
+            metrics.append({"key": key, "value": metric.value, "timestamp": metric.timestamp})
+    liquidity = liquidity_doc or {}
+    event_risk = event_risk_doc or {}
+    return {
+        "fast_metrics": metrics,
+        "liquidity": {
+            "status": liquidity.get("status"),
+            "available": liquidity.get("available"),
+            "decision_eligible": liquidity.get("decision_eligible"),
+            "layer": liquidity.get("layer"),
+            "magnets": liquidity.get("magnets"),
+        },
+        "event_risk": {
+            "risk_level": event_risk.get("risk_level"),
+            "summary": event_risk.get("summary"),
+            "warnings": event_risk.get("warnings") or [],
+        },
+    }
+
+
+async def _fetch_liquidity_doc(btc_price: float) -> dict:
+    """Fetch the live estimated liquidation map before the market reasoning step."""
+    try:
+        from app.services.binance_liquidation_map import fetch_binance_estimated_heatmap
+        from app.services.liquidity_engine import parse_liq_heatmap, evaluate_liquidity
+
+        heatmap_result = await fetch_binance_estimated_heatmap(
+            "BTCUSDT", "12h", current_price=btc_price
+        )
+        parsed = (
+            parse_liq_heatmap(heatmap_result.payload, btc_price)
+            if heatmap_result.available
+            else None
+        )
+        usable = heatmap_result.available and parsed is not None
+        status = heatmap_result.status if usable else "unavailable"
+        reason = heatmap_result.reason
+        if heatmap_result.available and parsed is None:
+            reason = "heatmap_parser_rejected_payload"
+        layer = evaluate_liquidity(parsed if usable else None)
+        model_confidence = float((parsed or {}).get("model_confidence") or 0.0) if usable else 0.0
+        minimum_confidence = float(os.getenv("COMPASS_LIQUIDITY_MIN_CONFIDENCE", "0.52"))
+        document = {
+            **heatmap_result.metadata(),
+            "status": status,
+            "available": usable,
+            "is_stale": status == "stale",
+            "reason": reason,
+            "decision_eligible": usable and model_confidence >= minimum_confidence,
+            "minimum_confidence": minimum_confidence,
+            "layer": layer.to_dict(),
+            "magnets": parsed,
+        }
+        if usable:
+            _log(
+                f"Liquidity: {status.upper()} {layer.verdict} "
+                f"(strength {layer.strength:.2f}, age={document['age_seconds']}s)"
+            )
+        else:
+            _log(f"Liquidity: UNAVAILABLE ({reason or 'unknown_reason'})", level="WARN")
+        return document
+    except Exception as exc:
+        _log(f"Liquidity layer unavailable (non-fatal): {exc}", level="WARN")
+        return {
+            "provider": "binance_estimated_liquidation_v1",
+            "status": "unavailable",
+            "available": False,
+            "is_stale": False,
+            "reason": f"liquidity_pipeline_{type(exc).__name__}",
+            "decision_eligible": False,
+            "layer": None,
+            "magnets": None,
+        }
+
+
+async def _fetch_event_risk_doc() -> dict:
+    """Fetch non-directional event risk before scenario construction."""
+    try:
+        from app.services.compass_event_risk import get_event_risk_snapshot
+
+        document = await get_event_risk_snapshot()
+        _log(
+            f"Event risk: {document['risk_level'].upper()} | "
+            f"{len(document.get('headlines') or [])} headlines | "
+            f"{len(document.get('upcoming_events') or [])} upcoming events"
+        )
+        return document
+    except Exception as exc:
+        _log(f"Event-risk layer unavailable (non-fatal): {exc}", level="WARN")
+        return {
+            "phase": 3,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "purpose": "context_and_event_risk_only",
+            "direction_authority": False,
+            "risk_level": "unavailable",
+            "summary": "Event-risk context is temporarily unavailable.",
+            "warnings": ["Event-risk context is temporarily unavailable."],
+            "confidence_adjustment": {
+                "penalty_points": 0,
+                "can_increase_confidence": False,
+                "can_change_direction": False,
+            },
+            "source_health": {},
+            "topics": [],
+            "headlines": [],
+            "upcoming_events": [],
+            "reason": f"event_risk_pipeline_{type(exc).__name__}",
+        }
+
+
 # ════════════════════════════════════════════════════════════════════════
 # Stage 2 — DeepSeek R1 reasons + decides verdict
 # ════════════════════════════════════════════════════════════════════════
 
-STAGE2_SYSTEM_PROMPT = """You are an elite BTC market strategist with deep on-chain, macro, and derivatives expertise. You produce trading-desk quality verdicts for active crypto traders.
+STAGE2_SYSTEM_PROMPT = """You are an elite BTC market strategist with deep price-action, liquidity, derivatives, macro, and on-chain expertise. You produce trading-desk quality BTC context for active crypto traders who use BTC to size altcoin exposure.
 
 You will receive:
-1. LAYER_BRIEFS — three pre-digested layer briefs (macro / smart_money / onchain) + cycle position
-2. PRICE_DATA — current price + recent action + key price levels
-3. PREVIOUS_VERDICT (optional) — last verdict for continuity / "what changed"
+1. LAYER_BRIEFS — the daily macro / holder snapshot (slow backdrop only)
+2. INTRADAY_TAPE — live derivatives, liquidation map, and event-risk data
+3. PRICE_DATA — current price + recent action + key price levels
+4. PREVIOUS_VERDICT (optional) — last verdict for continuity / "what changed"
 
 Produce a JSON object matching this exact schema:
 
 {
-  "headline": "≤120 char one-line BLUF (e.g. 'Cautiously Bullish — Macro Tailwind, Smart-Money Hedged')",
-  "narrative": "≤480 char setup description (2-3 sentences)",
+  "headline": "≤120 char one-line BLUF focused on the 24h tactical tape, e.g. 'Defensive Tape — Downside Magnet Still Active'",
+  "narrative": "≤480 char setup description. Lead with tactical price/liquidity read; mention daily macro/outlook only as a separate backdrop.",
 
   "primary_30d": {"direction": "bullish/bearish/neutral", "confidence": 0-100, "rationale": "≤180 chars"},
   "secondary_7d": {"direction": "...", "confidence": 0-100, "rationale": "..."},
@@ -331,7 +503,10 @@ CRITICAL principles:
 - Be evidence-based: every claim must trace to a brief / metric
 - NOTE: when the system locks direction (deterministic mode), treat the given direction as FINAL — you may only narrate and LOWER confidence, never flip direction.
 - The scenario_contract is the primary product output. Horizon labels are legacy compatibility summaries only.
-- Horizons: tactical_24h and secondary_7d are summaries of the active contract, not the truth condition. primary_30d is CYCLE/MACRO CONTEXT only.
+- Horizons are separated by purpose:
+  - tactical_24h is the short-term market outlook. It must be driven by PRICE_DATA and INTRADAY_TAPE: price action, liquidity, derivatives, volatility, and event-risk guardrails. Do NOT let daily macro/on-chain/cycle turn a bearish or bullish tape into neutral.
+  - secondary_7d is swing context. It can consider positioning and slower data, but still explain whether it agrees or conflicts with the 24h tape.
+  - primary_30d is daily macro / holder outlook only. It is not a short-term entry signal and must not be written as if it tells traders to buy/sell today.
 - Always answer: BTC is projected toward which level, what confirms it, what invalidates it, and what path follows if invalidated.
 - The contract must be target-first: primary_touch and invalidation must be explicit levels with exact trigger rules.
 - Time is freshness/review metadata only. Do not define success as "green after 24h" or "red after 7d".
@@ -340,11 +515,20 @@ CRITICAL principles:
 - For neutral/range contracts: define the range boundary as primary_touch/extension and a clear invalidation/alternative path.
 - Use trigger tokens exactly: intrabar_touch, 5m_close_above, 5m_close_below, 15m_close_above, 15m_close_below, 1h_close_above, 1h_close_below, 4h_close_above, 4h_close_below, 1d_close_above, 1d_close_below.
 - Market mode must translate BTC to altcoin permission: ALTCOIN_FRIENDLY, SELECTIVE_RISK_ON, BTC_ONLY_RISK_ON, DEFENSIVE, EMERGENCY_DE_RISK, or CHOPPY_RANGE.
+- Use market-desk language. Translate the output into exposure guidance:
+  - ALTCOIN_FRIENDLY = risk-on, stronger altcoin exposure allowed after confirmation.
+  - SELECTIVE_RISK_ON = take only best setups, avoid chasing.
+  - BTC_ONLY_RISK_ON = BTC holding better than alts; keep alt exposure conservative.
+  - DEFENSIVE = reduce fresh altcoin exposure and wait for reclaim.
+  - EMERGENCY_DE_RISK = protect capital, no new high-beta exposure.
+  - CHOPPY_RANGE = level-to-level only, smaller size.
 - Specific, not vague: prefer "STH-MVRV at 0.99 signals neutral" over "on-chain looks ok"
 - Invalidation levels must be specific prices that would flip the thesis
 - Zones should reference real price levels, not theoretical
 - Reasoning chain shows your work — observation (data) → interpretation (meaning) → implication (action context)
 - If previous verdict differs from current, explain WHY in what_changed (data shifts, not opinion changes)
+- Keep macro/smart-money accumulation language out of the tactical headline unless it directly affects the active level. Put it in primary_30d rationale as daily outlook.
+- If DIRECTION_LOCK is present, the 24h direction and scenario contract MUST match it. A bearish lock requires a downside primary touch and an upside invalidation; a bullish lock requires the inverse. Do not downgrade a lock to neutral.
 - Never invent historical outcomes. You are drafting the current scenario contract; code will resolve target-first vs invalidation-first later.
 
 Return ONLY the JSON object."""
@@ -355,6 +539,9 @@ def _format_stage2_input(
     btc_price: float,
     price_context: dict,
     previous_verdict: Optional[dict] = None,
+    daily_outlook_context: Optional[dict] = None,
+    intraday_tape: Optional[dict] = None,
+    direction_lock: Optional[dict] = None,
 ) -> str:
     prev_block = ""
     if previous_verdict:
@@ -365,6 +552,50 @@ PREVIOUS_VERDICT ({prev_age_h}h ago):
   Primary (30d): {previous_verdict.get('primary_direction', 'n/a')} {previous_verdict.get('primary_confidence', 0)}%
   Tactical (24h): {previous_verdict.get('tactical_direction', 'n/a')}
   Price at call: ${previous_verdict.get('btc_price', 0):,.0f}
+"""
+
+    if daily_outlook_context and daily_outlook_context.get("source_report_id"):
+        daily_block = f"""
+DAILY_OUTLOOK_CADENCE:
+  Status: reuse_existing_daily_outlook
+  Source report: {daily_outlook_context.get('source_report_id')} at {daily_outlook_context.get('source_timestamp')}
+  Primary 30d direction to keep: {daily_outlook_context.get('direction', 'n/a')} {daily_outlook_context.get('confidence', 'n/a')}%
+  Primary 30d rationale to keep: {daily_outlook_context.get('rationale', 'n/a')}
+  Instruction: refresh the 24h tactical scenario from current price/liquidity/derivatives only. Treat macro/on-chain/cycle as a separate daily backdrop; do not let them neutralize the tactical tape.
+"""
+    else:
+        daily_block = """
+DAILY_OUTLOOK_CADENCE:
+  Status: create_today_daily_outlook
+  Instruction: this is the first daily outlook for the current UTC day. Build primary_30d from macro, on-chain, and cycle context, but keep it separate from the 24h tactical call.
+"""
+
+    tape = intraday_tape or {}
+    live_metrics = tape.get("fast_metrics") or []
+    metric_lines = [
+        f"  - {item.get('key')}: {item.get('value')}"
+        for item in live_metrics
+        if isinstance(item, dict)
+    ] or ["  - unavailable"]
+    liquidity = tape.get("liquidity") or {}
+    liquidity_layer = liquidity.get("layer") or {}
+    event_risk = tape.get("event_risk") or {}
+    tape_block = f"""
+INTRADAY_TAPE (directional authority for the 24h market outlook):
+  Live derivatives / positioning:
+{chr(10).join(metric_lines)}
+  Liquidity: status={liquidity.get('status', 'unavailable')}; eligible={liquidity.get('decision_eligible', False)}; verdict={liquidity_layer.get('verdict', 'n/a')}; strength={liquidity_layer.get('strength', 'n/a')}
+  Event risk: {event_risk.get('risk_level', 'unavailable')} — {event_risk.get('summary', 'n/a')}
+"""
+    lock_24h = (direction_lock or {}).get("tactical_24h") or {}
+    lock_72h = (direction_lock or {}).get("secondary_7d") or {}
+    lock_block = ""
+    if lock_24h.get("direction"):
+        lock_block = f"""
+DIRECTION_LOCK (deterministic fast-tape guardrail):
+  24h direction: {lock_24h.get('direction')} (score {lock_24h.get('score')}, confidence {lock_24h.get('confidence')}%)
+  72h context: {lock_72h.get('direction')} (score {lock_72h.get('score')}, confidence {lock_72h.get('confidence')}%)
+  Instruction: the 24h outlook and target-first scenario contract must match the locked 24h direction. Explain uncertainty through confidence, levels, and invalidation, never by changing it to neutral.
 """
 
     return f"""LAYER_BRIEFS:
@@ -404,7 +635,10 @@ PRICE_DATA:
   24h change: {price_context.get('change_24h_pct', 'n/a')}%
   7d change: {price_context.get('change_7d_pct', 'n/a')}%
   Recent high/low (24h): {price_context.get('high_24h', 'n/a')} / {price_context.get('low_24h', 'n/a')}
+{tape_block}
+{lock_block}
 {prev_block}
+{daily_block}
 Now produce the verdict JSON. Specific. Evidence-based. No fluff."""
 
 
@@ -441,9 +675,20 @@ async def stage2_reason(
     btc_price: float,
     price_context: dict,
     previous_verdict: Optional[dict] = None,
+    daily_outlook_context: Optional[dict] = None,
+    intraday_tape: Optional[dict] = None,
+    direction_lock: Optional[dict] = None,
 ) -> tuple[CompleteVerdict, dict]:
     """Stage 2: DeepSeek R1 reasoning + verdict generation."""
-    user_prompt = _format_stage2_input(bundle, btc_price, price_context, previous_verdict)
+    user_prompt = _format_stage2_input(
+        bundle,
+        btc_price,
+        price_context,
+        previous_verdict,
+        daily_outlook_context,
+        intraday_tape,
+        direction_lock,
+    )
 
     _log("Stage 2 — reasoning + verdict via DeepSeek R1")
     t0 = time.monotonic()
@@ -555,8 +800,8 @@ Produce a JSON object matching this schema:
 }
 
 Audit dimensions:
-1. CONFIDENCE CALIBRATION — Is primary_30d confidence >65% with mixed confluence? That's overconfidence.
-2. INTERNAL CONSISTENCY — Does primary_30d direction match the cycle phase? Does tactical_24h contradict triple_screen?
+1. CONFIDENCE CALIBRATION — Judge each horizon against the evidence allowed for that horizon. Do not use a fast-tape disagreement alone to penalize the daily outlook.
+2. INTERNAL CONSISTENCY — The 24h market outlook, its target-first contract, and DIRECTION_LOCK must agree. Multi-timeframe divergence is valid: a bearish 24h outlook may coexist with a bullish daily outlook or a neutral 1H/4H state.
 3. EVIDENCE TRACE — Does each reasoning_chain step cite real data, or hand-wave?
 4. INVALIDATION LOGIC — Are invalidation prices realistic vs zones? (bullish_invalidated should sit below demand zone)
 5. ZONE QUALITY — Do zones reflect actual structure (price clusters, prior reactions) or arbitrary?
@@ -564,7 +809,7 @@ Audit dimensions:
 Decision rules:
 - "approved" — solid, no concerns
 - "approved_with_caveat" — sound but needs disclaimer (e.g., low data confidence, contradicting layer)
-- "needs_revision" — material flaw that misleads users (overconfidence, contradiction, unsupported claim)
+- "needs_revision" — material flaw that misleads users: a contract opposed to the locked 24h direction, impossible invalidation structure, or unsupported claim. Do not use it solely because slow and fast horizons differ.
 
 Be concise. Quality over quantity. Return ONLY the JSON."""
 
@@ -573,9 +818,16 @@ def _format_stage3_input(
     verdict: CompleteVerdict,
     bundle: LayerBriefBundle,
     confluence_dict: dict,
+    direction_lock: Optional[dict] = None,
 ) -> str:
+    lock = (direction_lock or {}).get("tactical_24h") or {}
     return f"""THE_VERDICT:
 {verdict.model_dump_json(indent=2)}
+
+HORIZON_POLICY:
+  primary_30d is a daily macro / holder backdrop and may validly differ from the 24h market outlook.
+  A neutral 1H or 4H triple-screen item is not a contradiction of a bearish or bullish 24h outlook by itself.
+  Deterministic 24h lock: {lock.get('direction', 'not_applied')} (score {lock.get('score', 'n/a')})
 
 SOURCE_BRIEFS:
 {bundle.model_dump_json(indent=2)}
@@ -596,9 +848,15 @@ async def stage3_critique(
     verdict: CompleteVerdict,
     bundle: LayerBriefBundle,
     confluence_dict: dict,
+    direction_lock: Optional[dict] = None,
 ) -> tuple[SelfCritique, dict]:
     """Stage 3: GPT-4o audit of verdict."""
-    user_prompt = _format_stage3_input(verdict, bundle, confluence_dict)
+    user_prompt = _format_stage3_input(
+        verdict,
+        bundle,
+        confluence_dict,
+        direction_lock,
+    )
 
     _log("Stage 3 — self-critique via GPT-4o")
     t0 = time.monotonic()
@@ -678,171 +936,121 @@ async def generate_v6_report(
             _log(f"Could not load previous verdict: {e}", level="WARN")
             previous_verdict = None
 
-    # ─────────────────────────────────────
-    # Phase 1: Fetch + analyze (rule-based)
-    # ─────────────────────────────────────
-    _log("Fetching BG snapshot (23 endpoints)...")
-    bg = bg_advanced.BGClient()
-    bg_snapshot = await bg.fetch_all()
+    daily_outlook_context = None
+    try:
+        daily_outlook_context = get_today_daily_outlook_context() if _PERSIST_AVAILABLE else None
+    except Exception as e:
+        _log(f"Daily outlook preload skipped (non-fatal): {e}", level="WARN")
 
-    ok_count = sum(1 for m in bg_snapshot.values() if m.ok)
-    if ok_count < 18:
-        raise RuntimeError(
-            f"BG snapshot incomplete: only {ok_count}/23 endpoints succeeded. "
-            f"Failed: {[k for k, m in bg_snapshot.items() if not m.ok]}"
+    # Daily macro/on-chain is calculated once after the UTC daily close. Every
+    # later report reuses that snapshot and refreshes only the fast market tape.
+    bg = bg_advanced.BGClient()
+    reusing_daily_snapshot = _has_daily_snapshot(daily_outlook_context)
+    if reusing_daily_snapshot:
+        source_id = daily_outlook_context.get("source_report_id")
+        _log(f"Reusing daily backdrop from {source_id}; refreshing fast market data only")
+        bg_snapshot = _snapshot_from_summary(daily_outlook_context.get("bg_snapshot_summary"))
+        fast_snapshot = await _fetch_intraday_bg(bg)
+        bg_snapshot.update(fast_snapshot)
+        bundle = LayerBriefBundle.model_validate(daily_outlook_context["layer_briefs"])
+        cost1 = {
+            "model": MODEL_STAGE1,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cost_usd": 0.0,
+            "elapsed_s": 0.0,
+            "mode": "reused_daily_snapshot",
+        }
+    else:
+        _log("No reusable daily snapshot; fetching the full daily backdrop (23 endpoints)")
+        bg_snapshot = await bg.fetch_all()
+        ok_count = sum(1 for metric in bg_snapshot.values() if metric.ok)
+        if ok_count < 18:
+            raise RuntimeError(
+                f"BG daily snapshot incomplete: only {ok_count}/23 endpoints succeeded. "
+                f"Failed: {[key for key, metric in bg_snapshot.items() if not metric.ok]}"
+            )
+        fast_snapshot = {
+            key: metric
+            for key, metric in bg_snapshot.items()
+            if key in (*bg_advanced.TIER_SMART, *bg_advanced.TIER_RISK)
+        }
+        cycle_result = cycle_position.from_bg_snapshot(bg_snapshot)
+        confluence_result = confluence_engine.compute_all(bg_snapshot=bg_snapshot)
+        bundle, cost1 = await stage1_compress(
+            bg_snapshot=bg_snapshot,
+            cycle_result=cycle_result,
+            confluence_result=confluence_result,
+            btc_price=btc_price,
+            price_context=price_context,
         )
-    _log(f"BG snapshot OK: {ok_count}/23 endpoints")
 
     cycle_result = cycle_position.from_bg_snapshot(bg_snapshot)
     confluence_result = confluence_engine.compute_all(bg_snapshot=bg_snapshot)
+    confluence_dict = confluence_result.to_dict()
+    cycle_dict = cycle_result.to_dict()
+    bg_summary = _summary_from_snapshot(bg_snapshot)
+    fast_ok_count = sum(1 for metric in fast_snapshot.values() if metric.ok)
     _log(
-        f"Cycle: {cycle_result.score:.1f}/{cycle_result.phase} | "
-        f"Confluence: {confluence_result.strength} {confluence_result.dominant_direction} "
-        f"({confluence_result.bullish_count}↑/{confluence_result.bearish_count}↓/{confluence_result.neutral_count}→)"
+        f"Fast tape: {fast_ok_count}/{len(fast_snapshot)} inputs live | "
+        f"confluence {confluence_result.strength} {confluence_result.dominant_direction}"
     )
 
-    # ─────────────────────────────────────
-    # Phase 2: 3-stage AI pipeline
-    # ─────────────────────────────────────
-    bundle, cost1 = await stage1_compress(
-        bg_snapshot=bg_snapshot,
-        cycle_result=cycle_result,
-        confluence_result=confluence_result,
-        btc_price=btc_price,
-        price_context=price_context,
+    liquidity_doc, event_risk_doc = await asyncio.gather(
+        _fetch_liquidity_doc(btc_price),
+        _fetch_event_risk_doc(),
     )
+    intraday_tape = _intraday_tape_payload(
+        fast_snapshot,
+        liquidity_doc,
+        event_risk_doc,
+    )
+    direction_lock = None
+    try:
+        from app.services.deterministic_verdict import (
+            compute_deterministic_direction,
+            flag_enabled,
+        )
 
+        if flag_enabled() and (liquidity_doc or {}).get("decision_eligible"):
+            direction_lock = compute_deterministic_direction(
+                (liquidity_doc or {}).get("layer"),
+                confluence_dict,
+                cycle_dict,
+                price_context=price_context,
+            )
+            _log(
+                "Deterministic direction lock prepared: "
+                f"24h={direction_lock['tactical_24h']} "
+                f"72h={direction_lock['secondary_7d']}"
+            )
+        elif flag_enabled():
+            _log("Deterministic direction lock skipped: liquidity ineligible", level="WARN")
+    except Exception as exc:
+        _log(f"Deterministic direction lock skipped (non-fatal): {exc}", level="WARN")
+
+    # ─────────────────────────────────────
+    # Phase 2: market reasoning + audit
+    # ─────────────────────────────────────
     verdict, cost2 = await stage2_reason(
         bundle=bundle,
         btc_price=btc_price,
         price_context=price_context,
         previous_verdict=previous_verdict,
+        daily_outlook_context=daily_outlook_context,
+        intraday_tape=intraday_tape,
+        direction_lock=direction_lock,
     )
 
-    confluence_dict = confluence_result.to_dict()
     critique, cost3 = await stage3_critique(
         verdict=verdict,
         bundle=bundle,
         confluence_dict=confluence_dict,
+        direction_lock=direction_lock,
     )
-
-    # ─────────────────────────────────────
-    # Assemble bundle
-    # ─────────────────────────────────────
-    cycle_dict = cycle_result.to_dict()
-    bg_summary = {
-        k: {
-            "value": m.value,
-            "ok": m.ok,
-            "error": m.error,
-            "timestamp": m.timestamp,
-            "fetched_at": m.fetched_at,
-            "is_stale": m.is_stale,
-        }
-        for k, m in bg_snapshot.items()
-    }
 
     total_cost = cost1["cost_usd"] + cost2["cost_usd"] + cost3["cost_usd"]
     elapsed_total = time.monotonic() - pipeline_start
-
-    # -- Liquidity layer (additive, non-blocking) --
-    liquidity_doc = None
-    try:
-        from app.services.binance_liquidation_map import fetch_binance_estimated_heatmap
-        from app.services.liquidity_engine import parse_liq_heatmap, evaluate_liquidity
-        _heatmap_result = await fetch_binance_estimated_heatmap(
-            "BTCUSDT",
-            "12h",
-            current_price=btc_price,
-        )
-        _liq_parsed = (
-            parse_liq_heatmap(_heatmap_result.payload, btc_price)
-            if _heatmap_result.available
-            else None
-        )
-        _liq_usable = _heatmap_result.available and _liq_parsed is not None
-        _liq_status = _heatmap_result.status if _liq_usable else "unavailable"
-        _liq_reason = _heatmap_result.reason
-        if _heatmap_result.available and _liq_parsed is None:
-            _liq_reason = "heatmap_parser_rejected_payload"
-        _liq_layer = evaluate_liquidity(_liq_parsed if _liq_usable else None)
-        _model_confidence = (
-            float((_liq_parsed or {}).get("model_confidence") or 0.0)
-            if _liq_usable
-            else 0.0
-        )
-        _minimum_confidence = float(
-            os.getenv("COMPASS_LIQUIDITY_MIN_CONFIDENCE", "0.52")
-        )
-        _decision_eligible = (
-            _liq_usable and _model_confidence >= _minimum_confidence
-        )
-        liquidity_doc = {
-            **_heatmap_result.metadata(),
-            "status": _liq_status,
-            "available": _liq_usable,
-            "is_stale": _liq_status == "stale",
-            "reason": _liq_reason,
-            "decision_eligible": _decision_eligible,
-            "minimum_confidence": _minimum_confidence,
-            "layer": _liq_layer.to_dict(),
-            "magnets": _liq_parsed,
-        }
-        if _liq_usable:
-            _log(
-                f"Liquidity: {_liq_status.upper()} {_liq_layer.verdict} "
-                f"(strength {_liq_layer.strength:.2f}, age={liquidity_doc['age_seconds']}s)"
-            )
-        else:
-            _log(
-                f"Liquidity: UNAVAILABLE ({_liq_reason or 'unknown_reason'})",
-                level="WARN",
-            )
-    except Exception as e:
-        liquidity_doc = {
-            "provider": "binance_estimated_liquidation_v1",
-            "status": "unavailable",
-            "available": False,
-            "is_stale": False,
-            "reason": f"liquidity_pipeline_{type(e).__name__}",
-            "decision_eligible": False,
-            "layer": None,
-            "magnets": None,
-        }
-        _log(f"Liquidity layer unavailable (non-fatal): {e}", level="WARN")
-
-    # -- Phase 3: structured news + economic event risk (context only) --
-    event_risk_doc = None
-    try:
-        from app.services.compass_event_risk import get_event_risk_snapshot
-
-        event_risk_doc = await get_event_risk_snapshot()
-        _log(
-            f"Event risk: {event_risk_doc['risk_level'].upper()} | "
-            f"{len(event_risk_doc.get('headlines') or [])} headlines | "
-            f"{len(event_risk_doc.get('upcoming_events') or [])} upcoming events"
-        )
-    except Exception as e:
-        event_risk_doc = {
-            "phase": 3,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "purpose": "context_and_event_risk_only",
-            "direction_authority": False,
-            "risk_level": "unavailable",
-            "summary": "Event-risk context is temporarily unavailable.",
-            "warnings": ["Event-risk context is temporarily unavailable."],
-            "confidence_adjustment": {
-                "penalty_points": 0,
-                "can_increase_confidence": False,
-                "can_change_direction": False,
-            },
-            "source_health": {},
-            "topics": [],
-            "headlines": [],
-            "upcoming_events": [],
-            "reason": f"event_risk_pipeline_{type(e).__name__}",
-        }
-        _log(f"Event-risk layer unavailable (non-fatal): {e}", level="WARN")
 
     # -- Phase 3: deterministic direction (behind flag) --
     try:
@@ -850,16 +1058,13 @@ async def generate_v6_report(
             compute_deterministic_direction, flag_enabled,
         )
         if flag_enabled():
-            if not (liquidity_doc or {}).get("decision_eligible"):
+            if direction_lock is None:
                 _log(
                     "Deterministic verdict ON but not applied: liquidity ineligible",
                     level="WARN",
                 )
             else:
-                _liq_layer_doc = (liquidity_doc or {}).get("layer")
-                _det = compute_deterministic_direction(
-                    _liq_layer_doc, confluence_dict, cycle_result.to_dict(),
-                )
+                _det = direction_lock
                 for _attr, _key in (("tactical_24h", "tactical_24h"), ("secondary_7d", "secondary_7d")):
                     _hv = getattr(verdict, _attr, None)
                     if _hv is not None:
@@ -914,6 +1119,44 @@ async def generate_v6_report(
     except Exception as e:
         _log(f"Ledger confidence skipped (non-fatal): {e}", level="WARN")
 
+    # -- Daily outlook guard: keep macro/holder context stable intraday --
+    daily_outlook_doc = {
+        "cadence": "daily_close_utc",
+        "refreshed": True,
+        "source_report_id": None,
+        "note": "This report owns the daily macro/holder outlook for the current UTC day.",
+    }
+    try:
+        _daily = daily_outlook_context
+        if _daily and _daily.get("source_report_id"):
+            verdict.primary_30d.direction = _daily.get("direction") or verdict.primary_30d.direction
+            verdict.primary_30d.confidence = int(_daily.get("confidence") or verdict.primary_30d.confidence)
+            verdict.primary_30d.rationale = _daily.get("rationale") or verdict.primary_30d.rationale
+            daily_outlook_doc = {
+                "cadence": "daily_close_utc",
+                "refreshed": False,
+                "source_report_id": _daily.get("source_report_id"),
+                "source_timestamp": _daily.get("source_timestamp"),
+                "note": (
+                    "Intraday report refreshed tactical BTC levels; daily macro/holder "
+                    "outlook is reused until the next UTC daily close."
+                ),
+            }
+            _log(
+                "Daily outlook reused from "
+                f"{daily_outlook_doc['source_report_id']} ({daily_outlook_doc.get('source_timestamp')})"
+            )
+        else:
+            _log("Daily outlook refreshed by this report")
+    except Exception as e:
+        daily_outlook_doc = {
+            "cadence": "daily_close_utc",
+            "refreshed": True,
+            "source_report_id": None,
+            "note": f"Daily outlook guard skipped: {type(e).__name__}",
+        }
+        _log(f"Daily outlook guard skipped (non-fatal): {e}", level="WARN")
+
     # -- Shadow validation: always compute deterministic, record alongside LLM (no override) --
     shadow_det = None
     try:
@@ -933,7 +1176,12 @@ async def generate_v6_report(
             _log("Shadow det: ineligible (liquidity unavailable/low confidence)", level="WARN")
         else:
             _liq_doc = (liquidity_doc or {}).get("layer")
-            _sd = compute_deterministic_direction(_liq_doc, confluence_dict, cycle_result.to_dict())
+            _sd = compute_deterministic_direction(
+                _liq_doc,
+                confluence_dict,
+                cycle_result.to_dict(),
+                price_context=price_context,
+            )
             shadow_det = {
                 "eligible": True,
                 "liquidity_status": (liquidity_doc or {}).get("status"),
@@ -999,6 +1247,7 @@ async def generate_v6_report(
         bg_snapshot_summary=bg_summary,
         liquidity=liquidity_doc,
         event_risk=event_risk_doc,
+        daily_outlook=daily_outlook_doc,
         evidence_matrix=evidence_matrix,
         shadow_deterministic=shadow_det,
         cost_breakdown={

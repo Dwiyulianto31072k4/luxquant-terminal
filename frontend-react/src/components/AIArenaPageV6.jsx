@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import TheRead from "./aiArenaV6/TheRead";
+import LongerView from "./aiArenaV6/LongerView";
 import {
   getEventRisk,
   getLatestReport,
@@ -58,43 +60,52 @@ function formatAge(timestamp) {
 }
 
 function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
+  const healthy = healthStatus === "healthy";
   return (
-    <header className="border-b border-white/[0.06] pb-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <header className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="h-px w-8 bg-gold-primary/40" />
+        <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+          BTC Compass · AI Research
+        </span>
+        <span className="h-px flex-1 bg-white/[0.06]" />
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
+            healthy
+              ? "border-profit/25 bg-profit/10 text-profit"
+              : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+          }`}
+        >
+          <span className="relative flex h-1.5 w-1.5">
+            <span className={`absolute inline-flex h-full w-full rounded-full opacity-50 ${healthy ? "bg-profit" : "bg-amber-500"}`} />
+            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${healthy ? "bg-profit" : "bg-amber-500"}`} />
+          </span>
+          {healthy ? "Data healthy" : "Data check"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
-              BTC Compass
-            </span>
-            <span
-              className={`rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${statusTone(healthStatus)}`}
-            >
-              {healthStatus === "healthy" ? "Data healthy" : "Data needs check"}
-            </span>
-          </div>
-          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl">
-            Market read, simplified
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-white md:text-[40px] md:leading-[1.05]">
+            BTC Market Outlook
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-            Start with the stance, then read the reason, price areas, and
-            invalidation. Technical source detail stays behind the scenes.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
+            Start with the 24h outlook for altcoin exposure, then check the projection,
+            key levels, risk, and the longer backdrop in one flow.
           </p>
         </div>
-
         <div className="flex items-center gap-3">
-          <div className="text-right font-mono text-xs">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-white/30">
-              Updated
-            </div>
-            <div className="text-white/65">{formatAge(report?.timestamp)}</div>
+          <div className="text-right">
+            <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/50">Updated</div>
+            <div className="font-mono text-xs text-white/70">{formatAge(report?.timestamp)}</div>
           </div>
           <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white/75 transition-colors hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-50"
+            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-text-muted transition-all hover:border-gold-primary/40 hover:text-gold-primary disabled:opacity-50"
           >
-            {refreshing ? "Refreshing..." : "Refresh"}
+            {refreshing ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
@@ -144,9 +155,12 @@ function ErrorState({ error, onRetry }) {
 }
 
 function WorkspaceTabs({ activeTab, onChange, tabs }) {
+  const cols =
+    tabs.length >= 5 ? "md:grid-cols-5" : tabs.length >= 4 ? "md:grid-cols-4" : "md:grid-cols-3";
   return (
-    <section className="rounded-xl border border-white/[0.08] bg-[#0d0d12]/70 p-1.5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
-      <div className={`grid gap-1.5 ${tabs.length >= 4 ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+    <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className={`relative z-10 grid gap-1.5 ${cols}`}>
         {tabs.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -154,27 +168,29 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
               key={tab.key}
               type="button"
               onClick={() => onChange(tab.key)}
-              className={`group relative flex min-h-[74px] items-center gap-3 rounded-lg border px-3 py-3 text-left transition ${
+              className={`group flex min-h-[68px] items-center gap-3 rounded-sm border px-3 py-2.5 text-left transition-all ${
                 active
-                  ? "border-[#d4a853]/35 bg-[#d4a853]/10 text-white shadow-[0_0_0_1px_rgba(212,168,83,0.05)_inset]"
-                  : "border-white/[0.06] bg-black/10 text-white/45 hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-white/70"
+                  ? "border-gold-primary/40 bg-gold-primary/[0.12] text-white"
+                  : "border-white/[0.05] bg-white/[0.015] text-text-muted/70 hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-white"
               }`}
             >
               <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border font-mono text-sm ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border font-mono text-[11px] ${
                   active
-                    ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-[#f5c451]"
-                    : "border-white/[0.08] bg-white/[0.02] text-white/35 group-hover:text-white/65"
+                    ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
+                    : "border-white/[0.08] bg-black/20 text-text-muted/50 group-hover:text-white/65"
                 }`}
               >
                 {tab.icon}
               </span>
               <span className="min-w-0">
-                <span className="block text-[10px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
+                <span className="block font-mono text-[9px] uppercase tracking-[0.18em] text-gold-primary/70">
                   {tab.eyebrow}
                 </span>
-                <span className="mt-1 block text-sm font-semibold">{tab.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-white/40">{tab.description}</span>
+                <span className="mt-0.5 block text-[13px] font-semibold leading-tight">{tab.label}</span>
+                <span className="mt-0.5 hidden text-[11px] leading-4 text-text-muted/50 lg:block">
+                  {tab.description}
+                </span>
               </span>
             </button>
           );
@@ -186,7 +202,7 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
 
 function ChartPanel({ report }) {
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] md:p-5">
+    <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] md:p-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -238,9 +254,9 @@ function formatBytes(value) {
 
 function directionClasses(direction) {
   const value = String(direction || "neutral").toLowerCase();
-  if (value === "bullish") return "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
-  if (value === "bearish") return "border-red-400/20 bg-red-400/10 text-red-300";
-  return "border-amber-300/20 bg-amber-300/10 text-amber-200";
+  if (value === "bullish") return "border-profit/20 bg-profit/10 text-profit";
+  if (value === "bearish") return "border-loss/20 bg-loss/10 text-loss";
+  return "border-amber-500/20 bg-amber-500/10 text-amber-400";
 }
 
 function readableLabel(value) {
@@ -268,7 +284,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   if (!archive) {
     return (
-      <section className="rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 p-6 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
           Report library
         </div>
@@ -284,7 +301,8 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d12]/80 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
+        <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="border-b border-white/[0.06] p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -299,16 +317,16 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2 text-right font-mono text-xs">
-              <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Reports</div>
+              <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Reports</div>
                 <div className="mt-1 text-white/80">{items.length}</div>
               </div>
-              <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.04] px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">PDF ready</div>
-                <div className="mt-1 text-emerald-300">{readyCount}</div>
+              <div className="rounded-sm border border-profit/15 bg-profit/[0.05] px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">PDF ready</div>
+                <div className="mt-1 text-profit">{readyCount}</div>
               </div>
-              <div className="rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2">
-                <div className="text-[9px] uppercase tracking-[0.14em] text-white/30">Latest</div>
+              <div className="rounded-sm border border-white/[0.04] bg-[#120809] px-3 py-2">
+                <div className="text-[9px] uppercase tracking-[0.14em] text-text-muted/60">Latest</div>
                 <div className="mt-1 text-white/65">{latest ? formatAge(latest.timestamp) : "-"}</div>
               </div>
             </div>
@@ -341,7 +359,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                   onClick={() => setPage(pageNumber)}
                   className={`h-8 min-w-8 rounded-md border px-2 transition ${
                     pageNumber === page
-                      ? "border-[#d4a853]/35 bg-[#d4a853]/12 text-[#f5c451]"
+                      ? "border-gold-primary/40 bg-gold-primary/15 text-gold-primary"
                       : "border-white/[0.07] bg-black/20 text-white/40 hover:border-white/[0.14] hover:text-white/70"
                   }`}
                 >
@@ -375,7 +393,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
             return (
               <article
                 key={item.report_id}
-                className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(135deg,rgba(255,255,255,0.035),rgba(0,0,0,0.22))] p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
+                className={`group relative overflow-hidden rounded-sm border border-white/[0.06] bg-[#120809] p-4 transition ${ringClass} hover:bg-[#d4a853]/[0.035]`}
               >
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d4a853]/45 to-transparent opacity-60" />
                 <div className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-[#d4a853]/10 blur-3xl transition group-hover:bg-[#d4a853]/15" />
@@ -408,15 +426,15 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                 </p>
 
                 <div className="relative mt-4 grid gap-2 text-xs md:grid-cols-3">
-                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Below magnet</div>
                     <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_below)}</div>
                   </div>
-                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Above magnet</div>
                     <div className="mt-1 font-mono text-white/75">{formatMoney(item.nearest_magnet_above)}</div>
                   </div>
-                  <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                  <div className="rounded-sm border border-white/[0.04] bg-black/25 p-3">
                     <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">Event risk</div>
                     <div className="mt-1 font-mono text-white/75">{readableLabel(item.event_risk)}</div>
                   </div>
@@ -424,10 +442,10 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
 
                 <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
                   <span
-                    className={`rounded-md border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
+                    className={`rounded-sm border px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.12em] ${
                       item.pdf_ready
-                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                        : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+                        ? "border-profit/20 bg-profit/10 text-profit"
+                        : "border-amber-500/20 bg-amber-500/10 text-amber-400"
                     }`}
                   >
                     {item.pdf_ready ? `${formatBytes(item.pdf_size_bytes)} ready` : item.pdf_error || "Pending"}
@@ -436,7 +454,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="rounded-lg border border-[#d4a853]/25 bg-[#d4a853]/10 px-4 py-2 text-sm font-semibold text-[#f5c451] transition hover:border-[#d4a853]/45 hover:bg-[#d4a853]/15 disabled:cursor-wait disabled:opacity-60"
+                    className="rounded-sm border border-gold-primary/25 bg-gold-primary/10 px-4 py-2 text-sm font-semibold text-gold-primary transition hover:border-gold-primary/45 hover:bg-gold-primary/15 disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening..." : "Open reader"}
                   </button>
@@ -1028,29 +1046,36 @@ export default function AIArenaPageV6() {
       key: "read",
       icon: "01",
       eyebrow: "Today",
-      label: "Market Read",
-      description: "24h stance, drivers, levels, risk, and holder context.",
+      label: "Market Outlook",
+      description: "24h direction, exposure guide, levels, and risk.",
+    },
+    {
+      key: "longer",
+      icon: "02",
+      eyebrow: "7d · 30d",
+      label: "Longer View",
+      description: "Swing context and holder backdrop.",
     },
     {
       key: "evaluation",
-      icon: "02",
+      icon: "03",
       eyebrow: "Audit",
-      label: "Evaluation",
-      description: "Target-first scenario resolution only.",
+      label: "Projection Audit",
+      description: "Projected level, result, and explanation.",
     },
     {
       key: "chart",
-      icon: "03",
+      icon: "04",
       eyebrow: "Context",
-      label: "BTC Chart",
-      description: "Projection, magnets, zones, and price confirmation.",
+      label: "Projection Chart",
+      description: "Live candles with projection overlay.",
     },
     {
       key: "archive",
-      icon: "04",
+      icon: "05",
       eyebrow: "Library",
-      label: "Report PDFs",
-      description: "Saved Compass reads with in-page PDF preview.",
+      label: "Report Library",
+      description: "Archived outlooks and PDF guide.",
     },
   ];
 
@@ -1076,14 +1101,9 @@ export default function AIArenaPageV6() {
           tabs={workspaceTabs}
         />
 
-        {activeWorkspace === "read" && (
-          <CompassBrief
-            report={report}
-            dashboardHealth={dashboardHealth}
-            operationalHealth={operationalHealth}
-            eventRisk={eventRisk}
-          />
-        )}
+        {activeWorkspace === "read" && <TheRead data={report} />}
+
+        {activeWorkspace === "longer" && <LongerView data={report} />}
 
         {activeWorkspace === "evaluation" && (
           <VerdictLedger
@@ -1107,8 +1127,8 @@ export default function AIArenaPageV6() {
         <ReportPdfModal modal={pdfModal} onClose={closePdfModal} />
 
         <footer className="border-t border-white/[0.06] pt-6 text-center">
-          <p className="text-[11px] font-mono leading-relaxed text-white/30">
-            LuxQuant BTC Compass. Decision support only, not financial advice.
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] leading-relaxed text-text-muted/40">
+            LuxQuant BTC Compass · decision support only, not financial advice
           </p>
         </footer>
       </div>

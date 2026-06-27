@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxQuant BTC Compass 2.0 - Monitor Driven Trigger
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/root/luxquant-terminal/backend/migrations/run_compass_with_lock.sh monitor
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=420

@@ -3,9 +3,9 @@
 // LandingPageV2 — orchestrator. Fetch data SEKALI (useLandingData),
 // rakit section berurutan, pass data via props.
 //
-// Status: WIP preview. Section yang udah jadi: Header, Hero, ProofBar.
-// Section berikutnya tinggal ditambah di bawah ProofBar (Live Signals
-// tabs, Trust pillars, Architecture, Performance, FAQ, Footer).
+// Status: WIP preview. Section yang udah jadi: Header, Hero, ProofBar,
+// TopGainers, GlobalReach. Berikutnya tinggal ditambah di bawah
+// GlobalReach (Architecture, Performance, FAQ, Footer).
 //
 // Catatan:
 //  • Root wrapper pakai class "lp-v2" → scope font Poppins (lihat index.css).
@@ -20,11 +20,13 @@ import { saveRefFromURL } from "../../../utils/referralStorage";
 import useLandingData from "./useLandingData";
 import HeaderV2 from "./sections/HeaderV2";
 import HeroSlider from "./sections/HeroSlider";
-import ProofBar from "./sections/ProofBar";
 import TopGainers from "./sections/TopGainers";
+import GlobalReach from "./sections/GlobalReach";
+import Architecture from "./sections/Architecture";
+import Performance from "./sections/Performance";
 
 export default function LandingPageV2() {
-  const { stats, topGainers } = useLandingData();
+  const { stats, topGainers, performanceData } = useLandingData();
   const [activeId, setActiveId] = useState("hero");
 
   // Capture ?ref= → localStorage (sama seperti v1)
@@ -45,15 +47,28 @@ export default function LandingPageV2() {
         description="A 24/7 algorithm plus an AI market researcher — precise entries, strict risk management, and a fully transparent track record since 2023."
         path="/v2"
       />
-
-      {/* background emas khas LuxQuant */}
-      <div className="luxury-bg" />
+      {/* Continuous brand canvas — ONE seamless background for every
+          section (scrolls with content, no fixed-bg banding). Sections
+          stay transparent so this flows through them without hard edges. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background: `
+            radial-gradient(ellipse at 0% 0%, rgba(139,26,26,0.40) 0%, transparent 50%),
+            radial-gradient(ellipse at 100% 0%, rgba(139,26,26,0.30) 0%, transparent 42%),
+            radial-gradient(ellipse at 50% 100%, rgba(139,26,26,0.22) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 52%, rgba(212,168,83,0.05) 0%, transparent 72%)
+          `,
+        }}
+      />
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
-
       <HeroSlider onNav={scrollTo} gainers={topGainers} />
-      <ProofBar stats={stats} />
       <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
+      <GlobalReach />
+      <Architecture />
+      <Performance data={performanceData} />
 
       {/* ──────────────────────────────────────────────────────────
           SECTION BERIKUTNYA — tambah di sini (semua modular):

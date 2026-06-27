@@ -250,31 +250,37 @@ async def get_journey_insights_all(
 
 @router.get(
     '/journey-insights/{pair}',
-    summary='Get aggregated journey insights for a trading pair',
+    summary='Journey insights for a pair (use pair=ALL for whole-platform aggregate)',
 )
 async def get_journey_insights(
     pair: str,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
-    Aggregate journey data across all signals for a given pair.
+    Aggregate journey data across signals.
 
-    Returns insights for History tab:
-      - entry_behavior: avg drawdown before TP1, smooth entry rate, time to TP1
-      - time_to_each_tp: avg/fastest/slowest per TP level
-      - drawdown_before_each_tp: avg + worst per TP transition
-      - hit_rate_per_tp: hit count, rate %, avg exit gain
-      - peak_potential: avg peak excursion, best peak ever, avg max gain
-      - risk_profile: avg/worst drawdown, time in profit, TP-then-SL warning
+      - pair=ALL (or AGGREGATE): whole-platform aggregate across every pair,
+        with optional ?start=&end= (YYYY-MM-DD) date range on signal creation.
+      - pair=<SYMBOL>: single trading pair (History tab).
 
-    Cached in Redis for 1 hour per pair.
+    NOTE: deliberately served under the two-segment /journey-insights/{pair}
+    path — a bare /journey-insights would be shadowed by signals.py's
+    /{signal_id} route (mounted earlier under the same /signals prefix).
 
-    Response shape:
+    Returns insights:
+      - entry_behavior, time_to_each_tp, drawdown_before_each_tp,
+        hit_rate_per_tp, peak_potential, risk_profile
+
+    Cached in Redis for 1 hour. Response:
       - {available: true, ...sections...} — when sample size >= MIN_SAMPLE_SIZE
       - {available: false, reason: 'insufficient_data'|'no_data'} — otherwise
     """
     pair_upper = pair.upper()
-    cache_key = f"lq:journey-insights:{pair_upper}"
+    is_all = pair_upper in ('ALL', 'AGGREGATE')
+
+    cache_key = "lq:journey-insights:ALL" if is_all else f"lq:journey-insights:{pair_upper}"
 
     # Try cache first
     cached = cache_get(cache_key)
@@ -283,7 +289,14 @@ async def get_journey_insights(
 
     # Compute fresh
     try:
-        result = compute_insights(db, pair_upper)
+        if is_all:
+            # All-pairs aggregate is a pre-materialized accumulator (see
+            # journey_aggregate worker) — this is just an instant read, never
+            # a heavy synchronous walk over every signal.
+            from app.services.journey_aggregate import get_result as get_aggregate
+            result = get_aggregate(db)
+        else:
+            result = compute_insights(db, pair_upper)
     except Exception as e:
         log.exception(f"compute_insights failed for {pair_upper}: {e}")
         raise HTTPException(

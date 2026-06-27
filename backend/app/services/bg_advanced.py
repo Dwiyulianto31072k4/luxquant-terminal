@@ -335,17 +335,25 @@ class BGClient:
 
         return metric
 
-    async def fetch_tier(self, tier: str) -> dict[str, BGMetric]:
+    async def fetch_tier(
+        self,
+        tier: str,
+        force_refresh: bool = False,
+    ) -> dict[str, BGMetric]:
         """Fetch all endpoints in a tier in parallel."""
         if tier not in TIERS:
             raise ValueError(f"unknown tier: {tier}. valid: {list(TIERS)}")
         endpoints = TIERS[tier]
-        results = await asyncio.gather(*(self.fetch(ep) for ep in endpoints))
+        results = await asyncio.gather(
+            *(self.fetch(ep, force_refresh=force_refresh) for ep in endpoints)
+        )
         return {m.key: m for m in results}
 
-    async def fetch_all(self) -> dict[str, BGMetric]:
+    async def fetch_all(self, force_refresh: bool = False) -> dict[str, BGMetric]:
         """Fetch all 23 endpoints in parallel. Used by AI Arena worker per report."""
-        results = await asyncio.gather(*(self.fetch(ep) for ep in ALL_ENDPOINTS))
+        results = await asyncio.gather(
+            *(self.fetch(ep, force_refresh=force_refresh) for ep in ALL_ENDPOINTS)
+        )
         snapshot = {m.key: m for m in results}
 
         # Log summary

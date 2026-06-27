@@ -405,7 +405,7 @@ export default function PriceChart({ report }) {
   // RENDER
   // ════════════════════════════════════════════════════════════
   return (
-    <div className="glass-card rounded-2xl p-4 lg:p-6 border border-gold-primary/10 relative overflow-hidden">
+    <div className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] lg:p-6">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
@@ -440,14 +440,14 @@ export default function PriceChart({ report }) {
             </div>
           )}
 
-          <div className="flex rounded-lg border border-gold-primary/10 bg-bg-card/80 p-1">
+          <div className="flex rounded-md border border-white/[0.06] bg-white/[0.03] p-1">
             {TIMEFRAMES.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setTf(opt.value)}
                 className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all lg:px-3 lg:py-1.5 lg:text-xs ${
                   tf === opt.value
-                    ? "bg-gradient-to-r from-gold-dark to-gold-primary text-bg-primary shadow-gold-glow"
+                    ? "bg-gold-primary/15 text-gold-primary"
                     : "text-text-muted hover:text-white"
                 }`}
                 title={`${opt.label} · ${opt.sub}`}
@@ -529,7 +529,7 @@ export default function PriceChart({ report }) {
 
         <div
           ref={containerRef}
-          className="w-full rounded-xl overflow-hidden bg-bg-primary/30 border border-white/5"
+          className="w-full overflow-hidden rounded-md border border-white/[0.04] bg-[#0a0506]"
           style={{ height: 460 }}
         />
 
@@ -658,7 +658,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
 function ProjectionStat({ label, value, hint, tone }) {
   return (
-    <div className="rounded-md border border-white/[0.06] bg-[#0d0d12]/70 p-3">
+    <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{label}</div>
       <div className="mt-1 font-mono text-lg font-semibold text-white/90" style={{ color: tone ? directionColor(tone) : undefined }}>
         {value}
@@ -695,7 +695,7 @@ function ChartReadPanel({ read }) {
   if (!read) return null;
   const toneColor = directionColor(read.direction);
   return (
-    <section className="mt-4 overflow-hidden rounded-xl border border-[#d4a853]/15 bg-[#0b0b10]/80 shadow-[0_1px_0_rgba(255,255,255,0.035)_inset]">
+    <section className="relative mt-4 overflow-hidden rounded-md border border-gold-primary/15 bg-[#0a0805] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] p-4">
         <div className="max-w-4xl">
           <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-[#d4a853]/75">
@@ -788,7 +788,7 @@ function ReasonRow({ item }) {
 
 function MetricExplain({ metric }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-[#0d0d12]/70 p-3">
+    <div className="rounded-sm border border-white/[0.04] bg-[#120809] p-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-white/30">{metric.label}</div>
       <div className="mt-1 font-mono text-sm font-semibold text-white/90">{metric.value}</div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#d4a853]/75">{metric.state}</div>
