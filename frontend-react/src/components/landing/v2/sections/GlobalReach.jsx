@@ -783,9 +783,9 @@ function CanvasGlobe() {
         cy,
         radius * 1.85
       );
-      ambientGlow.addColorStop(0, "rgba(212,168,83,0.1)");
-      ambientGlow.addColorStop(0.32, "rgba(150,66,36,0.055)");
-      ambientGlow.addColorStop(0.62, "rgba(90,32,26,0.022)");
+      ambientGlow.addColorStop(0, "rgba(70,30,28,0.12)");
+      ambientGlow.addColorStop(0.32, "rgba(45,20,20,0.06)");
+      ambientGlow.addColorStop(0.62, "rgba(22,11,11,0.025)");
       ambientGlow.addColorStop(1, "rgba(0,0,0,0)");
       context.fillStyle = ambientGlow;
       context.fillRect(
@@ -796,26 +796,8 @@ function CanvasGlobe() {
       );
       context.restore();
 
-      // Atmosphere rim — amber natural
-      context.save();
-      context.globalCompositeOperation = "screen";
-      const atmosphere = context.createRadialGradient(
-        cx,
-        cy,
-        radius * 0.86,
-        cx,
-        cy,
-        radius * 1.16
-      );
-      atmosphere.addColorStop(0, "rgba(214,150,70,0)");
-      atmosphere.addColorStop(0.52, "rgba(226,170,98,0.06)");
-      atmosphere.addColorStop(0.74, "rgba(204,134,62,0.042)");
-      atmosphere.addColorStop(1, "rgba(140,64,36,0)");
-      context.fillStyle = atmosphere;
-      context.beginPath();
-      context.arc(cx, cy, radius * 1.16, 0, Math.PI * 2);
-      context.fill();
-      context.restore();
+      // Atmosphere rim removed — no gold halo wrapping the globe (kept dark
+      // so the globe sits flat against the page's red/black theme).
 
       // Sphere clip
       context.save();
@@ -1174,9 +1156,9 @@ function CanvasGlobe() {
           // there's no hard rectangle / seam — only the globe itself fades,
           // the hint caption below stays fully visible.
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 9%, #000 84%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, #000 9%, #000 58%, transparent 96%)",
           maskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 9%, #000 84%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, #000 9%, #000 58%, transparent 96%)",
         }}
       />
 
@@ -1209,7 +1191,7 @@ export default function GlobalReach() {
   return (
     <section
       id="global-reach"
-      className="relative z-10 overflow-hidden pt-20 pb-16 lg:pt-28 lg:pb-24"
+      className="relative z-10 overflow-hidden pt-20 pb-4 lg:pt-28 lg:pb-6"
     >
       {/* Subtle additive glow behind the globe only — no section-level
           background block, so it blends into the page's continuous canvas. */}
@@ -1218,7 +1200,7 @@ export default function GlobalReach() {
         className="pointer-events-none absolute inset-x-0 bottom-0 top-[40%]"
         style={{
           background:
-            "radial-gradient(ellipse 60% 70% at 50% 80%, rgba(191,125,38,0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 70% at 50% 80%, rgba(110,42,30,0.05) 0%, transparent 70%)",
         }}
       />
 
@@ -1247,14 +1229,14 @@ export default function GlobalReach() {
 
       <div
         ref={sentinelRef}
-        className="relative z-10 mx-auto mb-6 mt-12 h-[600px] w-full max-w-[1600px] sm:mb-10 sm:mt-16 sm:h-[820px] lg:mt-20 lg:h-[1040px]"
+        className="relative z-10 mx-auto mb-0 mt-12 h-[560px] w-full max-w-[1600px] sm:mb-0 sm:mt-16 sm:h-[760px] lg:mt-20 lg:h-[940px]"
       >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at center, rgba(212,168,83,0.06) 0%, rgba(84,28,20,0.03) 38%, transparent 74%)",
+              "radial-gradient(ellipse at center, rgba(84,28,20,0.05) 0%, transparent 70%)",
             filter: "blur(20px)",
           }}
         />

@@ -8,6 +8,7 @@
 //
 // Hardware frames are pure CSS so any screenshot drops straight in.
 // ════════════════════════════════════════════════════════════════
+import HeroSignupPill from "../shared/HeroSignupPill";
 
 const hideOnError = (event) => {
   event.currentTarget.style.display = "none";
@@ -168,12 +169,15 @@ function PhoneMockup({ src, alt, className = "" }) {
 export default function HeroSlideAlgo() {
   return (
     <div className="flex w-full flex-col items-center text-center">
-      {/* Headline — single line, full white */}
+      {/* Headline — white + gold accent (matches other sections) */}
       <h1
         className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-white text-[2.05rem] sm:text-[2.8rem] lg:whitespace-nowrap lg:text-[3.2rem] xl:text-[3.8rem]"
         style={{ textShadow: "0 2px 30px rgba(0,0,0,0.35)" }}
       >
-        Data Meets Algorithmic Precision.
+        Data Meets{" "}
+        <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">
+          Algorithmic Precision.
+        </span>
       </h1>
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60 sm:mt-5 sm:text-base lg:text-lg">
@@ -182,7 +186,7 @@ export default function HeroSlideAlgo() {
       </p>
 
       {/* ════════ Product proof — iMac + iPhone showcase ════════ */}
-      <div className="relative mt-9 w-full max-w-[1040px] px-3 pb-6 sm:mt-11 sm:px-6 sm:pb-10 lg:mt-12">
+      <div className="relative mt-6 w-full max-w-[1040px] px-3 pb-3 sm:mt-8 sm:px-6 sm:pb-5 lg:mt-9">
         {/* Cinematic stage — light rays + spotlight + floor glow */}
         <div
           aria-hidden="true"
@@ -227,6 +231,11 @@ export default function HeroSlideAlgo() {
             className="z-30 w-[92px] shrink-0 -ml-[6%] mb-[8px] sm:w-[116px] lg:-ml-[4%] lg:mb-[12px] lg:w-[140px] xl:w-[156px]"
           />
         </div>
+      </div>
+
+      {/* Access / Sign-up CTA — same pill as Slide 1 */}
+      <div className="mt-1 w-full sm:mt-3">
+        <HeroSignupPill text="Access LuxQuant Terminal" className="!max-w-[360px] sm:!max-w-[400px]" />
       </div>
     </div>
   );

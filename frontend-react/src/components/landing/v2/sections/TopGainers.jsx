@@ -14,7 +14,7 @@
 //
 // Props: stats, gainers, onNav(id)
 // ════════════════════════════════════════════════════════════════
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../../../context/AuthContext";
@@ -33,8 +33,19 @@ const symbolOf = (pair) =>
 const GainerCard = ({ item, onClick }) => (
   <button
     onClick={onClick}
-    className="text-left p-4 bg-[#0a0805] hover:bg-white/[0.025] transition-colors group w-full"
+    className="relative text-left p-4 bg-[#0a0805] hover:bg-white/[0.025] transition-colors group w-full"
   >
+    {/* open affordance — diagonal arrow, brightens on hover */}
+    <svg
+      className="absolute top-2.5 right-2.5 h-3.5 w-3.5 text-text-muted/35 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-primary"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
+    </svg>
     <div className="flex items-center gap-2.5 mb-3">
       <CoinLogo pair={item.pair} size={26} />
       <div className="min-w-0">
@@ -78,6 +89,32 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
   const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState("Daily");
   const goPlatform = () => navigate(isAuthenticated ? "/home" : "/login");
+
+  // ── custom date range (top-performers supports date_from/date_to) ──
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [customData, setCustomData] = useState([]);
+  const [customLoading, setCustomLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const customActive = !!(customFrom && customTo);
+
+  useEffect(() => {
+    if (!customFrom || !customTo) return;
+    const a = customFrom < customTo ? customFrom : customTo;
+    const b = customFrom < customTo ? customTo : customFrom;
+    let alive = true;
+    setCustomLoading(true);
+    fetch(`/api/v1/signals/top-performers?date_from=${a}&date_to=${b}&limit=20`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        setCustomData((d?.top_gainers || []).map((i) => ({ ...i, type: "Custom" })));
+        setCustomLoading(false);
+      })
+      .catch(() => alive && setCustomLoading(false));
+    return () => { alive = false; };
+  }, [customFrom, customTo]);
+  const clearCustom = () => { setCustomFrom(""); setCustomTo(""); setCustomData([]); };
 
   // ── modal (reuse SignalDetailModal, sama seperti TopPerformers prod) ──
   const [modalOpen, setModalOpen] = useState(false);
@@ -136,17 +173,20 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
   const cleanPair = (p) =>
     p ? p.replace(/^3A/, "").replace(/USDT$/i, "") + "USDT" : "???";
 
-  const filtered = gainers.filter((g) => (g.type || "Daily") === tab);
+  const baseItems = customActive
+    ? customData
+    : gainers.filter((g) => (g.type || "Daily") === tab);
   // potong ke kelipatan 3 (biar baris 3-kolom rapi), maksimal 21
-  const count = Math.floor(Math.min(filtered.length, 21) / 3) * 3;
-  const items = filtered.slice(0, count);
-  const hasData = gainers.length > 0;
+  const count = Math.floor(Math.min(baseItems.length, 21) / 3) * 3;
+  const items = baseItems.slice(0, count);
+  const hasData = baseItems.length > 0;
   const canMarquee = items.length >= 6;
 
-  // stat kiri — best call (+ koin-nya biar tidak ambigu)
+  // stat kiri — best call (mengikuti periode aktif: custom kalau dipilih)
+  const bestSource = customActive ? customData : gainers;
   const bestGainer =
-    gainers.length > 0
-      ? gainers.reduce((a, b) => ((b.gain_pct || 0) > (a.gain_pct || 0) ? b : a))
+    bestSource.length > 0
+      ? bestSource.reduce((a, b) => ((b.gain_pct || 0) > (a.gain_pct || 0) ? b : a))
       : null;
   const bestGain = bestGainer ? bestGainer.gain_pct || 0 : null;
   // ringkas angka gain besar (MEXC-style): 3.58M% / 12.4K% / 49.7%
@@ -163,17 +203,20 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
       value: fmtPct(bestGain),
       accent: "text-profit",
       pair: bestGainer?.pair,
+      onClick: bestGainer?.signal_id ? () => handleItemClick(bestGainer) : null,
     },
     {
       // angka netral → putih (MEXC-clean, gak dipaksa warna brand)
       label: "Verified Win Rate",
       value: stats ? `${(stats.win_rate ?? 0).toFixed(1)}%` : "—",
       accent: "text-white",
+      onClick: () => navigate("/performance"),
     },
     {
       label: "Pairs Tracked",
       value: stats ? (stats.active_pairs ?? 0).toLocaleString() : "—",
       accent: "text-white",
+      onClick: () => navigate("/performance"),
     },
   ];
 
@@ -204,57 +247,151 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-14 items-center">
-        {/* ── LEFT: stats — bigger, balanced, subtle gold accent ── */}
-        <div className="flex flex-col items-center gap-8 sm:flex-row sm:justify-center sm:gap-14 lg:flex-col lg:items-start lg:gap-11">
-          {leftStats.map((s) => (
-            <div key={s.label} className="text-center lg:text-left">
-              <p className="mb-2.5 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-text-muted lg:justify-start lg:text-[13px]">
-                <span className="hidden h-px w-5 bg-gradient-to-r from-gold-primary/70 to-transparent lg:inline-block" />
-                {s.label}
-              </p>
-              <p
-                className={`font-bold leading-none tabular-nums text-[2.4rem] lg:text-[3.6rem] xl:text-[4rem] ${s.accent}`}
+        {/* ── LEFT: boxed cards on MOBILE only · bare big stats on DESKTOP ── */}
+        <div className="flex flex-row items-stretch justify-between gap-2.5 sm:gap-3 lg:flex-col lg:items-start lg:gap-11">
+          {leftStats.map((s) => {
+            const Wrap = s.onClick ? "button" : "div";
+            return (
+              <Wrap
+                key={s.label}
+                onClick={s.onClick || undefined}
+                className={`group relative flex-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-center transition-all sm:p-4 lg:flex-none lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left ${
+                  s.onClick
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-gold-primary/30 hover:bg-white/[0.035] lg:hover:translate-y-0 lg:hover:bg-transparent"
+                    : ""
+                }`}
               >
-                {s.value}
-              </p>
+                {/* mobile-only corner arrow */}
+                {s.onClick && (
+                  <svg
+                    className="absolute right-2 top-2 h-3.5 w-3.5 text-text-muted/40 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-primary sm:right-3 sm:top-3 lg:hidden"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.2}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
+                  </svg>
+                )}
+                <p className="mb-1.5 flex items-center justify-center gap-1.5 text-[8px] font-medium uppercase leading-tight tracking-[0.1em] text-text-muted sm:mb-2 sm:text-[10px] sm:tracking-[0.16em] lg:mb-2.5 lg:justify-start lg:text-[13px] lg:tracking-[0.16em]">
+                  <span className="hidden h-px w-5 bg-gradient-to-r from-gold-primary/70 to-transparent lg:inline-block" />
+                  {s.label}
+                  {/* desktop-only inline arrow */}
+                  {s.onClick && (
+                    <svg
+                      className="hidden h-3 w-3 flex-shrink-0 text-text-muted/50 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-primary lg:inline-block"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H9M17 7v8" />
+                    </svg>
+                  )}
+                </p>
+                <p className={`font-bold leading-none tabular-nums text-[1.25rem] sm:text-[1.9rem] lg:text-[3.6rem] xl:text-[4rem] ${s.accent}`}>
+                  {s.value}
+                </p>
 
-              {s.pair && (
-                <div className="mt-2.5 flex items-center justify-center gap-1.5 lg:justify-start">
-                  <CoinLogo pair={s.pair} size={18} />
-                  <span className="text-sm font-medium text-gold-primary/90">
-                    {symbolOf(s.pair)}
-                    <span className="text-text-muted font-normal">USDT</span>
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
+                {s.pair && (
+                  <div className="mt-1.5 flex items-center justify-center gap-1 sm:mt-2 sm:gap-1.5 lg:mt-2.5 lg:justify-start lg:gap-1.5">
+                    <CoinLogo pair={s.pair} size={16} />
+                    <span className="text-[10px] font-medium text-gold-primary/90 sm:text-xs lg:text-sm">
+                      {symbolOf(s.pair)}
+                      <span className="text-text-muted font-normal">USDT</span>
+                    </span>
+                  </div>
+                )}
+              </Wrap>
+            );
+          })}
         </div>
 
         {/* ── RIGHT: tabbed card ── */}
         <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] p-5 lg:p-7 overflow-hidden">
           <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
-          {/* header: tabs + More */}
+          {/* header: tabs (Daily · Weekly · Custom) + More */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-5">
               {["Daily", "Weekly"].map((tt) => (
                 <button
                   key={tt}
-                  onClick={() => setTab(tt)}
+                  onClick={() => { setTab(tt); clearCustom(); setPickerOpen(false); }}
                   className={`text-base font-medium transition-colors ${
-                    tab === tt
+                    tab === tt && !customActive
                       ? "text-white"
                       : "text-text-muted hover:text-white/70"
                   }`}
                 >
                   {tt}
-                  {tab === tt && (
+                  {tab === tt && !customActive && (
                     <span className="block h-0.5 mt-1.5 rounded-full bg-gold-primary" />
                   )}
                 </button>
               ))}
+
+              {/* Custom — opens a small date-range popover (no layout shift) */}
+              <div className="relative">
+                <button
+                  onClick={() => setPickerOpen((o) => !o)}
+                  className={`flex items-center gap-1 text-base font-medium transition-colors ${
+                    customActive || pickerOpen ? "text-white" : "text-text-muted hover:text-white/70"
+                  }`}
+                >
+                  Custom
+                  <svg className="h-3 w-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  </svg>
+                  {customActive && <span className="absolute -bottom-1.5 inset-x-0 h-0.5 rounded-full bg-gold-primary" />}
+                </button>
+
+                {pickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setPickerOpen(false)} />
+                    <div className="absolute left-0 top-9 z-30 w-[268px] rounded-xl border border-white/12 bg-[#0c0d12] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Pick a date range</span>
+                        <button onClick={() => setPickerOpen(false)} className="text-text-muted transition-colors hover:text-white">✕</button>
+                      </div>
+                      <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                        <input
+                          type="date"
+                          value={customFrom}
+                          max={customTo || undefined}
+                          onChange={(e) => setCustomFrom(e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                        />
+                        <span className="font-mono text-[10px] text-text-muted">→</span>
+                        <input
+                          type="date"
+                          value={customTo}
+                          min={customFrom || undefined}
+                          onChange={(e) => setCustomTo(e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                        />
+                      </div>
+                      {customActive && (
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="font-mono text-[10px] text-gold-primary/80">
+                            {customLoading ? "loading…" : `${customData.length} calls`}
+                          </span>
+                          <button
+                            onClick={clearCustom}
+                            className="rounded-md border border-white/10 px-2 py-0.5 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
+
             <button
               onClick={() => navigate("/performance")}
               className="flex items-center gap-1 text-text-muted hover:text-gold-primary text-xs transition-colors"
@@ -321,7 +458,11 @@ export default function TopGainers({ stats, gainers = [], onNav }) {
 
           {!hasData && (
             <p className="text-center text-text-muted text-[11px] mt-4">
-              Loading live data…
+              {customActive
+                ? customLoading
+                  ? "Loading…"
+                  : "No calls in this range."
+                : "Loading live data…"}
             </p>
           )}
         </div>

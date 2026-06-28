@@ -290,7 +290,7 @@ export default function Architecture() {
   return (
     <section
       id="how-it-works"
-      className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 lg:px-8 lg:py-28"
+      className="relative z-10 mx-auto -mt-10 w-full max-w-7xl px-4 pt-6 pb-20 lg:-mt-16 lg:px-8 lg:pt-10 lg:pb-28"
     >
       {/* shared gold gradient for all glyphs */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">

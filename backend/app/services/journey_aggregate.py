@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 
 # Single-runner guard across uvicorn workers.
 LOCK_KEY = 778455123
+# Bump when the accumulator shape changes → forces a one-time re-backfill so
+# old processed rows get re-folded into the new fields.
+ACC_VERSION = 2
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -52,6 +55,7 @@ BATCH_SIZE = 2000
 MAX_BATCHES_PER_REFRESH = 30  # up to 60k rows folded per refresh pass
 
 _TPS = ("TP1", "TP2", "TP3", "TP4")
+_BUCKETS = ("TP1", "TP2", "TP3", "TP4", "SL")  # final-outcome buckets for avg P/L
 
 _DDL_STATE = """
 CREATE TABLE IF NOT EXISTS journey_agg_state (
@@ -67,7 +71,8 @@ CREATE TABLE IF NOT EXISTS journey_agg_processed (
 """
 _SELECT_UNPROCESSED = text("""
     SELECT j.signal_id, j.events, j.time_to_tp1_seconds,
-           j.missed_potential_pct, j.pct_time_above_entry, s.pair
+           j.missed_potential_pct, j.pct_time_above_entry, s.pair,
+           j.realized_outcome_pct, s.status
     FROM signal_journey j
     INNER JOIN signals s ON s.signal_id = j.signal_id
     LEFT JOIN journey_agg_processed p ON p.signal_id = j.signal_id
@@ -83,12 +88,15 @@ _SELECT_UNPROCESSED = text("""
 
 def _blank_acc() -> Dict[str, Any]:
     return {
+        "v": ACC_VERSION,
         "sample_size": 0,
         "pairs": set(),
         "tp": {t: {"sum": 0.0, "count": 0, "min": None, "max": None} for t in _TPS},
         "tp1_entry": {"sum": 0.0, "count": 0, "min": None},
         "missed": {"sum": 0.0, "count": 0},
         "time_above": {"sum": 0.0, "count": 0},
+        # avg realized P/L per final-outcome bucket (TP1–4, SL)
+        "pnl": {b: {"sum": 0.0, "count": 0} for b in _BUCKETS},
     }
 
 
@@ -112,7 +120,28 @@ def _normalize(raw: Dict[str, Any] | None) -> Dict[str, Any]:
     for k in ("missed", "time_above"):
         b = raw.get(k) or {}
         a[k] = {"sum": b.get("sum", 0.0) or 0.0, "count": b.get("count", 0) or 0}
+    raw_pnl = raw.get("pnl") or {}
+    for bk in _BUCKETS:
+        x = raw_pnl.get(bk) or {}
+        a["pnl"][bk] = {"sum": x.get("sum", 0.0) or 0.0, "count": x.get("count", 0) or 0}
+    a["v"] = raw.get("v", 1)
     return a
+
+
+def _bucket(status: str | None, events) -> str | None:
+    """Final-outcome bucket for a signal: TP1–4 or SL (None if still open)."""
+    st = (status or "").lower()
+    if st == "open":
+        return None
+    if st in ("closed_loss", "sl"):
+        return "SL"
+    if st in ("tp1", "tp2", "tp3"):
+        return st.upper()
+    if st in ("closed_win", "tp4"):
+        for tp in ("tp4", "tp3", "tp2", "tp1"):
+            if _find_event(events, tp):
+                return tp.upper()
+    return None
 
 
 def _serialize(a: Dict[str, Any]) -> Dict[str, Any]:
@@ -168,10 +197,18 @@ def _fold(acc: Dict[str, Any], rows) -> None:
     for r in rows:
         events = r[1] or []
         tp1s, missed, tabove, pair = r[2], r[3], r[4], r[5]
+        realized, status = r[6], r[7]
 
         acc["sample_size"] += 1
         if pair:
             acc["pairs"].add(pair)
+
+        # avg realized P/L per final-outcome bucket
+        bk = _bucket(status, events)
+        if bk and realized is not None:
+            pb = acc["pnl"][bk]
+            pb["sum"] += realized
+            pb["count"] += 1
 
         entry = _find_event(events, "entry")
         entry_at = _parse_iso(entry.get("at")) if entry else None
@@ -217,7 +254,15 @@ def refresh(db: Session, batch: int = BATCH_SIZE, max_batches: int = MAX_BATCHES
 
     try:
         ensure_tables(db)
-        acc = _normalize(_load_raw(db))
+        raw = _load_raw(db)
+        if (raw or {}).get("v", 1) != ACC_VERSION:
+            # accumulator shape changed → wipe + re-backfill from scratch
+            db.execute(text("TRUNCATE journey_agg_processed"))
+            db.execute(text("UPDATE journey_agg_state SET acc = '{}'::jsonb WHERE id = 1"))
+            db.commit()
+            acc = _blank_acc()
+        else:
+            acc = _normalize(raw)
         total = 0
         for _ in range(max_batches):
             rows = db.execute(_SELECT_UNPROCESSED, {"batch": batch}).fetchall()
@@ -275,6 +320,19 @@ def get_result(db: Session) -> Dict[str, Any]:
     avg_tp1 = (e["sum"] / e["count"]) if e["count"] else None
     m, t2 = a["missed"], a["time_above"]
 
+    # avg realized P/L per final-outcome bucket (TP1–4, SL)
+    pnl = a["pnl"]
+    hit_rate_per_tp = [
+        {
+            "tp": bk,
+            "count": pnl[bk]["count"],
+            "avg_exit_gain_pct": _round_or_none(
+                (pnl[bk]["sum"] / pnl[bk]["count"]) if pnl[bk]["count"] else None
+            ),
+        }
+        for bk in _BUCKETS
+    ]
+
     return {
         "available": True,
         "pair": "ALL",
@@ -290,7 +348,7 @@ def get_result(db: Session) -> Dict[str, Any]:
         },
         "time_to_each_tp": ttp,
         "drawdown_before_each_tp": [],
-        "hit_rate_per_tp": [],
+        "hit_rate_per_tp": hit_rate_per_tp,
         "peak_potential": {
             "avg_peak_excursion_pct": _round_or_none((m["sum"] / m["count"]) if m["count"] else None),
             "avg_peak_excursion_sample": m["count"],

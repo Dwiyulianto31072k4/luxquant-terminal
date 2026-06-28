@@ -27,6 +27,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import CoinLogo from "../../../CoinLogo";
+import DayDrillModal from "./DayDrillModal";
 
 const C = {
   gold: "#e7c373",
@@ -57,6 +58,7 @@ const EVENTS = [
   { id: "meltup", label: "Melt-Up to ATH", cat: "bull", start: "2025-04-10", end: "2025-10-06", note: "Recovery rally to the cycle ATH ~$126k (Oct 6, 2025)." },
   { id: "crash1010", label: "10.10 Crash", cat: "event", start: "2025-10-01", end: "2025-10-31", note: "Trump 100% China tariff → record ~$19B liquidations in a single day." },
   { id: "postath", label: "Post-ATH Bear", cat: "bear", start: "2025-10-06", end: "2026-02-28", note: "~50% drawdown from the ATH into early 2026." },
+  { id: "bearcycle", label: "Bear Market (2025→now)", cat: "bear", start: "2025-10-06", end: "2099-12-31", ongoing: true, note: "BTC topped at ~$126,198 on Oct 6, 2025 — the cycle's ongoing bear market since. Does the edge survive it?" },
   { id: "iran", label: "Israel–Iran War", cat: "event", start: "2026-02-28", end: "2026-04-07", note: "Mideast strikes spiked volatility; relief rally on the Apr 7 ceasefire." },
 ];
 const EV_COLOR = { bull: C.gold, bear: C.loss, event: C.btc };
@@ -74,6 +76,7 @@ const INFO = {
     title: "Where Winners Exit",
     lines: [
       "How closed trades split across the four take-profits (TP1–TP4) and the stop-loss (SL).",
+      "Avg P/L = the average realized profit/loss for trades that ended at each exit (loss for SL).",
       "How to read: bigger TP3/TP4 slices mean winners ran further. SL (red) is the only losing bucket.",
     ],
   },
@@ -183,23 +186,6 @@ function CardHead({ title, sub, right, info }) {
   );
 }
 
-// One winning/losing call inside the per-day drill panel.
-function WinnerRow({ s }) {
-  const isWin = ["tp1", "tp2", "tp3", "tp4"].includes(s.outcome);
-  const color = isWin ? C.win : C.loss;
-  return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-2.5 py-1.5">
-      <CoinLogo pair={s.pair} size={22} />
-      <span className="text-[12px] font-semibold text-white">{sym(s.pair)}</span>
-      <span className="rounded px-1.5 py-0.5 text-[8px] font-bold uppercase" style={{ color, background: `${color}1a` }}>
-        {s.outcome}
-      </span>
-      <span className="ml-auto font-mono text-[12px] font-bold tabular-nums" style={{ color: (s.peak_pct ?? 0) >= 0 ? C.gold : C.loss }}>
-        {s.peak_pct != null ? bigPct(s.peak_pct) : "—"}
-      </span>
-    </div>
-  );
-}
 function Spinner() {
   return (
     <div className="flex h-full min-h-[140px] items-center justify-center">
@@ -253,6 +239,7 @@ export default function Performance({ data }) {
   const [eventId, setEventId] = useState(null);
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [showBtc, setShowBtc] = useState(true);
   const [drillDate, setDrillDate] = useState(null);
   const [drillData, setDrillData] = useState(null);
@@ -273,9 +260,6 @@ export default function Performance({ data }) {
       .catch(() => setDrillLoading(false));
   };
   const closeDay = () => { setDrillDate(null); setDrillData(null); };
-  const drillWinners = (drillData?.signals || [])
-    .filter((s) => ["tp1", "tp2", "tp3", "tp4"].includes(s.outcome))
-    .slice(0, 12);
 
   useEffect(() => {
     let alive = true;
@@ -297,13 +281,16 @@ export default function Performance({ data }) {
   const winRate = stats?.win_rate ?? 0;
   const wrDonut = [{ name: "win", value: winRate }, { name: "loss", value: Math.max(100 - winRate, 0) }];
 
+  // avg realized P/L per bucket (from the all-pairs journey aggregate)
+  const pnlMap = {};
+  (timing?.hit_rate_per_tp || []).forEach((h) => { pnlMap[h.tp] = h.avg_exit_gain_pct; });
   const outcome = stats
     ? [
-        { label: "TP1", count: stats.tp1_count, color: C.goldL },
-        { label: "TP2", count: stats.tp2_count, color: C.gold },
-        { label: "TP3", count: stats.tp3_count, color: C.gold2 },
-        { label: "TP4", count: stats.tp4_count, color: C.gold3 },
-        { label: "SL", count: stats.sl_count, color: C.loss },
+        { label: "TP1", count: stats.tp1_count, color: C.goldL, avg: pnlMap.TP1 },
+        { label: "TP2", count: stats.tp2_count, color: C.gold, avg: pnlMap.TP2 },
+        { label: "TP3", count: stats.tp3_count, color: C.gold2, avg: pnlMap.TP3 },
+        { label: "TP4", count: stats.tp4_count, color: C.gold3, avg: pnlMap.TP4 },
+        { label: "SL", count: stats.sl_count, color: C.loss, avg: pnlMap.SL },
       ]
     : [];
   const outcomeTotal = outcome.reduce((s, i) => s + (i.count || 0), 0);
@@ -383,7 +370,7 @@ export default function Performance({ data }) {
   return (
     <section id="performance" className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 lg:px-8 lg:py-28">
       {/* header */}
-      <div className="mb-12 max-w-2xl lg:mb-16">
+      <div className="mb-12 text-center lg:mb-16">
         <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-gold-primary/80">
           <span className="h-px w-7 bg-gradient-to-r from-transparent to-gold-primary/60" />
           Verified Track Record
@@ -392,7 +379,7 @@ export default function Performance({ data }) {
           An edge you can{" "}
           <span className="bg-gradient-to-r from-gold-light via-gold-primary to-[#b8860b] bg-clip-text text-transparent">audit.</span>
         </h2>
-        <p className="mt-4 text-sm leading-relaxed text-white/55 lg:text-base">
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/55 lg:text-base">
           Every signal recorded since day one — no hidden trades, no
           cherry-picking. {stats ? nfmt(stats.total_signals) : "—"} signals on
           record, each outcome publicly verifiable.
@@ -469,12 +456,22 @@ export default function Performance({ data }) {
                 </div>
               </div>
               <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2.5 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted">
+                  <span className="w-2.5 flex-shrink-0" />
+                  <span className="w-7">Exit</span>
+                  <span className="flex-1 text-right">Avg P/L</span>
+                  <span className="w-12 text-right">Trades</span>
+                  <span className="w-9 text-right">Share</span>
+                </div>
                 {outcome.map((o) => (
                   <div key={o.label} className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: o.color }} />
-                    <span className="w-8 font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label}</span>
-                    <span className="flex-1 text-right font-mono text-[12px] tabular-nums text-white">{nfmt(o.count)}</span>
-                    <span className="w-12 text-right font-mono text-[10px] text-text-muted">{((o.count / outcomeTotal) * 100).toFixed(0)}%</span>
+                    <span className="w-7 font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label}</span>
+                    <span className="flex-1 text-right font-mono text-[12px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>
+                      {o.avg == null ? "—" : signed(o.avg)}
+                    </span>
+                    <span className="w-12 text-right font-mono text-[12px] tabular-nums text-white">{nfmt(o.count)}</span>
+                    <span className="w-9 text-right font-mono text-[10px] text-text-muted">{((o.count / outcomeTotal) * 100).toFixed(0)}%</span>
                   </div>
                 ))}
               </div>
@@ -496,63 +493,87 @@ export default function Performance({ data }) {
             <div className="flex flex-wrap items-center gap-2">
               <Seg items={["30D", "90D", "1Y", "ALL"]} value={eventId || customOn ? "" : rangeId} onChange={(v) => { setRangeId(v); setEventId(null); setCustomStart(""); setCustomEnd(""); }} />
               <Seg items={["Win rate", "vs BTC"]} value={showBtc ? "vs BTC" : "Win rate"} onChange={(v) => setShowBtc(v === "vs BTC")} />
+
+              {/* Period / custom-date filter — opens a popover (no layout shift) */}
+              <div className="relative">
+                <button
+                  onClick={() => setFilterOpen((o) => !o)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-mono text-[10px] transition-colors ${
+                    eventId || customOn ? "border-gold-primary/50 text-white" : "border-white/10 text-text-muted hover:border-white/25 hover:text-white"
+                  }`}
+                >
+                  <span className="max-w-[110px] truncate">{activeEvent ? activeEvent.label : customOn ? "Custom range" : "Period"}</span>
+                  <svg className="h-3 w-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                {filterOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setFilterOpen(false)} />
+                    <div className="absolute right-0 top-9 z-30 w-[280px] rounded-xl border border-white/12 bg-[#0c0d12] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+                      <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted">Market period</p>
+                      <div className="relative">
+                        <select
+                          value={customOn ? "" : eventId || ""}
+                          onChange={(e) => { setEventId(e.target.value || null); setCustomStart(""); setCustomEnd(""); }}
+                          className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-1.5 pl-3 pr-8 font-mono text-[11px] text-white outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
+                        >
+                          <option value="" className="bg-[#0c0d12]">All / none</option>
+                          <optgroup label="Bull" className="bg-[#0c0d12]">
+                            {EVENTS.filter((e) => e.cat === "bull").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
+                          </optgroup>
+                          <optgroup label="Bear" className="bg-[#0c0d12]">
+                            {EVENTS.filter((e) => e.cat === "bear").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
+                          </optgroup>
+                          <optgroup label="Black-swan event" className="bg-[#0c0d12]">
+                            {EVENTS.filter((e) => e.cat === "event").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
+                          </optgroup>
+                        </select>
+                        <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                        </svg>
+                      </div>
+
+                      <div className="my-2.5 flex items-center gap-2">
+                        <span className="h-px flex-1 bg-white/10" />
+                        <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">or custom dates</span>
+                        <span className="h-px flex-1 bg-white/10" />
+                      </div>
+
+                      <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                        <input
+                          type="date"
+                          value={customStart}
+                          max={customEnd || undefined}
+                          onChange={(e) => { setCustomStart(e.target.value); setEventId(null); }}
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                        />
+                        <span className="font-mono text-[10px] text-text-muted">→</span>
+                        <input
+                          type="date"
+                          value={customEnd}
+                          min={customStart || undefined}
+                          onChange={(e) => { setCustomEnd(e.target.value); setEventId(null); }}
+                          className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
+                        />
+                      </div>
+
+                      {(eventId || customOn) && (
+                        <button
+                          onClick={() => { setEventId(null); setCustomStart(""); setCustomEnd(""); }}
+                          className="mt-2.5 w-full rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           }
         />
-
-        {/* market-period filter: preset dropdown + custom date range */}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
-              value={customOn ? "" : eventId || ""}
-              onChange={(e) => { setEventId(e.target.value || null); setCustomStart(""); setCustomEnd(""); }}
-              className="appearance-none rounded-lg border border-white/10 bg-white/[0.03] py-1.5 pl-3 pr-8 font-mono text-[11px] text-white outline-none transition-colors hover:border-white/20 focus:border-gold-primary/50"
-            >
-              <option value="" className="bg-[#0c0d12]">Market period…</option>
-              <optgroup label="Bull" className="bg-[#0c0d12]">
-                {EVENTS.filter((e) => e.cat === "bull").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-              </optgroup>
-              <optgroup label="Bear" className="bg-[#0c0d12]">
-                {EVENTS.filter((e) => e.cat === "bear").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-              </optgroup>
-              <optgroup label="Black-swan event" className="bg-[#0c0d12]">
-                {EVENTS.filter((e) => e.cat === "event").map((e) => <option key={e.id} value={e.id} className="bg-[#0c0d12]">{e.label}</option>)}
-              </optgroup>
-            </select>
-            <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-
-          <span className="font-mono text-[10px] text-white/25">or</span>
-
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1">
-            <input
-              type="date"
-              value={customStart}
-              max={customEnd || undefined}
-              onChange={(e) => { setCustomStart(e.target.value); setEventId(null); }}
-              className="bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
-            />
-            <span className="font-mono text-[10px] text-text-muted">→</span>
-            <input
-              type="date"
-              value={customEnd}
-              min={customStart || undefined}
-              onChange={(e) => { setCustomEnd(e.target.value); setEventId(null); }}
-              className="bg-transparent font-mono text-[11px] text-white outline-none [color-scheme:dark]"
-            />
-          </div>
-
-          {(eventId || customOn) && (
-            <button
-              onClick={() => { setEventId(null); setCustomStart(""); setCustomEnd(""); }}
-              className="rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white"
-            >
-              Clear
-            </button>
-          )}
-        </div>
 
         {customOn && (
           <p className="mb-3 text-[11px] leading-snug text-white/45">
@@ -564,7 +585,7 @@ export default function Performance({ data }) {
         {activeEvent && (
           <p className="mb-3 text-[11px] leading-snug text-white/45">
             <span className="font-semibold" style={{ color: EV_COLOR[activeEvent.cat] }}>
-              {new Date(activeEvent.start).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })} – {new Date(activeEvent.end).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })}
+              {new Date(activeEvent.start).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })} – {activeEvent.ongoing ? "now" : new Date(activeEvent.end).toLocaleDateString("en", { month: "short", day: "numeric", year: "2-digit" })}
             </span>{" "}
             · {activeEvent.note}
           </p>
@@ -635,40 +656,11 @@ export default function Performance({ data }) {
           )}
         </div>
 
-        {/* hint + per-day winners drill */}
-        {trendData.length > 0 && !drillDate && (
+        {/* hint — click a day → opens the proof modal */}
+        {trendData.length > 0 && (
           <p className="mt-2 font-mono text-[10px] text-text-muted">
-            Tip: click any day to reveal that day's winning calls.
+            Tip: click any day to see its calls — with full proof (entry, targets &amp; charts).
           </p>
-        )}
-
-        {drillDate && (
-          <div className="mt-3 rounded-xl border border-gold-primary/20 bg-gold-primary/[0.03] p-3">
-            <div className="mb-2.5 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[12px] font-semibold text-white">
-                  Winning calls · {new Date(drillDate).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}
-                </p>
-                {drillData && (
-                  <p className="mt-0.5 font-mono text-[10px] text-text-muted">
-                    {pct(drillData.win_rate)} WR · {drillData.wins}/{drillData.count} resolved that day
-                  </p>
-                )}
-              </div>
-              <button onClick={closeDay} className="flex-shrink-0 rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white">
-                Close
-              </button>
-            </div>
-            {drillLoading ? (
-              <div className="py-4"><Spinner /></div>
-            ) : drillWinners.length ? (
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                {drillWinners.map((s) => <WinnerRow key={s.signal_id} s={s} />)}
-              </div>
-            ) : (
-              <p className="py-3 text-center text-[11px] text-text-muted">No winning calls resolved on this day.</p>
-            )}
-          </div>
         )}
 
         {/* BTC × WR analysis */}
@@ -794,6 +786,11 @@ export default function Performance({ data }) {
           </svg>
         </button>
       </div>
+
+      {/* per-day proof modal */}
+      {drillDate && (
+        <DayDrillModal date={drillDate} data={drillData} loading={drillLoading} onClose={closeDay} />
+      )}
     </section>
   );
 }
