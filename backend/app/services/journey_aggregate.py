@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 LOCK_KEY = 778455123
 # Bump when the accumulator shape changes → forces a one-time re-backfill so
 # old processed rows get re-folded into the new fields.
-ACC_VERSION = 5
+ACC_VERSION = 6
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS journey_agg_processed (
 _SELECT_UNPROCESSED = text("""
     SELECT j.signal_id, j.events, j.time_to_tp1_seconds,
            j.missed_potential_pct, j.pct_time_above_entry, s.pair,
-           j.overall_mfe_pct, s.status
+           j.overall_mfe_pct, s.status,
+           s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1
     FROM signal_journey j
     INNER JOIN signals s ON s.signal_id = j.signal_id
     LEFT JOIN journey_agg_processed p ON p.signal_id = j.signal_id
@@ -198,30 +199,35 @@ def _fold(acc: Dict[str, Any], rows) -> None:
         events = r[1] or []
         tp1s, missed, tabove, pair = r[2], r[3], r[4], r[5]
         mfe, status = r[6], r[7]
+        entry = r[8]
+        tgt = {"TP1": r[9], "TP2": r[10], "TP3": r[11], "TP4": r[12]}
+        stop1 = r[13]
 
         acc["sample_size"] += 1
         if pair:
             acc["pairs"].add(pair)
 
-        # avg gain per final-outcome bucket:
-        #   TP1–TP3 → the actual % reached at that TP (realized gain).
-        #   TP4     → peak gain (overall_mfe_pct); TP4 is the final target, so
-        #             these runners usually blow through it. Falls back to TP4 %.
-        #   SL      → the loss recorded at the SL event.
+        # avg P/L per final-outcome bucket, from the signal's OWN entry/target/
+        # stop prices (deterministic — the event `pct` is unreliable in aggregate):
+        #   TP1–TP3 → (target_N - entry) / entry  → the actual TP gain.
+        #   TP4     → peak gain (overall_mfe_pct); TP4 runners blow through the
+        #             final target. Falls back to the TP4 target gain.
+        #   SL      → (stop1 - entry) / entry  → the realized loss.
         bk = _bucket(status, events)
-        if bk:
+        if bk and entry:
+            pctv = None
             if bk == "SL":
-                ev = _find_event(events, "sl")
-                pctv = ev.get("pct") if ev else None
+                if stop1 is not None:
+                    pctv = (stop1 - entry) / entry * 100.0
             elif bk == "TP4":
                 if mfe is not None:
                     pctv = mfe
-                else:
-                    ev = _find_event(events, "tp4")
-                    pctv = ev.get("pct") if ev else None
-            else:  # TP1, TP2, TP3 → the actual TP level reached
-                ev = _find_event(events, bk.lower())
-                pctv = ev.get("pct") if ev else None
+                elif tgt["TP4"] is not None:
+                    pctv = (tgt["TP4"] - entry) / entry * 100.0
+            else:  # TP1, TP2, TP3
+                t = tgt[bk]
+                if t is not None:
+                    pctv = (t - entry) / entry * 100.0
             if pctv is not None:
                 pb = acc["pnl"][bk]
                 pb["sum"] += pctv
