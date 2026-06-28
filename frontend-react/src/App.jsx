@@ -1382,9 +1382,18 @@ function App() {
         <AnnouncementModal />
           <CurrencyProvider>
             <Routes>
-              {/* Landing */}
+              {/* Landing — V2 is now the primary landing page */}
               <Route
                 path="/"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <LandingPageV2 />
+                  </Suspense>
+                }
+              />
+              {/* Old landing kept accessible at /v1 */}
+              <Route
+                path="/v1"
                 element={
                   <Suspense fallback={<PageLoader />}>
                     <LandingPage />

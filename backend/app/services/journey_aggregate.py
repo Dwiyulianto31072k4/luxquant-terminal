@@ -47,7 +47,9 @@ logger = logging.getLogger(__name__)
 LOCK_KEY = 778455123
 # Bump when the accumulator shape changes → forces a one-time re-backfill so
 # old processed rows get re-folded into the new fields.
-ACC_VERSION = 6
+# v7: _bucket now counts highest-TP-reached (TP-then-SL = win at TP), matching
+#     the coin-profile / signals-analyze definition.
+ACC_VERSION = 7
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -130,18 +132,25 @@ def _normalize(raw: Dict[str, Any] | None) -> Dict[str, Any]:
 
 
 def _bucket(status: str | None, events) -> str | None:
-    """Final-outcome bucket for a signal: TP1–4 or SL (None if still open)."""
+    """Outcome bucket for a signal: TP1–4 or SL (None if still open).
+
+    Outcome = HIGHEST TP milestone ever reached (TP4 > TP3 > TP2 > TP1),
+    matching the per-coin History page / coin-profile definition. A signal that
+    touched a TP is a win at that TP even if it later reversed to SL
+    ("TP-then-SL"); only signals that never reached any TP count as SL.
+    """
     st = (status or "").lower()
     if st == "open":
         return None
+    # Highest TP touched takes precedence over the final status.
+    for tp in ("tp4", "tp3", "tp2", "tp1"):
+        if _find_event(events, tp):
+            return tp.upper()
     if st in ("closed_loss", "sl"):
         return "SL"
+    # status tp1/tp2/tp3 without a matching TP event (defensive fallback).
     if st in ("tp1", "tp2", "tp3"):
         return st.upper()
-    if st in ("closed_win", "tp4"):
-        for tp in ("tp4", "tp3", "tp2", "tp1"):
-            if _find_event(events, tp):
-                return tp.upper()
     return None
 
 

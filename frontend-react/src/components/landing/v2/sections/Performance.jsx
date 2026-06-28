@@ -62,6 +62,13 @@ const EVENTS = [
   { id: "iran", label: "Israel–Iran War", cat: "event", start: "2026-02-28", end: "2026-04-07", note: "Mideast strikes spiked volatility; relief rally on the Apr 7 ceasefire." },
 ];
 const EV_COLOR = { bull: C.gold, bear: C.loss, event: C.btc };
+// compact tab selector for the deep-analytics block
+const ANA_TABS = [
+  { id: "wrbtc", label: "WR × BTC" },
+  { id: "patterns", label: "Patterns" },
+  { id: "timing", label: "Timing" },
+  { id: "coins", label: "Coins" },
+];
 
 // Per-card explainer: what it is + how to read it (shown via the "i" tooltip).
 const INFO = {
@@ -139,7 +146,8 @@ function pearson(xs, ys) {
 
 function Card({ className = "", children }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5 ${className}`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0805] p-5 transition-all duration-300 hover:border-gold-primary/25 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] ${className}`}>
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       {children}
     </div>
   );
@@ -193,6 +201,26 @@ function Spinner() {
     </div>
   );
 }
+// Glossy 3D-style progress bar (MEXC-ish): inset track + cylinder-shaded gold
+// fill with top sheen, bottom shadow and a soft glow.
+function Bar3D({ pct, className = "h-2.5" }) {
+  return (
+    <div
+      className={`relative flex-1 overflow-hidden rounded-full bg-black/40 ${className}`}
+      style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.55)" }}
+    >
+      <div
+        className="h-full rounded-full"
+        style={{
+          width: `${Math.max(pct || 0, 3)}%`,
+          background: "linear-gradient(180deg, #f6e0a0 0%, #e7c373 34%, #cba24f 68%, #a8842f 100%)",
+          boxShadow:
+            "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)",
+        }}
+      />
+    </div>
+  );
+}
 // candlestick drawn into a recharts range-Bar ([low, high]); body = open→close
 function Candle({ x, y, width, height, payload }) {
   const { o, h, l, c } = payload || {};
@@ -211,6 +239,16 @@ function Candle({ x, y, width, height, payload }) {
       <rect x={cx - bw / 2} y={bodyTop} width={bw} height={bodyH} rx={0.5} fill={color} opacity={0.95} />
     </g>
   );
+}
+
+// Small icon for the side tab-rail (Allium-style boxy menu).
+function TabIcon({ id, className = "h-4 w-4" }) {
+  const p = { className, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (id === "wrbtc") return (<svg {...p}><path d="M3 16l5-5 3 2 4-6 4 3" /><path d="M3 21h18" opacity="0.4" /></svg>);
+  if (id === "patterns") return (<svg {...p}><rect x="3.5" y="3.5" width="7" height="7" rx="1.2" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.2" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.2" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.2" /></svg>);
+  if (id === "timing") return (<svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 1.8" /></svg>);
+  if (id === "coins") return (<svg {...p}><ellipse cx="12" cy="6.5" rx="7.5" ry="3" /><path d="M4.5 6.5v5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-5" /><path d="M4.5 11.5v5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-5" /></svg>);
+  return null;
 }
 
 function Seg({ items, value, onChange }) {
@@ -240,6 +278,7 @@ export default function Performance({ data }) {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [anaTab, setAnaTab] = useState("wrbtc");
   const [showBtc, setShowBtc] = useState(true);
   const [drillDate, setDrillDate] = useState(null);
   const [drillData, setDrillData] = useState(null);
@@ -389,9 +428,9 @@ export default function Performance({ data }) {
       {/* headline */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {headline.map((s) => (
-          <Card key={s.label} className="!p-4 lg:!p-5">
+          <Card key={s.label} className="!p-4 hover:-translate-y-0.5 lg:!p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted">{s.label}</p>
-            <p className="mt-2 text-3xl font-bold leading-none tabular-nums lg:text-4xl" style={{ color: s.accent ? C.gold : "#fff" }}>{s.value}</p>
+            <p className="mt-2 text-3xl font-bold leading-none tabular-nums transition-transform duration-300 group-hover:scale-[1.04] group-hover:origin-left lg:text-4xl" style={{ color: s.accent ? C.gold : "#fff" }}>{s.value}</p>
           </Card>
         ))}
       </div>
@@ -441,6 +480,7 @@ export default function Performance({ data }) {
         <Card className="flex flex-col">
           <CardHead title="Where Winners Exit" info={INFO.outcome} sub={`${nfmt(outcomeTotal)} closed trades`} />
           {outcomeTotal > 0 ? (
+            <>
             <div className="flex flex-1 items-center gap-6">
               <div className="relative h-44 w-44 flex-shrink-0">
                 <ResponsiveContainer>
@@ -458,7 +498,7 @@ export default function Performance({ data }) {
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-2.5 pb-0.5 font-mono text-[8px] uppercase tracking-wider text-text-muted">
                   <span className="w-2.5 flex-shrink-0" />
-                  <span className="w-7">Exit</span>
+                  <span className="w-9">Exit</span>
                   <span className="flex-1 text-right">Avg P/L</span>
                   <span className="w-12 text-right">Trades</span>
                   <span className="w-9 text-right">Share</span>
@@ -466,7 +506,7 @@ export default function Performance({ data }) {
                 {outcome.map((o) => (
                   <div key={o.label} className="flex items-center gap-2.5">
                     <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: o.color }} />
-                    <span className="w-7 font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label}</span>
+                    <span className="w-9 font-mono text-[12px] font-semibold" style={{ color: o.label === "SL" ? C.loss : "#fff" }}>{o.label === "TP4" ? "TP4+" : o.label}</span>
                     <span className="flex-1 text-right font-mono text-[12px] tabular-nums" style={{ color: o.avg == null ? C.muted : o.avg >= 0 ? C.win : C.loss }}>
                       {o.avg == null ? "—" : signed(o.avg)}
                     </span>
@@ -476,15 +516,48 @@ export default function Performance({ data }) {
                 ))}
               </div>
             </div>
+            <p className="mt-3 border-t border-white/[0.06] pt-2.5 font-mono text-[9px] leading-relaxed text-text-muted">
+              Avg P/L · TP1–TP3 = actual target gains · <span className="text-white">TP4+ = avg peak</span> (TP4 is the final target — winners usually run beyond it) · SL = avg loss.
+            </p>
+            </>
           ) : (
             <Spinner />
           )}
         </Card>
       </div>
 
+      {/* ── DEEP ANALYTICS — tabbed block ──
+           Horizontal pill tabs on top for ALL breakpoints. Mobile: pills fill
+           the row edge-to-edge (flex-1, no empty gap). Desktop: compact pills,
+           content-sized & left-aligned; chart panel runs full width below. */}
+      <div className="mt-4">
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
+          {ANA_TABS.map((tb) => {
+            const on = anaTab === tb.id;
+            return (
+              <button
+                key={tb.id}
+                onClick={() => setAnaTab(tb.id)}
+                title={tb.label}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-[12.5px] font-medium transition-all duration-200 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm ${
+                  on
+                    ? "border-gold-primary/50 bg-gold-primary/[0.12] text-white shadow-[0_4px_14px_rgba(212,168,83,0.2)]"
+                    : "border-white/10 bg-white/[0.02] text-text-muted hover:border-white/25 hover:text-white"
+                }`}
+              >
+                <TabIcon id={tb.id} className={`h-[15px] w-[15px] flex-shrink-0 ${on ? "text-gold-primary" : ""}`} />
+                <span className="whitespace-nowrap">{tb.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* active panel — full width below the tabs */}
+        <div className="min-w-0">
+
       {/* WIN RATE × BITCOIN (filterable, deep) */}
-      <Card className="mt-4">
-        <span className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+      {anaTab === "wrbtc" && (
+      <Card>
         <CardHead
           title="Win Rate × Bitcoin"
           info={INFO.wrBtc}
@@ -678,9 +751,10 @@ export default function Performance({ data }) {
           </div>
         )}
       </Card>
+      )}
 
-      {/* pattern edge + time to target */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      {/* HIGHEST-EDGE PATTERNS */}
+      {anaTab === "patterns" && (
         <Card className="flex flex-col">
           <CardHead title="Highest-Edge Patterns" info={INFO.patterns} sub="Expected gain per trade · 90d" right={<span className="font-mono text-[10px] text-text-muted">EV</span>} />
           {patterns.length ? (
@@ -694,9 +768,7 @@ export default function Performance({ data }) {
                       <span className="font-mono text-[13px] font-bold tabular-nums" style={{ color: C.gold }}>+{p.expected_value.toFixed(1)}%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
-                        <div className="h-full rounded-full" style={{ width: `${Math.max((p.expected_value / maxEv) * 100, 3)}%`, background: `linear-gradient(90deg, ${C.gold4}, ${C.gold})` }} />
-                      </div>
+                      <Bar3D pct={(p.expected_value / maxEv) * 100} />
                       <span className="w-12 text-right font-mono text-[10px] tabular-nums text-text-muted">{pct(p.win_rate)}</span>
                       <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium" style={{ color: rc, background: `${rc}1a` }}>
                         <span className="h-1 w-1 rounded-full" style={{ background: rc }} /> n={p.count}
@@ -710,7 +782,10 @@ export default function Performance({ data }) {
             <Spinner />
           )}
         </Card>
+      )}
 
+      {/* TIME TO TARGET */}
+      {anaTab === "timing" && (
         <Card className="flex flex-col">
           <CardHead title="Time to Target" info={INFO.timing} sub="How fast our calls reach each TP" right={timing ? <span className="font-mono text-[10px] text-text-muted">All calls · n={nfmt(timing.sample_size)}</span> : null} />
           {ttp.length ? (
@@ -722,9 +797,7 @@ export default function Performance({ data }) {
                     <span className="font-mono text-[13px] font-semibold tabular-nums text-white">{t.avg_human}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
-                      <div className="h-full rounded-full" style={{ width: `${Math.max((t.avg_seconds / maxSec) * 100, 4)}%`, background: `linear-gradient(90deg, ${C.gold4}, ${C.gold})` }} />
-                    </div>
+                    <Bar3D pct={(t.avg_seconds / maxSec) * 100} />
                     <span className="w-24 text-right font-mono text-[9px] text-text-muted">fastest {t.fastest_human}</span>
                   </div>
                 </div>
@@ -739,10 +812,11 @@ export default function Performance({ data }) {
             <Spinner />
           )}
         </Card>
-      </div>
+      )}
 
-      {/* coin leaderboard (with logos, Top-Gainers style) */}
-      <Card className="mt-4">
+      {/* TOP COINS WE CALLED */}
+      {anaTab === "coins" && (
+      <Card>
         <CardHead title="Top Coins We Called" info={INFO.coins} sub="Ranked by median peak · 90d" right={<span className="font-mono text-[10px] text-text-muted">{edge?.coin_leaderboard?.length || ""} coins</span>} />
         {coins.length ? (
           <div className="grid gap-2.5 sm:grid-cols-2">
@@ -754,9 +828,7 @@ export default function Performance({ data }) {
                     {sym(c.pair)}
                     <span className="ml-1.5 font-mono text-[9px] uppercase tracking-wider text-text-muted">{c.sector}</span>
                   </p>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.05]">
-                    <div className="h-full rounded-full" style={{ width: `${Math.max((c.median_peak / maxPeak) * 100, 4)}%`, background: `linear-gradient(90deg, ${C.gold4}, ${C.gold})` }} />
-                  </div>
+                  <Bar3D pct={(c.median_peak / maxPeak) * 100} className="mt-1.5 h-2" />
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-[15px] font-bold tabular-nums" style={{ color: C.gold }}>{bigPct(c.median_peak)}</p>
@@ -769,6 +841,9 @@ export default function Performance({ data }) {
           <Spinner />
         )}
       </Card>
+      )}
+        </div>
+      </div>
 
       {/* footer CTA */}
       <div className="mt-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gold-primary/15 bg-gold-primary/[0.04] p-5 sm:flex-row">

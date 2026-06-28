@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import HeroSignupPill from "../shared/HeroSignupPill";
 
 const PAGE_BG = "#0a0506";
@@ -19,6 +20,18 @@ const VIDEO_DESKTOP = "/hero-video.mp4";
 const VIDEO_MOBILE = "/hero-video-mobile.mp4";
 
 export default function HeroSlideVideo() {
+  // Mobile-only: reveal the headline for 5s, then fade it out so the cinematic
+  // video reads clean. Desktop keeps the headline visible at all times.
+  const [hideHeadline, setHideHeadline] = useState(false);
+  useEffect(() => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 639px)").matches;
+    if (!isMobile) return;
+    const t = setTimeout(() => setHideHeadline(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div
       className="relative isolate min-h-[640px] w-full overflow-hidden bg-bg-primary sm:min-h-[710px] lg:min-h-[780px] xl:min-h-[820px]"
@@ -162,9 +175,16 @@ export default function HeroSlideVideo() {
       />
 
       {/* ═══════════════════ CONTENT ═══════════════════ */}
-      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-5 pb-9 pt-[12.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-10 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-12 lg:pt-[13rem] xl:min-h-[820px] xl:pt-[14.5rem]">
-        {/* Headline group — localized readability gradient behind text */}
-        <div className="relative flex w-full flex-col items-center">
+      <div className="relative z-10 mx-auto flex min-h-[640px] max-w-6xl flex-col items-center px-4 pb-16 pt-[6.5rem] text-center sm:min-h-[710px] sm:px-8 sm:pb-10 sm:pt-[11rem] lg:min-h-[780px] lg:px-10 lg:pb-12 lg:pt-[13rem] xl:min-h-[820px] xl:pt-[14.5rem]">
+        {/* Headline group — localized readability gradient behind text.
+            Mobile: fades out after 5s (see hideHeadline). Desktop: always shown. */}
+        <div
+          className={`relative flex w-full flex-col items-center transition-all duration-700 ease-out ${
+            hideHeadline
+              ? "pointer-events-none -translate-y-2 opacity-0 sm:translate-y-0 sm:opacity-100 sm:pointer-events-auto"
+              : "translate-y-0 opacity-100"
+          }`}
+        >
           <div
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[150%] w-[112%] max-w-[1180px] -translate-x-1/2 -translate-y-1/2"
@@ -183,7 +203,7 @@ export default function HeroSlideVideo() {
           />
 
           <h1
-            className="relative z-10 max-w-6xl font-bold leading-[1.05] tracking-[-0.03em] text-[2.2rem] sm:text-[3.5rem] md:text-[4.2rem] lg:text-[5.1rem] xl:text-[5.7rem]"
+            className="relative z-10 max-w-6xl font-bold leading-[1.02] tracking-[-0.03em] text-[2.55rem] sm:leading-[1.05] sm:text-[3.5rem] md:text-[4.2rem] lg:text-[5.1rem] xl:text-[5.7rem]"
             style={{
               textShadow:
                 "0 2px 30px rgba(0,0,0,0.42), 0 1px 4px rgba(0,0,0,0.3)",
@@ -204,21 +224,36 @@ export default function HeroSlideVideo() {
               {HEADLINE_BOTTOM}
             </span>
           </h1>
+        </div>
 
+        {/* MOBILE: spacer pushes description + CTA down to the bottom.
+            DESKTOP: hidden, so description stays directly under the headline. */}
+        <div className="flex-1 sm:hidden" />
+
+        <div className="relative z-10 w-full sm:mt-7">
+          {/* mobile-only soft dark scrim so the copy stays legible over video */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[150%] w-[118%] max-w-[27rem] -translate-x-1/2 -translate-y-1/2 rounded-[50%] blur-md sm:hidden"
+            style={{
+              background:
+                "radial-gradient(ellipse 60% 58% at 50% 50%, rgba(8,4,5,0.6) 0%, rgba(8,4,5,0.34) 52%, transparent 80%)",
+            }}
+          />
           <p
-            className="relative z-10 mx-auto mt-4 max-w-[33rem] text-[0.95rem] leading-snug text-white/82 sm:mt-7 sm:max-w-2xl sm:text-base sm:leading-relaxed lg:max-w-3xl lg:text-lg"
-            style={{ textShadow: "0 1px 16px rgba(0,0,0,0.6)" }}
+            className="mx-auto max-w-[23rem] text-balance px-1 text-[0.8rem] leading-snug text-white/80 sm:max-w-2xl sm:px-0 sm:text-base sm:leading-relaxed sm:text-white/82 lg:max-w-3xl lg:text-lg"
+            style={{ textShadow: "0 1px 14px rgba(0,0,0,0.78)" }}
           >
             {HERO_DESCRIPTION}
           </p>
         </div>
 
-        <div className="flex-1" />
+        <div className="hidden flex-1 sm:block" />
 
-        <div className="w-full pb-2 pt-8 sm:pb-8 sm:pt-10 lg:pb-10">
+        <div className="w-full pb-2 pt-9 sm:pb-8 sm:pt-10 lg:pb-10">
           <HeroSignupPill
             text="Access LuxQuant Terminal"
-            className="!max-w-[360px] sm:!max-w-[400px]"
+            className="!max-w-[290px] sm:!max-w-[400px]"
           />
         </div>
       </div>

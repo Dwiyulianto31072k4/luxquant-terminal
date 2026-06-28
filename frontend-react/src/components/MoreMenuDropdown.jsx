@@ -184,9 +184,9 @@ const MoreMenuDropdown = ({
       key: 'trading',
       label: t('mfm.group_trading', { defaultValue: 'Trading' }),
       items: [
-        { path: '/signals',   icon: Icon.signals,   label: t('mfm.signals'),   desc: 'Live calls with entries & targets' },
-        { path: '/autotrade', icon: Icon.autotrade, label: t('mfm.autotrade'), desc: 'Automated signal execution' },
-        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'AI model trade analysis' },
+        { path: '/signals',   icon: Icon.signals,   label: 'Algo Calls',       desc: 'Live algo calls with entries & targets' },
+        { path: '/autotrade', icon: Icon.autotrade, label: 'Agent', desc: 'Agentic trading — executes for you 24/7' },
+        { path: '/ai-arena',  icon: Icon.aiResearch, label: t('mfm.ai_arena', { defaultValue: 'AI Research' }), desc: 'AI research agent & trade verdicts' },
         { path: '/orderbook', icon: Icon.orderbook, label: t('mfm.orderbook'), desc: 'Live depth & order flow' },
       ],
     },

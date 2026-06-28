@@ -23,7 +23,12 @@ import HeroSlider from "./sections/HeroSlider";
 import TopGainers from "./sections/TopGainers";
 import GlobalReach from "./sections/GlobalReach";
 import Architecture from "./sections/Architecture";
+import TerminalPreview from "./sections/TerminalPreview";
 import Performance from "./sections/Performance";
+import CoinSpotlight from "./sections/CoinSpotlight";
+import FreeTierV2 from "./sections/FreeTierV2";
+import FaqV2 from "./sections/FaqV2";
+import FooterV2 from "./sections/FooterV2";
 
 export default function LandingPageV2() {
   const { stats, topGainers, performanceData } = useLandingData();
@@ -45,7 +50,7 @@ export default function LandingPageV2() {
       <Seo
         title="LuxQuant Terminal — Quantitative Crypto Intelligence"
         description="A 24/7 algorithm plus an AI market researcher — precise entries, strict risk management, and a fully transparent track record since 2023."
-        path="/v2"
+        path="/"
       />
       {/* Continuous brand canvas — ONE seamless background for every
           section (scrolls with content, no fixed-bg banding). Sections
@@ -68,18 +73,12 @@ export default function LandingPageV2() {
       <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
       <GlobalReach />
       <Architecture />
+      <TerminalPreview />
       <Performance data={performanceData} />
-
-      {/* ──────────────────────────────────────────────────────────
-          SECTION BERIKUTNYA — tambah di sini (semua modular):
-          <Architecture ... id="how-it-works" />
-          <Performance  ... id="performance" />   // reuse LivePerformanceStats
-          <FaqV2        ... id="faq" />
-          <FooterV2 />
-          ────────────────────────────────────────────────────────── */}
-
-      {/* spacer sementara biar scroll anchor kerasa pas section blm lengkap */}
-      <div className="h-[20vh]" />
+      <CoinSpotlight />
+      <FreeTierV2 />
+      <FaqV2 />
+      <FooterV2 onNav={scrollTo} />
     </div>
   );
 }

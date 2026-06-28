@@ -397,23 +397,27 @@ def _compute_drawdown_before_each_tp(rows: List[Dict[str, Any]]) -> List[Dict[st
 
 def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Section 4: Hit rate per TP — MUTUALLY EXCLUSIVE FINAL OUTCOMES
+    Section 4: Hit rate per TP — MUTUALLY EXCLUSIVE OUTCOMES, by HIGHEST
+    MILESTONE REACHED.
 
-    Each signal counts in EXACTLY ONE bucket (its final outcome):
-      - TP4: status closed_win + reached TP4 in events
-      - TP3: status closed_win without TP4 + reached TP3, OR status='tp3'
-      - TP2: status closed_win without TP3/4 + reached TP2, OR status='tp2'
-      - TP1: status closed_win without TP2/3/4 + reached TP1, OR status='tp1'
-      - SL:  status closed_loss OR status='sl'
+    Outcome rule (matches the per-coin History page / coin-profile endpoint,
+    which is the canonical definition): a signal's outcome is the *highest TP
+    milestone it ever touched* (TP4 > TP3 > TP2 > TP1). If it touched a TP it
+    is a WIN at that TP — even if price later reversed and the trade ultimately
+    closed at stop-loss ("TP-then-SL"). Only signals that NEVER reached any TP
+    count as SL.
+
+      - TPn: reached TPn in events (n = highest TP touched)
+      - SL:  closed_loss / status='sl' AND no TP ever reached
       - (excluded: status='open' — no outcome yet)
 
     Denominator = total non-open signals (signals that have a final outcome).
     Sum of all bucket pcts = 100% by construction.
 
     Note: avg_exit_gain_pct shown per TP is the avg pct AT THAT TP EVENT for
-    signals that ended at that bucket (not all signals that ever touched it).
+    signals bucketed there (TP4 uses avg peak — see below).
     """
-    # Bucket signals by final outcome
+    # Bucket signals by outcome = highest milestone reached
     buckets = {"tp1": [], "tp2": [], "tp3": [], "tp4": [], "sl": []}
 
     for r in rows:
@@ -421,33 +425,35 @@ def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         events = r.get("events") or []
 
         if status in ("open",):
-            # No final outcome yet
+            # No final outcome yet — excluded from the closed sample
             continue
 
-        if status in ("closed_loss", "sl"):
-            buckets["sl"].append(r)
-            continue
-
-        # Find highest TP reached in events (TP4 > TP3 > TP2 > TP1)
+        # Highest TP milestone the signal ever reached (TP4 > TP3 > TP2 > TP1).
+        # Checked FIRST and regardless of final status, so a signal that hit a
+        # TP then reversed to SL still counts as a win at that TP.
         highest_tp = None
         for tp in ("tp4", "tp3", "tp2", "tp1"):
             if _find_event(events, tp):
                 highest_tp = tp
                 break
 
-        if status in ("closed_win", "tp4"):
-            # Closed at highest TP reached (might not be TP4)
-            if highest_tp:
-                buckets[highest_tp].append(r)
-            # If somehow closed_win without any TP event, skip (data integrity issue)
+        if highest_tp:
+            buckets[highest_tp].append(r)
             continue
 
+        # Never reached any TP → a stop-loss / closed loss.
+        if status in ("closed_loss", "sl"):
+            buckets["sl"].append(r)
+            continue
+
+        # status tp1/tp2/tp3 but no matching TP event in journey events
+        # (defensive fallback — keep it a win at the status TP).
         if status in ("tp1", "tp2", "tp3"):
-            # Status itself is the final TP (per user spec: stopped progressing here)
             buckets[status].append(r)
             continue
 
-        # Unknown status — skip silently (defensive)
+        # closed_win/tp4 without any TP event, or unknown status → skip
+        # (data-integrity case; don't fabricate a bucket).
 
     total_with_outcome = sum(len(b) for b in buckets.values())
     if total_with_outcome == 0:
@@ -475,12 +481,22 @@ def _compute_hit_rate_per_tp(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         hit_count = len(bucket_rows)
         hit_rate = (hit_count / total_with_outcome * 100) if total_with_outcome else None
 
-        # Avg exit gain = avg pct AT THAT TP for signals that ENDED at this bucket
+        # Avg exit gain for signals that ENDED at this bucket:
+        #   - TP1–TP3: actual gain at that target (the TP event pct)
+        #   - TP4 (final target): avg PEAK (overall_mfe_pct) instead of the
+        #     fixed TP4 target gain — winners that fill TP4 usually keep
+        #     running, so we report how far they actually went. This matches
+        #     the platform-wide "Where Winners Exit" TP4+ = avg peak concept.
         exit_pcts = []
         for r in bucket_rows:
-            ev = _find_event(r.get("events") or [], tp)
-            if ev and ev.get("pct") is not None:
-                exit_pcts.append(ev["pct"])
+            if tp == "tp4":
+                peak = r.get("overall_mfe_pct")
+                if peak is not None:
+                    exit_pcts.append(peak)
+            else:
+                ev = _find_event(r.get("events") or [], tp)
+                if ev and ev.get("pct") is not None:
+                    exit_pcts.append(ev["pct"])
         avg_exit = _avg(exit_pcts)
 
         out.append({
