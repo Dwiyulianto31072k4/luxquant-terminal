@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 LOCK_KEY = 778455123
 # Bump when the accumulator shape changes → forces a one-time re-backfill so
 # old processed rows get re-folded into the new fields.
-ACC_VERSION = 4
+ACC_VERSION = 5
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -204,17 +204,22 @@ def _fold(acc: Dict[str, Any], rows) -> None:
             acc["pairs"].add(pair)
 
         # avg gain per final-outcome bucket:
-        #   TP1–4 → peak gain (overall_mfe_pct) if present, else the % at the
-        #           TP event that the signal actually reached.
-        #   SL    → the loss recorded at the SL event.
+        #   TP1–TP3 → the actual % reached at that TP (realized gain).
+        #   TP4     → peak gain (overall_mfe_pct); TP4 is the final target, so
+        #             these runners usually blow through it. Falls back to TP4 %.
+        #   SL      → the loss recorded at the SL event.
         bk = _bucket(status, events)
         if bk:
             if bk == "SL":
                 ev = _find_event(events, "sl")
                 pctv = ev.get("pct") if ev else None
-            elif mfe is not None:
-                pctv = mfe
-            else:
+            elif bk == "TP4":
+                if mfe is not None:
+                    pctv = mfe
+                else:
+                    ev = _find_event(events, "tp4")
+                    pctv = ev.get("pct") if ev else None
+            else:  # TP1, TP2, TP3 → the actual TP level reached
                 ev = _find_event(events, bk.lower())
                 pctv = ev.get("pct") if ev else None
             if pctv is not None:
