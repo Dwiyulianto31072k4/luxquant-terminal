@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 LOCK_KEY = 778455123
 # Bump when the accumulator shape changes → forces a one-time re-backfill so
 # old processed rows get re-folded into the new fields.
-ACC_VERSION = 2
+ACC_VERSION = 4
 # Hourly cadence + small startup delay so it never blocks readiness probes.
 REFRESH_INTERVAL_SECONDS = 3600
 STARTUP_DELAY_SECONDS = 20
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS journey_agg_processed (
 _SELECT_UNPROCESSED = text("""
     SELECT j.signal_id, j.events, j.time_to_tp1_seconds,
            j.missed_potential_pct, j.pct_time_above_entry, s.pair,
-           j.realized_outcome_pct, s.status
+           j.overall_mfe_pct, s.status
     FROM signal_journey j
     INNER JOIN signals s ON s.signal_id = j.signal_id
     LEFT JOIN journey_agg_processed p ON p.signal_id = j.signal_id
@@ -197,18 +197,30 @@ def _fold(acc: Dict[str, Any], rows) -> None:
     for r in rows:
         events = r[1] or []
         tp1s, missed, tabove, pair = r[2], r[3], r[4], r[5]
-        realized, status = r[6], r[7]
+        mfe, status = r[6], r[7]
 
         acc["sample_size"] += 1
         if pair:
             acc["pairs"].add(pair)
 
-        # avg realized P/L per final-outcome bucket
+        # avg gain per final-outcome bucket:
+        #   TP1–4 → peak gain (overall_mfe_pct) if present, else the % at the
+        #           TP event that the signal actually reached.
+        #   SL    → the loss recorded at the SL event.
         bk = _bucket(status, events)
-        if bk and realized is not None:
-            pb = acc["pnl"][bk]
-            pb["sum"] += realized
-            pb["count"] += 1
+        if bk:
+            if bk == "SL":
+                ev = _find_event(events, "sl")
+                pctv = ev.get("pct") if ev else None
+            elif mfe is not None:
+                pctv = mfe
+            else:
+                ev = _find_event(events, bk.lower())
+                pctv = ev.get("pct") if ev else None
+            if pctv is not None:
+                pb = acc["pnl"][bk]
+                pb["sum"] += pctv
+                pb["count"] += 1
 
         entry = _find_event(events, "entry")
         entry_at = _parse_iso(entry.get("at")) if entry else None

@@ -76,7 +76,7 @@ const INFO = {
     title: "Where Winners Exit",
     lines: [
       "How closed trades split across the four take-profits (TP1–TP4) and the stop-loss (SL).",
-      "Avg P/L = the average realized profit/loss for trades that ended at each exit (loss for SL).",
+      "Avg P/L = average peak gain reached by trades that exited at each TP, and the average loss for SL.",
       "How to read: bigger TP3/TP4 slices mean winners ran further. SL (red) is the only losing bucket.",
     ],
   },
