@@ -61,6 +61,53 @@ const EVENTS = [
 ];
 const EV_COLOR = { bull: C.gold, bear: C.loss, event: C.btc };
 
+// Per-card explainer: what it is + how to read it (shown via the "i" tooltip).
+const INFO = {
+  winRate: {
+    title: "Win Rate",
+    lines: [
+      "Share of resolved signals that reached at least TP1 (take-profit) before hitting SL (stop-loss).",
+      "How to read: the gold arc = wins, the dim arc = stop-outs. Based on every closed trade on record.",
+    ],
+  },
+  outcome: {
+    title: "Where Winners Exit",
+    lines: [
+      "How closed trades split across the four take-profits (TP1–TP4) and the stop-loss (SL).",
+      "How to read: bigger TP3/TP4 slices mean winners ran further. SL (red) is the only losing bucket.",
+    ],
+  },
+  wrBtc: {
+    title: "Win Rate × Bitcoin",
+    lines: [
+      "Gold line = daily win rate (left axis). Candles = Bitcoin price that day (right axis).",
+      "How to read: if the gold line stays high while BTC candles fall, the edge holds in bear markets.",
+      "Filter by a market period or custom dates — and click any day to reveal that day's winning calls.",
+    ],
+  },
+  patterns: {
+    title: "Highest-Edge Patterns",
+    lines: [
+      "Expected value (EV) = average % gain per trade for each setup over the last 90 days.",
+      "How to read: bar length = EV, the right number = that setup's win rate, n = sample size.",
+    ],
+  },
+  timing: {
+    title: "Time to Target",
+    lines: [
+      "Average time from entry until each take-profit is hit, across every call we've made.",
+      "How to read: shorter bars = targets reached faster. 'fastest' is the single quickest call.",
+    ],
+  },
+  coins: {
+    title: "Top Coins We Called",
+    lines: [
+      "Coins ranked by their median peak gain after our call (last 90 days).",
+      "How to read: % = median peak move, WR = per-coin win rate, n = number of calls.",
+    ],
+  },
+};
+
 const nfmt = (v) => (v ?? 0).toLocaleString();
 const pct = (v) => `${(v ?? 0).toFixed(1)}%`;
 const signed = (v) => `${v >= 0 ? "+" : ""}${(v ?? 0).toFixed(1)}%`;
@@ -94,14 +141,62 @@ function Card({ className = "", children }) {
     </div>
   );
 }
-function CardHead({ title, sub, right }) {
+// Small "i" affordance that reveals a what-is-this / how-to-read tooltip.
+function InfoTip({ info }) {
+  const [open, setOpen] = useState(false);
+  if (!info) return null;
+  return (
+    <span className="relative inline-flex align-middle">
+      <button
+        type="button"
+        aria-label={`What is ${info.title}?`}
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setOpen(false)}
+        className="flex h-[15px] w-[15px] items-center justify-center rounded-full border border-white/25 font-mono text-[9px] font-bold leading-none text-text-muted transition-colors hover:border-gold-primary/70 hover:text-gold-primary"
+      >
+        i
+      </button>
+      {open && (
+        <div className="absolute left-0 top-6 z-40 w-64 rounded-xl border border-white/15 bg-[#0c0d12]/[0.98] p-3 text-left shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-md">
+          <p className="mb-1.5 text-[11px] font-semibold text-white">{info.title}</p>
+          {info.lines.map((ln, i) => (
+            <p key={i} className="mb-1.5 text-[11px] leading-snug text-white/60 last:mb-0">{ln}</p>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function CardHead({ title, sub, right, info }) {
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h3 className="text-[15px] font-semibold text-white">{title}</h3>
+        <h3 className="flex items-center gap-1.5 text-[15px] font-semibold text-white">
+          {title}
+          <InfoTip info={info} />
+        </h3>
         {sub && <p className="mt-0.5 font-mono text-[11px] text-text-muted">{sub}</p>}
       </div>
       {right}
+    </div>
+  );
+}
+
+// One winning/losing call inside the per-day drill panel.
+function WinnerRow({ s }) {
+  const isWin = ["tp1", "tp2", "tp3", "tp4"].includes(s.outcome);
+  const color = isWin ? C.win : C.loss;
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-2.5 py-1.5">
+      <CoinLogo pair={s.pair} size={22} />
+      <span className="text-[12px] font-semibold text-white">{sym(s.pair)}</span>
+      <span className="rounded px-1.5 py-0.5 text-[8px] font-bold uppercase" style={{ color, background: `${color}1a` }}>
+        {s.outcome}
+      </span>
+      <span className="ml-auto font-mono text-[12px] font-bold tabular-nums" style={{ color: (s.peak_pct ?? 0) >= 0 ? C.gold : C.loss }}>
+        {s.peak_pct != null ? bigPct(s.peak_pct) : "—"}
+      </span>
     </div>
   );
 }
@@ -159,9 +254,28 @@ export default function Performance({ data }) {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [showBtc, setShowBtc] = useState(true);
+  const [drillDate, setDrillDate] = useState(null);
+  const [drillData, setDrillData] = useState(null);
+  const [drillLoading, setDrillLoading] = useState(false);
   const customOn = !!(customStart && customEnd);
   const activeEvent = !customOn ? EVENTS.find((e) => e.id === eventId) || null : null;
   const stats = data?.stats;
+
+  // Click a day on the WR×BTC chart → load that day's calls (winners first).
+  const openDay = (date) => {
+    if (!date) return;
+    setDrillDate(date);
+    setDrillData(null);
+    setDrillLoading(true);
+    fetch(`/api/v1/analytics/edge-lab/drill?dimension=created_day&key=${date}&days=90&limit=80`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { setDrillData(j); setDrillLoading(false); })
+      .catch(() => setDrillLoading(false));
+  };
+  const closeDay = () => { setDrillDate(null); setDrillData(null); };
+  const drillWinners = (drillData?.signals || [])
+    .filter((s) => ["tp1", "tp2", "tp3", "tp4"].includes(s.outcome))
+    .slice(0, 12);
 
   useEffect(() => {
     let alive = true;
@@ -298,7 +412,7 @@ export default function Performance({ data }) {
       {/* win rate donut + outcome donut */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHead title="Win Rate" sub={stats ? `${nfmt(stats.total_winners)} W · ${nfmt(stats.sl_count)} L` : "—"} />
+          <CardHead title="Win Rate" info={INFO.winRate} sub={stats ? `${nfmt(stats.total_winners)} W · ${nfmt(stats.sl_count)} L` : "—"} />
           {stats ? (
             <div className="flex items-center gap-6">
               <div className="relative h-44 w-44 flex-shrink-0">
@@ -338,7 +452,7 @@ export default function Performance({ data }) {
         </Card>
 
         <Card>
-          <CardHead title="Where Winners Exit" sub={`${nfmt(outcomeTotal)} closed trades`} />
+          <CardHead title="Where Winners Exit" info={INFO.outcome} sub={`${nfmt(outcomeTotal)} closed trades`} />
           {outcomeTotal > 0 ? (
             <div className="flex items-center gap-6">
               <div className="relative h-44 w-44 flex-shrink-0">
@@ -376,6 +490,7 @@ export default function Performance({ data }) {
         <span className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <CardHead
           title="Win Rate × Bitcoin"
+          info={INFO.wrBtc}
           sub="Does the edge survive every BTC regime?"
           right={
             <div className="flex flex-wrap items-center gap-2">
@@ -469,7 +584,7 @@ export default function Performance({ data }) {
         <div className="h-56 w-full lg:h-72">
           {trendData.length ? (
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trendData} margin={{ top: 8, right: showBtc ? 2 : 4, left: -20, bottom: 0 }}>
+              <ComposedChart data={trendData} margin={{ top: 8, right: showBtc ? 2 : 4, left: -20, bottom: 0 }} onClick={(e) => openDay(e?.activePayload?.[0]?.payload?.date)} style={{ cursor: "pointer" }}>
                 <defs>
                   <linearGradient id="wrFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={C.gold} stopOpacity={0.26} />
@@ -520,6 +635,42 @@ export default function Performance({ data }) {
           )}
         </div>
 
+        {/* hint + per-day winners drill */}
+        {trendData.length > 0 && !drillDate && (
+          <p className="mt-2 font-mono text-[10px] text-text-muted">
+            Tip: click any day to reveal that day's winning calls.
+          </p>
+        )}
+
+        {drillDate && (
+          <div className="mt-3 rounded-xl border border-gold-primary/20 bg-gold-primary/[0.03] p-3">
+            <div className="mb-2.5 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[12px] font-semibold text-white">
+                  Winning calls · {new Date(drillDate).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+                {drillData && (
+                  <p className="mt-0.5 font-mono text-[10px] text-text-muted">
+                    {pct(drillData.win_rate)} WR · {drillData.wins}/{drillData.count} resolved that day
+                  </p>
+                )}
+              </div>
+              <button onClick={closeDay} className="flex-shrink-0 rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] text-text-muted transition-colors hover:border-white/25 hover:text-white">
+                Close
+              </button>
+            </div>
+            {drillLoading ? (
+              <div className="py-4"><Spinner /></div>
+            ) : drillWinners.length ? (
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {drillWinners.map((s) => <WinnerRow key={s.signal_id} s={s} />)}
+              </div>
+            ) : (
+              <p className="py-3 text-center text-[11px] text-text-muted">No winning calls resolved on this day.</p>
+            )}
+          </div>
+        )}
+
         {/* BTC × WR analysis */}
         {showBtc && corr != null && (
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
@@ -539,7 +690,7 @@ export default function Performance({ data }) {
       {/* pattern edge + time to target */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHead title="Highest-Edge Patterns" sub="Expected gain per trade · 90d" right={<span className="font-mono text-[10px] text-text-muted">EV</span>} />
+          <CardHead title="Highest-Edge Patterns" info={INFO.patterns} sub="Expected gain per trade · 90d" right={<span className="font-mono text-[10px] text-text-muted">EV</span>} />
           {patterns.length ? (
             <div className="space-y-3.5">
               {patterns.map((p) => {
@@ -569,7 +720,7 @@ export default function Performance({ data }) {
         </Card>
 
         <Card>
-          <CardHead title="Time to Target" sub="How fast our calls reach each TP" right={timing ? <span className="font-mono text-[10px] text-text-muted">All calls · n={nfmt(timing.sample_size)}</span> : null} />
+          <CardHead title="Time to Target" info={INFO.timing} sub="How fast our calls reach each TP" right={timing ? <span className="font-mono text-[10px] text-text-muted">All calls · n={nfmt(timing.sample_size)}</span> : null} />
           {ttp.length ? (
             <div className="space-y-3.5">
               {ttp.map((t) => (
@@ -600,7 +751,7 @@ export default function Performance({ data }) {
 
       {/* coin leaderboard (with logos, Top-Gainers style) */}
       <Card className="mt-4">
-        <CardHead title="Top Coins We Called" sub="Ranked by median peak · 90d" right={<span className="font-mono text-[10px] text-text-muted">{edge?.coin_leaderboard?.length || ""} coins</span>} />
+        <CardHead title="Top Coins We Called" info={INFO.coins} sub="Ranked by median peak · 90d" right={<span className="font-mono text-[10px] text-text-muted">{edge?.coin_leaderboard?.length || ""} coins</span>} />
         {coins.length ? (
           <div className="grid gap-2.5 sm:grid-cols-2">
             {coins.map((c) => (
