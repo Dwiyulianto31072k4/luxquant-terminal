@@ -411,10 +411,10 @@ export default function Performance({ data }) {
 
       {/* win rate donut + outcome donut */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="flex flex-col">
           <CardHead title="Win Rate" info={INFO.winRate} sub={stats ? `${nfmt(stats.total_winners)} W · ${nfmt(stats.sl_count)} L` : "—"} />
           {stats ? (
-            <div className="flex items-center gap-6">
+            <div className="flex flex-1 items-center gap-6">
               <div className="relative h-44 w-44 flex-shrink-0">
                 <ResponsiveContainer>
                   <PieChart>
@@ -451,10 +451,10 @@ export default function Performance({ data }) {
           )}
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHead title="Where Winners Exit" info={INFO.outcome} sub={`${nfmt(outcomeTotal)} closed trades`} />
           {outcomeTotal > 0 ? (
-            <div className="flex items-center gap-6">
+            <div className="flex flex-1 items-center gap-6">
               <div className="relative h-44 w-44 flex-shrink-0">
                 <ResponsiveContainer>
                   <PieChart>
@@ -584,7 +584,7 @@ export default function Performance({ data }) {
         <div className="h-56 w-full lg:h-72">
           {trendData.length ? (
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trendData} margin={{ top: 8, right: showBtc ? 2 : 4, left: -20, bottom: 0 }} onClick={(e) => openDay(e?.activePayload?.[0]?.payload?.date)} style={{ cursor: "pointer" }}>
+              <ComposedChart data={trendData} margin={{ top: 8, right: showBtc ? 2 : 4, left: -20, bottom: 0 }} onClick={(e) => openDay(e?.activeLabel || e?.activePayload?.[0]?.payload?.date)} style={{ cursor: "pointer" }}>
                 <defs>
                   <linearGradient id="wrFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={C.gold} stopOpacity={0.26} />
@@ -689,10 +689,10 @@ export default function Performance({ data }) {
 
       {/* pattern edge + time to target */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="flex flex-col">
           <CardHead title="Highest-Edge Patterns" info={INFO.patterns} sub="Expected gain per trade · 90d" right={<span className="font-mono text-[10px] text-text-muted">EV</span>} />
           {patterns.length ? (
-            <div className="space-y-3.5">
+            <div className="flex flex-1 flex-col justify-between gap-3.5">
               {patterns.map((p) => {
                 const rc = REL[p.reliability] || C.amber;
                 return (
@@ -719,10 +719,10 @@ export default function Performance({ data }) {
           )}
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHead title="Time to Target" info={INFO.timing} sub="How fast our calls reach each TP" right={timing ? <span className="font-mono text-[10px] text-text-muted">All calls · n={nfmt(timing.sample_size)}</span> : null} />
           {ttp.length ? (
-            <div className="space-y-3.5">
+            <div className="flex flex-1 flex-col justify-between gap-3.5">
               {ttp.map((t) => (
                 <div key={t.tp}>
                   <div className="mb-1 flex items-center justify-between">
