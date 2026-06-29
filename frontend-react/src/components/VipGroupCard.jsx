@@ -63,8 +63,8 @@ const VipGroupCard = ({ onToast }) => {
       }
       const link = res.data?.invite_link;
       if (link) {
-        window.open(link, '_blank', 'noopener,noreferrer');
         toast(t('vip.link_opened', 'Opening Telegram invite link...'));
+        window.location.href = link;
       } else {
         toast(t('vip.link_failed', 'Could not get invite link.'), 'error');
       }
