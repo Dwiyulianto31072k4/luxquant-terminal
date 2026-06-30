@@ -122,18 +122,31 @@ export default function FooterV2({ onNav }) {
       ),
     },
     {
+      label: "Daily Rekom Crypto",
+      handle: "Look on LQ Premium+ Highlight",
+      href: "https://www.instagram.com/dailyrekomcrypto/",
+      // LuxQuant theme — red gradient → black so the DRC mark pops
+      bg: "radial-gradient(ellipse at 30% 0%, rgba(150,28,28,0.55) 0%, transparent 62%), linear-gradient(155deg,#3a1012 0%,#1c0809 46%,#0a0506 100%)",
+      img: "/DRC%20LOGO.png",
+      fbColor: "#ffffff",
+    },
+    {
       label: "CryptoNewsCanada",
       handle: "cryptonewscanada.com",
       href: "https://cryptonewscanada.com",
-      bg: "#ffffff",
+      bg: "#eef0f3",
       img: "/CryptoNewsCanadaLogo.png",
+      fbColor: "#0a0506",
+      light: true,
     },
     {
       label: "CryptoLeb",
       handle: "cryptoleb.ai",
       href: "https://cryptoleb.ai",
-      bg: "#ffffff",
+      bg: "#eef0f3",
       img: "/CryptoLebLogo.png",
+      fbColor: "#0a0506",
+      light: true,
     },
   ];
 
@@ -164,7 +177,7 @@ export default function FooterV2({ onNav }) {
             <p className="mb-3.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
               Ecosystem
             </p>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-3 [perspective:900px]">
               {ECOSYSTEM.map((e) => (
                 <a
                   key={e.label}
@@ -172,30 +185,41 @@ export default function FooterV2({ onNav }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={e.label}
-                  title={e.handle}
-                  className="group relative block [perspective:500px]"
+                  className="group relative block [transform-style:preserve-3d]"
                 >
+                  {/* even gold glow halo — radiates on every side on hover */}
+                  <span aria-hidden="true" className="pointer-events-none absolute -inset-2.5 rounded-[22px] opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(circle, rgba(212,168,83,0.5) 0%, rgba(212,168,83,0.16) 48%, transparent 72%)" }} />
+                  {/* soft grounding shadow */}
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 -bottom-1 h-3 rounded-full bg-black/45 blur-md transition-all duration-300 ease-out group-hover:-bottom-1.5 group-hover:bg-black/55" />
                   <span
-                    className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/15 transition-all duration-300 ease-out will-change-transform group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_22px_rgba(0,0,0,0.6),0_0_16px_rgba(212,168,83,0.28)] group-hover:[transform:rotateX(16deg)_rotateY(-16deg)_scale(1.06)] group-active:scale-95"
+                    className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[14px] ring-1 ring-inset ${e.light ? "ring-black/[0.07]" : "ring-white/10"} transition-[transform,box-shadow] duration-[320ms] ease-[cubic-bezier(.34,1.32,.5,1)] [transform-origin:center] will-change-transform shadow-[0_2px_4px_rgba(0,0,0,0.45),0_9px_18px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.28)] group-hover:shadow-[0_10px_18px_rgba(0,0,0,0.48),0_22px_38px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.4)] motion-safe:group-hover:[transform:translateY(-5px)_scale(1.13)] motion-reduce:group-hover:[transform:translateY(-3px)_scale(1.06)] group-active:[transform:scale(0.96)]`}
                     style={{ background: e.bg }}
                   >
                     {e.img ? (
                       <>
-                        <span aria-hidden="true" className="absolute text-[13px] font-bold text-[#0a0506]">{e.label[0]}</span>
+                        <span aria-hidden="true" className="absolute text-[15px] font-bold" style={{ color: e.fbColor || "#0a0506", opacity: 0 }}>{e.label[0]}</span>
                         <img
                           src={e.img}
                           alt={e.label}
-                          className="relative h-full w-full object-contain p-1.5"
-                          onError={(ev) => { ev.currentTarget.style.display = "none"; }}
+                          className="relative h-full w-full object-contain p-2"
+                          onError={(ev) => { ev.currentTarget.style.display = "none"; const fb = ev.currentTarget.previousElementSibling; if (fb) fb.style.opacity = "1"; }}
                         />
                       </>
                     ) : (
-                      <svg className="h-[21px] w-[21px]" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
+                      <svg className="h-[25px] w-[25px] drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
                         {e.glyph}
                       </svg>
                     )}
-                    {/* glossy top sheen — app-icon highlight */}
-                    <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
+                  </span>
+
+                  {/* hover tooltip — styled, matches LuxQuant theme */}
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-medium text-white opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+                    style={{ background: "rgba(20,8,9,0.96)", border: "1px solid rgba(212,168,83,0.28)", boxShadow: "0 10px 24px rgba(0,0,0,0.55)" }}
+                  >
+                    {e.handle}
+                    <span aria-hidden="true" className="absolute left-1/2 top-full -mt-1 h-2 w-2 -translate-x-1/2 rotate-45" style={{ background: "rgba(20,8,9,0.96)", borderRight: "1px solid rgba(212,168,83,0.28)", borderBottom: "1px solid rgba(212,168,83,0.28)" }} />
                   </span>
                 </a>
               ))}
