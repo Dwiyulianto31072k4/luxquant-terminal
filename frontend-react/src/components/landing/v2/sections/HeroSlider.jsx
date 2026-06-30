@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import HeroSlideVideo from "./slides/HeroSlideVideo";
 import HeroSlideAlgo from "./slides/HeroSlideAlgo";
 
-const ROTATE_MS = 8000;
+const ROTATE_MS = 11000;
 
 const SLIDES = [
   HeroSlideVideo,
@@ -37,15 +37,18 @@ export default function HeroSlider({ onNav, gainers = [] }) {
     setActive((index + total) % total);
   };
 
+  // Auto-advance every ROTATE_MS. `active` is a dependency so the timer RESETS
+  // whenever the slide changes (incl. manual swipe / dot click) — i.e. each
+  // slide always gets a full 10s before advancing, "unless swiped".
   useEffect(() => {
     if (paused || prefersReducedMotion()) return undefined;
 
-    const interval = window.setInterval(() => {
+    const timer = window.setTimeout(() => {
       setActive((current) => (current + 1) % SLIDES.length);
     }, ROTATE_MS);
 
-    return () => window.clearInterval(interval);
-  }, [paused]);
+    return () => window.clearTimeout(timer);
+  }, [paused, active]);
 
   const handleTouchStart = (event) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;

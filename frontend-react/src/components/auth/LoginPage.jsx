@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ensureTelegram } from '../../utils/telegramLoader';
-import LeftBrandPanel, { MobileGlobeSection, TypewriterLine } from './LeftBrandPanel';
+import LeftBrandPanel, { AssetCoins } from './LeftBrandPanel';
 import ReferralBanner from './ReferralBanner';
 
 const LoginPage = () => {
@@ -14,6 +14,14 @@ const LoginPage = () => {
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [discordLoading, setDiscordLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  // Which login button is "active" (white). Default = first (Telegram); follows
+  // hover. Reset to null on leaving the group → falls back to the first.
+  const [hoverIdx, setHoverIdx] = useState(null);
+  // "More Options" — mobile bottom sheet / desktop inline expand (holds Discord).
+  const [showMore, setShowMore] = useState(false);
+  // Referral code (collapsible, MEXC-style).
+  const [refOpen, setRefOpen] = useState(false);
+  const [refCode, setRefCode] = useState('');
   // Telegram widget readiness — tombol Telegram dikunci sampai script siap,
   // supaya klik pertama tidak pernah jatuh ke error "not-ready".
   const [telegramReady, setTelegramReady] = useState(!!window.Telegram?.Login?.auth);
@@ -88,15 +96,12 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden" style={{ background: '#0a0506' }}>
-      {/* Desktop left panel (hidden on mobile) */}
+    <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden" style={{ background: 'radial-gradient(ellipse at 16% 22%, rgba(150,28,28,0.30) 0%, transparent 46%), linear-gradient(100deg, #2c0d10 0%, #1c0809 33%, #110607 57%, #0a0506 100%)' }}>
+      {/* Desktop left panel (hidden on mobile) — now part of one continuous page */}
       <LeftBrandPanel />
 
       {/* RIGHT — Login Form (full width on mobile) */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center relative flex-1 p-4 sm:p-6 lg:p-8">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(139,26,26,0.1) 0%, transparent 60%)' }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(212,168,83,0.04) 0%, transparent 50%)' }} />
-        <div className="hidden lg:block absolute left-0 top-0 h-full w-px" style={{ background: 'linear-gradient(to bottom, transparent 10%, rgba(212,168,83,0.15) 50%, transparent 90%)' }} />
+      <div className="w-full lg:w-[45%] flex items-start justify-center lg:items-center relative flex-1 px-5 sm:px-8 py-0 lg:px-10 lg:py-8">
 
         <style>{`
           @keyframes lq-blink { 50% { opacity: 0; } }
@@ -110,6 +115,7 @@ const LoginPage = () => {
           .lq-login-btn:focus-visible { outline: 2px solid rgba(212,168,83,0.6); outline-offset: 2px; }
           @keyframes lq-modal-fade { from { opacity: 0; } to { opacity: 1; } }
           @keyframes lq-modal-pop { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+          @keyframes lq-sheet-up { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
           .lq-terms-scroll::-webkit-scrollbar { width: 5px; }
           .lq-terms-scroll::-webkit-scrollbar-track { background: transparent; }
           .lq-terms-scroll::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 999px; }
@@ -124,36 +130,23 @@ const LoginPage = () => {
           <span className="text-white font-bold tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>LuxQuant</span>
         </div>
 
-        {/* GLASS CARD */}
-        <div className="lq-card-enter relative z-10 w-full max-w-md px-5 py-7 sm:px-10 sm:py-11 rounded-[1.75rem] mt-16 sm:mt-20 lg:mt-0 mb-6 lg:mb-0"
-             style={{
-               background: 'linear-gradient(170deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
-               border: '1px solid rgba(212, 168, 83, 0.12)',
-               backdropFilter: 'blur(24px)',
-               WebkitBackdropFilter: 'blur(24px)',
-               boxShadow: '0 25px 60px -12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
-             }}>
+        {/* CONTENT — mobile: no card (MEXC style); desktop: glass card */}
+        <div className="lq-card-enter relative z-10 w-full max-w-[420px] lg:max-w-[448px] flex flex-col min-h-[100svh] pt-[11vh] pb-8 lg:block lg:min-h-0 px-2 lg:px-10 lg:py-14 lg:rounded-[1.9rem] lg:border lg:border-[#ececee] lg:bg-white lg:shadow-[0_30px_70px_-18px_rgba(0,0,0,0.6)]">
 
-          {/* Gold hairline along the card's top edge */}
-          <div className="absolute top-0 left-[12%] right-[12%] h-px pointer-events-none"
-               style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.55), transparent)' }} />
-
-          {/* Heading */}
-          <div className="mb-2 text-center lg:text-left">
-            <h1 className="text-2xl sm:text-[28px] font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {a('login_title')}
+          {/* ── Desktop heading (small account line, dark on white) ── */}
+          <div className="mb-9 hidden lg:block text-left">
+            <h1 className="font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#0a0a0a', lineHeight: 1.22, fontSize: 'clamp(20px, 2.1vw, 26px)' }}>
+              {a('login_subtitle')}
             </h1>
-            <p className="text-sm leading-relaxed" style={{ color: '#8a7a6e' }}>{a('login_subtitle')}</p>
           </div>
 
-          {/* Mobile typewriter */}
-          <div className="lg:hidden mb-1 mt-2">
-            <TypewriterLine mobile />
-          </div>
-
-          {/* Mobile device mockup — compact */}
-          <div className="lg:hidden mb-1">
-            <MobileGlobeSection />
+          {/* ── Mobile hero (centered) — mirrors the desktop brand panel ── */}
+          <div className="lg:hidden text-center">
+            <h1 className="mx-auto font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#ffffff', lineHeight: 1.12, fontSize: 'clamp(31px, 8.6vw, 42px)', maxWidth: '14ch' }}>
+              Detect <span style={{ color: '#d4a853' }}>Crypto</span> &amp; Tokenized <span style={{ color: '#d4a853' }}>TradFi</span> Moves
+            </h1>
+            {/* coins right under the headline */}
+            <AssetCoins size={38} className="mt-8" />
           </div>
 
           {error && (
@@ -168,56 +161,154 @@ const LoginPage = () => {
 
           <ReferralBanner className="mb-4" />
 
-          {/* Login Buttons */}
-          <div className="lq-stagger space-y-3 mt-5 sm:mt-7">
-            <LoginButton
-              icon={<GoogleIcon />}
-              text={a('continue_google')}
-              onClick={handleGoogleLogin}
-              loading={googleLoading}
-              loadingText={a('connecting')}
-            />
-            <LoginButton
-              icon={<TelegramIcon />}
-              text={a('continue_telegram')}
-              onClick={handleTelegramLogin}
-              loading={!telegramReady || telegramLoading}
-              loadingText={!telegramReady ? a('preparing') : a('connecting')}
-            />
-            <LoginButton
-              icon={<DiscordIcon />}
-              text={a('continue_discord')}
-              onClick={handleDiscordLogin}
-              loading={discordLoading}
-              loadingText={a('connecting')}
-            />
-          </div>
+          {/* ════════ DESKTOP — MEXC-style card content ════════ */}
+          <div className="hidden lg:block">
+            <div className="space-y-3.5 mt-8" onMouseLeave={() => setHoverIdx(null)}>
+              <LoginButton active={(hoverIdx ?? 0) === 0} onHover={() => setHoverIdx(0)} icon={<TelegramIcon />} text={a('continue_telegram')} onClick={handleTelegramLogin} loading={!telegramReady || telegramLoading} loadingText={!telegramReady ? a('preparing') : a('connecting')} />
+              <LoginButton active={(hoverIdx ?? 0) === 1} onHover={() => setHoverIdx(1)} icon={<GoogleIcon />} text={a('continue_google')} onClick={handleGoogleLogin} loading={googleLoading} loadingText={a('connecting')} />
 
-          {/* Divider */}
-          <div className="mt-6 sm:mt-8 mb-4 flex items-center gap-3">
-            <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.15))' }} />
-            <div className="flex items-center gap-1.5" style={{ color: '#6b5c52' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-              </svg>
-              <span style={{ fontSize: 10.5, letterSpacing: '0.04em' }}>{a('secure_login')}</span>
+              {/* More Options — pill + connected dropdown (MEXC effect) */}
+              <div className="relative">
+                <button type="button" onMouseEnter={() => setHoverIdx(2)} onClick={() => setShowMore(v => !v)}
+                        className="lq-login-btn relative w-full rounded-full font-semibold flex items-center justify-center transition-all duration-300"
+                        style={{ padding: '15px 22px', background: '#f5f5f6', border: '1px solid #e7e7ea', color: '#18181b', fontSize: 'clamp(13.5px,1.7vw,15px)' }}>
+                  <span>More Options</span>
+                  <svg className="absolute right-6 h-4 w-4 transition-transform duration-300" style={{ transform: showMore ? 'rotate(180deg)' : 'none' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {showMore && (
+                  <div className="mt-2 overflow-hidden rounded-[1.4rem]"
+                       style={{ background: '#ffffff', boxShadow: '0 16px 38px rgba(0,0,0,0.16)', animation: 'lq-item-in 0.26s cubic-bezier(0.16,1,0.3,1) both' }}>
+                    <button type="button" onClick={handleDiscordLogin} disabled={discordLoading}
+                            className="relative w-full flex items-center justify-center font-semibold transition-colors disabled:opacity-50"
+                            style={{ padding: '16px 22px', color: '#18181b', fontSize: 'clamp(13.5px,1.7vw,15px)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#f3f4f6'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                      <span className="absolute left-5 flex items-center justify-center" style={{ width: 22, height: 22 }}><DiscordIcon /></span>
+                      <span>{discordLoading ? a('connecting') : a('continue_discord')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, rgba(212,168,83,0.15))' }} />
+
+            {/* Referral Code (Optional) — collapsible */}
+            <div className="mt-7">
+              <button type="button" onClick={() => setRefOpen(v => !v)}
+                      className="flex items-center gap-1.5 transition-colors"
+                      style={{ color: '#6b7280', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                Referral Code (Optional)
+                <svg className="h-3.5 w-3.5 transition-transform duration-300" style={{ transform: refOpen ? 'rotate(180deg)' : 'none' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              {refOpen && (
+                <input value={refCode} onChange={(e) => setRefCode(e.target.value)} placeholder="Enter invitation code (case-sensitive)"
+                       className="mt-2.5 w-full rounded-2xl px-4 py-3.5 outline-none transition-colors"
+                       style={{ background: '#f7f7f8', border: '1px solid #e4e4e7', color: '#18181b', fontSize: 14, animation: 'lq-item-in 0.25s ease both' }} />
+              )}
+            </div>
+
+            {/* Footer */}
+            <p className="mt-7 text-center" style={{ color: '#6b7280', fontSize: 13 }}>
+              Already have an account?{' '}
+              <button type="button" onClick={handleTelegramLogin} className="font-semibold transition-opacity hover:opacity-80" style={{ color: '#c8941f', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}>Log in now!</button>
+            </p>
+            <p className="mt-3 text-center leading-relaxed" style={{ color: '#9ca3af', fontSize: 11.5 }}>
+              By continuing, you agree to our{' '}
+              <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11.5 }}>User Agreement</button>
+              {' '}and{' '}
+              <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11.5 }}>Privacy Policy</button>
+            </p>
           </div>
 
-          <p className="text-center pb-1 leading-relaxed" style={{ color: '#6b5c52', fontSize: 11 }}>
-            {a('login_terms')}{' '}
-            <button type="button" onClick={() => setShowTerms(true)}
-                    className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-                    style={{ color: '#b8a89a', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11 }}>
-              {a('terms')}
+          {/* ════════ MOBILE — MEXC pattern (pills + "or" + More Options) ════════ */}
+          <div className="lg:hidden flex flex-1 flex-col mt-11">
+            {/* small thin login descriptor — sits right above the form */}
+            <p className="mx-auto mb-6 text-center" style={{ color: '#9a8a7e', fontWeight: 400, fontSize: 'clamp(12.5px, 3.4vw, 14px)', maxWidth: '32ch', lineHeight: 1.5 }}>{a('login_subtitle')}</p>
+            {/* Primary — Telegram (white pill) */}
+            <PillButton variant="white" icon={<TelegramIcon />} text={a('continue_telegram')} onClick={handleTelegramLogin} loading={!telegramReady || telegramLoading} loadingText={!telegramReady ? a('preparing') : a('connecting')} />
+
+            {/* or */}
+            <div className="my-4 flex items-center gap-4">
+              <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              <span style={{ color: '#6f6f74', fontSize: 14 }}>or</span>
+              <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            </div>
+
+            {/* Secondary — Google (dark pill) */}
+            <PillButton variant="dark" icon={<GoogleIcon />} text={a('continue_google')} onClick={handleGoogleLogin} loading={googleLoading} loadingText={a('connecting')} />
+
+            {/* More Options → bottom sheet (Discord) */}
+            <button type="button" onClick={() => setShowMore(true)}
+                    className="mt-5 w-full py-2.5 text-center font-semibold transition-colors"
+                    style={{ color: '#9a9aa0', fontSize: 15, background: 'none', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#9a9aa0'; }}>
+              More Options
             </button>
-          </p>
+
+            {/* Footer — pinned to the bottom of the viewport */}
+            <p className="mt-auto pt-12 text-center leading-relaxed" style={{ color: '#7a6b60', fontSize: 12 }}>
+              {a('login_terms')}{' '}
+              <button type="button" onClick={() => setShowTerms(true)} className="underline underline-offset-2" style={{ color: '#c4b3a3', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, fontWeight: 600 }}>{a('terms')}</button>
+            </p>
+          </div>
         </div>
 
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+
+        {/* MOBILE — "More Options" bottom sheet (Discord), slides up */}
+        {showMore && (
+          <div className="fixed inset-0 z-[9998] lg:hidden" onClick={() => setShowMore(false)}>
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.62)', animation: 'lq-modal-fade 0.2s ease-out' }} />
+            <div className="absolute inset-x-0 bottom-0 rounded-t-[1.75rem] px-5 pb-9 pt-3"
+                 onClick={e => e.stopPropagation()}
+                 style={{ background: '#161618', borderTop: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -20px 60px rgba(0,0,0,0.6)', animation: 'lq-sheet-up 0.34s cubic-bezier(0.16,1,0.3,1)' }}>
+              <div className="mx-auto mb-5 h-1 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
+              <h3 className="mb-4 font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18 }}>More Options</h3>
+              <PillButton variant="dark" icon={<DiscordIcon />} text={a('continue_discord')} onClick={handleDiscordLogin} loading={discordLoading} loadingText={a('connecting')} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+};
+
+/* ── Pill Button (mobile, MEXC-style) — white = primary, dark = secondary ── */
+const PillButton = ({ icon, text, onClick, loading = false, loadingText = 'Connecting...', variant = 'dark' }) => {
+  const white = variant === 'white';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="relative w-full rounded-full font-semibold flex items-center justify-center transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{
+        padding: '16px 22px',
+        fontSize: 'clamp(14px, 4.2vw, 16px)',
+        background: white ? '#ffffff' : 'rgba(255,255,255,0.06)',
+        color: white ? '#0a0a0a' : '#ffffff',
+        border: white ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: white ? '0 10px 26px rgba(0,0,0,0.4)' : 'none',
+      }}>
+      {loading ? (
+        <span className="flex items-center gap-2.5">
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          {loadingText}
+        </span>
+      ) : (
+        <>
+          <span className="absolute left-5 flex items-center justify-center" style={{ width: 22, height: 22 }}>{icon}</span>
+          <span>{text}</span>
+        </>
+      )}
+    </button>
   );
 };
 
@@ -291,15 +382,15 @@ const TermsModal = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6"
-         style={{ background: 'rgba(4,2,2,0.8)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'lq-modal-fade 0.2s ease-out' }}
+         style={{ background: 'rgba(6,3,3,0.84)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', animation: 'lq-modal-fade 0.2s ease-out' }}
          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
 
-      <div className="relative w-full max-w-2xl flex flex-col rounded-2xl overflow-hidden"
+      <div className="relative w-full max-w-2xl flex flex-col rounded-[1.75rem] overflow-hidden"
            style={{
              maxHeight: '85vh',
-             background: 'linear-gradient(170deg, #14100b 0%, #0b0807 100%)',
-             border: '1px solid rgba(212,168,83,0.16)',
-             boxShadow: '0 40px 100px rgba(0,0,0,0.8), 0 0 80px rgba(212,168,83,0.05)',
+             background: 'radial-gradient(ellipse at 18% 0%, rgba(150,28,28,0.28) 0%, transparent 55%), linear-gradient(160deg, #2c0d10 0%, #1c0809 38%, #110607 64%, #0a0506 100%)',
+             border: '1px solid rgba(255,255,255,0.08)',
+             boxShadow: '0 40px 100px rgba(0,0,0,0.85), 0 0 70px rgba(150,28,28,0.12)',
              animation: 'lq-modal-pop 0.3s cubic-bezier(0.16,1,0.3,1)',
            }}>
 
@@ -309,20 +400,20 @@ const TermsModal = ({ onClose }) => {
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 sm:px-9 pt-7 sm:pt-9 pb-5"
-             style={{ borderBottom: '1px solid rgba(212,168,83,0.08)' }}>
+             style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Terms & Conditions
             </h2>
-            <p className="text-sm" style={{ color: '#8a7a6e' }}>
+            <p className="text-sm" style={{ color: '#9a8a7e' }}>
               Please read these terms carefully before using LuxQuant Terminal
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close"
-                  className="flex items-center justify-center rounded-xl transition-colors duration-200 flex-shrink-0 ml-4"
-                  style={{ width: 36, height: 36, color: '#8a7a6e', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(212,168,83,0.12)' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#8a7a6e'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.12)'; }}>
+                  className="flex items-center justify-center rounded-full transition-colors duration-200 flex-shrink-0 ml-4"
+                  style={{ width: 36, height: 36, color: '#9a8a7e', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = '#9a8a7e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -339,7 +430,7 @@ const TermsModal = ({ onClose }) => {
               <h3 className="text-sm font-semibold text-white mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {s.title}
               </h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: '#9a8c80' }}>
+              <p className="text-[13px] leading-relaxed" style={{ color: '#9a8a7e' }}>
                 {s.body}
               </p>
             </div>
@@ -348,12 +439,12 @@ const TermsModal = ({ onClose }) => {
 
         {/* Footer */}
         <div className="px-6 sm:px-9 py-4 flex items-center justify-end"
-             style={{ borderTop: '1px solid rgba(212,168,83,0.08)', background: 'rgba(0,0,0,0.2)' }}>
+             style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.25)' }}>
           <button type="button" onClick={onClose}
-                  className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
-                  style={{ background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.35)', color: '#e8c882' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,168,83,0.2)'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.55)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,168,83,0.12)'; e.currentTarget.style.borderColor = 'rgba(212,168,83,0.35)'; }}>
+                  className="rounded-full text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+                  style={{ padding: '12px 30px', background: '#ffffff', color: '#0a0a0a', boxShadow: '0 10px 24px rgba(0,0,0,0.4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#ececef'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}>
             I understand
           </button>
         </div>
@@ -362,54 +453,34 @@ const TermsModal = ({ onClose }) => {
   );
 };
 
-/* ── Login Button ── */
-const LoginButton = ({ icon, text, onClick, loading = false, loadingText = 'Connecting...' }) => (
+/* ── Login Button ── (active = black; inactive = light grey) */
+const LoginButton = ({ icon, text, onClick, loading = false, loadingText = 'Connecting...', active = false, onHover }) => (
   <button
     type="button"
     onClick={onClick}
+    onMouseEnter={onHover}
     disabled={loading}
-    className="lq-login-btn group w-full py-3.5 sm:py-4 px-4 rounded-2xl font-semibold text-sm transition-all duration-300 flex items-center gap-3 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+    className="lq-login-btn relative w-full rounded-full font-semibold transition-all duration-300 flex items-center justify-center active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
     style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(212,168,83,0.18)',
-      color: '#d4cfc8',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    }}
-    onMouseEnter={e => {
-      if (!loading) {
-        e.currentTarget.style.borderColor = 'rgba(212,168,83,0.5)';
-        e.currentTarget.style.background = 'rgba(212,168,83,0.07)';
-        e.currentTarget.style.color = '#fff';
-        e.currentTarget.style.boxShadow = '0 6px 20px rgba(212,168,83,0.12)';
-      }
-    }}
-    onMouseLeave={e => {
-      e.currentTarget.style.borderColor = 'rgba(212,168,83,0.18)';
-      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-      e.currentTarget.style.color = '#d4cfc8';
-      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      padding: '15px 22px',
+      background: active ? '#0a0a0a' : '#f5f5f6',
+      border: active ? '1px solid #0a0a0a' : '1px solid #e7e7ea',
+      color: active ? '#ffffff' : '#18181b',
+      boxShadow: active ? '0 10px 24px rgba(0,0,0,0.22)' : 'none',
+      fontSize: 'clamp(13.5px, 1.7vw, 15px)',
     }}>
     {loading ? (
-      <>
-        <span className="flex items-center justify-center" style={{ width: 34, height: 34 }}>
-          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-        </span>
-        <span className="flex-1 text-left">{loadingText}</span>
-      </>
+      <span className="flex items-center gap-2.5">
+        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {loadingText}
+      </span>
     ) : (
       <>
-        <span className="flex items-center justify-center rounded-xl transition-colors duration-300"
-              style={{ width: 34, height: 34, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          {icon}
-        </span>
-        <span className="flex-1 text-left">{text}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-             className="opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all duration-300">
-          <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-        </svg>
+        <span className="absolute left-5 flex items-center justify-center" style={{ width: 22, height: 22 }}>{icon}</span>
+        <span>{text}</span>
       </>
     )}
   </button>

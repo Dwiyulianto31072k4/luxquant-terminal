@@ -45,7 +45,7 @@ export default function FreeTierV2() {
               aren't clipped by overflow-hidden (clip happens at the padding box). */}
           <div className="relative z-10 mx-auto mt-8 h-[300px] w-[212px] overflow-hidden px-3 [mask-image:linear-gradient(to_bottom,#000_74%,transparent)] sm:h-[340px] sm:w-[232px] lg:absolute lg:left-[4%] lg:top-[-100px] lg:bottom-0 lg:mx-0 lg:mt-0 lg:h-auto lg:w-[268px] lg:[mask-image:none]">
             <PhoneMockup
-              src="/telegram-ss.png?v=2"
+              src="/telegram-ss.png?v=3"
               alt="LuxQuant Telegram channel — limited shared analysis"
               className="w-full"
             />
