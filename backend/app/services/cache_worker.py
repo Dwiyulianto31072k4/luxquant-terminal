@@ -23,6 +23,7 @@ from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import cache_set, cache_get, is_redis_available
 from app.core.http_client import get_binance_client, get_coingecko_client, get_general_client
+from app.core.leader import is_leader  # single-leader gate (avoid N× duplicate API calls)
 from app.config import settings
 from app.utils.chart_urls import chart_path_to_url # TAMBAHAN: Import converter URL
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
@@ -717,22 +718,24 @@ async def fetch_market_overview():
     return result
 
 
-async def fetch_bitcoin_coingecko():
-    """Fetch Bitcoin + global + fear&greed from CoinGecko.
-    CHANGED: Uses shared client."""
+async def fetch_bitcoin_coingecko(dominance=None):
+    """Fetch Bitcoin + fear&greed from CoinGecko.
+    CHANGED: Uses shared client.
+    EFFICIENCY: BTC dominance is passed in from the already-fetched /global
+    payload (caller), so we no longer call /global a second time here."""
     if _tracker.should_skip("coingecko_bitcoin"):
         return None
     try:
         client = get_coingecko_client()  # CHANGED: shared client
-        btc_res, global_res, fg_res = await asyncio.gather(
+        btc_res, fg_res = await asyncio.gather(
             client.get(f"{COINGECKO_API}/coins/bitcoin", params={"localization":"false","tickers":"false","community_data":"false","developer_data":"false"}),
-            client.get(f"{COINGECKO_API}/global"),
             client.get(f"{FEAR_GREED_API}/?limit=1"),
             return_exceptions=True,
         )
 
         btc_data = btc_res.json() if not isinstance(btc_res, Exception) and btc_res.status_code == 200 else None
-        global_data = global_res.json().get("data") if not isinstance(global_res, Exception) and global_res.status_code == 200 else None
+        # dominance comes from the caller's /global result (may be None)
+        global_data = {"market_cap_percentage": {"btc": dominance}} if dominance is not None else None
 
         fear_greed = {"value": 50, "label": "Neutral"}
         if not isinstance(fg_res, Exception) and fg_res.status_code == 200:
@@ -850,6 +853,9 @@ async def signal_cache_loop():
     await asyncio.sleep(2)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(interval)
@@ -954,6 +960,9 @@ async def market_cache_loop():
     await asyncio.sleep(3)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(interval)
@@ -998,6 +1007,9 @@ async def coingecko_cache_loop():
     await asyncio.sleep(5)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(interval)
@@ -1007,16 +1019,23 @@ async def coingecko_cache_loop():
             cached = 0
             ttl = interval + 15  # CHANGED: match interval
 
-            btc = await fetch_bitcoin_coingecko()
-            if btc:
-                cache_set("lq:market:bitcoin", btc, ttl=ttl)
+            # EFFICIENCY: fetch /global ONCE, reuse BTC dominance for the
+            # bitcoin payload (previously /global was called twice per cycle).
+            glob = await fetch_global_coingecko()
+            dominance = None
+            if glob:
+                cache_set("lq:market:global", glob, ttl=ttl)
                 cached += 1
+                try:
+                    dominance = (glob.get("global") or {}).get("market_cap_percentage", {}).get("btc")
+                except Exception:
+                    dominance = None
 
             await asyncio.sleep(3)  # CHANGED: 2s -> 3s delay
 
-            glob = await fetch_global_coingecko()
-            if glob:
-                cache_set("lq:market:global", glob, ttl=ttl)
+            btc = await fetch_bitcoin_coingecko(dominance=dominance)
+            if btc:
+                cache_set("lq:market:bitcoin", btc, ttl=ttl)
                 cached += 1
 
             await asyncio.sleep(3)  # CHANGED: 2s -> 3s delay
@@ -1401,6 +1420,9 @@ async def bitcoin_data_cache_loop():
     await asyncio.sleep(4)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(interval)

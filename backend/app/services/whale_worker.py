@@ -18,6 +18,7 @@ import time
 import traceback
 
 from app.core.redis import is_redis_available
+from app.core.leader import is_leader  # single-leader gate (avoid N× duplicate API calls)
 from app.services.whale_service import refresh_whale_cache
 
 INTERVAL = 90  # seconds — MUST stay below RAW_CACHE_TTL (600s)
@@ -29,6 +30,9 @@ async def whale_cache_loop():
     await asyncio.sleep(7)  # let the app finish booting before first fetch
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(INTERVAL)

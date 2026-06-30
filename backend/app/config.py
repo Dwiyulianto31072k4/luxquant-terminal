@@ -69,7 +69,9 @@ class Settings(BaseSettings):
     SIGNAL_CACHE_INTERVAL: int = int(os.getenv("SIGNAL_CACHE_INTERVAL", "90"))
 
     # Tier 3 — COOL: CoinGecko global, coins market
-    COINGECKO_CACHE_INTERVAL: int = int(os.getenv("COINGECKO_CACHE_INTERVAL", "180"))
+    # 180 -> 600s: CoinGecko Demo quota is only 10k/month; with the single-leader
+    # poller this keeps usage well within budget. Override via env if needed.
+    COINGECKO_CACHE_INTERVAL: int = int(os.getenv("COINGECKO_CACHE_INTERVAL", "600"))
 
     # Tier 4 — COLD: Bitcoin detailed (technical, network, on-chain, news)
     BITCOIN_CACHE_INTERVAL: int = int(os.getenv("BITCOIN_CACHE_INTERVAL", "90"))

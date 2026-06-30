@@ -17,6 +17,7 @@ from app.core.redis import cache_set, is_redis_available
 
 # Import shared failure tracker from cache_worker
 from app.services.cache_worker import _tracker
+from app.core.leader import is_leader  # single-leader gate (avoid N× duplicate API calls)
 
 # APIs
 COINGECKO_API = "https://api.coingecko.com/api/v3"
@@ -220,29 +221,36 @@ async def fetch_derivatives_pulse():
 # ============================================
 
 async def overview_coingecko_loop():
-    """Pre-compute CoinGecko-based Overview data every 300s."""
-    print("🔄 Overview CoinGecko worker started (interval: 300s)")
+    """Pre-compute CoinGecko-based Overview data.
+    CHANGED: interval 300s -> 900s (categories/trending change slowly) to cut
+    CoinGecko quota usage."""
+    interval = 900
+    print(f"🔄 Overview CoinGecko worker started (interval: {interval}s)")
     await asyncio.sleep(8)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
-                await asyncio.sleep(300)
+                await asyncio.sleep(interval)
                 continue
 
             start = time.time()
             cached = 0
+            ttl = interval + 30
 
             categories = await fetch_categories()
             if categories:
-                cache_set("lq:market:categories", categories, ttl=310)
+                cache_set("lq:market:categories", categories, ttl=ttl)
                 cached += 1
 
             await asyncio.sleep(3)
 
             trending = await fetch_trending()
             if trending:
-                cache_set("lq:market:trending", trending, ttl=310)
+                cache_set("lq:market:trending", trending, ttl=ttl)
                 cached += 1
 
             elapsed = round((time.time() - start) * 1000)
@@ -251,7 +259,7 @@ async def overview_coingecko_loop():
             print(f"❌ Overview CoinGecko worker error: {type(e).__name__}: {e}")
             traceback.print_exc()
 
-        await asyncio.sleep(300)
+        await asyncio.sleep(interval)
 
 
 async def overview_derivatives_loop():
@@ -260,6 +268,9 @@ async def overview_derivatives_loop():
     await asyncio.sleep(6)
 
     while True:
+        if not is_leader():
+            await asyncio.sleep(15)   # standby — re-check leadership quickly
+            continue
         try:
             if not is_redis_available():
                 await asyncio.sleep(60)

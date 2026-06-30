@@ -76,6 +76,16 @@ async def lifespan(app: FastAPI):
     # === Initialize shared HTTP clients ===
     init_clients()
 
+    # === Single-leader election for background pollers ===
+    # Runs in every worker, but only ONE becomes leader and actually polls
+    # external APIs — the rest stand by and take over if the leader dies.
+    # Prevents N× duplicate CoinGecko/Binance calls under `--workers N`.
+    try:
+        from app.core.leader import start_leader_election
+        start_leader_election()
+    except Exception as e:
+        print(f"⚠️ Leader election failed to start: {e}")
+
     # === Pre-create _cache_outcomes table BEFORE workers start ===
     try:
         db = SessionLocal()

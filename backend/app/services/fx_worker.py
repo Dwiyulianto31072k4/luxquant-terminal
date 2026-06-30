@@ -21,6 +21,7 @@ from typing import Optional
 
 from app.core.redis import cache_set, is_redis_available
 from app.core.http_client import get_coingecko_currency_client
+from app.core.leader import is_leader  # single-leader gate (avoid N× duplicate API calls)
 from app.services.currency_mapping import SUPPORTED_CURRENCIES
 
 COINGECKO_API = "https://api.coingecko.com/api/v3"
@@ -111,13 +112,17 @@ async def fx_refresh_loop():
     """Background loop — refresh FX rates every FX_REFRESH_INTERVAL seconds."""
     print(f"💱 [fx_worker] Starting FX rates refresh loop (every {FX_REFRESH_INTERVAL}s)")
 
-    # Initial fetch immediately on startup (small delay to let server settle)
+    # Small delay to let server settle
     await asyncio.sleep(2)
-    await _refresh_once()
 
     while True:
-        await asyncio.sleep(FX_REFRESH_INTERVAL)
+        # Only the elected leader process actually calls CoinGecko; standby
+        # workers re-check quickly so they can take over if the leader dies.
+        if not is_leader():
+            await asyncio.sleep(15)
+            continue
         await _refresh_once()
+        await asyncio.sleep(FX_REFRESH_INTERVAL)
 
 
 def start_fx_worker():
