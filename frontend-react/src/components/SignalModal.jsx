@@ -550,7 +550,10 @@ const SignalModal = ({
       gridColor: "rgba(212, 168, 83, 0.06)",
       hide_top_toolbar: false,
       hide_legend: false,
-      hide_side_toolbar: window.innerWidth < 768,
+      // Drawing toolbar (trendline, fib, dll) SELALU tampil — penting buat analisa.
+      // (dulu disembunyikan otomatis di layar sempit; sekarang dipertahankan.)
+      hide_side_toolbar: false,
+      hide_drawing_toolbar: false,
       allow_symbol_change: true,
       save_image: true,
       calendar: false,
@@ -624,7 +627,8 @@ const SignalModal = ({
         gridColor: "rgba(212, 168, 83, 0.05)",
         hide_top_toolbar: false,
         hide_legend: false,
-        hide_side_toolbar: window.innerWidth < 768,
+        hide_side_toolbar: false,
+        hide_drawing_toolbar: false,
         allow_symbol_change: true,
         save_image: false,
         studies: [],
@@ -1286,7 +1290,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
     if (isRedacted) {
       return (
         <div className="p-2.5 space-y-2">
-          <div className="lq-card lq-card--gold p-6 min-h-[280px] flex flex-col items-center justify-center text-center bg-gradient-to-br from-gold-primary/10 to-gold-primary/5">
+          <div className="lq-card lq-card--gold p-6 min-h-[280px] flex flex-col items-center justify-center text-center">
             {goldLine}
             <div className="w-16 h-16 rounded-full bg-gold-primary/15 border-2 border-gold-primary/40 flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gold-primary">
@@ -1324,7 +1328,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           return (
             <div className={`lq-card ${up ? "lq-card--green" : down ? "lq-card--red" : ""}`}>
               {goldLine}
-              <div className={`p-2.5 ${up ? "bg-green-500/[0.05]" : down ? "bg-red-500/[0.05]" : "bg-white/[0.02]"}`}>
+              <div className="p-2.5">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-1.5">
                     <span className="relative flex h-1.5 w-1.5">
@@ -1364,7 +1368,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         {/* ── ENTRY ── */}
         <div className="lq-card lq-card--gold">
           {goldLine}
-          <div className="p-2.5 bg-gradient-to-br from-gold-primary/[0.1] to-gold-primary/[0.02]">
+          <div className="p-2.5">
             <div className="flex items-center justify-between gap-2 mb-0.5">
               <p className="text-gold-primary/60 text-[9px] uppercase tracking-[0.14em] font-medium">{t("modal.entry")}</p>
               <p className="text-[9px] text-gold-primary/55 font-medium flex-shrink-0 whitespace-nowrap">{formatShortDateTime(signal?.created_at)}</p>
@@ -2554,7 +2558,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
            gold hairline di atas + gold glow saat hover. Depth via soft shadow. */
         .lq-card {
           position: relative;
-          border-radius: 14px;                       /* rounded premium (landing rounded-2xl feel) */
+          border-radius: 10px;                       /* crisp-profesional (norma TradingView/Binance), bukan pill */
           border: 1px solid rgba(255,255,255,.07);   /* subtle, bukan gold penuh */
           background: #0a0805;                        /* hitam landing */
           overflow: hidden;
@@ -2586,7 +2590,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
         /* inner tiles (TP / SL / exchange dll) — rounded lembut, konsisten */
         .lq-tile {
-          border-radius: 10px;
+          border-radius: 8px;
           border: 1px solid rgba(255,255,255,.07);
           background: rgba(255,255,255,.015);
           transition: border-color .2s ease, background-color .2s ease, transform .12s ease;
@@ -2603,14 +2607,25 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
         .lq-btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(212,168,83,.4); filter: brightness(1.03); }
         .lq-btn-gold:active { transform: translateY(0); }
 
+        /* === WARNA CARD DISTANDARKAN — satu hitam solid untuk semua card ===
+           Buang shade dark yang beda-beda (#0c0b09 / #0d0b08 / #0c0909 / #0d0d0d)
+           jadi satu var. Panel/backdrop sedikit lebih gelap biar card kebaca. */
+        .signal-modal-content { --lq-card: #0a0806; --lq-panel: #060504; }
+        .signal-modal-content .lq-card { background: var(--lq-card) !important; }
+        .signal-modal-content [class*="#0c0b09"],
+        .signal-modal-content [class*="#0d0b08"],
+        .signal-modal-content [class*="#0c0909"],
+        .signal-modal-content [class*="#0d0d0d"] { background-color: var(--lq-card) !important; }
+        .signal-modal-content [class*="#0a0a0a"] { background-color: var(--lq-panel) !important; }
+
         /* === SOFT ROUNDING === ganti "square everything" lama jadi skala rounded
            lembut biar konsisten sama landing terbaru. .rounded-full tetap bulat. */
-        .signal-modal-content .rounded    { border-radius: 8px !important; }
-        .signal-modal-content .rounded-sm { border-radius: 6px !important; }
-        .signal-modal-content .rounded-md { border-radius: 9px !important; }
-        .signal-modal-content .rounded-lg { border-radius: 11px !important; }
-        .signal-modal-content .rounded-xl { border-radius: 14px !important; }
-        .signal-modal-content .rounded-2xl { border-radius: 18px !important; }
+        .signal-modal-content .rounded    { border-radius: 6px !important; }
+        .signal-modal-content .rounded-sm { border-radius: 5px !important; }
+        .signal-modal-content .rounded-md { border-radius: 7px !important; }
+        .signal-modal-content .rounded-lg { border-radius: 8px !important; }
+        .signal-modal-content .rounded-xl { border-radius: 10px !important; }
+        .signal-modal-content .rounded-2xl { border-radius: 12px !important; }
 
         @media (prefers-reduced-motion: reduce) {
           .lq-card, .lq-card:hover, .lq-tile, .lq-tile:hover { transform: none; transition: none; }
