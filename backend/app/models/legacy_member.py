@@ -21,5 +21,11 @@ class LegacyMember(Base):
     claimed = Column(Boolean, nullable=False, default=False)
     claimed_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Ditandai TRUE saat admin revoke subscription user ini.
+    # Row yang revoked TIDAK lagi dianggap legacy -> mencegah re-grant otomatis
+    # tiap user login via Telegram. Row tetap disimpan untuk audit.
+    revoked = Column(Boolean, nullable=False, default=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
     def __repr__(self):
-        return f"<LegacyMember tg={self.telegram_id} claimed={self.claimed}>"
+        return f"<LegacyMember tg={self.telegram_id} claimed={self.claimed} revoked={self.revoked}>"

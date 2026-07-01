@@ -403,9 +403,14 @@ def _verify_telegram_hash(data: TelegramLogin) -> bool:
 
 
 def _check_legacy_member(db: Session, telegram_user_id: int) -> bool:
-    """Cek apakah telegram_id ada di snapshot legacy_members (member lama -> lifetime)."""
+    """Cek apakah telegram_id ada di snapshot legacy_members (member lama -> lifetime).
+
+    Row yang sudah di-revoke admin (revoked=True) TIDAK dianggap legacy lagi,
+    supaya akses tidak di-grant ulang tiap user login via Telegram.
+    """
     row = db.query(LegacyMember).filter(
-        LegacyMember.telegram_id == telegram_user_id
+        LegacyMember.telegram_id == telegram_user_id,
+        LegacyMember.revoked.is_(False),
     ).first()
     return row is not None
 

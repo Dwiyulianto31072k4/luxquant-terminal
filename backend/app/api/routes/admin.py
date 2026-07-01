@@ -27,6 +27,7 @@ from sqlalchemy import func, or_, and_, case, desc
 from app.core.database import get_db
 from app.models.user import User
 from app.models.subscription import SubscriptionPlan, Payment
+from app.models.legacy_member import LegacyMember
 from app.api.deps import get_admin_user
 from app.schemas.user import (
     AdminUserResponse,
@@ -578,10 +579,21 @@ async def revoke_subscription(
     if user.role == 'free':
         raise HTTPException(status_code=400, detail="User sudah free")
 
+    now = datetime.now(timezone.utc)
     user.role = 'free'
     user.subscription_expires_at = None
     user.subscription_source = None  # jalur pencabutan resmi — bersihin source
-    user.subscription_note = f"Revoked by admin (ID:{admin.id}) on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    user.subscription_note = f"Revoked by admin (ID:{admin.id}) on {now.strftime('%Y-%m-%d %H:%M')}"
+
+    # Tombstone snapshot legacy biar TIDAK di-grant ulang saat user login Telegram.
+    # Tanpa ini, _check_legacy_member akan terus menganggapnya legacy -> re-grant.
+    if user.telegram_id:
+        legacy_row = db.query(LegacyMember).filter(
+            LegacyMember.telegram_id == user.telegram_id
+        ).first()
+        if legacy_row and not legacy_row.revoked:
+            legacy_row.revoked = True
+            legacy_row.revoked_at = now
 
     db.commit()
     db.refresh(user)
