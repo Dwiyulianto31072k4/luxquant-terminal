@@ -1300,7 +1300,7 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               <span className="text-gold-primary font-semibold">open and running</span>. Subscribe to view live entry, take-profits, stop-loss, and charts.
             </p>
             <button onClick={() => { window.location.href = "/pricing"; }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-gold-primary text-black font-bold text-xs hover:bg-gold-primary/90 transition-all active:scale-[0.98]">
+              className="lq-btn-gold flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-xs active:scale-[0.98]">
               {Ic.lock("w-3.5 h-3.5")} Subscribe to Unlock
             </button>
             <p className="text-[10px] text-white/40 mt-3">Closed signals are visible for free as track record proof.</p>
@@ -2549,53 +2549,68 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
 
       {/* === STYLES === */}
       <style>{`
-        /* === Boxy card system (news-card style) === */
+        /* === Card system — selaras landing v2 (black card + gold hairline) ===
+           Landing pakai bg #0a0805, border putih super tipis, sudut rounded,
+           gold hairline di atas + gold glow saat hover. Depth via soft shadow. */
         .lq-card {
           position: relative;
-          border-radius: 2px;                        /* kotak — sudut tegas, no lonjong */
-          border: 1px solid rgba(212,168,83,.14);
-          background: #0c0b09;
+          border-radius: 14px;                       /* rounded premium (landing rounded-2xl feel) */
+          border: 1px solid rgba(255,255,255,.07);   /* subtle, bukan gold penuh */
+          background: #0a0805;                        /* hitam landing */
           overflow: hidden;
+          box-shadow: 0 1px 0 rgba(255,255,255,.02) inset,
+                      0 6px 18px rgba(0,0,0,.38);      /* depth halus */
           transition: border-color .25s ease, box-shadow .25s ease,
                       background-color .25s ease, transform .15s ease;
         }
         .lq-card:hover {
           border-color: rgba(212,168,83,.45);
-          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(212,168,83,.12);
+          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(212,168,83,.13);
           transform: translateY(-1px);
         }
         .lq-card:active { transform: translateY(0); }
 
-        .lq-card--green { border-color: rgba(34,197,94,.18); }
+        .lq-card--green { border-color: rgba(34,197,94,.20); }
         .lq-card--green:hover {
           border-color: rgba(34,197,94,.5);
-          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(34,197,94,.14);
+          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(34,197,94,.15);
         }
 
-        .lq-card--red { border-color: rgba(239,68,68,.18); }
+        .lq-card--red { border-color: rgba(239,68,68,.20); }
         .lq-card--red:hover {
           border-color: rgba(239,68,68,.5);
-          box-shadow: 0 8px 22px rgba(0,0,0,.5), 0 0 22px rgba(239,68,68,.14);
+          box-shadow: 0 10px 26px rgba(0,0,0,.55), 0 0 24px rgba(239,68,68,.15);
         }
 
-        .lq-card--gold { border-color: rgba(212,168,83,.28); }
+        .lq-card--gold { border-color: rgba(212,168,83,.30); }
 
-        /* inner tiles (TP / SL / exchange dll) */
+        /* inner tiles (TP / SL / exchange dll) — rounded lembut, konsisten */
         .lq-tile {
-          border-radius: 2px;
-          border: 1px solid rgba(255,255,255,.06);
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.07);
+          background: rgba(255,255,255,.015);
           transition: border-color .2s ease, background-color .2s ease, transform .12s ease;
         }
-        .lq-tile:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.16); }
+        .lq-tile:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
 
-        /* === SQUARE EVERYTHING === square semua sudut di dalam modal,
-           kecuali .rounded-full (dot live, ping, drag handle) yang memang bulat */
-        .signal-modal-content .rounded,
-        .signal-modal-content .rounded-sm,
-        .signal-modal-content .rounded-md,
-        .signal-modal-content .rounded-lg,
-        .signal-modal-content .rounded-xl,
-        .signal-modal-content .rounded-2xl { border-radius: 2px !important; }
+        /* Tombol emas SOLID ala landing (GOLD_BTN) — untuk CTA utama */
+        .lq-btn-gold {
+          background: linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%);
+          color: #0a0506;
+          box-shadow: 0 4px 16px rgba(212,168,83,.25);
+          transition: transform .18s ease, box-shadow .25s ease, filter .2s ease;
+        }
+        .lq-btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(212,168,83,.4); filter: brightness(1.03); }
+        .lq-btn-gold:active { transform: translateY(0); }
+
+        /* === SOFT ROUNDING === ganti "square everything" lama jadi skala rounded
+           lembut biar konsisten sama landing terbaru. .rounded-full tetap bulat. */
+        .signal-modal-content .rounded    { border-radius: 8px !important; }
+        .signal-modal-content .rounded-sm { border-radius: 6px !important; }
+        .signal-modal-content .rounded-md { border-radius: 9px !important; }
+        .signal-modal-content .rounded-lg { border-radius: 11px !important; }
+        .signal-modal-content .rounded-xl { border-radius: 14px !important; }
+        .signal-modal-content .rounded-2xl { border-radius: 18px !important; }
 
         @media (prefers-reduced-motion: reduce) {
           .lq-card, .lq-card:hover, .lq-tile, .lq-tile:hover { transform: none; transition: none; }
