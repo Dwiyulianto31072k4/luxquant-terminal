@@ -33,6 +33,10 @@ const TopPerformers = () => {
   const [historyModalSignal, setHistoryModalSignal] = useState(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
+  // Brief onboarding cue — shown on every fresh page mount, then fades away.
+  const [showProofHint, setShowProofHint] = useState(true);
+  const [isProofHintClosing, setIsProofHintClosing] = useState(false);
+
   const openHistoryModal = (item) => {
     closeModal();
     setHistoryModalSignal(item);
@@ -83,6 +87,16 @@ const TopPerformers = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (activeFilter === 'custom') return; const iv = setInterval(fetchData, 60000); return () => clearInterval(iv); }, [activeFilter, fetchData]);
 
+  // Give first-time viewers a clear, non-blocking cue that each row opens proof.
+  useEffect(() => {
+    const closeTimer = window.setTimeout(() => setIsProofHintClosing(true), 2500);
+    const removeTimer = window.setTimeout(() => setShowProofHint(false), 3000);
+    return () => {
+      window.clearTimeout(closeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, []);
+
   const fetchDetail = useCallback(async (sid) => {
     setDetailLoading(true); setSignalDetail(null);
     try {
@@ -109,23 +123,19 @@ const TopPerformers = () => {
   const cleanPair = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') + 'USDT' : '???';
   const coinSymbol = (p) => p ? p.replace(/^3A/, '').replace(/USDT$/i, '') : '???';
 
-  // Format period — short Flowscan-style
-  const formatPeriod = (period) => {
-    if (!period) return null;
-    return period;
+  // Format period — renders the start and end dates on their own aligned edges.
+  const splitPeriodRange = (period) => {
+    if (!period || typeof period !== 'string') return { from: '', to: '' };
+    const parts = period.trim().split(/\s+(?:-|–|—)\s+/);
+    if (parts.length < 2) return { from: period.trim(), to: '' };
+    return {
+      from: parts[0].trim(),
+      to: parts.slice(1).join(' — ').trim(),
+    };
   };
 
-  // Best single gain (honest headline number; replaces the outlier-skewed avg)
-  const bestGain = data?.top_gainers?.length > 0
-    ? Math.max(...data.top_gainers.map(g => g.gain_pct || 0))
-    : null;
+  const periodRange = splitPeriodRange(data?.period);
 
-  // Log-scaled intensity fill so the huge dynamic range stays readable
-  const maxGain = data?.top_gainers?.length > 0
-    ? Math.max(...data.top_gainers.map(g => g.gain_pct || 0), 1)
-    : 1;
-  const logMax = Math.log10(maxGain + 1) || 1;
-  const intensityPct = (g) => Math.max(4, Math.round((Math.log10((g || 0) + 1) / logMax) * 100));
 
   if (loading && !data) {
     return (
@@ -172,36 +182,12 @@ const TopPerformers = () => {
 
   return (
     <div className="mb-10 relative">
-      {/* ═══ HEADER — open layout (no card wrapper), MEXC-style ═══ */}
-      <div className="relative mb-5">
-        {/* title — brand merged into the header */}
-        <div className="min-w-0">
-          <h2 className="font-display text-[28px] sm:text-[34px] font-bold leading-none tracking-tight text-white">
-            Top Gainers <span className="text-gold-primary">by LuxQuant</span>
-          </h2>
-        </div>
-
-        {/* 3 — KPI row (open, ledger-style dividers — no card) */}
-        {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-          <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 border-t border-white/[0.07] pt-5">
-            <Kpi
-              value={data.total_tp_hits || data.total_tp4} label={t('top.tp_sub') || 'Signals hit target'}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="9" opacity="0.25"/><circle cx="12" cy="12" r="5.5" opacity="0.5"/><circle cx="12" cy="12" r="2.4"/></svg>}
-            />
-            <Kpi
-              value={data.unique_pairs || '—'} label={t('top.pairs_sub') || 'Different coins'}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.4"/><ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.65"/><ellipse cx="12" cy="7.5" rx="7" ry="2.8"/></svg>}
-            />
-            <Kpi accent
-              value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '—'} label="Top single call"
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10" opacity="0.2"/><path d="M12 6.5l5.5 6.5h-3.3v4.5h-4.4V13H6.5L12 6.5z"/></svg>}
-            />
-            <Kpi
-              value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'} label={t('top.dur_sub') || 'First call to last hit'}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="13" r="8.5" opacity="0.22"/><circle cx="12" cy="13" r="1.6"/><rect x="11.1" y="6.5" width="1.8" height="7" rx="0.9"/><rect x="9" y="2" width="6" height="2" rx="1"/></svg>}
-            />
-          </div>
-        )}
+      {/* ═══ HEADER — direct title only; metrics intentionally removed ═══ */}
+      <div className="relative mb-6 sm:mb-7">
+        <h2 className="font-display flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[28px] sm:block sm:text-[34px] font-bold leading-none tracking-tight text-white">
+          <span className="whitespace-nowrap">Top Gainers</span>
+          <span className="whitespace-nowrap text-[0.86em] text-gold-primary sm:ml-2 sm:text-[1em]">by LuxQuant</span>
+        </h2>
       </div>
 
       {/* ═══ CUSTOM DATE PICKER ═══ */}
@@ -221,50 +207,64 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* ═══ CONTROL BAR — tabs spread full width + time range at the far right ═══ */}
+      {/* ═══ CONTROL BAR — mobile fills the same left/right grid as KPI + table ═══ */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-1 flex flex-col-reverse gap-3 border-b border-white/[0.08] sm:flex-row sm:items-end sm:gap-6">
-          {/* category tabs — flex-1 + justify-between so they fill the row (no empty gap) */}
-          <div className="flex flex-1 items-end justify-between gap-4 overflow-x-auto">
-            {CATEGORIES.map((c) => {
-              const on = category === c.key;
-              return (
+        <div className="mb-1 border-b border-white/[0.08]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+            {/* Time range: four equal cells on mobile, compact pill only on desktop */}
+            <div className="order-1 grid w-full grid-cols-4 items-center rounded-full border border-white/[0.08] bg-[#0a0506] p-1 sm:order-2 sm:mb-2.5 sm:flex sm:w-auto sm:flex-shrink-0">
+              {presets.map(({ key, label }) => (
                 <button
-                  key={c.key}
-                  onClick={() => setCategory(c.key)}
-                  className={`relative whitespace-nowrap pb-3 font-display text-[15px] sm:text-lg lg:text-xl font-bold tracking-tight transition-colors ${on ? 'text-white' : 'text-white/45 hover:text-white'}`}
+                  key={key}
+                  onClick={() => handlePresetClick(key)}
+                  className={`min-w-0 flex-1 rounded-full px-1 py-2 font-mono text-[9px] uppercase tracking-[0.08em] transition-all sm:flex-none sm:px-3.5 sm:py-1.5 sm:text-[10px] sm:tracking-wider ${
+                    activeFilter === key
+                      ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
+                      : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
+                  }`}
                 >
-                  {c.label}
-                  <span className={`absolute -bottom-px left-0 right-0 h-[2.5px] rounded-full transition-all ${on ? 'bg-gold-primary shadow-[0_0_12px_-2px_rgba(212,168,83,0.8)]' : 'bg-transparent'}`} />
+                  {label}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* time range pills — hugs the right edge */}
-          <div className="flex items-center gap-1 self-start rounded-full border border-white/[0.08] bg-[#0a0506] p-1 overflow-x-auto sm:mb-2.5 sm:self-auto sm:flex-shrink-0">
-            {presets.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => handlePresetClick(key)}
-                className={`px-3.5 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wider transition-all whitespace-nowrap ${
-                  activeFilter === key
-                    ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
-                    : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {/* Category tabs: equal-width mobile nav, then MEXC-style spread row from sm up */}
+            <div className="order-2 grid w-full grid-cols-4 items-end gap-0 sm:order-1 sm:flex sm:flex-1 sm:justify-between sm:gap-4">
+              {CATEGORIES.map((c) => {
+                const on = category === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => setCategory(c.key)}
+                    className={`relative min-w-0 pb-3 text-center font-display text-[10px] font-bold leading-none tracking-[-0.02em] transition-colors sm:w-auto sm:whitespace-nowrap sm:text-left sm:text-lg sm:leading-normal sm:tracking-tight lg:text-xl ${
+                      on ? 'text-white' : 'text-white/45 hover:text-white'
+                    }`}
+                  >
+                    <span className="block truncate">{c.label}</span>
+                    <span className={`absolute -bottom-px left-1 right-1 h-[2.5px] rounded-full transition-all sm:left-0 sm:right-0 ${on ? 'bg-gold-primary shadow-[0_0_12px_-2px_rgba(212,168,83,0.8)]' : 'bg-transparent'}`} />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* date — placed under the filter/control bar */}
+      {/* Date window — aligned to both page edges instead of floating on the right */}
       {data?.period && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <p className="mb-4 mt-2 text-right font-mono text-[10px] tracking-wide text-text-muted/70">
-          {formatPeriod(data.period)}
-        </p>
+        <div className="mb-4 mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 font-mono text-[9px] sm:text-[10px] tracking-wide text-text-muted/70">
+          <span className="truncate text-left">{periodRange.from}</span>
+          {periodRange.to && (
+            <span className="flex items-center justify-center gap-1.5 text-gold-primary/60" aria-hidden="true">
+              <span className="h-px w-3 sm:w-5 bg-gold-primary/30" />
+              <svg viewBox="0 0 16 16" className="h-3 w-3 fill-current" focusable="false">
+                <path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" />
+              </svg>
+              <span className="h-px w-3 sm:w-5 bg-gold-primary/30" />
+            </span>
+          )}
+          <span className={`truncate ${periodRange.to ? 'text-right' : 'col-span-2 text-left'}`}>{periodRange.to}</span>
+        </div>
       )}
 
       {/* ═══ LEADERBOARD — open MEXC-style table (no card wrapper) ═══ */}
@@ -273,7 +273,7 @@ const TopPerformers = () => {
           <div className="relative">
 
             {/* Column headers (desktop) */}
-            <div className="hidden sm:grid grid-cols-[2.5rem_1.3fr_7rem_7rem_5.5rem_7.5rem] gap-4 px-2 py-3 border-b border-white/[0.08] font-mono text-[10px] text-text-muted/90 uppercase tracking-[0.2em]">
+            <div className="hidden sm:grid grid-cols-[2.5rem_1.2fr_1fr_1fr_0.9fr_1.1fr] gap-3 px-2 py-3 border-b border-white/[0.08] font-mono text-[10px] text-text-muted/90 uppercase tracking-[0.2em]">
               <span className="text-center">#</span>
               <span>Asset</span>
               <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
@@ -282,18 +282,17 @@ const TopPerformers = () => {
               <span className="text-right">Gain</span>
             </div>
 
-            {/* Mini header (mobile) */}
-            <div className="sm:hidden px-2 py-2.5 border-b border-white/[0.08] flex items-center justify-between">
-              <span className="font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Asset</span>
-              <span className="font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Gain</span>
+            {/* Mobile header — three concise, scan-friendly columns */}
+            <div className="sm:hidden grid grid-cols-[4.25rem_minmax(0,1fr)_4.75rem_5.75rem] items-center gap-x-2 py-2.5 border-b border-white/[0.08]">
+              <span className="col-span-2 font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Asset</span>
+              <span className="text-center font-mono text-[8px] text-text-muted/60 uppercase tracking-[0.12em]">After call</span>
+              <span className="text-right font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Gain</span>
             </div>
 
             <div className="divide-y divide-white/[0.04]">
               {displayed.map((item, idx) => {
                 const rank = idx + 1;
                 const isPodium = idx < 3;
-                const podiumBorder = idx === 0 ? 'border-gold-primary/70' : idx === 1 ? 'border-gold-primary/40' : idx === 2 ? 'border-gold-primary/25' : 'border-transparent';
-                const fillPct = intensityPct(item.gain_pct);
 
                 return (
                   <div
@@ -304,7 +303,7 @@ const TopPerformers = () => {
                   >
 
                     {/* Desktop grid */}
-                    <div className="hidden sm:grid grid-cols-[2.5rem_1.3fr_7rem_7rem_5.5rem_7.5rem] gap-4 px-2 py-3.5 items-center relative">
+                    <div className="hidden sm:grid grid-cols-[2.5rem_1.2fr_1fr_1fr_0.9fr_1.1fr] gap-3 px-2 py-3.5 items-center relative">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
                       <div className="flex items-center gap-3 min-w-0">
                         <CoinLogo pair={cleanPair(item.pair)} size={30} />
@@ -312,7 +311,7 @@ const TopPerformers = () => {
                         {item.signal_count > 1 && <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
                       </div>
                       <div className="text-right font-mono text-xs text-text-muted tabular-nums">${formatPrice(item.entry)}</div>
-                      <div className="px-1"><SinceCallSpark item={item} /></div>
+                      <div className="flex justify-center"><div className="w-full max-w-[120px]"><SinceCallSpark item={item} /></div></div>
                       <div className="text-right font-mono text-[11px] text-text-muted/70">{item.duration_display}</div>
                       <div className="text-right">
                         <div className={`font-mono text-lg font-bold text-profit tabular-nums leading-none ${isPodium ? 'drop-shadow-[0_0_10px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
@@ -320,20 +319,25 @@ const TopPerformers = () => {
                       </div>
                     </div>
 
-                    {/* Mobile stacked */}
-                    <div className="sm:hidden flex items-center gap-3 px-2 py-3 relative">
-                      {rankBadge(rank)}
-                      <CoinLogo pair={cleanPair(item.pair)} size={28} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-mono text-sm font-semibold group-hover:text-gold-primary transition-colors truncate">{coinSymbol(item.pair)}</span>
-                          {item.signal_count > 1 && <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded flex-shrink-0">×{item.signal_count}</span>}
-                        </div>
-                        <div className="font-mono text-[10px] text-text-muted/60 tabular-nums mt-0.5 truncate">${formatPrice(item.entry)} · {item.duration_display}</div>
+                    {/* Mobile — compact four-column market row, with a real After Call sparkline */}
+                    <div className="sm:hidden grid grid-cols-[4.25rem_minmax(0,1fr)_4.75rem_5.75rem] items-center gap-x-2 py-3 relative">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {rankBadge(rank)}
+                        <CoinLogo pair={cleanPair(item.pair)} size={27} />
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className={`font-mono text-base font-bold text-profit tabular-nums ${isPodium ? 'drop-shadow-[0_0_8px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
-                        {item.tp_price > 0 && <div className="font-mono text-[8px] text-text-muted/40 tabular-nums">peak ${formatPrice(item.tp_price)}</div>}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="min-w-0 truncate text-white font-mono text-sm font-semibold group-hover:text-gold-primary transition-colors">{coinSymbol(item.pair)}</span>
+                          {item.signal_count > 1 && <span className="px-1 py-0 font-mono text-[8px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
+                        </div>
+                        <div className="mt-0.5 truncate font-mono text-[9px] text-text-muted/60 tabular-nums">${formatPrice(item.entry)} · {item.duration_display}</div>
+                      </div>
+                      <div className="min-w-0 px-0.5">
+                        <SinceCallSpark item={item} compact />
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className={`font-mono text-[15px] font-bold leading-none text-profit tabular-nums ${isPodium ? 'drop-shadow-[0_0_8px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
+                        {item.tp_price > 0 && <div className="mt-1 truncate font-mono text-[8px] text-text-muted/40 tabular-nums">peak ${formatPrice(item.tp_price)}</div>}
                       </div>
                     </div>
                   </div>
@@ -351,8 +355,32 @@ const TopPerformers = () => {
       <style>{`
         @keyframes tpRowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .tp-row { animation: tpRowIn 0.4s ease-out both; }
+        @keyframes proofHintIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
       `}</style>
+
+      {/* Three-second proof cue on each fresh page visit */}
+      {showProofHint && !modalOpen && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`pointer-events-none fixed inset-x-4 bottom-[92px] z-[9990] mx-auto max-w-[420px] rounded-2xl border border-gold-primary/30 bg-[#120a08]/95 px-4 py-3 shadow-[0_12px_36px_rgba(0,0,0,0.42),0_0_24px_rgba(212,168,83,0.10)] backdrop-blur-xl transition-all duration-500 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[360px] ${
+            isProofHintClosing ? 'translate-y-2 opacity-0' : 'animate-[proofHintIn_.35s_cubic-bezier(.16,1,.3,1)] opacity-100'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-gold-primary/25 bg-gold-primary/10 text-gold-primary">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+                <path d="M12 4.25c-5.1 0-9.24 3.36-10.85 7.3a1.2 1.2 0 0 0 0 .9c1.61 3.94 5.75 7.3 10.85 7.3s9.24-3.36 10.85-7.3a1.2 1.2 0 0 0 0-.9C21.24 7.61 17.1 4.25 12 4.25Zm0 11.2a3.75 3.75 0 1 1 0-7.5 3.75 3.75 0 0 1 0 7.5Zm0-2.05a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-gold-primary">Call proof</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-white/84">Tap any listed coin to view the original call proof.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* === MODAL (unchanged logic) === */}
       {modalOpen && modalItem && (
@@ -367,20 +395,14 @@ const TopPerformers = () => {
   );
 };
 
-// === KPI — value is the hero, tiny filled icon + label sit beneath (clean hierarchy) ===
-const Kpi = ({ value, label, accent = false }) => (
-  <div>
-    <p className={`font-mono text-2xl sm:text-[28px] font-semibold tabular-nums leading-none ${accent ? 'text-profit' : 'text-white'}`}>{value}</p>
-    <p className="mt-2 font-mono text-[9px] sm:text-[10px] text-text-muted uppercase tracking-[0.16em] truncate">{label}</p>
-  </div>
-);
-
 // === SPARK — mini price path (call -> peak) line+area, MEXC "24H Market" analog ===
-const Spark = ({ data, up = true }) => {
+const Spark = ({ data, up = true, compact = false }) => {
+  const height = compact ? 20 : 28;
+  const pad = compact ? 2 : 3;
   if (!Array.isArray(data) || data.length < 2) {
-    return <div className="flex h-7 w-full items-center"><span className="h-px w-full bg-white/[0.06]" /></div>;
+    return <div className={`flex w-full items-center ${compact ? 'h-5' : 'h-7'}`}><span className="h-px w-full bg-white/[0.06]" /></div>;
   }
-  const w = 100, h = 28, pad = 3;
+  const w = 100, h = height;
   const min = Math.min(...data), max = Math.max(...data);
   const range = (max - min) || 1;
   const pts = data.map((v, i) => {
@@ -393,7 +415,7 @@ const Spark = ({ data, up = true }) => {
   const col = up ? '#4ade80' : '#f87171';
   const gid = `sg${Math.round((min + max + data.length) * 1000) % 100000}`;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-7 w-full" preserveAspectRatio="none" aria-hidden="true">
+    <svg viewBox={`0 0 ${w} ${h}`} className={`${compact ? 'h-5' : 'h-7'} w-full`} preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={col} stopOpacity="0.22" />
@@ -401,7 +423,7 @@ const Spark = ({ data, up = true }) => {
         </linearGradient>
       </defs>
       <polygon points={area} fill={`url(#${gid})`} />
-      <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={line} fill="none" stroke={col} strokeWidth={compact ? "1.25" : "1.5"} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 };
@@ -435,7 +457,7 @@ async function fetchSinceCall(item) {
   return null;
 }
 
-const SinceCallSpark = ({ item }) => {
+const SinceCallSpark = ({ item, compact = false }) => {
   const [pts, setPts] = useState(Array.isArray(item.sparkline) && item.sparkline.length > 1 ? item.sparkline : null);
   useEffect(() => {
     if (Array.isArray(item.sparkline) && item.sparkline.length > 1) { setPts(item.sparkline); return; }
@@ -445,7 +467,7 @@ const SinceCallSpark = ({ item }) => {
     fetchSinceCall(item).then((d) => { if (alive && d) { _sparkCache[key] = d; setPts(d); } });
     return () => { alive = false; };
   }, [item.signal_id, item.pair, item.sparkline]);
-  return <Spark data={pts} up={(item.gain_pct || 0) >= 0} />;
+  return <Spark data={pts} up={(item.gain_pct || 0) >= 0} compact={compact} />;
 };
 
 function formatDuration(s) { if (!s || s <= 0) return 'N/A'; const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60); if (d > 0) return `${d}d ${h}h ${m}m`; if (h > 0) return `${h}h ${m}m`; if (m > 0) return `${m}m ${sec}s`; return `${sec}s`; }
