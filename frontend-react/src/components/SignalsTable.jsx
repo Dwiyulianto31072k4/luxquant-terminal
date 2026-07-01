@@ -660,8 +660,8 @@ const SignalsTable = ({
     const potentialPct = maxTarget != null ? calcPct(maxTarget, signal.entry) : null;
 
     return (
-      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-amber-400/25">
-        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
+      <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden transition-all hover:border-gold-primary/30">
+        <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
         {/* COLLAPSED — overview, tap to expand */}
         <div className="flex items-center gap-2.5 p-3">
