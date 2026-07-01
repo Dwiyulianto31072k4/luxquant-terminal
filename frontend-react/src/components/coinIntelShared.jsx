@@ -95,15 +95,15 @@ export const MonthlyLineChart = ({ data }) => {
       <svg viewBox={`0 0 ${W} ${H + 18}`} className="w-full" style={{ height: '90px' }}>
         <defs>
           <linearGradient id="wrGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+            <stop offset="0%" stopColor="#d4a853" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="#d4a853" stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0, 0.5, 1].map((f, i) => (
           <line key={i} x1={padX} x2={W - padX} y1={padY + f * (H - padY * 2)} y2={padY + f * (H - padY * 2)} stroke="rgba(212,168,83,0.06)" strokeWidth="0.5" />
         ))}
         <path d={areaD} fill="url(#wrGrad)" />
-        <path d={pathD} fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} fill="none" stroke="#d4a853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="2.5" fill="#0a0506" stroke={wrc(p.wr)} strokeWidth="1.5" />
@@ -119,7 +119,8 @@ export const MonthlyLineChart = ({ data }) => {
 };
 
 const Section = ({ title, children, className = "" }) => (
-  <div className={`rounded-xl p-4 bg-[#0d0d0d] border border-gold-primary/10 ${className}`}>
+  <div className={`relative rounded-xl p-4 bg-white/[0.02] border border-white/[0.06] overflow-hidden ${className}`}>
+    <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
     <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70 mb-3">{title}</p>
     {children}
   </div>
@@ -244,7 +245,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 {/* Stat cards (values = semantic) */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {statCards.map((s,i) => (
-                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-[#111] border border-gold-primary/10 hover:border-gold-primary/25 transition-colors">
+                    <div key={i} className="flex flex-col items-center justify-center py-3.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-gold-primary/25 transition-colors">
                       <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1.5 text-center">{s.l}</p>
                       <div className="flex items-center gap-1">
                         <p className="font-mono font-extrabold text-[15px]" style={{ color:s.c }}>{s.v}</p>
@@ -254,30 +255,58 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   ))}
                 </div>
 
-                {/* Outcome distribution (bars = semantic) */}
-                <div className="rounded-xl border border-gold-primary/10 p-4 bg-[#0d0d0d]">
-                  <div className="flex justify-between items-end mb-2.5">
+                {/* Outcome distribution — donut multi-warna (data pct + count dipertahankan) */}
+                <div className="relative rounded-xl border border-white/[0.06] p-4 bg-white/[0.02] overflow-hidden">
+                  <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/25 to-transparent" />
+                  <div className="flex justify-between items-end mb-1">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Outcome Distribution</p>
                     <p className="text-[9px] text-text-muted font-mono">{coin.closed_trades} Total Closed</p>
                   </div>
-                  <div className="flex h-[14px] rounded-full overflow-hidden gap-[2px]">
-                    {['sl','tp1','tp2','tp3','tp4'].map(k => {
-                      const v = coin.outcome_dist?.[k]||0; if (!v) return null;
-                      const pct = Math.round(v/coin.closed_trades*100);
-                      return <div key={k} className="relative group flex items-center justify-center transition-all hover:brightness-110" style={{ flex:v, background:JC[k], borderRadius:'4px' }}>
-                        {pct>6 && <span className="text-[8px] font-bold text-white/90 font-mono tracking-tighter">{pct}%</span>}
-                        <div className="absolute bottom-full mb-1.5 px-2 py-1 rounded-md text-[9px] font-mono bg-black/90 text-white opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 pointer-events-none">
-                          {OC[k]?.l} : {pct}% ({v} tr)
+                  {(() => {
+                    const order = ['tp4','tp3','tp2','tp1','sl'];
+                    const closed = coin.closed_trades || 0;
+                    const reachTp = ['tp1','tp2','tp3','tp4'].reduce((a,k)=>a+(coin.outcome_dist?.[k]||0),0);
+                    const reachPct = closed ? Math.round(reachTp/closed*100) : 0;
+                    let acc = 0;
+                    const segs = order.map(k => {
+                      const v = coin.outcome_dist?.[k]||0;
+                      const pct = closed ? (v/closed*100) : 0;
+                      const s = { k, v, pct, offset: acc };
+                      acc += pct; return s;
+                    }).filter(s => s.v > 0);
+                    return (
+                      <div className="flex items-center gap-5 mt-2">
+                        <svg width="118" height="118" viewBox="0 0 42 42" className="flex-shrink-0">
+                          <circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
+                          {segs.map(s => (
+                            <circle key={s.k} cx="21" cy="21" r="15.915" fill="none" stroke={JC[s.k]} strokeWidth="5"
+                              strokeDasharray={`${s.pct} ${100 - s.pct}`} strokeDashoffset={25 - s.offset} strokeLinecap="butt" />
+                          ))}
+                          <text x="21" y="20.3" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="6" fontWeight="700" fill={wrc(reachPct)}>{reachPct}%</text>
+                          <text x="21" y="25.5" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="2.6" letterSpacing="0.4" fill="#8a8577">REACH TP</text>
+                        </svg>
+                        <div className="flex-1 grid grid-cols-1 gap-y-1.5 font-mono text-[11px]">
+                          {order.map(k => {
+                            const v = coin.outcome_dist?.[k]||0;
+                            const pct = closed ? Math.round(v/closed*100) : 0;
+                            return (
+                              <div key={k} className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background:JC[k] }} />
+                                <span className="text-white/80">{OC[k]?.l || k.toUpperCase()}</span>
+                                <span className="ml-auto tabular-nums text-white/45">{pct}% · {v} tr</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>;
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* AI insight (left accent = severity, semantic) */}
                 {coin.insight && (
-                  <div className="relative p-4 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-[#0d0d0d] border border-gold-primary/10">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: st.text }} />
+                  <div className="relative p-4 pl-5 rounded-xl text-[13px] text-gray-300 leading-relaxed bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: st.text }} />
                     <div className="flex items-center gap-2 mb-2.5">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={st.text} strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                       <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color:st.text }}>AI Deep Analysis</p>
@@ -426,7 +455,7 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                       <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Signal History</p>
                       <p className="text-[10px] text-text-muted font-mono">{total} signals total</p>
                     </div>
-                    <div className="rounded-xl border border-gold-primary/10 bg-[#0d0d0d] overflow-hidden">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
                         <table className="w-full text-left border-collapse min-w-[500px]">
                           <thead className="bg-[#0a0a0a] border-b border-gold-primary/15">
