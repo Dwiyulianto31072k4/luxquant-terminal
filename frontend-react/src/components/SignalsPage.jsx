@@ -397,7 +397,13 @@ const SignalsPage = () => {
   // and to decide which chips to show. Tag filter itself is excluded so counts
   // don't collapse to the current selection.
   const signalsBeforeTagFilter = useMemo(() => {
-    let f = showWatchlistOnly ? [...watchlistSignals] : [...allSignals];
+    let f;
+    if (showWatchlistOnly) {
+      const bySid = new Map(allSignals.map((s) => [s.signal_id, s]));
+      f = watchlistSignals.map((w) => { const m = bySid.get(w.signal_id); return m ? { ...w, ...m } : w; });
+    } else {
+      f = [...allSignals];
+    }
     if (searchPair) {
       const q = searchPair.toUpperCase();
       f = f.filter((s) => s.pair && s.pair.toUpperCase().includes(q));
@@ -598,8 +604,19 @@ const SignalsPage = () => {
 
   const { signals, totalPages, totalSignals } = useMemo(() => {
     // Watchlist mode: sumbernya data watchlist penuh (lintas-tanggal), BUKAN allSignals
-    // (yang cuma 7 hari). Ini yang bikin dulu "No signals found" untuk item lama.
-    let filtered = showWatchlistOnly ? [...watchlistSignals] : [...allSignals];
+    // (yang cuma 7 hari). Objek watchlist lebih ramping → merge dgn allSignals (by
+    // signal_id) supaya kolom MCAP / BTC Corr / dll tetap terisi untuk sinyal yang
+    // masih ada di set 7-hari.
+    let filtered;
+    if (showWatchlistOnly) {
+      const bySid = new Map(allSignals.map((s) => [s.signal_id, s]));
+      filtered = watchlistSignals.map((w) => {
+        const m = bySid.get(w.signal_id);
+        return m ? { ...w, ...m } : w; // m (allSignals) menang → semua kolom terisi
+      });
+    } else {
+      filtered = [...allSignals];
+    }
 
     if (searchPair) {
       const search = searchPair.toUpperCase();

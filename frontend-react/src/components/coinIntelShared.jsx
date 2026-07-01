@@ -140,6 +140,8 @@ const StatBox = ({ label, value, color, icon = null }) => (
 // ═══════════════════════════════════════════
 export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [histPage, setHistPage] = useState(1); // pagination Signal History
+  const HIST_PER_PAGE = 10;
 
   // Lock body scroll while open
   useEffect(() => {
@@ -411,12 +413,18 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                   </div>
                 )}
 
-                {/* Signal history */}
-                {coin.signal_history?.length > 0 && (
+                {/* Signal history — paginated (biar tidak kepanjangan) */}
+                {coin.signal_history?.length > 0 && (() => {
+                  const total = coin.signal_history.length;
+                  const pages = Math.max(1, Math.ceil(total / HIST_PER_PAGE));
+                  const page = Math.min(histPage, pages);
+                  const start = (page - 1) * HIST_PER_PAGE;
+                  const rows = coin.signal_history.slice(start, start + HIST_PER_PAGE);
+                  return (
                   <div>
                     <div className="flex justify-between items-end mb-3">
                       <p className="text-[9px] font-bold uppercase tracking-widest text-gold-primary/70">Signal History</p>
-                      <p className="text-[10px] text-text-muted font-mono">Last {coin.signal_history.length} signals</p>
+                      <p className="text-[10px] text-text-muted font-mono">{total} signals total</p>
                     </div>
                     <div className="rounded-xl border border-gold-primary/10 bg-[#0d0d0d] overflow-hidden">
                       <div className="overflow-x-auto cdm-scroll">
@@ -429,8 +437,8 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gold-primary/5">
-                            {coin.signal_history.map((s,i) => (
-                              <tr key={i} className="hover:bg-gold-primary/[0.04] transition-colors">
+                            {rows.map((s,i) => (
+                              <tr key={start+i} className="hover:bg-gold-primary/[0.04] transition-colors">
                                 <td className="px-4 py-2.5 font-mono text-[11px] text-gray-300 whitespace-nowrap">{fmtDate(s.date)}</td>
                                 <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color:s.platform_wr?wrc(s.platform_wr):'#555' }}>
                                   {s.platform_wr!=null?`${s.platform_wr}%`:'—'}
@@ -447,9 +455,35 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                           </tbody>
                         </table>
                       </div>
+                      {/* Pagination controls */}
+                      {pages > 1 && (
+                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gold-primary/10 bg-[#0a0a0a]">
+                          <span className="font-mono text-[10px] text-text-muted">
+                            {start + 1}–{Math.min(start + HIST_PER_PAGE, total)} of {total}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setHistPage((p) => Math.max(1, p - 1))}
+                              disabled={page <= 1}
+                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                              Prev
+                            </button>
+                            <span className="font-mono text-[10px] tabular-nums text-white/60 px-1">{page}/{pages}</span>
+                            <button
+                              onClick={() => setHistPage((p) => Math.min(pages, p + 1))}
+                              disabled={page >= pages}
+                              className="px-2.5 py-1 rounded-md border border-gold-primary/20 font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white hover:border-gold-primary/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 <div className="h-2"></div>
               </div>
