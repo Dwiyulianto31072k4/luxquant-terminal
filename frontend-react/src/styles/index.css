@@ -9,6 +9,25 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Coin-flow card — hover emas 3D (lift + glow) */
+.lqflow-card { transition: transform .18s ease, border-color .2s ease, box-shadow .25s ease, background-color .2s ease; }
+.lqflow-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212,168,83,.42);
+  background: rgba(212,168,83,.06);
+  box-shadow: 0 8px 22px rgba(0,0,0,.45), 0 0 18px rgba(212,168,83,.16);
+}
+.lqflow-card:active { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) { .lqflow-card, .lqflow-card:hover { transform: none; } }
+
+/* Fade tepi kanan untuk tab bar yang bisa di-scroll (petunjuk "ada lagi") */
+.edge-fade-r { position: relative; }
+.edge-fade-r::after {
+  content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 56px;
+  background: linear-gradient(to right, transparent, #0a0503 92%);
+  pointer-events: none; z-index: 2;
+}
+
 :root {
   --bg-primary: #0a0506;
   --bg-secondary: #120809;

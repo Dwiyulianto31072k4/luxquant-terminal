@@ -8,6 +8,7 @@ import { classifyCoin } from './coinIntelShared';
 import { InfoTip, GuideModal } from './GuideInfo';
 import { watchlistApi } from '../services/watchlistApi';
 import moneyFlowApi from '../services/moneyFlowApi';
+import CoinLogo from './CoinLogo';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -174,7 +175,9 @@ const SignalsPage = () => {
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
+  const [flowOpen, setFlowOpen] = useState(true);
   const navigate = useNavigate();
+  const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -870,57 +873,74 @@ const SignalsPage = () => {
       </div>
 
       {/* ── COIN FLOW INTENSITY (top-5) — di-inject dari Money Flow ── */}
-      {flowCoins.length > 0 && (
-        <div className="mt-3 bg-white/[0.02] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">
-              Coin Flow Intensity · Top 5
-            </span>
+      {flowCoins.length > 0 && (() => {
+        const maxInt = Math.max(...flowCoins.map((c) => c.flow_intensity || 0), 0.0001);
+        return (
+        <div className="mt-2.5 bg-white/[0.02] rounded-xl px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0" title="Turnover = 24h volume ÷ market cap — seberapa cepat modal berputar">
+              <svg className={`w-3.5 h-3.5 text-white/40 transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 group-hover:text-white/80 whitespace-nowrap">
+                Coin Flow Intensity · Top 5
+              </span>
+              <span className="hidden md:inline font-mono text-[9px] text-white/30 normal-case tracking-normal truncate">— vol 24h ÷ mcap · seberapa cepat modal berputar</span>
+            </button>
             <button
               onClick={() => navigate('/money-flow')}
-              className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors"
+              className="flex items-center gap-1 flex-shrink-0 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors"
             >
               More
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            {flowCoins.map((c) => {
-              const chg = c.price_change_24h;
-              const chgColor = chg == null ? 'text-white/60' : chg >= 0 ? 'text-emerald-400' : 'text-red-400';
-              return (
-                <button
-                  key={c.coin_id || c.symbol}
-                  onClick={() => navigate('/money-flow')}
-                  className="text-left bg-white/[0.015] hover:bg-white/[0.045] rounded-lg px-3 py-2.5 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                    <span className="font-mono text-[13px] font-medium text-white truncate">{c.symbol}</span>
-                    {c.is_luxquant_signal && (
-                      <span className="flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary/90 border border-gold-primary/30 rounded px-1 py-0.5 leading-none">Call</span>
-                    )}
-                  </div>
-                  <div className={`font-mono text-[15px] tabular-nums font-medium leading-none ${chgColor}`}>
-                    {chg == null ? '—' : `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`}
-                  </div>
-                  <div className="font-mono text-[9px] uppercase tracking-wider text-white/35 mt-1.5">
-                    intensity {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+
+          {flowOpen && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+              {flowCoins.map((c) => {
+                const chg = c.price_change_24h;
+                const up = chg != null && chg >= 0;
+                const chgColor = chg == null ? 'text-white/70' : up ? 'text-emerald-400' : 'text-red-400';
+                const barW = Math.max(6, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
+                return (
+                  <button
+                    key={c.coin_id || c.symbol}
+                    onClick={() => navigate('/money-flow')}
+                    className="lqflow-card group text-left bg-white/[0.02] rounded-lg px-3 py-2.5 border border-white/[0.05]"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <CoinLogo pair={`${c.symbol}USDT`} size={22} />
+                      <span className="font-mono text-[13px] font-semibold text-white truncate group-hover:text-gold-primary transition-colors">{c.symbol}</span>
+                      {c.is_luxquant_signal && (
+                        <span className="ml-auto flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary border border-gold-primary/40 rounded px-1 py-0.5 leading-none">Call</span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className={`font-mono text-[15px] tabular-nums font-bold leading-none ${chgColor}`}>
+                        {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
+                      </span>
+                      <span className="font-mono text-[10px] tabular-nums text-white/55">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
+                    </div>
+                    {/* intensity bar */}
+                    <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* FILTER CONSOLE */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
+      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-5">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-3">
           <div className="flex items-center gap-2.5">
             {Icon.filter('w-3.5 h-3.5 text-gold-primary/70')}
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">Signal Scanner</h2>
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-white">Call Filter</h2>
             <button
               onClick={() => setShowGuide(true)}
               className="flex items-center gap-1 px-2 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary/90 hover:bg-gold-primary/10 hover:border-gold-primary/50 transition-all font-mono text-[9px] uppercase tracking-wider"
@@ -940,26 +960,23 @@ const SignalsPage = () => {
           )}
         </div>
 
-        {/* ── MEXC-STYLE TAB BAR — Watchlist + timeline tabs (kiri) · search (kanan) ── */}
-        <div className="flex items-end justify-between gap-4 border-b border-white/[0.07] mb-3">
-          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar min-w-0 pr-2">
-            {/* Watchlist — seperti "Favorites" di MEXC (paling kiri) */}
+        {/* ── TAB BAR — Watchlist + day tabs (full width, fade + panah kanan ala MEXC) ── */}
+        <div className="relative edge-fade-r border-b border-white/[0.07] mb-3">
+          <div ref={tabScrollRef} className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12">
+            {/* Watchlist (tanpa bintang biar hemat tempat) */}
             <button
               onClick={() => setShowWatchlistOnly((v) => !v)}
-              className={`group flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
+              className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
                 showWatchlistOnly ? 'text-gold-primary border-gold-primary' : 'text-white/50 border-transparent hover:text-white/80'
               }`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill={showWatchlistOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
               Watchlist
               {watchlistIds.length > 0 && (
-                <span className="ml-0.5 font-mono text-[12px] tabular-nums text-white/40">{watchlistIds.length}</span>
+                <span className={`font-mono text-[12px] tabular-nums ${showWatchlistOnly ? 'text-gold-primary' : 'text-white/40'}`}>{watchlistIds.length}</span>
               )}
             </button>
 
-            {/* Timeline tabs — Today/Yesterday/tanggal (bisa pilih satu / semua) */}
+            {/* Day tabs — bisa pilih satu / semua */}
             {dateOptions.map((opt) => {
               const active = !showWatchlistOnly && (opt.value === 'all' ? selectedDates.length === 0 : selectedDates.includes(opt.value));
               return (
@@ -978,29 +995,35 @@ const SignalsPage = () => {
               );
             })}
           </div>
+          {/* Panah kanan — geser lihat hari sebelumnya (MEXC-style, di atas fade) */}
+          <button
+            onClick={() => tabScrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+            aria-label="Lihat hari sebelumnya"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 text-white/60 hover:text-gold-primary transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
 
-          {/* Search — di kanan (MEXC-style) */}
-          <div className="relative flex-shrink-0 w-52 lg:w-64 self-center mb-2">
+        {/* ── Controls row — search (kiri) + Called Time + order (kanan) ── */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="relative flex-1 min-w-0">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/45 pointer-events-none">
               {Icon.search('w-3.5 h-3.5')}
             </span>
             <input
               type="text"
-              placeholder="Search pair..."
+              placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
             />
           </div>
-        </div>
-
-        {/* Compact controls — sort + order (kanan) */}
-        <div className="flex items-center justify-end gap-2 mb-4">
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="pl-3 pr-8 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="pl-3 pr-8 py-2 bg-[#0a0506] border border-white/[0.08] rounded-md text-white font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
@@ -1012,10 +1035,10 @@ const SignalsPage = () => {
           </div>
           <button
             onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-white"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-white"
           >
             {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
-            <span>{getOrderLabel()}</span>
+            <span className="hidden sm:inline">{getOrderLabel()}</span>
           </button>
         </div>
 
