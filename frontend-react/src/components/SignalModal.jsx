@@ -63,9 +63,23 @@ const SignalModal = ({
   const [showCoinUtility, setShowCoinUtility] = useState(false);
   const [showBtcCorrelation, setShowBtcCorrelation] = useState(false);
   const [showIndicatorGuide, setShowIndicatorGuide] = useState(false);
+  // Toggle "always show indicators" (MACD/RSI/BB) di chart — di-remember per user (DB).
+  const [showIndicators, setShowIndicators] = useState(true);
   const [livePrice, setLivePrice] = useState(null);
   const [liveChange24h, setLiveChange24h] = useState(null);
   const [derivMetrics, setDerivMetrics] = useState(null);
+  // true = fetch live (Binance & Bybit) sama-sama gagal → kemungkinan geo-block.
+  const [liveBlocked, setLiveBlocked] = useState(false);
+
+  // === STABLE IDENTITY KEYS (anti "refresh terus") ===
+  // Parent bisa re-render & mengirim object `signal`/`overrideSignal` BARU
+  // walau isinya sama. Kalau dependency array pakai object itu langsung,
+  // semua efek (fetch detail, peak, TradingView) ikut re-run tiap render →
+  // modal kelihatan refresh/kedip. Turunkan jadi primitif stabil di bawah,
+  // lalu pakai INI di dependency array — efek cuma jalan saat sinyal beneran ganti.
+  const _activeForKey = overrideSignal || signal;
+  const signalKey = _activeForKey?.signal_id ?? _activeForKey?.id ?? null;
+  const pairKey = (signal?.pair || "").toUpperCase();
 
   // --- SEMUA HOOKS (useEffect) HARUS ADA DI ATAS SEBELUM RETURN KONDISIONAL ---
 
@@ -84,6 +98,34 @@ const SignalModal = ({
     if (isOpen) setActiveTab(initialTab);
   }, [initialTab, isOpen]);
 
+  // Load preferensi "show indicators" dari server saat modal dibuka (sekali).
+  // Optimistic dari cache lokal dulu biar instan, lalu sinkron dari DB.
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    try {
+      const cached = localStorage.getItem("pref_chart_indicators");
+      if (cached !== null) setShowIndicators(cached === "1");
+    } catch {}
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    (async () => {
+      try {
+        const r = await fetch("/api/v1/profile/ui-prefs", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (r.ok && alive) {
+          const d = await r.json();
+          if (typeof d?.chart_indicators === "boolean") {
+            setShowIndicators(d.chart_indicators);
+            try { localStorage.setItem("pref_chart_indicators", d.chart_indicators ? "1" : "0"); } catch {}
+          }
+        }
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, [isOpen]);
+
   // Fetch X tweet URL for this signal (TP2+ posts only); hides IG button if none.
   useEffect(() => {
     const cs = overrideSignal || signal;
@@ -98,7 +140,7 @@ const SignalModal = ({
       } catch { if (alive) setTweetUrl(null); }
     })();
     return () => { alive = false; };
-  }, [isOpen, overrideSignal, signal]);
+  }, [isOpen, signalKey]);
 
   // 2. Fetch data detail sinyal saat modal dibuka
   useEffect(() => {
@@ -131,7 +173,7 @@ const SignalModal = ({
       }
     };
     fetchDetail();
-  }, [isOpen, signal, overrideSignal]);
+  }, [isOpen, signalKey]);
 
   // 3. Fetch data CoinGecko saat buka tab Research
   useEffect(() => {
@@ -323,13 +365,14 @@ const SignalModal = ({
     };
 
     fetchPeakPrice();
-  }, [isOpen, signal, signalDetail]);
+  }, [isOpen, signalKey, signalDetail]);
 
   // 4b. Live price + derivatives metrics (polling 10s) — Binance -> Bybit fallback
   useEffect(() => {
     if (!isOpen || !signal?.pair) return;
     const symbol = (signal.pair || "").replace(/USDT$/i, "") + "USDT";
     let alive = true;
+    setLiveBlocked(false); // reset saat pair ganti / modal buka
 
     const applyData = (d) => {
       if (!alive || !d) return;
@@ -430,6 +473,8 @@ const SignalModal = ({
       let data = null;
       try { data = await fetchBinance(); } catch (_) {}
       if (!data) { try { data = await fetchBybit(); } catch (_) {} }
+      // Kedua provider gagal → tandai blocked (fallback pesan VPN di UI).
+      if (alive) setLiveBlocked(!data);
       applyData(data);
     };
 
@@ -511,7 +556,9 @@ const SignalModal = ({
       calendar: false,
       hide_volume: false,
       withdateranges: true,
-      studies: ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"],
+      studies: showIndicators
+        ? ["STD;MACD", "STD;RSI", "STD;Bollinger_Bands"]
+        : [],
       support_host: "https://www.tradingview.com",
     });
 
@@ -521,7 +568,7 @@ const SignalModal = ({
     return () => {
       container.innerHTML = "";
     };
-  }, [isOpen, signal, activeTab]);
+  }, [isOpen, pairKey, activeTab, showIndicators]);
 
   // 7. Handle Render TradingView Mini di Tab Trade
   // Definisikan variabel URL gambar lebih awal untuk digunakan di useEffect ini
@@ -611,6 +658,23 @@ const SignalModal = ({
       setOverrideSignal(null);
       onClose();
     }, 200);
+  };
+
+  // Toggle indikator chart + persist ke DB (dan cache lokal buat instan).
+  const toggleIndicators = () => {
+    setShowIndicators((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("pref_chart_indicators", next ? "1" : "0"); } catch {}
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        fetch("/api/v1/profile/ui-prefs", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ chart_indicators: next }),
+        }).catch(() => {});
+      }
+      return next;
+    });
   };
 
   const handleShare = async (e) => {
@@ -1445,6 +1509,27 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
           );
         })()}
 
+        {/* ── FALLBACK: live/derivatives data ke-block (geo) → saran VPN ── */}
+        {!derivMetrics && liveBlocked && (
+          <div className="lq-card lq-card--gold bg-[#0d0b08]">
+            {goldLine}
+            <div className="p-3 text-center">
+              <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-gold-primary/30 bg-gold-primary/12">
+                <svg className="h-4 w-4 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
+                </svg>
+              </div>
+              <p className="text-[11px] font-semibold text-white/85">Live data tidak tersedia</p>
+              <p className="mx-auto mt-1 max-w-[240px] text-[9px] leading-relaxed text-white/45">
+                Data derivatif (funding, open interest, long/short) diblokir di
+                jaringan/negaramu. Aktifkan <span className="text-gold-primary/80 font-medium">VPN</span> lalu buka
+                ulang sinyal ini untuk melihat metrik real-time.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── META: volume / risk / cap ── */}
         {(signal?.volume_rank_num || signal?.risk_level || signal?.market_cap) && (
           <div className="lq-card bg-[#0c0b09] p-2 space-y-1.5">
@@ -1661,7 +1746,24 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
               {/* TAB 1: CHART */}
               {activeTab === "chart" && (
                 <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-                  <div className="flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
+                  <div className="relative flex-1 min-w-0 min-h-0 bg-[#0d0d0d]">
+                    {/* Floating control: toggle indikator (MACD/RSI/BB), di-remember per user */}
+                    <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                      <button
+                        onClick={toggleIndicators}
+                        title={showIndicators ? "Hide indicators (MACD · RSI · BB)" : "Show indicators (MACD · RSI · BB)"}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-semibold uppercase tracking-[0.12em] backdrop-blur-sm transition-all active:scale-[0.97] ${
+                          showIndicators
+                            ? "bg-gold-primary/15 border-gold-primary/40 text-gold-primary hover:bg-gold-primary/25"
+                            : "bg-black/40 border-white/12 text-white/50 hover:text-white/80 hover:border-white/25"
+                        }`}
+                      >
+                        <span className={`relative flex h-3 w-5 items-center rounded-full transition-colors ${showIndicators ? "bg-gold-primary/70" : "bg-white/15"}`}>
+                          <span className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${showIndicators ? "translate-x-2.5" : "translate-x-0.5"}`} />
+                        </span>
+                        Indicators
+                      </button>
+                    </div>
                     <div
                       id="tv_chart_modal_main"
                       ref={chartContainerRef}

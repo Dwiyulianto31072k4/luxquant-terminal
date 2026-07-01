@@ -1,5 +1,6 @@
 # backend/app/models/user.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, BigInteger, Numeric
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -68,6 +69,11 @@ class User(Base):
     login_count = Column(Integer, default=0, nullable=False)
     country_code = Column(String(2), nullable=True)
     currency_code = Column(String(3), default="USD", nullable=True)
+
+    # ─── UI preferences (per-user, remembered client settings) ───
+    # Flexible key-value bag, mis. {"chart_indicators": true}. Dipakai
+    # SignalModal buat "always show indicators", dst. Absence = default.
+    ui_prefs = Column(JSONB, nullable=True)
 
     # ─── Activity tracking (Growth dashboard) ───
     # Updated passively by ActivityTrackerMiddleware (NOT login).

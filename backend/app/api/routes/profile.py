@@ -58,6 +58,43 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
 # ════════════════════════════════════════════
+# 0. UI Preferences (per-user, remembered client settings)
+# ════════════════════════════════════════════
+# Disimpan di users.ui_prefs (JSONB). Pola: ABSENCE = DEFAULT.
+# Whitelist key + default supaya frontend & backend sinkron dan aman dari
+# key sembarangan. Tambah pref baru = cukup tambah 1 baris di UI_PREF_DEFAULTS.
+UI_PREF_DEFAULTS = {
+    "chart_indicators": True,   # SignalModal: tampilkan MACD/RSI/BB di chart
+}
+
+
+@router.get("/ui-prefs")
+async def get_ui_prefs(current_user: User = Depends(get_current_user)):
+    """Ambil UI preferences user (merge default + tersimpan)."""
+    saved = current_user.ui_prefs or {}
+    return {k: saved.get(k, d) for k, d in UI_PREF_DEFAULTS.items()}
+
+
+@router.put("/ui-prefs")
+async def update_ui_prefs(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update sebagian UI preferences. Hanya key yang dikenal yang disimpan."""
+    current = dict(current_user.ui_prefs or {})
+    for k, v in (data or {}).items():
+        if k in UI_PREF_DEFAULTS:
+            current[k] = bool(v)
+    current_user.ui_prefs = current
+    # JSONB in-place assignment butuh flag modified biar ke-persist
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(current_user, "ui_prefs")
+    db.commit()
+    return {k: current.get(k, d) for k, d in UI_PREF_DEFAULTS.items()}
+
+
+# ════════════════════════════════════════════
 # 1. Update Profile (username)
 # ════════════════════════════════════════════
 
