@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SignalsTable from "./SignalsTable";
 import SignalModal from "./SignalModal";
@@ -7,6 +7,7 @@ import BtcDomAlert from "./BtcDomAlert";
 import { classifyCoin } from './coinIntelShared';
 import { InfoTip, GuideModal } from './GuideInfo';
 import { watchlistApi } from '../services/watchlistApi';
+import moneyFlowApi from '../services/moneyFlowApi';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -171,6 +172,9 @@ const SignalsPage = () => {
   // Watchlist tab (ala MEXC "Favorites") — filter in-place ke sinyal yang di-star.
   const [watchlistIds, setWatchlistIds] = useState([]);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+  // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
+  const [flowCoins, setFlowCoins] = useState([]);
+  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -296,6 +300,18 @@ const SignalsPage = () => {
       .then((res) => {
         const ids = Array.isArray(res) ? res : (res?.ids || res?.signal_ids || res?.data || []);
         if (alive && Array.isArray(ids)) setWatchlistIds(ids);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // Coin Flow Intensity (top-5) untuk strip di atas — sumber Money Flow.
+  useEffect(() => {
+    let alive = true;
+    moneyFlowApi.getCoins({ limit: 5 })
+      .then((res) => {
+        const coins = Array.isArray(res) ? res : (res?.coins || []);
+        if (alive && Array.isArray(coins)) setFlowCoins(coins.slice(0, 5));
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -807,18 +823,17 @@ const SignalsPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 bg-[#0a0805] px-3.5 py-2 rounded-sm border border-white/[0.06] relative overflow-hidden">
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{
-              backgroundColor: loading ? '#fbbf24' : '#10b981',
-              boxShadow: loading
-                ? '0 0 6px rgba(251,191,36,0.7), 0 0 12px rgba(251,191,36,0.35)'
-                : '0 0 6px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.35)',
-            }}
-          />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">
+        <div className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-full">
+          <span className="relative flex h-1.5 w-1.5">
+            {!loading && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+            )}
+            <span
+              className="relative inline-flex h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: loading ? '#fbbf24' : '#10b981' }}
+            />
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">
             {loading
               ? 'Syncing'
               : lastUpdated
@@ -853,6 +868,50 @@ const SignalsPage = () => {
           sub="signals in view"
         />
       </div>
+
+      {/* ── COIN FLOW INTENSITY (top-5) — di-inject dari Money Flow ── */}
+      {flowCoins.length > 0 && (
+        <div className="mt-3 bg-white/[0.02] rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/45">
+              Coin Flow Intensity · Top 5
+            </span>
+            <button
+              onClick={() => navigate('/money-flow')}
+              className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors"
+            >
+              More
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {flowCoins.map((c) => {
+              const chg = c.price_change_24h;
+              const chgColor = chg == null ? 'text-white/60' : chg >= 0 ? 'text-emerald-400' : 'text-red-400';
+              return (
+                <button
+                  key={c.coin_id || c.symbol}
+                  onClick={() => navigate('/money-flow')}
+                  className="text-left bg-white/[0.015] hover:bg-white/[0.045] rounded-lg px-3 py-2.5 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <span className="font-mono text-[13px] font-medium text-white truncate">{c.symbol}</span>
+                    {c.is_luxquant_signal && (
+                      <span className="flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary/90 border border-gold-primary/30 rounded px-1 py-0.5 leading-none">Call</span>
+                    )}
+                  </div>
+                  <div className={`font-mono text-[15px] tabular-nums font-medium leading-none ${chgColor}`}>
+                    {chg == null ? '—' : `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`}
+                  </div>
+                  <div className="font-mono text-[9px] uppercase tracking-wider text-white/35 mt-1.5">
+                    intensity {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* FILTER CONSOLE */}
       <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-5 relative overflow-hidden">
