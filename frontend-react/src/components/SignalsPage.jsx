@@ -127,13 +127,12 @@ const SectionHeader = ({ label, hint }) => (
 // ================================================================
 // STAT CARD — brighter label/sub for contrast
 // ================================================================
+// MEXC-soft KPI card — background halus (bukan box tebal), angka dominan.
 const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
-  <div className="bg-[#0a0805] rounded-md border border-white/[0.06] p-4 lg:p-5 relative overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/70 mb-2">{label}</p>
-    <div className="h-px bg-white/[0.06] mb-3" />
-    <p className={`font-mono text-2xl lg:text-3xl font-light tabular-nums leading-none ${valueColor}`}>{value}</p>
-    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-white/50 mt-2">{sub}</p>}
+  <div className="bg-white/[0.02] rounded-xl p-4 lg:p-5 transition-colors duration-200 hover:bg-white/[0.035]">
+    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/45 mb-2.5">{label}</p>
+    <p className={`font-mono text-2xl lg:text-[28px] font-medium tabular-nums leading-none ${valueColor}`}>{value}</p>
+    {sub && <p className="font-mono text-[10px] uppercase tracking-wider text-white/40 mt-2">{sub}</p>}
   </div>
 );
 
@@ -1279,6 +1278,13 @@ const SignalsPage = () => {
           currentFlow={currentFlow}
           tagWrMap={tagWrMap}
           signalTags={signalTags}
+          onWatchlistChange={(signalId, newState) =>
+            setWatchlistIds((prev) =>
+              newState
+                ? [...new Set([...prev, signalId])]
+                : prev.filter((id) => id !== signalId)
+            )
+          }
         />
       )}
 

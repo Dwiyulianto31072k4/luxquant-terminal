@@ -182,6 +182,7 @@ const SignalsTable = ({
   currentFlow = null,
   tagWrMap = {},
   signalTags = {},
+  onWatchlistChange = null,
 }) => {
   const { t } = useTranslation();
 
@@ -255,6 +256,8 @@ const SignalsTable = ({
     setWatchlistIds(prev =>
       newState ? [...prev, signalId] : prev.filter(id => id !== signalId)
     );
+    // Beri tahu parent (SignalsPage) supaya tab Watchlist ikut sinkron tanpa refresh.
+    if (onWatchlistChange) onWatchlistChange(signalId, newState);
   };
 
   // Share — copied-toast keyed by signal_id so the right row/card shows it
