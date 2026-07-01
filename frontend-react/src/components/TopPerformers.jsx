@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import CoinLogo from './CoinLogo';
@@ -22,6 +22,7 @@ const TopPerformers = () => {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [showCustom, setShowCustom] = useState(false);
+  const [category, setCategory] = useState('gains'); // MEXC-style category chips
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSignalIds, setModalSignalIds] = useState([]);
   const [modalIndex, setModalIndex] = useState(0);
@@ -48,6 +49,23 @@ const TopPerformers = () => {
     { key: '30d', label: t('top.d30'), days: 30 },
     { key: 'custom', label: t('top.custom'), days: null },
   ];
+
+  // MEXC-style category chips — client-side views over the same data (no extra fetch)
+  const CATEGORIES = [
+    { key: 'gains', label: 'Biggest Gains' },
+    { key: 'fastest', label: 'Fastest Hits' },
+    { key: 'recent', label: 'Most Recent' },
+    { key: 'multi', label: 'Multi-Calls' },
+  ];
+
+  const displayed = useMemo(() => {
+    if (!data) return [];
+    if (category === 'fastest') return data.fastest_hits || [];
+    let arr = [...(data.top_gainers || [])];
+    if (category === 'recent') arr = arr.sort((a, b) => new Date(b.signal_time || 0) - new Date(a.signal_time || 0));
+    if (category === 'multi') arr = arr.filter((x) => (x.signal_count || 1) > 1);
+    return arr;
+  }, [data, category]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -154,35 +172,36 @@ const TopPerformers = () => {
 
   return (
     <div className="mb-10 relative">
-      {/* ═══ HEADER — eyebrow · title · sub (AutoTrade style) + range pills ═══ */}
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-end md:justify-between">
+      {/* ═══ HEADER — open layout (no card wrapper), MEXC-style ═══ */}
+      <div className="relative mb-5">
+        {/* title — brand merged into the header */}
         <div className="min-w-0">
-          <div className="flex items-center gap-3 mb-2.5">
-            <span className="h-px w-8 bg-gold-primary/50" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold-primary/80">{t('top.title')}</span>
-          </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">Top Gainers</h2>
-          {data?.period && (
-            <p className="font-mono text-[11px] text-text-muted mt-1.5 tracking-wide">{formatPeriod(data.period)}</p>
-          )}
+          <h2 className="font-display text-[28px] sm:text-[34px] font-bold leading-none tracking-tight text-white">
+            Top Gainers <span className="text-gold-primary">by LuxQuant</span>
+          </h2>
         </div>
 
-        {/* range pills — segmented */}
-        <div className="flex items-center gap-1 p-1 rounded-xl border border-white/[0.07] bg-[#0a0805] self-start md:self-auto overflow-x-auto">
-          {presets.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => handlePresetClick(key)}
-              className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeFilter === key
-                  ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary shadow-[0_0_14px_-4px_rgba(212,168,83,0.5)]'
-                  : 'border border-transparent text-text-muted hover:bg-white/[0.05] hover:text-white'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* 3 — KPI row (open, ledger-style dividers — no card) */}
+        {data && (data.total_tp_hits || data.total_tp4) > 0 && (
+          <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 border-t border-white/[0.07] pt-5">
+            <Kpi
+              value={data.total_tp_hits || data.total_tp4} label={t('top.tp_sub') || 'Signals hit target'}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="9" opacity="0.25"/><circle cx="12" cy="12" r="5.5" opacity="0.5"/><circle cx="12" cy="12" r="2.4"/></svg>}
+            />
+            <Kpi
+              value={data.unique_pairs || '—'} label={t('top.pairs_sub') || 'Different coins'}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.4"/><ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.65"/><ellipse cx="12" cy="7.5" rx="7" ry="2.8"/></svg>}
+            />
+            <Kpi accent
+              value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '—'} label="Top single call"
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="12" r="10" opacity="0.2"/><path d="M12 6.5l5.5 6.5h-3.3v4.5h-4.4V13H6.5L12 6.5z"/></svg>}
+            />
+            <Kpi
+              value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'} label={t('top.dur_sub') || 'First call to last hit'}
+              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><circle cx="12" cy="13" r="8.5" opacity="0.22"/><circle cx="12" cy="13" r="1.6"/><rect x="11.1" y="6.5" width="1.8" height="7" rx="0.9"/><rect x="9" y="2" width="6" height="2" rx="1"/></svg>}
+            />
+          </div>
+        )}
       </div>
 
       {/* ═══ CUSTOM DATE PICKER ═══ */}
@@ -196,62 +215,81 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* ═══ STATS STRIP — stat cards with solid SVG icons ═══ */}
-      {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-3 rounded-2xl border border-white/[0.07] overflow-hidden relative bg-white/[0.05]">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent z-10" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px">
-            <StatItem
-              label={t('top.total_tp')} value={data.total_tp_hits || data.total_tp4} sub={t('top.tp_sub')}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="9" opacity="0.2" /><circle cx="12" cy="12" r="5.5" opacity="0.45" /><circle cx="12" cy="12" r="2.4" /></svg>}
-            />
-            <StatItem
-              label={t('top.unique_pairs')} value={data.unique_pairs || '—'} sub={t('top.pairs_sub')}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.35" /><ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.6" /><ellipse cx="12" cy="7.5" rx="7" ry="2.8" /></svg>}
-            />
-            <StatItem
-              label="Best Gain" value={bestGain != null ? `+${formatGainDisplay(bestGain)}` : '—'} sub="Top single call" isProfit
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="10" opacity="0.18" /><path d="M12 6.5l5.5 6.5h-3.3v4.5h-4.4V13H6.5L12 6.5z" /></svg>}
-            />
-            <StatItem
-              label={t('top.avg_dur')}
-              value={data.top_gainers?.length > 0 ? formatDuration(data.top_gainers.reduce((a, b) => a + b.duration_seconds, 0) / data.top_gainers.length) : 'N/A'}
-              sub={t('top.dur_sub')}
-              icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="13" r="8.5" opacity="0.2" /><circle cx="12" cy="13" r="1.6" /><rect x="11.1" y="6.5" width="1.8" height="7" rx="0.9" /><rect x="9" y="2" width="6" height="2" rx="1" /></svg>}
-            />
-          </div>
-        </div>
-      )}
-
       {data && (data.total_tp_hits || data.total_tp4) === 0 && !loading && (
         <div className="text-center py-8 mb-3 rounded-2xl border border-white/[0.06] bg-[#0a0805]">
           <p className="text-text-muted font-mono text-xs uppercase tracking-wider">{t('top.no_tp')}</p>
         </div>
       )}
 
-      {/* ═══ LEADERBOARD — gain as hero, podium medals ═══ */}
+      {/* ═══ CONTROL BAR — tabs spread full width + time range at the far right ═══ */}
+      {data && (data.total_tp_hits || data.total_tp4) > 0 && (
+        <div className="mb-1 flex flex-col-reverse gap-3 border-b border-white/[0.08] sm:flex-row sm:items-end sm:gap-6">
+          {/* category tabs — flex-1 + justify-between so they fill the row (no empty gap) */}
+          <div className="flex flex-1 items-end justify-between gap-4 overflow-x-auto">
+            {CATEGORIES.map((c) => {
+              const on = category === c.key;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => setCategory(c.key)}
+                  className={`relative whitespace-nowrap pb-3 font-display text-[15px] sm:text-lg lg:text-xl font-bold tracking-tight transition-colors ${on ? 'text-white' : 'text-white/45 hover:text-white'}`}
+                >
+                  {c.label}
+                  <span className={`absolute -bottom-px left-0 right-0 h-[2.5px] rounded-full transition-all ${on ? 'bg-gold-primary shadow-[0_0_12px_-2px_rgba(212,168,83,0.8)]' : 'bg-transparent'}`} />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* time range pills — hugs the right edge */}
+          <div className="flex items-center gap-1 self-start rounded-full border border-white/[0.08] bg-[#0a0506] p-1 overflow-x-auto sm:mb-2.5 sm:self-auto sm:flex-shrink-0">
+            {presets.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => handlePresetClick(key)}
+                className={`px-3.5 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wider transition-all whitespace-nowrap ${
+                  activeFilter === key
+                    ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
+                    : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* date — placed under the filter/control bar */}
+      {data?.period && (data.total_tp_hits || data.total_tp4) > 0 && (
+        <p className="mb-4 mt-2 text-right font-mono text-[10px] tracking-wide text-text-muted/70">
+          {formatPeriod(data.period)}
+        </p>
+      )}
+
+      {/* ═══ LEADERBOARD — open MEXC-style table (no card wrapper) ═══ */}
       {data && data.top_gainers?.length > 0 && (
         <div className={loading ? 'opacity-50' : ''}>
-          <div className="rounded-2xl border border-white/[0.07] bg-[#0a0805] overflow-hidden relative">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent z-10" />
+          <div className="relative">
 
             {/* Column headers (desktop) */}
-            <div className="hidden sm:grid grid-cols-[3rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-3 border-b border-white/[0.06] bg-white/[0.015] font-mono text-[9px] text-text-muted uppercase tracking-[0.2em]">
+            <div className="hidden sm:grid grid-cols-[2.5rem_1.3fr_7rem_7rem_5.5rem_7.5rem] gap-4 px-2 py-3 border-b border-white/[0.08] font-mono text-[10px] text-text-muted/90 uppercase tracking-[0.2em]">
               <span className="text-center">#</span>
               <span>Asset</span>
               <span className="text-right">{t('top.first_entry') || 'Entry'}</span>
+              <span className="text-center">Since Call</span>
               <span className="text-right">{t('top.duration') || 'Duration'}</span>
               <span className="text-right">Gain</span>
             </div>
 
             {/* Mini header (mobile) */}
-            <div className="sm:hidden px-4 py-3 border-b border-white/[0.06] bg-white/[0.015] flex items-center justify-between">
-              <span className="font-mono text-[10px] text-text-muted uppercase tracking-[0.2em]">Leaderboard</span>
-              <span className="font-mono text-[9px] text-text-muted uppercase tracking-wider">{data.top_gainers.length} pairs</span>
+            <div className="sm:hidden px-2 py-2.5 border-b border-white/[0.08] flex items-center justify-between">
+              <span className="font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Asset</span>
+              <span className="font-mono text-[9px] text-text-muted/70 uppercase tracking-[0.2em]">Gain</span>
             </div>
 
             <div className="divide-y divide-white/[0.04]">
-              {data.top_gainers.map((item, idx) => {
+              {displayed.map((item, idx) => {
                 const rank = idx + 1;
                 const isPodium = idx < 3;
                 const podiumBorder = idx === 0 ? 'border-gold-primary/70' : idx === 1 ? 'border-gold-primary/40' : idx === 2 ? 'border-gold-primary/25' : 'border-transparent';
@@ -262,14 +300,11 @@ const TopPerformers = () => {
                     key={idx}
                     onClick={() => handleItemClick(item)}
                     style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}
-                    className={`tp-row relative overflow-hidden border-l-2 ${podiumBorder} hover:bg-white/[0.025] transition-colors cursor-pointer group`}
+                    className="tp-row relative hover:bg-white/[0.02] transition-colors cursor-pointer group"
                   >
-                    {/* log-scaled intensity fill */}
-                    <div className="absolute inset-y-0 left-0 bg-profit/[0.04] pointer-events-none transition-[width] duration-500" style={{ width: `${fillPct}%` }} />
-                    {isPodium && <div className="absolute inset-y-0 left-0 w-px bg-gold-primary/30 pointer-events-none" />}
 
                     {/* Desktop grid */}
-                    <div className="hidden sm:grid grid-cols-[3rem_1fr_8rem_6rem_8rem] gap-4 px-5 py-4 items-center relative">
+                    <div className="hidden sm:grid grid-cols-[2.5rem_1.3fr_7rem_7rem_5.5rem_7.5rem] gap-4 px-2 py-3.5 items-center relative">
                       <div className="flex justify-center">{rankBadge(rank)}</div>
                       <div className="flex items-center gap-3 min-w-0">
                         <CoinLogo pair={cleanPair(item.pair)} size={30} />
@@ -277,6 +312,7 @@ const TopPerformers = () => {
                         {item.signal_count > 1 && <span className="px-1.5 py-0.5 font-mono text-[9px] text-gold-primary/70 border border-gold-primary/20 rounded leading-none flex-shrink-0">×{item.signal_count}</span>}
                       </div>
                       <div className="text-right font-mono text-xs text-text-muted tabular-nums">${formatPrice(item.entry)}</div>
+                      <div className="px-1"><SinceCallSpark item={item} /></div>
                       <div className="text-right font-mono text-[11px] text-text-muted/70">{item.duration_display}</div>
                       <div className="text-right">
                         <div className={`font-mono text-lg font-bold text-profit tabular-nums leading-none ${isPodium ? 'drop-shadow-[0_0_10px_rgba(74,222,128,0.25)]' : ''}`}>+{formatGainDisplay(item.gain_pct)}</div>
@@ -285,7 +321,7 @@ const TopPerformers = () => {
                     </div>
 
                     {/* Mobile stacked */}
-                    <div className="sm:hidden flex items-center gap-3 px-3.5 py-3.5 relative">
+                    <div className="sm:hidden flex items-center gap-3 px-2 py-3 relative">
                       {rankBadge(rank)}
                       <CoinLogo pair={cleanPair(item.pair)} size={28} />
                       <div className="flex-1 min-w-0">
@@ -305,7 +341,7 @@ const TopPerformers = () => {
               })}
             </div>
 
-            {(!data.top_gainers || data.top_gainers.length === 0) && (
+            {displayed.length === 0 && (
               <div className="p-6"><p className="text-text-muted font-mono text-xs uppercase tracking-wider text-center">{t('top.no_data')}</p></div>
             )}
           </div>
@@ -331,17 +367,86 @@ const TopPerformers = () => {
   );
 };
 
-// === STAT ITEM — flat cell inside the unified strip, with solid SVG icon ===
-const StatItem = ({ label, value, sub, icon, isProfit = false }) => (
-  <div className="group relative bg-[#0a0805] px-4 py-4 sm:px-5 sm:py-5 hover:bg-white/[0.015] transition-colors">
-    <div className="flex items-start justify-between gap-2 mb-3">
-      <p className="font-mono text-[10px] text-text-muted uppercase tracking-[0.22em] leading-tight">{label}</p>
-      <span className={`w-7 h-7 flex items-center justify-center rounded-md flex-shrink-0 transition-transform group-hover:scale-110 ${isProfit ? 'text-profit bg-profit/10' : 'text-gold-primary/80 bg-gold-primary/[0.08]'}`}>{icon}</span>
-    </div>
-    <p className={`font-mono text-2xl sm:text-3xl font-light tabular-nums leading-none ${isProfit ? 'text-profit' : 'text-white'}`}>{value}</p>
-    <p className="font-mono text-[9px] text-text-muted/60 uppercase tracking-wider mt-2">{sub}</p>
+// === KPI — value is the hero, tiny filled icon + label sit beneath (clean hierarchy) ===
+const Kpi = ({ value, label, accent = false }) => (
+  <div>
+    <p className={`font-mono text-2xl sm:text-[28px] font-semibold tabular-nums leading-none ${accent ? 'text-profit' : 'text-white'}`}>{value}</p>
+    <p className="mt-2 font-mono text-[9px] sm:text-[10px] text-text-muted uppercase tracking-[0.16em] truncate">{label}</p>
   </div>
 );
+
+// === SPARK — mini price path (call -> peak) line+area, MEXC "24H Market" analog ===
+const Spark = ({ data, up = true }) => {
+  if (!Array.isArray(data) || data.length < 2) {
+    return <div className="flex h-7 w-full items-center"><span className="h-px w-full bg-white/[0.06]" /></div>;
+  }
+  const w = 100, h = 28, pad = 3;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = (max - min) || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = pad + (h - pad * 2) - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const line = pts.join(' ');
+  const area = `0,${h} ${line} ${w},${h}`;
+  const col = up ? '#4ade80' : '#f87171';
+  const gid = `sg${Math.round((min + max + data.length) * 1000) % 100000}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-7 w-full" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={col} stopOpacity="0.22" />
+          <stop offset="1" stopColor={col} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill={`url(#${gid})`} />
+      <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+};
+
+// === Client-side sparkline fetch (call -> peak) — uses backend `sparkline` if
+//     present, else pulls Binance (futures/spot) then Bybit klines directly. ===
+const _sparkCache = {};
+const sparkSymbol = (p) => ((p || '').replace(/^3A/i, '').replace(/USDT$/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase()) + 'USDT';
+const _spBin = (sec) => (sec <= 6 * 3600 ? '5m' : sec <= 2 * 86400 ? '1h' : sec <= 10 * 86400 ? '4h' : '1d');
+const _spBybit = (sec) => (sec <= 6 * 3600 ? '5' : sec <= 2 * 86400 ? '60' : sec <= 10 * 86400 ? '240' : 'D');
+const _dsp = (arr, n = 24) => { if (!arr || arr.length < 2) return null; if (arr.length <= n) return arr; const step = arr.length / n; return Array.from({ length: n }, (_, i) => arr[Math.floor(i * step)]); };
+
+async function fetchSinceCall(item) {
+  const symbol = sparkSymbol(item.pair);
+  const start = item.signal_time ? new Date(item.signal_time).getTime() : NaN;
+  if (!start || isNaN(start)) return null;
+  const end = item.hit_time ? new Date(item.hit_time).getTime() : Date.now();
+  const span = Math.max((end - start) / 1000, 60);
+  const bi = _spBin(span);
+  const urls = [
+    `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=90`,
+    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bi}&startTime=${start}&endTime=${end}&limit=90`,
+  ];
+  for (const u of urls) {
+    try { const r = await fetch(u); if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d.length >= 2) return _dsp(d.map((c) => parseFloat(c[4]))); } } catch { /* try next */ }
+  }
+  try {
+    const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${_spBybit(span)}&start=${start}&end=${end}&limit=90`);
+    if (r.ok) { const j = await r.json(); const list = (j?.result?.list || []).map((k) => parseFloat(k[4])).reverse(); if (list.length >= 2) return _dsp(list); }
+  } catch { /* give up */ }
+  return null;
+}
+
+const SinceCallSpark = ({ item }) => {
+  const [pts, setPts] = useState(Array.isArray(item.sparkline) && item.sparkline.length > 1 ? item.sparkline : null);
+  useEffect(() => {
+    if (Array.isArray(item.sparkline) && item.sparkline.length > 1) { setPts(item.sparkline); return; }
+    const key = item.signal_id || item.pair;
+    if (_sparkCache[key]) { setPts(_sparkCache[key]); return; }
+    let alive = true;
+    fetchSinceCall(item).then((d) => { if (alive && d) { _sparkCache[key] = d; setPts(d); } });
+    return () => { alive = false; };
+  }, [item.signal_id, item.pair, item.sparkline]);
+  return <Spark data={pts} up={(item.gain_pct || 0) >= 0} />;
+};
 
 function formatDuration(s) { if (!s || s <= 0) return 'N/A'; const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60); if (d > 0) return `${d}d ${h}h ${m}m`; if (h > 0) return `${h}h ${m}m`; if (m > 0) return `${m}m ${sec}s`; return `${sec}s`; }
 function formatPrice(p) { if (!p || p <= 0) return '0.00'; if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); if (p >= 1) return p.toFixed(4); if (p >= 0.01) return p.toFixed(6); return p.toFixed(8); }

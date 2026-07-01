@@ -10,33 +10,32 @@ const API_BASE = '/api/v1';
 // ================================================================
 
 const IconWallet = ({ className = 'w-3.5 h-3.5' }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H17a1 1 0 1 1 0 2H6.5a.5.5 0 0 0 0 1H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5.5z" opacity="0.55" />
+    <path d="M21 11v4h-4a2 2 0 0 1 0-4h4zm-3.5 1.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z" />
   </svg>
 );
 
 const IconChart = ({ className = 'w-3.5 h-3.5' }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <path d="M3 3v18h18" />
-    <path d="m7 14 4-4 4 4 5-5" />
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <rect x="3" y="13" width="4" height="8" rx="1" opacity="0.5" />
+    <rect x="10" y="8" width="4" height="13" rx="1" opacity="0.75" />
+    <rect x="17" y="4" width="4" height="17" rx="1" />
   </svg>
 );
 
 const IconCrown = ({ className = 'w-3.5 h-3.5' }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7Z" />
-    <path d="M2 20h20" />
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M2.6 8.2l3.6 2.9L11.1 5a1.1 1.1 0 0 1 1.8 0l4.9 6.1 3.6-2.9c.7-.6 1.7 0 1.5.9l-1.7 8.1a1 1 0 0 1-1 .8H4.8a1 1 0 0 1-1-.8L2.1 9.1c-.2-.9.8-1.5 1.5-.9z" />
+    <rect x="4.5" y="20" width="15" height="1.8" rx="0.9" opacity="0.6" />
   </svg>
 );
 
 const IconCoins = ({ className = 'w-3.5 h-3.5' }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <circle cx="8" cy="8" r="6" />
-    <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
-    <path d="M7 6h1v4" />
-    <path d="m16.71 13.88.7.71-2.82 2.82" />
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <ellipse cx="12" cy="16.5" rx="7" ry="2.8" opacity="0.45" />
+    <ellipse cx="12" cy="12" rx="7" ry="2.8" opacity="0.7" />
+    <ellipse cx="12" cy="7.5" rx="7" ry="2.8" />
   </svg>
 );
 
@@ -196,13 +195,11 @@ const OverviewPage = () => {
       />
       <TopPerformers />
 
-      {/* SECTION EYEBROW */}
-      <div className="flex items-center gap-3">
-        <span className="h-px w-8 bg-gold-primary/50" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+      {/* SECTION HEADER — Market Overview (consistent w/ Top Gainers) */}
+      <div className="min-w-0">
+        <h2 className="font-display text-2xl sm:text-[28px] font-bold text-white leading-none tracking-tight">
           {t('overview.title')}
-        </span>
-        <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
+        </h2>
       </div>
 
       {marketLoading ? (
@@ -242,11 +239,14 @@ const OverviewPage = () => {
 
           {/* KEY METRICS */}
           {data && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon={<IconWallet />} />
-              <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon={<IconChart />} />
-              <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon={<IconCrown />} />
-              <MetricCard label={t('overview.active_crypto')} value={data.activeCryptos.toLocaleString()} icon={<IconCoins />} />
+            <div className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.05]">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/35 to-transparent z-10" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-px">
+                <MetricCard label={t('overview.total_mcap')} value={formatLargeNumber(data.totalMarketCap)} change={data.marketCapChange24h} icon={<IconWallet />} />
+                <MetricCard label={t('overview.vol_24h')} value={formatLargeNumber(data.totalVolume24h)} icon={<IconChart />} />
+                <MetricCard label={t('overview.btc_dom')} value={`${data.btcDominance.toFixed(1)}%`} icon={<IconCrown />} />
+                <MetricCard label={t('overview.active_crypto')} value={data.activeCryptos.toLocaleString()} icon={<IconCoins />} />
+              </div>
             </div>
           )}
 
@@ -585,19 +585,27 @@ const fgStroke = (val) => {
 /**
  * Metric Card — compact stat card with icon + change pill
  */
+const TriUp = ({ className = 'w-2 h-2' }) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" className={className} aria-hidden="true"><path d="M6 2.5l4.2 7.2a.5.5 0 0 1-.43.75H2.23a.5.5 0 0 1-.43-.75L6 2.5z" /></svg>
+);
+const TriDown = ({ className = 'w-2 h-2' }) => (
+  <svg viewBox="0 0 12 12" fill="currentColor" className={className} aria-hidden="true"><path d="M6 9.5L1.8 2.3a.5.5 0 0 1 .43-.75h7.54a.5.5 0 0 1 .43.75L6 9.5z" /></svg>
+);
+
 const MetricCard = ({ label, value, change, icon }) => (
-  <div className="group relative bg-[#0a0805] rounded-xl border border-white/[0.06] p-4 lg:p-5 overflow-hidden hover:border-gold-primary/25 hover:-translate-y-0.5 transition-all duration-200">
-    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
-    <div className="flex items-start justify-between gap-2 mb-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-text-muted leading-tight">{label}</p>
-      <span className="w-7 h-7 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 group-hover:scale-110 transition-transform flex-shrink-0">{icon}</span>
+  <div className="group bg-[#0a0805] flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.015] transition-colors">
+    <span className="w-8 h-8 flex items-center justify-center rounded-md bg-gold-primary/[0.08] text-gold-primary/80 flex-shrink-0 transition-transform group-hover:scale-110">{icon}</span>
+    <div className="min-w-0">
+      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted leading-tight truncate">{label}</p>
+      <div className="flex items-baseline gap-2 mt-1.5">
+        <p className="font-mono text-lg lg:text-xl font-semibold text-white tabular-nums leading-none">{value}</p>
+        {change !== undefined && (
+          <span className={`font-mono text-[10px] tabular-nums inline-flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {change >= 0 ? <TriUp /> : <TriDown />}{change >= 0 ? '+' : ''}{change?.toFixed(2)}%
+          </span>
+        )}
+      </div>
     </div>
-    <p className="font-mono text-2xl lg:text-[28px] font-light text-white tabular-nums leading-none">{value}</p>
-    {change !== undefined && (
-      <p className={`font-mono text-[11px] tabular-nums mt-2 inline-flex items-center gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-        <span className="text-[8px]">{change >= 0 ? '▲' : '▼'}</span>{change >= 0 ? '+' : ''}{change?.toFixed(2)}%
-      </p>
-    )}
   </div>
 );
 

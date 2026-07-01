@@ -29,6 +29,7 @@ import AnnouncementModal from "./components/AnnouncementModal";
 // LAZY LOADED PAGES
 // ════════════════════════════════════════
 const OverviewPage = lazy(() => import("./components/OverviewPage"));
+const FooterV2 = lazy(() => import("./components/landing/v2/sections/FooterV2"));
 const SignalsPage = lazy(() => import("./components/SignalsPage"));
 const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
@@ -1246,6 +1247,15 @@ function AppShell({ children }) {
       <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </main>
+
+      {/* Footer — full-width, home page only (exchange-style) */}
+      {location.pathname === "/home" && (
+        <div className="pb-20 lg:pb-0">
+          <Suspense fallback={null}>
+            <FooterV2 onNav={() => navigate("/")} />
+          </Suspense>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           MOBILE BOTTOM NAV — Trade center button: BIGGER + GOLD GLOW HALO

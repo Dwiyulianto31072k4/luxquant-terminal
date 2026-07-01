@@ -20,6 +20,9 @@ from sqlalchemy import func, desc, asc, text
 from typing import Optional, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+import asyncio
+import re
+from app.core.http_client import get_binance_client
 
 from app.core.database import get_db
 from app.models.signal import Signal, SignalUpdate
@@ -960,8 +963,94 @@ async def sync_signal_status(
 
 # ============================================
 # GET /signals/top-performers (PUBLIC)
-# UPDATED v7: peak-based logic + Union OR window (created_at OR update_at)
+# UPDATED v8: + price sparkline (call -> peak) for MEXC-style leaderboard
 # ============================================
+
+def _spark_symbol(pair: str) -> str:
+    """Normalize a stored pair into a Binance symbol (e.g. '3ABEUSDT' -> 'BEUSDT')."""
+    s = re.sub(r'[^A-Z0-9]', '', (pair or '').upper())
+    if s.startswith('3A'):
+        s = s[2:]
+    if not s.endswith('USDT'):
+        s = s + 'USDT'
+    return s
+
+
+def _spark_interval(duration_seconds) -> str:
+    """Pick a kline interval so the call->peak span yields a readable sparkline."""
+    d = float(duration_seconds or 0)
+    if d <= 6 * 3600:
+        return '5m'
+    if d <= 2 * 86400:
+        return '1h'
+    if d <= 10 * 86400:
+        return '4h'
+    return '1d'
+
+
+def _to_ms(ts):
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts)).timestamp() * 1000
+    except Exception:
+        return None
+
+
+def _downsample(arr, n=24):
+    if not arr:
+        return None
+    if len(arr) <= n:
+        return [round(float(x), 10) for x in arr]
+    step = len(arr) / n
+    return [round(float(arr[int(i * step)]), 10) for i in range(n)]
+
+
+async def _fetch_sparkline(client, symbol, start_ms, end_ms, interval):
+    """Closing-price series from Binance (futures, then spot). Returns ~24 points or None."""
+    params = {"symbol": symbol, "interval": interval, "startTime": int(start_ms), "limit": 80}
+    if end_ms:
+        params["endTime"] = int(end_ms)
+    for base in ("https://fapi.binance.com/fapi/v1/klines",
+                 "https://api.binance.com/api/v3/klines"):
+        try:
+            r = await client.get(base, params=params)
+            if r.status_code == 200:
+                data = r.json()
+                if isinstance(data, list) and len(data) >= 2:
+                    return _downsample([c[4] for c in data], 24)
+        except Exception:
+            continue
+    return None
+
+
+async def _enrich_sparklines(items):
+    """Attach `sparkline` (call->peak price path) to each gainer, concurrently."""
+    try:
+        client = get_binance_client()
+    except Exception:
+        return
+
+    async def _one(item):
+        try:
+            start_ms = _to_ms(item.get("signal_time"))
+            if not start_ms:
+                return
+            end_ms = _to_ms(item.get("hit_time"))
+            spark = await _fetch_sparkline(
+                client,
+                _spark_symbol(item.get("pair")),
+                start_ms,
+                end_ms,
+                _spark_interval(item.get("duration_seconds")),
+            )
+            if spark:
+                item["sparkline"] = spark
+        except Exception:
+            pass
+
+    await asyncio.gather(*[_one(it) for it in items])
+
 
 @router.get("/top-performers")
 async def get_top_performers(
@@ -975,15 +1064,15 @@ async def get_top_performers(
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v7:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v8:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v7:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v8:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v7:{days}:{limit}"
+        cache_key = f"lq:signals:top-performers:v8:{days}:{limit}"
 
     cached = cache_get(cache_key)
     if cached:
@@ -1184,14 +1273,24 @@ async def get_top_performers(
         """)
         unique_pairs = db.execute(unique_pairs_sql, params).scalar() or 0
 
+        gainers_list = [row_to_dict(r) for r in gainers_rows]
+        fastest_list = [row_to_dict(r) for r in fastest_rows]
+
+        # Opsi B — attach price sparkline (call -> peak/hit) for the MEXC-style table.
+        # Concurrent Binance kline fetches; failures degrade gracefully (no sparkline).
+        try:
+            await _enrich_sparklines(gainers_list + fastest_list)
+        except Exception as _spark_err:
+            print(f"⚠️ sparkline enrich skipped: {_spark_err}")
+
         result = {
             "period": f"{period_start} - {period_end}",
             "days": days,
             "total_tp4": total_count,
             "total_tp_hits": total_count,
             "unique_pairs": unique_pairs,
-            "top_gainers": [row_to_dict(r) for r in gainers_rows],
-            "fastest_hits": [row_to_dict(r) for r in fastest_rows],
+            "top_gainers": gainers_list,
+            "fastest_hits": fastest_list,
         }
         cache_set(cache_key, result, ttl=60)
         return result

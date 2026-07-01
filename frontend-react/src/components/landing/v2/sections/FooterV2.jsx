@@ -243,21 +243,14 @@ export default function FooterV2({ onNav }) {
 
         <div className="mb-6 mt-12 h-px bg-white/[0.06]" />
 
-        <div className="flex flex-col items-center justify-between gap-3 text-[11px] text-white/40 sm:flex-row">
+        <div className="flex items-center justify-center text-[11px] text-white/40">
           <div className="flex flex-wrap items-center justify-center gap-2 font-mono">
             <span>© {new Date().getFullYear()} LuxQuant</span>
             <span className="text-white/20">·</span>
-            <span className="flex items-center gap-1">Built in Taiwan <span className="text-sm leading-none">🇹🇼</span></span>
+            <span>Built since 2023</span>
             <span className="hidden text-white/20 sm:inline">·</span>
             <span className="hidden sm:inline">All rights reserved</span>
           </div>
-          <button
-            type="button"
-            onClick={openTerminal}
-            className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold-primary/80 transition-colors hover:text-gold-primary"
-          >
-            {isAuthenticated ? "Open Terminal →" : "Launch App →"}
-          </button>
         </div>
       </div>
     </footer>
