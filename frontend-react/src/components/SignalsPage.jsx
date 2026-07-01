@@ -175,7 +175,7 @@ const SignalsPage = () => {
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
-  const [flowOpen, setFlowOpen] = useState(true);
+  const [flowOpen, setFlowOpen] = useState(false); // default tertutup biar hemat tempat
   const navigate = useNavigate();
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   const [sortBy, setSortBy] = useState("created_at");
@@ -308,13 +308,15 @@ const SignalsPage = () => {
     return () => { alive = false; };
   }, []);
 
-  // Coin Flow Intensity (top-5) untuk strip di atas — sumber Money Flow.
+  // Coin Flow Intensity (top-10, exclude stablecoin) untuk strip — sumber Money Flow.
   useEffect(() => {
     let alive = true;
-    moneyFlowApi.getCoins({ limit: 5 })
+    const STABLE = new Set(['USDT','USDC','DAI','TUSD','FDUSD','USDE','USDD','PYUSD','BUSD','USDP','GUSD','FRAX','LUSD','USDS','USR','USD1']);
+    moneyFlowApi.getCoins({ limit: 25 })
       .then((res) => {
         const coins = Array.isArray(res) ? res : (res?.coins || []);
-        if (alive && Array.isArray(coins)) setFlowCoins(coins.slice(0, 5));
+        const filtered = (coins || []).filter((c) => c.symbol && !STABLE.has(c.symbol.toUpperCase()));
+        if (alive) setFlowCoins(filtered.slice(0, 10));
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -872,18 +874,29 @@ const SignalsPage = () => {
         />
       </div>
 
-      {/* ── COIN FLOW INTENSITY (top-5) — di-inject dari Money Flow ── */}
+      {/* ── COIN FLOW INTENSITY (top-10, exclude stablecoin) — default tertutup ── */}
       {flowCoins.length > 0 && (() => {
         const maxInt = Math.max(...flowCoins.map((c) => c.flow_intensity || 0), 0.0001);
+        const findSignal = (sym) =>
+          allSignals.find((s) => (s.pair || '').replace(/USDT$/i, '').toUpperCase() === String(sym).toUpperCase());
+        const openCoin = (c) => {
+          const sig = findSignal(c.symbol);
+          if (sig) openSignal(sig);       // buka modal call LuxQuant langsung
+          else navigate('/money-flow');   // bukan call → ke Money Flow
+        };
         return (
-        <div className="mt-2.5 bg-white/[0.02] rounded-xl px-4 py-3">
+        <div className="mt-2.5 bg-white/[0.02] rounded-xl px-4 py-2.5">
           <div className="flex items-center justify-between gap-2">
-            <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0" title="Turnover = 24h volume ÷ market cap — seberapa cepat modal berputar">
-              <svg className={`w-3.5 h-3.5 text-white/40 transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 group-hover:text-white/80 whitespace-nowrap">
-                Coin Flow Intensity · Top 5
+            <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0">
+              <svg className={`w-3.5 h-3.5 text-gold-primary/70 transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 group-hover:text-white/85 whitespace-nowrap">
+                Coin Flow Intensity · Top 10
               </span>
-              <span className="hidden md:inline font-mono text-[9px] text-white/30 normal-case tracking-normal truncate">— vol 24h ÷ mcap · seberapa cepat modal berputar</span>
+              {!flowOpen && (
+                <span className="font-mono text-[9px] normal-case tracking-normal text-gold-primary/60 group-hover:text-gold-primary/90 truncate">
+                  — tap to see where money is flowing now
+                </span>
+              )}
             </button>
             <button
               onClick={() => navigate('/money-flow')}
@@ -895,39 +908,43 @@ const SignalsPage = () => {
           </div>
 
           {flowOpen && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-              {flowCoins.map((c) => {
-                const chg = c.price_change_24h;
-                const up = chg != null && chg >= 0;
-                const chgColor = chg == null ? 'text-white/70' : up ? 'text-emerald-400' : 'text-red-400';
-                const barW = Math.max(6, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
-                return (
-                  <button
-                    key={c.coin_id || c.symbol}
-                    onClick={() => navigate('/money-flow')}
-                    className="lqflow-card group text-left bg-white/[0.02] rounded-lg px-3 py-2.5 border border-white/[0.05]"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <CoinLogo pair={`${c.symbol}USDT`} size={22} />
-                      <span className="font-mono text-[13px] font-semibold text-white truncate group-hover:text-gold-primary transition-colors">{c.symbol}</span>
-                      {c.is_luxquant_signal && (
-                        <span className="ml-auto flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary border border-gold-primary/40 rounded px-1 py-0.5 leading-none">Call</span>
-                      )}
-                    </div>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className={`font-mono text-[15px] tabular-nums font-bold leading-none ${chgColor}`}>
-                        {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
-                      </span>
-                      <span className="font-mono text-[10px] tabular-nums text-white/55">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
-                    </div>
-                    {/* intensity bar */}
-                    <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <p className="mt-2 font-mono text-[10px] leading-relaxed text-white/40 normal-case">
+                <span className="text-white/65">Flow intensity = 24h volume ÷ market cap</span> — how fast capital is rotating through a coin (higher = money moving in/out faster). Tap a coin to open its LuxQuant call.
+              </p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                {flowCoins.map((c) => {
+                  const chg = c.price_change_24h;
+                  const up = chg != null && chg >= 0;
+                  const chgColor = chg == null ? 'text-white/70' : up ? 'text-emerald-400' : 'text-red-400';
+                  const barW = Math.max(6, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
+                  return (
+                    <button
+                      key={c.coin_id || c.symbol}
+                      onClick={() => openCoin(c)}
+                      className="lqflow-card group text-left bg-white/[0.02] rounded-lg px-3 py-2.5 border border-white/[0.05]"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <CoinLogo pair={`${c.symbol}USDT`} size={22} />
+                        <span className="font-mono text-[13px] font-semibold text-white truncate group-hover:text-gold-primary transition-colors">{c.symbol}</span>
+                        {c.is_luxquant_signal && (
+                          <span className="ml-auto flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary border border-gold-primary/40 rounded px-1 py-0.5 leading-none">Call</span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className={`font-mono text-[15px] tabular-nums font-bold leading-none ${chgColor}`}>
+                          {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
+                        </span>
+                        <span className="font-mono text-[10px] tabular-nums text-white/55">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
+                      </div>
+                      <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
         );
