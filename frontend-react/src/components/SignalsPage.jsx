@@ -6,6 +6,7 @@ import SignalModal from "./SignalModal";
 import BtcDomAlert from "./BtcDomAlert";
 import { classifyCoin } from './coinIntelShared';
 import { InfoTip, GuideModal } from './GuideInfo';
+import { watchlistApi } from '../services/watchlistApi';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -168,6 +169,9 @@ const SignalsPage = () => {
   const [corrHighAlign, setCorrHighAlign] = useState(false);
   const [verdictFilter, setVerdictFilter] = useState("all"); // 'all' | 'worth_it' | 'avoid'
   const [selectedDates, setSelectedDates] = useState([]);
+  // Watchlist tab (ala MEXC "Favorites") — filter in-place ke sinyal yang di-star.
+  const [watchlistIds, setWatchlistIds] = useState([]);
+  const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -284,7 +288,19 @@ const SignalsPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder, selectedTags]);
+  }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder, selectedTags, showWatchlistOnly]);
+
+  // Ambil ID watchlist user (untuk tab Watchlist / MEXC-Favorites).
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(watchlistApi.getWatchlistIds())
+      .then((res) => {
+        const ids = Array.isArray(res) ? res : (res?.ids || res?.signal_ids || res?.data || []);
+        if (alive && Array.isArray(ids)) setWatchlistIds(ids);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   const updatedCount = useMemo(() => {
     return allSignals.filter((s) => s.last_update_at).length;
@@ -365,6 +381,9 @@ const SignalsPage = () => {
     if (selectedDates.length > 0) {
       f = f.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
     }
+    if (showWatchlistOnly) {
+      f = f.filter((s) => watchlistIds.includes(s.signal_id));
+    }
     if (statusFilter === "updated") {
       f = f.filter((s) => s.last_update_at);
     } else if (statusFilter !== "all") {
@@ -402,7 +421,7 @@ const SignalsPage = () => {
     if (corrHighAlign) f = f.filter((s) => (s.btc_align_score ?? -1) >= 70);
     if (verdictFilter !== "all") f = f.filter((s) => verdictByPair[s.pair] === verdictFilter);
     return f;
-  }, [allSignals, searchPair, selectedDates, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, coinIntel]);
+  }, [allSignals, searchPair, selectedDates, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, coinIntel, showWatchlistOnly, watchlistIds]);
 
   // Dynamic per-tag count: how many currently-visible signals carry each tag.
   const tagActiveCount = useMemo(() => {
@@ -519,7 +538,7 @@ const SignalsPage = () => {
   // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
   const advancedOpen = showAdvanced;
 
-  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at" || selectedTags.length > 0;
+  const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at" || selectedTags.length > 0 || showWatchlistOnly;
 
   const toggleTag = (tag) => {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]);
@@ -535,6 +554,7 @@ const SignalsPage = () => {
     setVerdictFilter("all");
     setSelectedDates([]);
     setSelectedTags([]);
+    setShowWatchlistOnly(false);
     setSortBy("created_at");
     setSortOrder("desc");
   };
@@ -560,6 +580,9 @@ const SignalsPage = () => {
 
     if (selectedDates.length > 0) {
       filtered = filtered.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
+    }
+    if (showWatchlistOnly) {
+      filtered = filtered.filter((s) => watchlistIds.includes(s.signal_id));
     }
 
     if (statusFilter === "updated") {
@@ -718,7 +741,7 @@ const SignalsPage = () => {
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
     return { signals: paged, totalPages: pages, totalSignals: total };
-  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel, selectedTags, signalTags]);
+  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel, selectedTags, signalTags, showWatchlistOnly, watchlistIds]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
@@ -859,78 +882,83 @@ const SignalsPage = () => {
           )}
         </div>
 
-        {/* PRIMARY ROW — search + sort + order (always visible) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-5">
-          <div className="md:col-span-7 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/45 pointer-events-none">
-              {Icon.search('w-3.5 h-3.5')}
-            </span>
-            <input
-              type="text"
-              placeholder="Search pair (e.g. BTC, ETH, SOL)..."
-              value={searchPair}
-              onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
-            />
-          </div>
-
-          <div className="md:col-span-3 relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full pl-3 pr-9 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white font-mono text-xs focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
-            >
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
-              ))}
-            </select>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none">
-              {Icon.chevronDown('w-3 h-3')}
-            </span>
-          </div>
-
-          <div className="md:col-span-2">
+        {/* ── MEXC-STYLE TAB BAR — Watchlist + timeline tabs (kiri) · search (kanan) ── */}
+        <div className="flex items-end justify-between gap-4 border-b border-white/[0.07] mb-3">
+          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar min-w-0 pr-2">
+            {/* Watchlist — seperti "Favorites" di MEXC (paling kiri) */}
             <button
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="w-full h-full min-h-[42px] flex items-center justify-center gap-1.5 px-3 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-white"
+              onClick={() => setShowWatchlistOnly((v) => !v)}
+              className={`group flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
+                showWatchlistOnly ? 'text-gold-primary border-gold-primary' : 'text-white/50 border-transparent hover:text-white/80'
+              }`}
             >
-              {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
-              <span>{getOrderLabel()}</span>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill={showWatchlistOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Watchlist
+              {watchlistIds.length > 0 && (
+                <span className="ml-0.5 font-mono text-[12px] tabular-nums text-white/40">{watchlistIds.length}</span>
+              )}
             </button>
-          </div>
-        </div>
 
-        {/* TIMELINE — always visible (primary filter) */}
-        <div>
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">Timeline</span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">multi-select</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+            {/* Timeline tabs — Today/Yesterday/tanggal (bisa pilih satu / semua) */}
             {dateOptions.map((opt) => {
-              const isActive = opt.value === "all" ? selectedDates.length === 0 : selectedDates.includes(opt.value);
+              const active = !showWatchlistOnly && (opt.value === 'all' ? selectedDates.length === 0 : selectedDates.includes(opt.value));
               return (
                 <button
                   key={opt.value}
-                  onClick={() => toggleDateFilter(opt.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-mono text-[10px] uppercase tracking-wider transition-all ${
-                    isActive
-                      ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
-                      : 'bg-white/[0.03] border border-white/[0.06] text-white/70 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.12]'
+                  onClick={() => { setShowWatchlistOnly(false); toggleDateFilter(opt.value); }}
+                  className={`flex items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-[15px] font-medium border-b-2 -mb-px transition-colors ${
+                    active ? 'text-white border-gold-primary' : 'text-white/50 border-transparent hover:text-white/80'
                   }`}
                 >
-                  <span>{opt.label}</span>
+                  {opt.label}
                   {opt.count != null && (
-                    <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded ${
-                      isActive ? 'bg-gold-primary/25 text-gold-primary' : 'bg-white/[0.06] text-white/70'
-                    }`}>
-                      {opt.count}
-                    </span>
+                    <span className={`font-mono text-[12px] tabular-nums ${active ? 'text-gold-primary' : 'text-white/35'}`}>{opt.count}</span>
                   )}
                 </button>
               );
             })}
           </div>
+
+          {/* Search — di kanan (MEXC-style) */}
+          <div className="relative flex-shrink-0 w-52 lg:w-64 self-center mb-2">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/45 pointer-events-none">
+              {Icon.search('w-3.5 h-3.5')}
+            </span>
+            <input
+              type="text"
+              placeholder="Search pair..."
+              value={searchPair}
+              onChange={(e) => setSearchPair(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Compact controls — sort + order (kanan) */}
+        <div className="flex items-center justify-end gap-2 mb-4">
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pl-3 pr-8 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white font-mono text-[11px] focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
+              ))}
+            </select>
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none">
+              {Icon.chevronDown('w-3 h-3')}
+            </span>
+          </div>
+          <button
+            onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-white"
+          >
+            {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
+            <span>{getOrderLabel()}</span>
+          </button>
         </div>
 
         {/* ADVANCED FILTERS TOGGLE */}

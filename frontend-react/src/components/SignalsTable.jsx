@@ -217,6 +217,11 @@ const SignalsTable = ({
     [visibleCols]
   );
 
+  // Density adaptif — makin banyak kolom tampil, makin rapat spacing-nya biar
+  // semua kolom fit tanpa scroll; makin sedikit kolom, makin lega (breathing room).
+  // Pola density-toggle ala TradingView/Notion. Dikontrol via class di <table>.
+  const density = visibleColCount >= 11 ? 'compact' : visibleColCount >= 8 ? 'cozy' : 'roomy';
+
   const { isAuthenticated } = useAuth();
   const [watchlistIds, setWatchlistIds] = useState([]);
 
@@ -948,8 +953,17 @@ const SignalsTable = ({
         {/* De-boxed list — flat rows di atas background halaman (CoinGecko/MEXC-style),
             tanpa card border. Baris dipisah hairline + hover highlight. */}
         <div className="relative">
+          <style>{`
+            .sig-t td, .sig-t th { transition: padding .18s ease; }
+            /* compact: banyak kolom → rapat, fit tanpa scroll */
+            .sig-compact td, .sig-compact th { padding: 8px 8px !important; }
+            /* cozy: menengah */
+            .sig-cozy td, .sig-cozy th { padding: 11px 12px !important; }
+            /* roomy: sedikit kolom → lega */
+            .sig-roomy td, .sig-roomy th { padding: 15px 20px !important; }
+          `}</style>
           <div className="overflow-x-auto">
-            <table className="w-full text-left whitespace-nowrap">
+            <table className={`sig-t sig-${density} w-full text-left whitespace-nowrap`}>
               <thead className="border-b border-white/[0.08]">
                 <tr>
                   <th className="py-3 px-4 w-10 text-center"></th>
@@ -1112,9 +1126,17 @@ const SignalsTable = ({
 
                         {visibleCols.risk_level && (
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm ${getRiskClasses(signal.risk_level)}`}>
-                              {getRiskLabel(signal.risk_level)}
-                            </span>
+                            {(() => {
+                              const rl = getRiskLabel(signal.risk_level);
+                              const c = /high/i.test(rl) ? 'text-red-400'
+                                : /low/i.test(rl) ? 'text-emerald-400'
+                                : 'text-amber-400';
+                              return (
+                                <span className={`font-mono text-[11px] uppercase tracking-wider font-semibold ${c}`}>
+                                  {rl}
+                                </span>
+                              );
+                            })()}
                           </td>
                         )}
 
@@ -1212,9 +1234,9 @@ const SignalsTable = ({
                                   <button
                                     onClick={() => { setShowVerdictHint(false); setSelectedCoinIntel(v.coin); }}
                                     title="View deep analysis"
-                                    className={`group/vd inline-flex items-center gap-1.5 px-2 py-0.5 border font-mono text-[10px] uppercase tracking-wider rounded-sm transition-all hover:brightness-125 cursor-pointer ${
-                                      isAvoid ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                    } ${showHint ? 'ring-2 ring-gold-primary/50 ring-offset-1 ring-offset-[#0a0805]' : ''}`}
+                                    className={`group/vd inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider transition-all hover:brightness-125 cursor-pointer ${
+                                      isAvoid ? 'text-red-400' : 'text-emerald-400'
+                                    } ${showHint ? 'ring-2 ring-gold-primary/50 ring-offset-1 ring-offset-[#0a0805] rounded-sm px-1' : ''}`}
                                   >
                                     <span>{isAvoid ? '⛔ Avoid' : '✓ Worth It'}</span>
                                     {score != null && <span className="tabular-nums opacity-70">{score}</span>}

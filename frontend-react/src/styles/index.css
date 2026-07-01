@@ -5,6 +5,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sembunyikan scrollbar (dipakai tab bar horizontal ala MEXC) tanpa hilangin scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 :root {
   --bg-primary: #0a0506;
   --bg-secondary: #120809;
