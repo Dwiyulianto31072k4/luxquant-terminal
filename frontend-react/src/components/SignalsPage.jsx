@@ -505,7 +505,8 @@ const SignalsPage = () => {
   };
 
   // Count of active advanced (secondary) filters — drives the badge on the
-  // "Advanced filters" toggle and forces the section open when > 0.
+  // "Advanced filters" toggle. TIDAK lagi memaksa panel terbuka: user boleh
+  // apply filter lalu menutup panel; filter tetap berlaku (badge "N active").
   const advancedActiveCount =
     (statusFilter !== "all" ? 1 : 0) +
     (riskFilter !== "all" ? 1 : 0) +
@@ -515,7 +516,8 @@ const SignalsPage = () => {
     (verdictFilter !== "all" ? 1 : 0) +
     (selectedTags.length > 0 ? 1 : 0);
 
-  const advancedOpen = showAdvanced || advancedActiveCount > 0;
+  // Panel murni dikontrol toggle user (bisa ditutup walau ada filter aktif).
+  const advancedOpen = showAdvanced;
 
   const hasActiveFilters = searchPair || statusFilter !== "all" || riskFilter !== "all" || streakFilter !== "all" || corrDecoupled || corrHighAlign || verdictFilter !== "all" || selectedDates.length > 0 || sortBy !== "created_at" || selectedTags.length > 0;
 
@@ -868,7 +870,7 @@ const SignalsPage = () => {
               placeholder="Search pair (e.g. BTC, ETH, SOL)..."
               value={searchPair}
               onChange={(e) => setSearchPair(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
+              className="w-full pl-9 pr-3 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white placeholder-text-secondary/50 font-mono text-xs focus:border-gold-primary/40 focus:outline-none focus:bg-white/[0.02] transition-all"
             />
           </div>
 
@@ -876,7 +878,7 @@ const SignalsPage = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full pl-3 pr-9 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-sm text-white font-mono text-xs focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
+              className="w-full pl-3 pr-9 py-2.5 bg-[#0a0506] border border-white/[0.08] rounded-md text-white font-mono text-xs focus:border-gold-primary/40 focus:outline-none appearance-none cursor-pointer transition-all"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-[#0a0506]">{opt.label}</option>
@@ -890,7 +892,7 @@ const SignalsPage = () => {
           <div className="md:col-span-2">
             <button
               onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="w-full h-full min-h-[42px] flex items-center justify-center gap-1.5 px-3 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-sm font-mono text-[10px] uppercase tracking-wider text-white"
+              className="w-full h-full min-h-[42px] flex items-center justify-center gap-1.5 px-3 bg-[#0a0506] border border-white/[0.08] hover:border-gold-primary/30 transition-all rounded-md font-mono text-[10px] uppercase tracking-wider text-white"
             >
               {sortOrder === 'desc' ? Icon.arrowDown('w-3 h-3') : Icon.arrowUp('w-3 h-3')}
               <span>{getOrderLabel()}</span>
@@ -911,16 +913,16 @@ const SignalsPage = () => {
                 <button
                   key={opt.value}
                   onClick={() => toggleDateFilter(opt.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-mono text-[10px] uppercase tracking-wider transition-all ${
                     isActive
-                      ? 'bg-white/10 border border-white/[0.08] text-white'
-                      : 'bg-white/[0.03] border border-transparent text-white/70 hover:bg-white/[0.06] hover:text-white'
+                      ? 'bg-gold-primary/15 border border-gold-primary/40 text-gold-primary'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-white/70 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.12]'
                   }`}
                 >
                   <span>{opt.label}</span>
                   {opt.count != null && (
-                    <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded-sm ${
-                      isActive ? 'bg-gold-primary/20 text-gold-primary' : 'bg-white/[0.06] text-white/70'
+                    <span className={`px-1 py-0 font-mono text-[9px] tabular-nums rounded ${
+                      isActive ? 'bg-gold-primary/25 text-gold-primary' : 'bg-white/[0.06] text-white/70'
                     }`}>
                       {opt.count}
                     </span>
@@ -954,6 +956,31 @@ const SignalsPage = () => {
             </span>
           </button>
         </div>
+
+        {/* ACTIVE FILTER CHIPS — tetap terlihat & bisa dihapus per-item walau panel ditutup */}
+        {!advancedOpen && advancedActiveCount > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-white/40 mr-0.5">Active</span>
+            {[
+              statusFilter !== 'all' && { label: `Status: ${statusFilter}`, clear: () => setStatusFilter('all') },
+              riskFilter !== 'all' && { label: `Risk: ${riskFilter}`, clear: () => setRiskFilter('all') },
+              streakFilter !== 'all' && { label: 'Hot streak', clear: () => setStreakFilter('all') },
+              verdictFilter !== 'all' && { label: `Verdict: ${verdictFilter.replace(/_/g, ' ')}`, clear: () => setVerdictFilter('all') },
+              corrDecoupled && { label: 'BTC decoupled', clear: () => setCorrDecoupled(false) },
+              corrHighAlign && { label: 'BTC aligned', clear: () => setCorrHighAlign(false) },
+              ...selectedTags.map((tag) => ({ label: tag, clear: () => toggleTag(tag) })),
+            ].filter(Boolean).map((chip, i) => (
+              <button
+                key={i}
+                onClick={chip.clear}
+                className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-md bg-gold-primary/10 border border-gold-primary/30 text-gold-primary font-mono text-[9px] uppercase tracking-wider hover:bg-gold-primary/20 transition-all"
+              >
+                <span>{chip.label}</span>
+                <span className="flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold-primary/15 group-hover:bg-gold-primary/30 leading-none">×</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ADVANCED FILTERS BODY — collapsed by default */}
         {advancedOpen && (
