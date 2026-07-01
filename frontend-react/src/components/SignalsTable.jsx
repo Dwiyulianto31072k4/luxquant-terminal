@@ -945,12 +945,12 @@ const SignalsTable = ({
           <ColumnsMenu visibleCols={visibleCols} onToggle={toggleCol} onReset={resetCols} />
         </div>
 
-        <div className="relative bg-[#0a0805] rounded-md border border-white/[0.06] overflow-hidden">
-          <span className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent z-10" />
-
+        {/* De-boxed list — flat rows di atas background halaman (CoinGecko/MEXC-style),
+            tanpa card border. Baris dipisah hairline + hover highlight. */}
+        <div className="relative">
           <div className="overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
-              <thead className="border-b border-white/[0.06] bg-white/[0.015]">
+              <thead className="border-b border-white/[0.08]">
                 <tr>
                   <th className="py-3 px-4 w-10 text-center"></th>
                   <SortableHeader field="pair" label="Pair" />
@@ -1037,7 +1037,7 @@ const SignalsTable = ({
                       <tr
                         key={signal.signal_id || idx}
                         onClick={() => onRowClick && onRowClick(signal)}
-                        className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer transition-colors group"
+                        className="border-b border-white/[0.05] hover:bg-white/[0.03] cursor-pointer transition-colors group"
                       >
                         <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <StarButton signalId={signal.signal_id} isStarred={watchlistIds.includes(signal.signal_id)} onToggle={handleStarToggle} />
