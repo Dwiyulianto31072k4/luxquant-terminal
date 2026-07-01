@@ -170,8 +170,11 @@ const SignalsPage = () => {
   const [corrHighAlign, setCorrHighAlign] = useState(false);
   const [verdictFilter, setVerdictFilter] = useState("all"); // 'all' | 'worth_it' | 'avoid'
   const [selectedDates, setSelectedDates] = useState([]);
-  // Watchlist tab (ala MEXC "Favorites") — filter in-place ke sinyal yang di-star.
+  // Watchlist tab (ala MEXC "Favorites"). Watchlist bisa lintas-tanggal (lebih tua
+  // dari 7 hari), sementara allSignals cuma 7 hari — jadi watchlist punya SUMBER
+  // DATA sendiri (watchlistSignals dari /watchlist/), bukan sekadar filter allSignals.
   const [watchlistIds, setWatchlistIds] = useState([]);
+  const [watchlistSignals, setWatchlistSignals] = useState([]);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
@@ -296,17 +299,18 @@ const SignalsPage = () => {
     setPage(1);
   }, [searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, selectedDates, sortBy, sortOrder, selectedTags, showWatchlistOnly]);
 
-  // Ambil ID watchlist user (untuk tab Watchlist / MEXC-Favorites).
-  useEffect(() => {
-    let alive = true;
-    Promise.resolve(watchlistApi.getWatchlistIds())
-      .then((res) => {
-        const ids = Array.isArray(res) ? res : (res?.ids || res?.signal_ids || res?.data || []);
-        if (alive && Array.isArray(ids)) setWatchlistIds(ids);
-      })
-      .catch(() => {});
-    return () => { alive = false; };
+  // Ambil watchlist penuh (objek sinyal lengkap, lintas-tanggal) untuk tab Watchlist
+  // + turunkan ID-nya buat badge. Dipanggil saat mount & tiap star berubah.
+  const refreshWatchlist = useCallback(async () => {
+    try {
+      const data = await watchlistApi.getWatchlist();
+      const items = Array.isArray(data) ? data : (data?.items || data?.watchlist || []);
+      setWatchlistSignals(items);
+      setWatchlistIds(items.map((i) => i.signal_id).filter(Boolean));
+    } catch (_) {}
   }, []);
+
+  useEffect(() => { refreshWatchlist(); }, [refreshWatchlist]);
 
   // Coin Flow Intensity (top-10, exclude stablecoin) untuk strip — sumber Money Flow.
   useEffect(() => {
@@ -393,16 +397,13 @@ const SignalsPage = () => {
   // and to decide which chips to show. Tag filter itself is excluded so counts
   // don't collapse to the current selection.
   const signalsBeforeTagFilter = useMemo(() => {
-    let f = [...allSignals];
+    let f = showWatchlistOnly ? [...watchlistSignals] : [...allSignals];
     if (searchPair) {
       const q = searchPair.toUpperCase();
       f = f.filter((s) => s.pair && s.pair.toUpperCase().includes(q));
     }
-    if (selectedDates.length > 0) {
+    if (!showWatchlistOnly && selectedDates.length > 0) {
       f = f.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
-    }
-    if (showWatchlistOnly) {
-      f = f.filter((s) => watchlistIds.includes(s.signal_id));
     }
     if (statusFilter === "updated") {
       f = f.filter((s) => s.last_update_at);
@@ -441,7 +442,7 @@ const SignalsPage = () => {
     if (corrHighAlign) f = f.filter((s) => (s.btc_align_score ?? -1) >= 70);
     if (verdictFilter !== "all") f = f.filter((s) => verdictByPair[s.pair] === verdictFilter);
     return f;
-  }, [allSignals, searchPair, selectedDates, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, coinIntel, showWatchlistOnly, watchlistIds]);
+  }, [allSignals, searchPair, selectedDates, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, coinIntel, showWatchlistOnly, watchlistIds, watchlistSignals]);
 
   // Dynamic per-tag count: how many currently-visible signals carry each tag.
   const tagActiveCount = useMemo(() => {
@@ -458,8 +459,13 @@ const SignalsPage = () => {
   // live price/volume for the WHOLE dataset, not just the current page. This is
   // what makes "sort by volume" correct & stable across pages.
   const allPairs = useMemo(() => {
-    return [...new Set(allSignals.map((s) => s.pair).filter(Boolean))];
-  }, [allSignals]);
+    // Sertakan pair watchlist (bisa lebih tua dari 7 hari) supaya harga live-nya
+    // tetap ke-fetch saat tab Watchlist aktif.
+    return [...new Set([
+      ...allSignals.map((s) => s.pair),
+      ...watchlistSignals.map((s) => s.pair),
+    ].filter(Boolean))];
+  }, [allSignals, watchlistSignals]);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -591,18 +597,18 @@ const SignalsPage = () => {
   };
 
   const { signals, totalPages, totalSignals } = useMemo(() => {
-    let filtered = [...allSignals];
+    // Watchlist mode: sumbernya data watchlist penuh (lintas-tanggal), BUKAN allSignals
+    // (yang cuma 7 hari). Ini yang bikin dulu "No signals found" untuk item lama.
+    let filtered = showWatchlistOnly ? [...watchlistSignals] : [...allSignals];
 
     if (searchPair) {
       const search = searchPair.toUpperCase();
       filtered = filtered.filter((s) => s.pair && s.pair.toUpperCase().includes(search));
     }
 
-    if (selectedDates.length > 0) {
+    // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
+    if (!showWatchlistOnly && selectedDates.length > 0) {
       filtered = filtered.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
-    }
-    if (showWatchlistOnly) {
-      filtered = filtered.filter((s) => watchlistIds.includes(s.signal_id));
     }
 
     if (statusFilter === "updated") {
@@ -761,7 +767,7 @@ const SignalsPage = () => {
     const start = (safePage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
     return { signals: paged, totalPages: pages, totalSignals: total };
-  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel, selectedTags, signalTags, showWatchlistOnly, watchlistIds]);
+  }, [allSignals, searchPair, statusFilter, riskFilter, streakFilter, corrDecoupled, corrHighAlign, verdictFilter, verdictByPair, selectedDates, sortBy, sortOrder, page, pageSize, priceVersion, coinIntel, selectedTags, signalTags, showWatchlistOnly, watchlistIds, watchlistSignals]);
 
   const handleSort = (field) => {
     if (sortBy === field) setSortOrder(sortOrder === "desc" ? "asc" : "desc");
@@ -1377,13 +1383,15 @@ const SignalsPage = () => {
           currentFlow={currentFlow}
           tagWrMap={tagWrMap}
           signalTags={signalTags}
-          onWatchlistChange={(signalId, newState) =>
+          onWatchlistChange={(signalId, newState) => {
+            // optimistic badge
             setWatchlistIds((prev) =>
-              newState
-                ? [...new Set([...prev, signalId])]
-                : prev.filter((id) => id !== signalId)
-            )
-          }
+              newState ? [...new Set([...prev, signalId])] : prev.filter((id) => id !== signalId)
+            );
+            if (!newState) setWatchlistSignals((prev) => prev.filter((s) => s.signal_id !== signalId));
+            // sync objek sinyal penuh (buat item baru yang di-star)
+            refreshWatchlist();
+          }}
         />
       )}
 
