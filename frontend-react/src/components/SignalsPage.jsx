@@ -180,6 +180,7 @@ const SignalsPage = () => {
   const [flowCoins, setFlowCoins] = useState([]);
   const [flowOpen, setFlowOpen] = useState(false); // default tertutup biar hemat tempat
   const [flowCount, setFlowCount] = useState(10);   // berapa koin ditampilkan (min 10)
+  const [flowSort, setFlowSort] = useState({ key: 'intensity', dir: 'desc' }); // sort tabel flow
   const navigate = useNavigate();
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   const [sortBy, setSortBy] = useState("created_at");
@@ -902,8 +903,49 @@ const SignalsPage = () => {
       {flowCoins.length > 0 && (() => {
         const findSignal = (sym) =>
           allSignals.find((s) => (s.pair || '').replace(/USDT$/i, '').toUpperCase() === String(sym).toUpperCase());
-        const rows = flowCoins.slice(0, flowCount);
-        const maxInt = Math.max(...rows.map((c) => c.flow_intensity || 0), 0.0001);
+        const statusRank = (st) => {
+          const s = (st || '').toLowerCase();
+          if (!st) return -1;
+          if (s === 'sl' || s === 'closed_loss') return 0;
+          if (s === 'open') return 1;
+          if (s.startsWith('tp')) return 1 + (parseInt(s.slice(2)) || 1);
+          if (s === 'closed_win') return 6;
+          return 1;
+        };
+        // enrich (signal + from-call %) lalu sort per kolom, baru slice
+        const enriched = flowCoins.map((c) => {
+          const sig = findSignal(c.symbol);
+          const entry = sig?.entry ? Number(sig.entry) : null;
+          const fromCall = (entry && c.price) ? ((c.price - entry) / entry) * 100 : null;
+          return { c, sig, fromCall };
+        });
+        const sortVal = (x, key) => {
+          switch (key) {
+            case 'coin': return x.c.symbol || '';
+            case 'chg': return x.c.price_change_24h ?? -Infinity;
+            case 'intensity': return x.c.flow_intensity ?? -Infinity;
+            case 'fromcall': return x.fromCall ?? -Infinity;
+            case 'status': return x.sig ? statusRank(x.sig.status) : -Infinity;
+            case 'called': return x.sig?.created_at ? new Date(x.sig.created_at).getTime() : -Infinity;
+            default: return 0;
+          }
+        };
+        const sortedFlow = [...enriched].sort((a, b) => {
+          const va = sortVal(a, flowSort.key), vb = sortVal(b, flowSort.key);
+          const cmp = typeof va === 'string' ? String(va).localeCompare(String(vb)) : (va - vb);
+          return flowSort.dir === 'asc' ? cmp : -cmp;
+        });
+        const rows = sortedFlow.slice(0, flowCount);
+        const maxInt = Math.max(...rows.map((r) => r.c.flow_intensity || 0), 0.0001);
+        const toggleSort = (key) => setFlowSort((s) => s.key === key ? { key, dir: s.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' });
+        const SortHead = ({ label, k, align = 'right' }) => (
+          <th className={`py-2 px-2 ${align === 'left' ? 'text-left' : 'text-right'}`}>
+            <button onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 font-mono text-[8.5px] uppercase tracking-[0.14em] transition-colors ${flowSort.key === k ? 'text-gold-primary' : 'text-white/35 hover:text-white/60'} ${align === 'left' ? '' : 'flex-row-reverse'}`}>
+              {label}
+              <span className="text-[7px]">{flowSort.key === k ? (flowSort.dir === 'desc' ? '▼' : '▲') : '⇅'}</span>
+            </button>
+          </th>
+        );
         const timeAgo = (iso) => {
           if (!iso) return null;
           const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -962,19 +1004,19 @@ const SignalsPage = () => {
                 <table className="w-full min-w-[640px] border-collapse">
                   <thead>
                     <tr className="border-b border-white/[0.06]">
-                      {['Coin','24h','Intensity','From Call','Status','Called'].map((h, i) => (
-                        <th key={h} className={`py-2 px-2 font-mono text-[8.5px] uppercase tracking-[0.14em] text-white/35 ${i === 0 ? 'text-left' : i >= 4 ? 'text-left' : 'text-right'}`}>{h}</th>
-                      ))}
+                      <SortHead label="Coin" k="coin" align="left" />
+                      <SortHead label="24h" k="chg" />
+                      <SortHead label="Intensity" k="intensity" />
+                      <SortHead label="From Call" k="fromcall" align="left" />
+                      <SortHead label="Status" k="status" align="left" />
+                      <SortHead label="Called" k="called" align="left" />
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((c) => {
-                      const sig = findSignal(c.symbol);
+                    {rows.map(({ c, sig, fromCall }) => {
                       const chg = c.price_change_24h;
                       const up = chg != null && chg >= 0;
                       const barW = Math.max(5, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
-                      const entry = sig?.entry ? Number(sig.entry) : null;
-                      const fromCall = (entry && c.price) ? ((c.price - entry) / entry) * 100 : null;
                       const sm = sig ? statusMeta(sig.status) : null;
                       return (
                         <tr key={c.coin_id || c.symbol} onClick={() => openCoin(c)}
