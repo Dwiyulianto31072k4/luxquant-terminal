@@ -179,6 +179,7 @@ const SignalsPage = () => {
   // Coin Flow Intensity (top-5) — di-inject dari Money Flow, "More" ke /money-flow.
   const [flowCoins, setFlowCoins] = useState([]);
   const [flowOpen, setFlowOpen] = useState(false); // default tertutup biar hemat tempat
+  const [flowCount, setFlowCount] = useState(10);   // berapa koin ditampilkan (min 10)
   const navigate = useNavigate();
   const tabScrollRef = useRef(null); // horizontal scroll tab bar (day tabs)
   const [sortBy, setSortBy] = useState("created_at");
@@ -316,11 +317,11 @@ const SignalsPage = () => {
   useEffect(() => {
     let alive = true;
     const STABLE = new Set(['USDT','USDC','DAI','TUSD','FDUSD','USDE','USDD','PYUSD','BUSD','USDP','GUSD','FRAX','LUSD','USDS','USR','USD1']);
-    moneyFlowApi.getCoins({ limit: 25 })
+    moneyFlowApi.getCoins({ limit: 80 })
       .then((res) => {
         const coins = Array.isArray(res) ? res : (res?.coins || []);
         const filtered = (coins || []).filter((c) => c.symbol && !STABLE.has(c.symbol.toUpperCase()));
-        if (alive) setFlowCoins(filtered.slice(0, 10));
+        if (alive) setFlowCoins(filtered.slice(0, 60));
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -897,75 +898,132 @@ const SignalsPage = () => {
         />
       </div>
 
-      {/* ── COIN FLOW INTENSITY (top-10, exclude stablecoin) — default tertutup ── */}
+      {/* ── COIN FLOW INTENSITY — tabel tipis + data call LuxQuant, default tertutup ── */}
       {flowCoins.length > 0 && (() => {
-        const maxInt = Math.max(...flowCoins.map((c) => c.flow_intensity || 0), 0.0001);
         const findSignal = (sym) =>
           allSignals.find((s) => (s.pair || '').replace(/USDT$/i, '').toUpperCase() === String(sym).toUpperCase());
-        const openCoin = (c) => {
-          const sig = findSignal(c.symbol);
-          if (sig) openSignal(sig);       // buka modal call LuxQuant langsung
-          else navigate('/money-flow');   // bukan call → ke Money Flow
+        const rows = flowCoins.slice(0, flowCount);
+        const maxInt = Math.max(...rows.map((c) => c.flow_intensity || 0), 0.0001);
+        const timeAgo = (iso) => {
+          if (!iso) return null;
+          const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+          if (m < 1) return 'now'; if (m < 60) return `${m}m ago`;
+          const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+          return `${Math.floor(h / 24)}d ago`;
         };
+        const fmtDT = (iso) => iso ? new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false }) : '—';
+        const statusMeta = (st) => {
+          const s = (st || '').toLowerCase();
+          if (s === 'sl' || s === 'closed_loss') return { l:'SL', c:'text-red-400 border-red-500/30 bg-red-500/10' };
+          if (s === 'closed_win') return { l:'WIN', c:'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
+          if (s.startsWith('tp')) return { l:s.toUpperCase(), c:'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' };
+          return { l:'OPEN', c:'text-blue-300 border-blue-500/30 bg-blue-500/10' };
+        };
+        const openCoin = (c) => { const sig = findSignal(c.symbol); if (sig) openSignal(sig); else navigate('/money-flow'); };
         return (
         <div className="mt-2.5 bg-white/[0.02] rounded-xl px-4 py-2.5">
+          {/* Header */}
           <div className="flex items-center justify-between gap-2">
             <button onClick={() => setFlowOpen((v) => !v)} className="group flex items-center gap-2 min-w-0">
               <svg className={`w-3.5 h-3.5 text-gold-primary/70 transition-transform ${flowOpen ? '' : '-rotate-90'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 group-hover:text-white/85 whitespace-nowrap">
-                Coin Flow Intensity · Top 10
-              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60 group-hover:text-white/85 whitespace-nowrap">Coin Flow Intensity</span>
               {!flowOpen && (
-                <span className="font-mono text-[9px] normal-case tracking-normal text-gold-primary/60 group-hover:text-gold-primary/90 truncate">
-                  — tap to see where money is flowing now
-                </span>
+                <span className="font-mono text-[9px] normal-case tracking-normal text-gold-primary/60 group-hover:text-gold-primary/90 truncate">— tap to see where money is flowing now</span>
               )}
             </button>
-            <button
-              onClick={() => navigate('/money-flow')}
-              className="flex items-center gap-1 flex-shrink-0 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors"
-            >
-              More
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {flowOpen && (
+                <div className="relative">
+                  <select
+                    value={flowCount}
+                    onChange={(e) => setFlowCount(Number(e.target.value))}
+                    className="appearance-none pl-2 pr-6 py-1 bg-[#0a0506] border border-white/[0.1] rounded-md font-mono text-[10px] text-white/80 focus:outline-none focus:border-gold-primary/40 cursor-pointer"
+                  >
+                    {[10, 20, 30, 50].map((n) => <option key={n} value={n} className="bg-[#0a0506]">Top {n}</option>)}
+                  </select>
+                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                  </span>
+                </div>
+              )}
+              <button onClick={() => navigate('/money-flow')} className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-gold-primary/80 hover:text-gold-primary transition-colors">
+                More
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
           </div>
 
           {flowOpen && (
             <>
-              <p className="mt-2 font-mono text-[10px] leading-relaxed text-white/40 normal-case">
-                <span className="text-white/65">Flow intensity = 24h volume ÷ market cap</span> — how fast capital is rotating through a coin (higher = money moving in/out faster). Tap a coin to open its LuxQuant call.
+              <p className="mt-2 mb-1 font-mono text-[10px] leading-relaxed text-white/40 normal-case">
+                <span className="text-white/65">Flow intensity = 24h volume ÷ market cap</span> — how fast capital is rotating (higher = money moving in/out faster). Click a coin to open its LuxQuant call.
               </p>
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                {flowCoins.map((c) => {
-                  const chg = c.price_change_24h;
-                  const up = chg != null && chg >= 0;
-                  const chgColor = chg == null ? 'text-white/70' : up ? 'text-emerald-400' : 'text-red-400';
-                  const barW = Math.max(6, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
-                  return (
-                    <button
-                      key={c.coin_id || c.symbol}
-                      onClick={() => openCoin(c)}
-                      className="lqflow-card group text-left bg-white/[0.02] rounded-lg px-3 py-2.5 border border-white/[0.05]"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <CoinLogo pair={`${c.symbol}USDT`} size={22} />
-                        <span className="font-mono text-[13px] font-semibold text-white truncate group-hover:text-gold-primary transition-colors">{c.symbol}</span>
-                        {c.is_luxquant_signal && (
-                          <span className="ml-auto flex-shrink-0 font-mono text-[8px] uppercase tracking-wider text-gold-primary border border-gold-primary/40 rounded px-1 py-0.5 leading-none">Call</span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className={`font-mono text-[15px] tabular-nums font-bold leading-none ${chgColor}`}>
-                          {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
-                        </span>
-                        <span className="font-mono text-[10px] tabular-nums text-white/55">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
-                      </div>
-                      <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                        <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="overflow-x-auto no-scrollbar -mx-1">
+                <table className="w-full min-w-[640px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/[0.06]">
+                      {['Coin','24h','Intensity','From Call','Status','Called'].map((h, i) => (
+                        <th key={h} className={`py-2 px-2 font-mono text-[8.5px] uppercase tracking-[0.14em] text-white/35 ${i === 0 ? 'text-left' : i >= 4 ? 'text-left' : 'text-right'}`}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((c) => {
+                      const sig = findSignal(c.symbol);
+                      const chg = c.price_change_24h;
+                      const up = chg != null && chg >= 0;
+                      const barW = Math.max(5, Math.round(((c.flow_intensity || 0) / maxInt) * 100));
+                      const entry = sig?.entry ? Number(sig.entry) : null;
+                      const fromCall = (entry && c.price) ? ((c.price - entry) / entry) * 100 : null;
+                      const sm = sig ? statusMeta(sig.status) : null;
+                      return (
+                        <tr key={c.coin_id || c.symbol} onClick={() => openCoin(c)}
+                          className="border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition-colors">
+                          {/* Coin */}
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              <CoinLogo pair={`${c.symbol}USDT`} size={20} />
+                              <span className="font-mono text-[12px] font-semibold text-white">{c.symbol}</span>
+                              {c.is_luxquant_signal && <span className="font-mono text-[7.5px] uppercase tracking-wider text-gold-primary border border-gold-primary/40 rounded px-1 py-0.5 leading-none">Call</span>}
+                            </div>
+                          </td>
+                          {/* 24h */}
+                          <td className={`py-2 px-2 text-right font-mono text-[12px] tabular-nums font-semibold ${chg == null ? 'text-white/40' : up ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {chg == null ? '—' : `${up ? '+' : ''}${chg.toFixed(2)}%`}
+                          </td>
+                          {/* Intensity + bar */}
+                          <td className="py-2 px-2">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-14 h-1 rounded-full bg-white/[0.07] overflow-hidden hidden sm:block">
+                                <div className="h-full rounded-full bg-gradient-to-r from-gold-primary/60 to-gold-primary" style={{ width: `${barW}%` }} />
+                              </div>
+                              <span className="font-mono text-[11px] tabular-nums text-white/70 w-9 text-right">{c.flow_intensity != null ? c.flow_intensity.toFixed(2) : '—'}</span>
+                            </div>
+                          </td>
+                          {/* From Call */}
+                          <td className="py-2 px-2 text-left">
+                            {fromCall != null ? (
+                              <span className={`font-mono text-[11px] tabular-nums font-semibold ${fromCall >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fromCall >= 0 ? '+' : ''}{fromCall.toFixed(2)}%</span>
+                            ) : <span className="text-white/25 text-[11px]">—</span>}
+                          </td>
+                          {/* Status */}
+                          <td className="py-2 px-2 text-left">
+                            {sm ? <span className={`font-mono text-[8.5px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${sm.c}`}>{sm.l}</span> : <span className="text-white/25 text-[11px]">—</span>}
+                          </td>
+                          {/* Called */}
+                          <td className="py-2 px-2 text-left whitespace-nowrap">
+                            {sig ? (
+                              <div className="flex flex-col leading-tight">
+                                <span className="font-mono text-[10px] text-white/70">{fmtDT(sig.created_at)}</span>
+                                <span className="font-mono text-[9px] text-white/35">{timeAgo(sig.created_at)}</span>
+                              </div>
+                            ) : <span className="text-white/25 text-[11px]">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </>
           )}

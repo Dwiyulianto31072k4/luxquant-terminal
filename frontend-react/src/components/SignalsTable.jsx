@@ -67,7 +67,6 @@ const SIGNAL_COLUMNS = [
   { key: 'btc_corr',      label: 'BTC Corr' },
   { key: 'verdict',       label: 'Verdict' },
   { key: 'status',        label: 'Status' },
-  { key: 'last_update',   label: 'Update' },
   { key: 'created_at',    label: 'Called Time' },
 ];
 
@@ -1011,7 +1010,6 @@ const SignalsTable = ({
                   {visibleCols.btc_corr && <SortableHeader field="btc_corr" label="BTC Corr" align="center" />}
                   {visibleCols.verdict && <SortableHeader field="verdict" label="Verdict" align="center" />}
                   {visibleCols.status && <SortableHeader field="status" label="Status" align="center" />}
-                  {visibleCols.last_update && <SortableHeader field="last_update" label="Update" align="center" />}
                   {visibleCols.created_at && <SortableHeader field="created_at" label="Called Time" align="right" />}
                   <th className="py-3 px-2 w-10"></th>
                 </tr>
@@ -1304,20 +1302,14 @@ const SignalsTable = ({
 
                         {visibleCols.status && (
                           <td className="py-3 px-4 text-center">
-                            {getStatusBadge(signal.status)}
-                          </td>
-                        )}
-
-                        {visibleCols.last_update && (
-                          <td className="py-3 px-4 text-center">
-                            {signal.last_update_at ? (
-                              <div className="flex flex-col items-center gap-0.5">
-                                {getUpdateTypeBadge(signal.last_update_type)}
-                                <span className="font-mono text-[10px] uppercase tracking-wider text-white/45">{formatTimeAgo(signal.last_update_at)}</span>
-                              </div>
-                            ) : (
-                              <span className="text-white/30 text-xs">—</span>
-                            )}
+                            <div className="flex flex-col items-center gap-1">
+                              {getStatusBadge(signal.status)}
+                              {signal.last_update_at && (
+                                <span className="font-mono text-[9px] uppercase tracking-wider text-white/40 whitespace-nowrap">
+                                  {formatTimeAgo(signal.last_update_at)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                         )}
 
