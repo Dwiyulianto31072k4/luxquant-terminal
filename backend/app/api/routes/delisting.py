@@ -69,34 +69,43 @@ async def list_delistings(
 
     prices = _all_prices()
     exchanges = set()
-    events = []
+    out = []  # flat per-token rows (struktur rapi, filterable/sortable di frontend)
     for r in rows:
         exchanges.add(r.exchange)
         pa = r.price_at_announce or {}
-        syms = []
-        best = None
-        for s in (r.symbols or []):
-            cur = prices.get(s)
-            at = pa.get(s)
-            pct = None
-            if cur and at:
-                pct = round((cur - at) / at * 100, 2)
-                if best is None or pct > best:
-                    best = pct
-            syms.append({"symbol": s, "price_at_announce": at, "current_price": cur, "pct": pct})
-        events.append({
+        peak = r.peak_since_announce or {}
+        base = {
             "id": r.id,
             "exchange": r.exchange,
             "title": r.title,
             "url": r.url,
             "announced_at": r.announced_at.isoformat() if r.announced_at else None,
             "delist_at": r.delist_at.isoformat() if r.delist_at else None,
-            "symbols": syms,
-            "best_move_pct": best,
-        })
+        }
+        syms = r.symbols or []
+        if not syms:
+            out.append({**base, "token": None, "price_at_announce": None,
+                        "current_price": None, "current_pct": None,
+                        "peak_price": None, "peak_pct": None, "peak_at": None})
+            continue
+        for s in syms:
+            entry = pa.get(s)
+            cur = prices.get(s)
+            cur_pct = round((cur - entry) / entry * 100, 2) if (cur and entry) else None
+            pk = peak.get(s) or {}
+            out.append({
+                **base,
+                "token": s,
+                "price_at_announce": entry,
+                "current_price": cur,
+                "current_pct": cur_pct,
+                "peak_price": pk.get("peak"),
+                "peak_pct": pk.get("peak_pct"),
+                "peak_at": pk.get("peak_at"),
+            })
 
     return {
-        "events": events,
+        "rows": out,
         "exchanges": sorted(exchanges),
-        "count": len(events),
+        "count": len(out),
     }

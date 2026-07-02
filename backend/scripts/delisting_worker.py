@@ -138,6 +138,38 @@ def ticker_price(symbol):
     return None
 
 
+def peak_high_since(symbol, start_dt):
+    """Max high candle 1h symbolUSDT sejak start_dt → (peak_price, peak_at) atau None.
+
+    Ini metrik 'pump after delist' yang benar (bukan harga sekarang).
+    """
+    pair = f"{symbol}USDT"
+    start_ms = int(start_dt.timestamp() * 1000)
+    for base in ("https://api.binance.com/api/v3/klines",
+                 "https://fapi.binance.com/fapi/v1/klines"):
+        try:
+            r = requests.get(base, params={"symbol": pair, "interval": "1h",
+                                           "startTime": start_ms, "limit": 1000},
+                             headers=HEADERS, timeout=REQ_TIMEOUT)
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            if not isinstance(data, list) or not data:
+                continue
+            peak = 0.0
+            peak_at = None
+            for c in data:
+                hi = float(c[2])
+                if hi > peak:
+                    peak = hi
+                    peak_at = datetime.fromtimestamp(c[0] / 1000, tz=timezone.utc)
+            if peak > 0:
+                return peak, peak_at
+        except Exception:
+            continue
+    return None
+
+
 # ─── adapters ───────────────────────────────────────────────────────
 def fetch_binance():
     """→ list event dict: {exchange, ann_id, title, url, announced_at}"""
@@ -193,7 +225,75 @@ def fetch_bybit():
     return out
 
 
-ADAPTERS = [fetch_binance, fetch_bybit]
+def fetch_okx():
+    out = []
+    try:
+        r = requests.get(
+            "https://www.okx.com/api/v5/support/announcements",
+            params={"annType": "announcements-delistings"},
+            headers=HEADERS, timeout=REQ_TIMEOUT)
+        if r.status_code != 200:
+            log.warning(f"okx status {r.status_code}")
+            return out
+        data = r.json().get("data") or []
+        # bentuk: [{"details":[{title,url,pTime}, ...]}] atau list langsung
+        items = []
+        for d in data:
+            if isinstance(d, dict) and d.get("details"):
+                items.extend(d["details"])
+            elif isinstance(d, dict):
+                items.append(d)
+        for a in items:
+            title = a.get("title", "")
+            if not title:
+                continue
+            blob = title.lower()
+            if "delist" not in blob and "removal" not in blob and "discontinue" not in blob:
+                continue
+            ts = a.get("pTime")
+            out.append({
+                "exchange": "okx",
+                "ann_id": a.get("url") or f"{title}-{ts}",
+                "title": title,
+                "url": a.get("url"),
+                "announced_at": datetime.fromtimestamp(int(ts) / 1000, tz=timezone.utc) if ts else None,
+            })
+    except Exception as e:
+        log.error(f"okx fetch error: {e}")
+    return out
+
+
+ADAPTERS = [fetch_binance, fetch_bybit, fetch_okx]
+
+
+def refresh_peaks(session, dry_run=False, days=30):
+    """Update peak_since_announce untuk event <days hari (pump-after-delist)."""
+    rows = session.execute(text("""
+        SELECT id, symbols, price_at_announce, announced_at
+        FROM delisting_events
+        WHERE announced_at IS NOT NULL
+          AND announced_at >= NOW() - (:days || ' days')::interval
+          AND symbols IS NOT NULL
+    """), {"days": days}).fetchall()
+    for r in rows:
+        eid, symbols, pa, announced = r[0], r[1] or [], r[2] or {}, r[3]
+        peak_map = {}
+        for s in symbols:
+            entry = pa.get(s)
+            res = peak_high_since(s, announced)
+            if res:
+                peak, peak_at = res
+                pct = round((peak - entry) / entry * 100, 2) if entry else None
+                peak_map[s] = {"peak": peak, "peak_pct": pct,
+                               "peak_at": peak_at.isoformat() if peak_at else None}
+            time.sleep(0.1)
+        if peak_map and not dry_run:
+            session.execute(
+                text("UPDATE delisting_events SET peak_since_announce = :p, updated_at = NOW() WHERE id = :id"),
+                {"p": json.dumps(peak_map), "id": eid})
+    if not dry_run:
+        session.commit()
+    log.info(f"peaks refreshed for {len(rows)} recent events")
 
 
 # ─── main ───────────────────────────────────────────────────────────
@@ -269,6 +369,11 @@ def run_once(dry_run=False):
                 inserted += 1
             if not dry_run:
                 session.commit()
+        # Refresh peak (pump-after-delist) untuk event terbaru.
+        try:
+            refresh_peaks(session, dry_run)
+        except Exception as e:
+            log.error(f"refresh_peaks error: {e}")
         log.info(f"done. new events={inserted} dry_run={dry_run}")
     finally:
         session.close()

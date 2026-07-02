@@ -22,6 +22,7 @@ class DelistingEvent(Base):
     delist_at = Column(DateTime(timezone=True), nullable=True)
     symbols = Column(ARRAY(Text), nullable=True)
     price_at_announce = Column(JSONB, nullable=True)
+    peak_since_announce = Column(JSONB, nullable=True)  # {symbol: {peak, peak_pct, peak_at}}
     notified = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
