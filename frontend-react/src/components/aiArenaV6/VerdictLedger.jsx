@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getScenarioLedger } from "../../services/aiArenaV6Api";
 import { formatPrice, formatTimestamp } from "./constants";
-import { Card, SectionHeader, StatCard, OutcomeBar, Chip, COLOR } from "./_ui";
+import { Card, SectionHeader, StatCard, OutcomeBar, Chip, Donut, GhostButton, COLOR } from "./_ui";
 
 const DEFAULT_PAGE_SIZE = 8;
 
@@ -158,14 +158,39 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
               to touch, which barrier resolved first, and why that result matters.
             </p>
           </div>
-          <div className="rounded-lg border border-gold-primary/25 bg-gold-primary/[0.07] px-4 py-3 text-right">
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-light">Current schema</div>
-            <div className="mt-1 font-mono text-sm text-white">Target-first</div>
+          {/* landing-style win-rate donut */}
+          <div className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-[#140b0d] px-5 py-3">
+            <Donut
+              size={118}
+              thickness={11}
+              centerValue={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
+              centerLabel="hit rate"
+              segments={[
+                { label: "Hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
+                { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+                { label: "Tracking", value: stats.pending ?? 0, hex: "rgba(212,168,83,0.45)" },
+              ]}
+            />
+            <div className="space-y-1.5 font-mono text-[10px]">
+              <div className="flex items-center gap-1.5 text-text-muted/80">
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.profit }} />
+                Hits <span className="text-white">{stats.clean_hits ?? 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-text-muted/80">
+                <span className="h-2 w-2 rounded-full" style={{ background: COLOR.loss }} />
+                Invalidated <span className="text-white">{stats.invalidated_first ?? 0}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-text-muted/80">
+                <span className="h-2 w-2 rounded-full bg-gold-primary/50" />
+                Tracking <span className="text-white">{stats.pending ?? 0}</span>
+              </div>
+              <div className="pt-1 text-[9px] uppercase tracking-[0.14em] text-text-muted/50">Target-first schema</div>
+            </div>
           </div>
         </div>
 
         {/* KPI strip */}
-        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
           <StatCard label="Tracking" value={stats.pending ?? 0} detail="Waiting for first barrier" />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
@@ -176,12 +201,6 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             tone="up"
           />
           <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
-          <StatCard
-            label="Hit rate"
-            value={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-            detail="First barrier touched decides"
-            tone="gold"
-          />
         </div>
 
         {/* outcome distribution */}
@@ -298,25 +317,15 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
         </p>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-text-muted transition hover:border-gold-primary/30 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            Prev
-          </button>
+          <GhostButton size="sm" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+            ← Prev
+          </GhostButton>
           <span className="font-mono text-[11px] tabular-nums text-text-muted/70">
             Page {page} / {pageCount}
           </span>
-          <button
-            type="button"
-            disabled={page >= pageCount}
-            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-text-muted transition hover:border-gold-primary/30 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            Next
-          </button>
+          <GhostButton size="sm" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
+            Next →
+          </GhostButton>
         </div>
       </div>
     </Card>

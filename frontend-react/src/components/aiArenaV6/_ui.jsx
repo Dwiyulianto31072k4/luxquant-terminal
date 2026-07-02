@@ -388,6 +388,84 @@ export const OutcomeBar = ({ segments = [] }) => {
   );
 };
 
+/* ═══════════════ landing-grade controls ═══════════════ */
+
+// Solid gold pill CTA — same language as the landing page "Open App" button.
+export const GoldButton = ({ children, className = "", size = "md", ...rest }) => {
+  const sizes = {
+    sm: "px-3.5 py-1.5 text-[11px]",
+    md: "px-5 py-2.5 text-[13px]",
+  };
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] font-semibold text-[#1a0f08] shadow-[0_4px_18px_rgba(212,168,83,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Quiet pill counterpart.
+export const GhostButton = ({ children, className = "", size = "md", ...rest }) => {
+  const sizes = {
+    sm: "px-3.5 py-1.5 text-[11px]",
+    md: "px-5 py-2.5 text-[13px]",
+  };
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] font-semibold text-white/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Donut — segmented ring with a big center value (landing "Win Rate" style).
+export const Donut = ({ segments = [], size = 150, thickness = 13, centerValue, centerLabel }) => {
+  const total = segments.reduce((sum, s) => sum + (Number(s.value) || 0), 0) || 1;
+  const r = (size - thickness) / 2;
+  const c = size / 2;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={c} cy={c} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={thickness} />
+        {segments.map((s) => {
+          const frac = (Number(s.value) || 0) / total;
+          const dash = Math.max(0, frac * circumference - 2);
+          const el = frac > 0 ? (
+            <circle
+              key={s.label}
+              cx={c} cy={c} r={r} fill="none"
+              stroke={s.hex}
+              strokeWidth={thickness}
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={-offset * circumference}
+              style={{ transition: "stroke-dasharray 0.7s ease" }}
+            />
+          ) : null;
+          offset += frac;
+          return el;
+        })}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="font-display text-[26px] font-bold leading-none text-white">{centerValue}</span>
+        {centerLabel && (
+          <span className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/70">
+            {centerLabel}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /* ═══════════════ controls ═══════════════ */
 
 export const Segmented = ({ options, value, onChange }) => (

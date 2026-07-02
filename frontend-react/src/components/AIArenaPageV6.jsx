@@ -133,7 +133,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="rounded-lg border border-gold-primary/25 bg-gold-primary/[0.08] px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-gold-primary transition-all hover:border-gold-primary/45 hover:bg-gold-primary/15 disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] px-5 font-semibold text-[13px] text-[#1a0f08] shadow-[0_4px_18px_rgba(212,168,83,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
@@ -481,9 +481,9 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="rounded-sm border border-gold-primary/25 bg-gold-primary/10 px-4 py-2 text-sm font-semibold text-gold-primary transition hover:border-gold-primary/45 hover:bg-gold-primary/15 disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] px-4 py-2 text-[13px] font-semibold text-[#1a0f08] shadow-[0_4px_16px_rgba(212,168,83,0.3)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
-                    {loading ? "Opening..." : "Open reader"}
+                    {loading ? "Opening…" : "Open reader →"}
                   </button>
                 </div>
               </article>
