@@ -44,6 +44,14 @@ export async function getScenarioLedger({ limit = 50, offset = 0, filter = 'all'
 }
 
 /**
+ * Fetch the self-learning brain vault (lessons, postmortems, regime).
+ */
+export async function getBrain() {
+  const { data } = await api.get(`${V6_BASE}/brain`);
+  return data;
+}
+
+/**
  * Fetch hit-rate stats per horizon.
  * @param {number} days - 7-180, default 30
  * Returns: { horizons: { '24h': {...}, ... }, overall: {...}, window_days }

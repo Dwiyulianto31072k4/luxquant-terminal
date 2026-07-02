@@ -196,11 +196,14 @@ export default function CompassSnapshot({ className = "" }) {
           aria-expanded={!collapsed}
           className="group flex min-w-0 items-center gap-2.5 overflow-hidden text-left md:gap-3"
         >
-          {/* big chevron */}
+          {/* big solid chevron */}
           <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gold-primary/30 bg-gold-primary/10 text-[13px] text-gold-primary transition-transform duration-200 group-hover:border-gold-primary/50 ${collapsed ? "" : "rotate-90"}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold-primary text-[#1a0f08] shadow-[0_2px_12px_rgba(212,168,83,0.4)] transition-all duration-200 group-hover:bg-gold-light ${collapsed ? "" : "rotate-180"}`}
+            aria-hidden="true"
           >
-            ▸
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
+              <path d="M3.2 5.8 8 10.6l4.8-4.8" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
           <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">

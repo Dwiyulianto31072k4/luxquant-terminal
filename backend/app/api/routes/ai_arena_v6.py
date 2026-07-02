@@ -283,6 +283,35 @@ def get_verdict_ledger(
 
 
 # ════════════════════════════════════════════════════════════════════════
+# GET /brain — Compass brain vault (lessons + postmortems + regime)
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/brain")
+def get_brain(_current_user=Depends(require_subscription)) -> dict[str, Any]:
+    """
+    Public view of the self-learning brain vault. Fail-safe: returns
+    available=false when the vault is missing (e.g. local dev).
+    """
+    try:
+        from app.services import compass_brain as brain
+
+        lessons = [
+            {k: v for k, v in meta.items() if not k.startswith("_")}
+            for meta in brain.list_lessons()
+        ]
+        postmortems = brain.list_postmortems(limit=80)
+        regime_meta, _ = brain.read_note(brain.BRAIN_DIR / "regimes" / "current.md")
+        return {
+            "available": bool(lessons or postmortems),
+            "regime": regime_meta or {},
+            "lessons": lessons,
+            "postmortems": postmortems,
+        }
+    except Exception:
+        return {"available": False, "regime": {}, "lessons": [], "postmortems": []}
+
+
+# ════════════════════════════════════════════════════════════════════════
 # GET /scenario-ledger
 # ════════════════════════════════════════════════════════════════════════
 

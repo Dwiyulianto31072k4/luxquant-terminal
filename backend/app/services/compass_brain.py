@@ -130,6 +130,20 @@ def list_lessons() -> list[dict[str, Any]]:
     return out
 
 
+def list_postmortems(limit: int = 80) -> list[dict[str, Any]]:
+    """Postmortem frontmatter (newest first) for UI/graph consumption."""
+    out: list[dict[str, Any]] = []
+    folder = BRAIN_DIR / "postmortems"
+    if not folder.is_dir():
+        return out
+    for path in folder.glob("*.md"):
+        meta, _ = read_note(path)
+        if meta.get("id"):
+            out.append(meta)
+    out.sort(key=lambda m: str(m.get("updated", "")), reverse=True)
+    return out[:limit]
+
+
 def active_lessons(regime: Optional[str] = None, limit: int = 8) -> list[dict[str, Any]]:
     """
     Lessons eligible for prompt injection: status candidate/validated/core,
@@ -224,6 +238,7 @@ __all__ = [
     "classify_regime",
     "lesson_path",
     "list_lessons",
+    "list_postmortems",
     "parse_note",
     "read_note",
     "render_note",

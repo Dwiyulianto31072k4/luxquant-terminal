@@ -14,6 +14,7 @@ import {
 import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
+import BrainPanel from "./aiArenaV6/BrainPanel";
 
 let pdfJsRuntimePromise;
 
@@ -934,7 +935,7 @@ export default function AIArenaPageV6() {
   const [activeWorkspace, setActiveWorkspace] = useState(() => {
     try {
       const tab = new URLSearchParams(window.location.search).get("tab");
-      return ["read", "longer", "evaluation", "chart", "archive"].includes(tab) ? tab : "read";
+      return ["read", "longer", "evaluation", "chart", "archive", "brain"].includes(tab) ? tab : "read";
     } catch {
       return "read";
     }
@@ -1111,6 +1112,13 @@ export default function AIArenaPageV6() {
       label: "Report Library",
       description: "Archived outlooks and PDF guide.",
     },
+    {
+      key: "brain",
+      icon: "06",
+      eyebrow: "Learning",
+      label: "AI Brain",
+      description: "Lessons the AI learned from its own audited calls.",
+    },
   ];
 
   return (
@@ -1147,6 +1155,8 @@ export default function AIArenaPageV6() {
         )}
 
         {activeWorkspace === "chart" && <ChartPanel report={report} />}
+
+        {activeWorkspace === "brain" && <BrainPanel />}
 
         {activeWorkspace === "archive" && (
           <ReportArchivePanel
