@@ -63,6 +63,9 @@ _STOPWORDS = {
     "TAG", "TO", "INCLUDE", "CEASE", "SUPPORT", "FOR", "SELECTED", "STOCKS",
     "AS", "COLLATERAL", "LENDING", "ASSET", "DISCONTINUATION", "SEED",
     "WATCHLIST", "STAKING", "EARN", "CONVERT", "ISOLATED", "CROSS",
+    # generic quantifier / noise (khusus judul OKX & sejenis)
+    "SEVERAL", "UM", "USDS", "MANY", "VARIOUS", "CERTAIN", "MULTIPLE",
+    "SELECT", "CoinM".upper(), "UMCBL", "SOME", "OKX",
 }
 # Ambil bagian judul SETELAH kata-kunci ini (di situ nama coin biasanya berada).
 _TRIGGER_RE = re.compile(
