@@ -53,28 +53,52 @@ logging.basicConfig(
 )
 log = logging.getLogger("delist_worker")
 
-# Kata yang JANGAN dianggap ticker saat parse judul.
+# Kata yang JANGAN dianggap ticker (noise dari kalimat judul).
 _STOPWORDS = {
     "WILL", "DELIST", "REMOVE", "REMOVAL", "SPOT", "TRADING", "PAIRS", "PAIR",
     "NOTICE", "UPDATE", "UPDATED", "OF", "AND", "THE", "ON", "USDT", "USDC",
     "FDUSD", "TUSD", "BUSD", "MARGIN", "FUTURES", "PERPETUAL", "CONTRACT",
     "CONTRACTS", "BINANCE", "BYBIT", "OKX", "TOKEN", "TOKENS", "LEVERAGED",
-    "NEW", "ADD", "SPOT&MARGIN", "SPOTMARGIN", "USD",
+    "NEW", "ADD", "USD", "ALPHA", "LOAN", "MARGINED", "EXTEND", "MONITORING",
+    "TAG", "TO", "INCLUDE", "CEASE", "SUPPORT", "FOR", "SELECTED", "STOCKS",
+    "AS", "COLLATERAL", "LENDING", "ASSET", "DISCONTINUATION", "SEED",
+    "WATCHLIST", "STAKING", "EARN", "CONVERT", "ISOLATED", "CROSS",
 }
-_TICKER_RE = re.compile(r"\b([A-Z0-9]{2,10})\b")
+# Ambil bagian judul SETELAH kata-kunci ini (di situ nama coin biasanya berada).
+_TRIGGER_RE = re.compile(
+    r"(?:will\s+)?(?:delist|remove|removal\s+of|discontinuation\s+of|"
+    r"cease\s+support\s+for|delisting\s+of)\s+", re.I)
+# Potong ekor kalimat setelah nama-nama coin.
+_TAIL_RE = re.compile(r"\s+(?:on\s+20\d{2}|perpetual|contract|from\b|as\b|"
+                      r"due\b|effective\b|starting\b|\()", re.I)
+_TICKER_RE = re.compile(r"[A-Z0-9]{2,12}")
 _DATE_RE = re.compile(r"(20\d{2}[-/]\d{1,2}[-/]\d{1,2})")
 
 
-# ─── helpers ────────────────────────────────────────────────────────
 def extract_symbols(title):
-    """Best-effort: ambil kandidat ticker dari judul (mis. 'Binance Will Delist ABC, XYZ')."""
+    """Ambil ticker dari judul, hanya dari segmen setelah kata-kunci delist.
+
+    Judul generik ('Notice of Removal of Spot Trading Pairs - ...') tak menyebut
+    coin di judul → return [] (coin ada di body, di luar scope v1).
+    """
+    m = _TRIGGER_RE.search(title or "")
+    if not m:
+        return []
+    seg = title[m.end():]
+    tail = _TAIL_RE.search(seg)
+    if tail:
+        seg = seg[:tail.start()]
     out = []
-    for m in _TICKER_RE.findall(title.upper()):
-        if m in _STOPWORDS or m.isdigit() or len(m) < 2:
+    for tok in _TICKER_RE.findall(seg.upper()):
+        # strip quote-suffix (IPUSDT -> IP) kalau sisanya masih >=2 char
+        stripped = re.sub(r"(USDT|USDC|USD)$", "", tok)
+        if len(stripped) >= 2:
+            tok = stripped
+        if tok in _STOPWORDS or tok.isdigit() or len(tok) < 2:
             continue
-        if m not in out:
-            out.append(m)
-    return out[:12]
+        if tok not in out:
+            out.append(tok)
+    return out[:15]
 
 
 def parse_delist_at(title):
