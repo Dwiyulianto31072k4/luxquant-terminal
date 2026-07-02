@@ -1115,7 +1115,7 @@ export default function AIArenaPageV6() {
 
   return (
     <div
-      className="min-h-screen text-white"
+      className="min-h-screen overflow-x-clip text-white"
       style={{
         fontFamily:
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

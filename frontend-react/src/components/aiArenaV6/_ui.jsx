@@ -206,8 +206,11 @@ export const StanceGauge = ({ value = 0, dir = "up", size = 168 }) => {
   const angle = (p) => Math.PI * (1 - p / 100);
   const px = (p) => cx + r * Math.cos(angle(p));
   const py = (p) => cy - r * Math.sin(angle(p));
+  // Max sweep is 180° (semicircle), so the large-arc flag must always be 0.
+  // With `to - from > 50 ? 1 : 0` SVG drew the complementary 200°+ arc the
+  // wrong way around the circle — the "broken gauge" bug.
   const arc = (from, to) =>
-    `M ${px(from)} ${py(from)} A ${r} ${r} 0 ${to - from > 50 ? 1 : 0} 1 ${px(to)} ${py(to)}`;
+    `M ${px(from)} ${py(from)} A ${r} ${r} 0 0 1 ${px(to)} ${py(to)}`;
   return (
     <div className="relative" style={{ width: w, height: h }}>
       <svg width={w} height={h} className="block">

@@ -87,13 +87,13 @@ export default function TheRead({ data }) {
               <Eyebrow>24h stance</Eyebrow>
               <div className={`mt-2 flex items-center gap-4 font-display ${dir.text}`}>
                 <span
-                  className="flex h-14 w-14 items-center justify-center rounded-xl border text-3xl"
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border text-2xl md:h-14 md:w-14 md:text-3xl"
                   style={{ borderColor: `${dir.hex}44`, background: `${dir.hex}14` }}
                 >
                   {dir.arrow}
                 </span>
                 <div>
-                  <span className="block text-[46px] font-bold leading-none tracking-tight">{dir.label}</span>
+                  <span className="block text-[34px] font-bold leading-none tracking-tight md:text-[46px]">{dir.label}</span>
                   <span className="mt-1 block font-mono text-[12px] tracking-wide text-text-muted">
                     {tier(conf)}{isFinite(conf) ? ` · ${conf}%` : ""}
                   </span>

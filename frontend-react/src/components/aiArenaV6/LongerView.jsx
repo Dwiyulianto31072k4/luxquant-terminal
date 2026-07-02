@@ -58,7 +58,7 @@ const VerdictHero = ({ horizon, verdict, note }) => {
               {dir.arrow}
             </span>
             <div>
-              <span className="block text-[38px] font-bold leading-none tracking-tight">{dir.label}</span>
+              <span className="block text-[30px] font-bold leading-none tracking-tight md:text-[38px]">{dir.label}</span>
               <span className="mt-1 block font-mono text-[12px] tracking-wide text-text-muted">
                 {tier(conf)}{isFinite(conf) ? ` · ${conf}%` : ""}
               </span>
