@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxQuant BTC Compass 2.0 — Projection Resolver Timer (every 5 minutes)
+
+[Timer]
+# Offset from the monitor (every 2m) and evaluator (:05 hourly) to spread load.
+OnCalendar=*-*-* *:01/5:00 UTC
+Persistent=true
+RandomizedDelaySec=20
+Unit=luxquant-compass-resolver.service
+
+[Install]
+WantedBy=timers.target

@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
@@ -295,9 +295,23 @@ def _num(value: Any) -> float | None:
         return None
 
 
+HIT_OUTCOMES = ("CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT")
+MISS_OUTCOMES = ("INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP")
+
+LEDGER_FILTERS = {
+    "all": "TRUE",
+    "pending": "res.outcome IS NULL",
+    "resolved": "res.outcome IS NOT NULL",
+    "hit": "res.outcome IN :hit_outcomes",
+    "miss": "res.outcome IN :miss_outcomes",
+}
+
+
 @router.get("/scenario-ledger")
 def get_scenario_ledger(
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    filter: str = Query("all"),
     db: Session = Depends(get_db),
     _current_user=Depends(require_subscription),
 ) -> dict[str, Any]:
@@ -307,7 +321,11 @@ def get_scenario_ledger(
     This intentionally excludes legacy horizon outcomes. Each row is one
     structured scenario contract and, when available, its first-barrier
     resolution.
+
+    Pagination is server-side (limit/offset + total). `stats` is always
+    computed over the ENTIRE ledger, not the current page.
     """
+    filter_key = filter if filter in LEDGER_FILTERS else "all"
     sql = text("""
         WITH event_summary AS (
             SELECT
@@ -363,10 +381,18 @@ def get_scenario_ledger(
         LEFT JOIN ai_arena_reports r ON r.id = cr.report_pk
         LEFT JOIN compass_projection_resolutions res ON res.projection_id = c.projection_id
         LEFT JOIN event_summary es ON es.projection_id = c.projection_id
+        WHERE {filter_clause}
         ORDER BY c.active_from DESC
-        LIMIT :limit
-    """)
-    rows = db.execute(sql, {"limit": limit}).all()
+        LIMIT :limit OFFSET :offset
+    """.format(filter_clause=LEDGER_FILTERS[filter_key]))
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if filter_key == "hit":
+        sql = sql.bindparams(bindparam("hit_outcomes", expanding=True))
+        params["hit_outcomes"] = list(HIT_OUTCOMES)
+    elif filter_key == "miss":
+        sql = sql.bindparams(bindparam("miss_outcomes", expanding=True))
+        params["miss_outcomes"] = list(MISS_OUTCOMES)
+    rows = db.execute(sql, params).all()
 
     items: list[dict[str, Any]] = []
     for row in rows:
@@ -428,25 +454,71 @@ def get_scenario_ledger(
             } if row.outcome else None,
         })
 
-    resolved = [item for item in items if item["resolution"]]
-    clean_hits = sum(1 for item in resolved if item["resolution"]["outcome"] in {"CLEAN_HIT", "RANGE_HELD"})
-    invalidated = sum(
-        1
-        for item in resolved
-        if item["resolution"]["outcome"] in {"INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"}
+    # Global stats over the ENTIRE ledger (not just this page).
+    stats_sql = text("""
+        SELECT
+            COUNT(*)                                        AS total,
+            COUNT(*) FILTER (WHERE c.status = 'ACTIVE')     AS active,
+            COUNT(res.projection_id)                        AS resolved,
+            COUNT(*) - COUNT(res.projection_id)             AS pending,
+            COUNT(*) FILTER (WHERE res.outcome IN :hit_outcomes)  AS clean_hits,
+            COUNT(*) FILTER (WHERE res.outcome IN :miss_outcomes) AS invalidated_first,
+            COUNT(*) FILTER (WHERE res.outcome = 'STALE_NO_TOUCH') AS stale,
+            COUNT(*) FILTER (WHERE res.outcome = 'AMBIGUOUS_BAR')  AS ambiguous
+        FROM compass_projection_contracts c
+        LEFT JOIN compass_projection_resolutions res ON res.projection_id = c.projection_id
+    """).bindparams(
+        bindparam("hit_outcomes", expanding=True),
+        bindparam("miss_outcomes", expanding=True),
     )
+    stats_row = db.execute(stats_sql, {
+        "hit_outcomes": list(HIT_OUTCOMES),
+        "miss_outcomes": list(MISS_OUTCOMES),
+    }).one()
+
+    total = int(stats_row.total or 0)
+    resolved_count = int(stats_row.resolved or 0)
+    clean_hits = int(stats_row.clean_hits or 0)
+    invalidated = int(stats_row.invalidated_first or 0)
+    scored = clean_hits + invalidated  # stale/ambiguous excluded from hit rate
+
+    # Filtered total drives server-side pagination on the client.
+    if filter_key == "all":
+        filtered_total = total
+    else:
+        count_sql = text("""
+            SELECT COUNT(*)
+            FROM compass_projection_contracts c
+            LEFT JOIN compass_projection_resolutions res ON res.projection_id = c.projection_id
+            WHERE {filter_clause}
+        """.format(filter_clause=LEDGER_FILTERS[filter_key]))
+        count_params: dict[str, Any] = {}
+        if filter_key == "hit":
+            count_sql = count_sql.bindparams(bindparam("hit_outcomes", expanding=True))
+            count_params["hit_outcomes"] = list(HIT_OUTCOMES)
+        elif filter_key == "miss":
+            count_sql = count_sql.bindparams(bindparam("miss_outcomes", expanding=True))
+            count_params["miss_outcomes"] = list(MISS_OUTCOMES)
+        filtered_total = int(db.execute(count_sql, count_params).scalar() or 0)
 
     return {
         "schema": "compass_2_target_first",
         "legacy_horizon_history": "retired",
         "count": len(items),
+        "total": total,
+        "filtered_total": filtered_total,
+        "offset": offset,
+        "limit": limit,
+        "filter": filter_key,
         "stats": {
-            "active": sum(1 for item in items if item["status"] == "ACTIVE"),
-            "resolved": len(resolved),
-            "pending": len(items) - len(resolved),
+            "active": int(stats_row.active or 0),
+            "resolved": resolved_count,
+            "pending": int(stats_row.pending or 0),
             "clean_hits": clean_hits,
             "invalidated_first": invalidated,
-            "hit_rate": clean_hits / len(resolved) if resolved else None,
+            "stale": int(stats_row.stale or 0),
+            "ambiguous": int(stats_row.ambiguous or 0),
+            "hit_rate": clean_hits / scored if scored else None,
         },
         "items": items,
     }

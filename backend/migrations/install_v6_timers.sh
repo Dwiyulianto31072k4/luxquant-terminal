@@ -50,6 +50,8 @@ UNITS=(
     "luxquant-arena-v6-evaluator.timer"
     "luxquant-arena-v6-monitor.service"
     "luxquant-arena-v6-monitor.timer"
+    "luxquant-compass-resolver.service"
+    "luxquant-compass-resolver.timer"
 )
 
 echo "[1/4] Copying unit files to $TARGET_DIR..."
@@ -77,12 +79,15 @@ echo "[3/4] Enabling + starting timers..."
 systemctl enable luxquant-arena-v6.timer
 systemctl enable luxquant-arena-v6-evaluator.timer
 systemctl enable luxquant-arena-v6-monitor.timer
+systemctl enable luxquant-compass-resolver.timer
 systemctl start luxquant-arena-v6.timer
 systemctl start luxquant-arena-v6-evaluator.timer
 systemctl start luxquant-arena-v6-monitor.timer
+systemctl start luxquant-compass-resolver.timer
 echo "  ✓ luxquant-arena-v6.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-evaluator.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-monitor.timer enabled + started"
+echo "  ✓ luxquant-compass-resolver.timer enabled + started"
 
 # ─────────────────────────────────────────────────────────────────────
 # Verify
@@ -99,6 +104,7 @@ echo "Next scheduled runs:"
 echo "  - Worker:    every 6h at 00/06/12/18 UTC"
 echo "  - Monitor:   every 2 minutes, triggers full run on material BTC changes"
 echo "  - Evaluator: every hour at :05 UTC"
+echo "  - Resolver:  every 5 minutes (Compass 2.0 first-barrier audit)"
 echo
 echo "Useful commands:"
 echo "  systemctl list-timers luxquant-arena-v6*"

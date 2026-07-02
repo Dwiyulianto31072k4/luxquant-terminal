@@ -25,6 +25,7 @@ SYSTEMD_UNITS = {
     "backend": "luxquant-backend.service",
     "arena_timer": "luxquant-arena-v6.timer",
     "evaluator_timer": "luxquant-arena-v6-evaluator.timer",
+    "resolver_timer": "luxquant-compass-resolver.timer",
     "liquidation_stream": "luxquant-binance-liquidation-stream.service",
 }
 
@@ -334,6 +335,13 @@ def build_operational_health_from_report(
             "AI Arena outcome evaluator timer",
             systemd_status.get("evaluator_timer") or {"unit": SYSTEMD_UNITS["evaluator_timer"], "active_state": "unknown", "available": False},
             runbook="evaluator_timer",
+            missing_is_critical=True,
+        ),
+        _status_check_for_unit(
+            "resolver_timer",
+            "Compass projection resolver timer",
+            systemd_status.get("resolver_timer") or {"unit": SYSTEMD_UNITS["resolver_timer"], "active_state": "unknown", "available": False},
+            runbook="resolver_timer",
             missing_is_critical=True,
         ),
         _status_check_for_unit(

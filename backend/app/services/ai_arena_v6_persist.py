@@ -222,6 +222,17 @@ def _persist_dynamic_scenario_contract(
         "active_from": called_at,
     })
 
+    # A new contract supersedes every older ACTIVE one. Superseded contracts
+    # stay auditable: the resolver still judges them against their own
+    # first-barrier window; only the 'ACTIVE' pointer moves forward.
+    db.execute(text("""
+        UPDATE compass_projection_contracts
+        SET status = 'SUPERSEDED',
+            superseded_at = :now
+        WHERE status = 'ACTIVE'
+          AND projection_id <> :projection_id
+    """), {"now": called_at, "projection_id": projection_id})
+
     event_json = {
         "primary_bias": contract.primary_bias,
         "reference_price": contract.reference_price,

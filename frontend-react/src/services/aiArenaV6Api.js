@@ -29,12 +29,16 @@ export async function getLedger({ days = 14, horizon = null } = {}) {
 }
 
 /**
- * Fetch Compass 2.0 target-first scenario ledger.
- * Legacy horizon history is intentionally excluded.
+ * Fetch Compass 2.0 target-first scenario ledger (server-side pagination).
+ * @param {number} limit  - rows per page (max 200)
+ * @param {number} offset - row offset
+ * @param {string} filter - 'all' | 'pending' | 'resolved' | 'hit' | 'miss'
+ * Returns: { count, total, filtered_total, offset, limit, filter, stats, items }
+ * `stats` is computed over the entire ledger, not the current page.
  */
-export async function getScenarioLedger({ limit = 50 } = {}) {
+export async function getScenarioLedger({ limit = 50, offset = 0, filter = 'all' } = {}) {
   const { data } = await api.get(`${V6_BASE}/scenario-ledger`, {
-    params: { limit },
+    params: { limit, offset, filter },
   });
   return data;
 }

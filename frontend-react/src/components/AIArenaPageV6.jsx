@@ -932,7 +932,7 @@ export default function AIArenaPageV6() {
         getLatestReport(),
         getEventRisk(),
         getOperationalHealth(),
-        getScenarioLedger({ limit: 50 }),
+        getScenarioLedger({ limit: 8, offset: 0, filter: "all" }),
         getReportArchive({ limit: 18 }),
       ]);
 

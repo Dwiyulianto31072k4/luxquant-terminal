@@ -1,7 +1,10 @@
 // frontend-react/src/components/aiArenaV6/VerdictLedger.jsx
 // Compass 2.0 target-first evaluation table.
+// Pagination + filtering are server-side: every page/filter change refetches
+// /scenario-ledger with limit/offset/filter. Stats are global (whole ledger).
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { getScenarioLedger } from "../../services/aiArenaV6Api";
 import { formatPrice, formatTimestamp } from "./constants";
 
 const DEFAULT_PAGE_SIZE = 8;
@@ -126,30 +129,48 @@ function StatCard({ label, value, detail, tone = "neutral" }) {
 export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) {
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [data, setData] = useState(ledger || null);
+  const [loading, setLoading] = useState(false);
+  const requestRef = useRef(0);
 
-  const items = ledger?.items || [];
-  const stats = ledger?.stats || {};
-
-  const filtered = useMemo(() => {
-    if (filter === "all") return items;
-    if (filter === "pending") return items.filter((item) => !item.resolution);
-    if (filter === "resolved") return items.filter((item) => item.resolution);
-    if (filter === "hit") {
-      return items.filter((item) => ["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(item.resolution?.outcome));
+  // Keep in sync when the parent refreshes the initial payload.
+  useEffect(() => {
+    if (ledger && page === 1 && filter === "all") {
+      setData(ledger);
     }
-    if (filter === "miss") {
-      return items.filter((item) => ["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(item.resolution?.outcome));
-    }
-    return items;
-  }, [filter, items]);
+  }, [ledger]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  useEffect(() => {
+    // Page 1 + "all" is already provided by the parent fetch on mount.
+    const requestId = ++requestRef.current;
+    setLoading(true);
+    getScenarioLedger({
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      filter,
+    })
+      .then((response) => {
+        if (requestRef.current === requestId) setData(response);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (requestRef.current === requestId) setLoading(false);
+      });
+  }, [filter, page, pageSize]);
+
+  const items = data?.items || [];
+  const stats = data?.stats || {};
+  const filteredTotal = data?.filtered_total ?? items.length;
+  const total = data?.total ?? items.length;
+
+  const pageCount = Math.max(1, Math.ceil(filteredTotal / pageSize));
   const start = (page - 1) * pageSize;
-  const visible = filtered.slice(start, start + pageSize);
+  const visible = items.slice(0, pageSize);
+  const hitRate = stats.hit_rate;
 
   useEffect(() => {
     setPage(1);
-  }, [filter, items.length]);
+  }, [filter]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -183,18 +204,25 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-5">
-          <StatCard label="Reports" value={ledger?.count ?? 0} detail="Scenario rows" tone="gold" />
-          <StatCard label="Pending" value={stats.pending ?? 0} detail="Still active" />
+        <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
+          <StatCard label="Pending" value={stats.pending ?? 0} detail="Still live" />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
           <StatCard label="Clean hits" value={stats.clean_hits ?? 0} detail="Projection respected" tone="green" />
           <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="red" />
+          <StatCard
+            label="Hit rate"
+            value={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
+            detail={`Scored barriers${stats.stale ? ` · ${stats.stale} stale excluded` : ""}`}
+            tone="gold"
+          />
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-          Showing <span className="text-white/65">{filtered.length ? start + 1 : 0}-{Math.min(filtered.length, start + pageSize)}</span> of <span className="text-white/65">{filtered.length}</span>
+          Showing <span className="text-white/65">{filteredTotal ? start + 1 : 0}-{Math.min(filteredTotal, start + visible.length)}</span> of <span className="text-white/65">{filteredTotal}</span>
+          {loading && <span className="ml-2 text-gold-primary/70">loading…</span>}
         </div>
         <div className="flex flex-wrap gap-1">
           {[
