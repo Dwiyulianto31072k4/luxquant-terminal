@@ -70,6 +70,42 @@ def _persist_dynamic_scenario_contract(
     projection_id = f"cmp_{bundle.report_id}_v1"
     review_policy = contract.review_policy
 
+    # ── Reachability calibration (triple-barrier guardrail) ──
+    # The LLM proposes the levels; deterministic code sizes the clock.
+    # Levels are never moved — only the stale window can be extended, and
+    # every adjustment is recorded in contract_json + an audit event.
+    calibration = None
+    stale_minutes_final = int(review_policy.stale_after_minutes)
+    try:
+        from app.services.compass_reachability import (
+            calibrate_contract as calibrate_reachability,
+            fetch_hourly_sigma_pct,
+        )
+
+        calibration = calibrate_reachability(
+            reference_price=float(contract.reference_price),
+            target_level=float(contract.primary_touch.level),
+            invalidation_level=float(contract.invalidation.level),
+            stale_after_minutes=int(review_policy.stale_after_minutes),
+            sigma_1h_pct=fetch_hourly_sigma_pct(),
+        )
+        stale_minutes_final = calibration.stale_minutes
+        contract_json["calibration"] = calibration.to_dict()
+        if calibration.has_findings:
+            logger.info(
+                "Reachability calibration for %s: window %sm -> %sm, flags=%s",
+                projection_id,
+                calibration.original_stale_minutes,
+                calibration.stale_minutes,
+                calibration.flags,
+            )
+    except Exception as exc:
+        logger.warning(
+            "Reachability calibration skipped for %s (%s)",
+            projection_id,
+            type(exc).__name__,
+        )
+
     db.execute(text("""
         INSERT INTO compass_reads (
             read_id,
@@ -214,7 +250,7 @@ def _persist_dynamic_scenario_contract(
         "market_mode": contract.market_mode,
         "expected_pace": review_policy.expected_pace,
         "soft_review_after_minutes": review_policy.soft_review_after_minutes,
-        "stale_after_minutes": review_policy.stale_after_minutes,
+        "stale_after_minutes": stale_minutes_final,
         "probabilities": _stable_json_dumps(contract.probabilities.model_dump(mode="json")),
         "key_conditions": _stable_json_dumps(contract.key_conditions),
         "key_risks": _stable_json_dumps(contract.key_risks),
@@ -271,6 +307,36 @@ def _persist_dynamic_scenario_contract(
         "price": contract.reference_price,
         "evidence_json": _stable_json_dumps(event_json),
     })
+
+    if calibration is not None and calibration.has_findings:
+        db.execute(text("""
+            INSERT INTO compass_projection_events (
+                projection_id,
+                event_time,
+                event_type,
+                price,
+                source,
+                evidence_json
+            )
+            SELECT
+                :projection_id,
+                :event_time,
+                'CALIBRATION_ADJUSTED',
+                :price,
+                'compass_reachability',
+                CAST(:evidence_json AS JSONB)
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM compass_projection_events
+                WHERE projection_id = :projection_id
+                  AND event_type = 'CALIBRATION_ADJUSTED'
+            )
+        """), {
+            "projection_id": projection_id,
+            "event_time": called_at,
+            "price": contract.reference_price,
+            "evidence_json": _stable_json_dumps(calibration.to_dict()),
+        })
 
     logger.info("Persisted Compass 2.0 contract %s for report %s", projection_id, bundle.report_id)
 
