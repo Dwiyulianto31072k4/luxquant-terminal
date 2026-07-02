@@ -11,6 +11,7 @@ from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -68,6 +69,38 @@ async def list_delistings(
     rows = q.limit(limit).all()
 
     prices = _all_prices()
+
+    # ── Lookup call LuxQuant per token (pintasan buka call) ──
+    pairs = list({f"{s}USDT" for r in rows for s in (r.symbols or [])})
+    call_map = {}  # PAIR -> [(signal_id, created_at), ...] (desc)
+    if pairs:
+        try:
+            res = db.execute(text(
+                "SELECT signal_id, pair, created_at FROM signals "
+                "WHERE pair = ANY(:p) ORDER BY created_at DESC"
+            ), {"p": pairs}).fetchall()
+            for sid, pair, ca in res:
+                call_map.setdefault((pair or "").upper(), []).append((str(sid), ca))
+        except Exception as e:
+            logger.warning(f"delisting call lookup failed: {e}")
+
+    def _ts(dt):
+        try:
+            return dt.timestamp()
+        except Exception:
+            return None
+
+    def pick_call(token, announced):
+        calls = call_map.get(f"{token}USDT".upper(), [])
+        if not calls:
+            return None, False
+        ann = _ts(announced)
+        after = [c for c in calls if ann and _ts(c[1]) and _ts(c[1]) >= ann]
+        if after:
+            c = min(after, key=lambda x: _ts(x[1]))  # call pertama setelah announce
+            return c[0], True
+        return calls[0][0], False  # fallback: call terbaru
+
     exchanges = set()
     out = []  # flat per-token rows (struktur rapi, filterable/sortable di frontend)
     for r in rows:
@@ -93,6 +126,7 @@ async def list_delistings(
             cur = prices.get(s)
             cur_pct = round((cur - entry) / entry * 100, 2) if (cur and entry) else None
             pk = peak.get(s) or {}
+            call_id, call_after = pick_call(s, r.announced_at)
             out.append({
                 **base,
                 "token": s,
@@ -102,6 +136,8 @@ async def list_delistings(
                 "peak_price": pk.get("peak"),
                 "peak_pct": pk.get("peak_pct"),
                 "peak_at": pk.get("peak_at"),
+                "call_signal_id": call_id,
+                "call_after_announce": call_after,
             })
 
     return {

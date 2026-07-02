@@ -118,6 +118,11 @@ const MoreMenuDropdown = ({
         <path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
       </svg>
     ),
+    delist: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" /><line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
+      </svg>
+    ),
     bitcoin: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9" /><path d="M10 7 V8 M10 16 V17 M13 7 V8 M13 16 V17" /><path d="M9 8 H14 a2 2 0 010 4 H9 M9 12 H15 a2 2 0 010 4 H9 V8 z" />
@@ -198,7 +203,7 @@ const MoreMenuDropdown = ({
         { path: '/market-pulse', icon: Icon.pulse,     label: t('mfm.pulse'),     desc: 'Real-time sentiment & momentum' },
         { path: '/onchain',      icon: Icon.onchain,   label: t('mfm.onchain'),   desc: 'Wallet & whale activity' },
         { path: '/money-flow',   icon: Icon.moneyFlow, label: t('mfm.money_flow', { defaultValue: 'Money Flow' }), desc: 'Sector & capital rotation' },
-        { path: '/delistings',   icon: Icon.onchain,   label: t('mfm.delistings', { defaultValue: 'Delistings' }), desc: 'Exchange delist alerts · pump tracker' },
+        { path: '/delistings',   icon: Icon.delist,    label: t('mfm.delistings', { defaultValue: 'Delistings' }), desc: 'Exchange delist alerts · pump tracker' },
         { path: '/bitcoin',      icon: Icon.bitcoin,   label: t('mfm.bitcoin'),   desc: 'BTC dominance & macro view' },
         { path: '/crypto-news',  icon: Icon.news,      label: t('mfm.news'),      desc: 'Curated market headlines' },
         { path: '/calendar',     icon: Icon.calendar,  label: t('mfm.calendar'),  desc: 'Macro events & releases' },
