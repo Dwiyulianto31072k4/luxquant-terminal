@@ -198,6 +198,7 @@ const MoreMenuDropdown = ({
         { path: '/market-pulse', icon: Icon.pulse,     label: t('mfm.pulse'),     desc: 'Real-time sentiment & momentum' },
         { path: '/onchain',      icon: Icon.onchain,   label: t('mfm.onchain'),   desc: 'Wallet & whale activity' },
         { path: '/money-flow',   icon: Icon.moneyFlow, label: t('mfm.money_flow', { defaultValue: 'Money Flow' }), desc: 'Sector & capital rotation' },
+        { path: '/delistings',   icon: Icon.onchain,   label: t('mfm.delistings', { defaultValue: 'Delistings' }), desc: 'Exchange delist alerts · pump tracker' },
         { path: '/bitcoin',      icon: Icon.bitcoin,   label: t('mfm.bitcoin'),   desc: 'BTC dominance & macro view' },
         { path: '/crypto-news',  icon: Icon.news,      label: t('mfm.news'),      desc: 'Curated market headlines' },
         { path: '/calendar',     icon: Icon.calendar,  label: t('mfm.calendar'),  desc: 'Macro events & releases' },
