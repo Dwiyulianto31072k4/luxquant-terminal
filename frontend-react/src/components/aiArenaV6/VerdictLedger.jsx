@@ -1,11 +1,12 @@
 // frontend-react/src/components/aiArenaV6/VerdictLedger.jsx
-// Compass 2.0 target-first evaluation table.
+// Compass v2 — target-first evaluation table.
 // Pagination + filtering are server-side: every page/filter change refetches
 // /scenario-ledger with limit/offset/filter. Stats are global (whole ledger).
 
 import React, { useEffect, useRef, useState } from "react";
 import { getScenarioLedger } from "../../services/aiArenaV6Api";
 import { formatPrice, formatTimestamp } from "./constants";
+import { Card, SectionHeader, StatCard, OutcomeBar, Chip, COLOR } from "./_ui";
 
 const DEFAULT_PAGE_SIZE = 8;
 
@@ -30,19 +31,15 @@ function outcomeTone(value) {
     return "border-loss/25 bg-loss/10 text-loss";
   }
   if (text.includes("PENDING") || text.includes("ACTIVE")) {
-    return "border-gold-primary/20 bg-gold-primary/10 text-gold-primary/90";
+    return "border-gold-primary/25 bg-gold-primary/10 text-gold-light";
   }
   return "border-amber-500/25 bg-amber-500/10 text-amber-400";
 }
 
 function biasTone(value) {
   const text = String(value || "").toUpperCase();
-  if (text.includes("BULL") || text.includes("RISK_ON")) {
-    return "text-profit";
-  }
-  if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) {
-    return "text-loss";
-  }
+  if (text.includes("BULL") || text.includes("RISK_ON")) return "text-profit";
+  if (text.includes("BEAR") || text.includes("RISK_OFF") || text.includes("DEFENSIVE")) return "text-loss";
   return "text-amber-400";
 }
 
@@ -66,11 +63,7 @@ function buildProjected(item) {
 function buildResult(item) {
   const resolution = item.resolution;
   if (!resolution) {
-    return {
-      label: "Pending",
-      meta: "Waiting for first barrier",
-      tone: "PENDING",
-    };
+    return { label: "Pending", meta: "Waiting for first barrier", tone: "PENDING" };
   }
   const move = asPercent(resolution.mfe_pct ?? resolution.mae_pct);
   return {
@@ -99,31 +92,7 @@ function buildExplanation(item) {
       invalidation ? `invalidation near ${formatPrice(invalidation)}` : null,
     ].filter(Boolean).join("; ") || "Scenario is still active; result appears after a target, confirmation, or invalidation barrier resolves.";
   }
-
   return "Resolved by the first touched scenario barrier.";
-}
-
-function StatCard({ label, value, detail, tone = "neutral" }) {
-  const toneClass =
-    tone === "green"
-      ? "border-profit/20 bg-profit/[0.05]"
-      : tone === "red"
-        ? "border-loss/20 bg-loss/[0.05]"
-        : tone === "gold"
-          ? "border-gold-primary/20 bg-gold-primary/[0.06]"
-          : "border-white/[0.04] bg-[#120809]";
-
-  return (
-    <div className={cx("rounded-sm border p-4", toneClass)}>
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted/70">
-        {label}
-      </div>
-      <div className="mt-2 font-mono text-2xl font-light tabular-nums tracking-tight text-white">
-        {value}
-      </div>
-      {detail && <div className="mt-1 text-xs leading-5 text-text-muted/60">{detail}</div>}
-    </div>
-  );
 }
 
 export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) {
@@ -133,7 +102,6 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   const [loading, setLoading] = useState(false);
   const requestRef = useRef(0);
 
-  // Keep in sync when the parent refreshes the initial payload.
   useEffect(() => {
     if (ledger && page === 1 && filter === "all") {
       setData(ledger);
@@ -141,14 +109,9 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   }, [ledger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Page 1 + "all" is already provided by the parent fetch on mount.
     const requestId = ++requestRef.current;
     setLoading(true);
-    getScenarioLedger({
-      limit: pageSize,
-      offset: (page - 1) * pageSize,
-      filter,
-    })
+    getScenarioLedger({ limit: pageSize, offset: (page - 1) * pageSize, filter })
       .then((response) => {
         if (requestRef.current === requestId) setData(response);
       })
@@ -168,48 +131,45 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   const visible = items.slice(0, pageSize);
   const hitRate = stats.hit_rate;
 
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
+  useEffect(() => { setPage(1); }, [filter]);
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
+  const outcomeSegments = [
+    { label: "Clean hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
+    { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
+    { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
+    { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
+    { label: "Pending", value: stats.pending ?? 0, hex: COLOR.gold },
+  ];
 
   return (
-    <section className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)]">
-      <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <Card>
+      {/* ── header ── */}
       <div className="border-b border-white/[0.06] p-5 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4a853]/75">
-              Evaluation
-            </div>
-            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-white">
-              Projection accountability table
+            <SectionHeader label="Evaluation · target-first" className="mb-2" />
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-white md:text-3xl">
+              Projection accountability
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/45">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
               Every row is judged by the target-first scenario map: what BTC was projected
               to touch, which barrier resolved first, and why that result matters.
             </p>
           </div>
-
-          <div className="rounded-sm border border-gold-primary/20 bg-gold-primary/[0.07] px-4 py-3 text-right">
-            <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#f5c451]">
-              Current schema
-            </div>
-            <div className="mt-1 font-mono text-sm text-white">
-              Target-first
-            </div>
+          <div className="rounded-lg border border-gold-primary/25 bg-gold-primary/[0.07] px-4 py-3 text-right">
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold-light">Current schema</div>
+            <div className="mt-1 font-mono text-sm text-white">Target-first</div>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        {/* KPI strip */}
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
           <StatCard label="Pending" value={stats.pending ?? 0} detail="Still live" />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
-          <StatCard label="Clean hits" value={stats.clean_hits ?? 0} detail="Projection respected" tone="green" />
-          <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="red" />
+          <StatCard label="Clean hits" value={stats.clean_hits ?? 0} detail="Projection respected" tone="up" />
+          <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
           <StatCard
             label="Hit rate"
             value={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
@@ -217,14 +177,20 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             tone="gold"
           />
         </div>
+
+        {/* outcome distribution */}
+        <div className="mt-4">
+          <OutcomeBar segments={outcomeSegments} />
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/15 px-4 py-3 md:px-5">
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-          Showing <span className="text-white/65">{filteredTotal ? start + 1 : 0}-{Math.min(filteredTotal, start + visible.length)}</span> of <span className="text-white/65">{filteredTotal}</span>
-          {loading && <span className="ml-2 text-gold-primary/70">loading…</span>}
+      {/* ── toolbar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-black/20 px-4 py-3 md:px-5">
+        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/60">
+          Showing <span className="text-white/70">{filteredTotal ? start + 1 : 0}-{Math.min(filteredTotal, start + visible.length)}</span> of <span className="text-white/70">{filteredTotal}</span>
+          {loading && <span className="ml-2 text-gold-light/70">loading…</span>}
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {[
             ["all", "All"],
             ["pending", "Pending"],
@@ -232,50 +198,44 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             ["hit", "Hits"],
             ["miss", "Invalidated"],
           ].map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={cx(
-                "rounded-sm px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] transition",
-                filter === key
-                  ? "bg-gold-primary/15 text-gold-primary border border-gold-primary/40"
-                  : "border border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/75",
-              )}
-            >
+            <Chip key={key} active={filter === key} onClick={() => setFilter(key)}>
               {label}
-            </button>
+            </Chip>
           ))}
         </div>
       </div>
 
+      {/* ── table ── */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] border-collapse">
           <thead>
             <tr className="border-b border-white/[0.06] bg-white/[0.02] text-left">
-              {["No", "Report ID", "Waktu", "Projected", "Result", "Explanation"].map((header) => (
+              {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-3 text-[10px] font-mono uppercase tracking-[0.16em] text-white/35"
+                  className="px-4 py-3 text-[10px] font-mono uppercase tracking-[0.16em] text-text-muted/60"
                 >
                   {header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className={loading ? "opacity-50 transition-opacity" : "transition-opacity"}>
             {visible.map((item, index) => {
               const projected = buildProjected(item);
               const result = buildResult(item);
               return (
-                <tr key={item.projection_id || item.report_id} className="border-b border-white/[0.045] transition hover:bg-white/[0.025]">
-                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-white/45">
+                <tr
+                  key={item.projection_id || item.report_id}
+                  className="border-b border-white/[0.045] transition hover:bg-gold-primary/[0.03]"
+                >
+                  <td className="px-4 py-4 align-top font-mono text-sm tabular-nums text-text-muted/60">
                     {start + index + 1}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <div className="font-mono text-xs text-white/75">{item.report_id || "-"}</div>
-                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/30">
-                      ID {item.projection_id || "-"}
+                    <div className="font-mono text-xs text-white/80">{item.report_id || "-"}</div>
+                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
+                      {item.projection_id || "-"}
                     </div>
                   </td>
                   <td className="px-4 py-4 align-top font-mono text-xs text-white/60">
@@ -285,7 +245,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     <div className={cx("text-sm font-semibold", biasTone(item.primary_bias))}>
                       {projected.title}
                     </div>
-                    <div className="mt-1 text-[11px] font-mono uppercase tracking-[0.08em] text-white/35">
+                    <div className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-text-muted/50">
                       {projected.meta}
                     </div>
                   </td>
@@ -294,17 +254,17 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                       {result.label}
                     </span>
                     {result.meta && (
-                      <div className="mt-2 max-w-[190px] text-[11px] leading-5 text-white/38">
+                      <div className="mt-2 max-w-[190px] font-mono text-[10.5px] leading-4 text-text-muted/60">
                         {result.meta}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <p className="max-w-xl text-sm leading-6 text-white/58">
+                    <p className="max-w-xl text-[13px] leading-6 text-white/60">
                       {buildExplanation(item)}
                     </p>
                     {!!(item.key_risks || []).length && !item.resolution && (
-                      <div className="mt-2 text-[11px] leading-5 text-red-200/55">
+                      <div className="mt-2 text-[11px] leading-5 text-loss/70">
                         Watch: {item.key_risks.slice(0, 2).join(" · ")}
                       </div>
                     )}
@@ -316,18 +276,19 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
         </table>
       </div>
 
-      {!visible.length && (
+      {!visible.length && !loading && (
         <div className="p-10 text-center">
           <div className="text-lg font-semibold text-white/80">No evaluation rows yet</div>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/45">
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-text-muted">
             The next BTC Compass scenario will create a projection row here, then the
             resolver will mark it pending, hit, or invalidated based on the first barrier.
           </p>
         </div>
       )}
 
+      {/* ── footer / pagination ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-4 md:px-5">
-        <p className="max-w-2xl text-[11px] leading-5 text-white/35">
+        <p className="max-w-2xl text-[11px] leading-5 text-text-muted/50">
           This table uses the new Compass 2.0 rulebook only. Old fixed-horizon history is not mixed into this scorecard.
         </p>
         <div className="flex items-center gap-2">
@@ -335,23 +296,23 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((value) => Math.max(1, value - 1))}
-            className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-text-muted transition hover:border-gold-primary/30 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-30"
           >
             Prev
           </button>
-          <span className="font-mono text-[11px] text-white/40">
+          <span className="font-mono text-[11px] tabular-nums text-text-muted/70">
             Page {page} / {pageCount}
           </span>
           <button
             type="button"
             disabled={page >= pageCount}
             onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
-            className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-white/50 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-mono uppercase tracking-[0.12em] text-text-muted transition hover:border-gold-primary/30 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-30"
           >
             Next
           </button>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

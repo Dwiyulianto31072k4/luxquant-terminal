@@ -31,6 +31,11 @@ export default {
         positive: "#4ade80",
         negative: "#f87171",
         warning: "#fbbf24",
+        // Flowscan semantic pair — used as text-profit / bg-loss/10 etc.
+        // across AI Research. Previously referenced but never defined,
+        // which silently stripped all green/red semantics from the UI.
+        profit: "#56c996",
+        loss: "#e07288",
       },
       fontFamily: {
         display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],

@@ -405,8 +405,7 @@ export default function PriceChart({ report }) {
   // RENDER
   // ════════════════════════════════════════════════════════════
   return (
-    <div className="relative overflow-hidden rounded-md border border-white/[0.06] bg-[#0a0805] p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] lg:p-6">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="relative">
 
       <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -530,7 +529,7 @@ export default function PriceChart({ report }) {
         <div
           ref={containerRef}
           className="w-full overflow-hidden rounded-md border border-white/[0.04] bg-[#0a0506]"
-          style={{ height: 460 }}
+          style={{ height: "clamp(420px, 58vh, 640px)" }}
         />
 
         {loading && (
