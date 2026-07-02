@@ -69,7 +69,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-EVALUATOR_VERSION = "compass_resolver_v1.0"
+EVALUATOR_VERSION = "compass_resolver_v1.1"
 POLICY_VERSION = "target_first_v1"
 
 BYBIT_KLINE_URL = "https://api.bybit.com/v5/market/kline"
@@ -150,18 +150,24 @@ class KlineCache:
 
     @staticmethod
     async def _fetch_range(start: datetime, end: datetime) -> list[Candle]:
+        """
+        Bybit anchors kline responses to `end` and returns the NEWEST `limit`
+        candles in [start, end] (newest first). So pagination must walk
+        BACKWARD: keep the same start, move `end` to just before the oldest
+        candle of the previous page until the start boundary is reached.
+        """
         candles: dict[int, Candle] = {}
-        cursor_ms = int(start.timestamp() * 1000)
-        end_ms = int(end.timestamp() * 1000)
+        start_ms = int(start.timestamp() * 1000)
+        cursor_end_ms = int(end.timestamp() * 1000)
 
         async with httpx.AsyncClient(timeout=15) as client:
-            while cursor_ms <= end_ms:
+            while cursor_end_ms >= start_ms:
                 params = {
                     "category": "spot",
                     "symbol": "BTCUSDT",
                     "interval": KLINE_INTERVAL,
-                    "start": cursor_ms,
-                    "end": end_ms,
+                    "start": start_ms,
+                    "end": cursor_end_ms,
                     "limit": KLINE_PAGE_LIMIT,
                 }
                 resp = await client.get(BYBIT_KLINE_URL, params=params)
@@ -171,8 +177,7 @@ class KlineCache:
                     raise RuntimeError(f"Bybit kline error: {data.get('retMsg')}")
                 rows = data.get("result", {}).get("list", [])
                 if not rows:
-                    break
-                # Bybit returns newest first
+                    break  # exchange has no more data this far back
                 for row in rows:
                     ts_ms = int(row[0])
                     candles[ts_ms] = Candle(
@@ -182,10 +187,10 @@ class KlineCache:
                         low=float(row[3]),
                         close=float(row[4]),
                     )
-                newest_ms = max(int(row[0]) for row in rows)
-                if newest_ms + 60_000 > end_ms:
-                    break  # window covered
-                cursor_ms = newest_ms + 60_000
+                oldest_ms = min(int(row[0]) for row in rows)
+                if oldest_ms <= start_ms:
+                    break  # window covered down to start
+                cursor_end_ms = oldest_ms - 60_000
                 await asyncio.sleep(0.15)  # be polite to the rate limiter
 
         ordered = [candles[k] for k in sorted(candles)]
@@ -303,6 +308,16 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
 
     scoped = [c for c in candles if active_from <= c.ts <= eval_end]
 
+    # Data-coverage guard: a barrier HIT can be trusted from partial data,
+    # but "nothing was touched" (STALE / RANGE_HELD) is only a valid verdict
+    # when candles actually cover the whole evaluation window. Without this,
+    # missing kline history silently turns into fake stale/held outcomes.
+    coverage_tolerance = timedelta(minutes=5)
+    data_covers_window = bool(scoped) and (
+        (scoped[0].ts - active_from) <= coverage_tolerance
+        and (eval_end - scoped[-1].ts) <= coverage_tolerance
+    )
+
     first_target: Optional[BarrierHit] = None
     first_inval: Optional[BarrierHit] = None
     first_conf: Optional[BarrierHit] = None
@@ -410,7 +425,7 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
                 f"before holding through the review window.",
                 "RESOLVED",
             )
-        if window_closed:
+        if window_closed and data_covers_window:
             return build(
                 "RANGE_HELD",
                 None,
@@ -418,6 +433,11 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
                 "Price stayed inside the projected range for the full review window. "
                 "The range read was respected.",
                 "RESOLVED",
+            )
+        if window_closed and not data_covers_window:
+            logger.warning(
+                "Skipping %s: window closed but kline data does not cover it "
+                "(%d candles).", projection_id, len(scoped),
             )
         return None
 
@@ -441,7 +461,7 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
             f"reaching the projected touch. The thesis broke first.",
             "RESOLVED",
         )
-    if window_closed:
+    if window_closed and data_covers_window:
         return build(
             "STALE_NO_TOUCH",
             None,
@@ -450,6 +470,11 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
             f"within the {stale_minutes}-minute review window. Scored as stale, "
             f"not as a hit or a miss.",
             "STALE",
+        )
+    if window_closed and not data_covers_window:
+        logger.warning(
+            "Skipping %s: window closed but kline data does not cover it "
+            "(%d candles).", projection_id, len(scoped),
         )
     return None  # still live, keep pending
 
