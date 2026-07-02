@@ -9,6 +9,7 @@ import { InfoTip, GuideModal } from './GuideInfo';
 import { watchlistApi } from '../services/watchlistApi';
 import moneyFlowApi from '../services/moneyFlowApi';
 import CoinLogo from './CoinLogo';
+import CompassSnapshot from './aiArenaV6/CompassSnapshot';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -872,6 +873,9 @@ const SignalsPage = () => {
           </span>
         </div>
       </div>
+
+      {/* BTC COMPASS SNAPSHOT — 24h read + trade geometry + shortcuts to AI Research */}
+      <CompassSnapshot />
 
       {/* PERFORMANCE STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

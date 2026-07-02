@@ -930,7 +930,15 @@ export default function AIArenaPageV6() {
   const [operationalHealth, setOperationalHealth] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [reportArchive, setReportArchive] = useState(null);
-  const [activeWorkspace, setActiveWorkspace] = useState("read");
+  // Deep-linkable tabs: /ai-arena?tab=read|longer|evaluation|chart|archive
+  const [activeWorkspace, setActiveWorkspace] = useState(() => {
+    try {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      return ["read", "longer", "evaluation", "chart", "archive"].includes(tab) ? tab : "read";
+    } catch {
+      return "read";
+    }
+  });
   const [pdfModal, setPdfModal] = useState(null);
   const pdfUrlRef = useRef(null);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
