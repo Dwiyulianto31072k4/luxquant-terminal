@@ -1032,6 +1032,20 @@ function AppShell({ children }) {
                 />
               }
             />
+            {/* Delistings — exchange delist alerts + pump tracker */}
+            <SidebarItem
+              active={isActive("/delistings")}
+              path="/delistings"
+              onClick={() => handleNav("/delistings")}
+              label="Delistings"
+              isPremium={!isPremiumUser()}
+              icon={
+                <>
+                  <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+                  <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" strokeWidth={1.5} strokeLinecap="round" />
+                </>
+              }
+            />
             {/* Performance — unified hub (Overview / Daily / Research) */}
             <SidebarItem
               active={isActive("/performance")}
