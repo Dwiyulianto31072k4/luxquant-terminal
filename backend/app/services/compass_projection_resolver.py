@@ -24,15 +24,18 @@ For each unresolved contract the resolver:
        - compass_projection_contracts.status -> RESOLVED / STALE
 
 Outcomes (aligned with what the frontend already renders):
-  Directional bias (BULLISH*/BEARISH*/RISK_ON/RISK_OFF):
-      CLEAN_HIT          target touched first
-      INVALIDATED_FIRST  invalidation touched first
+  Directional bias (BULLISH*/BEARISH*/RISK_ON/RISK_OFF) — first-passage:
+      every directional projection is TRACKED UNTIL a barrier is touched,
+      however long that takes. The stale window only classifies timing.
+      CLEAN_HIT          target touched first, inside the review window
+      LATE_HIT           target touched first, after the review window
+      INVALIDATED_FIRST  invalidation touched first (any time)
       AMBIGUOUS_BAR      both barriers inside the same 1m candle
-      STALE_NO_TOUCH     stale window elapsed, neither barrier touched
-  Range bias (RANGE*/NEUTRAL_RANGE/MEAN_REVERSION):
+      (no STALE terminal state — untouched projections stay PENDING)
+  Range bias (RANGE*/NEUTRAL_RANGE/MEAN_REVERSION) — window-bound by nature:
       RANGE_HELD         stayed inside the range until stale window elapsed
-      RANGE_BREAK_UP     broke above the upper band first
-      RANGE_BREAK_DOWN   broke below the lower band first
+      RANGE_BREAK_UP     broke above the upper band first (within window)
+      RANGE_BREAK_DOWN   broke below the lower band first (within window)
 
 Manual run / backfill (evaluates ALL unresolved history, including reports
 from days ago):
@@ -291,10 +294,14 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
     stale_minutes = int(contract.get("stale_after_minutes") or DEFAULT_STALE_MINUTES)
     window_end = active_from + timedelta(minutes=stale_minutes)
     window_closed = now >= window_end
-    eval_end = min(now, window_end)
 
     is_range = _is_range_bias(bias)
     bullish = _bias_is_bullish(bias)
+
+    # Range scenarios are judged within their window (that IS the thesis).
+    # Directional scenarios are first-passage: tracked until a barrier is
+    # touched, however long that takes — the window only classifies timing.
+    eval_end = min(now, window_end) if is_range else now
 
     # Directions for bare-touch triggers
     if is_range:
@@ -309,9 +316,9 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
     scoped = [c for c in candles if active_from <= c.ts <= eval_end]
 
     # Data-coverage guard: a barrier HIT can be trusted from partial data,
-    # but "nothing was touched" (STALE / RANGE_HELD) is only a valid verdict
-    # when candles actually cover the whole evaluation window. Without this,
-    # missing kline history silently turns into fake stale/held outcomes.
+    # but RANGE_HELD ("nothing was touched through the window") is only a
+    # valid verdict when candles actually cover the whole window. Without
+    # this, missing kline history silently turns into fake held outcomes.
     coverage_tolerance = timedelta(minutes=5)
     data_covers_window = bool(scoped) and (
         (scoped[0].ts - active_from) <= coverage_tolerance
@@ -441,42 +448,34 @@ def evaluate_contract(contract: dict[str, Any], candles: list[Candle], now: date
             )
         return None
 
-    # Directional scenario
+    # Directional scenario — first-passage: the first barrier touched decides,
+    # however long it takes. The window only classifies on-time vs late.
     if first_target and (first_inval is None or first_target.at < first_inval.at):
+        on_time = first_target.at <= window_end
+        late_minutes = int((first_target.at - window_end).total_seconds() // 60) if not on_time else 0
         return build(
-            "CLEAN_HIT",
+            "CLEAN_HIT" if on_time else "LATE_HIT",
             first_target,
-            [f"target_first_{first_target.rule}"],
+            [f"target_first_{first_target.rule}"] + ([] if on_time else [f"after_window_by_{late_minutes}m"]),
             f"BTC touched the projected level {first_target.price:,.0f} before the "
-            f"invalidation barrier. The projection was respected"
+            f"invalidation barrier"
+            + ("" if on_time else f" — but {late_minutes}m after the {stale_minutes}m review window (right direction, late)")
+            + ". The projection was respected"
             + (f" (confirmation seen {seconds_since_start(first_conf.at)//60}m in)." if first_conf else "."),
             "RESOLVED",
         )
     if first_inval:
+        late = first_inval.at > window_end
         return build(
             "INVALIDATED_FIRST",
             first_inval,
-            [f"invalidation_first_{first_inval.rule}"],
+            [f"invalidation_first_{first_inval.rule}"] + (["after_window"] if late else []),
             f"BTC broke the invalidation barrier {first_inval.price:,.0f} before "
             f"reaching the projected touch. The thesis broke first.",
             "RESOLVED",
         )
-    if window_closed and data_covers_window:
-        return build(
-            "STALE_NO_TOUCH",
-            None,
-            ["stale_window_elapsed_no_barrier"],
-            f"Neither the projected touch nor the invalidation barrier was reached "
-            f"within the {stale_minutes}-minute review window. Scored as stale, "
-            f"not as a hit or a miss.",
-            "STALE",
-        )
-    if window_closed and not data_covers_window:
-        logger.warning(
-            "Skipping %s: window closed but kline data does not cover it "
-            "(%d candles).", projection_id, len(scoped),
-        )
-    return None  # still live, keep pending
+    # No barrier touched yet: stay PENDING and keep tracking — no stale verdict.
+    return None
 
 
 # ════════════════════════════════════════════════════════════════════════

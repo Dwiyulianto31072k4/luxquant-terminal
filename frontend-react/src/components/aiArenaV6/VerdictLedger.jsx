@@ -24,7 +24,7 @@ function prettyToken(value) {
 
 function outcomeTone(value) {
   const text = String(value || "PENDING").toUpperCase();
-  if (["CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
+  if (["CLEAN_HIT", "LATE_HIT", "RANGE_HELD", "PARTIAL_HIT"].includes(text)) {
     return "border-profit/25 bg-profit/10 text-profit";
   }
   if (["INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP"].includes(text)) {
@@ -135,11 +135,12 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
   const outcomeSegments = [
-    { label: "Clean hits", value: stats.clean_hits ?? 0, hex: COLOR.profit },
+    { label: "Hits", value: Math.max(0, (stats.clean_hits ?? 0) - (stats.late_hits ?? 0)), hex: COLOR.profit },
+    { label: "Late hits", value: stats.late_hits ?? 0, hex: "#3a9d76" },
     { label: "Invalidated", value: stats.invalidated_first ?? 0, hex: COLOR.loss },
     { label: "Stale", value: stats.stale ?? 0, hex: "#8a7a6a" },
     { label: "Ambiguous", value: stats.ambiguous ?? 0, hex: COLOR.flat },
-    { label: "Pending", value: stats.pending ?? 0, hex: COLOR.gold },
+    { label: "Tracking", value: stats.pending ?? 0, hex: COLOR.gold },
   ];
 
   return (
@@ -166,14 +167,19 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
         {/* KPI strip */}
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Reports" value={total} detail="All scenario rows" tone="gold" />
-          <StatCard label="Pending" value={stats.pending ?? 0} detail="Still live" />
+          <StatCard label="Tracking" value={stats.pending ?? 0} detail="Waiting for first barrier" />
           <StatCard label="Resolved" value={stats.resolved ?? 0} detail="Barrier known" />
-          <StatCard label="Clean hits" value={stats.clean_hits ?? 0} detail="Projection respected" tone="up" />
+          <StatCard
+            label="Hits"
+            value={stats.clean_hits ?? 0}
+            detail={stats.late_hits ? `Direction right · ${stats.late_hits} late` : "Projection respected"}
+            tone="up"
+          />
           <StatCard label="Invalidated" value={stats.invalidated_first ?? 0} detail="Thesis broke first" tone="down" />
           <StatCard
             label="Hit rate"
             value={hitRate == null ? "—" : `${Math.round(hitRate * 100)}%`}
-            detail={`Scored barriers${stats.stale ? ` · ${stats.stale} stale excluded` : ""}`}
+            detail="First barrier touched decides"
             tone="gold"
           />
         </div>

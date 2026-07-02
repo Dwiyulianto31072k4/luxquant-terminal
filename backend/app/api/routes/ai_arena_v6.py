@@ -295,7 +295,7 @@ def _num(value: Any) -> float | None:
         return None
 
 
-HIT_OUTCOMES = ("CLEAN_HIT", "RANGE_HELD", "PARTIAL_HIT")
+HIT_OUTCOMES = ("CLEAN_HIT", "LATE_HIT", "RANGE_HELD", "PARTIAL_HIT")
 MISS_OUTCOMES = ("INVALIDATED_FIRST", "RANGE_BREAK_DOWN", "RANGE_BREAK_UP")
 
 LEDGER_FILTERS = {
@@ -463,6 +463,7 @@ def get_scenario_ledger(
             COUNT(*) - COUNT(res.projection_id)             AS pending,
             COUNT(*) FILTER (WHERE res.outcome IN :hit_outcomes)  AS clean_hits,
             COUNT(*) FILTER (WHERE res.outcome IN :miss_outcomes) AS invalidated_first,
+            COUNT(*) FILTER (WHERE res.outcome = 'LATE_HIT')       AS late_hits,
             COUNT(*) FILTER (WHERE res.outcome = 'STALE_NO_TOUCH') AS stale,
             COUNT(*) FILTER (WHERE res.outcome = 'AMBIGUOUS_BAR')  AS ambiguous
         FROM compass_projection_contracts c
@@ -516,6 +517,7 @@ def get_scenario_ledger(
             "pending": int(stats_row.pending or 0),
             "clean_hits": clean_hits,
             "invalidated_first": invalidated,
+            "late_hits": int(stats_row.late_hits or 0),
             "stale": int(stats_row.stale or 0),
             "ambiguous": int(stats_row.ambiguous or 0),
             "hit_rate": clean_hits / scored if scored else None,
