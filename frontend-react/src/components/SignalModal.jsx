@@ -1524,11 +1524,11 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
                 </svg>
               </div>
-              <p className="text-[11px] font-semibold text-white/85">Live data tidak tersedia</p>
-              <p className="mx-auto mt-1 max-w-[240px] text-[9px] leading-relaxed text-white/45">
-                Data derivatif (funding, open interest, long/short) diblokir di
-                jaringan/negaramu. Aktifkan <span className="text-gold-primary/80 font-medium">VPN</span> lalu buka
-                ulang sinyal ini untuk melihat metrik real-time.
+              <p className="text-[11px] font-semibold text-white/85">Live data unavailable</p>
+              <p className="mx-auto mt-1 max-w-[250px] text-[9px] leading-relaxed text-white/45">
+                Derivatives data (funding, open interest, long/short) is blocked on your
+                network or region. Turn on a <span className="text-gold-primary/80 font-medium">VPN</span> and reopen
+                this signal to see real-time metrics.
               </p>
             </div>
           </div>

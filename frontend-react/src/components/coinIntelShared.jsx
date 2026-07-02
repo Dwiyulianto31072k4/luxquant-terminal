@@ -401,18 +401,33 @@ export const CoinDetailModal = ({ coin, currentFlow, onClose }) => {
                 {/* Day of week (best/worst markers = semantic) */}
                 {coin.dow_analysis?.breakdown && Object.keys(coin.dow_analysis.breakdown).length > 0 && (
                   <Section title="Win Rate by Day of Week">
-                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                    <div className="flex items-end justify-between gap-1.5 sm:gap-2">
                       {Object.entries(coin.dow_analysis.breakdown).map(([day,s]) => {
                         const isBest = coin.dow_analysis.best_day===day, isWorst = coin.dow_analysis.worst_day===day;
+                        const wr = Math.round(s.wr);
+                        const col = wrc(s.wr);
                         return (
-                          <div key={day} className="text-center rounded-lg py-2.5 border border-transparent transition-all hover:border-gold-primary/15" style={{ background: isBest ? 'rgba(34,197,94,0.05)' : isWorst ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.015)' }}>
-                            <div className="flex items-center justify-center text-[12px] font-mono font-bold mb-1.5" style={{ color:wrc(s.wr) }}>
-                              {Math.round(s.wr)}%
+                          <div key={day} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+                            <span className="font-mono text-[10px] font-bold tabular-nums" style={{ color:col }}>{wr}%</span>
+                            {/* bar track */}
+                            <div className="w-full h-20 flex items-end rounded-md bg-white/[0.02] overflow-hidden">
+                              <div
+                                className="w-full rounded-t-md transition-all"
+                                style={{
+                                  height:`${Math.max(4, wr)}%`,
+                                  background:`linear-gradient(180deg, ${col}, ${col}44)`,
+                                  boxShadow: isBest ? `0 0 10px ${col}66` : isWorst ? '0 0 10px rgba(239,68,68,0.4)' : 'none',
+                                }}
+                              />
                             </div>
-                            <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wide">{day}</p>
-                            <p className="text-[7px] text-text-muted mt-0.5">{s.closed} tr</p>
-                            {isBest && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]" />}
-                            {isWorst && <div className="mx-auto mt-1.5 w-8 h-0.5 rounded-full bg-red-500 shadow-[0_0_5px_#ef4444]" />}
+                            <div className="flex flex-col items-center">
+                              <span className="text-[8px] text-gray-300 font-bold uppercase tracking-wide flex items-center gap-0.5">
+                                {day}
+                                {isBest && <span className="text-green-400 text-[7px]">▲</span>}
+                                {isWorst && <span className="text-red-400 text-[7px]">▼</span>}
+                              </span>
+                              <span className="text-[7px] text-text-muted">{s.closed} tr</span>
+                            </div>
                           </div>
                         );
                       })}
