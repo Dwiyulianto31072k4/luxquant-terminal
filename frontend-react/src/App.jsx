@@ -47,6 +47,7 @@ const AdminWorkspacePage = lazy(
 const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
 const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
 const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
+const DelistingsPage = lazy(() => import("./components/DelistingsPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
@@ -117,6 +118,7 @@ const LOGIN_REQUIRED = [
   "/calendar",
   "/whale",
   "/money-flow",
+  "/delistings",
   "/notifications",
   "/journal",
   "/onchain",
@@ -138,6 +140,7 @@ const PREMIUM_REQUIRED = [
   "/calendar",
   "/whale",
   "/money-flow",
+  "/delistings",
   "/onchain",
   "/autotrade",
   "/portfolio",
@@ -315,6 +318,12 @@ const NAV_ICON_PATHS = {
     <>
       <path d="M3 8c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
       <path d="M3 14c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0" />
+    </>
+  ),
+  "/delistings": (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
     </>
   ),
   "/bitcoin": (
@@ -541,6 +550,12 @@ function AppShell({ children }) {
       label: "Money Flow",
       icon: "🌊",
       description: "Where capital is rotating — sectors, coins, whales",
+    },
+    {
+      path: "/delistings",
+      label: "Delistings",
+      icon: "🚫",
+      description: "Exchange delisting alerts — tokens often pump after",
     },
     {
       path: "/portfolio",
@@ -1702,6 +1717,19 @@ function App() {
                     <AppShell>
                       <PremiumGate>
                         <MoneyFlowPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              {/* Exchange Delistings — alert + pump-after-delist tracker */}
+              <Route
+                path="/delistings"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <DelistingsPage />
                       </PremiumGate>
                     </AppShell>
                   </RequireAuth>
