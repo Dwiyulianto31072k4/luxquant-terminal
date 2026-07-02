@@ -76,27 +76,48 @@ def _persist_dynamic_scenario_contract(
     # every adjustment is recorded in contract_json + an audit event.
     calibration = None
     stale_minutes_final = int(review_policy.stale_after_minutes)
+    invalidation_level_final = contract.invalidation.level
     try:
         from app.services.compass_reachability import (
             calibrate_contract as calibrate_reachability,
-            fetch_hourly_sigma_pct,
+            fetch_market_stats,
         )
 
+        market_stats = fetch_market_stats()
         calibration = calibrate_reachability(
             reference_price=float(contract.reference_price),
             target_level=float(contract.primary_touch.level),
             invalidation_level=float(contract.invalidation.level),
             stale_after_minutes=int(review_policy.stale_after_minutes),
-            sigma_1h_pct=fetch_hourly_sigma_pct(),
+            sigma_1h_pct=market_stats["sigma_1h_pct"],
+            primary_bias=contract.primary_bias,
+            trend_72h_pct=market_stats["trend_72h_pct"],
+            enforce_invalidation_floor=True,
         )
         stale_minutes_final = calibration.stale_minutes
+        if calibration.invalidation_level is not None:
+            invalidation_level_final = calibration.invalidation_level
         contract_json["calibration"] = calibration.to_dict()
+
+        # Record which brain-vault lessons were live in the prompt for this
+        # contract — the A/B attribution key for the reflection worker.
+        try:
+            from app.services.compass_knowledge import get_active_lesson_ids
+
+            contract_json["calibration"]["active_lessons"] = get_active_lesson_ids(
+                market_stats.get("trend_72h_pct")
+            )
+        except Exception:
+            contract_json["calibration"]["active_lessons"] = []
         if calibration.has_findings:
             logger.info(
-                "Reachability calibration for %s: window %sm -> %sm, flags=%s",
+                "Reachability calibration for %s: window %sm -> %sm, "
+                "invalidation %s -> %s, flags=%s",
                 projection_id,
                 calibration.original_stale_minutes,
                 calibration.stale_minutes,
+                calibration.original_invalidation_level,
+                calibration.invalidation_level,
                 calibration.flags,
             )
     except Exception as exc:
@@ -244,7 +265,7 @@ def _persist_dynamic_scenario_contract(
         "primary_touch_trigger": contract.primary_touch.trigger,
         "extension_low": contract.extension_zone.price_low,
         "extension_high": contract.extension_zone.price_high,
-        "invalidation_level": contract.invalidation.level,
+        "invalidation_level": invalidation_level_final,
         "invalidation_trigger": contract.invalidation.trigger,
         "alternative_path": _stable_json_dumps(contract.alternative_path),
         "market_mode": contract.market_mode,

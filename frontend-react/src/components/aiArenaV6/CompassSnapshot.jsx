@@ -188,13 +188,13 @@ export default function CompassSnapshot({ className = "" }) {
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
 
-      {/* ── header row (always visible, whole row toggles) ── */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 md:px-5 md:py-3">
+      {/* ── header (stacks on mobile: toggle row, then shortcut row) ── */}
+      <div className="flex flex-col gap-2.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-5 md:py-3">
         <button
           type="button"
           onClick={toggle}
           aria-expanded={!collapsed}
-          className="group flex min-w-0 flex-1 items-center gap-2.5 text-left md:gap-3"
+          className="group flex min-w-0 items-center gap-2.5 overflow-hidden text-left md:gap-3"
         >
           {/* big chevron */}
           <span
@@ -202,38 +202,40 @@ export default function CompassSnapshot({ className = "" }) {
           >
             ▸
           </span>
-          <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
-            BTC Compass · 24h
-          </span>
-          <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${dir.tag}`}>
-            {dir.arrow} {dir.label}
-            {isFinite(conf) ? <span className="opacity-80">{conf}%</span> : null}
-          </span>
-          {spot ? (
-            <span className="hidden items-center gap-1.5 font-mono text-[12px] tabular-nums text-white/80 sm:flex">
-              <span className="relative flex h-[5px] w-[5px]">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
-                <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
-              </span>
-              {fmtUsd(spot)}
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.2em] text-gold-primary/80">
+              BTC Compass · 24h
             </span>
-          ) : null}
-          <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/50 lg:inline">
-            report {timeAgo(updated)}
+            <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${dir.tag}`}>
+              {dir.arrow} {dir.label}
+              {isFinite(conf) ? <span className="opacity-80">{conf}%</span> : null}
+            </span>
+            {spot ? (
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[12px] tabular-nums text-white/80">
+                <span className="relative flex h-[5px] w-[5px]">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-profit opacity-60" />
+                  <span className="relative inline-flex h-[5px] w-[5px] rounded-full bg-profit" />
+                </span>
+                {fmtUsd(spot)}
+              </span>
+            ) : null}
+            <span className="hidden whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/50 lg:inline">
+              report {timeAgo(updated)}
+            </span>
           </span>
         </button>
 
         {/* short-term shortcuts only */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center">
           <Link
             to="/ai-arena?tab=read"
-            className="whitespace-nowrap rounded-md border border-gold-primary/30 bg-gold-primary/10 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-gold-primary/50 hover:bg-gold-primary/15"
+            className="whitespace-nowrap rounded-md border border-gold-primary/30 bg-gold-primary/10 px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-gold-primary transition hover:border-gold-primary/50 hover:bg-gold-primary/15"
           >
             Full outlook →
           </Link>
           <Link
             to="/ai-arena?tab=chart"
-            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/70 transition hover:border-gold-primary/35 hover:text-gold-primary"
+            className="whitespace-nowrap rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] text-text-muted/70 transition hover:border-gold-primary/35 hover:text-gold-primary"
           >
             Projection chart →
           </Link>

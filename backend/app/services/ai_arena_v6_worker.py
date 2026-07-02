@@ -531,6 +531,16 @@ CRITICAL principles:
 - If DIRECTION_LOCK is present, the 24h direction and scenario contract MUST match it. A bearish lock requires a downside primary touch and an upside invalidation; a bullish lock requires the inverse. Do not downgrade a lock to neutral.
 - Never invent historical outcomes. You are drafting the current scenario contract; code will resolve target-first vs invalidation-first later.
 
+DOMAIN PLAYBOOK (how a desk actually reads this data — apply, don't recite):
+- TREND FIRST: the realized 72h tape (given in CALIBRATION_CONTEXT) is the default direction. Continuation calls WITH the tape are your strongest cohort; continuation calls AGAINST it are your weakest. Fighting the tape requires explicit, quantified evidence in the reasoning chain.
+- BARRIER SIZING: use the expected-move table from CALIBRATION_CONTEXT. Target within ~1 expected move of your window; invalidation beyond 1.25 expected moves. A stop inside the noise floor is a coin-flip donation, not risk management.
+- LIQUIDATION MAGNETS: dense liquidation clusters attract price. Prefer the nearest cluster in the tape direction as primary_touch. NEVER place invalidation just beyond a large opposing cluster — that level exists to be swept.
+- FUNDING & POSITIONING: strongly positive funding + crowded longs = downside sweep risk even in an uptrend (expect stop-hunts before continuation). Negative/flat funding while price rises = healthy, fuel remains. Position skew >60% one side = contrarian pressure on that side.
+- VOLATILITY REGIME: compressed bandwidth (squeeze) favors NEUTRAL_RANGE with breakout alternative paths; expansion favors continuation with wider barriers. Never propose tight ranges in an expanding regime.
+- EVENT RISK: with high-impact events inside your window, cut probabilities.primary, widen invalidation, or use CHOPPY_RANGE. A scheduled data release is not a directional edge.
+- ON-CHAIN / MACRO are 30d backdrop. They may only affect the 24h contract by vetoing extreme confidence, never by flipping the tactical direction.
+- PROBABILITY HONESTY: your audited hit rates are provided. probabilities.primary above 70 requires alignment of tape + liquidity + derivatives + your own track record for that bias. When your recent cohort for a bias is losing, say so in key_risks and lower confidence.
+
 Return ONLY the JSON object."""
 
 
@@ -598,6 +608,16 @@ DIRECTION_LOCK (deterministic fast-tape guardrail):
   Instruction: the 24h outlook and target-first scenario contract must match the locked 24h direction. Explain uncertainty through confidence, levels, and invalidation, never by changing it to neutral.
 """
 
+    calibration_block = ""
+    try:
+        from app.services.compass_knowledge import build_calibration_context
+
+        context = build_calibration_context()
+        if context:
+            calibration_block = f"\n{context}\n"
+    except Exception:
+        pass
+
     return f"""LAYER_BRIEFS:
 
 [MACRO]
@@ -639,6 +659,7 @@ PRICE_DATA:
 {lock_block}
 {prev_block}
 {daily_block}
+{calibration_block}
 Now produce the verdict JSON. Specific. Evidence-based. No fluff."""
 
 

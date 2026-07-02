@@ -1,0 +1,11 @@
+[Unit]
+Description=LuxQuant BTC Compass 2.0 — Daily Reflection Timer (00:20 UTC)
+
+[Timer]
+OnCalendar=*-*-* 00:20:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+Unit=luxquant-compass-reflection.service
+
+[Install]
+WantedBy=timers.target

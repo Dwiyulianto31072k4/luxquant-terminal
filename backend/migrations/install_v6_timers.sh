@@ -52,6 +52,8 @@ UNITS=(
     "luxquant-arena-v6-monitor.timer"
     "luxquant-compass-resolver.service"
     "luxquant-compass-resolver.timer"
+    "luxquant-compass-reflection.service"
+    "luxquant-compass-reflection.timer"
 )
 
 echo "[1/4] Copying unit files to $TARGET_DIR..."
@@ -80,10 +82,12 @@ systemctl enable luxquant-arena-v6.timer
 systemctl enable luxquant-arena-v6-evaluator.timer
 systemctl enable luxquant-arena-v6-monitor.timer
 systemctl enable luxquant-compass-resolver.timer
+systemctl enable luxquant-compass-reflection.timer
 systemctl start luxquant-arena-v6.timer
 systemctl start luxquant-arena-v6-evaluator.timer
 systemctl start luxquant-arena-v6-monitor.timer
 systemctl start luxquant-compass-resolver.timer
+systemctl start luxquant-compass-reflection.timer
 echo "  ✓ luxquant-arena-v6.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-evaluator.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-monitor.timer enabled + started"
