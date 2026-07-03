@@ -81,10 +81,12 @@ export default function TheRead({ data }) {
   const flat = drivers.filter((r) => driverDir(r) === "flat").length;
   const aligned = Math.max(bull, bear, flat);
 
-  // why this report exists — the diff narrative that triggered a fresh run
+  // why this report exists — the diff narrative + the trigger cause
   const whatChanged = verdict.what_changed || data?.report?.what_changed || "";
   const genSecs = Number(data?.generated_in_seconds);
   const generatedAt = data?.timestamp;
+  const isAnomaly = Boolean(data?.is_anomaly_triggered || data?.report?.is_anomaly_triggered);
+  const anomalyReason = data?.anomaly_reason || data?.report?.anomaly_reason || "";
 
   const pctFromSpot = (lv) => (btc && lv ? `${fmtPct(((lv - btc) / btc) * 100)} from spot` : "");
 
@@ -96,21 +98,37 @@ export default function TheRead({ data }) {
           ↻
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-gold-primary/85">
               Why this updated
             </span>
+            <span
+              className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
+                isAnomaly
+                  ? "border-orange-400/30 bg-orange-400/10 text-orange-300"
+                  : "border-gold-primary/25 bg-gold-primary/10 text-gold-light/90"
+              }`}
+            >
+              {isAnomaly ? "⚡ Anomaly trigger" : "Scheduled refresh"}
+            </span>
             <span className="font-mono text-[9.5px] text-text-muted/50">
-              · generated {timeAgo(generatedAt)}
+              generated {timeAgo(generatedAt)}
               {isFinite(genSecs) ? ` · ${genSecs < 60 ? `${genSecs.toFixed(0)}s` : `${(genSecs / 60).toFixed(1)}m`} run` : ""}
             </span>
           </div>
-          <p className="mt-1 text-[13px] leading-relaxed text-white/80">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-white/80">
             {whatChanged
               ? whatChanged
-              : `A fresh 24h read was produced on schedule. The stance stays ${dir.label.toLowerCase()}${
+              : `The stance stays ${dir.label.toLowerCase()}${
                   isFinite(conf) ? ` at ${conf}%` : ""
-                } — the model re-scored every driver against live data even though the headline call did not flip.`}
+                } and the projected range is broadly unchanged — no structural shift since the previous report.`}
+          </p>
+          <p className="mt-1.5 text-[11px] leading-[1.5] text-text-muted/55">
+            {isAnomaly
+              ? anomalyReason
+                ? `Trigger: ${anomalyReason}`
+                : "Trigger: an anomaly in price, flow, or volatility forced an off-schedule re-read before the next cycle."
+              : "Trigger: the scheduled cycle. Every driver is re-scored against fresh data on each run, so a new report is published even when the headline call and range don't change."}
           </p>
         </div>
       </div>

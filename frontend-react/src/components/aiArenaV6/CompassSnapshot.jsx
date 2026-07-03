@@ -157,6 +157,16 @@ export default function CompassSnapshot({ className = "" }) {
     const tactical = report?.verdict_summary?.tactical_24h || verdict.tactical_24h || {};
     const contract = verdict.scenario_contract || {};
     const modeKey = String(contract?.market_mode || "").toUpperCase();
+
+    // tactical drivers (24h) with their numbers + reasoning
+    const TACTICAL = new Set(["price_action", "liquidity", "derivatives", "smart_money"]);
+    const drivers = [...(report?.report?.evidence_matrix?.rows || [])]
+      .filter((r) => TACTICAL.has(r.key) && r.role !== "context_only")
+      .map((r) => ({ ...r, _s: r?.horizons?.["24h"] || {} }))
+      .filter((r) => r._s?.available !== false)
+      .sort((a, b) => Math.abs(Number(b._s.weighted_score) || 0) - Math.abs(Number(a._s.weighted_score) || 0))
+      .slice(0, 4);
+
     return {
       dir: dirMeta(tactical.direction),
       conf: Number(tactical.confidence),
@@ -166,12 +176,15 @@ export default function CompassSnapshot({ className = "" }) {
       mode: MODE_LABEL[modeKey] || "Selective",
       modeHint: MODE_HINT[modeKey] || "Keep exposure measured until BTC confirms the read.",
       updated: report?.timestamp,
+      drivers,
+      whatChanged: verdict.what_changed || report?.report?.what_changed || "",
+      isAnomaly: Boolean(report?.is_anomaly_triggered || report?.report?.is_anomaly_triggered),
     };
   }, [report]);
 
   if (failed || !view) return null;
 
-  const { dir, conf, reportSpot, target, invalidation, mode, modeHint, updated } = view;
+  const { dir, conf, reportSpot, target, invalidation, mode, modeHint, updated, drivers, whatChanged, isAnomaly } = view;
   const spot = livePrice || reportSpot;
 
   const explanation = (
@@ -289,6 +302,52 @@ export default function CompassSnapshot({ className = "" }) {
               </div>
             </div>
           </div>
+
+          {/* ── driver detail: the numbers behind the 24h call ── */}
+          {drivers.length > 0 && (
+            <div className="mt-3 border-t border-white/[0.05] pt-3">
+              <div className="mb-2 font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">
+                What's driving it — 24h drivers
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                {drivers.map((r) => {
+                  const m = dirMeta(r._s.direction);
+                  const ev = r.evidence?.[0];
+                  const strengthPct = Math.round((Number(r._s.strength) || 0) * 100);
+                  return (
+                    <div key={r.key} className="min-w-0 rounded-md border border-white/[0.05] bg-[#140b0d] px-2.5 py-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate font-mono text-[8.5px] uppercase tracking-[0.1em] text-text-muted/60">{r.label}</span>
+                        <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>{m.arrow}</span>
+                      </div>
+                      <div className="mt-1 flex items-baseline justify-between gap-1">
+                        <span className={`font-mono text-[11px] font-semibold ${m.text}`}>{m.label}</span>
+                        <span className="font-mono text-[9px] tabular-nums text-text-muted/50">{strengthPct}%</span>
+                      </div>
+                      {ev ? (
+                        <div
+                          className="mt-1 truncate font-mono text-[9.5px] tabular-nums text-text-muted/60"
+                          title={`${ev.metric}: ${ev.value ?? "—"}`}
+                        >
+                          {ev.metric}: <span className="text-white/85">{ev.value ?? "—"}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── why this report exists ── */}
+          {whatChanged && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-gold-primary/[0.12] bg-gold-primary/[0.04] px-3 py-2">
+              <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-gold-primary/75">
+                {isAnomaly ? "⚡ Trigger" : "Why updated"}
+              </span>
+              <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted/80">{whatChanged}</p>
+            </div>
+          )}
         </div>
       )}
     </section>
