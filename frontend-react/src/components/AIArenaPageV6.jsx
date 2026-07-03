@@ -106,36 +106,41 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
           </p>
         </div>
 
-        {/* live strip: BTC price · stance · updated · refresh */}
-        <div className="flex flex-wrap items-stretch gap-2.5">
-          {Number.isFinite(btcPrice) && btcPrice > 0 && (
-            <div className="rounded-lg border border-white/[0.07] bg-[#0d0709] px-4 py-2.5">
-              <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
-              <div className="mt-0.5 font-mono text-xl font-light tabular-nums tracking-tight text-white">
-                ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+        {/* exchange-style segmented ticker bar + compact refresh */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709]">
+            {Number.isFinite(btcPrice) && btcPrice > 0 && (
+              <div className="px-4 py-2">
+                <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
+                <div className="mt-0.5 font-mono text-[17px] font-medium tabular-nums leading-tight tracking-tight text-white">
+                  ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+            )}
+            <div className="px-4 py-2">
+              <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">24h stance</div>
+              <div className={`mt-0.5 font-display text-[15px] font-semibold leading-tight ${stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-white"}`}>
+                {stance.arrow} {stance.label}
+                {tactical.confidence != null ? (
+                  <span className="ml-1 font-mono text-[11px] font-normal opacity-75">{tactical.confidence}%</span>
+                ) : null}
               </div>
             </div>
-          )}
-          <div className={`flex flex-col justify-center rounded-lg border px-4 py-2.5 ${stance.cls}`}>
-            <div className="font-mono text-[9px] uppercase tracking-[0.16em] opacity-70">24h stance</div>
-            <div className="mt-0.5 font-display text-lg font-semibold leading-tight">
-              {stance.arrow} {stance.label}
-              {tactical.confidence != null ? (
-                <span className="ml-1.5 font-mono text-[12px] font-normal opacity-80">{tactical.confidence}%</span>
-              ) : null}
+            <div className="px-4 py-2">
+              <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">Updated</div>
+              <div className="mt-0.5 font-mono text-[13px] leading-tight text-white/75">{formatAge(report?.timestamp)}</div>
             </div>
-          </div>
-          <div className="flex flex-col justify-center rounded-lg border border-white/[0.07] bg-[#0d0709] px-4 py-2.5 text-right">
-            <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-text-muted/60">Updated</div>
-            <div className="mt-0.5 font-mono text-sm text-white/75">{formatAge(report?.timestamp)}</div>
           </div>
           <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] px-5 font-semibold text-[13px] text-[#1a0f08] shadow-[0_4px_18px_rgba(212,168,83,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary px-4 text-[13px] font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {refreshing ? "Refreshing…" : "Refresh"}
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className={refreshing ? "animate-spin" : ""}>
+              <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {refreshing ? "Refreshing" : "Refresh"}
           </button>
         </div>
       </div>
@@ -481,7 +486,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
                     type="button"
                     onClick={() => onOpenPdf(item)}
                     disabled={loading}
-                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] px-4 py-2 text-[13px] font-semibold text-[#1a0f08] shadow-[0_4px_16px_rgba(212,168,83,0.3)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-gold-primary px-3.5 text-[12px] font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     {loading ? "Opening…" : "Open reader →"}
                   </button>

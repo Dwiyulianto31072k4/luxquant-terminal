@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getLatestReport } from "../../services/aiArenaV6Api";
 import { getBTCData } from "../../services/marketApi";
-import { dirMeta, fmtUsd, fmtPct, timeAgo, COLOR } from "./_ui";
+import { dirMeta, fmtUsd, fmtPct, timeAgo, Hi, COLOR } from "./_ui";
 
 const STORAGE_KEY = "lux_compass_snapshot_collapsed";
 const PRICE_POLL_MS = 15000;
@@ -174,13 +174,27 @@ export default function CompassSnapshot({ className = "" }) {
   const { dir, conf, reportSpot, target, invalidation, mode, modeHint, updated } = view;
   const spot = livePrice || reportSpot;
 
-  const explanation = (() => {
-    const parts = [];
-    parts.push(`The 24h read is ${dir.label.toLowerCase()}${isFinite(conf) ? ` at ${conf}% confidence` : ""}`);
-    if (target && spot) parts.push(`path points toward ${fmtUsd(target)} (${fmtPct(((target - spot) / spot) * 100)})`);
-    if (invalidation && spot) parts.push(`the read breaks below ${fmtUsd(invalidation)} (${fmtPct(((invalidation - spot) / spot) * 100)})`);
-    return parts.join("; ") + ".";
-  })();
+  const explanation = (
+    <>
+      The 24h read is{" "}
+      <Hi tone={dir.k === "down" ? "down" : dir.k === "flat" ? "gold" : "up"}>
+        {dir.label.toLowerCase()}{isFinite(conf) ? ` · ${conf}%` : ""}
+      </Hi>
+      {target && spot ? (
+        <>
+          ; path points toward{" "}
+          <Hi tone="up">{fmtUsd(target)} ({fmtPct(((target - spot) / spot) * 100)})</Hi>
+        </>
+      ) : null}
+      {invalidation && spot ? (
+        <>
+          ; the read breaks below{" "}
+          <Hi tone="down">{fmtUsd(invalidation)} ({fmtPct(((invalidation - spot) / spot) * 100)})</Hi>
+        </>
+      ) : null}
+      .
+    </>
+  );
 
   return (
     <section

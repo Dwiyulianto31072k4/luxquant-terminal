@@ -15,6 +15,7 @@ import {
 } from "lightweight-charts";
 import { getChartData } from "../../services/aiArenaV6Api";
 import { directionArrow, directionColor, directionLabel, formatPrice, formatPct } from "./constants";
+import { highlightPrices } from "./_ui";
 import Tooltip from "./Tooltip";
 
 // ────────────────────────────────────────────────────────────
@@ -621,7 +622,7 @@ function ProjectionPanel({ projection, lastPrice }) {
           </div>
         </div>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55">
-          {projection.explanation}
+          {highlightPrices(projection.explanation)}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {projection.reasons.slice(0, 4).map((reason, index) => (
@@ -725,7 +726,7 @@ function ChartReadPanel({ read }) {
               What to do with it
             </div>
             <p className="mt-2 text-sm leading-6 text-white/70">
-              {read.tradePlan}
+              {highlightPrices(read.tradePlan)}
             </p>
           </div>
 

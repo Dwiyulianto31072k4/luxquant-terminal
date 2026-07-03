@@ -150,6 +150,42 @@ export const Num = ({ children, className = "" }) => (
   <span className={`font-mono tabular-nums tracking-tight ${className}`}>{children}</span>
 );
 
+// Hi — inline "stabilo" highlight for the numbers/phrases that matter.
+// Use sparingly: one glance should land on price, direction, target, stop.
+export const Hi = ({ children, tone = "gold", className = "" }) => {
+  const tones = {
+    gold: "bg-gold-primary/[0.16] text-gold-light",
+    up: "bg-profit/[0.14] text-profit",
+    down: "bg-loss/[0.14] text-loss",
+    white: "bg-white/[0.1] text-white",
+  };
+  return (
+    <mark
+      className={`whitespace-nowrap rounded-[5px] px-1.5 py-[1.5px] font-semibold ${tones[tone] || tones.gold} ${className}`}
+    >
+      {children}
+    </mark>
+  );
+};
+
+// highlightPrices — wraps every $12,345-style token in a gold stabilo.
+// For dynamic sentences where we can't hand-place <Hi> markers.
+export const highlightPrices = (text) => {
+  const parts = String(text ?? "").split(/(\$[\d][\d,]*(?:\.\d+)?)/g);
+  return parts.map((part, i) =>
+    /^\$[\d]/.test(part) ? (
+      <mark
+        key={i}
+        className="whitespace-nowrap rounded-[5px] bg-gold-primary/[0.16] px-1 py-[1px] font-mono font-semibold tabular-nums text-gold-light"
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+};
+
 // KPI stat card (used on audit + library headers).
 export const StatCard = ({ label, value, detail, tone = "neutral", big = false }) => {
   const tones = {
@@ -390,16 +426,17 @@ export const OutcomeBar = ({ segments = [] }) => {
 
 /* ═══════════════ landing-grade controls ═══════════════ */
 
-// Solid gold pill CTA — same language as the landing page "Open App" button.
+// Solid gold CTA — exchange-grade: compact fixed height, 8px radius, flat.
+// (Binance/Bybit convention: h-8/h-9, medium weight, solid accent, no capsule.)
 export const GoldButton = ({ children, className = "", size = "md", ...rest }) => {
   const sizes = {
-    sm: "px-3.5 py-1.5 text-[11px]",
-    md: "px-5 py-2.5 text-[13px]",
+    sm: "h-8 px-3 text-[12px]",
+    md: "h-9 px-4 text-[13px]",
   };
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-b from-[#f0d890] to-[#d4a853] font-semibold text-[#1a0f08] shadow-[0_4px_18px_rgba(212,168,83,0.35)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg bg-gold-primary font-semibold leading-none text-[#1a0f08] transition hover:bg-gold-light active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}
@@ -407,16 +444,16 @@ export const GoldButton = ({ children, className = "", size = "md", ...rest }) =
   );
 };
 
-// Quiet pill counterpart.
+// Quiet counterpart — same metrics, outline style.
 export const GhostButton = ({ children, className = "", size = "md", ...rest }) => {
   const sizes = {
-    sm: "px-3.5 py-1.5 text-[11px]",
-    md: "px-5 py-2.5 text-[13px]",
+    sm: "h-8 px-3 text-[12px]",
+    md: "h-9 px-4 text-[13px]",
   };
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] font-semibold text-white/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 self-center rounded-lg border border-white/[0.1] bg-white/[0.03] font-medium leading-none text-white/70 transition hover:border-gold-primary/40 hover:text-gold-primary disabled:cursor-not-allowed disabled:opacity-40 ${sizes[size] || sizes.md} ${className}`}
       {...rest}
     >
       {children}

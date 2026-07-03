@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import {
-  Card, SectionHeader, Eyebrow, Tag, Tile, Num,
+  Card, SectionHeader, Eyebrow, Tag, Tile, Num, Hi,
   StanceGauge, LevelRail, SignalBar,
   fmtUsd, fmtPct, dirMeta, normDir,
 } from "./_ui";
@@ -99,16 +99,17 @@ export default function TheRead({ data }) {
                   </span>
                 </div>
               </div>
-              <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.75] text-white/90">
+              <p className="mt-5 max-w-[62ch] text-[14.5px] leading-[1.9] text-white/90">
                 <span className="font-semibold text-white">The full picture: </span>
-                BTC trades at <Num className="font-medium text-gold-light">{fmtUsd(btc)}</Num>. The 24-hour read is{" "}
-                <span className={`font-semibold ${dir.text}`}>{dir.label.toLowerCase()}</span>
-                {isFinite(conf) ? <> at <Num className="text-gold-light">{conf}%</Num> confidence</> : null}
+                BTC trades at <Hi tone="white"><Num>{fmtUsd(btc)}</Num></Hi>. The 24-hour read is{" "}
+                <Hi tone={dir.k === "down" ? "down" : dir.k === "flat" ? "gold" : "up"}>
+                  {dir.label.toLowerCase()}{isFinite(conf) ? ` · ${conf}%` : ""}
+                </Hi>
                 {drivers.length ? <>, driven mainly by {drivers.slice(0, 2).map((r, i) => (
                   <span key={r.key}>{i > 0 ? " and " : " "}<span className="text-white">{r.label.toLowerCase()}</span> ({readable(rowScore(r).direction).toLowerCase()})</span>
                 ))}</> : null}
-                {target ? <>. The path points toward <Num className="font-medium text-profit">{fmtUsd(target)}</Num></> : null}
-                {invalidation ? <>, with the read breaking below <Num className="font-medium text-loss">{fmtUsd(invalidation)}</Num></> : null}.
+                {target ? <>. The path points toward <Hi tone="up"><Num>{fmtUsd(target)}</Num></Hi></> : null}
+                {invalidation ? <>, with the read breaking below <Hi tone="down"><Num>{fmtUsd(invalidation)}</Num></Hi></> : null}.
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
@@ -199,7 +200,7 @@ export default function TheRead({ data }) {
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-profit/15 bg-profit/[0.04] p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-profit">
-                Why target {target ? fmtUsd(target) : ""}?
+                Why target {target ? <Hi tone="up">{fmtUsd(target)}</Hi> : ""}?
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
                 {contract?.primary_touch?.why || "Nearest upside magnet where liquidity sits — price tends to get pulled there first if bids stay in control."}
@@ -207,7 +208,7 @@ export default function TheRead({ data }) {
             </div>
             <div className="rounded-lg border border-loss/15 bg-loss/[0.04] p-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-loss">
-                Why invalidation {invalidation ? fmtUsd(invalidation) : ""}?
+                Why invalidation {invalidation ? <Hi tone="down">{fmtUsd(invalidation)}</Hi> : ""}?
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">
                 {contract?.invalidation?.why || "Below this level the short-term support structure breaks, so the 24h thesis is void and the read flips."}
@@ -277,8 +278,8 @@ export default function TheRead({ data }) {
 
           {/* alt exposure */}
           <Card className="p-5" accent="gold">
-            <Eyebrow className="text-gold-primary/80">Alt exposure</Eyebrow>
-            <div className="mt-2 font-display text-2xl font-bold tracking-tight text-gold-light">{modeLabel}</div>
+            <Eyebrow className="text-gold-primary/80">Alt exposure — how to trade alts right now</Eyebrow>
+            <div className="mt-2 font-display text-2xl font-bold tracking-tight"><Hi tone="gold">{modeLabel}</Hi></div>
             <p className="mt-2 text-[13px] leading-relaxed text-text-muted">{modeText}</p>
           </Card>
 

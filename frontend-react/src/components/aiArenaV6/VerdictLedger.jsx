@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getScenarioLedger } from "../../services/aiArenaV6Api";
 import { formatPrice, formatTimestamp } from "./constants";
-import { Card, SectionHeader, StatCard, OutcomeBar, Chip, Donut, GhostButton, COLOR } from "./_ui";
+import { Card, SectionHeader, StatCard, OutcomeBar, Chip, Donut, GhostButton, highlightPrices, COLOR } from "./_ui";
 
 const DEFAULT_PAGE_SIZE = 8;
 
@@ -286,7 +286,7 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                   </td>
                   <td className="px-4 py-4 align-top">
                     <p className="max-w-xl text-[13px] leading-6 text-white/60">
-                      {buildExplanation(item)}
+                      {highlightPrices(buildExplanation(item))}
                     </p>
                     {!!(item.key_risks || []).length && !item.resolution && (
                       <div className="mt-2 text-[11px] leading-5 text-loss/70">
