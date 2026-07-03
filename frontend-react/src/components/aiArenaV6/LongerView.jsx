@@ -46,9 +46,9 @@ const VerdictHero = ({ horizon, verdict, note }) => {
   const dir = dirMeta(verdict?.direction);
   const conf = Number(verdict?.confidence);
   return (
-    <Card className="p-6 md:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div className="min-w-0 flex-1 basis-[240px]">
+    <Card className="p-5 md:p-7">
+      <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start md:justify-between">
+        <div className="min-w-0 flex-1 md:basis-[240px]">
           <Eyebrow>{horizon} stance</Eyebrow>
           <div className={`mt-2 flex items-center gap-4 font-display ${dir.text}`}>
             <span
@@ -66,8 +66,11 @@ const VerdictHero = ({ horizon, verdict, note }) => {
           </div>
           {note && <p className="mt-4 max-w-[58ch] text-[13.5px] leading-relaxed text-text-muted">{note}</p>}
         </div>
-        <div className="shrink-0 pt-1">
+        <div className="flex w-full shrink-0 flex-col items-center gap-2 md:w-auto md:pt-1">
           <StanceGauge value={conf} dir={verdict?.direction} size={150} />
+          <p className="max-w-[200px] text-center text-[10.5px] leading-4 text-text-muted/60">
+            {isFinite(conf) ? `${tier(conf)} · ${conf}%` : "Confidence"} — how aligned the {horizon.toLowerCase()} drivers are.
+          </p>
         </div>
       </div>
     </Card>

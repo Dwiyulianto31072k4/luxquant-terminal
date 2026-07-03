@@ -74,6 +74,13 @@ export default function TheRead({ data }) {
   const zones = verdict.zones_to_watch || [];
   const risks = verdict.risk_scenarios || [];
 
+  // driver agreement — the "why" behind the confidence number
+  const driverDir = (r) => normDir(rowScore(r).direction);
+  const bull = drivers.filter((r) => driverDir(r) === "up").length;
+  const bear = drivers.filter((r) => driverDir(r) === "down").length;
+  const flat = drivers.filter((r) => driverDir(r) === "flat").length;
+  const aligned = Math.max(bull, bear, flat);
+
   const pctFromSpot = (lv) => (btc && lv ? `${fmtPct(((lv - btc) / btc) * 100)} from spot` : "");
 
   return (
@@ -81,9 +88,9 @@ export default function TheRead({ data }) {
       {/* ════════ LEFT — narrative + drivers (8 cols) ════════ */}
       <div className="min-w-0 space-y-4 xl:col-span-8">
         {/* ── stance hero ── */}
-        <Card className="p-6 md:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="min-w-0 flex-1 basis-[260px]">
+        <Card className="p-5 md:p-7">
+          <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start md:justify-between">
+            <div className="min-w-0 flex-1 md:basis-[260px]">
               <Eyebrow>24h stance</Eyebrow>
               <div className={`mt-2 flex items-center gap-4 font-display ${dir.text}`}>
                 <span
@@ -112,11 +119,35 @@ export default function TheRead({ data }) {
                 {invalidation ? <>, with the read breaking below <Hi tone="down"><Num>{fmtUsd(invalidation)}</Num></Hi></> : null}.
               </p>
             </div>
-            <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
+
+            {/* confidence gauge + numeric breakdown — centered, self-explaining */}
+            <div className="flex w-full shrink-0 flex-col items-center gap-3 md:w-auto">
               <StanceGauge value={conf} dir={tactical.direction} />
-              <p className="max-w-[180px] text-center text-[10.5px] leading-4 text-text-muted/60">
-                Confidence reflects how aligned the drivers are.
-              </p>
+              {drivers.length > 0 && (
+                <div className="w-full max-w-[280px] space-y-2.5 rounded-xl border border-white/[0.06] bg-[#140b0d] p-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-text-muted/60">Driver agreement</span>
+                    <span className="font-mono text-[12px] tabular-nums text-white/85">{aligned}/{drivers.length}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[12px] tabular-nums">
+                    <div className="rounded-md border border-profit/15 bg-profit/[0.07] py-1.5">
+                      <span className="text-profit">{bull}</span>
+                      <span className="ml-0.5 text-text-muted/50">↑</span>
+                    </div>
+                    <div className="rounded-md border border-amber-500/15 bg-amber-500/[0.07] py-1.5">
+                      <span className="text-amber-400">{flat}</span>
+                      <span className="ml-0.5 text-text-muted/50">→</span>
+                    </div>
+                    <div className="rounded-md border border-loss/15 bg-loss/[0.07] py-1.5">
+                      <span className="text-loss">{bear}</span>
+                      <span className="ml-0.5 text-text-muted/50">↓</span>
+                    </div>
+                  </div>
+                  <p className="text-center text-[10.5px] leading-4 text-text-muted/70">
+                    {isFinite(conf) ? `${conf}% confidence` : "Confidence"} — {aligned} of {drivers.length} drivers point {dir.label.toLowerCase()}. Conflicting drivers hold it back.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
