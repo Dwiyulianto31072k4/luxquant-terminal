@@ -5,8 +5,10 @@ This service is intentionally cheap. It polls live BTC market data, compares it
 against the latest Compass report and active target-first contract, and only
 launches a full AI Compass run when the market has materially changed.
 
-The scheduled 00/06/12/18 UTC worker remains a fallback. This monitor is the
-event-driven layer for dumps, pumps, target touches, and invalidations.
+This monitor is now the PRIMARY driver of Compass reports: the fixed
+00/06/12/18 UTC scheduled worker is disabled, so a fresh read is produced only
+when the market materially changes — dumps, pumps, wicks, target touches, and
+invalidations — plus a one-time bootstrap when no report exists yet.
 """
 
 from __future__ import annotations
@@ -70,6 +72,19 @@ LEVEL_TOUCH_BUFFER_PCT = _env_float("COMPASS_MONITOR_LEVEL_TOUCH_BUFFER_PCT", 0.
 COOLDOWN_MINUTES = _env_int("COMPASS_MONITOR_COOLDOWN_MINUTES", 30)
 MIN_REPORT_AGE_MINUTES = _env_int("COMPASS_MONITOR_MIN_REPORT_AGE_MINUTES", 8)
 
+# ── Derivatives confluence triggers (Bybit linear BTCUSDT) ──────────────
+# Best-practice multi-signal layer: funding-rate flips/extremes, open-interest
+# surges/flushes, and long/short positioning shifts. All are event/CROSSING
+# based (computed from short histories) so a persistent state does not re-fire
+# every 2-minute poll — only the transition triggers a fresh read.
+DERIVATIVES_ENABLED = os.getenv("COMPASS_MONITOR_DERIVATIVES_ENABLED", "true").strip().lower() not in ("0", "false", "no", "off")
+# Funding rate is expressed in percent per 8h settlement (Bybit fundingRate * 100).
+FUNDING_EXTREME_HIGH_PCT = _env_float("COMPASS_MONITOR_FUNDING_EXTREME_HIGH_PCT", 0.05)   # crowded longs
+FUNDING_EXTREME_LOW_PCT = _env_float("COMPASS_MONITOR_FUNDING_EXTREME_LOW_PCT", -0.02)     # crowded shorts
+FUNDING_SPIKE_DELTA_PCT = _env_float("COMPASS_MONITOR_FUNDING_SPIKE_DELTA_PCT", 0.03)      # jump between settlements
+OI_SURGE_1H_PCT = _env_float("COMPASS_MONITOR_OI_SURGE_1H_PCT", 5.0)                        # leverage build/unwind over ~1h
+LS_SHIFT_PP = _env_float("COMPASS_MONITOR_LS_SHIFT_PP", 8.0)                                # long-share shift (percentage points)
+
 
 @dataclass
 class MinuteBar:
@@ -92,6 +107,18 @@ class MarketSnapshot:
     high_4h: float | None
     low_4h: float | None
     minute_bars: list[MinuteBar]
+    source: str
+
+
+@dataclass
+class DerivativesSnapshot:
+    funding_now_pct: float | None      # %/8h (Bybit fundingRate * 100)
+    funding_prev_pct: float | None     # previous settlement
+    oi_now: float | None               # current open interest (contracts)
+    oi_ref: float | None               # open interest ~1h ago
+    oi_change_1h_pct: float | None     # % change vs ~1h ago
+    long_pct_now: float | None         # long account share, 0..100
+    long_pct_ref: float | None         # long share ~30min ago
     source: str
 
 
@@ -171,6 +198,86 @@ async def _fetch_bybit_market() -> MarketSnapshot:
 async def fetch_market_snapshot() -> MarketSnapshot:
     """Fetch live BTC snapshot. Bybit matches the scheduled worker source."""
     return await _fetch_bybit_market()
+
+
+async def fetch_derivatives_snapshot() -> DerivativesSnapshot | None:
+    """
+    Fetch BTC perp derivatives from Bybit linear: funding (now + previous
+    settlement), open interest (now + ~1h ago), and long/short account ratio
+    (now + ~30min ago). Fully fail-safe — on ANY error returns None so the
+    monitor keeps running on price/level signals alone.
+    """
+    if not DERIVATIVES_ENABLED:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            ticker_res = await client.get(
+                "https://api.bybit.com/v5/market/tickers",
+                params={"category": "linear", "symbol": "BTCUSDT"},
+            )
+            ticker_res.raise_for_status()
+            t = ticker_res.json()["result"]["list"][0]
+            funding_now = float(t.get("fundingRate") or 0.0) * 100.0
+            oi_now = float(t.get("openInterest") or 0.0) or None
+
+            funding_prev = None
+            try:
+                fh_res = await client.get(
+                    "https://api.bybit.com/v5/market/funding/history",
+                    params={"category": "linear", "symbol": "BTCUSDT", "limit": 2},
+                )
+                fh_res.raise_for_status()
+                fh_list = fh_res.json()["result"]["list"]  # newest first
+                if len(fh_list) > 1:
+                    funding_prev = float(fh_list[1].get("fundingRate") or 0.0) * 100.0
+            except Exception:
+                pass
+
+            oi_ref = None
+            oi_change_1h = None
+            try:
+                oi_res = await client.get(
+                    "https://api.bybit.com/v5/market/open-interest",
+                    params={"category": "linear", "symbol": "BTCUSDT", "intervalTime": "5min", "limit": 13},
+                )
+                oi_res.raise_for_status()
+                oi_list = oi_res.json()["result"]["list"]  # newest first; 13*5min ≈ 65min span
+                if oi_list:
+                    oi_ref = float(oi_list[-1].get("openInterest") or 0.0) or None
+                if oi_now and oi_ref and oi_ref > 0:
+                    oi_change_1h = round((oi_now / oi_ref - 1.0) * 100.0, 3)
+            except Exception:
+                pass
+
+            long_now = None
+            long_ref = None
+            try:
+                ls_res = await client.get(
+                    "https://api.bybit.com/v5/market/account-ratio",
+                    params={"category": "linear", "symbol": "BTCUSDT", "period": "5min", "limit": 6},
+                )
+                ls_res.raise_for_status()
+                ls_list = ls_res.json()["result"]["list"]  # newest first
+                if ls_list:
+                    long_now = float(ls_list[0].get("buyRatio") or 0.0) * 100.0
+                if len(ls_list) > 1:
+                    long_ref = float(ls_list[-1].get("buyRatio") or 0.0) * 100.0
+            except Exception:
+                pass
+
+            return DerivativesSnapshot(
+                funding_now_pct=round(funding_now, 4),
+                funding_prev_pct=round(funding_prev, 4) if funding_prev is not None else None,
+                oi_now=oi_now,
+                oi_ref=oi_ref,
+                oi_change_1h_pct=oi_change_1h,
+                long_pct_now=round(long_now, 2) if long_now is not None else None,
+                long_pct_ref=round(long_ref, 2) if long_ref is not None else None,
+                source="bybit_linear",
+            )
+    except Exception:
+        logger.warning("Derivatives fetch failed; continuing on price/level signals only")
+        return None
 
 
 def _latest_report(db) -> dict[str, Any] | None:
@@ -287,6 +394,7 @@ def decide_trigger(
     latest_report: dict[str, Any] | None,
     active_contract: dict[str, Any] | None,
     latest_anomaly_at: datetime | None,
+    derivatives: DerivativesSnapshot | None = None,
 ) -> TriggerDecision:
     reasons: list[str] = []
     details: dict[str, Any] = {
@@ -302,6 +410,13 @@ def decide_trigger(
         "high_4h": snapshot.high_4h,
         "low_4h": snapshot.low_4h,
     }
+
+    # Bootstrap: with no scheduled worker, a fresh install (or a wiped report
+    # table) must still produce a first read. Trigger once when none exists.
+    if not latest_report:
+        details["bootstrap"] = True
+        return TriggerDecision(True, "bootstrap_no_existing_report", False, details)
+
     threshold_15m = _adaptive_threshold(
         snapshot.high_15m,
         snapshot.low_15m,
@@ -424,6 +539,59 @@ def decide_trigger(
             if _touches_level(snapshot, float(level) if level is not None else None, trigger):
                 reasons.append(f"{key}_level_touched_{float(level):.0f}")
 
+    # ── Derivatives confluence (funding / OI / long-short) ──────────────
+    # Event/crossing-based so a persistent state does not re-fire every poll.
+    if derivatives is not None:
+        d = derivatives
+        details.update({
+            "funding_now_pct": d.funding_now_pct,
+            "funding_prev_pct": d.funding_prev_pct,
+            "oi_change_1h_pct": d.oi_change_1h_pct,
+            "long_pct_now": d.long_pct_now,
+            "long_pct_ref": d.long_pct_ref,
+            "derivatives_source": d.source,
+        })
+
+        fnow = d.funding_now_pct
+        fprev = d.funding_prev_pct
+        funding_reason_added = False
+
+        # Funding sign flip (or a large jump) between the last two settlements.
+        if fnow is not None and fprev is not None:
+            delta = fnow - fprev
+            if fprev < 0 <= fnow and abs(delta) >= FUNDING_SPIKE_DELTA_PCT:
+                reasons.append("funding_flip_neg_to_pos")
+                funding_reason_added = True
+            elif fprev >= 0 > fnow and abs(delta) >= FUNDING_SPIKE_DELTA_PCT:
+                reasons.append("funding_flip_pos_to_neg")
+                funding_reason_added = True
+            elif abs(delta) >= FUNDING_SPIKE_DELTA_PCT:
+                reasons.append(f"funding_spike_{fnow:+.3f}%")
+                funding_reason_added = True
+
+        # Funding crossing INTO an extreme band (prev inside, now outside).
+        # Only if a flip/spike didn't already describe the same move.
+        if fnow is not None and not funding_reason_added:
+            fprev_ref = fprev if fprev is not None else 0.0
+            if fnow >= FUNDING_EXTREME_HIGH_PCT and fprev_ref < FUNDING_EXTREME_HIGH_PCT:
+                reasons.append(f"funding_extreme_high_{fnow:+.3f}%")
+            elif fnow <= FUNDING_EXTREME_LOW_PCT and fprev_ref > FUNDING_EXTREME_LOW_PCT:
+                reasons.append(f"funding_extreme_low_{fnow:+.3f}%")
+
+        # Open-interest surge (leverage building) or flush (deleveraging) over ~1h.
+        if d.oi_change_1h_pct is not None and abs(d.oi_change_1h_pct) >= OI_SURGE_1H_PCT:
+            if d.oi_change_1h_pct > 0:
+                reasons.append(f"oi_surge_{d.oi_change_1h_pct:+.2f}%_1h")
+            else:
+                reasons.append(f"oi_flush_{d.oi_change_1h_pct:.2f}%_1h")
+
+        # Long/short positioning shift (crowd flipping sides).
+        if d.long_pct_now is not None and d.long_pct_ref is not None:
+            shift = d.long_pct_now - d.long_pct_ref
+            if abs(shift) >= LS_SHIFT_PP:
+                side = "long" if shift > 0 else "short"
+                reasons.append(f"ls_shift_{side}_{shift:+.1f}pp")
+
     critical = any(
         value is not None and abs(value) >= CRITICAL_MOVE_PCT
         for value in (
@@ -484,21 +652,25 @@ def _log_check(db, snapshot: MarketSnapshot, decision: TriggerDecision, report_i
 
 async def monitor_once(dry_run: bool = False) -> int:
     snapshot = await fetch_market_snapshot()
+    derivatives = await fetch_derivatives_snapshot()
 
     db = SessionLocal()
     try:
         latest_report = _latest_report(db)
         latest_anomaly_at = _latest_anomaly_at(db)
         active_contract = _active_contract(db)
-        decision = decide_trigger(snapshot, latest_report, active_contract, latest_anomaly_at)
+        decision = decide_trigger(snapshot, latest_report, active_contract, latest_anomaly_at, derivatives)
 
         logger.info(
-            "BTC monitor price=$%.0f 15m=%s 1h=%s 4h=%s since_report=%s decision=%s",
+            "BTC monitor price=$%.0f 15m=%s 1h=%s 4h=%s since_report=%s funding=%s oi_1h=%s long%%=%s decision=%s",
             snapshot.price,
             snapshot.change_15m_pct,
             snapshot.change_1h_pct,
             snapshot.change_4h_pct,
             decision.details.get("since_report_pct"),
+            decision.details.get("funding_now_pct"),
+            decision.details.get("oi_change_1h_pct"),
+            decision.details.get("long_pct_now"),
             decision.reason,
         )
 

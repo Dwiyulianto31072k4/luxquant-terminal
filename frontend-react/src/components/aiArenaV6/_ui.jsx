@@ -35,6 +35,58 @@ export const fmtPct = (n, withSign = true) => {
   return `${s}${v.toFixed(2)}%`;
 };
 
+// humanizeTrigger — turn the monitor's machine reason codes into plain English.
+// e.g. "price_dump_2.30%_1h|invalidation_level_touched_59800"
+//   → "BTC fell 2.30% over 1h · price reached the invalidation level $59,800"
+export const humanizeTrigger = (reason) => {
+  if (!reason) return "";
+  const levelName = {
+    primary_touch: "target",
+    support: "support",
+    confirmation: "confirmation",
+    invalidation: "invalidation",
+  };
+  const parts = String(reason)
+    .split("|")
+    .map((raw) => {
+      const r = raw.trim();
+      let m;
+      if ((m = r.match(/^price_(dump|pump)_([\d.]+)%_(\w+)$/)))
+        return `BTC ${m[1] === "dump" ? "fell" : "rose"} ${m[2]}% over ${m[3]}`;
+      if ((m = r.match(/^wick_(dump|pump)_([\d.]+)%_(\w+)$/)))
+        return `${m[3]} wick ${m[1] === "dump" ? "down" : "up"} ${m[2]}%`;
+      if ((m = r.match(/^since_report_(dump|pump)_([\d.]+)%$/)))
+        return `${m[1] === "dump" ? "down" : "up"} ${m[2]}% since the last report`;
+      if ((m = r.match(/^since_report_low_dump_([\d.]+)%$/)))
+        return `new low, down ${m[1]}% since the last report`;
+      if ((m = r.match(/^since_report_high_pump_([\d.]+)%$/)))
+        return `new high, up ${m[1]}% since the last report`;
+      if ((m = r.match(/^(primary_touch|support|confirmation|invalidation)_level_touched_(\d+)$/)))
+        return `price reached the ${levelName[m[1]]} level $${Number(m[2]).toLocaleString("en-US")}`;
+      // ── derivatives confluence ──
+      if (r === "funding_flip_neg_to_pos") return "funding flipped negative → positive (longs now pay)";
+      if (r === "funding_flip_pos_to_neg") return "funding flipped positive → negative (shorts now pay)";
+      if ((m = r.match(/^funding_spike_([+-][\d.]+)%$/)))
+        return `funding jumped to ${m[1]}%`;
+      if ((m = r.match(/^funding_extreme_high_([+-][\d.]+)%$/)))
+        return `funding turned extreme at ${m[1]}% (crowded longs)`;
+      if ((m = r.match(/^funding_extreme_low_([+-][\d.]+)%$/)))
+        return `funding turned extreme at ${m[1]}% (crowded shorts)`;
+      if ((m = r.match(/^oi_surge_([+-][\d.]+)%_1h$/)))
+        return `open interest surged ${m[1]}% in 1h (leverage building)`;
+      if ((m = r.match(/^oi_flush_([+-][\d.]+)%_1h$/)))
+        return `open interest flushed ${m[1]}% in 1h (deleveraging)`;
+      if ((m = r.match(/^ls_shift_long_([+-][\d.]+)pp$/)))
+        return `positioning shifted ${m[1]}pp toward longs`;
+      if ((m = r.match(/^ls_shift_short_([+-][\d.]+)pp$/)))
+        return `positioning shifted ${m[1]}pp toward shorts`;
+      if (r === "bootstrap_no_existing_report") return "first market read initialized";
+      return r.replace(/_/g, " ");
+    })
+    .filter(Boolean);
+  return parts.join(" · ");
+};
+
 export const timeAgo = (iso) => {
   if (!iso) return "—";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;

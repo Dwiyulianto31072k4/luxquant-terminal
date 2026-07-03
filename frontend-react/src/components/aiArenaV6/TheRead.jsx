@@ -10,7 +10,7 @@ import { useState } from "react";
 import {
   Card, SectionHeader, Eyebrow, Tag, Tile, Num, Hi,
   StanceGauge, LevelRail, SignalBar,
-  fmtUsd, fmtPct, dirMeta, normDir, timeAgo,
+  fmtUsd, fmtPct, dirMeta, normDir, timeAgo, humanizeTrigger,
 } from "./_ui";
 
 /* ── confidence tier ── */
@@ -87,6 +87,7 @@ export default function TheRead({ data }) {
   const generatedAt = data?.timestamp;
   const isAnomaly = Boolean(data?.is_anomaly_triggered || data?.report?.is_anomaly_triggered);
   const anomalyReason = data?.anomaly_reason || data?.report?.anomaly_reason || "";
+  const triggerHuman = humanizeTrigger(anomalyReason);
 
   const pctFromSpot = (lv) => (btc && lv ? `${fmtPct(((lv - btc) / btc) * 100)} from spot` : "");
 
@@ -105,11 +106,11 @@ export default function TheRead({ data }) {
             <span
               className={`rounded border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-[0.12em] ${
                 isAnomaly
-                  ? "border-orange-400/30 bg-orange-400/10 text-orange-300"
-                  : "border-gold-primary/25 bg-gold-primary/10 text-gold-light/90"
+                  ? "border-gold-primary/25 bg-gold-primary/10 text-gold-light/90"
+                  : "border-white/[0.12] bg-white/[0.04] text-text-muted/70"
               }`}
             >
-              {isAnomaly ? "⚡ Anomaly trigger" : "Scheduled refresh"}
+              {isAnomaly ? "Market-move trigger" : "Baseline read"}
             </span>
             <span className="font-mono text-[9.5px] text-text-muted/50">
               generated {timeAgo(generatedAt)}
@@ -121,14 +122,12 @@ export default function TheRead({ data }) {
               ? whatChanged
               : `The stance stays ${dir.label.toLowerCase()}${
                   isFinite(conf) ? ` at ${conf}%` : ""
-                } and the projected range is broadly unchanged — no structural shift since the previous report.`}
+                } and the projected range is broadly unchanged since the previous read.`}
           </p>
           <p className="mt-1.5 text-[11px] leading-[1.5] text-text-muted/55">
             {isAnomaly
-              ? anomalyReason
-                ? `Trigger: ${anomalyReason}`
-                : "Trigger: an anomaly in price, flow, or volatility forced an off-schedule re-read before the next cycle."
-              : "Trigger: the scheduled cycle. Every driver is re-scored against fresh data on each run, so a new report is published even when the headline call and range don't change."}
+              ? `Trigger: ${triggerHuman || "a material market move"}. Reports are event-driven — a fresh read is produced only when price, volatility, or a key projection level actually moves, not on a fixed clock.`
+              : "Event-driven: the model publishes a fresh read only when the market materially changes — a live monitor watches price, volatility, and the projection's key levels every couple of minutes."}
           </p>
         </div>
       </div>

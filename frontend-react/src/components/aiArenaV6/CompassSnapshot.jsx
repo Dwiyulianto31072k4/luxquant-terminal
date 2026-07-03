@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getLatestReport } from "../../services/aiArenaV6Api";
 import { getBTCData } from "../../services/marketApi";
-import { dirMeta, fmtUsd, fmtPct, timeAgo, Hi, COLOR } from "./_ui";
+import { dirMeta, fmtUsd, fmtPct, timeAgo, Hi, COLOR, humanizeTrigger } from "./_ui";
 
 const STORAGE_KEY = "lux_compass_snapshot_collapsed";
 const PRICE_POLL_MS = 15000;
@@ -179,12 +179,13 @@ export default function CompassSnapshot({ className = "" }) {
       drivers,
       whatChanged: verdict.what_changed || report?.report?.what_changed || "",
       isAnomaly: Boolean(report?.is_anomaly_triggered || report?.report?.is_anomaly_triggered),
+      triggerHuman: humanizeTrigger(report?.anomaly_reason || report?.report?.anomaly_reason || ""),
     };
   }, [report]);
 
   if (failed || !view) return null;
 
-  const { dir, conf, reportSpot, target, invalidation, mode, modeHint, updated, drivers, whatChanged, isAnomaly } = view;
+  const { dir, conf, reportSpot, target, invalidation, mode, modeHint, updated, drivers, whatChanged, isAnomaly, triggerHuman } = view;
   const spot = livePrice || reportSpot;
 
   const explanation = (
@@ -339,13 +340,22 @@ export default function CompassSnapshot({ className = "" }) {
             </div>
           )}
 
-          {/* ── why this report exists ── */}
-          {whatChanged && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-gold-primary/[0.12] bg-gold-primary/[0.04] px-3 py-2">
-              <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-gold-primary/75">
-                {isAnomaly ? "⚡ Trigger" : "Why updated"}
-              </span>
-              <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted/80">{whatChanged}</p>
+          {/* ── why this report exists (event-driven trigger) ── */}
+          {(whatChanged || triggerHuman) && (
+            <div className="mt-3 rounded-lg border border-gold-primary/[0.12] bg-gold-primary/[0.04] px-3 py-2">
+              <div className="flex items-start gap-2">
+                <span className="mt-px shrink-0 font-mono text-[8px] uppercase tracking-[0.14em] text-gold-primary/75">
+                  {isAnomaly ? "Triggered by" : "Why updated"}
+                </span>
+                <p className="min-w-0 flex-1 text-[11px] leading-4 text-text-muted/80">
+                  {whatChanged || (triggerHuman ? `${triggerHuman}.` : "")}
+                </p>
+              </div>
+              {whatChanged && triggerHuman ? (
+                <p className="mt-1 pl-[52px] font-mono text-[9.5px] leading-4 text-gold-light/60">
+                  {triggerHuman}
+                </p>
+              ) : null}
             </div>
           )}
         </div>

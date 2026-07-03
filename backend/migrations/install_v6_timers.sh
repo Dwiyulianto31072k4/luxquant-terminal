@@ -78,17 +78,22 @@ systemctl daemon-reload
 
 echo
 echo "[3/4] Enabling + starting timers..."
-systemctl enable luxquant-arena-v6.timer
+# NOTE: report generation is now EVENT-DRIVEN.
+# The fixed 4x/day scheduled report timer (luxquant-arena-v6.timer) is intentionally
+# NOT enabled — the 2-minute monitor triggers a fresh read only when the market
+# materially changes (price/volatility move or a projection level touch).
+# To re-enable the fixed schedule: systemctl enable --now luxquant-arena-v6.timer
+systemctl disable luxquant-arena-v6.timer 2>/dev/null || true
+systemctl stop luxquant-arena-v6.timer 2>/dev/null || true
 systemctl enable luxquant-arena-v6-evaluator.timer
 systemctl enable luxquant-arena-v6-monitor.timer
 systemctl enable luxquant-compass-resolver.timer
 systemctl enable luxquant-compass-reflection.timer
-systemctl start luxquant-arena-v6.timer
 systemctl start luxquant-arena-v6-evaluator.timer
 systemctl start luxquant-arena-v6-monitor.timer
 systemctl start luxquant-compass-resolver.timer
 systemctl start luxquant-compass-reflection.timer
-echo "  ✓ luxquant-arena-v6.timer enabled + started"
+echo "  • luxquant-arena-v6.timer DISABLED (event-driven mode — monitor drives reports)"
 echo "  ✓ luxquant-arena-v6-evaluator.timer enabled + started"
 echo "  ✓ luxquant-arena-v6-monitor.timer enabled + started"
 echo "  ✓ luxquant-compass-resolver.timer enabled + started"
@@ -105,8 +110,8 @@ echo
 echo "=== Install complete ==="
 echo
 echo "Next scheduled runs:"
-echo "  - Worker:    every 6h at 00/06/12/18 UTC"
-echo "  - Monitor:   every 2 minutes, triggers full run on material BTC changes"
+echo "  - Worker:    DISABLED (event-driven — no fixed schedule)"
+echo "  - Monitor:   every 2 minutes, triggers a full run only on material BTC changes"
 echo "  - Evaluator: every hour at :05 UTC"
 echo "  - Resolver:  every 5 minutes (Compass 2.0 first-barrier audit)"
 echo
