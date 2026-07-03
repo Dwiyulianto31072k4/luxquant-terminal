@@ -74,14 +74,14 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
   const btcPrice = Number(report?.btc_price);
   return (
     <header className="space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="h-px w-8 bg-gold-primary/40" />
-        <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="h-px w-8 shrink-0 bg-gold-primary/40" />
+        <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80 sm:tracking-[0.25em]">
           BTC Compass · AI Research
         </span>
-        <span className="h-px flex-1 bg-white/[0.06]" />
+        <span className="hidden h-px flex-1 bg-white/[0.06] sm:block" />
         <span
-          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
+          className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
             healthy
               ? "border-profit/25 bg-profit/10 text-profit"
               : "border-amber-500/20 bg-amber-500/10 text-amber-400"
@@ -107,17 +107,17 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
         </div>
 
         {/* exchange-style segmented ticker bar + compact refresh */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709]">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+          <div className="flex flex-1 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d0709] sm:flex-none">
             {Number.isFinite(btcPrice) && btcPrice > 0 && (
-              <div className="px-4 py-2">
+              <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
                 <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">BTC / USDT</div>
                 <div className="mt-0.5 font-mono text-[17px] font-medium tabular-nums leading-tight tracking-tight text-white">
                   ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </div>
               </div>
             )}
-            <div className="px-4 py-2">
+            <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">24h stance</div>
               <div className={`mt-0.5 font-display text-[15px] font-semibold leading-tight ${stance.cls.split(" ").find((c) => c.startsWith("text-")) || "text-white"}`}>
                 {stance.arrow} {stance.label}
@@ -126,7 +126,7 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
                 ) : null}
               </div>
             </div>
-            <div className="px-4 py-2">
+            <div className="flex-1 px-3 py-2 sm:flex-none sm:px-4">
               <div className="font-mono text-[8.5px] uppercase tracking-[0.16em] text-text-muted/60">Updated</div>
               <div className="mt-0.5 font-mono text-[13px] leading-tight text-white/75">{formatAge(report?.timestamp)}</div>
             </div>
@@ -190,42 +190,53 @@ function ErrorState({ error, onRetry }) {
 }
 
 function WorkspaceTabs({ activeTab, onChange, tabs }) {
+  const scrollRef = useRef(null);
+
   return (
-    <nav className="sticky top-0 z-40 -mx-4 border-b border-white/[0.07] bg-[#0a0506]/92 px-4 backdrop-blur-md md:-mx-6 md:px-6 xl:-mx-10 xl:px-10">
-      <div className="flex gap-1 overflow-x-auto scrollbar-none">
-        {tabs.map((tab) => {
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => onChange(tab.key)}
-              title={tab.description}
-              className={`group relative flex shrink-0 items-center gap-2 px-4 py-3.5 text-left transition-colors ${
-                active ? "text-white" : "text-text-muted/60 hover:text-white/85"
-              }`}
-            >
-              <span
-                className={`font-mono text-[10px] tabular-nums ${
-                  active ? "text-gold-primary" : "text-text-muted/40 group-hover:text-text-muted/70"
+    <nav className="sticky top-0 z-40 -mx-4 bg-[#0a0506]/92 px-4 backdrop-blur-md md:-mx-6 md:px-6 xl:-mx-10 xl:px-10">
+      {/* SignalsPage-style slider: bigger font, right fade + arrow to hint "more" */}
+      <div className="relative edge-fade-r border-b border-white/[0.07]">
+        <div
+          ref={scrollRef}
+          className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12"
+        >
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => onChange(tab.key)}
+                title={tab.description}
+                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-1 text-[15px] font-medium transition-colors ${
+                  active
+                    ? "border-gold-primary text-white"
+                    : "border-transparent text-white/50 hover:text-white/80"
                 }`}
               >
-                {tab.icon}
-              </span>
-              <span className="text-[13px] font-semibold leading-none tracking-[-0.01em]">{tab.label}</span>
-              <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/40 lg:inline">
-                {tab.eyebrow}
-              </span>
-              <span
-                className={`absolute inset-x-2 bottom-0 h-[2px] rounded-t-full transition-all ${
-                  active
-                    ? "bg-gradient-to-r from-gold-primary/40 via-gold-primary to-gold-primary/40 opacity-100"
-                    : "opacity-0"
-                }`}
-              />
-            </button>
-          );
-        })}
+                <span
+                  className={`font-mono text-[11px] tabular-nums ${
+                    active ? "text-gold-primary" : "text-white/35 group-hover:text-white/60"
+                  }`}
+                >
+                  {tab.icon}
+                </span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Right arrow — scroll to reveal more tabs (MEXC-style, above the fade) */}
+        <button
+          type="button"
+          onClick={() => scrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+          aria-label="Show more tabs"
+          className="absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-white/60 transition-colors hover:text-gold-primary"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </nav>
   );

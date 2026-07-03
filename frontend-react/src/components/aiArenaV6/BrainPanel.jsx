@@ -139,9 +139,9 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
   const dimmed = (id) => selected && selected !== id;
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="relative w-full overflow-hidden">
       {/* zoom controls */}
-      <div className="absolute right-3 top-3 z-10 flex flex-col gap-1.5">
+      <div className="absolute right-2.5 top-2.5 z-10 flex flex-col gap-1.5">
         {[
           { label: "+", fn: () => zoomBy(1.3), aria: "Zoom in" },
           { label: "−", fn: () => zoomBy(1 / 1.3), aria: "Zoom out" },
@@ -152,20 +152,22 @@ function BrainGraph({ regime, lessons, postmortems, selected, onSelect }) {
             type="button"
             aria-label={b.aria}
             onClick={b.fn}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.1] bg-[#140b0d]/90 text-[15px] text-gold-primary backdrop-blur transition hover:border-gold-primary/50 hover:bg-gold-primary/10"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-[#140b0d]/90 text-[14px] text-gold-primary backdrop-blur transition hover:border-gold-primary/50 hover:bg-gold-primary/10 md:h-9 md:w-9 md:text-[15px]"
           >
             {b.label}
           </button>
         ))}
       </div>
-      <div className="absolute left-3 top-3 z-10 rounded-md border border-white/[0.07] bg-black/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/70 backdrop-blur">
-        drag to pan · scroll to zoom · click a node
+      <div className="absolute left-2.5 top-2.5 z-10 max-w-[calc(100%-4rem)] rounded-md border border-white/[0.07] bg-black/40 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/70 backdrop-blur">
+        <span className="md:hidden">drag · pinch · tap</span>
+        <span className="hidden md:inline">drag to pan · scroll to zoom · click a node</span>
       </div>
 
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full cursor-grab touch-none select-none rounded-lg border border-white/[0.05] bg-[#0a0506] active:cursor-grabbing"
+        preserveAspectRatio="xMidYMid meet"
+        className="block h-[340px] w-full cursor-grab touch-none select-none rounded-lg border border-white/[0.05] bg-[#0a0506] active:cursor-grabbing sm:h-[420px] md:h-auto"
         style={{ minHeight: 300 }}
         role="img"
         aria-label="Interactive Compass brain graph"
@@ -358,8 +360,8 @@ export default function BrainPanel() {
 
       <div className="grid gap-4 xl:grid-cols-12">
         {/* graph */}
-        <div className="xl:col-span-7">
-          <Card className="p-5 md:p-6">
+        <div className="min-w-0 xl:col-span-7">
+          <Card className="p-4 md:p-6">
             <SectionHeader
               label="Compass brain · knowledge graph"
               right={regime?.regime ? <Tag tone="gold">{pretty(regime.regime)}</Tag> : null}
@@ -411,7 +413,7 @@ export default function BrainPanel() {
         </div>
 
         {/* right rail */}
-        <div className="space-y-4 xl:col-span-5">
+        <div className="min-w-0 space-y-4 xl:col-span-5">
           <Card className="p-5">
             <SectionHeader label={`Operating lessons · ${lessons.length}`} />
             <div className="space-y-2.5">

@@ -230,9 +230,17 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
         </div>
       </div>
 
-      {/* ── table ── */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse">
+      {/* ── desktop table (md+) ── */}
+      <div className="hidden md:block">
+        <table className="w-full table-fixed border-collapse">
+          <colgroup>
+            <col className="w-[3.5rem]" />
+            <col className="w-[9rem]" />
+            <col className="w-[6rem]" />
+            <col className="w-[13rem]" />
+            <col className="w-[11rem]" />
+            <col />
+          </colgroup>
           <thead>
             <tr className="border-b border-white/[0.06] bg-white/[0.02] text-left">
               {["No", "Report ID", "Time", "Projected", "Result", "Explanation"].map((header) => (
@@ -258,8 +266,8 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                     {start + index + 1}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <div className="font-mono text-xs text-white/80">{item.report_id || "-"}</div>
-                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
+                    <div className="truncate font-mono text-xs text-white/80">{item.report_id || "-"}</div>
+                    <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-text-muted/50">
                       {item.projection_id || "-"}
                     </div>
                   </td>
@@ -279,13 +287,13 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
                       {result.label}
                     </span>
                     {result.meta && (
-                      <div className="mt-2 max-w-[190px] font-mono text-[10.5px] leading-4 text-text-muted/60">
+                      <div className="mt-2 font-mono text-[10.5px] leading-4 text-text-muted/60">
                         {result.meta}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <p className="max-w-xl text-[13px] leading-6 text-white/60">
+                    <p className="text-[13px] leading-6 text-white/60">
                       {highlightPrices(buildExplanation(item))}
                     </p>
                     {!!(item.key_risks || []).length && !item.resolution && (
@@ -299,6 +307,64 @@ export default function VerdictLedger({ ledger, pageSize = DEFAULT_PAGE_SIZE }) 
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* ── mobile cards (< md) — compact, no horizontal scroll ── */}
+      <div className={cx("space-y-2.5 p-3 md:hidden", loading && "opacity-50 transition-opacity")}>
+        {visible.map((item, index) => {
+          const projected = buildProjected(item);
+          const result = buildResult(item);
+          return (
+            <div
+              key={item.projection_id || item.report_id}
+              className="rounded-xl border border-white/[0.06] bg-[#140b0d] p-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="font-mono text-[11px] tabular-nums text-text-muted/50">
+                    #{start + index + 1}
+                  </span>
+                  <span className="truncate font-mono text-[11px] text-white/70">
+                    {item.report_id || "-"}
+                  </span>
+                </div>
+                <span className="shrink-0 font-mono text-[10px] text-text-muted/60">
+                  {formatTimestamp(item.issued_at)}
+                </span>
+              </div>
+
+              <div className="mt-2.5 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className={cx("text-[14px] font-semibold leading-snug", biasTone(item.primary_bias))}>
+                    {projected.title}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-text-muted/50">
+                    {projected.meta}
+                  </div>
+                </div>
+                <span className={cx("shrink-0 rounded-md border px-2 py-1 text-[9.5px] font-mono uppercase tracking-[0.1em]", outcomeTone(result.tone))}>
+                  {result.label}
+                </span>
+              </div>
+
+              {result.meta && (
+                <div className="mt-2 font-mono text-[10px] leading-4 text-text-muted/60">
+                  {result.meta}
+                </div>
+              )}
+
+              <p className="mt-2 text-[12.5px] leading-5 text-white/55">
+                {highlightPrices(buildExplanation(item))}
+              </p>
+
+              {!!(item.key_risks || []).length && !item.resolution && (
+                <div className="mt-2 text-[11px] leading-5 text-loss/70">
+                  Watch: {item.key_risks.slice(0, 2).join(" · ")}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {!visible.length && !loading && (

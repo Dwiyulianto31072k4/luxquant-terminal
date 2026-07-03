@@ -104,13 +104,13 @@ export const Card = ({ className = "", children, accent, hairline = true }) => {
 
 // Section header: rule — LABEL — rule + optional right slot.
 export const SectionHeader = ({ label, right, className = "" }) => (
-  <div className={`mb-4 flex items-center gap-3 ${className}`}>
+  <div className={`mb-4 flex min-w-0 items-center gap-3 ${className}`}>
     <span className="h-px w-8 shrink-0 bg-gold-primary/40" />
-    <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">
+    <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-gold-primary/80 sm:tracking-[0.25em]">
       {label}
     </span>
-    <span className="h-px flex-1 bg-white/[0.06]" />
-    {right && <div className="flex-shrink-0">{right}</div>}
+    <span className="hidden h-px flex-1 bg-white/[0.06] sm:block" />
+    {right && <div className="ml-auto flex-shrink-0 sm:ml-0">{right}</div>}
   </div>
 );
 
