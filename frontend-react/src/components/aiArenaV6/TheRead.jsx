@@ -10,7 +10,7 @@ import { useState } from "react";
 import {
   Card, SectionHeader, Eyebrow, Tag, Tile, Num, Hi,
   StanceGauge, LevelRail, SignalBar,
-  fmtUsd, fmtPct, dirMeta, normDir,
+  fmtUsd, fmtPct, dirMeta, normDir, timeAgo,
 } from "./_ui";
 
 /* ── confidence tier ── */
@@ -81,12 +81,43 @@ export default function TheRead({ data }) {
   const flat = drivers.filter((r) => driverDir(r) === "flat").length;
   const aligned = Math.max(bull, bear, flat);
 
+  // why this report exists — the diff narrative that triggered a fresh run
+  const whatChanged = verdict.what_changed || data?.report?.what_changed || "";
+  const genSecs = Number(data?.generated_in_seconds);
+  const generatedAt = data?.timestamp;
+
   const pctFromSpot = (lv) => (btc && lv ? `${fmtPct(((lv - btc) / btc) * 100)} from spot` : "");
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-      {/* ════════ LEFT — narrative + drivers (8 cols) ════════ */}
-      <div className="min-w-0 space-y-4 xl:col-span-8">
+    <div className="space-y-4">
+      {/* ════════ WHY THIS UPDATED — what triggered a fresh run ════════ */}
+      <div className="flex items-start gap-3 rounded-xl border border-gold-primary/15 bg-gold-primary/[0.045] p-3.5">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-primary/[0.14] text-[13px] text-gold-light">
+          ↻
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-gold-primary/85">
+              Why this updated
+            </span>
+            <span className="font-mono text-[9.5px] text-text-muted/50">
+              · generated {timeAgo(generatedAt)}
+              {isFinite(genSecs) ? ` · ${genSecs < 60 ? `${genSecs.toFixed(0)}s` : `${(genSecs / 60).toFixed(1)}m`} run` : ""}
+            </span>
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-white/80">
+            {whatChanged
+              ? whatChanged
+              : `A fresh 24h read was produced on schedule. The stance stays ${dir.label.toLowerCase()}${
+                  isFinite(conf) ? ` at ${conf}%` : ""
+                } — the model re-scored every driver against live data even though the headline call did not flip.`}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        {/* ════════ LEFT — narrative + drivers (8 cols) ════════ */}
+        <div className="min-w-0 space-y-4 xl:col-span-8">
         {/* ── stance hero ── */}
         <Card className="p-5 md:p-7">
           <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start md:justify-between">
@@ -151,22 +182,44 @@ export default function TheRead({ data }) {
             </div>
           </div>
 
-          {/* driver quick chips */}
+          {/* driver breakdown — each driver, its number, and why it reads that way */}
           {drivers.length > 0 && (
-            <div className="mt-6 grid grid-cols-2 gap-2.5 border-t border-white/[0.06] pt-5 lg:grid-cols-4">
-              {drivers.map((r) => {
-                const m = dirMeta(rowScore(r).direction);
-                return (
-                  <Tile key={r.key} label={r.label}>
-                    <span className={`font-display text-[14px] font-semibold ${m.text}`}>{m.arrow} {m.label}</span>
-                    {r.evidence?.[0] ? (
-                      <p className="mt-0.5 truncate font-mono text-[10.5px] text-text-muted">
-                        {r.evidence[0].metric}: {r.evidence[0].value ?? "—"}
-                      </p>
-                    ) : null}
-                  </Tile>
-                );
-              })}
+            <div className="mt-6 border-t border-white/[0.06] pt-5">
+              <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
+                What's driving the read — and why
+              </p>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {drivers.map((r) => {
+                  const s = rowScore(r);
+                  const m = dirMeta(s.direction);
+                  const strengthPct = Math.round((Number(s.strength) || 0) * 100);
+                  const ev = r.evidence?.[0];
+                  const why = r.rationale || ev?.note || null;
+                  return (
+                    <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[13px] font-semibold text-white/90">{r.label}</span>
+                        <span className={`shrink-0 font-mono text-[11px] font-semibold ${m.text}`}>
+                          {m.arrow} {m.label} · {strengthPct}%
+                        </span>
+                      </div>
+
+                      {/* the actual number behind the call */}
+                      {ev ? (
+                        <div className="mt-2 flex items-baseline justify-between gap-2 rounded-md border border-white/[0.05] bg-black/25 px-2.5 py-1.5">
+                          <span className="truncate text-[11.5px] text-white/60">{ev.metric}</span>
+                          <Num className="shrink-0 text-[12.5px] text-white">{ev.value ?? "—"}</Num>
+                        </div>
+                      ) : null}
+
+                      {/* plain-language reasoning */}
+                      {why ? (
+                        <p className="mt-2 text-[11.5px] leading-[1.5] text-text-muted/80">{why}</p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Card>
@@ -345,6 +398,7 @@ export default function TheRead({ data }) {
             </div>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
