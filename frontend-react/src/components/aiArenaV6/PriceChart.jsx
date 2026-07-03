@@ -461,7 +461,7 @@ export default function PriceChart({ report }) {
 
       <ProjectionPanel projection={projection} lastPrice={lastPrice} />
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <div className="mb-2 text-[9px] font-mono uppercase tracking-[0.16em] text-text-muted/70">
             Select chart layers
@@ -603,7 +603,7 @@ function ProjectionPanel({ projection, lastPrice }) {
 
   const toneColor = directionColor(projection.direction);
   return (
-    <div className="grid gap-3 rounded-xl border border-white/[0.08] bg-black/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid grid-cols-1 gap-3 rounded-xl border border-white/[0.08] bg-black/15 p-4 md:grid-cols-[1.1fr_0.9fr]">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -719,7 +719,7 @@ function ChartReadPanel({ read }) {
         </div>
       </div>
 
-      <div className="grid gap-3 p-4 xl:grid-cols-[0.92fr_1.08fr]">
+      <div className="grid grid-cols-1 gap-3 p-4 xl:grid-cols-[0.92fr_1.08fr]">
         <div className="space-y-3">
           <div className="rounded-lg border border-[#d4a853]/15 bg-[#d4a853]/[0.055] p-3">
             <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-[#d4a853]/75">

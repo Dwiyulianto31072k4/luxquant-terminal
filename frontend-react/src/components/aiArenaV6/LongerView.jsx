@@ -48,7 +48,7 @@ const VerdictHero = ({ horizon, verdict, note }) => {
   return (
     <Card className="p-6 md:p-7">
       <div className="flex flex-wrap items-start justify-between gap-6">
-        <div className="min-w-[240px] flex-1">
+        <div className="min-w-0 flex-1 basis-[240px]">
           <Eyebrow>{horizon} stance</Eyebrow>
           <div className={`mt-2 flex items-center gap-4 font-display ${dir.text}`}>
             <span
@@ -76,10 +76,10 @@ const VerdictHero = ({ horizon, verdict, note }) => {
 
 /* ── metric grid for a set of rows ── */
 const RowMetrics = ({ rows, horizon = "72h" }) => (
-  <div className="grid gap-2.5 lg:grid-cols-2">
+  <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
     {rows.map((r) => (
       (r.evidence?.length > 0) && (
-        <div key={r.key} className="rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+        <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
           <div className="mb-2 flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
             {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
@@ -124,8 +124,8 @@ export default function LongerView({ data }) {
       </div>
 
       {view === "7d" ? (
-        <div className="grid gap-4 xl:grid-cols-12">
-          <div className="space-y-4 xl:col-span-8">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <div className="min-w-0 space-y-4 xl:col-span-8">
             <VerdictHero
               horizon="7-day swing"
               verdict={vs.secondary_7d || verdict.secondary_7d}
@@ -134,7 +134,7 @@ export default function LongerView({ data }) {
 
             <Card className="p-5 md:p-6" accent="gold">
               <SectionHeader label="Swing drivers · 72h horizon" />
-              <div className="grid gap-2.5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 {swing.length === 0 && (
                   <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/60">
                     No driver data
@@ -161,7 +161,7 @@ export default function LongerView({ data }) {
             </Card>
           </div>
 
-          <div className="space-y-4 xl:col-span-4">
+          <div className="min-w-0 space-y-4 xl:col-span-4">
             <div className="space-y-4 xl:sticky xl:top-[64px]">
               {zones.length > 0 && (
                 <Card className="p-5">
@@ -183,8 +183,8 @@ export default function LongerView({ data }) {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-12">
-          <div className="space-y-4 xl:col-span-8">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <div className="min-w-0 space-y-4 xl:col-span-8">
             <VerdictHero
               horizon="30-day holder"
               verdict={vs.primary_30d || verdict.primary_30d}
@@ -204,7 +204,7 @@ export default function LongerView({ data }) {
             </Card>
           </div>
 
-          <div className="space-y-4 xl:col-span-4">
+          <div className="min-w-0 space-y-4 xl:col-span-4">
             <div className="space-y-4 xl:sticky xl:top-[64px]">
               <Card className="p-5">
                 <SectionHeader

@@ -191,14 +191,39 @@ function ErrorState({ error, onRetry }) {
 
 function WorkspaceTabs({ activeTab, onChange, tabs }) {
   const scrollRef = useRef(null);
+  const [atEnd, setAtEnd] = useState(false);
+
+  const updateEnd = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollable = el.scrollWidth - el.clientWidth;
+    setAtEnd(scrollable <= 1 || el.scrollLeft >= scrollable - 2);
+  }, []);
+
+  useEffect(() => {
+    updateEnd();
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    el.addEventListener("scroll", updateEnd, { passive: true });
+    window.addEventListener("resize", updateEnd);
+    return () => {
+      el.removeEventListener("scroll", updateEnd);
+      window.removeEventListener("resize", updateEnd);
+    };
+  }, [updateEnd]);
+
+  // keep the active tab visible when it changes
+  useEffect(() => {
+    const el = scrollRef.current?.querySelector('[data-active="true"]');
+    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
 
   return (
-    <nav className="sticky top-0 z-40 -mx-4 bg-[#0a0506]/92 px-4 backdrop-blur-md md:-mx-6 md:px-6 xl:-mx-10 xl:px-10">
-      {/* SignalsPage-style slider: bigger font, right fade + arrow to hint "more" */}
-      <div className="relative edge-fade-r border-b border-white/[0.07]">
+    <nav className="sticky top-0 z-40 -mx-4 border-b border-white/[0.07] bg-[#0a0506]/92 backdrop-blur-md md:-mx-6 xl:-mx-10">
+      <div className="relative">
         <div
           ref={scrollRef}
-          className="flex items-center gap-6 overflow-x-auto no-scrollbar pr-12"
+          className="flex items-center gap-6 overflow-x-auto no-scrollbar pl-4 pr-16 md:pl-6 xl:pl-10"
         >
           {tabs.map((tab) => {
             const active = activeTab === tab.key;
@@ -206,17 +231,18 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
               <button
                 key={tab.key}
                 type="button"
+                data-active={active}
                 onClick={() => onChange(tab.key)}
                 title={tab.description}
-                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-1 text-[15px] font-medium transition-colors ${
+                className={`group flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px pb-3 pt-3 text-[15px] font-medium transition-colors ${
                   active
                     ? "border-gold-primary text-white"
-                    : "border-transparent text-white/50 hover:text-white/80"
+                    : "border-transparent text-white/45 hover:text-white/80"
                 }`}
               >
                 <span
                   className={`font-mono text-[11px] tabular-nums ${
-                    active ? "text-gold-primary" : "text-white/35 group-hover:text-white/60"
+                    active ? "text-gold-primary" : "text-white/30 group-hover:text-white/55"
                   }`}
                 >
                   {tab.icon}
@@ -226,17 +252,25 @@ function WorkspaceTabs({ activeTab, onChange, tabs }) {
             );
           })}
         </div>
-        {/* Right arrow — scroll to reveal more tabs (MEXC-style, above the fade) */}
-        <button
-          type="button"
-          onClick={() => scrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
-          aria-label="Show more tabs"
-          className="absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center text-white/60 transition-colors hover:text-gold-primary"
+
+        {/* fade + scroll arrow — flush to the far right edge, hides at the end */}
+        <div
+          className={`pointer-events-none absolute inset-y-0 right-0 flex items-center pl-10 pr-2 transition-opacity duration-200 ${
+            atEnd ? "opacity-0" : "opacity-100"
+          }`}
+          style={{ background: "linear-gradient(to right, transparent, #0a0506 42%)" }}
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+          <button
+            type="button"
+            onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })}
+            aria-label="Show more tabs"
+            className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#160d10] text-white/70 transition hover:border-gold-primary/50 hover:text-gold-primary"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
     </nav>
   );
@@ -421,7 +455,7 @@ function ReportArchivePanel({ archive, loadingId, error, onOpenPdf }) {
           </div>
         )}
 
-        <div className="grid gap-3 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
           {pagedItems.map((item, index) => {
             const loading = loadingId === item.report_id;
             const direction = item.tactical_24h?.direction;

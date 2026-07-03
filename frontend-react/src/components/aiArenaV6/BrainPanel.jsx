@@ -358,7 +358,7 @@ export default function BrainPanel() {
         <Tile label="Postmortems"><span className="font-mono text-[16px] tabular-nums text-loss">{postmortems.length}</span></Tile>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         {/* graph */}
         <div className="min-w-0 xl:col-span-7">
           <Card className="p-4 md:p-6">

@@ -77,13 +77,13 @@ export default function TheRead({ data }) {
   const pctFromSpot = (lv) => (btc && lv ? `${fmtPct(((lv - btc) / btc) * 100)} from spot` : "");
 
   return (
-    <div className="grid gap-4 xl:grid-cols-12">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
       {/* ════════ LEFT — narrative + drivers (8 cols) ════════ */}
-      <div className="space-y-4 xl:col-span-8">
+      <div className="min-w-0 space-y-4 xl:col-span-8">
         {/* ── stance hero ── */}
         <Card className="p-6 md:p-7">
           <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="min-w-[260px] flex-1">
+            <div className="min-w-0 flex-1 basis-[260px]">
               <Eyebrow>24h stance</Eyebrow>
               <div className={`mt-2 flex items-center gap-4 font-display ${dir.text}`}>
                 <span
@@ -150,7 +150,7 @@ export default function TheRead({ data }) {
             The 24h verdict is the weighted agreement of these drivers. Bars pull left (bearish) or right
             (bullish); longer means stronger. Where drivers conflict, confidence is held back.
           </p>
-          <div className="grid gap-2.5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
             {drivers.length === 0 && (
               <p className="col-span-full py-6 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/60">
                 No driver data
@@ -175,10 +175,10 @@ export default function TheRead({ data }) {
           <p className="mb-2 mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/80">
             Supporting numbers — per driver
           </p>
-          <div className="grid gap-2.5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             {drivers.map((r) => (
               (r.evidence?.length > 0) && (
-                <div key={r.key} className="rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
+                <div key={r.key} className="min-w-0 rounded-lg border border-white/[0.05] bg-[#140b0d] p-3.5">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold-primary/80">{r.label}</span>
                     {r.rationale ? <span className="truncate text-[11px] text-text-muted/70">— {r.rationale}</span> : null}
@@ -254,7 +254,7 @@ export default function TheRead({ data }) {
       </div>
 
       {/* ════════ RIGHT — decision rail (4 cols, sticky) ════════ */}
-      <div className="space-y-4 xl:col-span-4">
+      <div className="min-w-0 space-y-4 xl:col-span-4">
         <div className="space-y-4 xl:sticky xl:top-[64px]">
           {/* level rail */}
           <Card className="p-5">
