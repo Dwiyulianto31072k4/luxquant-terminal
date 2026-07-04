@@ -16,6 +16,14 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // GROWTH — revenue, retention & attribution (read-only)
+  // ════════════════════════════════════
+  getGrowth: async () => {
+    const response = await api.get('/api/v1/workspace/growth');
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // FOLLOW-UPS
   // ════════════════════════════════════
   listFollowups: async (filters = {}) => {

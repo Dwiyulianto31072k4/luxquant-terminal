@@ -14,6 +14,8 @@ from app.core.database import get_db
 from app.api.deps import get_admin_user
 from app.models.user import User
 from app.models.workspace import AdminFollowup, MarketingCampaign, BrandTodo
+from app.models.subscription import Payment
+from app.models.referral import ReferralUse
 from app.schemas.workspace import (
     FollowupCreate, FollowupUpdate, FollowupResponse,
     CampaignCreate, CampaignUpdate, CampaignResponse,
@@ -111,6 +113,177 @@ def workspace_stats(
         todos_backlog=todos_backlog,
         todos_urgent=todos_urgent,
     )
+
+
+# ════════════════════════════════════════════════════════════════════
+# GROWTH — revenue, retention & attribution analytics (read-only)
+# ════════════════════════════════════════════════════════════════════
+
+@router.get("/growth")
+def growth_analytics(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """
+    Business intelligence for the admin workspace — all derived from
+    existing data (payments, subscriptions, referrals). No writes.
+    """
+    now = datetime.now(timezone.utc)
+    d30, d60, d365 = now - timedelta(days=30), now - timedelta(days=60), now - timedelta(days=365)
+
+    # Confirmed, non-voided revenue. Prefer final_amount (net) over gross.
+    REV = func.coalesce(Payment.final_amount, Payment.amount_usdt)
+    PAID_AT = func.coalesce(Payment.verified_at, Payment.created_at)
+    CONFIRMED = (Payment.status == 'confirmed', Payment.deleted_at.is_(None))
+
+    # ── Revenue totals ──
+    row = db.query(
+        func.coalesce(func.sum(REV), 0),
+        func.count(Payment.id),
+        func.count(func.distinct(Payment.user_id)),
+    ).filter(*CONFIRMED).first()
+    total_revenue = float(row[0] or 0)
+    payment_count = int(row[1] or 0)
+    paying_customers = int(row[2] or 0)
+    aov = total_revenue / payment_count if payment_count else 0
+    ltv = total_revenue / paying_customers if paying_customers else 0
+
+    def _rev_between(lo, hi=None):
+        q = db.query(func.coalesce(func.sum(REV), 0)).filter(*CONFIRMED, PAID_AT >= lo)
+        if hi is not None:
+            q = q.filter(PAID_AT < hi)
+        return float(q.scalar() or 0)
+
+    rev_30 = _rev_between(d30)
+    rev_prev30 = _rev_between(d60, d30)
+    mom_pct = ((rev_30 - rev_prev30) / rev_prev30 * 100) if rev_prev30 else None
+
+    # ── 12-month revenue trend ──
+    month = func.date_trunc('month', PAID_AT)
+    trend_rows = (
+        db.query(month, func.coalesce(func.sum(REV), 0), func.count(Payment.id))
+        .filter(*CONFIRMED, PAID_AT >= d365)
+        .group_by(month).order_by(month).all()
+    )
+    trend = [
+        {"month": m.strftime('%Y-%m') if m else None, "revenue": float(s or 0), "count": int(c or 0)}
+        for m, s, c in trend_rows
+    ]
+
+    # ── Subscriptions & churn ──
+    active_subs = db.query(func.count(User.id)).filter(
+        User.role.in_(['premium', 'subscriber']),
+        User.is_active == True,
+        or_(User.subscription_expires_at.is_(None), User.subscription_expires_at > now),
+    ).scalar() or 0
+    lapsed_30d = db.query(func.count(User.id)).filter(
+        User.role != 'admin',
+        User.subscription_expires_at.isnot(None),
+        User.subscription_expires_at <= now,
+        User.subscription_expires_at >= d30,
+    ).scalar() or 0
+    churn_rate = (lapsed_30d / (active_subs + lapsed_30d) * 100) if (active_subs + lapsed_30d) else 0
+    payments_30d = db.query(func.count(Payment.id)).filter(*CONFIRMED, PAID_AT >= d30).scalar() or 0
+    arpu_30 = rev_30 / active_subs if active_subs else 0
+
+    # ── Attribution by subscription source ──
+    src_users = dict(
+        db.query(User.subscription_source, func.count(User.id))
+        .filter(User.subscription_source.isnot(None), User.subscription_source != '')
+        .group_by(User.subscription_source).all()
+    )
+    src_rev = dict(
+        db.query(User.subscription_source, func.coalesce(func.sum(REV), 0))
+        .join(Payment, Payment.user_id == User.id)
+        .filter(*CONFIRMED, User.subscription_source.isnot(None), User.subscription_source != '')
+        .group_by(User.subscription_source).all()
+    )
+    by_source = sorted(
+        [
+            {"source": s, "users": int(u or 0), "revenue": float(src_rev.get(s, 0) or 0)}
+            for s, u in src_users.items()
+        ],
+        key=lambda x: x["revenue"], reverse=True,
+    )
+
+    # ── Referral leaderboard ──
+    total_referred = db.query(func.count(ReferralUse.id)).scalar() or 0
+    ref_rows = (
+        db.query(
+            ReferralUse.referrer_id,
+            func.count(ReferralUse.id),
+            func.coalesce(func.sum(ReferralUse.total_commission_earned), 0),
+            func.coalesce(func.sum(ReferralUse.total_payments), 0),
+        )
+        .group_by(ReferralUse.referrer_id)
+        .order_by(func.count(ReferralUse.id).desc())
+        .limit(10).all()
+    )
+    ref_ids = [r[0] for r in ref_rows]
+    ref_names = dict(db.query(User.id, User.username).filter(User.id.in_(ref_ids)).all()) if ref_ids else {}
+    top_referrers = [
+        {
+            "username": ref_names.get(rid, f"#{rid}"),
+            "referred": int(cnt or 0),
+            "commission": float(comm or 0),
+            "payments": int(pmts or 0),
+        }
+        for rid, cnt, comm, pmts in ref_rows
+    ]
+
+    # ── Health: churn-risk (paying but going quiet) ──
+    d14 = now - timedelta(days=14)
+    risk_users = (
+        db.query(User)
+        .filter(
+            User.role.in_(['premium', 'subscriber']),
+            User.subscription_expires_at.isnot(None),
+            User.subscription_expires_at > now,
+            or_(User.last_active_at.is_(None), User.last_active_at < d14),
+        )
+        .order_by(User.last_active_at.is_(None).desc(), User.last_active_at.asc())
+        .limit(15).all()
+    )
+    churn_risk = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "days_inactive": (now - u.last_active_at).days if u.last_active_at else None,
+            "expires_at": u.subscription_expires_at,
+        }
+        for u in risk_users
+    ]
+
+    return {
+        "revenue": {
+            "total": total_revenue,
+            "last_30d": rev_30,
+            "prev_30d": rev_prev30,
+            "mom_pct": mom_pct,
+            "aov": aov,
+            "ltv": ltv,
+            "paying_customers": paying_customers,
+            "payment_count": payment_count,
+            "trend": trend,
+        },
+        "recurring": {
+            "run_rate_30d": rev_30,
+            "arpu_30d": arpu_30,
+            "active_subs": active_subs,
+        },
+        "churn": {
+            "active_subs": active_subs,
+            "lapsed_30d": lapsed_30d,
+            "churn_rate": churn_rate,
+            "payments_30d": payments_30d,
+        },
+        "attribution": {
+            "by_source": by_source,
+            "referral": {"total_referred": total_referred, "top_referrers": top_referrers},
+        },
+        "health": {"churn_risk": churn_risk},
+        "generated_at": now,
+    }
 
 
 # ════════════════════════════════════════════════════════════════════

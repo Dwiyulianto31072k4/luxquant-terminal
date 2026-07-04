@@ -24,6 +24,7 @@ import UserManagementPage from './UserManagementPage';
 import { FollowupTab } from './admin/workspace/FollowupTab';
 import { MarketingTab } from './admin/workspace/MarketingTab';
 import { FinanceTab } from './admin/workspace/FinanceTab';
+import { GrowthTab } from './admin/workspace/GrowthTab';
 import { TodoTab } from './admin/workspace/TodoTab';
 import { ActivityTab } from './admin/workspace/ActivityTab';
 import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
@@ -59,6 +60,7 @@ const TABS = [
   { id: 'followups',     label: 'Follow-ups',    description: 'Reminders & support queue',       Icon: ArrowTargetIcon,   accent: palette.blue[400] },
   { id: 'marketing',     label: 'Marketing',     description: 'Campaigns & budget tracking',     Icon: BroadcastConeIcon, accent: palette.purple[400] },
   { id: 'finance',       label: 'Finance',       description: 'Revenue & payment ops',           Icon: BarsChartIcon,     accent: palette.green[400] },
+  { id: 'growth',        label: 'Growth',        description: 'Revenue, retention & attribution', Icon: TrendingUpIcon,    accent: palette.green[400] },
   { id: 'todos',         label: 'TODOs',         description: 'Internal task board',             Icon: CheckSquareIcon,   accent: palette.orange[400] },
   { id: 'activity',      label: 'Activity',      description: 'Engagement & growth analytics',   Icon: ActivityIcon,      accent: palette.teal[400] },
   { id: 'apikeys',       label: 'API',           description: 'Developer keys & abuse flags',    Icon: ShieldIcon,        accent: palette.gold[300] },
@@ -267,6 +269,7 @@ const AdminWorkspacePage = () => {
     followups: stats?.followups_overdue || null,
     marketing: null,
     finance: financeStats?.stale_count || null,
+    growth: null,
     todos: stats?.todos_urgent || null,
     activity: null,
     apikeys: null,
@@ -312,6 +315,7 @@ const AdminWorkspacePage = () => {
       {activeTab === 'followups' && <FollowupTab onRefreshStats={fetchStats} />}
       {activeTab === 'marketing' && <MarketingTab onRefreshStats={fetchStats} />}
       {activeTab === 'finance' && <FinanceTab onRefreshStats={fetchFinanceStats} />}
+      {activeTab === 'growth' && <GrowthTab />}
       {activeTab === 'todos' && <TodoTab onRefreshStats={fetchStats} />}
       {activeTab === 'activity' && <ActivityTab />}
       {activeTab === 'apikeys' && <ApiKeysTab />}
