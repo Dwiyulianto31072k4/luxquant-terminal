@@ -9,21 +9,23 @@ import { palette, tint } from '../designSystem';
 // Each segment maps to a filter combination. `match` builds the filter
 // patch applied on click (starting from DEFAULT_FILTERS for focus).
 const SEGMENTS = [
-  { key: 'all',         label: 'All',           filter: {} ,                              statKey: 'total_users' },
-  { key: 'subscriber',  label: 'Subscriber',    filter: { role: 'subscriber' },           statKey: 'active_subscribers' },
-  { key: 'free',        label: 'Free',          filter: { role: 'free' },                 statKey: 'free_users' },
-  { key: 'lifetime',    label: 'Lifetime',      filter: { plan: 'lifetime' },             statKey: 'lifetime_subscribers' },
-  { key: 'recurring',   label: 'Non-Lifetime',  filter: { plan: 'recurring' },            statKey: null },
+  { key: 'all',           label: 'All',           filter: {} ,                        statKey: 'total_users' },
+  { key: 'subscriber',    label: 'Subscriber',    filter: { role: 'subscriber' },      statKey: 'active_subscribers' },
+  { key: 'ex_subscriber', label: 'Ex-Subscriber', filter: { exSubscriber: '1' },       statKey: 'ex_subscribers' },
+  { key: 'free',          label: 'Free',          filter: { role: 'free' },            statKey: 'free_users' },
+  { key: 'lifetime',      label: 'Lifetime',      filter: { plan: 'lifetime' },        statKey: 'lifetime_subscribers' },
+  { key: 'recurring',     label: 'Non-Lifetime',  filter: { plan: 'recurring' },       statKey: null },
 ];
 
 // Determine which segment is currently active from the filters object.
 const activeSegment = (filters) => {
+  if (filters.exSubscriber) return 'ex_subscriber';
   if (filters.plan === 'lifetime') return 'lifetime';
   if (filters.plan === 'recurring') return 'recurring';
   if (filters.role === 'subscriber') return 'subscriber';
   if (filters.role === 'free') return 'free';
   // "all" only when nothing meaningful is set
-  const anySet = ['role', 'plan', 'status', 'provider', 'activity', 'reach', 'vipState', 'anomaly', 'source']
+  const anySet = ['role', 'plan', 'status', 'provider', 'activity', 'reach', 'vipState', 'anomaly', 'source', 'exSubscriber']
     .some((k) => filters[k]);
   return anySet ? null : 'all';
 };

@@ -25,6 +25,7 @@ export const adminApi = {
     source,        // ← NEW: payment | legacy | lifetime | admin | telegram_vip | discord_premium
     plan,          // ← NEW: lifetime | recurring
     crm,           // ← NEW: untouched | open | tracked
+    exSubscriber,  // ← NEW: '1' → past subscribers, now free/expired
     sortBy,
     sortOrder,
     page,
@@ -42,6 +43,7 @@ export const adminApi = {
     if (source) params.source = source;
     if (plan) params.plan = plan;
     if (crm) params.crm = crm;
+    if (exSubscriber) params.ex_subscriber = exSubscriber;
     if (sortBy) params.sort_by = sortBy;
     if (sortOrder) params.sort_order = sortOrder;
     if (page) params.page = page;

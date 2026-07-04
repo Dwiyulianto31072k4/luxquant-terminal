@@ -140,6 +140,22 @@ async def get_admin_stats(
         User.telegram_in_group == True,
     ).scalar() or 0
 
+    # Ex-subscribers — ever paid, now free/expired (mirrors list filter)
+    ex_subscribers = db.query(func.count(User.id)).filter(
+        User.role != "admin",
+        or_(
+            and_(
+                User.subscription_expires_at.isnot(None),
+                User.subscription_expires_at <= now,
+            ),
+            and_(
+                User.role == "free",
+                User.subscription_source.isnot(None),
+                User.subscription_source != "",
+            ),
+        ),
+    ).scalar() or 0
+
     # New users in last 30 days
     new_users_30d = db.query(func.count(User.id)).filter(
         User.created_at >= thirty_days
@@ -162,6 +178,7 @@ async def get_admin_stats(
         "free_users": free_users,
         "admin_count": admin_count,
         "lifetime_subscribers": lifetime,
+        "ex_subscribers": ex_subscribers,
         "expiring_soon": expiring_soon,
         "expired_not_downgraded": expired,
         "anomaly_paid_outside": anomaly_paid_outside,
@@ -193,6 +210,7 @@ async def list_users(
     anomaly: Optional[str] = Query(None, description="paid_outside | paid_no_tg | expired_inside"),
     source: Optional[str] = Query(None, description="subscription_source exact match"),
     plan: Optional[str] = Query(None, description="lifetime | recurring (subscriber w/ expiry)"),
+    ex_subscriber: Optional[str] = Query(None, description="'1' → past subscribers, now free/expired (ever paid, no active access)"),
     crm: Optional[str] = Query(None, description="untouched | open | tracked (CRM touch status)"),
     sort_by: Optional[str] = Query("created_at", description="Sort: created_at, username, role, subscription_expires_at"),
     sort_order: Optional[str] = Query("desc", description="asc or desc"),
@@ -340,6 +358,27 @@ async def list_users(
     # ── Subscription source filter ──
     if source:
         query = query.filter(User.subscription_source == source)
+
+    # ── Ex-subscriber filter ──
+    # People who ONCE paid but no longer have active access — i.e. focus on
+    # past customers to win back. Matches either a dated subscription that has
+    # already lapsed, or a free user who still carries a paid-source footprint.
+    # Admins are excluded (time-bound grants promote to admin).
+    if ex_subscriber == "1":
+        query = query.filter(
+            User.role != "admin",
+            or_(
+                and_(
+                    User.subscription_expires_at.isnot(None),
+                    User.subscription_expires_at <= now,
+                ),
+                and_(
+                    User.role == "free",
+                    User.subscription_source.isnot(None),
+                    User.subscription_source != "",
+                ),
+            ),
+        )
 
     # ── Anomaly filter (DB-vs-reality drift detection) ──
     # active access (SQL form of User.has_active_access):

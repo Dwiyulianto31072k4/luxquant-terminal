@@ -56,6 +56,7 @@ const DEFAULT_FILTERS = {
   vipState: null,
   anomaly: null,
   source: null,
+  exSubscriber: null,   // ← past subscribers, now free/expired
   sortBy: 'created_at',
   sortOrder: 'desc',
 };
@@ -288,6 +289,7 @@ const UserManagementPage = () => {
         vipState: filters.vipState || undefined,
         anomaly: filters.anomaly || undefined,
         source: filters.source || undefined,
+        exSubscriber: filters.exSubscriber || undefined,
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder,
         page,
@@ -517,7 +519,7 @@ const UserManagementPage = () => {
 
   // ── Render ──
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:px-8 space-y-6 pb-24">
+    <div className="w-full px-4 lg:px-8 space-y-6 pb-24">
       {toast && (
         <Toast
           message={toast.message}
