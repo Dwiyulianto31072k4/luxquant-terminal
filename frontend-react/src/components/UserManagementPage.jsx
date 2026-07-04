@@ -548,6 +548,7 @@ const UserManagementPage = () => {
       <ExpiringSoonPanel
         expiringUsers={expiringUsers}
         onExtend={(u) => setGrantModal(u)}
+        onDm={(u) => setSendMsgUser(u)}
       />
 
       <AnomalyChips

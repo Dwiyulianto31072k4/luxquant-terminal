@@ -65,7 +65,7 @@ const TodoCard = ({ todo, onEdit, onStatusChange, onDelete, dragMode = false }) 
   return (
     <div
       className={`rounded-lg p-3 transition-colors ${dragMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.05)', opacity: isDone ? 0.7 : 1 }}
+      style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)', opacity: isDone ? 0.7 : 1 }}
       draggable={dragMode}
       onDragStart={(e) => {
         if (dragMode) {

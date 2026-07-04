@@ -252,31 +252,30 @@ export const StatTile = ({
       disabled={!onClick}
       className={`group relative overflow-hidden text-left w-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{
-        background: active ? tint(accentColor, 0.1) : surface.base.bg,
-        border: `1px solid ${active ? tint(accentColor, 0.45) : surface.base.border}`,
+        background: surface.premium.bg,
+        border: `1px solid ${active ? tint(accentColor, 0.5) : surface.premium.border}`,
         borderRadius: radius.lg,
         padding: '14px 16px',
-        boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.04)',
         transition: motion.base,
       }}
       onMouseEnter={(e) => {
         if (onClick && !active) {
-          e.currentTarget.style.background = tint(accentColor, 0.04);
-          e.currentTarget.style.borderColor = tint(accentColor, 0.25);
+          e.currentTarget.style.borderColor = surface.premium.borderHover;
+          e.currentTarget.style.boxShadow = surface.premium.shadowHover;
         }
       }}
       onMouseLeave={(e) => {
         if (onClick && !active) {
-          e.currentTarget.style.background = surface.base.bg;
-          e.currentTarget.style.borderColor = surface.base.border;
+          e.currentTarget.style.borderColor = surface.premium.border;
+          e.currentTarget.style.boxShadow = 'none';
         }
       }}
     >
-      {/* top hairline (tinted by accent when active) */}
+      {/* subtle gold top hairline (brand accent, kept quiet) */}
       <div
         className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{
-          background: `linear-gradient(to right, transparent, ${tint(accentColor, active ? 0.5 : 0.25)}, transparent)`,
+          background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], active ? 0.4 : 0.2)}, transparent)`,
         }}
       />
       <div className="flex items-center justify-between mb-2">
@@ -290,10 +289,10 @@ export const StatTile = ({
       </div>
       <p
         className="text-2xl font-bold tracking-tight tabular-nums leading-none transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left"
-        style={{ color: accentColor }}
+        style={{ color: '#fff' }}
       >
         {loading ? (
-          <span className="inline-block w-12 h-6 rounded animate-pulse" style={{ background: tint(accentColor, 0.15) }} />
+          <span className="inline-block w-12 h-6 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
         ) : (
           value ?? '—'
         )}
@@ -328,12 +327,14 @@ export const IntentTile = ({
       disabled={!onClick}
       className={`relative overflow-hidden text-left w-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{
-        background: active ? tint(color, 0.14) : tint(color, 0.04),
-        border: `1px solid ${active ? tint(color, 0.5) : tint(color, 0.18)}`,
+        background: surface.premium.bg,
+        border: `1px solid ${active ? tint(color, 0.5) : surface.premium.border}`,
         borderRadius: radius.md,
         padding: '10px 12px',
         transition: motion.base,
       }}
+      onMouseEnter={onClick ? (e) => { if (!active) e.currentTarget.style.borderColor = tint(color, 0.3); } : undefined}
+      onMouseLeave={onClick ? (e) => { if (!active) e.currentTarget.style.borderColor = surface.premium.border; } : undefined}
     >
       <div className="flex items-center gap-1.5 mb-1.5">
         {Icon && <Icon size={12} colored />}
@@ -345,8 +346,8 @@ export const IntentTile = ({
         </span>
       </div>
       <p
-        className="text-xl font-light tracking-tight tabular-nums leading-none"
-        style={{ color }}
+        className="text-xl font-bold tracking-tight tabular-nums leading-none"
+        style={{ color: '#fff' }}
       >
         {value ?? '—'}
       </p>

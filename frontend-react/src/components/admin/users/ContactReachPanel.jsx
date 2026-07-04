@@ -61,7 +61,7 @@ export const ContactReachPanel = ({ contactStats, filterReach, onFilterReach }) 
   ];
 
   return (
-    <Surface tone={palette.gold[300]} padding="p-4">
+    <Surface variant="premium" hover={false} padding="p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h3 className="text-xs font-bold text-white flex items-center gap-2 tracking-tight">

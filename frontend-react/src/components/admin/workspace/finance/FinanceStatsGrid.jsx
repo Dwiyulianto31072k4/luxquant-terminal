@@ -31,31 +31,22 @@ const KpiTile = ({
       onClick={onClick}
       disabled={!isClickable || loading}
       className={`relative overflow-hidden text-left rounded-xl px-3.5 py-3 transition-all ${
-        isClickable && !loading ? 'hover:scale-[1.01] cursor-pointer' : 'cursor-default'
+        isClickable && !loading ? 'cursor-pointer' : 'cursor-default'
       }`}
       style={{
-        background: active ? `${accent}12` : 'rgba(255,255,255,0.018)',
-        border: `1px solid ${active ? `${accent}50` : 'rgba(255,255,255,0.06)'}`,
+        background: '#0a0805',
+        border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
       }}
+      onMouseEnter={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}
+      onMouseLeave={(e) => { if (isClickable && !active) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
     >
-      {/* Top hairline */}
+      {/* Top hairline (subtle gold) */}
       <div
         className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{
-          background: `linear-gradient(to right, transparent, ${accent}${active ? '70' : '40'}, transparent)`,
+          background: `linear-gradient(to right, transparent, rgba(212,168,83,${active ? 0.4 : 0.2}), transparent)`,
         }}
       />
-
-      {/* Glow on alert */}
-      {alert && (
-        <div
-          className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
-          style={{
-            background: `${accent}22`,
-            filter: 'blur(20px)',
-          }}
-        />
-      )}
 
       <div className="relative flex items-center justify-between mb-1.5">
         <span
@@ -80,8 +71,8 @@ const KpiTile = ({
       </div>
 
       <p
-        className="relative text-2xl font-light tracking-tight tabular-nums leading-none"
-        style={{ color: loading ? '#4a3f39' : accent }}
+        className="relative text-2xl font-bold tracking-tight tabular-nums leading-none"
+        style={{ color: loading ? '#4a3f39' : alert ? accent : '#fff' }}
       >
         {loading ? '—' : value ?? '—'}
       </p>

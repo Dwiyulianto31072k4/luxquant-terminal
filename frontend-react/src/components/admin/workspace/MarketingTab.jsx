@@ -95,9 +95,9 @@ const MarketingHeader = ({ onCreate }) => (
 
 const StatCard = ({ label, value, accent, Icon }) => (
   <div className="relative overflow-hidden rounded-xl px-4 py-3"
-    style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.06)' }}>
+    style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
     <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
-      style={{ background: `linear-gradient(to right, transparent, ${accent}40, transparent)` }} />
+      style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
     <div className="flex items-center justify-between mb-1.5">
       <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'rgba(255,255,255,0.4)' }}>
         {label}
@@ -108,7 +108,7 @@ const StatCard = ({ label, value, accent, Icon }) => (
         </span>
       )}
     </div>
-    <p className="text-2xl font-light tracking-tight tabular-nums leading-none" style={{ color: accent }}>
+    <p className="text-2xl font-bold tracking-tight tabular-nums leading-none" style={{ color: '#fff' }}>
       {value ?? '—'}
     </p>
   </div>
@@ -132,9 +132,9 @@ const CampaignCard = ({ campaign, onEdit, onDelete }) => {
 
   return (
     <div className="relative overflow-hidden rounded-xl p-4 transition-colors"
-      style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.05)' }}>
+      style={{ background: '#0a0805', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
-        style={{ background: `linear-gradient(to right, transparent, ${stat.color}30, transparent)` }} />
+        style={{ background: 'linear-gradient(to right, transparent, rgba(212,168,83,0.2), transparent)' }} />
 
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">

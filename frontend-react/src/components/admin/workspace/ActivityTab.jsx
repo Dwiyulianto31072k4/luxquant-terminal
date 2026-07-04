@@ -157,7 +157,7 @@ const ActivityHeader = ({ onRefresh, refreshing, generatedAt }) => (
 const FeatureFunnel = ({ funnel, loading }) => {
   if (loading) {
     return (
-      <Surface variant="raised" padding="p-5">
+      <Surface variant="premium" hover={false} padding="p-5">
         <div className="flex items-center justify-center py-10">
           <Spinner size={16} tone={palette.teal[400]} />
         </div>
@@ -169,7 +169,7 @@ const FeatureFunnel = ({ funnel, loading }) => {
   const maxUsers = features.reduce((m, f) => Math.max(m, f.users_total), 0) || 1;
 
   return (
-    <Surface variant="raised" padding="p-5">
+    <Surface variant="premium" hover={false} padding="p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUpIcon size={14} style={{ color: palette.teal[400] }} />
@@ -318,7 +318,7 @@ const ScoreBadge = ({ score }) => {
 const HotLeadsPanel = ({ data, loading }) => {
   const items = data?.items || [];
   return (
-    <Surface variant="raised" padding="p-5" className="h-full">
+    <Surface variant="premium" hover={false} padding="p-5" className="h-full">
       <div className="flex items-center gap-2 mb-1">
         <FlameIcon size={14} style={{ color: palette.orange[400] }} />
         <h3 className="text-sm font-semibold text-white tracking-tight">Hot Leads</h3>
@@ -414,7 +414,7 @@ const RiskTag = ({ item }) => {
 const AtRiskPanel = ({ data, loading }) => {
   const items = data?.items || [];
   return (
-    <Surface variant="raised" padding="p-5" className="h-full">
+    <Surface variant="premium" hover={false} padding="p-5" className="h-full">
       <div className="flex items-center gap-2 mb-1">
         <AlertTriangleIcon size={14} style={{ color: palette.red[400] }} />
         <h3 className="text-sm font-semibold text-white tracking-tight">At-Risk Subscribers</h3>
@@ -487,7 +487,7 @@ const FEED_FILTERS = [
 ];
 
 const LiveActivityFeed = ({ events, loading, feature, onFilter, lastHour }) => (
-  <Surface variant="raised" padding="p-5" className="h-full">
+  <Surface variant="premium" hover={false} padding="p-5" className="h-full">
     <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
       <div className="flex items-center gap-2">
         <ActivityIcon size={14} style={{ color: palette.teal[400] }} />
@@ -571,7 +571,7 @@ const USER_WINDOWS = [
 ];
 
 const ActiveUsersTable = ({ users, loading, sortBy, window: win, onSort, onWindow }) => (
-  <Surface variant="raised" padding="p-5" className="h-full">
+  <Surface variant="premium" hover={false} padding="p-5" className="h-full">
     <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
       <div className="flex items-center gap-2">
         <FlameIcon size={14} style={{ color: palette.orange[400] }} />

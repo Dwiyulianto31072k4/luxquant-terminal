@@ -134,22 +134,18 @@ const FollowupHeader = ({ onCreate }) => (
 const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
   <button
     onClick={onClick}
-    className="relative overflow-hidden text-left rounded-xl px-4 py-3 transition-all hover:scale-[1.01]"
+    className="relative overflow-hidden text-left rounded-xl px-4 py-3 transition-all"
     style={{
-      background: active ? `${accent}15` : 'rgba(255,255,255,0.018)',
-      border: `1px solid ${active ? `${accent}50` : 'rgba(255,255,255,0.06)'}`,
+      background: '#0a0805',
+      border: `1px solid ${active ? `${accent}80` : 'rgba(255,255,255,0.07)'}`,
     }}
+    onMouseEnter={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)'; }}
+    onMouseLeave={(e) => { if (!active) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
   >
     <div
       className="absolute inset-x-0 top-0 h-px pointer-events-none"
-      style={{ background: `linear-gradient(to right, transparent, ${accent}40, transparent)` }}
+      style={{ background: `linear-gradient(to right, transparent, rgba(212,168,83,${active ? 0.4 : 0.2}), transparent)` }}
     />
-    {alert && (
-      <div
-        className="absolute -top-8 -right-8 w-24 h-24 rounded-full pointer-events-none"
-        style={{ background: `${accent}22`, filter: 'blur(20px)' }}
-      />
-    )}
     <div className="relative flex items-center justify-between mb-1.5">
       <span
         className="text-[10px] uppercase tracking-wider font-semibold"
@@ -167,8 +163,8 @@ const StatCard = ({ label, value, accent, Icon, active, onClick, alert }) => (
       )}
     </div>
     <p
-      className="relative text-2xl font-light tracking-tight tabular-nums leading-none"
-      style={{ color: accent }}
+      className="relative text-2xl font-bold tracking-tight tabular-nums leading-none"
+      style={{ color: alert ? accent : '#fff' }}
     >
       {value ?? '—'}
     </p>
@@ -188,9 +184,9 @@ const FollowupCard = ({ followup, onEdit, onStatusChange, onDelete }) => {
     <div
       className="rounded-xl p-3 transition-colors"
       style={{
-        background: 'rgba(255,255,255,0.018)',
+        background: '#0a0805',
         border: `1px solid ${
-          due?.overdue && isOpen ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.05)'
+          due?.overdue && isOpen ? 'rgba(248,113,113,0.25)' : 'rgba(255,255,255,0.07)'
         }`,
       }}
     >
