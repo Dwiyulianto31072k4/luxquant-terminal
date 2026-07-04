@@ -18,7 +18,7 @@ from app.schemas.workspace import (
     FollowupCreate, FollowupUpdate, FollowupResponse,
     CampaignCreate, CampaignUpdate, CampaignResponse,
     TodoCreate, TodoUpdate, TodoResponse,
-    WorkspaceStats,
+    WorkspaceStats, GenerateFollowupsRequest,
 )
 
 
@@ -211,6 +211,109 @@ def create_followup(
     db.refresh(f)
 
     return {"success": True, "id": f.id, "message": "Follow-up created"}
+
+
+@router.post("/followups/generate")
+def generate_followups(
+    data: GenerateFollowupsRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """
+    Retention engine — auto-create follow-ups from the subscription lifecycle:
+
+      • renewal  → subscribers expiring within `renewal_days`
+      • winback  → subscribers that lapsed within the last `winback_days`
+
+    Idempotent: skips any user that already has an OPEN follow-up in the
+    same category, so it can be run repeatedly (or on a schedule) safely.
+    """
+    now = datetime.now(timezone.utc)
+
+    # Users that already have an open renewal/winback follow-up → skip them.
+    existing = db.query(AdminFollowup.user_id, AdminFollowup.category).filter(
+        AdminFollowup.status.in_(['pending', 'in_progress']),
+        AdminFollowup.category.in_(['renewal', 'winback']),
+        AdminFollowup.user_id.isnot(None),
+    ).all()
+    open_keys = {(uid, cat) for uid, cat in existing}
+
+    renewal_created = 0
+    winback_created = 0
+
+    # ── Renewal: active subs expiring soon ──
+    if data.renewal:
+        horizon = now + timedelta(days=data.renewal_days)
+        candidates = db.query(User).filter(
+            User.role.in_(['premium', 'subscriber']),
+            User.subscription_expires_at.isnot(None),
+            User.subscription_expires_at > now,
+            User.subscription_expires_at <= horizon,
+        ).all()
+        for u in candidates:
+            if (u.id, 'renewal') in open_keys:
+                continue
+            days_left = max((u.subscription_expires_at - now).days, 0)
+            priority = 'urgent' if days_left <= 1 else 'high' if days_left <= 3 else 'normal'
+            db.add(AdminFollowup(
+                user_id=u.id,
+                title=f"Renewal due — @{u.username} ({days_left}d left)",
+                note=(
+                    f"Subscription expires {u.subscription_expires_at.strftime('%d %b %Y')}. "
+                    "Reach out to secure the renewal (see the Renewal Reminder outreach template)."
+                ),
+                category='renewal',
+                due_date=u.subscription_expires_at,
+                priority=priority,
+                status='pending',
+                created_by=admin.id,
+            ))
+            open_keys.add((u.id, 'renewal'))
+            renewal_created += 1
+
+    # ── Win-back: subs that lapsed recently ──
+    if data.winback:
+        since = now - timedelta(days=data.winback_days)
+        candidates = db.query(User).filter(
+            User.role != 'admin',
+            User.subscription_expires_at.isnot(None),
+            User.subscription_expires_at <= now,
+            User.subscription_expires_at >= since,
+        ).all()
+        for u in candidates:
+            if (u.id, 'winback') in open_keys:
+                continue
+            days_ago = max((now - u.subscription_expires_at).days, 0)
+            db.add(AdminFollowup(
+                user_id=u.id,
+                title=f"Win-back — @{u.username} (expired {days_ago}d ago)",
+                note=(
+                    "Subscription lapsed recently. Send a win-back offer "
+                    "(see the Expired — Win Back outreach template)."
+                ),
+                category='winback',
+                due_date=now,
+                priority='normal',
+                status='pending',
+                created_by=admin.id,
+            ))
+            open_keys.add((u.id, 'winback'))
+            winback_created += 1
+
+    db.commit()
+
+    total = renewal_created + winback_created
+    return {
+        "success": True,
+        "renewal_created": renewal_created,
+        "winback_created": winback_created,
+        "total": total,
+        "message": (
+            f"Created {total} follow-up{'s' if total != 1 else ''} "
+            f"({renewal_created} renewal, {winback_created} win-back)"
+            if total else "Nothing new to generate — everyone's already queued."
+        ),
+    }
 
 
 @router.patch("/followups/{followup_id}")

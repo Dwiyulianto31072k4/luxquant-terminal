@@ -35,6 +35,12 @@ export const workspaceApi = {
     return response.data;
   },
 
+  // Retention engine — auto-generate renewal + win-back follow-ups.
+  generateFollowups: async (payload = {}) => {
+    const response = await api.post('/api/v1/workspace/followups/generate', payload);
+    return response.data;
+  },
+
   updateFollowup: async (id, payload) => {
     const response = await api.patch(`/api/v1/workspace/followups/${id}`, payload);
     return response.data;

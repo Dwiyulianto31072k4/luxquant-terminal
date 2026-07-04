@@ -29,8 +29,16 @@ class UserMini(BaseModel):
 # ════════════════════════════════════════════════════════════════════
 
 VALID_FOLLOWUP_STATUS = {'pending', 'in_progress', 'done', 'cancelled'}
-VALID_FOLLOWUP_CATEGORY = {'renewal', 'payment', 'support', 'general'}
+VALID_FOLLOWUP_CATEGORY = {'renewal', 'winback', 'payment', 'support', 'general'}
 VALID_PRIORITY = {'low', 'normal', 'high', 'urgent'}
+
+
+class GenerateFollowupsRequest(BaseModel):
+    """Auto-generate retention follow-ups from subscription lifecycle."""
+    renewal: bool = True          # expiring subscribers
+    winback: bool = True          # recently expired subscribers
+    renewal_days: int = Field(default=7, ge=1, le=90)   # expiring within N days
+    winback_days: int = Field(default=14, ge=1, le=180)  # expired within last N days
 
 
 class FollowupCreate(BaseModel):

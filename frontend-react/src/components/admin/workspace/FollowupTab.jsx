@@ -77,6 +77,7 @@ const STATUS_CONFIG = {
 
 const CATEGORY_CONFIG = {
   renewal: { label: 'Renewal', emoji: '🔄' },
+  winback: { label: 'Win-back', emoji: '🎯' },
   payment: { label: 'Payment', emoji: '💳' },
   support: { label: 'Support', emoji: '🛟' },
   general: { label: 'General', emoji: '📝' },
@@ -84,7 +85,13 @@ const CATEGORY_CONFIG = {
 
 /* ── Header ───────────────────────────────────────────────────────── */
 
-const FollowupHeader = ({ onCreate }) => (
+const SparkIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
+  </svg>
+);
+
+const FollowupHeader = ({ onCreate, onGenerate, generating }) => (
   <div className="flex items-start justify-between gap-3 flex-wrap">
     <div className="flex items-start gap-3 min-w-0">
       <div className="relative shrink-0" style={{ width: 38, height: 38 }}>
@@ -118,14 +125,28 @@ const FollowupHeader = ({ onCreate }) => (
         </p>
       </div>
     </div>
-    <button
-      onClick={onCreate}
-      className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
-      style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
-    >
-      <PlusIcon size={13} />
-      Add Follow-up
-    </button>
+    <div className="flex items-center gap-2 shrink-0">
+      <button
+        onClick={onGenerate}
+        disabled={generating}
+        title="Auto-create renewal & win-back follow-ups from the subscription lifecycle"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+        style={{ background: 'rgba(96,165,250,0.10)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.28)' }}
+        onMouseEnter={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(96,165,250,0.18)'; }}
+        onMouseLeave={(e) => { if (!generating) e.currentTarget.style.background = 'rgba(96,165,250,0.10)'; }}
+      >
+        <SparkIcon size={13} />
+        {generating ? 'Generating…' : 'Generate'}
+      </button>
+      <button
+        onClick={onCreate}
+        className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all hover:scale-105"
+        style={{ background: 'linear-gradient(135deg, #d4a853, #8b6914)', color: '#0a0506' }}
+      >
+        <PlusIcon size={13} />
+        Add Follow-up
+      </button>
+    </div>
   </div>
 );
 
@@ -391,6 +412,21 @@ export const FollowupTab = ({ onRefreshStats }) => {
     fetchFollowups();
   }, [fetchFollowups]);
 
+  const [generating, setGenerating] = useState(false);
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const res = await workspaceApi.generateFollowups({ renewal: true, winback: true });
+      showToast(res.message || 'Follow-ups generated');
+      fetchFollowups();
+      if (onRefreshStats) onRefreshStats();
+    } catch (e) {
+      showToast(e.response?.data?.detail || 'Failed to generate follow-ups', 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleCreate = () => {
     setEditingItem(null);
     setPanelOpen(true);
@@ -478,7 +514,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
     <div className="space-y-5">
       <Toast toast={toast} />
 
-      <FollowupHeader onCreate={handleCreate} />
+      <FollowupHeader onCreate={handleCreate} onGenerate={handleGenerate} generating={generating} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard label="Open" value={counts.open} accent="#60a5fa" Icon={ClockIcon}
@@ -522,6 +558,7 @@ export const FollowupTab = ({ onRefreshStats }) => {
           style={fieldStyle(!!categoryFilter)}>
           <option value="">All Categories</option>
           <option value="renewal">🔄 Renewal</option>
+          <option value="winback">🎯 Win-back</option>
           <option value="payment">💳 Payment</option>
           <option value="support">🛟 Support</option>
           <option value="general">📝 General</option>

@@ -95,6 +95,7 @@ const PickOption = ({ value, currentValue, onClick, label, Icon, color }) => {
 
 const CATEGORIES = [
   { value: 'renewal', label: 'Renewal', Icon: RenewalIcon, color: '#60a5fa' },
+  { value: 'winback', label: 'Win-back', Icon: RenewalIcon, color: '#a78bfa' },
   { value: 'payment', label: 'Payment', Icon: PaymentCardIcon, color: '#34d399' },
   { value: 'support', label: 'Support', Icon: SupportIcon, color: '#fbbf24' },
   { value: 'general', label: 'General', Icon: NoteIcon, color: '#8a7a6e' },
