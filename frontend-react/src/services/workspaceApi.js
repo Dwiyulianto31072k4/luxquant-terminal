@@ -88,6 +88,23 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // SYSTEM — VPS service health monitor
+  // ════════════════════════════════════
+  getServices: async () => {
+    const response = await api.get('/api/v1/workspace/services');
+    return response.data;
+  },
+
+  // action: 'start' | 'stop' | 'restart'
+  controlService: async (unit, action) => {
+    const response = await api.post(
+      `/api/v1/workspace/services/${encodeURIComponent(unit)}/action`,
+      { action },
+    );
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // TODOS
   // ════════════════════════════════════
   listTodos: async (filters = {}) => {

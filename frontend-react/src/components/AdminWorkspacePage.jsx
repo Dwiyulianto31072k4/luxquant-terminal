@@ -29,6 +29,7 @@ import { TodoTab } from './admin/workspace/TodoTab';
 import { ActivityTab } from './admin/workspace/ActivityTab';
 import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
 import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
+import { SystemTab } from './admin/workspace/SystemTab';
 
 // Design system
 import { palette, tint, motion, gradient } from './admin/designSystem';
@@ -49,6 +50,7 @@ import {
   BarsChartIcon,
   CheckSquareIcon,
   ActivityIcon,
+  ServerIcon,
 } from './admin/Icons';
 
 // ════════════════════════════════════════════════════════════════════
@@ -65,6 +67,7 @@ const TABS = [
   { id: 'activity',      label: 'Activity',      description: 'Engagement & growth analytics',   Icon: ActivityIcon,      accent: palette.teal[400] },
   { id: 'apikeys',       label: 'API',           description: 'Developer keys & abuse flags',    Icon: ShieldIcon,        accent: palette.gold[300] },
   { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',           Icon: BroadcastConeIcon, accent: palette.purple[400] },
+  { id: 'system',        label: 'System',        description: 'VPS service health & control',    Icon: ServerIcon,        accent: palette.teal[400] },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -127,8 +130,9 @@ const UrgencyChip = ({ label, value, accent, Icon, onClick, pulse = false }) => 
   </button>
 );
 
-const PulseStrip = ({ stats, financeStats, onJumpTo }) => {
+const PulseStrip = ({ stats, financeStats, servicesSummary, onJumpTo }) => {
   const chips = [];
+  if (servicesSummary?.down > 0) chips.push({ label: 'service down', value: servicesSummary.down, accent: palette.red[400], Icon: ServerIcon, pulse: true, onClick: () => onJumpTo('system') });
   if (stats?.followups_overdue > 0) chips.push({ label: 'overdue', value: stats.followups_overdue, accent: palette.red[400], Icon: AlertTriangleIcon, pulse: true, onClick: () => onJumpTo('followups') });
   if (financeStats?.stale_count > 0) chips.push({ label: 'stale pay', value: financeStats.stale_count, accent: palette.red[400], Icon: AlertCircleIcon, pulse: true, onClick: () => onJumpTo('finance') });
   if (stats?.todos_urgent > 0) chips.push({ label: 'urgent todos', value: stats.todos_urgent, accent: palette.orange[400], Icon: ZapIcon, onClick: () => onJumpTo('todos') });
@@ -229,6 +233,7 @@ const AdminWorkspacePage = () => {
   const { user: currentUser } = useAuth();
   const [stats, setStats] = useState(null);
   const [financeStats, setFinanceStats] = useState(null);
+  const [servicesSummary, setServicesSummary] = useState(null);
 
   const initialTab = (() => {
     const hash = window.location.hash.replace('#', '');
@@ -247,13 +252,18 @@ const AdminWorkspacePage = () => {
   const fetchFinanceStats = useCallback(async () => {
     try { setFinanceStats(await financeApi.getStats()); } catch (e) { console.error('Failed to load finance stats:', e); }
   }, []);
+  const fetchServicesSummary = useCallback(async () => {
+    try { const r = await workspaceApi.getServices(); setServicesSummary(r?.summary || null); }
+    catch (e) { console.error('Failed to load services summary:', e); }
+  }, []);
 
   useEffect(() => {
     fetchStats();
     fetchFinanceStats();
-    const interval = setInterval(() => { fetchStats(); fetchFinanceStats(); }, 60000);
+    fetchServicesSummary();
+    const interval = setInterval(() => { fetchStats(); fetchFinanceStats(); fetchServicesSummary(); }, 60000);
     return () => clearInterval(interval);
-  }, [fetchStats, fetchFinanceStats]);
+  }, [fetchStats, fetchFinanceStats, fetchServicesSummary]);
 
   useEffect(() => {
     const handler = () => {
@@ -274,7 +284,8 @@ const AdminWorkspacePage = () => {
     activity: null,
     apikeys: null,
     announcements: null,
-  }), [stats, financeStats]);
+    system: servicesSummary?.down || null,
+  }), [stats, financeStats, servicesSummary]);
 
   if (currentUser?.role !== 'admin') return <AccessGuard />;
 
@@ -287,7 +298,7 @@ const AdminWorkspacePage = () => {
         <BrandHeader />
         <div className="lg:max-w-md">
           <p className="text-[9px] uppercase tracking-[0.28em] font-semibold mb-2 leading-none lg:text-right" style={{ color: tint(palette.warm[100], 0.32) }}>Pulse</p>
-          <PulseStrip stats={stats} financeStats={financeStats} onJumpTo={changeTab} />
+          <PulseStrip stats={stats} financeStats={financeStats} servicesSummary={servicesSummary} onJumpTo={changeTab} />
         </div>
       </div>
 
@@ -320,6 +331,7 @@ const AdminWorkspacePage = () => {
       {activeTab === 'activity' && <ActivityTab />}
       {activeTab === 'apikeys' && <ApiKeysTab />}
       {activeTab === 'announcements' && <AnnouncementsTab />}
+      {activeTab === 'system' && <SystemTab />}
     </div>
   );
 };

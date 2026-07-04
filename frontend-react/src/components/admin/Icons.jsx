@@ -680,3 +680,15 @@ export const CheckSquareIcon = ({ size = 14, ...props }) => (
     <path d="M7.5 12.3l3 3 6-6.6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
+
+/** ServerIcon — stacked server racks with status LED (System/VPS health tab). */
+export const ServerIcon = ({ size = 14, ...props }) => (
+  <Svg size={size} {...props}>
+    <rect x="3" y="4" width="18" height="7" rx="2" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="4" width="18" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+    <rect x="3" y="13" width="18" height="7" rx="2" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="13" width="18" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+    <circle cx="7" cy="7.5" r="1.15" fill="currentColor" />
+    <circle cx="7" cy="16.5" r="1.15" fill="currentColor" />
+  </Svg>
+);
