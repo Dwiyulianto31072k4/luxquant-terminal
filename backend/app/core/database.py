@@ -21,3 +21,27 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# ── Additive runtime schema guards ─────────────────────────────────────
+# Idempotent "ADD COLUMN IF NOT EXISTS" statements so a fresh deploy never
+# crashes on a not-yet-migrated column. Postgres only; wrapped so a DB that
+# is momentarily unavailable at import just logs and moves on. Keep these in
+# sync with the corresponding database/migration-*.sql files.
+_RUNTIME_COLUMN_GUARDS = [
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_bot_started_at TIMESTAMPTZ NULL",
+]
+
+
+def ensure_runtime_columns():
+    try:
+        with engine.begin() as conn:
+            for stmt in _RUNTIME_COLUMN_GUARDS:
+                conn.exec_driver_sql(stmt)
+    except Exception as e:  # pragma: no cover - best-effort, never fatal
+        import logging
+        logging.getLogger(__name__).warning("ensure_runtime_columns skipped: %s", e)
+
+
+# Run once at import so the column exists before any query touches it.
+ensure_runtime_columns()
