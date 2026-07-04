@@ -44,7 +44,7 @@ const CHANNEL_CONFIG = {
  *   value, deepLink, source: 'admin' | 'oauth' | null
  *   compact?: boolean — table cell mode (icon-only chip)
  */
-export const ContactBadge = ({ channel, value, deepLink, source, compact = false }) => {
+export const ContactBadge = ({ channel, value, deepLink, source, botReady, compact = false }) => {
   const [copied, setCopied] = useState(false);
   const cfg = CHANNEL_CONFIG[channel];
   if (!cfg || !value) return null;
@@ -87,6 +87,13 @@ export const ContactBadge = ({ channel, value, deepLink, source, compact = false
               boxShadow: '0 0 0 1.5px #0a0506',
             }}
             title="Admin-added"
+          />
+        )}
+        {botReady === false && !deepLink && (
+          <span
+            className="absolute -bottom-[3px] -right-[3px] w-2.5 h-2.5 rounded-full"
+            style={{ background: '#fbbf24', boxShadow: '0 0 0 1.5px #0a0506' }}
+            title="Bot DM unconfirmed — user may not have started the bot. Reach them via in-app Announcements."
           />
         )}
       </button>
@@ -132,6 +139,19 @@ export const ContactBadge = ({ channel, value, deepLink, source, compact = false
               }}
             >
               OAUTH
+            </span>
+          )}
+          {botReady === false && !deepLink && (
+            <span
+              className="text-[8px] font-bold px-1.5 py-px rounded"
+              style={{
+                background: 'rgba(251,191,36,0.12)',
+                color: '#fbbf24',
+                border: '1px solid rgba(251,191,36,0.25)',
+              }}
+              title="The bot hasn't confirmed it can DM this user. Reach them via in-app Announcements."
+            >
+              DM UNCONFIRMED
             </span>
           )}
         </div>
@@ -194,6 +214,7 @@ export const ContactBadgeRow = ({ user, reach }) => {
           value={channels.telegram.value}
           deepLink={channels.telegram.deep_link}
           source={channels.telegram.source}
+          botReady={channels.telegram.bot_ready}
           compact
         />
       )}
@@ -231,7 +252,14 @@ function _buildReachFromUser(u) {
   } else if (u.admin_telegram_username) {
     const v = u.admin_telegram_username.replace(/^@/, '').trim();
     if (v) tg = { available: true, value: v, deep_link: `https://t.me/${v}`, source: 'admin' };
+  } else if (u.telegram_id) {
+    // Linked via Telegram login but no public @username → still reachable
+    // through the bot (DM by chat id). No t.me deep link without a username.
+    tg = { available: true, value: `id:${u.telegram_id}`, deep_link: null, source: 'oauth' };
   }
+  // Bot DM readiness: confirmed if they've been DM'd before or are in the VIP
+  // group. If not, a bot DM may bounce — use in-app Announcements instead.
+  if (tg.available) tg.bot_ready = !!(u.telegram_in_group || u.telegram_bot_started_at);
 
   let dc = { available: false, value: null, deep_link: null, source: null };
   if (u.admin_discord_handle) {

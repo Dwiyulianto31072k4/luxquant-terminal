@@ -392,7 +392,8 @@ def get_reach_summary(user: User) -> Dict[str, Any]:
     Return which channels are available for outreach + which source
     (admin override vs oauth).
     """
-    # Telegram
+    # Telegram — a linked telegram_id is reachable via the bot (DM by chat id)
+    # even when the account has no public @username.
     tg_source = None
     tg_value = None
     if user.telegram_username:
@@ -401,6 +402,9 @@ def get_reach_summary(user: User) -> Dict[str, Any]:
     elif user.admin_telegram_username:
         tg_source = "admin"
         tg_value = user.admin_telegram_username.strip().lstrip("@")
+    elif user.telegram_id:
+        tg_source = "oauth"
+        tg_value = f"id:{user.telegram_id}"
 
     # Discord
     dc_source = None
@@ -427,6 +431,11 @@ def get_reach_summary(user: User) -> Dict[str, Any]:
             "source": tg_source,
             "value": tg_value,
             "deep_link": _telegram_deep_link(user),
+            # bot_ready = we've confirmed the bot can DM this user (they've
+            # started it, or they're inside the VIP group). If false, a bot
+            # DM may bounce — reach them via in-app Announcements instead.
+            "bot_ready": bool(getattr(user, "telegram_bot_started_at", None))
+            or bool(getattr(user, "telegram_in_group", False)),
         },
         "discord": {
             "available": dc_value is not None,

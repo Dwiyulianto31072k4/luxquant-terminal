@@ -48,6 +48,12 @@ class User(Base):
     # Values: lifetime | admin | payment | telegram_vip | discord_premium | legacy | NULL
     subscription_source = Column(String(30), nullable=True)
 
+    # ─── Bot DM readiness ───
+    # Set the first time the bot successfully DMs the user (which is only
+    # possible after they've /started the bot). Lets admin tell apart
+    # "linked Telegram" from "we can actually message them".
+    telegram_bot_started_at = Column(DateTime(timezone=True), nullable=True)
+
     # ─── Admin enrichment (CRM-style, manually curated for outreach) ───
     admin_telegram_username = Column(String(100), nullable=True)
     admin_discord_handle = Column(String(100), nullable=True)

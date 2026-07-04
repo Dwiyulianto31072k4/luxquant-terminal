@@ -239,6 +239,7 @@ class AdminUserResponse(BaseModel):
     telegram_username: Optional[str] = None
     telegram_in_group: Optional[bool] = False
     telegram_grace_until: Optional[datetime] = None
+    telegram_bot_started_at: Optional[datetime] = None
     discord_id: Optional[int] = None
     discord_username: Optional[str] = None
     subscription_expires_at: Optional[datetime] = None

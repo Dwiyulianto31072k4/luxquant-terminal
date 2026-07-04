@@ -41,9 +41,11 @@ export const relativeTime = (dateStr) => {
 // Channel / reach detection
 // ════════════════════════════════════════════════════════════════════
 
-/** Returns whether user can be reached via telegram. */
+/** Returns whether user can be reached via telegram.
+ *  A linked telegram_id counts: even without a public @username, the bot
+ *  can DM the user by their chat id. */
 export const hasTelegram = (u) =>
-  !!(u?.admin_telegram_username || u?.telegram_username);
+  !!(u?.admin_telegram_username || u?.telegram_username || u?.telegram_id);
 
 /** Returns whether user can be reached via discord. */
 export const hasDiscord = (u) =>

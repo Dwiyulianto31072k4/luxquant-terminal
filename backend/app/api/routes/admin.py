@@ -308,6 +308,7 @@ async def list_users(
     if reach == "has_tg":
         query = query.filter(
             or_(
+                User.telegram_id.isnot(None),  # linked via Telegram login → bot can DM
                 and_(User.telegram_username.isnot(None), User.telegram_username != ""),
                 and_(User.admin_telegram_username.isnot(None), User.admin_telegram_username != ""),
             )
@@ -332,6 +333,7 @@ async def list_users(
     elif reach == "unreachable":
         query = query.filter(
             and_(
+                User.telegram_id.is_(None),  # no bot channel
                 or_(User.telegram_username.is_(None), User.telegram_username == ""),
                 or_(User.admin_telegram_username.is_(None), User.admin_telegram_username == ""),
                 User.discord_id.is_(None),
@@ -740,6 +742,10 @@ async def _do_vip_followup(user, db) -> dict:
         return {"ok": False, "reason": "dm_failed", "invite_link": invite_link,
                 "message": "DM failed \u2014 the user may not have /started the bot."}
 
+    # A successful DM proves the bot can reach them \u2192 record it.
+    user.telegram_bot_started_at = datetime.now(timezone.utc)
+    db.commit()
+
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
             "message": "Follow-up sent via bot."}
 
@@ -837,6 +843,10 @@ async def admin_send_message(
     if not sent:
         return {"ok": False, "reason": "dm_failed",
                 "message": "DM failed \u2014 the user may not have /started the bot."}
+
+    # A successful DM proves the bot can reach them \u2192 record it.
+    user.telegram_bot_started_at = datetime.now(timezone.utc)
+    db.commit()
 
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
             "message": "Message sent via bot."}
@@ -1060,6 +1070,7 @@ async def get_contact_stats(
 
     tg_reachable = db.query(func.count(User.id)).filter(
         or_(
+            User.telegram_id.isnot(None),  # linked via Telegram login → bot can DM
             and_(User.telegram_username.isnot(None), User.telegram_username != ""),
             and_(User.admin_telegram_username.isnot(None), User.admin_telegram_username != ""),
         )
@@ -1087,6 +1098,7 @@ async def get_contact_stats(
 
     unreachable = db.query(func.count(User.id)).filter(
         and_(
+            User.telegram_id.is_(None),  # no bot channel
             or_(User.telegram_username.is_(None), User.telegram_username == ""),
             or_(User.admin_telegram_username.is_(None), User.admin_telegram_username == ""),
             User.discord_id.is_(None),

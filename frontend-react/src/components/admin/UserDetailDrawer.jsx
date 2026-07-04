@@ -881,6 +881,7 @@ const ContactTab = ({ data, onContactUpdate }) => {
                 value={reach.telegram.value}
                 deepLink={reach.telegram.deep_link}
                 source={reach.telegram.source}
+                botReady={reach.telegram.bot_ready}
               />
             )}
             {reach.discord.available && (
