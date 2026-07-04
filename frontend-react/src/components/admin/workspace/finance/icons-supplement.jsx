@@ -14,7 +14,7 @@ const Svg = ({ size = 16, children, ...rest }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="2.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
@@ -28,7 +28,8 @@ const Svg = ({ size = 16, children, ...rest }) => (
 
 export const XCircleIcon = (props) => (
   <Svg {...props}>
-    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity="0.18" stroke="none" />
+    <circle cx="12" cy="12" r="9.5" />
     <line x1="15" y1="9" x2="9" y2="15" />
     <line x1="9" y1="9" x2="15" y2="15" />
   </Svg>

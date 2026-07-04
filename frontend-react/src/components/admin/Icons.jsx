@@ -1,21 +1,24 @@
 // src/components/admin/Icons.jsx
 //
-// LuxQuant Admin — Centralized SVG icon library.
+// LuxQuant Admin — Centralized SVG icon library (duotone / solid).
 //
-// All icons use a consistent 24×24 viewBox and stroke-2 (Lucide-style).
-// Brand icons use official paths + brand colors when `colored` prop is true,
-// monochrome (currentColor) when false.
+// Design language: every glyph has a solid "body" (a filled shape at low
+// opacity) with a crisp full-opacity detail on top — the Phosphor/duotone
+// look. This reads far more substantial than thin single-stroke icons and
+// stays cohesive across the whole admin workspace. Directional glyphs
+// (arrows, chevrons) stay stroked but heavier + rounded.
 //
 // Convention:
-//   • Default size = 14 (small UI accents). Pass `size={N}` to override.
+//   • Default size = 14. Pass `size={N}` to override.
+//   • Colour comes from `currentColor`, so icons inherit the parent colour.
 //   • All icons accept className, style, and forwarded props.
-//   • Outline icons: stroke="currentColor" so they pick up parent color.
+//   • Brand icons expose a `colored` prop for official brand colours.
 //
 
 import React from 'react';
 
 // ════════════════════════════════════════════════════════════════════
-// Base SVG wrapper — keeps every icon consistent
+// Base SVG wrapper
 // ════════════════════════════════════════════════════════════════════
 
 const Svg = ({ size = 14, className = '', children, ...props }) => (
@@ -32,8 +35,11 @@ const Svg = ({ size = 14, className = '', children, ...props }) => (
   </svg>
 );
 
+// Shared duotone opacity for the filled "body" layer.
+const BODY = 0.18;
+
 // ════════════════════════════════════════════════════════════════════
-// Brand icons (official paths)
+// Brand icons (official marks — already solid)
 // ════════════════════════════════════════════════════════════════════
 
 export const TelegramIcon = ({ size = 16, colored = false, className = '', ...props }) => (
@@ -76,79 +82,72 @@ export const GoogleIcon = ({ size = 16, colored = true, className = '', ...props
 
 export const EmailIcon = ({ size = 16, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M3 5h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v.5l9 5.5 9-5.5V7H3zm0 2.85V17h18V9.85l-9 5.5-9-5.5z" fill="currentColor" />
+    <rect x="2" y="4" width="20" height="16" rx="3" fill="currentColor" opacity={BODY} />
+    <path d="M3.5 7.5l7.4 4.9a2 2 0 0 0 2.2 0l7.4-4.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
   </Svg>
 );
 
 export const SendIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M21.4 3.6a1 1 0 0 0-1.05-.23L3.9 9.2c-.94.34-.9 1.7.06 1.98l6.14 1.77 1.77 6.14c.28.96 1.64 1 1.98.06l5.83-16.45a1 1 0 0 0-.28-1.1z" fill="currentColor" opacity={BODY} />
+    <path d="M21.4 3.6L10.6 12.7M21.4 3.6L15.6 20a.7.7 0 0 1-1.32.05l-2.02-6.02-6.02-2.02A.7.7 0 0 1 6.3 8.4L21.4 3.6z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const BroadcastIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="2" />
-    <path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M20.49 4.93a10 10 0 0 1 0 14.14M3.51 19.07a10 10 0 0 1 0-14.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+    <path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M20.49 4.93a10 10 0 0 1 0 14.14M3.51 19.07a10 10 0 0 1 0-14.14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
   </Svg>
 );
 
 export const MessageCircleIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 3a9 9 0 0 0-8 13.1L3 21l4.9-1a9 9 0 1 0 4.1-17z" fill="currentColor" opacity={BODY} />
+    <path d="M12 3a9 9 0 0 0-8 13.1L3 21l4.9-1A9 9 0 1 0 12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M8.5 11h7M8.5 14h4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </Svg>
 );
 
 export const BellIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z" fill="currentColor" opacity={BODY} />
+    <path d="M18 9A6 6 0 0 0 6 9c0 5-2 6.5-2 6.5h16S18 14 18 9z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M10.3 19a2 2 0 0 0 3.4 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </Svg>
 );
 
 // ════════════════════════════════════════════════════════════════════
-// Navigation
+// Navigation (directional — heavier rounded strokes)
 // ════════════════════════════════════════════════════════════════════
 
 export const ExternalLinkIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M14 5h5v5M19 5l-9 9M19 14v5H5V5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M13 4h7v7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20 4l-9 9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const ChevronDownIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
-
 export const ChevronRightIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
-
 export const ChevronLeftIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
-
 export const ArrowRightIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
-
 export const ArrowUpIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
-
 export const ArrowDownIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M12 5v14M19 12l-7 7-7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M12 5v14M19 12l-7 7-7-7" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
 
 // ════════════════════════════════════════════════════════════════════
@@ -156,81 +155,75 @@ export const ArrowDownIcon = ({ size = 14, ...props }) => (
 // ════════════════════════════════════════════════════════════════════
 
 export const PlusIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></Svg>
 );
-
 export const MinusIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></Svg>
 );
-
 export const CloseIcon = ({ size = 16, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" /></Svg>
 );
-
 export const CheckIcon = ({ size = 14, ...props }) => (
-  <Svg size={size} {...props}>
-    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
+  <Svg size={size} {...props}><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></Svg>
 );
 
 export const CopyIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" />
-    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <rect x="8" y="8" width="13" height="13" rx="2.5" fill="currentColor" opacity={BODY} />
+    <rect x="8" y="8" width="13" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.9" />
+    <path d="M5 15.5H4.5A1.5 1.5 0 0 1 3 14V4.5A1.5 1.5 0 0 1 4.5 3H14a1.5 1.5 0 0 1 1.5 1.5V5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
   </Svg>
 );
 
 export const DownloadIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 3v12M7.5 10.5L12 15l4.5-4.5" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const UploadIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 15V3M7.5 7.5L12 3l4.5 4.5" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const EditIcon = ({ size = 12, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 15.5L14.5 5l4.5 4.5L8.5 20 3 21.5z" fill="currentColor" opacity={BODY} />
+    <path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    <path d="M17.5 2.6a2 2 0 0 1 2.9 2.9L11 15l-4 1 1-4 9.5-9.4z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const TrashIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 7h12l-1 13a2 2 0 0 1-2 1.8H9A2 2 0 0 1 7 20L6 7z" fill="currentColor" opacity={BODY} />
+    <path d="M4 6h16M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6m2 0l-1 14a2 2 0 0 1-2 1.9H8A2 2 0 0 1 6 20L5 6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
   </Svg>
 );
 
 export const RefreshIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M21 4v6h-6M3 20v-6h6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19.4 9A8 8 0 0 0 5.6 6.2L3 10m18 4l-2.6 3.8A8 8 0 0 1 4.6 15" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const MoreVerticalIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-    <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-    <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+    <circle cx="12" cy="5" r="1.8" fill="currentColor" />
+    <circle cx="12" cy="19" r="1.8" fill="currentColor" />
   </Svg>
 );
-
 export const MoreHorizontalIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-    <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-    <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+    <circle cx="5" cy="12" r="1.8" fill="currentColor" />
+    <circle cx="19" cy="12" r="1.8" fill="currentColor" />
   </Svg>
 );
 
@@ -240,26 +233,29 @@ export const MoreHorizontalIcon = ({ size = 14, ...props }) => (
 
 export const SearchIcon = ({ size = 16, ...props }) => (
   <Svg size={size} {...props}>
+    <circle cx="11" cy="11" r="7" fill="currentColor" opacity={BODY} />
     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-    <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
   </Svg>
 );
 
 export const FilterIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M3 5h18M6 12h12M10 19h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M3 5.5h18l-7 8v5l-4 2v-7L3 5.5z" fill="currentColor" opacity={BODY} />
+    <path d="M3 5h18l-7 8v6l-4-2v-4L3 5z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const SortAscIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M3 6h13M3 12h9M3 18h5M17 8V4m0 0L13 8m4-4l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 6h11M4 12h8M4 18h5" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+    <path d="M18 8V4m0 0l-3 3m3-3l3 3" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
-
 export const SortDescIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M3 6h5M3 12h9M3 18h13M17 16v4m0 0l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 6h5M4 12h8M4 18h11" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+    <path d="M18 16v4m0 0l-3-3m3 3l3-3" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
@@ -269,100 +265,116 @@ export const SortDescIcon = ({ size = 14, ...props }) => (
 
 export const EyeIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7S19 19 12 19 1.5 12 1.5 12z" fill="currentColor" opacity={BODY} />
+    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7S19 19 12 19 1.5 12 1.5 12z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <circle cx="12" cy="12" r="3" fill="currentColor" />
   </Svg>
 );
 
 export const EyeOffIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
   </Svg>
 );
 
 export const BanIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M4.93 4.93l14.14 14.14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M5.6 5.6l12.8 12.8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
   </Svg>
 );
 
 export const CheckCircleIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M8.5 12.2l2.4 2.4 4.6-4.8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const XCircleIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
   </Svg>
 );
 
 export const AlertTriangleIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" fill="currentColor" opacity={BODY} />
+    <path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M12 9v4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <circle cx="12" cy="17" r="1.1" fill="currentColor" />
   </Svg>
 );
 
 export const AlertCircleIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 7.5v5.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <circle cx="12" cy="16.5" r="1.1" fill="currentColor" />
   </Svg>
 );
 
 export const InfoIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 16.5V11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    <circle cx="12" cy="7.6" r="1.1" fill="currentColor" />
   </Svg>
 );
 
 export const LoaderIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
   </Svg>
 );
 
 // ════════════════════════════════════════════════════════════════════
-// People
+// People (solid silhouettes)
 // ════════════════════════════════════════════════════════════════════
 
 export const UserIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+    <circle cx="12" cy="8" r="4" fill="currentColor" />
+    <path d="M4 20c0-3.6 3.6-6.2 8-6.2s8 2.6 8 6.2v1H4v-1z" fill="currentColor" />
   </Svg>
 );
 
 export const UsersIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+    <circle cx="17" cy="8.5" r="3" fill="currentColor" opacity="0.55" />
+    <path d="M14 14c.9-.4 1.9-.6 3-.6 3.2 0 5.5 2 5.5 4.6v1.2H15" fill="currentColor" opacity="0.55" />
+    <circle cx="9" cy="8" r="3.8" fill="currentColor" />
+    <path d="M2 19.6c0-3.3 3.1-5.6 7-5.6s7 2.3 7 5.6v1.2H2v-1.2z" fill="currentColor" />
   </Svg>
 );
 
 export const UserPlusIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="8.5" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
-    <path d="M20 8v6M23 11h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="9" cy="8" r="3.8" fill="currentColor" />
+    <path d="M2 19.6c0-3.3 3.1-5.6 7-5.6s7 2.3 7 5.6v1.2H2v-1.2z" fill="currentColor" />
+    <path d="M19 8v6M22 11h-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
   </Svg>
 );
 
 export const ShieldIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 2.5l8 3v6.5c0 5.5-8 9.5-8 9.5s-8-4-8-9.5V5.5l8-3z" fill="currentColor" opacity={BODY} />
+    <path d="M12 2.5l8 3v6.5c0 5.5-8 9.5-8 9.5s-8-4-8-9.5V5.5l8-3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
   </Svg>
 );
 
 export const ShieldCheckIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 2.5l8 3v6.5c0 5.5-8 9.5-8 9.5s-8-4-8-9.5V5.5l8-3z" fill="currentColor" opacity={BODY} />
+    <path d="M12 2.5l8 3v6.5c0 5.5-8 9.5-8 9.5s-8-4-8-9.5V5.5l8-3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M8.7 11.8l2.2 2.2 4.4-4.6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
@@ -372,23 +384,25 @@ export const ShieldCheckIcon = ({ size = 14, ...props }) => (
 
 export const ClockIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" />
+    <path d="M12 7v5.3l3.4 2" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const CalendarIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <rect x="3" y="4.5" width="18" height="16.5" rx="3" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="4.5" width="18" height="16.5" rx="3" stroke="currentColor" strokeWidth="1.9" />
+    <path d="M3 9.5h18M8 2.5v4M16 2.5v4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
   </Svg>
 );
 
 export const HistoryIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M3.5 15A9 9 0 1 0 5.6 5.6L2 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2 4v5h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 7.5V12l3 3" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
@@ -398,78 +412,93 @@ export const HistoryIcon = ({ size = 14, ...props }) => (
 
 export const TrendingUpIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 18l6-6 4 4 8-8" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M16 8h5v5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const TrendingDownIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M23 18l-9.5-9.5-5 5L1 6M17 18h6v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 6l6 6 4-4 8 8" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M16 16h5v-5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const BarChartIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 20V10M18 20V4M6 20v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <rect x="4" y="12" width="4" height="8" rx="1.4" fill="currentColor" opacity="0.55" />
+    <rect x="10" y="8" width="4" height="12" rx="1.4" fill="currentColor" />
+    <rect x="16" y="4" width="4" height="16" rx="1.4" fill="currentColor" opacity="0.8" />
   </Svg>
 );
 
 export const PieChartIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 3a9 9 0 1 0 9 9h-9V3z" fill="currentColor" opacity={BODY} />
+    <path d="M21 12A9 9 0 1 0 12 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M12 3a9 9 0 0 1 9 9h-9V3z" fill="currentColor" />
   </Svg>
 );
 
 export const ActivityIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 12h3.5l2.5 7 4-16 2.5 9H21" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 // ════════════════════════════════════════════════════════════════════
-// Decorative
+// Decorative (solid)
 // ════════════════════════════════════════════════════════════════════
 
 export const StarIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.4l-5.8 3.05 1.1-6.45L2.6 9.35l6.5-.95L12 2.5z" fill="currentColor" opacity={BODY} />
+    <path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.4l-5.8 3.05 1.1-6.45L2.6 9.35l6.5-.95L12 2.5z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
   </Svg>
 );
 
 export const StarFilledIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" />
+    <path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.4l-5.8 3.05 1.1-6.45L2.6 9.35l6.5-.95L12 2.5z" fill="currentColor" />
   </Svg>
 );
 
 export const SparklesIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 3l1.91 5.27L19 10l-5.09 1.73L12 17l-1.91-5.27L5 10l5.09-1.73L12 3z" fill="currentColor" />
-    <path d="M19 3l.69 1.91L21 5.5l-1.31.59L19 8l-.69-1.91L17 5.5l1.31-.59L19 3zM5 15l.69 1.91L7 17.5l-1.31.59L5 20l-.69-1.91L3 17.5l1.31-.59L5 15z" fill="currentColor" opacity="0.6" />
+    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" fill="currentColor" />
+    <path d="M19 3l.7 1.9L21.5 5.6l-1.8.7L19 8l-.7-1.7L16.5 5.6l1.8-.7L19 3zM5 15l.7 1.9L7.5 17.6l-1.8.7L5 20l-.7-1.7L2.5 17.6l1.8-.7L5 15z" fill="currentColor" opacity="0.6" />
   </Svg>
 );
 
 export const ZapIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M13 2L3 14h8l-1 8 11-13h-8l0-7z" fill="currentColor" opacity={BODY} />
+    <path d="M13 2L3 14h8l-1 8 11-13h-8l0-7z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
   </Svg>
 );
 
 export const FlameIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M12 2.5c.5 2.5 2 4.5 3.7 6.2C17.4 10.4 19 12.4 19 15a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2.1-.2-4 2-6z" fill="currentColor" opacity={BODY} />
+    <path d="M12 2.5c.5 2.5 2 4.5 3.7 6.2C17.4 10.4 19 12.4 19 15a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1-2.1-.2-4 2-6z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
   </Svg>
 );
 
 export const GiftIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="3" y="11" width="18" height="10" rx="2" fill="currentColor" opacity={BODY} />
+    <path d="M20 12v9H4v-9M2 7.5h20V12H2zM12 21V7.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 7.5H7.7a2.2 2.2 0 1 1 0-4.5C10.7 3 12 7.5 12 7.5zM12 7.5h4.3a2.2 2.2 0 1 0 0-4.5C13.3 3 12 7.5 12 7.5z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const CrownIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M2 6l4 6 4-8 2 6 2-6 4 8 4-6v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M2.5 7l4 5 3.5-6.5L13.5 12l4-5v11a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2V7z" fill="currentColor" opacity={BODY} />
+    <path d="M2.5 7l4 4.5L12 4l5.5 7.5L21.5 7v10.5a1.8 1.8 0 0 1-1.8 1.8H4.3a1.8 1.8 0 0 1-1.8-1.8V7z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="2.5" cy="7" r="1.3" fill="currentColor" />
+    <circle cx="21.5" cy="7" r="1.3" fill="currentColor" />
+    <circle cx="12" cy="4" r="1.3" fill="currentColor" />
   </Svg>
 );
 
@@ -479,27 +508,33 @@ export const CrownIcon = ({ size = 14, ...props }) => (
 
 export const DollarIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M15 8.5H10.7a2.2 2.2 0 0 0 0 4.4h2.6a2.2 2.2 0 0 1 0 4.4H9M12 6.5v11" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const CreditCardIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2" />
-    <path d="M2 10h20" stroke="currentColor" strokeWidth="2" />
+    <rect x="2" y="5" width="20" height="14" rx="3" fill="currentColor" opacity={BODY} />
+    <rect x="2" y="5" width="20" height="14" rx="3" stroke="currentColor" strokeWidth="1.9" />
+    <path d="M2 9.5h20" stroke="currentColor" strokeWidth="2.2" />
+    <path d="M6 15h4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
   </Svg>
 );
 
 export const WalletIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M18 12a2 2 0 0 0 0 4h4v-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="3" y="6" width="18" height="14" rx="3" fill="currentColor" opacity={BODY} />
+    <path d="M3 8a2 2 0 0 1 2-2h13v3M3 8v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M21 12v3h-4a1.5 1.5 0 0 1 0-3h4z" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const ReceiptIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2-3 2zM8 7h8M8 11h8M8 15h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5 3l2 1.5L9 3l2 1.5L13 3l2 1.5L17 3v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V3z" fill="currentColor" opacity={BODY} />
+    <path d="M5 3l2 1.5L9 3l2 1.5L13 3l2 1.5L17 3v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M8 8h6M8 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </Svg>
 );
 
@@ -509,45 +544,57 @@ export const ReceiptIcon = ({ size = 14, ...props }) => (
 
 export const TagIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M7 7h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M3 3h8.5L21 12.5a1.8 1.8 0 0 1 0 2.5l-6 6a1.8 1.8 0 0 1-2.5 0L3 11.5V3z" fill="currentColor" opacity={BODY} />
+    <path d="M3 3h8.5L21 12.5a1.8 1.8 0 0 1 0 2.5l-6 6a1.8 1.8 0 0 1-2.5 0L3 11.5V3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" />
   </Svg>
 );
 
 export const ListIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+    <circle cx="3.5" cy="6" r="1.5" fill="currentColor" />
+    <circle cx="3.5" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="3.5" cy="18" r="1.5" fill="currentColor" />
   </Svg>
 );
 
 export const GridIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-    <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-    <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-    <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+    <rect x="3" y="3" width="7.5" height="7.5" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="3" width="7.5" height="7.5" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
   </Svg>
 );
 
 export const KanbanIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect x="3" y="3" width="6" height="14" rx="1" stroke="currentColor" strokeWidth="2" />
-    <rect x="11" y="3" width="6" height="10" rx="1" stroke="currentColor" strokeWidth="2" />
-    <rect x="19" y="3" width="2" height="6" rx="1" stroke="currentColor" strokeWidth="2" />
+    <rect x="3" y="3" width="6" height="16" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="11" y="3" width="6" height="11" rx="1.8" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="3" width="6" height="16" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="11" y="3" width="6" height="11" rx="1.8" stroke="currentColor" strokeWidth="1.7" />
+    <rect x="19" y="3" width="2" height="6" rx="1" fill="currentColor" opacity="0.5" />
   </Svg>
 );
 
 export const FlagIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5 4s1-1 4-1 5 2 8 2 4-1 4-1v9s-1 1-4 1-5-2-8-2-4 1-4 1V4z" fill="currentColor" opacity={BODY} />
+    <path d="M5 21V3s1-1 4-1 5 2 8 2 4-1 4-1v9s-1 1-4 1-5-2-8-2-4 1-4 1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
 export const TargetIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-    <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="2" />
-    <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="2" />
+    <circle cx="12" cy="12" r="9.5" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.8" />
+    <circle cx="12" cy="12" r="5.5" stroke="currentColor" strokeWidth="1.8" />
+    <circle cx="12" cy="12" r="2" fill="currentColor" />
   </Svg>
 );
 
@@ -573,205 +620,63 @@ export const ChannelIcon = ({ channel, size = 14, colored = false, className = '
     default:         return null;
   }
 };
+
 // ════════════════════════════════════════════════════════════════════
-// LuxQuant Shell Icons — premium fintech refinement (1.5px strokes)
-// Added in shell redesign batch.
-// Note: BarChartIcon already exists in Icons.jsx, so the new
-// finance-tab icon is named BarsChartIcon.
+// LuxQuant Shell Icons — tab glyphs (duotone solid)
 // ════════════════════════════════════════════════════════════════════
 
-/**
- * LambdaGlyph — capital lambda Λ as brand monogram.
- * The quant symbol. Used in the AdminWorkspacePage hero.
- */
+/** LambdaGlyph — capital lambda Λ brand monogram. */
 export const LambdaGlyph = ({ size = 18, ...props }) => (
   <Svg size={size} {...props}>
-    <path
-      d="M5 21 L11.2 5.5 Q12 3.8 12.8 5.5 L19 21"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    {/* Inner serif accents — subtle */}
-    <path
-      d="M9.5 17.5 L14.5 17.5"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      opacity="0.45"
-    />
+    <path d="M5 21L11.2 5.5Q12 3.8 12.8 5.5L19 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9.5 17.5h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" />
   </Svg>
 );
 
-/**
- * UsersRingIcon — silhouette inside subtle ring.
- * Replaces generic UsersIcon for the shell tab.
- */
+/** UsersRingIcon — solid person inside a filled disc (Members tab). */
 export const UsersRingIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <circle
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      opacity="0.35"
-      fill="none"
-    />
-    <circle
-      cx="12"
-      cy="10"
-      r="3"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      fill="none"
-    />
-    <path
-      d="M6.5 18.5 Q12 14 17.5 18.5"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      fill="none"
-    />
+    <circle cx="12" cy="12" r="10" fill="currentColor" opacity={BODY} />
+    <circle cx="12" cy="10" r="3.2" fill="currentColor" />
+    <path d="M6 18.2c0-2.9 2.7-4.7 6-4.7s6 1.8 6 4.7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </Svg>
 );
 
-/**
- * ArrowTargetIcon — arrow heading toward a target dot.
- * For Follow-ups tab. Conveys "chase / aim / pursue".
- */
+/** ArrowTargetIcon — arrow aimed at a target (Follow-ups tab). */
 export const ArrowTargetIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    {/* Outer target ring */}
-    <circle
-      cx="17"
-      cy="7"
-      r="4"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      opacity="0.4"
-      fill="none"
-    />
-    {/* Inner target dot */}
-    <circle cx="17" cy="7" r="1.5" fill="currentColor" />
-    {/* Arrow shaft + head */}
-    <path
-      d="M4 20 L13.5 10.5"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      fill="none"
-    />
-    <path
-      d="M4 20 L4 15 M4 20 L9 20"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
+    <circle cx="17" cy="7" r="4.5" fill="currentColor" opacity={BODY} />
+    <circle cx="17" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.6" />
+    <circle cx="17" cy="7" r="1.7" fill="currentColor" />
+    <path d="M3.5 20.5L12.5 11.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M3.5 20.5V15M3.5 20.5H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
 
-/**
- * BroadcastConeIcon — origin point emitting a signal cone.
- * For Marketing tab. Conveys "broadcast / reach / amplify".
- */
+/** BroadcastConeIcon — origin emitting a signal cone (Marketing tab). */
 export const BroadcastConeIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    {/* Origin dot */}
-    <circle cx="6" cy="12" r="2" fill="currentColor" />
-    {/* Signal arcs — three layers, fading */}
-    <path
-      d="M10 8.5 Q14 12 10 15.5"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      fill="none"
-    />
-    <path
-      d="M13.5 6 Q19 12 13.5 18"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      opacity="0.55"
-      fill="none"
-    />
-    <path
-      d="M17 3.5 Q24 12 17 20.5"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      opacity="0.25"
-      fill="none"
-    />
+    <circle cx="6" cy="12" r="2.6" fill="currentColor" />
+    <path d="M10.5 8Q15 12 10.5 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <path d="M14 5.5Q20 12 14 18.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" opacity="0.55" />
+    <path d="M17.5 3Q24.5 12 17.5 21" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" opacity="0.28" />
   </Svg>
 );
 
-/**
- * BarsChartIcon — three rising bars on a baseline.
- * For Finance tab. Conveys "revenue / growth / quant".
- * (Named BarsChartIcon to avoid collision with existing BarChartIcon.)
- */
+/** BarsChartIcon — rising filled bars (Finance tab). */
 export const BarsChartIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    {/* Baseline */}
-    <path
-      d="M3 21 L21 21"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      opacity="0.4"
-    />
-    {/* Bar 1 — short */}
-    <path
-      d="M6 21 L6 14"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
-    {/* Bar 2 — medium */}
-    <path
-      d="M12 21 L12 9"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
-    {/* Bar 3 — tall */}
-    <path
-      d="M18 21 L18 4"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
+    <rect x="4" y="13" width="4" height="8" rx="1.4" fill="currentColor" opacity="0.55" />
+    <rect x="10" y="8" width="4" height="13" rx="1.4" fill="currentColor" />
+    <rect x="16" y="4" width="4" height="17" rx="1.4" fill="currentColor" opacity="0.82" />
   </Svg>
 );
 
-/**
- * CheckSquareIcon — checkmark inside a rounded square.
- * For TODOs tab. Conveys "task / done / list-item".
- */
+/** CheckSquareIcon — check inside a filled rounded square (TODOs tab). */
 export const CheckSquareIcon = ({ size = 14, ...props }) => (
   <Svg size={size} {...props}>
-    <rect
-      x="3"
-      y="3"
-      width="18"
-      height="18"
-      rx="3.5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      fill="none"
-    />
-    <path
-      d="M7.5 12.5 L10.5 15.5 L16.5 8.5"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
+    <rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor" opacity={BODY} />
+    <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M7.5 12.3l3 3 6-6.6" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
