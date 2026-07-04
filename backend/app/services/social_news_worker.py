@@ -1,0 +1,466 @@
+"""
+LuxQuant Social News Worker
+
+MVP: turns recent crypto_news rows into approval-ready social post drafts.
+
+This intentionally stops at "draft" status. Publishing should be a separate,
+explicit approval step so the AI/editor layer cannot accidentally post bad
+sources, weak claims, or ugly artwork.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Iterable, Optional
+
+from sqlalchemy import text
+
+from app.core.database import SessionLocal
+
+
+POSTS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
+DEFAULT_PLATFORM = os.environ.get("SOCIAL_POST_DEFAULT_PLATFORM", "x")
+
+
+MARKET_KEYWORDS = {
+    "bitcoin": 16,
+    "btc": 16,
+    "ethereum": 13,
+    "eth": 13,
+    "solana": 13,
+    "sol": 13,
+    "xrp": 10,
+    "etf": 12,
+    "fed": 11,
+    "inflation": 10,
+    "treasury": 9,
+    "sec": 10,
+    "stablecoin": 10,
+    "memecoin": 8,
+    "coinbase": 8,
+    "binance": 8,
+    "microstrategy": 9,
+    "strategy": 7,
+    "trump": 8,
+    "rally": 8,
+    "volume": 7,
+    "flows": 7,
+    "liquidity": 7,
+}
+
+
+HASHTAG_MAP = {
+    "bitcoin": "#Bitcoin",
+    "btc": "#Bitcoin",
+    "ethereum": "#Ethereum",
+    "eth": "#Ethereum",
+    "solana": "#Solana",
+    "sol": "#SOL",
+    "xrp": "#XRP",
+    "etf": "#ETF",
+    "fed": "#Fed",
+    "inflation": "#Macro",
+    "sec": "#SEC",
+    "stablecoin": "#Stablecoins",
+    "memecoin": "#Memecoins",
+    "microstrategy": "#Bitcoin",
+}
+
+
+@dataclass
+class NewsItem:
+    id: int
+    content_type: Optional[str]
+    title: str
+    description: Optional[str]
+    raw_text: Optional[str]
+    url: Optional[str]
+    domain: Optional[str]
+    image_url: Optional[str]
+    created_at: Optional[datetime]
+
+
+@dataclass
+class SocialDraft:
+    news_id: int
+    platform: str
+    angle: str
+    template_style: str
+    headline: str
+    caption: str
+    hashtags: list[str]
+    image_path: Optional[str]
+    score: float
+    sources: list[dict]
+    source_url: Optional[str]
+    source_domain: Optional[str]
+
+
+def _clean_text(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    value = re.sub(r"@\w+", "", value)
+    value = re.sub(r"^NEW:\s*", "", value, flags=re.I)
+    value = re.sub(r"\s+", " ", value).strip()
+    value = value.replace(" ...", "").replace("...", "")
+    return value
+
+
+def _keyword_hits(text_value: str) -> list[str]:
+    lower = text_value.lower()
+    hits = []
+    for word in MARKET_KEYWORDS:
+        if re.search(rf"(?<![a-z0-9]){re.escape(word)}(?![a-z0-9])", lower):
+            hits.append(word)
+    return hits
+
+
+def score_news(item: NewsItem) -> float:
+    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''}"
+    score = 0.0
+    hits = _keyword_hits(text_value)
+    score += sum(MARKET_KEYWORDS[h] for h in hits)
+    if item.content_type == "article":
+        score += 8
+    if item.image_url:
+        score += 5
+    if item.url:
+        score += 4
+    if len(item.title) >= 45:
+        score += 3
+    if len(hits) >= 2:
+        score += 7
+    return score
+
+
+def _angle_for(item: NewsItem) -> str:
+    text_value = f"{item.title} {item.description or ''}".lower()
+    if any(k in text_value for k in ("fed", "inflation", "treasury", "rates", "macro")):
+        return "macro"
+    if any(k in text_value for k in ("sec", "regulation", "tax", "ban", "officials")):
+        return "policy"
+    if any(k in text_value for k in ("rally", "volume", "high", "surge", "flows")):
+        return "market_pulse"
+    return "news_brief"
+
+
+def _headline_for(item: NewsItem) -> str:
+    title = _clean_text(item.title)
+    lower = title.lower()
+
+    if "sol" in lower or "solana" in lower:
+        return "Solana bulls wake up as activity returns"
+    if "microstrategy" in lower or "strategy" in lower:
+        return "Strategy headline tests Bitcoin conviction"
+    if "xrp" in lower:
+        return "XRP volume steals the spotlight"
+    if "fed" in lower or "inflation" in lower:
+        return "Fed inflation talk keeps markets alert"
+    if "memecoin" in lower or "meme coin" in lower:
+        return "Political memecoin debate heats up"
+    if "trump" in lower and "crypto" in lower:
+        return "Trump crypto links draw fresh scrutiny"
+
+    words = title.split()
+    headline = " ".join(words[:9])
+    return headline.rstrip(".,")
+
+
+def _hashtags_for(item: NewsItem) -> list[str]:
+    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''}"
+    tags = []
+    for hit in _keyword_hits(text_value):
+        tag = HASHTAG_MAP.get(hit)
+        if tag and tag not in tags:
+            tags.append(tag)
+    for tag in ("#Crypto", "#LuxQuant"):
+        if tag not in tags:
+            tags.append(tag)
+    return tags[:6]
+
+
+def _caption_for(item: NewsItem, headline: str, hashtags: list[str]) -> str:
+    title = _clean_text(item.title)
+    desc = _clean_text(item.description or item.raw_text)
+    source = item.domain or "LuxQuant News"
+
+    if not desc or desc.lower() == title.lower():
+        desc = title
+
+    paragraph_1 = desc.rstrip(".") + "."
+    paragraph_2 = (
+        "The key question for traders is whether this becomes a real liquidity "
+        "shift or just another short-lived headline. Watch confirmation from "
+        "volume, open interest, and how price reacts around the next major level."
+    )
+
+    return "\n\n".join([
+        paragraph_1,
+        paragraph_2,
+        f"Source: {source}",
+        " ".join(hashtags),
+    ])
+
+
+def _wrap_text(draw, text_value: str, font, max_width: int) -> list[str]:
+    words = text_value.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        test = f"{current} {word}".strip()
+        bbox = draw.textbbox((0, 0), test, font=font)
+        if bbox[2] - bbox[0] <= max_width or not current:
+            current = test
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+def render_card(draft: SocialDraft, item: NewsItem) -> str:
+    try:
+        from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    except ImportError as exc:
+        raise RuntimeError("Pillow is required for social news image rendering") from exc
+
+    POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = POSTS_DIR / f"news_{item.id}_{draft.template_style}.png"
+
+    width, height = 1080, 1350
+    img = Image.new("RGB", (width, height), "#071018")
+    draw = ImageDraw.Draw(img)
+
+    def font(size: int, bold: bool = False):
+        paths = [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        ]
+        for p in paths:
+            if p and Path(p).exists():
+                return ImageFont.truetype(p, size)
+        return ImageFont.load_default()
+
+    # Background editorial texture.
+    for y in range(height):
+        t = y / height
+        color = (
+            int(7 + 18 * t),
+            int(16 + 24 * t),
+            int(24 + 34 * t),
+        )
+        draw.line([(0, y), (width, y)], fill=color)
+    for x in range(-160, width + 160, 58):
+        draw.line([(x, 0), (x + 100, height)], fill=(255, 255, 255), width=1)
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    od.ellipse((520, 110, 1220, 810), outline=(255, 255, 255, 32), width=48)
+    od.rectangle((54, 140, 1026, 948), fill=(20, 31, 42, 136), outline=(255, 255, 255, 38), width=2)
+    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    # Brand.
+    draw.rectangle((64, 58, 106, 100), fill=(240, 185, 11))
+    draw.text((73, 66), "LQ", fill=(6, 10, 15), font=font(20, True))
+    draw.text((122, 56), "LuxQuant", fill=(244, 247, 251), font=font(31, True))
+    draw.text((123, 90), "NEWS DESK", fill=(240, 185, 11), font=font(15, True))
+    draw.rectangle((830, 64, 1018, 106), outline=(255, 255, 255), width=1)
+    draw.text((852, 76), draft.angle.upper().replace("_", " "), fill=(224, 232, 240), font=font(17, True))
+
+    # Abstract chart bars.
+    chart_base = 900
+    points = [(92, 860), (170, 820), (258, 835), (340, 760), (445, 772), (535, 690), (645, 710), (742, 625), (850, 650), (970, 574)]
+    for i, h in enumerate([72, 118, 92, 156, 130, 188, 170, 224, 250, 210, 286]):
+        x = 110 + i * 78
+        draw.rounded_rectangle((x, chart_base - h, x + 24, chart_base), radius=6, fill=(14, 203, 129))
+    for a, b in zip(points, points[1:]):
+        draw.line([a, b], fill=(14, 203, 129), width=10)
+
+    # Headline strips.
+    headline_font = font(66, True)
+    lines = _wrap_text(draw, draft.headline, headline_font, 900)[:3]
+    y = 900
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=headline_font)
+        line_w = bbox[2] - bbox[0]
+        draw.rectangle((64, y, 64 + line_w + 38, y + 82), fill=(248, 250, 252))
+        draw.text((82, y + 2), line, fill=(5, 7, 10), font=headline_font)
+        y += 94
+
+    # Footer.
+    draw.rectangle((0, 1210, width, height), fill=(5, 8, 12))
+    footer_font = font(24)
+    source = draft.source_domain or "LuxQuant News"
+    draw.text((64, 1238), f"Source: {source}", fill=(205, 215, 226), font=footer_font)
+    draw.text((64, 1278), " ".join(draft.hashtags[:4]), fill=(143, 154, 168), font=font(18))
+    draw.rectangle((920, 1230, 1018, 1284), fill=(248, 250, 252))
+    draw.text((944, 1237), "Kilas", fill=(5, 7, 10), font=font(30, True))
+
+    img = img.filter(ImageFilter.UnsharpMask(radius=1.1, percent=110, threshold=3))
+    img.save(out_path, quality=96)
+    return str(out_path)
+
+
+def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: bool = True) -> SocialDraft:
+    score = score_news(item)
+    angle = _angle_for(item)
+    headline = _headline_for(item)
+    hashtags = _hashtags_for(item)
+    caption = _caption_for(item, headline, hashtags)
+    sources = [
+        {
+            "label": item.domain or "LuxQuant News",
+            "url": item.url,
+            "news_id": item.id,
+        }
+    ]
+    draft = SocialDraft(
+        news_id=item.id,
+        platform=platform,
+        angle=angle,
+        template_style="market_pulse",
+        headline=headline,
+        caption=caption,
+        hashtags=hashtags,
+        image_path=None,
+        score=score,
+        sources=sources,
+        source_url=item.url,
+        source_domain=item.domain,
+    )
+    if render_image:
+        draft.image_path = render_card(draft, item)
+    return draft
+
+
+def _row_to_news(row) -> NewsItem:
+    return NewsItem(
+        id=row["id"],
+        content_type=row["content_type"],
+        title=row["title"] or "",
+        description=row["description"],
+        raw_text=row["raw_text"],
+        url=row["url"],
+        domain=row["domain"],
+        image_url=row["image_url"],
+        created_at=row["created_at"],
+    )
+
+
+def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, platform: str = DEFAULT_PLATFORM) -> list[NewsItem]:
+    if news_id is not None:
+        rows = db.execute(text("""
+            SELECT id, content_type, title, description, raw_text, url, domain, image_url, created_at
+            FROM crypto_news
+            WHERE id = :news_id
+        """), {"news_id": news_id}).mappings().all()
+        return [_row_to_news(r) for r in rows]
+
+    rows = db.execute(text("""
+        SELECT id, content_type, title, description, raw_text, url, domain, image_url, created_at
+        FROM crypto_news cn
+        WHERE cn.created_at > now() - interval '3 days'
+          AND cn.title IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM social_posts sp
+              WHERE sp.news_id = cn.id AND sp.platform = :platform
+          )
+        ORDER BY cn.created_at DESC
+        LIMIT :limit
+    """), {"limit": limit, "platform": platform}).mappings().all()
+    items = [_row_to_news(r) for r in rows]
+    return sorted(items, key=score_news, reverse=True)
+
+
+def insert_draft(db, draft: SocialDraft) -> int:
+    row = db.execute(text("""
+        INSERT INTO social_posts (
+            source_type, news_id, source_url, source_domain, platform, status,
+            angle, template_style, headline, caption, hashtags, image_path,
+            score, sources_json
+        )
+        VALUES (
+            'crypto_news', :news_id, :source_url, :source_domain, :platform, 'draft',
+            :angle, :template_style, :headline, :caption, :hashtags, :image_path,
+            :score, CAST(:sources_json AS jsonb)
+        )
+        ON CONFLICT (news_id, platform) WHERE news_id IS NOT NULL DO UPDATE SET
+            angle = EXCLUDED.angle,
+            template_style = EXCLUDED.template_style,
+            headline = EXCLUDED.headline,
+            caption = EXCLUDED.caption,
+            hashtags = EXCLUDED.hashtags,
+            image_path = EXCLUDED.image_path,
+            score = EXCLUDED.score,
+            sources_json = EXCLUDED.sources_json,
+            status = CASE WHEN social_posts.status = 'posted' THEN social_posts.status ELSE 'draft' END,
+            updated_at = now()
+        RETURNING id
+    """), {
+        "news_id": draft.news_id,
+        "source_url": draft.source_url,
+        "source_domain": draft.source_domain,
+        "platform": draft.platform,
+        "angle": draft.angle,
+        "template_style": draft.template_style,
+        "headline": draft.headline,
+        "caption": draft.caption,
+        "hashtags": draft.hashtags,
+        "image_path": draft.image_path,
+        "score": draft.score,
+        "sources_json": json.dumps(draft.sources),
+    }).first()
+    db.commit()
+    return int(row[0])
+
+
+def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: str = DEFAULT_PLATFORM, dry_run: bool = False) -> list[dict]:
+    db = SessionLocal()
+    try:
+        candidates = pick_candidate_news(db, limit=max(limit * 6, 12), news_id=news_id, platform=platform)
+        created = []
+        for item in candidates[:limit]:
+            draft = build_draft(item, platform=platform, render_image=True)
+            post_id = None if dry_run else insert_draft(db, draft)
+            created.append({
+                "id": post_id,
+                "news_id": item.id,
+                "headline": draft.headline,
+                "caption": draft.caption,
+                "hashtags": draft.hashtags,
+                "image_path": draft.image_path,
+                "score": draft.score,
+                "source": draft.source_domain or draft.source_url,
+            })
+        return created
+    finally:
+        db.close()
+
+
+def main(argv: Optional[Iterable[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="Generate LuxQuant social news post drafts")
+    parser.add_argument("--limit", type=int, default=1)
+    parser.add_argument("--news-id", type=int)
+    parser.add_argument("--platform", default=DEFAULT_PLATFORM)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+
+    result = generate_drafts(
+        limit=args.limit,
+        news_id=args.news_id,
+        platform=args.platform,
+        dry_run=args.dry_run,
+    )
+    print(json.dumps(result, indent=2, default=str))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

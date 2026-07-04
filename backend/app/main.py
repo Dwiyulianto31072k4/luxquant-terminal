@@ -52,6 +52,7 @@ from app.api.routes.notifications import router as notifications_router
 from app.api.routes.notification_preferences import router as notification_prefs_router
 from app.api.routes.announcements import router as announcements_router
 from app.api.routes.admin_announcements import router as admin_announcements_router
+from app.api.routes.admin_social_posts import router as admin_social_posts_router
 from app.api.routes.coin_watch import router as coin_watch_router
 from app.api.routes.journal import router as journal_router
 from app.api.routes.market_pulse import router as market_pulse_router
@@ -175,6 +176,7 @@ app.add_middleware(ActivityTrackerMiddleware)
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
 app.include_router(announcements_router, tags=["announcements"])
 app.include_router(admin_announcements_router, tags=["admin-announcements"])
+app.include_router(admin_social_posts_router, tags=["admin-social-posts"])
 app.include_router(signal_journey.router, prefix="/api/v1/signals", tags=["signals-journey"])
 app.include_router(public_signals.router, prefix="/api/public/v1", tags=["public-signals"])
 app.include_router(public_data.router, prefix="/api/public/v1", tags=["public-data"])
@@ -247,6 +249,11 @@ else:
 ANNOUNCEMENT_IMAGES_DIR = os.environ.get("ANNOUNCEMENT_IMAGES_DIR", "/opt/luxquant/announcement-images")
 os.makedirs(ANNOUNCEMENT_IMAGES_DIR, exist_ok=True)
 app.mount("/api/v1/announcement-images", StaticFiles(directory=ANNOUNCEMENT_IMAGES_DIR), name="announcement-images")
+
+# Serve generated social post images as static files
+SOCIAL_POST_ASSETS_DIR = os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts")
+os.makedirs(SOCIAL_POST_ASSETS_DIR, exist_ok=True)
+app.mount("/api/v1/social-post-images", StaticFiles(directory=SOCIAL_POST_ASSETS_DIR), name="social-post-images")
 
 # ═══════════════════════════════════════════
 # Serve news videos as static files
