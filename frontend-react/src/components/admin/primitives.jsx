@@ -22,6 +22,7 @@ import {
   typography,
   radius,
   elevation,
+  gradient,
   motion,
   tint,
   tilePreset,
@@ -41,21 +42,29 @@ import {
  * Universal container primitive.
  *
  * Props:
- *   variant: 'base' | 'raised' | 'sunken' | 'glass'  (default 'base')
+ *   variant: 'base' | 'raised' | 'sunken' | 'glass' | 'premium'  (default 'base')
+ *     • 'premium' → LandingPageV2 card: solid near-black panel, gold
+ *       top-hairline, and (with `hover`) a lift-on-hover treatment.
  *   tone?: hex color — if provided, surface is tinted by this color
- *   hairline?: boolean — render subtle top gradient line (default true on 'raised'/'glass')
+ *   hover?: boolean — lift + gold border + shadow on hover (default true on 'premium')
+ *   hairline?: boolean — render top gradient line (default true on 'raised'/'glass'/'premium')
+ *   radiusToken?: 'md' | 'lg' | 'xl' — corner radius (default 'lg', or 'xl' on premium)
  *   padding?: tailwind padding class (default 'p-4')
  *   className, style, children, ...rest
  */
 export const Surface = React.forwardRef(
-  ({ variant = 'base', tone, hairline, padding = 'p-4', className = '', style = {}, children, ...rest }, ref) => {
+  ({ variant = 'base', tone, hover, hairline, radiusToken, padding = 'p-4', className = '', style = {}, children, onMouseEnter, onMouseLeave, ...rest }, ref) => {
+    const isPremium = variant === 'premium';
     const preset = tone
       ? { bg: tint(tone, 0.025), border: tint(tone, 0.18), topGlow: tint(tone, 0.3) }
       : { bg: surface[variant].bg, border: surface[variant].border, topGlow: surface[variant].topGlow };
 
     const showHairline = hairline !== undefined
       ? hairline
-      : (variant === 'raised' || variant === 'glass' || !!tone);
+      : (variant === 'raised' || variant === 'glass' || isPremium || !!tone);
+
+    const doHover = hover !== undefined ? hover : isPremium;
+    const cornerRadius = radius[radiusToken || (isPremium ? 'xl' : 'lg')];
 
     return (
       <div
@@ -64,12 +73,23 @@ export const Surface = React.forwardRef(
         style={{
           background: preset.bg,
           border: `1px solid ${preset.border}`,
-          borderRadius: radius.lg,
+          borderRadius: cornerRadius,
+          transition: doHover ? motion.slow : undefined,
           boxShadow: variant === 'base'
             ? 'inset 0 1px 0 0 rgba(255,255,255,0.04)'
             : undefined,
           ...style,
         }}
+        onMouseEnter={doHover ? (e) => {
+          e.currentTarget.style.borderColor = surface.premium.borderHover;
+          e.currentTarget.style.boxShadow = surface.premium.shadowHover;
+          onMouseEnter?.(e);
+        } : onMouseEnter}
+        onMouseLeave={doHover ? (e) => {
+          e.currentTarget.style.borderColor = preset.border;
+          e.currentTarget.style.boxShadow = variant === 'base' ? 'inset 0 1px 0 0 rgba(255,255,255,0.04)' : 'none';
+          onMouseLeave?.(e);
+        } : onMouseLeave}
         {...rest}
       >
         {showHairline && (
@@ -103,11 +123,63 @@ export const TopHairline = ({ color = 'rgba(255,255,255,0.08)' }) => (
 );
 
 // ════════════════════════════════════════════════════════════════════
+// GradientText — gold clip-text keyword (LandingPageV2 heading accent)
+// ════════════════════════════════════════════════════════════════════
+
+export const GradientText = ({ children, className = '', style = {} }) => (
+  <span
+    className={className}
+    style={{
+      background: gradient.goldText,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+      ...style,
+    }}
+  >
+    {children}
+  </span>
+);
+
+// ════════════════════════════════════════════════════════════════════
+// Eyebrow — mono uppercase kicker with a gold gradient rule
+// (LandingPageV2 section signature). Renders a small line + label.
+// ════════════════════════════════════════════════════════════════════
+
+export const Eyebrow = ({ children, align = 'left', className = '' }) => {
+  const centered = align === 'center';
+  return (
+    <span
+      className={`inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] ${className}`}
+      style={{ color: tint(palette.gold[300], 0.85) }}
+    >
+      <span
+        className="h-px w-7"
+        style={{ background: `linear-gradient(to right, transparent, ${tint(palette.gold[300], 0.6)})` }}
+      />
+      {children}
+      {centered && (
+        <span
+          className="h-px w-7"
+          style={{ background: `linear-gradient(to left, transparent, ${tint(palette.gold[300], 0.6)})` }}
+        />
+      )}
+    </span>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
 // SectionHeader — title + optional subtitle + optional right slot
 // ════════════════════════════════════════════════════════════════════
 
+/**
+ * Props (additions):
+ *   goldEyebrow?: boolean — render the eyebrow as the LandingPageV2 gold
+ *     mono kicker (with gradient rule) instead of the plain gray label.
+ */
 export const SectionHeader = ({
   eyebrow,
+  goldEyebrow = false,
   title,
   subtitle,
   Icon,
@@ -123,12 +195,16 @@ export const SectionHeader = ({
     <div className={`flex items-end justify-between gap-3 ${className}`}>
       <div className="min-w-0">
         {eyebrow && (
-          <p
-            className="text-[10px] uppercase tracking-wider font-semibold mb-1.5"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
-          >
-            {eyebrow}
-          </p>
+          goldEyebrow ? (
+            <div className="mb-2"><Eyebrow>{eyebrow}</Eyebrow></div>
+          ) : (
+            <p
+              className="text-[10px] uppercase tracking-wider font-semibold mb-1.5"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+            >
+              {eyebrow}
+            </p>
+          )
         )}
         <h2 className={`${titleSize} ${titleWeight} tracking-tight text-white flex items-center gap-2`}>
           {Icon && <Icon size={size === 'lg' ? 22 : 14} style={{ color: iconColor }} />}
@@ -174,7 +250,7 @@ export const StatTile = ({
     <Wrapper
       onClick={onClick}
       disabled={!onClick}
-      className={`relative overflow-hidden text-left w-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`group relative overflow-hidden text-left w-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{
         background: active ? tint(accentColor, 0.1) : surface.base.bg,
         border: `1px solid ${active ? tint(accentColor, 0.45) : surface.base.border}`,
@@ -213,7 +289,7 @@ export const StatTile = ({
         {Icon && <Icon size={13} style={{ color: accentColor, opacity: 0.7 }} />}
       </div>
       <p
-        className="text-2xl font-light tracking-tight tabular-nums leading-none"
+        className="text-2xl font-bold tracking-tight tabular-nums leading-none transition-transform duration-300 group-hover:scale-[1.03] group-hover:origin-left"
         style={{ color: accentColor }}
       >
         {loading ? (
@@ -345,21 +421,26 @@ export const StatusBadge = ({ status, label, ...rest }) => (
   </Badge>
 );
 
-// Pill — fully rounded badge variant, used for filter chips
-export const Pill = ({ children, active, tone, onClick, className = '' }) => (
-  <button
-    onClick={onClick}
-    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 transition-all ${className}`}
-    style={{
-      background: active ? tint(tone || palette.gold[300], 0.15) : 'rgba(255,255,255,0.02)',
-      color: active ? (tone || palette.gold[300]) : typography.body.muted,
-      border: `1px solid ${active ? tint(tone || palette.gold[300], 0.35) : surface.base.border}`,
-      borderRadius: radius.pill,
-    }}
-  >
-    {children}
-  </button>
-);
+// Pill — fully rounded badge variant, used for filter chips.
+// Active state mirrors the LandingPageV2 pill: gold tint + soft gold glow.
+export const Pill = ({ children, active, tone, onClick, className = '' }) => {
+  const t = tone || palette.gold[300];
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 transition-all duration-200 ${className}`}
+      style={{
+        background: active ? tint(t, 0.14) : 'rgba(255,255,255,0.02)',
+        color: active ? t : typography.body.muted,
+        border: `1px solid ${active ? tint(t, 0.45) : surface.base.border}`,
+        borderRadius: radius.pill,
+        boxShadow: active ? `0 4px 14px ${tint(t, 0.18)}` : 'none',
+      }}
+    >
+      {children}
+    </button>
+  );
+};
 
 // ════════════════════════════════════════════════════════════════════
 // StatusDot — pulse-able color dot
@@ -426,7 +507,7 @@ export const Button = React.forwardRef(
 
     const variants = {
       primary: {
-        background: `linear-gradient(135deg, ${palette.gold[300]}, ${palette.gold[500]})`,
+        background: gradient.goldFill,
         color: palette.maroon[900],
         border: 'none',
       },
@@ -456,7 +537,7 @@ export const Button = React.forwardRef(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wider whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed ${s.px} ${s.py} ${s.text} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${variant === 'primary' ? 'hover:-translate-y-px' : ''} ${s.px} ${s.py} ${s.text} ${className}`}
         style={{
           ...variants[variant],
           borderRadius: radius.md,
@@ -803,4 +884,42 @@ export const Divider = ({ className = '', label }) => {
     );
   }
   return <div className={`h-px ${className}`} style={{ background: surface.base.border }} />;
+};
+
+// ════════════════════════════════════════════════════════════════════
+// Bar3D — glossy cylinder-shaded progress meter (LandingPageV2 signature)
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * Inset track + top-sheen gold fill with a soft glow. Use for KPI bars,
+ * budget spend, pattern EV, etc.
+ *
+ * Props:
+ *   pct: 0–100
+ *   tone?: hex — recolors the fill (default brand gold). Non-gold tones fall
+ *          back to a flat tinted fill (the glossy gradient is gold-specific).
+ *   heightClass?: tailwind height (default 'h-2.5')
+ *   className
+ */
+export const Bar3D = ({ pct = 0, tone, heightClass = 'h-2.5', className = '' }) => {
+  const width = `${Math.min(Math.max(pct, 0), 100)}%`;
+  const isGold = !tone || tone === palette.gold[300];
+  return (
+    <div
+      className={`relative flex-1 overflow-hidden ${heightClass} ${className}`}
+      style={{ background: 'rgba(0,0,0,0.4)', borderRadius: radius.pill, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.55)' }}
+    >
+      <div
+        className="h-full"
+        style={{
+          width,
+          borderRadius: radius.pill,
+          background: isGold ? gradient.goldBar : `linear-gradient(180deg, ${tint(tone, 0.95)}, ${tint(tone, 0.6)})`,
+          boxShadow: isGold
+            ? 'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 3px rgba(90,60,15,0.4), 0 0 8px rgba(212,168,83,0.4)'
+            : `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 8px ${tint(tone, 0.4)}`,
+        }}
+      />
+    </div>
+  );
 };

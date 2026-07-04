@@ -91,6 +91,17 @@ export const surface = {
     border: 'rgba(255,255,255,0.06)',
     borderActive: 'rgba(212,168,83,0.35)',
   },
+  // premium → matches the LandingPageV2 card language: a solid near-black
+  // panel with a gold top-hairline and a lift-on-hover treatment. Use for
+  // hero KPI cards, analytics panels, anything that should feel "showcase".
+  premium: {
+    bg: '#0a0805',
+    border: 'rgba(255,255,255,0.07)',
+    hover: 'rgba(255,255,255,0.10)',
+    borderHover: 'rgba(212,168,83,0.25)',
+    topGlow: 'rgba(212,168,83,0.45)', // gold hairline (landing signature)
+    shadowHover: '0 14px 34px rgba(0,0,0,0.5)',
+  },
   base: {
     bg: 'rgba(255,255,255,0.015)',
     border: 'rgba(255,255,255,0.06)',
@@ -195,10 +206,29 @@ export const elevation = {
   // Subtle top hairline used on cards to suggest depth
   topHairline: (color = 'rgba(255,255,255,0.04)') =>
     `linear-gradient(to right, transparent, ${color}, transparent)`,
+  // Gold top hairline — the LandingPageV2 signature accent line.
+  goldHairline: (alpha = 0.45) =>
+    `linear-gradient(to right, transparent, rgba(212,168,83,${alpha}), transparent)`,
   // Modal shadow — used on grant modal, drawer
   modal: '0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(212,168,83,0.1)',
   // Floating bar (bulk action)
   floating: '0 12px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,83,0.12)',
+  // Card lift on hover (premium surface)
+  cardHover: '0 14px 34px rgba(0,0,0,0.5)',
+};
+
+// ════════════════════════════════════════════════════════════════════
+// Gradients — reusable brand gradients (match LandingPageV2)
+// ════════════════════════════════════════════════════════════════════
+
+export const gradient = {
+  // Gold text — apply with `background`, `WebkitBackgroundClip:'text'`,
+  // `backgroundClip:'text'`, `color:'transparent'`.
+  goldText: 'linear-gradient(135deg, #f0d890, #d4a853 50%, #b8860b)',
+  // Solid gold CTA fill (buttons)
+  goldFill: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+  // Glossy 3D bar fill (MEXC-ish cylinder) used by Bar3D
+  goldBar: 'linear-gradient(180deg, #f6e0a0 0%, #e7c373 34%, #cba24f 68%, #a8842f 100%)',
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -251,6 +281,7 @@ export const tokens = {
   textColor,
   radius,
   elevation,
+  gradient,
   motion,
   tint,
   tilePreset,

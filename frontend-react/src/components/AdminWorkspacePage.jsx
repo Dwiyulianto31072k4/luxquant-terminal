@@ -31,7 +31,7 @@ import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
 import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
 
 // Design system
-import { palette, surface, tint, motion } from './admin/designSystem';
+import { palette, surface, tint, motion, gradient } from './admin/designSystem';
 
 // Icons
 import {
@@ -123,7 +123,7 @@ const BrandHeader = () => (
         <span className="text-white">Management </span>
         <span
           style={{
-            background: 'linear-gradient(135deg, #ecd6a3, #d4a853)',
+            background: gradient.goldText,
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
             color: 'transparent',
@@ -445,7 +445,21 @@ const AdminWorkspacePage = () => {
   const activeTabDef = TAB_BY_ID[activeTab] || TABS[0];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+    <div className="relative mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+      {/* Ambient brand canvas — subtle red+gold radial wash matching
+          LandingPageV2. Sits behind content, never intercepts clicks. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-0"
+        style={{
+          background: `
+            radial-gradient(ellipse at 0% 0%, rgba(139,26,26,0.18) 0%, transparent 48%),
+            radial-gradient(ellipse at 100% 0%, rgba(212,168,83,0.06) 0%, transparent 42%),
+            radial-gradient(ellipse at 50% 100%, rgba(139,26,26,0.10) 0%, transparent 55%)
+          `,
+        }}
+      />
+      <div className="relative z-10">
       {/* ─── Header row ─── */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-2">
         <BrandHeader />
@@ -494,6 +508,7 @@ const AdminWorkspacePage = () => {
           {activeTab === 'apikeys' && <ApiKeysTab />}
           {activeTab === 'announcements' && <AnnouncementsTab />}
         </div>
+      </div>
       </div>
     </div>
   );
