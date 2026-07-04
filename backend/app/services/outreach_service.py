@@ -48,93 +48,110 @@ logger = logging.getLogger(__name__)
 #   body        Python format string
 #   subject     for email channel only (optional)
 #
-# Tone: casual Indonesian — match how Dwi communicates with users.
+# Tone: warm, professional English — friendly, concise, and conversion-minded.
 
 TEMPLATES: List[Dict[str, Any]] = [
     {
         "id": "welcome_subscriber",
         "label": "Welcome Subscriber",
-        "description": "Sapa subscriber baru, kasih quick start",
+        "description": "Greet a new subscriber and share a quick start",
         "channels": ["telegram", "discord", "email"],
         "subject": "Welcome to LuxQuant Premium 🎉",
         "body": (
-            "Halo {username}!\n\n"
-            "Welcome ke LuxQuant Premium 🎉 Subscription kamu udah aktif"
-            " sampai {expires_at}.\n\n"
-            "Yang bisa kamu akses sekarang:\n"
+            "Hi {username},\n\n"
+            "Welcome to LuxQuant Premium 🎉 Your subscription is active"
+            " until {expires_at}.\n\n"
+            "Here's what you can access right now:\n"
             "• Real-time trading signals\n"
-            "• AI Arena verdict 4x/hari\n"
+            "• AI Arena verdicts, 4x a day\n"
             "• Top performers & coin intelligence\n"
             "• Auto-trade integration\n\n"
-            "Kalau ada pertanyaan, langsung balas pesan ini ya.\n\n"
+            "Just reply to this message if you have any questions.\n\n"
             "Happy trading!"
         ),
     },
     {
         "id": "renewal_reminder",
         "label": "Renewal Reminder",
-        "description": "Pengingat 7 hari sebelum expire",
+        "description": "Reminder ~7 days before expiry",
         "channels": ["telegram", "discord", "email"],
-        "subject": "Subscription kamu expire {expires_in_days} hari lagi",
+        "subject": "Your LuxQuant subscription expires in {expires_in_days} days",
         "body": (
             "Hi {username},\n\n"
-            "Subscription LuxQuant kamu expire dalam {expires_in_days} hari"
+            "Your LuxQuant subscription expires in {expires_in_days} days"
             " ({expires_at}).\n\n"
-            "Untuk perpanjang, login ke luxquant.tw → Pricing → pilih plan."
-            " Atau kalau mau langsung subscribe via admin, balas pesan ini.\n\n"
+            "To renew, log in at luxquant.tw → Pricing → pick a plan. Or"
+            " just reply here and we'll activate it for you directly.\n\n"
             "Thanks!"
         ),
     },
     {
         "id": "expired_winback",
         "label": "Expired — Win Back",
-        "description": "Ajak kembali user yang baru aja expire",
+        "description": "Win back a recently expired subscriber",
         "channels": ["telegram", "discord", "email"],
-        "subject": "Welcome back ke LuxQuant?",
+        "subject": "Come back to LuxQuant?",
         "body": (
             "Hi {username},\n\n"
-            "Subscription LuxQuant kamu udah expire. Kangen sama"
-            " signals & AI Arena? 😊\n\n"
-            "Renew sekarang dan akses langsung aktif dalam beberapa menit:\n"
+            "Your LuxQuant subscription has expired. Missing the signals"
+            " & AI Arena? 😊\n\n"
+            "Renew now and your access is back within minutes:\n"
             "luxquant.tw/pricing\n\n"
-            "Atau kalau ada feedback kenapa belum renew, share ke kita ya"
-            " — kita selalu pengen improve."
+            "And if there's a reason you haven't renewed yet, let us know"
+            " — we're always looking to improve."
         ),
     },
     {
         "id": "reengage_dormant",
         "label": "Re-engage Dormant",
-        "description": "User free yang udah lama ga login",
+        "description": "Free user who hasn't logged in for a while",
         "channels": ["telegram", "discord", "email"],
-        "subject": "Ada update baru di LuxQuant 👀",
+        "subject": "What's new at LuxQuant 👀",
         "body": (
             "Hi {username},\n\n"
-            "Ketemu lagi! Udah lama kamu ga mampir ke LuxQuant. Sambil"
-            " update, beberapa fitur baru:\n\n"
-            "• AI Arena v6 — 3-stage AI pipeline (verdict 4x/hari)\n"
+            "It's been a while since your last visit. Here's what's new"
+            " since then:\n\n"
+            "• AI Arena v6 — 3-stage AI pipeline (verdicts 4x a day)\n"
             "• Coin Intelligence — per-pair analytics\n"
             "• Auto-trade integration (Binance/Bybit/OKX/Bitget/MEXC)\n\n"
-            "Login lagi: luxquant.tw\n\n"
-            "Ada yang bisa dibantu? Balas aja pesan ini."
+            "Log back in: luxquant.tw\n\n"
+            "Anything we can help with? Just reply to this message."
+        ),
+    },
+    {
+        "id": "connect_telegram",
+        "label": "Connect Telegram",
+        "description": "Paid user who hasn't linked Telegram yet",
+        "channels": ["telegram", "discord", "email"],
+        "subject": "One step left to unlock your VIP signal group",
+        "body": (
+            "Hi {username},\n\n"
+            "Your LuxQuant subscription is active — there's just one quick"
+            " step left to join the VIP signal group on Telegram:\n\n"
+            "1. Open Profile → Settings → Connected Accounts\n"
+            "2. Link your Telegram account\n"
+            "3. Click \"Join VIP Group\"\n\n"
+            "That's it. Reply here if you get stuck and we'll walk you"
+            " through it."
         ),
     },
     {
         "id": "vip_lifetime_thanks",
         "label": "VIP Lifetime — Thanks",
-        "description": "Apresiasi untuk VIP Telegram/Discord lifetime",
+        "description": "Thank a lifetime Telegram/Discord VIP",
         "channels": ["telegram", "discord"],
         "body": (
-            "Halo {username},\n\n"
-            "Thanks udah jadi VIP member kita 🙏 Akses LuxQuant Premium"
-            " kamu permanent selama masih join VIP group.\n\n"
-            "Kalau ada masukan, request fitur, atau bug, langsung kabari"
-            " kita ya — kita selalu dengar."
+            "Hi {username},\n\n"
+            "Thanks for being a VIP member 🙏 Your LuxQuant Premium access"
+            " stays active for as long as you're in the VIP group.\n\n"
+            "Got feedback, a feature request, or a bug? Let us know anytime"
+            " — we're always listening."
         ),
     },
     {
         "id": "custom",
         "label": "Custom Message",
-        "description": "Compose pesan custom (admin tulis sendiri)",
+        "description": "Compose a custom message (write your own)",
         "channels": ["telegram", "discord", "email", "generic"],
         "body": "",  # filled by custom_message at render time
     },
@@ -243,8 +260,8 @@ def _discord_deep_link(user: User) -> Optional[str]:
         # If it's all digits, treat as user id
         if handle.isdigit():
             return f"https://discord.com/users/{handle}"
-        # else: best-effort, ga ada universal "by-handle" deep link di Discord
-        # → return None, fallback to copy
+        # else: best-effort — Discord has no universal "by-handle" deep link
+        # → return None, fall back to copy
         return None
     if user.discord_id:
         return f"https://discord.com/users/{user.discord_id}"

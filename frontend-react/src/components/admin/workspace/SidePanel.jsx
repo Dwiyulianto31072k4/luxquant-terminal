@@ -1,10 +1,10 @@
 // src/components/admin/workspace/SidePanel.jsx
 // ════════════════════════════════════════════════════════════════
-// Wrapper bersama untuk panel admin (Followup / Campaign / Todo /
-// PaymentDetail). Sekarang delegasi ke <Modal> primitive standar —
-// header flat + gold hairline, animasi/Esc/scroll-lock/portal seragam.
-// API DIPERTAHANKAN: { isOpen, onClose, title, subtitle, Icon, width,
-// footer, children } — keempat caller tidak perlu diubah.
+// Shared wrapper for admin panels (Followup / Campaign / Todo /
+// PaymentDetail). Now delegates to the standard <Modal> primitive —
+// flat header + gold hairline, uniform animation/Esc/scroll-lock/portal.
+// API PRESERVED: { isOpen, onClose, title, subtitle, Icon, width,
+// footer, children } — none of the four callers need to change.
 // ════════════════════════════════════════════════════════════════
 
 import Modal from '../../ui/Modal';

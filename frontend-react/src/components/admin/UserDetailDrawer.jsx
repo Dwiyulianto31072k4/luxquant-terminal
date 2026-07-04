@@ -415,8 +415,8 @@ const computeVipDiagnosis = (user) => {
   if (active && hasTg && inGroup) {
     return {
       tone: 'ok', color: '#34d399', icon: 'check',
-      title: 'Healthy — akses aktif & di dalam VIP group',
-      detail: 'Tidak ada tindakan diperlukan.',
+      title: 'Healthy — active access & inside the VIP group',
+      detail: 'No action needed.',
       action: null,
       signals: { access: `Active · ${expDate}`, tg: 'Linked', group: 'Inside' },
     };
@@ -425,8 +425,8 @@ const computeVipDiagnosis = (user) => {
   if (active && hasTg && !inGroup) {
     return {
       tone: 'warn', color: '#d4a853', icon: 'alert',
-      title: 'Bayar aktif, link TG, tapi di luar group',
-      detail: 'Sudah link Telegram & akses aktif, tapi belum join (atau keluar) VIP group. Generate invite link untuk mengundang ulang.',
+      title: 'Paid & Telegram linked, but outside the group',
+      detail: 'Telegram is linked and access is active, but they haven\'t joined (or have left) the VIP group. Generate an invite link to re-invite them.',
       action: 'invite',
       signals: { access: `Active · ${expDate}`, tg: 'Linked', group: 'Outside' },
     };
@@ -435,8 +435,8 @@ const computeVipDiagnosis = (user) => {
   if (active && !hasTg) {
     return {
       tone: 'info', color: '#5aa9e6', icon: 'telegram',
-      title: 'Bayar aktif, tapi belum link Telegram',
-      detail: 'User login lewat Google/Discord & sudah bayar, tapi belum connect Telegram — jadi belum bisa di-invite ke VIP group. Minta user link TG dulu di profile.',
+      title: 'Paid, but Telegram not linked yet',
+      detail: 'User signed in via Google/Discord and has paid, but hasn\'t connected Telegram — so they can\'t be invited to the VIP group yet. Ask them to link Telegram in their profile first.',
       action: 'email_link_tg',
       signals: { access: `Active · ${expDate}`, tg: 'Not linked', group: 'n/a' },
     };
@@ -445,8 +445,8 @@ const computeVipDiagnosis = (user) => {
   if (!active && inGroup && inGrace) {
     return {
       tone: 'warn', color: '#fbbf24', icon: 'alert',
-      title: 'Expired — dalam grace period',
-      detail: `Langganan sudah lewat tapi masih dalam masa tenggang. Akan otomatis di-kick saat grace habis (${formatDate(user.telegram_grace_until)}).`,
+      title: 'Expired — in grace period',
+      detail: `Subscription has lapsed but is still within the grace period. They'll be auto-kicked when grace ends (${formatDate(user.telegram_grace_until)}).`,
       action: null,
       signals: { access: 'Expired (grace)', tg: hasTg ? 'Linked' : 'Not linked', group: 'Inside' },
     };
@@ -455,8 +455,8 @@ const computeVipDiagnosis = (user) => {
   if (!active && inGroup && !inGrace) {
     return {
       tone: 'danger', color: '#f87171', icon: 'alert',
-      title: 'Expired tapi masih di dalam group',
-      detail: 'Langganan sudah habis & di luar masa grace, tapi user masih ada di VIP group. Worker harusnya kick — cek subscription_worker, atau kick manual.',
+      title: 'Expired but still inside the group',
+      detail: 'Subscription has ended and grace has passed, yet the user is still in the VIP group. The worker should have kicked them — check subscription_worker, or kick manually.',
       action: null,
       signals: { access: 'Expired', tg: hasTg ? 'Linked' : 'Not linked', group: 'Inside (anomaly)' },
     };
@@ -465,7 +465,7 @@ const computeVipDiagnosis = (user) => {
   return {
     tone: 'neutral', color: '#6b5c52', icon: 'user',
     title: 'No active access',
-    detail: 'User tidak punya akses aktif. Wajar berada di luar VIP group.',
+    detail: 'User has no active access. Being outside the VIP group is expected.',
     action: null,
     signals: { access: 'None', tg: hasTg ? 'Linked' : 'Not linked', group: inGroup ? 'Inside' : 'Outside' },
   };
@@ -492,24 +492,24 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
     try {
       const res = await adminApi.generateVipInvite(user.id);
       if (res.already_member) {
-        onToast?.('User sudah jadi member VIP group.', 'success');
+        onToast?.('User is already a member of the VIP group.', 'success');
         onInvited?.();
       } else if (res.invite_link) {
         setInviteLink(res.invite_link);
         try { await navigator.clipboard.writeText(res.invite_link); } catch {}
-        onToast?.('Invite link dibuat & disalin ke clipboard.', 'success');
+        onToast?.('Invite link created & copied to clipboard.', 'success');
       }
     } catch (e) {
-      onToast?.(e.response?.data?.detail || 'Gagal membuat invite link', 'error');
+      onToast?.(e.response?.data?.detail || 'Failed to create invite link', 'error');
     } finally {
       setBusy(false);
     }
   };
 
   const handleCopyLinkTgMsg = async () => {
-    const msg = `Hi! Langgananmu di LuxQuant sudah aktif. Untuk join VIP signal group di Telegram, silakan connect akun Telegram kamu dulu di halaman Profile (Settings → Connected Accounts → Telegram → Link), lalu klik "Join VIP Group". Terima kasih!`;
-    try { await navigator.clipboard.writeText(msg); onToast?.('Pesan arahan disalin ke clipboard.', 'success'); }
-    catch { onToast?.('Gagal menyalin', 'error'); }
+    const msg = `Hi! Your LuxQuant subscription is active. To join the VIP signal group on Telegram, please connect your Telegram account first on the Profile page (Settings → Connected Accounts → Telegram → Link), then click "Join VIP Group". Thanks!`;
+    try { await navigator.clipboard.writeText(msg); onToast?.('Instructions copied to clipboard.', 'success'); }
+    catch { onToast?.('Failed to copy', 'error'); }
   };
 
   const [fuBusy, setFuBusy] = useState(false);
@@ -518,20 +518,20 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
     try {
       const res = await adminApi.vipFollowup(user.id);
       if (res.ok) {
-        onToast?.('Follow-up terkirim ke @' + (user.username || user.id) + ' via bot.', 'success');
+        onToast?.('Follow-up sent to @' + (user.username || user.id) + ' via bot.', 'success');
         if (res.invite_link) setInviteLink(res.invite_link);
         onInvited?.();
       } else if (res.reason === 'dm_failed') {
-        onToast?.('Bot tidak bisa DM user ini (belum /start bot). Link tetap dibuat.', 'error');
+        onToast?.('Bot could not DM this user (they haven\'t /started the bot). Link created anyway.', 'error');
         if (res.invite_link) setInviteLink(res.invite_link);
       } else if (res.reason === 'already_member') {
-        onToast?.('User sudah di VIP group.', 'success');
+        onToast?.('User is already in the VIP group.', 'success');
         onInvited?.();
       } else {
-        onToast?.(res.message || 'Follow-up gagal.', 'error');
+        onToast?.(res.message || 'Follow-up failed.', 'error');
       }
     } catch (e) {
-      onToast?.(e.response?.data?.detail || 'Follow-up gagal.', 'error');
+      onToast?.(e.response?.data?.detail || 'Follow-up failed.', 'error');
     } finally {
       setFuBusy(false);
     }
@@ -569,12 +569,12 @@ const VipDiagnostic = ({ user, onInvited, onToast }) => {
           <button onClick={handleCopyLinkTgMsg}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold"
             style={{ background: `${d.color}24`, color: d.color, border: `1px solid ${d.color}4d`, cursor: 'pointer' }}>
-            <SendIcon size={13} /> Copy pesan "connect Telegram"
+            <SendIcon size={13} /> Copy "connect Telegram" message
           </button>
         )}
         {inviteLink && (
           <div className="mt-2 p-2 rounded-md text-[11px] break-all" style={{ background: 'rgba(255,255,255,0.04)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-            <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Invite link (sudah disalin · valid 1 jam)</div>
+            <div className="text-[9px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Invite link (copied · valid 1 hour)</div>
             {inviteLink}
           </div>
         )}
@@ -608,18 +608,18 @@ const AccountTimeline = ({ data }) => {
   const events = [];
 
   if (user.created_at)
-    events.push({ ts: user.created_at, icon: SparklesIcon, color: '#d4a853', label: `Akun dibuat (via ${user.auth_provider || 'unknown'})` });
+    events.push({ ts: user.created_at, icon: SparklesIcon, color: '#d4a853', label: `Account created (via ${user.auth_provider || 'unknown'})` });
   if (user.first_login_at)
-    events.push({ ts: user.first_login_at, icon: UserIcon, color: '#5aa9e6', label: 'Login pertama' });
+    events.push({ ts: user.first_login_at, icon: UserIcon, color: '#5aa9e6', label: 'First login' });
 
   (payments || []).filter((p) => p.status === 'confirmed').forEach((p) => {
-    events.push({ ts: p.verified_at || p.created_at, icon: StarIcon, color: '#34d399', label: `Pembayaran confirmed${p.plan_label ? ` · ${p.plan_label}` : ''} ($${p.final_amount || p.amount_usdt})` });
+    events.push({ ts: p.verified_at || p.created_at, icon: StarIcon, color: '#34d399', label: `Payment confirmed${p.plan_label ? ` · ${p.plan_label}` : ''} ($${p.final_amount || p.amount_usdt})` });
   });
 
   if (user.subscription_granted_at)
     events.push({ ts: user.subscription_granted_at, icon: StarIcon, color: '#fbbf24', label: `Subscription granted${user.subscription_source ? ` (${user.subscription_source})` : ''}` });
   if (user.subscription_expires_at)
-    events.push({ ts: user.subscription_expires_at, icon: ClockIcon, color: new Date(user.subscription_expires_at) > new Date() ? '#34d399' : '#f87171', label: new Date(user.subscription_expires_at) > new Date() ? 'Subscription berlaku sampai' : 'Subscription expired' });
+    events.push({ ts: user.subscription_expires_at, icon: ClockIcon, color: new Date(user.subscription_expires_at) > new Date() ? '#34d399' : '#f87171', label: new Date(user.subscription_expires_at) > new Date() ? 'Subscription valid until' : 'Subscription expired' });
 
   events.sort((a, b) => new Date(a.ts) - new Date(b.ts));
 
@@ -673,7 +673,7 @@ const FollowupTimeline = ({ userId }) => {
         <p className="text-[11px] text-text-muted/40">Loading...</p>
       ) : items.length === 0 ? (
         <p className="text-[11px] text-text-muted/40">
-          Belum ada follow-up untuk user ini.
+          No follow-ups for this user yet.
         </p>
       ) : (
         <div className="space-y-0">

@@ -657,7 +657,7 @@ export const Avatar = ({ src, name = '', tone = palette.gold[300], size = 'sm', 
 };
 
 // ════════════════════════════════════════════════════════════════════
-// EmptyState — illustrated empty state (replaces generic "Tidak ada X")
+// EmptyState — illustrated empty state (replaces generic "No X yet")
 // ════════════════════════════════════════════════════════════════════
 
 /**

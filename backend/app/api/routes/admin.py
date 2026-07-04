@@ -85,7 +85,7 @@ async def get_admin_stats(
         User.is_active == True,
         or_(
             User.subscription_expires_at.is_(None),       # lifetime
-            User.subscription_expires_at > now              # belum expired
+            User.subscription_expires_at > now              # not yet expired
         )
     ).scalar()
 
@@ -105,7 +105,7 @@ async def get_admin_stats(
         User.subscription_expires_at <= seven_days
     ).scalar()
 
-    # Already expired (masih role subscriber tapi sudah lewat)
+    # Already expired (still role subscriber but past the date)
     expired = db.query(func.count(User.id)).filter(
         User.role.in_(['premium', 'subscriber']),
         User.subscription_expires_at.isnot(None),
@@ -218,7 +218,7 @@ async def list_users(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """
-    List semua users dengan search, filter, dan pagination.
+    List all users with search, filter, and pagination.
     """
     now = datetime.now(timezone.utc)
     seven_days = now + timedelta(days=7)
@@ -528,14 +528,14 @@ async def grant_subscription(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="Admin sudah punya akses penuh")
+        raise HTTPException(status_code=400, detail="Admin already has full access")
 
     now = datetime.now(timezone.utc)
 
-    # Custom start date (untuk user lama yang sudah subscribe sebelum app ada)
+    # Custom start date (for legacy users who subscribed before the app existed)
     if data.start_date:
         start = datetime.strptime(data.start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
     else:
@@ -560,17 +560,17 @@ async def grant_subscription(
         if expires_at <= start:
             raise HTTPException(
                 status_code=400,
-                detail="end_date harus setelah start_date"
+                detail="end_date must be after start_date"
             )
     else:
-        raise HTTPException(status_code=400, detail="Duration tidak valid")
+        raise HTTPException(status_code=400, detail="Invalid duration")
 
     user.role = 'subscriber'
     user.subscription_expires_at = expires_at
-    # Source = identity yang dipakai role_resolver buat nentuin proteksi role
+    # Source = identity used by role_resolver to determine role protection
     # saat user login/link via OAuth lain (Telegram/Discord/Google).
     # Lifetime grant -> 'lifetime' (protected selamanya).
-    # Time-bound grant -> 'admin' (protected selama belum expired).
+    # Time-bound grant -> 'admin' (protected while not yet expired).
     user.subscription_source = 'lifetime' if expires_at is None else 'admin'
     user.subscription_granted_by = admin.id
     user.subscription_granted_at = now
@@ -590,7 +590,7 @@ async def grant_subscription(
 
     return {
         "success": True,
-        "message": f"Subscription {duration_label} berhasil diberikan ke {user.username}",
+        "message": f"Subscription {duration_label} granted to {user.username}",
         "user": AdminUserResponse.model_validate(user)
     }
 
@@ -610,13 +610,13 @@ async def revoke_subscription(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="Tidak bisa revoke admin")
+        raise HTTPException(status_code=400, detail="Cannot revoke an admin")
 
     if user.role == 'free':
-        raise HTTPException(status_code=400, detail="User sudah free")
+        raise HTTPException(status_code=400, detail="User is already free")
 
     now = datetime.now(timezone.utc)
     user.role = 'free'
@@ -624,7 +624,7 @@ async def revoke_subscription(
     user.subscription_source = None  # jalur pencabutan resmi — bersihin source
     user.subscription_note = f"Revoked by admin (ID:{admin.id}) on {now.strftime('%Y-%m-%d %H:%M')}"
 
-    # Tombstone snapshot legacy biar TIDAK di-grant ulang saat user login Telegram.
+    # Tombstone legacy snapshot so it is NOT re-granted when the user logs in via Telegram.
     # Tanpa ini, _check_legacy_member akan terus menganggapnya legacy -> re-grant.
     if user.telegram_id:
         legacy_row = db.query(LegacyMember).filter(
@@ -639,7 +639,7 @@ async def revoke_subscription(
 
     return {
         "success": True,
-        "message": f"Subscription {user.username} berhasil dicabut",
+        "message": f"Subscription revoked for {user.username}",
         "user": AdminUserResponse.model_validate(user)
     }
 
@@ -665,12 +665,12 @@ async def admin_generate_vip_invite(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     if not user.telegram_id:
         raise HTTPException(
             status_code=400,
-            detail="User belum link Telegram. Minta user connect Telegram dulu di profile sebelum bisa di-invite ke VIP group.",
+            detail="User hasn't linked Telegram yet. Ask them to connect Telegram in their profile before they can be invited to the VIP group.",
         )
 
     # If already inside, no need for a new link
@@ -683,7 +683,7 @@ async def admin_generate_vip_invite(
         return {
             "already_member": True,
             "invite_link": None,
-            "message": "User sudah jadi member VIP group.",
+            "message": "User is already a member of the VIP group.",
         }
 
     invite_link = await create_one_time_invite_link(
@@ -693,7 +693,7 @@ async def admin_generate_vip_invite(
     if not invite_link:
         raise HTTPException(
             status_code=502,
-            detail="Gagal membuat invite link. Coba lagi sebentar.",
+            detail="Failed to create invite link. Please try again shortly.",
         )
 
 def _build_followup_message(invite_link: str) -> str:
@@ -714,11 +714,11 @@ async def _do_vip_followup(user, db) -> dict:
     """Core: validate, generate invite, DM the user. Returns a result dict."""
     if not user.telegram_id:
         return {"ok": False, "reason": "no_telegram",
-                "message": "User belum link Telegram \u2014 bot tidak bisa kirim DM."}
+                "message": "User hasn't linked Telegram \u2014 the bot can't send a DM."}
 
     if not user.has_active_access:
         return {"ok": False, "reason": "no_access",
-                "message": "User tidak punya akses aktif."}
+                "message": "User has no active access."}
 
     already = await is_in_group(user.telegram_id)
     if already is True:
@@ -726,22 +726,22 @@ async def _do_vip_followup(user, db) -> dict:
             user.telegram_in_group = True
             db.commit()
         return {"ok": False, "reason": "already_member",
-                "message": "User sudah di VIP group."}
+                "message": "User is already in the VIP group."}
 
     invite_link = await create_one_time_invite_link(
         expire_seconds=3600, name=f"followup-u{user.id}",
     )
     if not invite_link:
         return {"ok": False, "reason": "invite_failed",
-                "message": "Gagal membuat invite link."}
+                "message": "Failed to create invite link."}
 
     sent = await send_dm(user.telegram_id, _build_followup_message(invite_link))
     if not sent:
         return {"ok": False, "reason": "dm_failed", "invite_link": invite_link,
-                "message": "DM gagal \u2014 user mungkin belum pernah /start bot."}
+                "message": "DM failed \u2014 the user may not have /started the bot."}
 
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
-            "message": "Follow-up terkirim via bot."}
+            "message": "Follow-up sent via bot."}
 
 
 @router.post("/users/{user_id}/vip-followup")
@@ -753,7 +753,7 @@ async def admin_vip_followup(
     """Send an adaptive VIP follow-up DM (invite link) to a single user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
     result = await _do_vip_followup(user, db)
     return result
 
@@ -817,10 +817,10 @@ async def admin_send_message(
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
     if not user.telegram_id:
         return {"ok": False, "reason": "no_telegram",
-                "message": "User belum link Telegram \u2014 bot tidak bisa kirim DM."}
+                "message": "User hasn't linked Telegram \u2014 the bot can't send a DM."}
 
     final_msg = text_msg
     invite_link = None
@@ -836,10 +836,10 @@ async def admin_send_message(
     sent = await send_dm(user.telegram_id, final_msg)
     if not sent:
         return {"ok": False, "reason": "dm_failed",
-                "message": "DM gagal \u2014 user mungkin belum pernah /start bot."}
+                "message": "DM failed \u2014 the user may not have /started the bot."}
 
     return {"ok": True, "reason": "sent", "invite_link": invite_link,
-            "message": "Pesan terkirim via bot."}
+            "message": "Message sent via bot."}
 
 
 # ════════════════════════════════════════════
@@ -892,7 +892,7 @@ async def cleanup_expired_subscriptions(
     db: Session = Depends(get_db)
 ):
     """
-    Manual trigger: downgrade semua subscriber yang sudah expired ke free.
+    Manual trigger: downgrade all expired subscribers to free.
     """
     now = datetime.now(timezone.utc)
 
@@ -915,7 +915,7 @@ async def cleanup_expired_subscriptions(
         "success": True,
         "downgraded_count": len(downgraded),
         "downgraded_users": downgraded,
-        "message": f"{len(downgraded)} user(s) di-downgrade ke free"
+        "message": f"{len(downgraded)} user(s) downgraded to free"
     }
 
 
@@ -934,13 +934,13 @@ async def toggle_user_active(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     if user.id == admin.id:
-        raise HTTPException(status_code=400, detail="Tidak bisa ban diri sendiri")
+        raise HTTPException(status_code=400, detail="You can't ban yourself")
 
     if user.role == 'admin':
-        raise HTTPException(status_code=400, detail="Tidak bisa ban admin lain")
+        raise HTTPException(status_code=400, detail="You can't ban another admin")
 
     user.is_active = not user.is_active
     db.commit()
@@ -978,7 +978,7 @@ async def update_plan(
     """Update plan price, label, status, etc"""
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Plan not found")
 
     for field in ['label', 'description', 'price_usdt', 'duration_days', 'is_active', 'sort_order']:
         val = getattr(data, field, None)
@@ -1122,7 +1122,7 @@ async def get_user_full_detail(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     # Recent payments (last 10)
     payments = (
@@ -1236,7 +1236,7 @@ async def update_user_contact(
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     # Apply only provided fields (model_fields_set detects what admin sent)
     sent_fields = data.model_fields_set
@@ -1289,7 +1289,7 @@ async def render_outreach_template(
     """
     user = db.query(User).filter(User.id == payload.user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail="User not found")
 
     try:
         result = render_template(

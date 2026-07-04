@@ -2,12 +2,12 @@
 """
 Admin — view & manage ALL users' API keys + IP-anomaly flags.
 
-Isolated router (nggak nyentuh admin.py yang gede). Pola sama public_data.py:
-router sendiri, di-register di main.py.
+Isolated router (keeps the large admin.py untouched). Same pattern as
+public_data.py: its own router, registered in main.py.
 
-Endpoints (semua admin-gated):
+Endpoints (all admin-gated):
     GET  /admin/api-keys           list + search + filter (active/revoked/flagged)
-    POST /admin/api-keys/{id}/revoke   soft-revoke key milik siapapun
+    POST /admin/api-keys/{id}/revoke   soft-revoke any user's key
 
 Flag IP-anomaly dibaca dari Redis yang dipasang di deps_public.py:
     apikey:ips:{id}   -> SET berisi IP unik (window 24h)  -> SCARD = jumlah IP
@@ -51,7 +51,7 @@ async def admin_list_api_keys(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ):
-    """List semua API key lintas user, plus status flag IP-anomaly."""
+    """List all API keys across users, plus IP-anomaly flag status."""
     q = db.query(ApiKey, User).join(User, ApiKey.user_id == User.id)
 
     if search:
@@ -69,7 +69,7 @@ async def admin_list_api_keys(
         q = q.filter(ApiKey.is_active == True)  # noqa: E712
     elif status_filter == "revoked":
         q = q.filter(ApiKey.is_active == False)  # noqa: E712
-    # "flagged" nggak bisa difilter di SQL (data di Redis) -> filter setelah lookup
+    # "flagged" can't be filtered in SQL (data lives in Redis) -> filter after lookup
 
     q = q.order_by(ApiKey.created_at.desc())
     total = q.count()
@@ -121,7 +121,7 @@ async def admin_revoke_api_key(
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
 ):
-    """Soft-revoke API key milik user manapun (set is_active=False)."""
+    """Soft-revoke any user's API key (set is_active=False)."""
     k = db.query(ApiKey).filter(ApiKey.id == key_id).first()
     if not k:
         raise HTTPException(status_code=404, detail="API key not found")

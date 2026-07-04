@@ -45,14 +45,14 @@ class FollowupCreate(BaseModel):
     @classmethod
     def cat_valid(cls, v):
         if v not in VALID_FOLLOWUP_CATEGORY:
-            raise ValueError(f"category harus salah satu dari: {', '.join(VALID_FOLLOWUP_CATEGORY)}")
+            raise ValueError(f"category must be one of: {', '.join(VALID_FOLLOWUP_CATEGORY)}")
         return v
 
     @field_validator('priority')
     @classmethod
     def pri_valid(cls, v):
         if v not in VALID_PRIORITY:
-            raise ValueError(f"priority harus salah satu dari: {', '.join(VALID_PRIORITY)}")
+            raise ValueError(f"priority must be one of: {', '.join(VALID_PRIORITY)}")
         return v
 
 
@@ -68,21 +68,21 @@ class FollowupUpdate(BaseModel):
     @classmethod
     def cat_valid(cls, v):
         if v is not None and v not in VALID_FOLLOWUP_CATEGORY:
-            raise ValueError(f"category harus salah satu dari: {', '.join(VALID_FOLLOWUP_CATEGORY)}")
+            raise ValueError(f"category must be one of: {', '.join(VALID_FOLLOWUP_CATEGORY)}")
         return v
 
     @field_validator('status')
     @classmethod
     def status_valid(cls, v):
         if v is not None and v not in VALID_FOLLOWUP_STATUS:
-            raise ValueError(f"status harus salah satu dari: {', '.join(VALID_FOLLOWUP_STATUS)}")
+            raise ValueError(f"status must be one of: {', '.join(VALID_FOLLOWUP_STATUS)}")
         return v
 
     @field_validator('priority')
     @classmethod
     def pri_valid(cls, v):
         if v is not None and v not in VALID_PRIORITY:
-            raise ValueError(f"priority harus salah satu dari: {', '.join(VALID_PRIORITY)}")
+            raise ValueError(f"priority must be one of: {', '.join(VALID_PRIORITY)}")
         return v
 
 
@@ -134,14 +134,14 @@ class CampaignCreate(BaseModel):
     @classmethod
     def platform_valid(cls, v):
         if v is not None and v not in VALID_PLATFORM:
-            raise ValueError(f"platform harus salah satu dari: {', '.join(VALID_PLATFORM)}")
+            raise ValueError(f"platform must be one of: {', '.join(VALID_PLATFORM)}")
         return v
 
     @field_validator('status')
     @classmethod
     def status_valid(cls, v):
         if v not in VALID_CAMPAIGN_STATUS:
-            raise ValueError(f"status harus salah satu dari: {', '.join(VALID_CAMPAIGN_STATUS)}")
+            raise ValueError(f"status must be one of: {', '.join(VALID_CAMPAIGN_STATUS)}")
         return v
 
 
@@ -163,14 +163,14 @@ class CampaignUpdate(BaseModel):
     @classmethod
     def platform_valid(cls, v):
         if v is not None and v not in VALID_PLATFORM:
-            raise ValueError(f"platform harus salah satu dari: {', '.join(VALID_PLATFORM)}")
+            raise ValueError(f"platform must be one of: {', '.join(VALID_PLATFORM)}")
         return v
 
     @field_validator('status')
     @classmethod
     def status_valid(cls, v):
         if v is not None and v not in VALID_CAMPAIGN_STATUS:
-            raise ValueError(f"status harus salah satu dari: {', '.join(VALID_CAMPAIGN_STATUS)}")
+            raise ValueError(f"status must be one of: {', '.join(VALID_CAMPAIGN_STATUS)}")
         return v
 
 
@@ -214,14 +214,14 @@ class TodoCreate(BaseModel):
     @classmethod
     def cat_valid(cls, v):
         if v not in VALID_TODO_CATEGORY:
-            raise ValueError(f"category harus salah satu dari: {', '.join(VALID_TODO_CATEGORY)}")
+            raise ValueError(f"category must be one of: {', '.join(VALID_TODO_CATEGORY)}")
         return v
 
     @field_validator('priority')
     @classmethod
     def pri_valid(cls, v):
         if v not in VALID_PRIORITY:
-            raise ValueError(f"priority harus salah satu dari: {', '.join(VALID_PRIORITY)}")
+            raise ValueError(f"priority must be one of: {', '.join(VALID_PRIORITY)}")
         return v
 
 
@@ -238,21 +238,21 @@ class TodoUpdate(BaseModel):
     @classmethod
     def cat_valid(cls, v):
         if v is not None and v not in VALID_TODO_CATEGORY:
-            raise ValueError(f"category harus salah satu dari: {', '.join(VALID_TODO_CATEGORY)}")
+            raise ValueError(f"category must be one of: {', '.join(VALID_TODO_CATEGORY)}")
         return v
 
     @field_validator('status')
     @classmethod
     def status_valid(cls, v):
         if v is not None and v not in VALID_TODO_STATUS:
-            raise ValueError(f"status harus salah satu dari: {', '.join(VALID_TODO_STATUS)}")
+            raise ValueError(f"status must be one of: {', '.join(VALID_TODO_STATUS)}")
         return v
 
     @field_validator('priority')
     @classmethod
     def pri_valid(cls, v):
         if v is not None and v not in VALID_PRIORITY:
-            raise ValueError(f"priority harus salah satu dari: {', '.join(VALID_PRIORITY)}")
+            raise ValueError(f"priority must be one of: {', '.join(VALID_PRIORITY)}")
         return v
 
 

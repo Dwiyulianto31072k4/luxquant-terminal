@@ -11,8 +11,8 @@ import { useState } from "react";
 import Modal, { ModalFooter } from "../../ui/Modal";
 import { GoldButton, GhostButton, DangerButton } from "../../autotrade/AutoTradeUI";
 
-// Ikon danger reusable (opsi A — soft glow). Bisa dipindah ke AutoTradeUI
-// kalau mau dipakai modal danger lain.
+// Reusable danger icon (option A — soft glow). Can be moved to AutoTradeUI
+// if it's reused by other danger modals.
 export function DangerIcon() {
   return (
     <div className="relative h-11 w-11 flex-shrink-0">

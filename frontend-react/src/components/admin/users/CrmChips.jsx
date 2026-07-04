@@ -1,7 +1,7 @@
 // src/components/admin/users/CrmChips.jsx
 // ════════════════════════════════════════════════════════════════════
 // CRM touch-status filter chips. One click → show only users in that
-// state (untouched = belum dipantau, open = lagi diurus, tracked = sudah).
+// state (untouched = no follow-up yet, open = being worked, tracked = done).
 // Mirrors AnomalyChips; filters are mutually exclusive with one another.
 // ════════════════════════════════════════════════════════════════════
 import { palette, tint } from '../designSystem';
@@ -9,20 +9,20 @@ import { palette, tint } from '../designSystem';
 const CRM_CHIPS = [
   {
     key: 'untouched',
-    label: 'Belum dipantau',
-    hint: 'Belum pernah ada follow-up — perlu disapa',
+    label: 'Untracked',
+    hint: 'No follow-up yet — needs first outreach',
     color: '#8a7a6e',
   },
   {
     key: 'open',
-    label: 'Lagi diurus',
-    hint: 'Ada follow-up aktif (pending / in progress)',
+    label: 'In progress',
+    hint: 'Has an active follow-up (pending / in progress)',
     color: palette.amber?.[400] || '#fbbf24',
   },
   {
     key: 'tracked',
-    label: 'Sudah dipantau',
-    hint: 'Pernah di-follow-up & sudah selesai',
+    label: 'Tracked',
+    hint: 'Followed up & resolved',
     color: palette.green[400],
   },
 ];

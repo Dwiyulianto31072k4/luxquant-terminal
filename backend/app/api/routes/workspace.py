@@ -194,7 +194,7 @@ def create_followup(
     if data.user_id:
         target = db.query(User).filter(User.id == data.user_id).first()
         if not target:
-            raise HTTPException(status_code=404, detail="User tidak ditemukan")
+            raise HTTPException(status_code=404, detail="User not found")
 
     f = AdminFollowup(
         user_id=data.user_id,
@@ -222,7 +222,7 @@ def update_followup(
 ):
     f = db.query(AdminFollowup).filter(AdminFollowup.id == followup_id).first()
     if not f:
-        raise HTTPException(status_code=404, detail="Follow-up tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Follow-up not found")
 
     payload = data.model_dump(exclude_unset=True)
 
@@ -253,7 +253,7 @@ def delete_followup(
 ):
     f = db.query(AdminFollowup).filter(AdminFollowup.id == followup_id).first()
     if not f:
-        raise HTTPException(status_code=404, detail="Follow-up tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Follow-up not found")
 
     db.delete(f)
     db.commit()
@@ -325,7 +325,7 @@ def update_campaign(
 ):
     c = db.query(MarketingCampaign).filter(MarketingCampaign.id == campaign_id).first()
     if not c:
-        raise HTTPException(status_code=404, detail="Campaign tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Campaign not found")
 
     payload = data.model_dump(exclude_unset=True)
 
@@ -345,7 +345,7 @@ def delete_campaign(
 ):
     c = db.query(MarketingCampaign).filter(MarketingCampaign.id == campaign_id).first()
     if not c:
-        raise HTTPException(status_code=404, detail="Campaign tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Campaign not found")
 
     db.delete(c)
     db.commit()
@@ -447,7 +447,7 @@ def update_todo(
 ):
     t = db.query(BrandTodo).filter(BrandTodo.id == todo_id).first()
     if not t:
-        raise HTTPException(status_code=404, detail="Todo tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Todo not found")
 
     payload = data.model_dump(exclude_unset=True)
 
@@ -476,7 +476,7 @@ def delete_todo(
 ):
     t = db.query(BrandTodo).filter(BrandTodo.id == todo_id).first()
     if not t:
-        raise HTTPException(status_code=404, detail="Todo tidak ditemukan")
+        raise HTTPException(status_code=404, detail="Todo not found")
 
     db.delete(t)
     db.commit()

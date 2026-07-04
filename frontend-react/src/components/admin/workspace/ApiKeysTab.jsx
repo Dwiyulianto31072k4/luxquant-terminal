@@ -1,9 +1,9 @@
 // src/components/admin/workspace/ApiKeysTab.jsx
 // ════════════════════════════════════════════════════════════════
-// Admin · API Keys — lihat & kelola semua key lintas user + flag
-// IP-anomaly (kemungkinan dishare/dijual). Fetch GET /admin/api-keys.
+// Admin · API Keys — view & manage every key across users + IP-anomaly
+// flags (possible sharing/reselling). Fetch GET /admin/api-keys.
 // Revoke via POST /admin/api-keys/{id}/revoke.
-// Self-contained (Tailwind tokens app), nggak butuh designSystem.
+// Self-contained (app Tailwind tokens), no designSystem needed.
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';

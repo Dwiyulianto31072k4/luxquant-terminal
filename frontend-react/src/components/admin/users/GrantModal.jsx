@@ -1,9 +1,9 @@
 // src/components/admin/users/GrantModal.jsx
 // ════════════════════════════════════════════════════════════════
 // Refactor → shell <Modal> + GoldButton/GhostButton.
-// designSystem.js (palette/surface/tint/elevation/motion) diganti
-// nilai literal gold. Icons.jsx & Avatar (primitives) tetap dipakai.
-// Logika (mode quick/custom, preview, grant) utuh.
+// designSystem.js (palette/surface/tint/elevation/motion) replaced with
+// literal gold values. Icons.jsx & Avatar (primitives) still used.
+// Logic (quick/custom mode, preview, grant) intact.
 // ════════════════════════════════════════════════════════════════
 
 import { useState } from "react";

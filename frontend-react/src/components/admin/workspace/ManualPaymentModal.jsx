@@ -1,8 +1,8 @@
 // src/components/admin/workspace/ManualPaymentModal.jsx
 // ════════════════════════════════════════════════════════════════
-// Refactor → shell <Modal> (header/footer sticky, portal/Esc/scroll
-// lock di-handle Modal). Footer tombol → GoldButton/GhostButton.
-// Emoji (💡 📅 ✏️ ✓) diganti SVG. SEMUA step & logika tidak berubah.
+// Refactor → shell <Modal> (sticky header/footer, portal/Esc/scroll
+// lock handled by Modal). Footer buttons → GoldButton/GhostButton.
+// Emoji (💡 📅 ✏️ ✓) replaced with SVG. All steps & logic unchanged.
 // ════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback } from 'react';

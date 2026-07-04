@@ -1,8 +1,8 @@
 // src/components/admin/workspace/CategoryIcons.jsx
 // ════════════════════════════════════════════════════════════════
-// Icon set custom (duotone Binance-style): garis bersih + 1 aksen
-// solid-fill per ikon. Inherit currentColor. Props: size (default 14).
-// Dipakai di dalam badge / PickOption panel workspace.
+// Custom icon set (duotone Binance-style): clean lines + one solid-fill
+// accent per icon. Inherits currentColor. Props: size (default 14).
+// Used inside the badge / PickOption workspace panel.
 // ════════════════════════════════════════════════════════════════
 
 const wrap = (size, p) => ({
