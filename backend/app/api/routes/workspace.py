@@ -757,3 +757,192 @@ def delete_todo(
     db.delete(t)
     db.commit()
     return {"success": True, "message": "Todo deleted"}
+
+
+# ════════════════════════════════════════════════════════════════════
+# PAYMENT RECORD AUDIT — premium/subscriber must have a confirmed payment
+# ════════════════════════════════════════════════════════════════════
+# New system applies from 2026-06-17: any active premium/subscriber created on
+# or after the cutoff with NO confirmed payment is flagged and can be assigned
+# to an admin to record. Users before the cutoff are grandfathered (exempt).
+
+from pydantic import BaseModel as _AuditBaseModel
+from app.models.payment_audit import PaymentRecordAssignment
+
+PAYMENT_AUDIT_CUTOFF = datetime(2026, 6, 17, tzinfo=timezone.utc)
+_AUDIT_STATUSES = {"pending", "recorded", "waived"}
+
+
+class PaymentAuditAssign(_AuditBaseModel):
+    assigned_admin_id: Optional[int] = None
+    status: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.get("/payment-audit")
+def payment_audit(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    now = datetime.now(timezone.utc)
+    paid_ids = {
+        r[0] for r in db.query(Payment.user_id)
+        .filter(Payment.status == "confirmed", Payment.deleted_at.is_(None)).all()
+    }
+    assigns = {a.user_id: a for a in db.query(PaymentRecordAssignment).all()}
+    admins = db.query(User).filter(User.role == "admin").all()
+    admin_names = {u.id: (u.username or getattr(u, "email", None)) for u in admins}
+
+    candidates = db.query(User).filter(
+        User.role.in_(["premium", "subscriber"]),
+        User.created_at >= PAYMENT_AUDIT_CUTOFF,
+    ).all()
+
+    users = []
+    for u in candidates:
+        active = u.subscription_expires_at is None or u.subscription_expires_at > now
+        if not active or u.id in paid_ids:
+            continue
+        a = assigns.get(u.id)
+        users.append({
+            "user_id": u.id,
+            "username": u.username,
+            "email": getattr(u, "email", None),
+            "role": u.role,
+            "subscription_source": getattr(u, "subscription_source", None),
+            "subscription_expires_at": u.subscription_expires_at,
+            "created_at": u.created_at,
+            "assigned_admin_id": a.assigned_admin_id if a else None,
+            "assigned_admin_name": admin_names.get(a.assigned_admin_id) if (a and a.assigned_admin_id) else None,
+            "status": a.status if a else "pending",
+            "note": a.note if a else None,
+        })
+    users.sort(key=lambda x: (x["status"] != "pending", x["created_at"] or now))
+
+    summary = {
+        "total": len(users),
+        "pending": sum(1 for x in users if x["status"] == "pending"),
+        "assigned": sum(1 for x in users if x["assigned_admin_id"]),
+        "waived": sum(1 for x in users if x["status"] == "waived"),
+    }
+    return {
+        "cutoff": PAYMENT_AUDIT_CUTOFF.isoformat(),
+        "summary": summary,
+        "users": users,
+        "admins": [{"id": u.id, "username": u.username or getattr(u, "email", None)} for u in admins],
+    }
+
+
+@router.post("/payment-audit/{user_id}")
+def assign_payment_audit(
+    user_id: int,
+    body: PaymentAuditAssign,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    a = db.query(PaymentRecordAssignment).filter(PaymentRecordAssignment.user_id == user_id).first()
+    if not a:
+        a = PaymentRecordAssignment(user_id=user_id)
+        db.add(a)
+
+    if body.assigned_admin_id is not None:
+        a.assigned_admin_id = body.assigned_admin_id or None
+    if body.status is not None:
+        if body.status not in _AUDIT_STATUSES:
+            raise HTTPException(status_code=400, detail=f"status must be one of {sorted(_AUDIT_STATUSES)}")
+        a.status = body.status
+    if body.note is not None:
+        a.note = body.note
+
+    db.commit()
+    return {"success": True, "user_id": user_id, "status": a.status, "assigned_admin_id": a.assigned_admin_id}
+
+
+# ════════════════════════════════════════════════════════════════════
+# PROFIT-SHARING — recap with per-payment scheme (regular 80/20 vs Canada)
+# ════════════════════════════════════════════════════════════════════
+
+from app.services.profit_sharing import compute_split, normalize_source, SCHEMES
+
+
+class PartnerSourceUpdate(_AuditBaseModel):
+    partner_source: str
+
+
+def _parse_day(v: Optional[str], end: bool = False) -> Optional[datetime]:
+    if not v:
+        return None
+    try:
+        d = datetime.fromisoformat(v)
+    except ValueError:
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d + timedelta(days=1) if end else d
+
+
+@router.post("/payments/{payment_id}/partner-source")
+def set_partner_source(
+    payment_id: int,
+    body: PartnerSourceUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    p = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    p.partner_source = normalize_source(body.partner_source)
+    db.commit()
+    return {"success": True, "payment_id": payment_id, "partner_source": p.partner_source}
+
+
+@router.get("/profit-sharing")
+def profit_sharing(
+    from_date: Optional[str] = Query(None, alias="from"),
+    to_date: Optional[str] = Query(None, alias="to"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    q = db.query(Payment).filter(Payment.status == "confirmed", Payment.deleted_at.is_(None))
+    d_from, d_to = _parse_day(from_date), _parse_day(to_date, end=True)
+    if d_from:
+        q = q.filter(Payment.created_at >= d_from)
+    if d_to:
+        q = q.filter(Payment.created_at < d_to)
+    payments = q.order_by(Payment.created_at.desc()).all()
+
+    user_ids = {p.user_id for p in payments}
+    unames = {u.id: (u.username or getattr(u, "email", None)) for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+
+    rows = []
+    totals = {"gross": 0.0, "external": 0.0, "owner": 0.0, "bigstar": 0.0}
+    by_scheme: dict[str, dict] = {}
+    for p in payments:
+        gross = p.final_amount if p.final_amount is not None else p.amount_usdt
+        split = compute_split(gross, getattr(p, "partner_source", "regular"))
+        rows.append({
+            "payment_id": p.id,
+            "user_id": p.user_id,
+            "username": unames.get(p.user_id),
+            "created_at": p.created_at,
+            "method": p.method,
+            "tx_hash": p.tx_hash,
+            "reference": p.reference,
+            **split,
+        })
+        for k in ("gross", "external", "owner", "bigstar"):
+            totals[k] = round(totals[k] + split[k], 2)
+        sc = by_scheme.setdefault(split["scheme"], {"count": 0, "gross": 0.0, "external": 0.0, "owner": 0.0, "bigstar": 0.0})
+        sc["count"] += 1
+        for k in ("gross", "external", "owner", "bigstar"):
+            sc[k] = round(sc[k] + split[k], 2)
+
+    return {
+        "from": from_date, "to": to_date,
+        "rows": rows, "totals": totals, "by_scheme": by_scheme,
+        "schemes": {k: v.get("label") for k, v in SCHEMES.items()},
+    }
