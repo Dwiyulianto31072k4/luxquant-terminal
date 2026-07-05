@@ -168,6 +168,15 @@ async def lifespan(app: FastAPI):
         except asyncio.TimeoutError:
             print("⚠️ Some background tasks did not cancel within 5s")
 
+    # Release ALL pooled DB connections immediately so a restart/reload never
+    # leaves "idle" connections lingering on Postgres (the cause of the
+    # connection pile-up when deploying repeatedly).
+    try:
+        engine.dispose()
+        print("🔌 DB pool disposed")
+    except Exception as e:
+        print(f"⚠️ engine.dispose failed: {e}")
+
 
 app = FastAPI(
     title=settings.APP_NAME,

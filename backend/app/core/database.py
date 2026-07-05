@@ -1,13 +1,26 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
+# Per-process connection pool. MUST stay small: many processes import this
+# engine (4 API workers + the poller + ~15 luxquant-* worker services), and
+# each keeps up to (pool_size + max_overflow) connections against a shared
+# Postgres. Old defaults (10 + 20 = 30/process) could blow past
+# max_connections=100 under load → "remaining connection slots reserved for
+# SUPERUSER" and failed logins. Override per service via env if needed.
+_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
+_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "10"))
+
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=_POOL_SIZE,
+    max_overflow=_MAX_OVERFLOW,
+    pool_timeout=_POOL_TIMEOUT,   # wait at most N s for a free connection, then error (don't hang)
     pool_recycle=1800,
 )
 

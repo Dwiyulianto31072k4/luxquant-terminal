@@ -27,7 +27,7 @@ except Exception:
 # whose eligibility flag is read at import time.
 os.environ.setdefault("LUXQUANT_POLLER_ELIGIBLE", "1")
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, engine
 from app.core.redis import is_redis_available
 from app.core.http_client import init_clients, close_clients
 from app.core.leader import start_leader_election
@@ -98,6 +98,10 @@ async def _amain() -> None:
                 )
             except asyncio.TimeoutError:
                 pass
+        try:
+            engine.dispose()  # release pooled DB connections on shutdown
+        except Exception:
+            pass
 
 
 def main() -> None:
