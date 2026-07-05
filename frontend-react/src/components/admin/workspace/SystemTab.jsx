@@ -16,6 +16,10 @@ import {
   ServerIcon, CheckCircleIcon, AlertTriangleIcon, XCircleIcon,
   RefreshIcon, LoaderIcon, BanIcon, ZapIcon, ClockIcon,
 } from '../Icons';
+import SystemMap from './SystemMap';
+
+const CARDS_PER_PAGE = 12;
+const HEALTH_ORDER = { down: 0, warn: 1, unknown: 2, ok: 3, idle: 4 };
 
 // ════════════════════════════════════════════════════════════════════
 // Status vocabulary
@@ -108,9 +112,10 @@ const ServiceCard = ({ svc, onAction, busyAction }) => {
 
   return (
     <div
-      className="rounded-lg p-3.5"
-      style={{ background: 'rgba(255,255,255,0.015)', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.35 : 0.12)}` }}
+      className="rounded-xl p-3.5 relative overflow-hidden"
+      style={{ background: '#0a0805', border: `1px solid ${tint(meta.color, svc.health === 'down' ? 0.4 : 0.14)}`, boxShadow: '0 6px 20px rgba(0,0,0,0.35)' }}
     >
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(to right, transparent, ${tint(meta.color, svc.health === 'down' ? 0.5 : 0.28)}, transparent)` }} />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex items-start gap-2.5">
           <span className="relative inline-flex mt-0.5 shrink-0">
@@ -185,6 +190,8 @@ export const SystemTab = () => {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState({}); // { [unit]: action }
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [view, setView] = useState('map'); // 'map' | 'cards'
+  const [page, setPage] = useState(1);
   const timerRef = useRef(null);
 
   const load = useCallback(async (silent = false) => {
@@ -224,16 +231,21 @@ export const SystemTab = () => {
     }
   }, [load]);
 
+  const sortedAll = useMemo(
+    () => [...(data?.services || [])].sort((a, b) => (HEALTH_ORDER[a.health] ?? 5) - (HEALTH_ORDER[b.health] ?? 5)),
+    [data],
+  );
+  const totalPages = Math.max(1, Math.ceil(sortedAll.length / CARDS_PER_PAGE));
   const grouped = useMemo(() => {
-    const svcs = data?.services || [];
+    const slice = sortedAll.slice((page - 1) * CARDS_PER_PAGE, page * CARDS_PER_PAGE);
     const map = new Map();
-    for (const s of svcs) {
+    for (const s of slice) {
       const cat = s.category || 'Other';
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat).push(s);
     }
     return Array.from(map.entries());
-  }, [data]);
+  }, [sortedAll, page]);
 
   const summary = data?.summary || { total: 0, ok: 0, warn: 0, down: 0, idle: 0 };
 
@@ -260,19 +272,35 @@ export const SystemTab = () => {
           <SummaryChip label="idle" value={summary.idle} color={palette.warm[400]} />
         </div>
         <div className="flex items-center gap-2.5">
-          {lastUpdated && (
+          {lastUpdated && view === 'cards' && (
             <span className="text-[10px]" style={{ color: palette.warm[500] }}>
               updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          <button
-            onClick={() => load()}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold"
-            style={{ background: tint(palette.gold[300], 0.1), border: `1px solid ${tint(palette.gold[300], 0.28)}`, color: palette.gold[300] }}
-          >
-            <RefreshIcon size={12} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+          <div className="inline-flex rounded-lg overflow-hidden" style={{ border: `1px solid ${tint(palette.warm[100], 0.12)}` }}>
+            {['map', 'cards'].map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="px-3.5 py-1.5 text-[11px] font-semibold capitalize"
+                style={view === v
+                  ? { background: tint(palette.gold[300], 0.14), color: palette.gold[300] }
+                  : { background: 'transparent', color: palette.warm[400] }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          {view === 'cards' && (
+            <button
+              onClick={() => load()}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-semibold"
+              style={{ background: tint(palette.gold[300], 0.1), border: `1px solid ${tint(palette.gold[300], 0.28)}`, color: palette.gold[300] }}
+            >
+              <RefreshIcon size={12} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          )}
         </div>
       </div>
 
@@ -282,33 +310,62 @@ export const SystemTab = () => {
         </div>
       )}
 
-      {loading && !data && (
-        <div className="flex items-center justify-center py-16 gap-2" style={{ color: palette.warm[400] }}>
-          <LoaderIcon size={18} className="animate-spin" />
-          <span className="text-sm">Reading systemd…</span>
-        </div>
-      )}
+      {view === 'map' && <SystemMap />}
 
-      {/* grouped services */}
-      {grouped.map(([category, svcs]) => (
-        <div key={category} className="mb-5">
-          <div className="flex items-center gap-2 mb-2.5">
-            <ServerIcon size={12} style={{ color: palette.warm[300] }} />
-            <span className="text-[10px] uppercase tracking-[0.14em] font-semibold" style={{ color: palette.warm[300] }}>{category}</span>
-            <span className="text-[10px]" style={{ color: palette.warm[500] }}>· {svcs.length}</span>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-            {svcs.map((svc) => (
-              <ServiceCard key={svc.unit} svc={svc} onAction={handleAction} busyAction={busy[svc.unit]} />
-            ))}
-          </div>
-        </div>
-      ))}
+      {view === 'cards' && (
+        <>
+          {loading && !data && (
+            <div className="flex items-center justify-center py-16 gap-2" style={{ color: palette.warm[400] }}>
+              <LoaderIcon size={18} className="animate-spin" />
+              <span className="text-sm">Reading systemd…</span>
+            </div>
+          )}
 
-      {!loading && data && (data.services || []).length === 0 && (
-        <div className="text-center py-16 text-sm" style={{ color: palette.warm[400] }}>
-          No LuxQuant units discovered on this host.
-        </div>
+          {grouped.map(([category, svcs]) => (
+            <div key={category} className="mb-5">
+              <div className="flex items-center gap-2 mb-2.5">
+                <ServerIcon size={12} style={{ color: palette.warm[300] }} />
+                <span className="text-[10px] uppercase tracking-[0.14em] font-semibold" style={{ color: palette.warm[300] }}>{category}</span>
+                <span className="text-[10px]" style={{ color: palette.warm[500] }}>· {svcs.length}</span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                {svcs.map((svc) => (
+                  <ServiceCard key={svc.unit} svc={svc} onAction={handleAction} busyAction={busy[svc.unit]} />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
+                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[300] }}
+              >
+                ← Prev
+              </button>
+              <span className="text-[12px]" style={{ color: palette.warm[400] }}>
+                Page <b style={{ color: palette.gold[300] }}>{page}</b> / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 rounded-md text-[12px] disabled:opacity-40"
+                style={{ background: 'transparent', border: `1px solid ${tint(palette.warm[100], 0.14)}`, color: palette.warm[300] }}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+
+          {!loading && data && (data.services || []).length === 0 && (
+            <div className="text-center py-16 text-sm" style={{ color: palette.warm[400] }}>
+              No LuxQuant units discovered on this host.
+            </div>
+          )}
+        </>
       )}
     </div>
   );

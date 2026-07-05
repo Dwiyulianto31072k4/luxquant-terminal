@@ -317,6 +317,72 @@ def _describe(unit: str, include_log: bool = False) -> dict[str, Any]:
 
 
 # ════════════════════════════════════════════════════════════════════
+# Topology — curated function descriptions + connection edges
+# ════════════════════════════════════════════════════════════════════
+# systemd After=/Requires= is too noisy for a useful map (everything depends on
+# network-online.target). The real "connects to Redis / polls Binance / delivers
+# to Telegram" edges live in the app architecture, so they are curated here and
+# merged with LIVE health from systemctl at request time.
+
+EXTERNAL_NODES = [
+    {"id": "coingecko", "name": "CoinGecko", "fn": "Market prices, coin metadata and global stats provider."},
+    {"id": "binance", "name": "Binance", "fn": "Spot/futures prices, klines, leverage and liquidations."},
+    {"id": "bybit", "name": "Bybit", "fn": "Spot & derivatives feed used by the Compass poller."},
+    {"id": "telegram", "name": "Telegram", "fn": "Where signals, alerts and news are delivered to members."},
+    {"id": "discord", "name": "Discord", "fn": "Community delivery channel for signals and relays."},
+    {"id": "x", "name": "X / Twitter", "fn": "Public posting of TP hits and highlights."},
+]
+
+# base-unit-name -> (function description, [(target, edge_type), ...])
+# edge_type ∈ proxy | db | cache | poll | deliver | depends
+TOPOLOGY: dict[str, tuple[str, list[tuple[str, str]]]] = {
+    "postgresql@16-main": ("Stores every signal, user, payment, trade and journey record — the source of truth.", []),
+    "redis-server": ("Holds pre-computed signal/market caches and broadcasts new_signal events to workers.", []),
+    "nginx": ("Terminates TLS and proxies public traffic to the FastAPI backend on :8002.", [("luxquant-backend", "proxy")]),
+    "luxquant-backend": ("Serves the whole terminal API to users. 4 rolling workers, zero-downtime reloads.", [("postgresql@16-main", "db"), ("redis-server", "cache")]),
+    "luxquant-poller": ("The sole process that calls CoinGecko/Binance/Bybit and rebuilds caches for everyone.", [("postgresql@16-main", "db"), ("redis-server", "cache"), ("coingecko", "poll"), ("binance", "poll"), ("bybit", "poll")]),
+    "luxquant-sync": ("Pulls new signal messages from the VIP Telegram channel into the DB.", [("telegram", "poll"), ("postgresql@16-main", "db")]),
+    "luxquant-journey-worker": ("Tracks each open signal toward TP/SL in real time as prices move.", [("postgresql@16-main", "db")]),
+    "luxquant-journey-refresh": ("Rebuilds the platform-wide time-to-TP aggregate every 6 hours.", [("postgresql@16-main", "db")]),
+    "luxquant-enrichment-v3": ("Attaches facts and tags to coins so the terminal can show context.", [("postgresql@16-main", "db")]),
+    "luxquant-btc-correlation-worker": ("Computes each new signal's correlation to Bitcoin.", [("postgresql@16-main", "db")]),
+    "luxquant-max-leverage-worker": ("Looks up the real Binance max leverage for each new signal pair.", [("binance", "poll"), ("postgresql@16-main", "db")]),
+    "cryptobot-api": ("Internal trading-engine API that the autotrade stack talks to.", [("postgresql@16-main", "db")]),
+    "cryptobot-executor": ("Simulates order execution for signals in dry-run mode.", [("binance", "poll")]),
+    "cryptobot-price-watch": ("Streams live Binance prices to drive execution and monitoring.", [("binance", "poll")]),
+    "cryptobot-signal-updates": ("Ingests LuxQuant signals into the trading engine.", [("postgresql@16-main", "db")]),
+    "cryptobot-position-reconciler": ("Reconciles open Binance futures positions against internal state.", [("binance", "poll")]),
+    "cryptobot-monitoring-alerts": ("Watches engine health and sends Telegram alerts on anomalies.", [("telegram", "deliver")]),
+    "luxquant-autotrade-relay": ("Bridges cryptobot alerts into the LuxQuant autotrade inbox.", [("cryptobot-api", "depends"), ("postgresql@16-main", "db")]),
+    "luxquant-binance-liquidation-stream": ("Streams Binance liquidations to validate the Compass heatmap.", [("binance", "poll")]),
+    "luxquant-coin-metadata": ("Keeps coin names, logos and metadata fresh from CoinGecko.", [("coingecko", "poll")]),
+    "luxquant-chart-worker": ("Renders chart images used across the terminal and posts.", [("postgresql@16-main", "db")]),
+    "luxquant-pnl-card-worker": ("Generates Binance-style PnL cards for wins.", [("postgresql@16-main", "db")]),
+    "luxquant-realtime": ("Listens for DB changes and keeps live views in sync.", [("postgresql@16-main", "db")]),
+    "luxquant-money-flow": ("Snapshots market money-flow on a timer.", [("postgresql@16-main", "db")]),
+    "luxquant-forwarder": ("Forwards market pulse & price-movement alerts to Telegram.", [("telegram", "deliver")]),
+    "luxquant-onchain-forwarder": ("Forwards on-chain events to Telegram.", [("telegram", "deliver")]),
+    "luxquant-tg-delivery": ("Delivers signal messages to Telegram subscribers.", [("telegram", "deliver")]),
+    "luxquant-call-poster": ("Posts new calls and their live tracking to channels.", [("telegram", "deliver")]),
+    "luxquant-x-poster": ("Publishes TP hits and highlights to X / Twitter.", [("x", "deliver")]),
+    "luxquantdrc": ("Mirrors Telegram signal posts into Discord.", [("discord", "deliver")]),
+    "luxquant-notif-producer": ("Produces in-app notifications from news and market pulse.", [("redis-server", "cache")]),
+    "luxquant-discord-relay": ("Relays big TP3/TP4 tweets into Discord.", [("discord", "deliver")]),
+    "discord-trading-bot": ("Serves signals and commands to the Discord community.", [("discord", "deliver")]),
+    "crypto-news-bot": ("Curates and posts crypto news to Telegram.", [("telegram", "deliver")]),
+    "luxquant-arena-v6-monitor": ("Every 2 min checks BTC and fires a fresh Compass read on material moves.", [("bybit", "poll"), ("postgresql@16-main", "db")]),
+    "luxquant-arena-v6-evaluator": ("Validates past Compass verdicts and calibrates confidence.", [("postgresql@16-main", "db")]),
+    "luxquant-compass-resolver": ("Resolves projection first-barrier outcomes for the Compass.", [("postgresql@16-main", "db")]),
+    "luxquant-compass-reflection": ("Daily learning loop that updates the Compass brain vault.", [("postgresql@16-main", "db")]),
+}
+
+
+def _fn_for(name: str) -> str:
+    entry = TOPOLOGY.get(name)
+    return entry[0] if entry else ""
+
+
+# ════════════════════════════════════════════════════════════════════
 # Schemas
 # ════════════════════════════════════════════════════════════════════
 
@@ -343,6 +409,8 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     services = [_describe(u, include_log=True) for u in units]
     # Drop units systemd doesn't actually know (avoids ghost cards).
     services = [s for s in services if s.get("load_state") != "not-found"]
+    for s in services:
+        s["fn"] = _fn_for(s.get("name", ""))
 
     # sort: unhealthy first, then by category, then name
     order = {"down": 0, "warn": 1, "unknown": 2, "ok": 3, "idle": 4}
@@ -355,6 +423,31 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
             summary[h] += 1
 
     return {"available": True, "services": services, "summary": summary}
+
+
+@router.get("/services/topology")
+def services_topology(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
+    """Live service graph: nodes (with health) + typed connection edges + externals."""
+    if not _systemctl_available():
+        return {"available": False, "reason": "systemctl not found", "nodes": [], "edges": [], "externals": EXTERNAL_NODES}
+
+    units = _discover_units()
+    nodes = [_describe(u, include_log=False) for u in units]
+    nodes = [n for n in nodes if n.get("load_state") != "not-found"]
+    present = {n["name"] for n in nodes}
+    ext_ids = {e["id"] for e in EXTERNAL_NODES}
+    for n in nodes:
+        n["fn"] = _fn_for(n.get("name", ""))
+
+    edges: list[dict[str, str]] = []
+    for src, (_fn, targets) in TOPOLOGY.items():
+        if src not in present:
+            continue
+        for tgt, etype in targets:
+            if tgt in present or tgt in ext_ids:
+                edges.append({"from": src, "to": tgt, "type": etype})
+
+    return {"available": True, "nodes": nodes, "edges": edges, "externals": EXTERNAL_NODES}
 
 
 @router.post("/services/{unit}/action")

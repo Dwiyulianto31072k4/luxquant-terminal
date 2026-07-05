@@ -95,6 +95,11 @@ export const workspaceApi = {
     return response.data;
   },
 
+  getServicesTopology: async () => {
+    const response = await api.get('/api/v1/workspace/services/topology');
+    return response.data;
+  },
+
   // action: 'start' | 'stop' | 'restart'
   controlService: async (unit, action) => {
     const response = await api.post(
