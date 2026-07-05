@@ -1,0 +1,14 @@
+[Unit]
+Description=LuxQuant DB connection watchdog (early-warning alert)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.workers.db_watchdog
+TimeoutStartSec=30

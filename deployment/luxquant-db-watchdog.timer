@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the LuxQuant DB connection watchdog every 2 minutes
+
+[Timer]
+OnBootSec=120
+OnUnitActiveSec=2min
+AccuracySec=15s
+Persistent=true
+Unit=luxquant-db-watchdog.service
+
+[Install]
+WantedBy=timers.target
