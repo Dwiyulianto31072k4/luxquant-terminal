@@ -139,14 +139,34 @@ const TopPerformers = () => {
 
   if (loading && !data) {
     return (
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="h-px w-8 bg-gold-primary/40" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">{t('top.title')}</span>
-          <span className="h-px flex-1 bg-gradient-to-r from-gold-primary/40 via-white/[0.06] to-transparent" />
+      <div className="mb-10 animate-pulse">
+        {/* Title — matches the real heading, not a boxed placeholder */}
+        <div className="mb-6 sm:mb-7">
+          <div className="h-8 w-56 rounded-lg bg-white/[0.05] sm:h-9 sm:w-72" />
         </div>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a0805] p-5 animate-pulse">
-          <div className="space-y-2">{[...Array(10)].map((_, j) => <div key={j} className="h-12 bg-white/[0.03] rounded-lg" />)}</div>
+
+        {/* Control bar — category tabs (left) + time-range pill (right) */}
+        <div className="mb-4 flex flex-col gap-4 border-b border-white/[0.08] pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-5">
+            {[...Array(4)].map((_, j) => <div key={j} className="h-4 w-16 rounded bg-white/[0.05]" />)}
+          </div>
+          <div className="h-8 w-full rounded-full bg-white/[0.04] sm:w-52" />
+        </div>
+
+        {/* Open leaderboard rows — borderless, only hairline dividers */}
+        <div className="divide-y divide-white/[0.04]">
+          {[...Array(9)].map((_, j) => (
+            <div key={j} className="flex items-center gap-3 py-3.5">
+              <div className="h-7 w-7 flex-shrink-0 rounded-full bg-white/[0.05]" />
+              <div className="h-7 w-7 flex-shrink-0 rounded-full bg-white/[0.05]" />
+              <div className="min-w-0 flex-1">
+                <div className="h-3.5 w-24 rounded bg-white/[0.05]" />
+                <div className="mt-1.5 h-2.5 w-32 rounded bg-white/[0.03]" />
+              </div>
+              <div className="hidden h-6 w-20 rounded bg-white/[0.03] sm:block" />
+              <div className="h-4 w-16 flex-shrink-0 rounded bg-white/[0.05]" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -569,17 +589,50 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
               {onOpenHistory && (
                 <button
                   onClick={() => onOpenHistory(item)}
-                  className="lq-shine relative overflow-hidden hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-gold-primary/10 border border-gold-primary/40 hover:bg-gold-primary/20 hover:border-gold-primary/60 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold transition-all"
+                  className="lq-shine group/hist relative overflow-hidden inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3.5 justify-center rounded-xl bg-gradient-to-b from-gold-primary/20 to-gold-primary/[0.06] border border-gold-primary/40 hover:border-gold-primary/70 hover:from-gold-primary/25 text-gold-primary font-mono text-[10px] uppercase tracking-wider font-semibold shadow-[0_2px_10px_-4px_rgba(212,168,83,0.5)] transition-all active:scale-[0.97]"
                   title="Open full signal history"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                  Full History
+                  <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  <span className="hidden sm:inline">Full History</span>
                 </button>
               )}
-              <button onClick={handleClose} className="w-8 h-8 rounded-lg bg-[#0a0a0a] border border-gold-primary/20 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={handleClose} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all active:scale-[0.97]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
           </div>
-          {multi && (<div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-gold-primary/10"><button onClick={() => onNavigate(currentIndex - 1)} disabled={currentIndex <= 0} className="px-3 py-1 rounded-lg border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">&larr; {t('top.prev')}</button><div className="flex items-center gap-2"><span className="text-text-muted text-[10px] sm:text-xs hidden sm:inline">{t('top.signal')}</span><div className="flex items-center gap-1">{signalIds.map((_, i) => (<button key={i} onClick={() => onNavigate(i)} className={`w-5 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-[10px] font-bold transition-all ${i === currentIndex ? 'bg-gold-primary text-black' : 'border border-gold-primary/20 text-text-muted hover:text-white hover:bg-white/5'}`}>{i + 1}</button>))}</div></div><button onClick={() => onNavigate(currentIndex + 1)} disabled={currentIndex >= total - 1} className="px-3 py-1 rounded-lg border border-gold-primary/20 text-gold-primary hover:bg-gold-primary/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] sm:text-xs font-bold">{t('top.next')} &rarr;</button></div>)}
+          {multi && (
+            <div className="mt-3 pt-3 border-t border-gold-primary/10">
+              <div className="mx-auto flex w-full max-w-sm items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                <button
+                  onClick={() => onNavigate(currentIndex - 1)}
+                  disabled={currentIndex <= 0}
+                  className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] sm:text-xs font-bold text-gold-primary hover:bg-gold-primary/10 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                  <span className="hidden sm:inline">{t('top.prev')}</span>
+                </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="hidden sm:inline text-text-muted/70 font-mono text-[9px] uppercase tracking-wider mr-1">{t('top.signal')}</span>
+                  {signalIds.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onNavigate(i)}
+                      className={`h-6 min-w-[1.5rem] px-1 rounded-md text-[10px] font-bold tabular-nums transition-all ${i === currentIndex ? 'bg-gold-primary text-[#1a1206] shadow-[0_2px_8px_-2px_rgba(212,168,83,0.6)]' : 'text-text-muted hover:text-white hover:bg-white/5'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => onNavigate(currentIndex + 1)}
+                  disabled={currentIndex >= total - 1}
+                  className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] sm:text-xs font-bold text-gold-primary hover:bg-gold-primary/10 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+                >
+                  <span className="hidden sm:inline">{t('top.next')}</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0a0a] px-4 py-4 sm:px-6 sm:py-6">
           {loading ? (<div className="flex items-center justify-center py-20"><div className="text-center"><div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4" /><p className="text-gold-primary font-mono text-sm">{t('top.loading')}</p></div></div>
