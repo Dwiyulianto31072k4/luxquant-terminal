@@ -140,6 +140,45 @@ const StatCard = ({ label, value, valueColor = 'text-white', sub }) => (
 );
 
 // ================================================================
+// TOKEN SEARCH — strict, base-token aware matching
+// ================================================================
+// Quote assets we know about. Longest-first so "USDT" is stripped before "USD".
+const QUOTE_ASSETS = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'TUSD', 'USD', 'BTC', 'ETH'];
+
+// Split a pair like "MANAUSDT" -> { base: "MANA", quote: "USDT" }.
+const splitPair = (pairUpper) => {
+  for (const qa of QUOTE_ASSETS) {
+    if (pairUpper.endsWith(qa) && pairUpper.length > qa.length) {
+      return { base: pairUpper.slice(0, -qa.length), quote: qa };
+    }
+  }
+  return { base: pairUpper, quote: '' };
+};
+
+// Match a signal pair against a user query.
+//   - "MUSDT"  (token + quote)  -> exact full-pair match only ("M/USDT")
+//   - "M"      (bare token)     -> base token must START WITH the query
+// This stops false positives like "XLMUSDT" / "ATOMUSDT" matching "MUSDT",
+// and "NMR" / "XLM" matching a bare "M".
+const pairMatchesQuery = (pair, rawQuery) => {
+  if (!pair) return false;
+  const q = (rawQuery || '').trim().toUpperCase();
+  if (!q) return true;
+  const P = pair.toUpperCase();
+
+  // If the query itself carries a quote suffix, treat it as a full pair -> exact.
+  for (const qa of QUOTE_ASSETS) {
+    if (q.endsWith(qa) && q.length > qa.length) {
+      return P === q;
+    }
+  }
+
+  // Otherwise it's a bare token name -> prefix match on the base token.
+  const { base } = splitPair(P);
+  return base === q || base.startsWith(q);
+};
+
+// ================================================================
 // MAIN PAGE
 // ================================================================
 const SignalsPage = () => {
@@ -408,8 +447,7 @@ const SignalsPage = () => {
       f = [...allSignals];
     }
     if (searchPair) {
-      const q = searchPair.toUpperCase();
-      f = f.filter((s) => s.pair && s.pair.toUpperCase().includes(q));
+      f = f.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
     if (!showWatchlistOnly && selectedDates.length > 0) {
       f = f.filter((s) => s.created_at && selectedDates.includes(s.created_at.slice(0, 10)));
@@ -622,8 +660,7 @@ const SignalsPage = () => {
     }
 
     if (searchPair) {
-      const search = searchPair.toUpperCase();
-      filtered = filtered.filter((s) => s.pair && s.pair.toUpperCase().includes(search));
+      filtered = filtered.filter((s) => pairMatchesQuery(s.pair, searchPair));
     }
 
     // Filter tanggal hanya berlaku di mode non-watchlist (watchlist lintas-tanggal).
