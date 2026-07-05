@@ -70,9 +70,18 @@ deploy_luxquant() {
     echo "📦 [2/6] Membangun Frontend React..."
     cd "$FRONTEND_PATH"
     npm run build
-    echo "   → Deploying ke Nginx..."
-    rm -rf "$NGINX_WWW_PATH"/*
+    echo "   → Deploying ke Nginx (keep old bundles so in-flight users don't break)..."
+    mkdir -p "$NGINX_WWW_PATH"
+    # Copy the fresh build OVER the existing files — this updates index.html and
+    # adds the new hashed bundles, but does NOT delete the old hashed bundles.
+    # A user who still has the previous index.html open can therefore keep
+    # loading its (old) chunks instead of hitting a 404 → no broken login after
+    # a deploy. Old bundles are pruned below once they're a few days stale.
     cp -r dist/* "$NGINX_WWW_PATH/"
+    # Prune hashed asset files not touched in >3 days (well past any live
+    # session), so old bundles don't pile up forever. index.html is at the root
+    # and is always overwritten above, so it's never pruned.
+    find "$NGINX_WWW_PATH/assets" -type f -mtime +3 -delete 2>/dev/null || true
     chown -R www-data:www-data "$NGINX_WWW_PATH"
 
     # [3/6] Reload backend (zero-downtime rolling worker replacement)
