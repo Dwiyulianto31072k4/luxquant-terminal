@@ -57,6 +57,12 @@ _instance_id = f"{socket.gethostname()}:{os.getpid()}"
 _is_leader = False
 _started = False
 
+# Only processes marked "eligible" may ever become leader and run the pollers.
+# Default True = backward compatible (any process can lead). Set
+# LUXQUANT_POLLER_ELIGIBLE=0 on the API service so its request-workers NEVER
+# poll — leaving the dedicated luxquant-poller.service as the sole poller.
+_ELIGIBLE = os.getenv("LUXQUANT_POLLER_ELIGIBLE", "1").strip().lower() not in ("0", "false", "no", "off")
+
 # Atomic acquire-or-renew. Returns 1 if this instance holds leadership afterwards.
 _ACQUIRE_LUA = """
 local v = redis.call('get', KEYS[1])
@@ -81,7 +87,10 @@ async def _election_loop():
     global _is_leader
     while True:
         try:
-            if not is_redis_available():
+            if not _ELIGIBLE:
+                # This process (e.g. an API request-worker) must never poll.
+                _is_leader = False
+            elif not is_redis_available():
                 # No Redis → can't coordinate. Stay standby so we don't
                 # accidentally run N pollers; pollers also skip without Redis.
                 _is_leader = False

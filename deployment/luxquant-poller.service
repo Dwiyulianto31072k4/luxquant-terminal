@@ -1,0 +1,24 @@
+[Unit]
+Description=LuxQuant Background Poller (single-leader external-API pollers + cache workers)
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+# This process IS the poller — it must be allowed to become leader.
+Environment=LUXQUANT_POLLER_ELIGIBLE=1
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.workers.poller_main
+
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Restart=on-failure
+RestartSec=5
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

@@ -10,6 +10,9 @@ WorkingDirectory=/root/luxquant-terminal/backend
 EnvironmentFile=-/root/luxquant-terminal/backend/.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONPATH=/root/luxquant-terminal/backend
+# API request-workers must NOT poll external APIs — the dedicated
+# luxquant-poller.service does that. (Requires luxquant-poller.service running.)
+Environment=LUXQUANT_POLLER_ELIGIBLE=0
 
 # Gunicorn arbiter (master) + uvicorn workers. Config in gunicorn_conf.py.
 ExecStart=/root/luxquant-terminal/backend/venv/bin/gunicorn app.main:app -c /root/luxquant-terminal/backend/gunicorn_conf.py
