@@ -100,6 +100,29 @@ export const workspaceApi = {
     return response.data;
   },
 
+  // ════════════════════════════════════
+  // PAYMENT RECORD AUDIT + PROFIT SHARING
+  // ════════════════════════════════════
+  getPaymentAudit: async () => {
+    const response = await api.get('/api/v1/workspace/payment-audit');
+    return response.data;
+  },
+  assignPaymentAudit: async (userId, payload) => {
+    const response = await api.post(`/api/v1/workspace/payment-audit/${userId}`, payload);
+    return response.data;
+  },
+  getProfitSharing: async ({ from, to } = {}) => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/api/v1/workspace/profit-sharing', { params });
+    return response.data;
+  },
+  setPaymentPartnerSource: async (paymentId, partner_source) => {
+    const response = await api.post(`/api/v1/workspace/payments/${paymentId}/partner-source`, { partner_source });
+    return response.data;
+  },
+
   // action: 'start' | 'stop' | 'restart'
   controlService: async (unit, action) => {
     const response = await api.post(

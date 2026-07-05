@@ -23,6 +23,7 @@ import { SendMessageModal } from './admin/users/SendMessageModal';
 import { ConfirmModal } from './admin/users/ConfirmModal';
 
 // Shared admin pieces
+import PaymentAuditPanel from './admin/workspace/PaymentAuditPanel';
 import { FilterPanel } from './admin/FilterPanel';
 import { SegmentStrip } from './admin/users/SegmentStrip';
 import { CrmChips } from './admin/users/CrmChips';
@@ -531,6 +532,8 @@ const UserManagementPage = () => {
       <PageHeader stats={stats} onCleanup={handleCleanup} />
 
       <UsersStatGrid stats={stats} />
+
+      <PaymentAuditPanel />
 
       <SegmentStrip
         filters={filters}
