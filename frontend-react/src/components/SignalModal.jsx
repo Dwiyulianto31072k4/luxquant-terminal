@@ -1986,51 +1986,52 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                       </div>
                     )}
 
-                    {/* Timeline Horizontal */}
+                    {/* Timeline Vertical — responsive, no horizontal scroll */}
                     <div>
                       <h4 className="text-gold-primary text-xs sm:text-sm font-semibold mb-3 flex items-center gap-2">
                         {Ic.clock("w-4 h-4")} Signal Journey
                       </h4>
-                      <div className="lq-card bg-[#0d0d0d] p-4 w-full overflow-x-auto custom-scrollbar">
-                        <div className="flex items-start min-w-[600px] relative pt-2 pb-4">
-                          <div className="absolute top-[20px] left-8 right-8 h-[2px] bg-white/5 z-0" />
+                      <div className="lq-card bg-[#0d0d0d] p-4 w-full">
+                        <div className="flex flex-col">
                           {timeline.map((ev, i) => {
                             const isLast = i === timeline.length - 1;
-                            const showActiveLine =
-                              !isLast && ev.active && timeline[i + 1]?.active;
+                            const nextReached = !isLast && timeline[i + 1]?.active;
                             return (
-                              <div
-                                key={i}
-                                className="relative flex flex-col items-center flex-1 w-0 group z-10"
-                              >
-                                {showActiveLine && (
+                              <div key={i} className="flex gap-3 group">
+                                {/* Node + connector rail */}
+                                <div className="flex flex-col items-center">
                                   <div
-                                    className={`absolute top-[10px] left-[50%] w-full h-[2px] ${ev.border} z-0`}
-                                  />
-                                )}
-                                <div
-                                  className={`relative z-10 w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-bold ${ev.bg} ${ev.border} ${ev.color}`}
-                                >
-                                  {ev.icon}
-                                </div>
-                                <div className="mt-3 text-center flex flex-col items-center px-1 w-full max-w-[80px]">
-                                  <span
-                                    className={`text-[10px] font-bold uppercase tracking-wider ${ev.color}`}
+                                    className={`relative z-10 w-7 h-7 shrink-0 rounded-full border flex items-center justify-center text-[11px] font-bold ${ev.bg} ${ev.border} ${ev.color}`}
                                   >
-                                    {ev.label}
-                                  </span>
-                                  {ev.pct && (
-                                    <span
-                                      className={`text-[9px] font-mono mt-0.5 ${ev.color}`}
-                                    >
-                                      {ev.pct}
-                                    </span>
+                                    {ev.icon}
+                                  </div>
+                                  {!isLast && (
+                                    <div
+                                      className={`w-[2px] flex-1 min-h-[22px] ${nextReached ? "bg-white/25" : "bg-white/10"}`}
+                                    />
                                   )}
-                                  <span className="text-[8px] text-text-muted mt-1 leading-tight">
+                                </div>
+                                {/* Content */}
+                                <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-4"} pt-0.5`}>
+                                  <div className="flex items-baseline justify-between gap-2">
+                                    <div className="flex items-baseline gap-2 min-w-0">
+                                      <span
+                                        className={`text-xs font-bold uppercase tracking-wider ${ev.color}`}
+                                      >
+                                        {ev.label}
+                                      </span>
+                                      {ev.pct && (
+                                        <span className={`text-[11px] font-mono ${ev.color}`}>
+                                          {ev.pct}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[11px] text-white/60 font-mono whitespace-nowrap">
+                                      {ev.detail}
+                                    </span>
+                                  </div>
+                                  <span className="block text-[10px] text-text-muted mt-0.5">
                                     {ev.sub}
-                                  </span>
-                                  <span className="text-[8px] text-white/50 font-mono mt-0.5 truncate w-full">
-                                    {ev.detail}
                                   </span>
                                 </div>
                               </div>
