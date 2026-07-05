@@ -152,6 +152,22 @@ async def lifespan(app: FastAPI):
     print("👋 LuxQuant API Shutting down...")
     await close_clients()
 
+    # Cancel lingering background tasks (pollers, leader loop, cache
+    # invalidator, journey worker, …) so the worker exits PROMPTLY on SIGTERM.
+    # Without this the shutdown hangs and systemd escalates to SIGKILL — which
+    # is what caused the ungraceful (status=9) kills and the deploy downtime.
+    pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    for t in pending:
+        t.cancel()
+    if pending:
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*pending, return_exceptions=True),
+                timeout=5,
+            )
+        except asyncio.TimeoutError:
+            print("⚠️ Some background tasks did not cancel within 5s")
+
 
 app = FastAPI(
     title=settings.APP_NAME,

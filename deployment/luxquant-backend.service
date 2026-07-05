@@ -1,0 +1,31 @@
+[Unit]
+Description=LuxQuant FastAPI Backend (gunicorn + uvicorn workers)
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=-/root/luxquant-terminal/backend/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/root/luxquant-terminal/backend
+
+# Gunicorn arbiter (master) + uvicorn workers. Config in gunicorn_conf.py.
+ExecStart=/root/luxquant-terminal/backend/venv/bin/gunicorn app.main:app -c /root/luxquant-terminal/backend/gunicorn_conf.py
+
+# Zero-downtime rolling reload: replace workers one-by-one with fresh code.
+# `systemctl reload luxquant-backend` triggers this.
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Graceful stop: SIGTERM the arbiter (drains workers), escalate only after 40s.
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=40
+
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

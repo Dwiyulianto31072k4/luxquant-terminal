@@ -75,10 +75,12 @@ deploy_luxquant() {
     cp -r dist/* "$NGINX_WWW_PATH/"
     chown -R www-data:www-data "$NGINX_WWW_PATH"
 
-    # [3/6] Restart backend
+    # [3/6] Reload backend (zero-downtime rolling worker replacement)
     echo ""
-    echo "⚙️  [3/6] Restart Backend Python (FastAPI)..."
-    systemctl restart "$LUXQUANT_SERVICE"
+    echo "⚙️  [3/6] Reload Backend Python (gunicorn graceful reload)..."
+    # reload-or-restart: graceful HUP reload if already running (no dropped
+    # requests), full restart only if the service was stopped.
+    systemctl reload-or-restart "$LUXQUANT_SERVICE"
     echo "   → Waiting for backend to be ready..."
     for i in {1..30}; do
         sleep 1
@@ -115,9 +117,10 @@ deploy_luxquant() {
     echo ""
     echo "🔍 [4/6] Verifikasi worker count..."
     MASTER_PID=$(systemctl show -p MainPID --value "$LUXQUANT_SERVICE" 2>/dev/null || true)
-    if [ -n "$MASTER_PID" ]; then
+    if [ -n "$MASTER_PID" ] && [ "$MASTER_PID" != "0" ]; then
         PARENT_COUNT=1
-        WORKER_COUNT=$(pgrep -P "$MASTER_PID" 2>/dev/null | xargs -r ps -o cmd= -p 2>/dev/null | grep -c "multiprocessing" || true)
+        # Gunicorn workers are direct children of the arbiter (master) PID.
+        WORKER_COUNT=$(pgrep -P "$MASTER_PID" 2>/dev/null | wc -l | tr -d ' ')
     else
         PARENT_COUNT=0
         WORKER_COUNT=0
@@ -125,8 +128,8 @@ deploy_luxquant() {
     echo "   → Master process: $PARENT_COUNT (expected: 1, PID=${MASTER_PID:-none})"
     echo "   → Worker count: $WORKER_COUNT (expected: 4)"
     if [ "$PARENT_COUNT" -ne 1 ]; then
-        echo "   ⚠️  WARNING: Master uvicorn tidak terdeteksi / lebih dari 1!"
-        ps aux | grep "uvicorn app.main" | grep -v grep || true
+        echo "   ⚠️  WARNING: gunicorn master tidak terdeteksi!"
+        ps aux | grep "gunicorn app.main" | grep -v grep || true
     fi
     if [ "$WORKER_COUNT" -eq 0 ]; then
         echo "   ⚠️  WARNING: Worker tidak terdeteksi via pattern — cek manual: pgrep -P $MASTER_PID | xargs ps -o cmd= -p"
