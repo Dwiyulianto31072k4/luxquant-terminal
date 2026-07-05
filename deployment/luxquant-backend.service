@@ -10,8 +10,11 @@ WorkingDirectory=/root/luxquant-terminal/backend
 EnvironmentFile=-/root/luxquant-terminal/backend/.env
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONPATH=/root/luxquant-terminal/backend
-# API request-workers must NOT poll external APIs — the dedicated
-# luxquant-poller.service does that. (Requires luxquant-poller.service running.)
+# API request-workers must NOT run ANY background worker (cache builds, pollers,
+# LISTEN loops) — those block the event loop and cause gunicorn WORKER TIMEOUT →
+# all workers killed → failed logins. They run in luxquant-poller.service.
+# (Requires luxquant-poller.service to be running.)
+Environment=LUXQUANT_RUN_POLLERS=0
 Environment=LUXQUANT_POLLER_ELIGIBLE=0
 
 # Gunicorn arbiter (master) + uvicorn workers. Config in gunicorn_conf.py.

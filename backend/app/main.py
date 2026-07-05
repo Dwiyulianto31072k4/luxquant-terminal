@@ -79,26 +79,33 @@ async def lifespan(app: FastAPI):
     # === Initialize shared HTTP clients ===
     init_clients()
 
-    # === Single-leader election for background pollers ===
-    # Runs in every worker, but only ONE becomes leader and actually polls
-    # external APIs — the rest stand by and take over if the leader dies.
-    # Prevents N× duplicate CoinGecko/Binance calls under `--workers N`.
-    try:
-        from app.core.leader import start_leader_election
-        start_leader_election()
-    except Exception as e:
-        print(f"⚠️ Leader election failed to start: {e}")
+    # === Background workers / pollers — MUST NOT run inside the API process ===
+    # They block the request event loop (cache builds, Binance/CoinGecko polling,
+    # LISTEN loops). In a gunicorn worker that means the worker stops answering
+    # the arbiter's heartbeat → WORKER TIMEOUT → all workers killed → a brief
+    # total outage → failed logins / "failed to load signals". They belong in the
+    # dedicated luxquant-poller.service. The API service sets
+    # LUXQUANT_RUN_POLLERS=0; default 1 keeps a standalone/dev run fully working.
+    _run_bg = os.getenv("LUXQUANT_RUN_POLLERS", "1").strip().lower() not in ("0", "false", "no", "off")
+    if not _run_bg:
+        print("⏭️  LUXQUANT_RUN_POLLERS=0 — HTTP-only API worker (background workers run in luxquant-poller.service)")
 
-    # === Pre-create _cache_outcomes table BEFORE workers start ===
-    try:
-        db = SessionLocal()
-        precompute_outcomes(db)
-        db.close()
-        print("📋 Cache outcomes table initialized")
-    except Exception as e:
-        print(f"⚠️ Could not pre-create outcomes table: {e}")
+    if _run_bg:
+        try:
+            from app.core.leader import start_leader_election
+            start_leader_election()
+        except Exception as e:
+            print(f"⚠️ Leader election failed to start: {e}")
 
-    if is_redis_available():
+        try:
+            db = SessionLocal()
+            precompute_outcomes(db)
+            db.close()
+            print("📋 Cache outcomes table initialized")
+        except Exception as e:
+            print(f"⚠️ Could not pre-create outcomes table: {e}")
+
+    if _run_bg and is_redis_available():
         print(f"🟢 Redis connected ({settings.REDIS_HOST}:{settings.REDIS_PORT})")
         start_cache_workers()
         start_overview_workers()
@@ -127,21 +134,22 @@ async def lifespan(app: FastAPI):
         # asyncio.create_task(run_ai_report_pipeline())
         # ═══════════════════════════════════════════
         
-    else:
+    elif _run_bg:
         print("🟡 Redis not available — running without cache (DB direct queries)")
         start_notification_worker()
 
-    # Subscription expiry + VIP grace/kick worker (independent of Redis)
-    start_subscription_worker()
+    if _run_bg:
+        # Subscription expiry + VIP grace/kick worker (independent of Redis)
+        start_subscription_worker()
 
-    # Platform-wide journey aggregate (all-pairs time-to-TP) — incremental,
-    # materialized in Postgres, refreshed hourly. Backfills on first run.
-    try:
-        from app.services.journey_aggregate import start_journey_aggregate_worker
-        start_journey_aggregate_worker()
-        print("📊 Journey aggregate worker started (incremental hourly)")
-    except Exception as e:
-        print(f"⚠️ Journey aggregate worker failed to start: {e}")
+        # Platform-wide journey aggregate (all-pairs time-to-TP) — incremental,
+        # materialized in Postgres, refreshed hourly. Backfills on first run.
+        try:
+            from app.services.journey_aggregate import start_journey_aggregate_worker
+            start_journey_aggregate_worker()
+            print("📊 Journey aggregate worker started (incremental hourly)")
+        except Exception as e:
+            print(f"⚠️ Journey aggregate worker failed to start: {e}")
 
     # NOTE: AutoTrade engine runs as a separate systemd service
     # (luxquant-autotrade.service), not embedded in this uvicorn process.

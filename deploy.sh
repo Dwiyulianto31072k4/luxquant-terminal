@@ -146,9 +146,15 @@ deploy_luxquant() {
 
     # [5/6] Redis cache
     echo ""
-    echo "🧹 [5/6] Membersihkan Cache Redis..."
-    redis-cli flushall > /dev/null
-    echo "   ✅ Redis cache cleared"
+    echo "🧹 [5/6] Cache Redis..."
+    # NOTE: intentionally NOT running `redis-cli flushall` here. Flushing every
+    # key on each deploy created a cold-cache storm — the signal/market caches
+    # went empty and users got "Failed to load signals" until the poller rebuilt
+    # them (~90s), and any Redis-held auth/session state was wiped mid-login.
+    # Caches carry TTLs and the poller refreshes them on its own; the
+    # cache-invalidator (LISTEN new_signal) handles targeted invalidation. If a
+    # specific deploy really needs a manual flush, do it deliberately by hand.
+    echo "   ⏭️  Skip flushall (caches self-refresh via TTL + poller + invalidator)"
     if [ -f "$LIQUIDATION_STREAM_UNIT" ]; then
         echo "   → Prewarming estimated liquidation forecast..."
         cd "$LUXQUANT_PATH/backend"
