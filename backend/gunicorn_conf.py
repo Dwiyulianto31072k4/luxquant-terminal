@@ -23,9 +23,17 @@ workers = int(os.getenv("LUXQUANT_WORKERS", "4"))
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Rolling-reload / shutdown behaviour
-graceful_timeout = int(os.getenv("LUXQUANT_GRACEFUL_TIMEOUT", "30"))
-timeout = int(os.getenv("LUXQUANT_TIMEOUT", "120"))
+graceful_timeout = int(os.getenv("LUXQUANT_GRACEFUL_TIMEOUT", "20"))
+timeout = int(os.getenv("LUXQUANT_TIMEOUT", "60"))
 keepalive = int(os.getenv("LUXQUANT_KEEPALIVE", "5"))
+
+# Worker heartbeat files on RAM (tmpfs), NOT the disk. During a deploy the disk
+# is busy (npm build, copying hundreds of dist files, prewarm, Cloudflare). If a
+# worker's heartbeat file lives on a loaded disk it can update too slowly, the
+# master wrongly decides the worker is dead and SIGABRTs it → intermittent
+# WORKER TIMEOUT + a ~90s degraded reload → users get logged out. Putting the
+# heartbeat on /dev/shm (RAM) removes that false-positive entirely.
+worker_tmp_dir = "/dev/shm"
 
 # Optional worker recycling to bound memory growth (0 = disabled).
 # Set e.g. 2000 to have each worker respawn after ~2000 requests — helps if a

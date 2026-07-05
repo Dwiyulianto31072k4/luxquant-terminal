@@ -160,21 +160,23 @@ async def lifespan(app: FastAPI):
     print("👋 LuxQuant API Shutting down...")
     await close_clients()
 
-    # Cancel lingering background tasks (pollers, leader loop, cache
-    # invalidator, journey worker, …) so the worker exits PROMPTLY on SIGTERM.
-    # Without this the shutdown hangs and systemd escalates to SIGKILL — which
-    # is what caused the ungraceful (status=9) kills and the deploy downtime.
-    pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    for t in pending:
-        t.cancel()
-    if pending:
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*pending, return_exceptions=True),
-                timeout=5,
-            )
-        except asyncio.TimeoutError:
-            print("⚠️ Some background tasks did not cancel within 5s")
+    # Cancel lingering background tasks ONLY when this process actually started
+    # them (the poller). In an HTTP-only API worker there are none — and blindly
+    # cancelling asyncio.all_tasks() there kills uvicorn's OWN server tasks,
+    # corrupting its graceful shutdown ("Bad file descriptor", stuck worker that
+    # gunicorn then SIGABRTs after ~90s → degraded reload → users logged out).
+    if _run_bg:
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        for t in pending:
+            t.cancel()
+        if pending:
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*pending, return_exceptions=True),
+                    timeout=5,
+                )
+            except asyncio.TimeoutError:
+                print("⚠️ Some background tasks did not cancel within 5s")
 
     # Release ALL pooled DB connections immediately so a restart/reload never
     # leaves "idle" connections lingering on Postgres (the cause of the
