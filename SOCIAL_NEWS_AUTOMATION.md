@@ -15,7 +15,23 @@ image and caption so an admin can review/approve first.
   renders a news-card PNG, then inserts/upserts a `draft`.
 
 - `backend/app/api/routes/admin_social_posts.py`
-  Admin API for listing drafts, generating a draft, and updating status.
+  Admin API for listing drafts, generating a draft, publishing approved rows,
+  and updating status.
+
+- `backend/app/services/social_post_publisher.py`
+  Publishes only approved and due rows. Supports X and Telegram when credentials
+  are configured.
+
+- `backend/app/services/news_article_extractor.py`
+  Enriches thin `crypto_news` rows before drafting. It tries direct HTML/JSON-LD
+  first and falls back to Jina Reader, which is especially useful for
+  TradingView News Flow wrappers.
+
+- `backend/app/services/social_image_generator.py`
+  Generates AI images with OpenAI Images. If an article/reference image exists,
+  it downloads it and attempts a reference-assisted image edit; otherwise it
+  generates from the article brief. If OpenAI fails or no key is configured, the
+  old deterministic LuxQuant card renderer is used as fallback.
 
 ## Deploy
 
@@ -24,10 +40,17 @@ cd /root/luxquant-terminal
 git pull
 
 psql "$DATABASE_URL" -f database/migration-social-posts-v1.sql
+psql "$DATABASE_URL" -f database/migration-news-article-extracts-v1.sql
+psql "$DATABASE_URL" -f database/migration-social-posts-ai-image-v1.sql
 
 cd backend
 venv/bin/pip install -r requirements.txt
 systemctl restart luxquant-backend.service
+
+cp deployment/luxquant-social-publisher.service /etc/systemd/system/
+cp deployment/luxquant-social-publisher.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now luxquant-social-publisher.timer
 ```
 
 ## Generate A Draft
@@ -46,6 +69,29 @@ Generate from a specific `crypto_news.id`:
 cd /root/luxquant-terminal/backend
 SOCIAL_POST_ASSETS_DIR=/opt/luxquant/social-posts \
 venv/bin/python -m app.services.social_news_worker --news-id 21350
+```
+
+Extract thin recent articles first:
+
+```bash
+cd /root/luxquant-terminal/backend
+venv/bin/python -m app.services.news_article_extractor --limit 50
+```
+
+Generate one Instagram-ready draft with AI image attempt:
+
+```bash
+cd /root/luxquant-terminal/backend
+SOCIAL_POST_ASSETS_DIR=/opt/luxquant/social-posts \
+venv/bin/python -m app.services.social_news_worker --news-id 21432
+```
+
+Check whether AI image was used:
+
+```sql
+SELECT id, news_id, status, image_mode, image_path, reference_image_url
+FROM social_posts
+WHERE news_id = 21432;
 ```
 
 ## Admin API
@@ -76,13 +122,25 @@ PATCH /api/v1/admin/social-posts/{id}/status
 }
 ```
 
-## Next Step
+Publish approved and due rows manually:
 
-Add a publisher worker that only posts rows where:
-
-```sql
-status = 'approved'
-AND (scheduled_at IS NULL OR scheduled_at <= now())
+```http
+POST /api/v1/admin/social-posts/publish-approved
+{
+  "limit": 5,
+  "dry_run": false
+}
 ```
 
-That keeps generation and publishing separate.
+Or from the server:
+
+```bash
+cd /root/luxquant-terminal/backend
+SOCIAL_POST_ASSETS_DIR=/opt/luxquant/social-posts \
+venv/bin/python -m app.services.social_post_publisher --limit 5
+```
+
+Publishing remains separate from generation. Rows must be `approved`, and
+`scheduled_at` must be empty or in the past. While a row is being processed it
+uses status `publishing`; failed publishes move to `error` with `error_message`.
+Set `X_ACCOUNT_HANDLE` for the public tweet URL returned after posting.

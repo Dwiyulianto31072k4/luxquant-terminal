@@ -1,0 +1,12 @@
+[Unit]
+Description=Run LuxQuant social post publisher every 5 minutes
+Requires=luxquant-social-publisher.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=luxquant-social-publisher.service
+
+[Install]
+WantedBy=timers.target

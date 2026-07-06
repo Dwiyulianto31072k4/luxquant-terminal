@@ -18,6 +18,7 @@ from app.api.deps import get_admin_user
 from app.core.database import get_db
 from app.models.user import User
 from app.services.social_news_worker import generate_drafts
+from app.services.social_post_publisher import publish_ready_posts
 
 
 router = APIRouter(prefix="/api/v1/admin/social-posts", tags=["admin-social-posts"])
@@ -33,6 +34,11 @@ class GenerateDraftIn(BaseModel):
 class StatusIn(BaseModel):
     status: str
     scheduled_at: Optional[datetime] = None
+
+
+class PublishApprovedIn(BaseModel):
+    limit: int = 5
+    dry_run: bool = False
 
 
 def _row_to_dict(row) -> dict:
@@ -66,6 +72,7 @@ async def list_social_posts(
         SELECT id, news_id, platform, status, angle, template_style, headline,
                caption, hashtags, image_path, score, source_url, source_domain,
                sources_json, scheduled_at, posted_at, posted_url, error_message,
+               image_mode, image_prompt, reference_image_url, reference_image_path,
                created_at, updated_at
         FROM social_posts
         {where}
@@ -91,6 +98,17 @@ async def generate_social_post_draft(
     return {"ok": True, "drafts": drafts}
 
 
+@router.post("/publish-approved")
+async def publish_approved_social_posts(
+    payload: PublishApprovedIn,
+    admin: User = Depends(get_admin_user),
+):
+    if payload.limit < 1 or payload.limit > 25:
+        raise HTTPException(400, "limit must be between 1 and 25")
+    results = publish_ready_posts(limit=payload.limit, dry_run=payload.dry_run)
+    return {"ok": True, "results": results}
+
+
 @router.patch("/{post_id}/status")
 async def update_social_post_status(
     post_id: int,
@@ -98,7 +116,7 @@ async def update_social_post_status(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    if payload.status not in {"draft", "approved", "posted", "rejected", "error"}:
+    if payload.status not in {"draft", "approved", "publishing", "posted", "rejected", "error"}:
         raise HTTPException(400, "invalid status")
 
     row = db.execute(text("SELECT id FROM social_posts WHERE id = :id"), {"id": post_id}).first()

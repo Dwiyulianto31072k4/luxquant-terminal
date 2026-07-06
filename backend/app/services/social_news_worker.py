@@ -22,6 +22,8 @@ from typing import Iterable, Optional
 from sqlalchemy import text
 
 from app.core.database import SessionLocal
+from app.services.news_article_extractor import ensure_extracts_table, extract_news_item, is_thin_text
+from app.services.social_image_generator import generate_ai_social_image
 
 
 POSTS_DIR = Path(os.environ.get("SOCIAL_POST_ASSETS_DIR", "/opt/luxquant/social-posts"))
@@ -84,6 +86,11 @@ class NewsItem:
     domain: Optional[str]
     image_url: Optional[str]
     created_at: Optional[datetime]
+    extracted_text: Optional[str] = None
+    extracted_title: Optional[str] = None
+    extracted_image_url: Optional[str] = None
+    extract_provider: Optional[str] = None
+    extract_status: Optional[str] = None
 
 
 @dataclass
@@ -100,6 +107,10 @@ class SocialDraft:
     sources: list[dict]
     source_url: Optional[str]
     source_domain: Optional[str]
+    image_mode: str = "template"
+    image_prompt: Optional[str] = None
+    reference_image_url: Optional[str] = None
+    reference_image_path: Optional[str] = None
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -122,7 +133,7 @@ def _keyword_hits(text_value: str) -> list[str]:
 
 
 def score_news(item: NewsItem) -> float:
-    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''}"
+    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''} {item.extracted_text or ''}"
     score = 0.0
     hits = _keyword_hits(text_value)
     score += sum(MARKET_KEYWORDS[h] for h in hits)
@@ -140,10 +151,10 @@ def score_news(item: NewsItem) -> float:
 
 
 def _angle_for(item: NewsItem) -> str:
-    text_value = f"{item.title} {item.description or ''}".lower()
+    text_value = f"{item.title} {item.description or ''} {item.extracted_text or ''}".lower()
     if any(k in text_value for k in ("fed", "inflation", "treasury", "rates", "macro")):
         return "macro"
-    if any(k in text_value for k in ("sec", "regulation", "tax", "ban", "officials")):
+    if any(k in text_value for k in ("sec", "regulation", "lawsuit", "tax", "ban", "lawmakers", "court", "bill")):
         return "policy"
     if any(k in text_value for k in ("rally", "volume", "high", "surge", "flows")):
         return "market_pulse"
@@ -151,7 +162,7 @@ def _angle_for(item: NewsItem) -> str:
 
 
 def _headline_for(item: NewsItem) -> str:
-    title = _clean_text(item.title)
+    title = _clean_text(item.extracted_title or item.title)
     lower = title.lower()
 
     if "sol" in lower or "solana" in lower:
@@ -168,12 +179,12 @@ def _headline_for(item: NewsItem) -> str:
         return "Trump crypto links draw fresh scrutiny"
 
     words = title.split()
-    headline = " ".join(words[:9])
-    return headline.rstrip(".,")
+    headline = " ".join(words[:12])
+    return headline.rstrip(".,").title() if headline.isupper() else headline.rstrip(".,")
 
 
 def _hashtags_for(item: NewsItem) -> list[str]:
-    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''}"
+    text_value = f"{item.title} {item.description or ''} {item.raw_text or ''} {item.extracted_text or ''}"
     tags = []
     for hit in _keyword_hits(text_value):
         tag = HASHTAG_MAP.get(hit)
@@ -185,19 +196,70 @@ def _hashtags_for(item: NewsItem) -> list[str]:
     return tags[:6]
 
 
+def _best_article_text(item: NewsItem) -> str:
+    candidates = [
+        item.description or "",
+        item.extracted_text or "",
+        item.raw_text or "",
+    ]
+    candidates = [_clean_text(c) for c in candidates if c]
+    if not candidates:
+        return ""
+    return max(candidates, key=len)
+
+
+def _article_sentences(text_value: str, limit: int = 3) -> list[str]:
+    text_value = re.sub(r"Published Time:\s*\S+", "", text_value or "", flags=re.I)
+    text_value = re.sub(r"\*\*(.*?)\*\*", r"\1", text_value)
+    text_value = re.sub(r"_Source:_.*?(?=[A-Z][a-z]|\n\n|$)", "", text_value)
+    text_value = re.sub(r"\s+", " ", text_value).strip()
+    parts = re.split(r"(?<=[.!?])\s+", text_value)
+    clean = []
+    for part in parts:
+        part = part.strip()
+        if len(part) < 45:
+            continue
+        if part.lower().startswith("source:"):
+            continue
+        clean.append(part)
+        if len(clean) >= limit:
+            break
+    return clean
+
+
+def _image_reference_for(item: NewsItem) -> Optional[str]:
+    return item.extracted_image_url or item.image_url
+
+
+def ensure_social_post_image_columns(db) -> None:
+    db.execute(text("""
+        ALTER TABLE social_posts
+            ADD COLUMN IF NOT EXISTS image_mode TEXT NOT NULL DEFAULT 'template',
+            ADD COLUMN IF NOT EXISTS image_prompt TEXT,
+            ADD COLUMN IF NOT EXISTS reference_image_url TEXT,
+            ADD COLUMN IF NOT EXISTS reference_image_path TEXT
+    """))
+    db.execute(text("""
+        CREATE INDEX IF NOT EXISTS ix_social_posts_image_mode
+            ON social_posts(image_mode, created_at DESC)
+    """))
+    db.commit()
+
+
 def _caption_for(item: NewsItem, headline: str, hashtags: list[str]) -> str:
     title = _clean_text(item.title)
-    desc = _clean_text(item.description or item.raw_text)
+    desc = _best_article_text(item)
     source = item.domain or "LuxQuant News"
 
     if not desc or desc.lower() == title.lower():
         desc = title
 
-    paragraph_1 = desc.rstrip(".") + "."
+    sentences = _article_sentences(desc, limit=2)
+    paragraph_1 = " ".join(sentences) if sentences else desc.rstrip(".") + "."
     paragraph_2 = (
-        "The key question for traders is whether this becomes a real liquidity "
-        "shift or just another short-lived headline. Watch confirmation from "
-        "volume, open interest, and how price reacts around the next major level."
+        "For traders, the question is whether this becomes a real liquidity "
+        "shift or stays as headline risk. Watch confirmation from volume, open "
+        "interest, and how the market prices the next major level."
     )
 
     return "\n\n".join([
@@ -311,14 +373,46 @@ def render_card(draft: SocialDraft, item: NewsItem) -> str:
 def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: bool = True) -> SocialDraft:
     score = score_news(item)
     angle = _angle_for(item)
-    headline = _headline_for(item)
-    hashtags = _hashtags_for(item)
-    caption = _caption_for(item, headline, hashtags)
+
+    # Prefer the AI editorial pack; fall back to the rule-based generator when
+    # XAI_API_KEY is missing or the call fails.
+    article_text = item.extracted_text or _best_article_text(item)
+    ai_pack = None
+    try:
+        from app.services.social_editorial_ai import build_editorial_pack
+        ai_pack = build_editorial_pack(
+            {
+                "title": item.extracted_title or item.title,
+                "description": item.description,
+                "url": item.url,
+                "domain": item.domain,
+            },
+            article_text,
+        )
+    except Exception:
+        ai_pack = None
+
+    ai_image_prompt = None
+    if ai_pack:
+        from app.services.social_editorial_ai import assemble_caption
+        headline = _clean_text(ai_pack.get("headline")) or _headline_for(item)
+        hashtags = ai_pack.get("hashtags") or _hashtags_for(item)
+        ai_pack["hashtags"] = hashtags
+        caption = assemble_caption(ai_pack, source_domain=item.domain or "LuxQuant News")
+        ai_image_prompt = ai_pack.get("image_prompt")
+        content_source = "ai"
+    else:
+        headline = _headline_for(item)
+        hashtags = _hashtags_for(item)
+        caption = _caption_for(item, headline, hashtags)
+        content_source = "rule"
+
     sources = [
         {
             "label": item.domain or "LuxQuant News",
             "url": item.url,
             "news_id": item.id,
+            "content_source": content_source,
         }
     ]
     draft = SocialDraft(
@@ -334,9 +428,25 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         sources=sources,
         source_url=item.url,
         source_domain=item.domain,
+        image_prompt=ai_image_prompt,
     )
     if render_image:
-        draft.image_path = render_card(draft, item)
+        ai_image = generate_ai_social_image(
+            news_id=item.id,
+            headline=headline,
+            article_summary=article_text or caption,
+            source_domain=item.domain,
+            angle=angle,
+            reference_image_url=_image_reference_for(item),
+            override_prompt=ai_image_prompt,
+        )
+        draft.image_mode = ai_image.image_mode
+        draft.image_prompt = ai_image_prompt or ai_image.image_prompt
+        draft.reference_image_url = ai_image.reference_image_url
+        draft.reference_image_path = ai_image.reference_image_path
+        draft.image_path = ai_image.image_path
+        if not draft.image_path:
+            draft.image_path = render_card(draft, item)
     return draft
 
 
@@ -351,21 +461,33 @@ def _row_to_news(row) -> NewsItem:
         domain=row["domain"],
         image_url=row["image_url"],
         created_at=row["created_at"],
+        extracted_text=row.get("extracted_text"),
+        extracted_title=row.get("extracted_title"),
+        extracted_image_url=row.get("extracted_image_url"),
+        extract_provider=row.get("extract_provider"),
+        extract_status=row.get("extract_status"),
     )
 
 
 def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, platform: str = DEFAULT_PLATFORM) -> list[NewsItem]:
+    ensure_extracts_table(db)
     if news_id is not None:
         rows = db.execute(text("""
-            SELECT id, content_type, title, description, raw_text, url, domain, image_url, created_at
-            FROM crypto_news
-            WHERE id = :news_id
+            SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at,
+                   nae.extracted_text, nae.title AS extracted_title, nae.image_url AS extracted_image_url,
+                   nae.provider AS extract_provider, nae.status AS extract_status
+            FROM crypto_news cn
+            LEFT JOIN news_article_extracts nae ON nae.news_id = cn.id AND nae.status = 'ok'
+            WHERE cn.id = :news_id
         """), {"news_id": news_id}).mappings().all()
         return [_row_to_news(r) for r in rows]
 
     rows = db.execute(text("""
-        SELECT id, content_type, title, description, raw_text, url, domain, image_url, created_at
+        SELECT cn.id, cn.content_type, cn.title, cn.description, cn.raw_text, cn.url, cn.domain, cn.image_url, cn.created_at,
+               nae.extracted_text, nae.title AS extracted_title, nae.image_url AS extracted_image_url,
+               nae.provider AS extract_provider, nae.status AS extract_status
         FROM crypto_news cn
+        LEFT JOIN news_article_extracts nae ON nae.news_id = cn.id AND nae.status = 'ok'
         WHERE cn.created_at > now() - interval '3 days'
           AND cn.title IS NOT NULL
           AND NOT EXISTS (
@@ -380,16 +502,19 @@ def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, p
 
 
 def insert_draft(db, draft: SocialDraft) -> int:
+    ensure_social_post_image_columns(db)
     row = db.execute(text("""
         INSERT INTO social_posts (
             source_type, news_id, source_url, source_domain, platform, status,
             angle, template_style, headline, caption, hashtags, image_path,
-            score, sources_json
+            score, sources_json, image_mode, image_prompt, reference_image_url,
+            reference_image_path
         )
         VALUES (
             'crypto_news', :news_id, :source_url, :source_domain, :platform, 'draft',
             :angle, :template_style, :headline, :caption, :hashtags, :image_path,
-            :score, CAST(:sources_json AS jsonb)
+            :score, CAST(:sources_json AS jsonb), :image_mode, :image_prompt,
+            :reference_image_url, :reference_image_path
         )
         ON CONFLICT (news_id, platform) WHERE news_id IS NOT NULL DO UPDATE SET
             angle = EXCLUDED.angle,
@@ -400,6 +525,10 @@ def insert_draft(db, draft: SocialDraft) -> int:
             image_path = EXCLUDED.image_path,
             score = EXCLUDED.score,
             sources_json = EXCLUDED.sources_json,
+            image_mode = EXCLUDED.image_mode,
+            image_prompt = EXCLUDED.image_prompt,
+            reference_image_url = EXCLUDED.reference_image_url,
+            reference_image_path = EXCLUDED.reference_image_path,
             status = CASE WHEN social_posts.status = 'posted' THEN social_posts.status ELSE 'draft' END,
             updated_at = now()
         RETURNING id
@@ -416,6 +545,10 @@ def insert_draft(db, draft: SocialDraft) -> int:
         "image_path": draft.image_path,
         "score": draft.score,
         "sources_json": json.dumps(draft.sources),
+        "image_mode": draft.image_mode,
+        "image_prompt": draft.image_prompt,
+        "reference_image_url": draft.reference_image_url,
+        "reference_image_path": draft.reference_image_path,
     }).first()
     db.commit()
     return int(row[0])
@@ -424,9 +557,19 @@ def insert_draft(db, draft: SocialDraft) -> int:
 def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: str = DEFAULT_PLATFORM, dry_run: bool = False) -> list[dict]:
     db = SessionLocal()
     try:
+        ensure_extracts_table(db)
+        ensure_social_post_image_columns(db)
         candidates = pick_candidate_news(db, limit=max(limit * 6, 12), news_id=news_id, platform=platform)
         created = []
         for item in candidates[:limit]:
+            if item.url and is_thin_text(item.description, item.raw_text) and not item.extracted_text:
+                extracted = extract_news_item(db, item.id)
+                if extracted and extracted.get("status") == "ok":
+                    item.extracted_text = extracted.get("extracted_text")
+                    item.extracted_title = extracted.get("title")
+                    item.extracted_image_url = extracted.get("image_url")
+                    item.extract_provider = extracted.get("provider")
+                    item.extract_status = extracted.get("status")
             draft = build_draft(item, platform=platform, render_image=True)
             post_id = None if dry_run else insert_draft(db, draft)
             created.append({
@@ -436,7 +579,11 @@ def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: 
                 "caption": draft.caption,
                 "hashtags": draft.hashtags,
                 "image_path": draft.image_path,
+                "image_mode": draft.image_mode,
+                "reference_image_url": draft.reference_image_url,
                 "score": draft.score,
+                "extract_status": item.extract_status,
+                "extract_provider": item.extract_provider,
                 "source": draft.source_domain or draft.source_url,
             })
         return created

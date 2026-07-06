@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, HTTPException
 from sqlalchemy import text
 from app.core.database import get_db as get_db_session
 from app.core.redis import cache_get, cache_set
+from app.services.news_article_extractor import extract_news_item
 from typing import Optional
 import hashlib
 
@@ -271,7 +272,29 @@ async def extract_article(news_id: int):
             "top_image": None,
         }
 
-        # Try newspaper3k extraction if URL exists
+        # Try persistent extraction first (direct HTML + Jina fallback).
+        if url:
+            db = None
+            try:
+                db = next(get_db_session())
+                extracted = extract_news_item(db, news_id)
+                if extracted and extracted.get("status") == "ok":
+                    base_data["summary"] = extracted.get("summary")
+                    base_data["full_text"] = (extracted.get("extracted_text") or "")[:4000]
+                    base_data["top_image"] = extracted.get("image_url") or base_data["image_url"]
+                    base_data["extracted"] = True
+                    base_data["extract_provider"] = extracted.get("provider")
+                    if extracted.get("title"):
+                        base_data["title"] = extracted["title"]
+                    cache_set(cache_key, base_data, ttl=86400)
+                    return base_data
+            except Exception as e:
+                print(f"⚠️ Persistent article extract failed for {url}: {e}")
+            finally:
+                if db:
+                    db.close()
+
+        # Legacy newspaper3k fallback if installed.
         if url:
             try:
                 from newspaper import Article as NpArticle

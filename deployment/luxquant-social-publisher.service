@@ -1,0 +1,12 @@
+[Unit]
+Description=LuxQuant approved social post publisher
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/luxquant-terminal/backend
+EnvironmentFile=/root/luxquant-terminal/backend/.env
+ExecStart=/root/luxquant-terminal/backend/venv/bin/python -m app.services.social_post_publisher --limit 5
+
+[Install]
+WantedBy=multi-user.target
