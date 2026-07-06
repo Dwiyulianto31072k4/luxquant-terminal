@@ -25,6 +25,9 @@ XAI_API_BASE = os.environ.get("XAI_API_BASE", "https://api.x.ai/v1")
 XAI_CHAT_MODEL = os.environ.get("XAI_CHAT_MODEL", "grok-4")
 XAI_TIMEOUT = int(os.environ.get("XAI_CHAT_TIMEOUT", "150"))
 
+TAVILY_API_BASE = os.environ.get("TAVILY_API_BASE", "https://api.tavily.com")
+TAVILY_TIMEOUT = int(os.environ.get("TAVILY_TIMEOUT", "35"))
+
 PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 
 # Consistent LuxQuant look + hard negatives appended in code (research: separate
@@ -86,6 +89,38 @@ def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float =
         if not match:
             raise
         return json.loads(match.group(0))
+
+
+def tavily_enrich(query: str, *, url: Optional[str] = None, api_key: Optional[str] = None) -> Optional[dict]:
+    """
+    Best-effort external news search (Tavily) to enrich thin / link-less items.
+    Returns the raw Tavily response (answer + results) or None if no key / failure.
+    Never raises.
+    """
+    key = api_key or os.environ.get("TAVILY_API_KEY", "").strip()
+    query = (query or "").strip()
+    if not key or not query:
+        return None
+    payload = {
+        "query": f"{query} {url or ''}".strip(),
+        "search_depth": "advanced",
+        "topic": "news",
+        "max_results": 5,
+        "include_answer": True,
+        "include_raw_content": True,
+    }
+    try:
+        resp = requests.post(
+            f"{TAVILY_API_BASE.rstrip('/')}/search",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=TAVILY_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:  # noqa: BLE001 — enrichment is optional
+        logger.warning("tavily_enrich failed (%s): %s", type(exc).__name__, exc)
+        return None
 
 
 def _build_context(news: dict, article_text: str, tavily: Optional[dict]) -> dict:
@@ -150,11 +185,16 @@ def build_editorial_pack(
         "(1) make primary_subject the clear physical focus in the foreground, not a faint background hint; "
         "(2) encode the action/sentiment from visual_concept — do NOT default to a generic analyst-at-a-desk with green "
         "up-arrow charts; if the news is bearish/outflows, the scene must read as pressure/withdrawal, not growth; "
-        "(3) state the lighting direction and quality. "
+        "(3) if the news is specific to a country, region or institution, include a recognizable geographic/national cue "
+        "(national flag colors, a known landmark, or the local setting) — no text; "
+        "(4) state the lighting direction and quality. "
         "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
         "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
-        "crypto/markets, then a brief caveat. Do NOT include hashtags, a disclaimer, a call-to-action, or a source line "
-        "in the caption body — those are appended separately. Plain paragraphs only.\n\n"
+        "crypto/markets or the broader macro picture, then a brief caveat. If external search results are provided, use "
+        "them to add accurate context and figures. Do NOT include hashtags, a disclaimer, a call-to-action, or a source "
+        "line in the caption body — those are appended separately. Plain paragraphs only.\n\n"
+        "source_note: name the most authoritative ORIGINAL source. If external search results are provided, prefer the "
+        "original publisher found there (e.g. the agency or outlet) over a social-media handle.\n\n"
         "Hashtags: 5-8 relevant hashtags.\n\n"
         f"Source context:\n{json.dumps(context, ensure_ascii=False)}"
     )

@@ -379,7 +379,15 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
     article_text = item.extracted_text or _best_article_text(item)
     ai_pack = None
     try:
-        from app.services.social_editorial_ai import build_editorial_pack
+        from app.services.social_editorial_ai import build_editorial_pack, tavily_enrich
+        # External search enrichment for thin / link-less items (e.g. Telegram
+        # photo posts): find the original source + more context to elaborate.
+        tavily = None
+        try:
+            if not item.url or len((article_text or "").strip()) < 600:
+                tavily = tavily_enrich(item.extracted_title or item.title, url=item.url)
+        except Exception:
+            tavily = None
         ai_pack = build_editorial_pack(
             {
                 "title": item.extracted_title or item.title,
@@ -388,6 +396,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
                 "domain": item.domain,
             },
             article_text,
+            tavily=tavily,
         )
     except Exception:
         ai_pack = None
