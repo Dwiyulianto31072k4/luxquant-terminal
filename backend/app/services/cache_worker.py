@@ -1401,6 +1401,13 @@ async def fetch_btc_news():
                 seen_titles.add(title_key)
                 unique_articles.append(a)
         unique_articles.sort(key=lambda x: x.get("published",""), reverse=True)
+        # Unified news hub: also persist into crypto_news (best-effort, non-blocking).
+        if unique_articles:
+            try:
+                from app.services.news_category import save_rss_items
+                await asyncio.to_thread(save_rss_items, unique_articles[:20])
+            except Exception as e:
+                print(f"⚠️ crypto_news persist skipped (btc): {type(e).__name__}: {e}")
         return {"articles":unique_articles[:20],"total":len(unique_articles),"fetched_at":datetime.utcnow().isoformat()}
     except Exception as e:
         print(f"❌ BTC news fetch error: {type(e).__name__}: {e}")

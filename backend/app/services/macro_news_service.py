@@ -238,6 +238,15 @@ async def fetch_macro_news(limit: int = 20) -> dict:
     unique.sort(key=lambda x: x.get("published") or "", reverse=True)
     unique = unique[:MAX_CACHE_ARTICLES]
 
+    # Unified news hub: also persist into crypto_news (best-effort, non-blocking).
+    if unique:
+        try:
+            import asyncio
+            from app.services.news_category import save_rss_items
+            await asyncio.to_thread(save_rss_items, list(unique))
+        except Exception as e:
+            logger.warning(f"crypto_news persist skipped (macro): {e}")
+
     result = {
         "articles": unique,
         "total": len(unique),

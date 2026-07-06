@@ -464,6 +464,14 @@ async def get_crypto_news():
             return 0
     articles.sort(key=_parse_date, reverse=True)
 
+    # Unified news hub: also persist into crypto_news (best-effort, non-blocking).
+    if articles:
+        try:
+            from app.services.news_category import save_rss_items
+            await asyncio.to_thread(save_rss_items, articles[:30])
+        except Exception:
+            pass
+
     result = {"articles": articles[:30], "total": len(articles)}
     cache_set("lq:mkt:crypto-news", result, ttl=300)
     return result
