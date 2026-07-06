@@ -41,8 +41,10 @@ IMAGE_STYLE_SUFFIX = (
     "Lower-left third kept dark and mostly empty for a headline overlay."
 )
 IMAGE_NEGATIVE_SUFFIX = (
-    "No text, no letters, no numbers, no logos, no watermark, no readable UI or chart "
-    "labels, no fake tickers, no purple theme, no collage seams, no generic stock-photo look."
+    "Recognizable physical crypto coins bearing each token's iconic emblem are allowed and encouraged; "
+    "otherwise no watermark, no gibberish text, no readable paragraphs, no fake UI screens or chart labels, "
+    "no invented tickers or numbers, no corporate/company logos, no purple theme, no collage seams, "
+    "no generic stock-photo look."
 )
 
 # Standard closing blocks appended to every AI caption (kept out of the AI body
@@ -193,6 +195,10 @@ def build_editorial_pack(
         "visual_concept: FIRST reason about the picture as an object with keys: "
         "primary_subject (the single most important thing to depict as a tangible physical object or scene — the named "
         "token/coin, exchange, company, person, asset, or event; never a vague concept), "
+        "featured_person (if the news centers on a specific, WORLD-FAMOUS public figure whose face is widely recognizable "
+        "— e.g. a well-known founder, CEO, politician or head of state — put their full name and role here so their real "
+        "likeness anchors the scene; if the person is NOT globally famous, or no person is central, set this to null and do "
+        "NOT invent a face — represent the role generically instead, e.g. a back-turned or silhouetted figure), "
         "action (what is happening AND its market direction/sentiment — e.g. outflows = funds leaving, rally = rising, "
         "crash/liquidation = falling/red, upgrade = building/roadmap), "
         "metaphor (one concrete visual metaphor that shows that action).\n\n"
@@ -203,7 +209,16 @@ def build_editorial_pack(
         "up-arrow charts; if the news is bearish/outflows, the scene must read as pressure/withdrawal, not growth; "
         "(3) if the news is specific to a country, region or institution, include a recognizable geographic/national cue "
         "(national flag colors, a known landmark, or the local setting) — no text; "
-        "(4) state the lighting direction and quality. "
+        "(4) if the news names one or more specific crypto tokens (e.g. Bitcoin/BTC, Ethereum/ETH, XRP, Solana/SOL, "
+        "Dogecoin/DOGE), you MUST depict those exact tokens as recognizable physical coins in the foreground, each showing "
+        "its single iconic emblem rendered LARGE, bold and simple (the Bitcoin B, the Ethereum diamond, the XRP circle) — "
+        "never a generic gold coin, never small fine lettering or a made-up ticker, since fine text renders as gibberish; "
+        "if several tokens are named, show each as its own distinct coin; "
+        "(5) if visual_concept.featured_person is a real world-famous figure, make that person the recognizable human "
+        "foreground subject, described by name and role, with a natural pose fitting the story's sentiment; if "
+        "featured_person is null, do NOT depict any identifiable individual's face — use a back-turned, silhouetted or "
+        "out-of-focus figure so no wrong face is fabricated; "
+        "(6) state the lighting direction and quality. "
         "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
         "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
         "crypto/markets or the broader macro picture, then a brief caveat. If external search results are provided, use "
