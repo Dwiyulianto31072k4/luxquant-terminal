@@ -73,13 +73,45 @@ async def list_social_posts(
                caption, hashtags, image_path, score, source_url, source_domain,
                sources_json, scheduled_at, posted_at, posted_url, error_message,
                image_mode, image_prompt, reference_image_url, reference_image_path,
-               created_at, updated_at
+               gen_meta, created_at, updated_at
         FROM social_posts
         {where}
         ORDER BY created_at DESC
         LIMIT :limit
     """), params).mappings().all()
     return [_row_to_dict(r) for r in rows]
+
+
+@router.get("/cost-summary")
+async def social_post_cost_summary(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Aggregate generation-cost estimates for business monitoring."""
+    def _agg(where: str) -> dict:
+        row = db.execute(text(f"""
+            SELECT
+                count(*) FILTER (WHERE gen_meta ? 'total_usd')                AS posts,
+                coalesce(sum((gen_meta->>'total_usd')::numeric), 0)           AS total_usd,
+                coalesce(sum((gen_meta->>'chat_usd')::numeric), 0)            AS chat_usd,
+                coalesce(sum((gen_meta->>'image_usd')::numeric), 0)           AS image_usd,
+                coalesce(sum((gen_meta->>'search_usd')::numeric), 0)          AS search_usd,
+                coalesce(sum((gen_meta->>'prompt_tokens')::int), 0)           AS prompt_tokens,
+                coalesce(sum((gen_meta->>'completion_tokens')::int), 0)       AS completion_tokens,
+                coalesce(sum((gen_meta->>'image_count')::int), 0)             AS images,
+                coalesce(sum((gen_meta->>'search_count')::int), 0)            AS searches
+            FROM social_posts
+            {where}
+        """)).mappings().first()
+        d = {k: float(v) if k.endswith("usd") else int(v) for k, v in dict(row).items()}
+        d["avg_usd"] = round(d["total_usd"] / d["posts"], 6) if d["posts"] else 0.0
+        return d
+
+    return {
+        "all_time": _agg("WHERE gen_meta IS NOT NULL"),
+        "last_7d": _agg("WHERE gen_meta IS NOT NULL AND created_at > now() - interval '7 days'"),
+        "today": _agg("WHERE gen_meta IS NOT NULL AND created_at::date = now()::date"),
+    }
 
 
 @router.post("/generate-draft")

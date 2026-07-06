@@ -111,6 +111,7 @@ class SocialDraft:
     image_prompt: Optional[str] = None
     reference_image_url: Optional[str] = None
     reference_image_path: Optional[str] = None
+    gen_meta: Optional[dict] = None
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -242,6 +243,14 @@ def ensure_social_post_image_columns(db) -> None:
     db.execute(text("""
         CREATE INDEX IF NOT EXISTS ix_social_posts_image_mode
             ON social_posts(image_mode, created_at DESC)
+    """))
+    db.commit()
+
+
+def ensure_social_post_cost_columns(db) -> None:
+    db.execute(text("""
+        ALTER TABLE social_posts
+            ADD COLUMN IF NOT EXISTS gen_meta JSONB
     """))
     db.commit()
 
@@ -378,6 +387,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
     # XAI_API_KEY is missing or the call fails.
     article_text = item.extracted_text or _best_article_text(item)
     ai_pack = None
+    search_count = 0
     try:
         from app.services.social_editorial_ai import build_editorial_pack, tavily_enrich
         # External search enrichment for thin / link-less items (e.g. Telegram
@@ -386,6 +396,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         try:
             if not item.url or len((article_text or "").strip()) < 600:
                 tavily = tavily_enrich(item.extracted_title or item.title, url=item.url)
+                search_count = 1 if tavily else 0
         except Exception:
             tavily = None
         ai_pack = build_editorial_pack(
@@ -424,6 +435,12 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
             "content_source": content_source,
         }
     ]
+    # Tavily reference links (if enrichment ran) — for human verification.
+    if ai_pack and isinstance(ai_pack.get("references"), list):
+        for r in ai_pack["references"][:5]:
+            if r.get("url"):
+                sources.append({"label": r.get("title") or r["url"], "url": r["url"], "type": "reference"})
+
     draft = SocialDraft(
         news_id=item.id,
         platform=platform,
@@ -456,6 +473,23 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         draft.image_path = ai_image.image_path
         if not draft.image_path:
             draft.image_path = render_card(draft, item)
+
+    # Generation cost estimate (tokens + image + search) for business monitoring.
+    try:
+        from app.services.social_cost import estimate_cost
+        usage = (ai_pack or {}).get("_usage") or {}
+        image_count = 1 if draft.image_mode in ("ai_xai", "ai_generated", "ai_reference") else 0
+        draft.gen_meta = estimate_cost(
+            prompt_tokens=usage.get("prompt_tokens", 0),
+            completion_tokens=usage.get("completion_tokens", 0),
+            image_count=image_count,
+            search_count=search_count,
+            chat_model=usage.get("chat_model", ""),
+            image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality") if image_count else "",
+        )
+    except Exception:
+        draft.gen_meta = None
+
     return draft
 
 
@@ -512,18 +546,19 @@ def pick_candidate_news(db, *, limit: int = 20, news_id: Optional[int] = None, p
 
 def insert_draft(db, draft: SocialDraft) -> int:
     ensure_social_post_image_columns(db)
+    ensure_social_post_cost_columns(db)
     row = db.execute(text("""
         INSERT INTO social_posts (
             source_type, news_id, source_url, source_domain, platform, status,
             angle, template_style, headline, caption, hashtags, image_path,
             score, sources_json, image_mode, image_prompt, reference_image_url,
-            reference_image_path
+            reference_image_path, gen_meta
         )
         VALUES (
             'crypto_news', :news_id, :source_url, :source_domain, :platform, 'draft',
             :angle, :template_style, :headline, :caption, :hashtags, :image_path,
             :score, CAST(:sources_json AS jsonb), :image_mode, :image_prompt,
-            :reference_image_url, :reference_image_path
+            :reference_image_url, :reference_image_path, CAST(:gen_meta AS jsonb)
         )
         ON CONFLICT (news_id, platform) WHERE news_id IS NOT NULL DO UPDATE SET
             angle = EXCLUDED.angle,
@@ -538,6 +573,7 @@ def insert_draft(db, draft: SocialDraft) -> int:
             image_prompt = EXCLUDED.image_prompt,
             reference_image_url = EXCLUDED.reference_image_url,
             reference_image_path = EXCLUDED.reference_image_path,
+            gen_meta = EXCLUDED.gen_meta,
             status = CASE WHEN social_posts.status = 'posted' THEN social_posts.status ELSE 'draft' END,
             updated_at = now()
         RETURNING id
@@ -558,6 +594,7 @@ def insert_draft(db, draft: SocialDraft) -> int:
         "image_prompt": draft.image_prompt,
         "reference_image_url": draft.reference_image_url,
         "reference_image_path": draft.reference_image_path,
+        "gen_meta": json.dumps(draft.gen_meta) if draft.gen_meta else None,
     }).first()
     db.commit()
     return int(row[0])
@@ -568,6 +605,7 @@ def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: 
     try:
         ensure_extracts_table(db)
         ensure_social_post_image_columns(db)
+        ensure_social_post_cost_columns(db)
         candidates = pick_candidate_news(db, limit=max(limit * 6, 12), news_id=news_id, platform=platform)
         created = []
         for item in candidates[:limit]:

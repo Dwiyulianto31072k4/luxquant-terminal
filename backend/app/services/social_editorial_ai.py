@@ -88,14 +88,17 @@ def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float =
         timeout=XAI_TIMEOUT,
     )
     resp.raise_for_status()
-    content = resp.json()["choices"][0]["message"]["content"]
+    data = resp.json()
+    usage = data.get("usage") or {}
+    content = data["choices"][0]["message"]["content"]
     try:
-        return json.loads(content)
+        pack = json.loads(content)
     except Exception:
         match = re.search(r"\{.*\}", content, flags=re.S)
         if not match:
             raise
-        return json.loads(match.group(0))
+        pack = json.loads(match.group(0))
+    return pack, usage
 
 
 def tavily_enrich(query: str, *, url: Optional[str] = None, api_key: Optional[str] = None) -> Optional[dict]:
@@ -207,7 +210,7 @@ def build_editorial_pack(
     )
 
     try:
-        pack = _xai_chat(key, [
+        pack, usage = _xai_chat(key, [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ])
@@ -230,5 +233,21 @@ def build_editorial_pack(
     content_prompt = str(pack.get("image_prompt") or "").strip()
     if content_prompt:
         pack["image_prompt"] = f"{content_prompt} {IMAGE_STYLE_SUFFIX} {IMAGE_NEGATIVE_SUFFIX}"
+
+    # Attach the Tavily reference links used for enrichment so a human can verify.
+    references = []
+    if tavily:
+        for it in (tavily.get("results") or [])[:5]:
+            u = (it.get("url") or "").strip()
+            if u:
+                references.append({"title": (it.get("title") or u)[:140], "url": u})
+    pack["references"] = references
+
+    # Token usage (for cost tracking).
+    pack["_usage"] = {
+        "prompt_tokens": int((usage or {}).get("prompt_tokens") or 0),
+        "completion_tokens": int((usage or {}).get("completion_tokens") or 0),
+        "chat_model": XAI_CHAT_MODEL,
+    }
 
     return pack
