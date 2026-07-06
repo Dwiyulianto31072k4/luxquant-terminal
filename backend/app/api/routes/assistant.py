@@ -16,11 +16,14 @@ import hashlib
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 
 from app.core.redis import cache_get, cache_set, get_redis
+from app.services.ai_cost import log_usage, extract_usage
+
+FEATURE = "assistant"  # cost-tracking label (generalizes to other features later)
 
 router = APIRouter(tags=["assistant"])
 
@@ -143,7 +146,7 @@ async def suggestions(page_id: str = "signals"):
 
 
 @router.post("/assistant/chat")
-async def chat(req: ChatRequest, request: Request):
+async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
     guide = _load_guide(req.page_id)
     if guide is None:
         return {
@@ -164,6 +167,8 @@ async def chat(req: ChatRequest, request: Request):
     ckey = _cache_key(req.page_id, req.message)
     cached = cache_get(ckey)
     if cached:
+        # Log a $0 cache-served row so we can measure app-layer savings.
+        background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True)
         return {"answer": cached, "cached": True}
 
     # 2) Build messages: static guide prefix first (prompt-cache friendly)
@@ -182,6 +187,10 @@ async def chat(req: ChatRequest, request: Request):
             max_tokens=500,
         )
         answer = (res.choices[0].message.content or "").strip()
+        # Track token usage & cost (non-blocking, after response is sent).
+        background.add_task(
+            log_usage, FEATURE, MODEL, extract_usage(getattr(res, "usage", None)), req.page_id, False
+        )
     except Exception as e:
         print(f"⚠️ [assistant] model call failed: {e}")
         return {

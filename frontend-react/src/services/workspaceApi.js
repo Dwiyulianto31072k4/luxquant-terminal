@@ -24,6 +24,18 @@ export const workspaceApi = {
   },
 
   // ════════════════════════════════════
+  // AI COST TRACKER
+  // ════════════════════════════════════
+  getAiCostSummary: async (days = 30) => {
+    const response = await api.get('/api/v1/workspace/ai-cost/summary', { params: { days } });
+    return response.data;
+  },
+  getAiCostRecent: async (limit = 50) => {
+    const response = await api.get('/api/v1/workspace/ai-cost/recent', { params: { limit } });
+    return response.data;
+  },
+
+  // ════════════════════════════════════
   // FOLLOW-UPS
   // ════════════════════════════════════
   listFollowups: async (filters = {}) => {

@@ -31,6 +31,7 @@ import { ApiKeysTab } from './admin/workspace/ApiKeysTab';
 import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
 import { SystemTab } from './admin/workspace/SystemTab';
 import { ProfitSharingTab } from './admin/workspace/ProfitSharingTab';
+import { AiCostTab } from './admin/workspace/AiCostTab';
 import SocialPostsAdminPage from './SocialPostsAdminPage';
 
 // Design system
@@ -73,6 +74,7 @@ const TABS = [
   { id: 'socialposts',   label: 'Social Posts',  description: 'AI-generated post drafts',        Icon: BroadcastConeIcon, accent: palette.purple[400] },
   { id: 'system',        label: 'System',        description: 'VPS service health & control',    Icon: ServerIcon,        accent: palette.teal[400] },
   { id: 'profitshare',   label: 'Profit Share',  description: 'Revenue split recap & export',     Icon: DollarIcon,        accent: palette.green[400] },
+  { id: 'aicost',        label: 'AI Cost',       description: 'AI usage & spend tracking',        Icon: ZapIcon,           accent: palette.gold[300] },
 ];
 
 const TAB_BY_ID = Object.fromEntries(TABS.map((t) => [t.id, t]));
@@ -339,6 +341,7 @@ const AdminWorkspacePage = () => {
       {activeTab === 'socialposts' && <SocialPostsAdminPage />}
       {activeTab === 'system' && <SystemTab />}
       {activeTab === 'profitshare' && <ProfitSharingTab />}
+      {activeTab === 'aicost' && <AiCostTab />}
     </div>
   );
 };
