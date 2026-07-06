@@ -43,18 +43,49 @@ IMAGE_STYLE_SUFFIX = (
 # Always-on negatives.
 IMAGE_NEGATIVE_BASE = (
     "No watermark, no gibberish text, no readable paragraphs, no fake UI screens or chart labels, "
+    "no schematic diagrams, blueprints, flowcharts or documents containing words or labels, "
     "no invented tickers or numbers, no corporate/company logos, no purple theme, no collage seams, "
     "no generic stock-photo look."
 )
-# Coin clause is chosen by code (not the AI) based on whether the news actually
-# names specific tokens — prevents crypto coins leaking into unrelated stories.
-IMAGE_COINS_ENCOURAGED = (
-    "Recognizable physical crypto coins bearing each named token's iconic emblem, large and clear, are encouraged in the foreground."
-)
+# Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
+# render and forbid all others — stops the model defaulting to generic Bitcoin.
+TOKEN_EMBLEMS = {
+    "BTC": "a physical Bitcoin coin with the orange circular B (₿) emblem",
+    "ETH": "a physical Ethereum coin with the silver diamond octahedron emblem",
+    "XRP": "a physical XRP coin with its plain circular emblem",
+    "SOL": "a physical Solana coin with the three parallel gradient bars emblem",
+    "DOGE": "a physical Dogecoin coin with the Shiba Inu dog face emblem",
+    "ADA": "a physical Cardano coin with the blue circular ADA emblem",
+    "BNB": "a physical BNB coin with the gold stacked-diamond emblem",
+    "USDT": "a physical Tether coin with the teal hexagon-T emblem",
+    "TON": "a physical Toncoin coin with the blue crystal emblem",
+    "TRX": "a physical TRON coin with its geometric emblem",
+    "AVAX": "a physical Avalanche coin with the red triangular emblem",
+    "LINK": "a physical Chainlink coin with the blue hexagon emblem",
+}
+
+# When no token is named, keep the scene real-world (positive phrasing beats "no X").
 IMAGE_NO_COINS = (
     "Keep the scene strictly to its real-world subject and setting; no crypto coins, no physical "
     "Bitcoin/Ethereum/token props or coin imagery anywhere."
 )
+
+
+def _coin_clause(tokens: list[str]) -> str:
+    """Build the deterministic coin instruction: name the exact coin(s) the tokens
+    array allows and forbid every other coin, or forbid coins entirely if empty."""
+    if not tokens:
+        return IMAGE_NO_COINS
+    descs = []
+    for t in tokens[:3]:
+        key = str(t).upper().lstrip("$")
+        descs.append(TOKEN_EMBLEMS.get(key, f"a physical {t} coin with its correct iconic emblem"))
+    listed = "; ".join(descs)
+    return (
+        f"The ONLY physical crypto coin(s) allowed in the scene, large and clear in the foreground, are: {listed}. "
+        "Render each emblem accurately and show NO other cryptocurrency coins of any kind — in particular do not add "
+        "Bitcoin, Solana or any coin that is not in this list."
+    )
 
 # Standard closing blocks appended to every AI caption (kept out of the AI body
 # so the URL and wording are always exact, never hallucinated).
@@ -229,7 +260,10 @@ def build_editorial_pack(
         "foreground subject, described by name and role, with a natural pose fitting the story's sentiment; if "
         "featured_person is null, do NOT depict any identifiable individual's face — use a back-turned, silhouetted or "
         "out-of-focus figure so no wrong face is fabricated; "
-        "(6) state the lighting direction and quality. "
+        "(6) if the story is about a plan, roadmap, upgrade or protocol, represent it abstractly (glowing network nodes, "
+        "layered geometric shapes, light lines) — NEVER as a document, blueprint, chart or diagram bearing words or "
+        "labels, since any rendered text becomes gibberish; "
+        "(7) state the lighting direction and quality. "
         "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
         "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
         "crypto/markets or the broader macro picture, then a brief caveat. If external search results are provided, use "
@@ -270,6 +304,18 @@ def build_editorial_pack(
     tags = [t if str(t).startswith("#") else f"#{t}" for t in tags if str(t).strip()]
     pack["hashtags"] = tags[:8]
 
+    # Expose the AI's featured_person decision (a real, world-famous figure or None)
+    # so the image generator can decide whether to condition on a real reference
+    # photo or, if none exists, depict the person generically instead of faking a face.
+    vc = pack.get("visual_concept") or {}
+    fp = vc.get("featured_person") if isinstance(vc, dict) else None
+    if isinstance(fp, str):
+        fp = fp.strip()
+        fp = None if fp.lower() in ("", "null", "none") else fp
+    else:
+        fp = None
+    pack["featured_person"] = fp
+
     # Normalize the token classification the AI returned. This — not prompt wording —
     # deterministically decides whether crypto coins may appear in the image, so an
     # unrelated (macro/geopolitical) story can never get coins bolted on.
@@ -283,7 +329,7 @@ def build_editorial_pack(
     # code-chosen coin clause (encourage vs forbid) + always-on negatives.
     content_prompt = str(pack.get("image_prompt") or "").strip()
     if content_prompt:
-        coin_clause = IMAGE_COINS_ENCOURAGED if tokens else IMAGE_NO_COINS
+        coin_clause = _coin_clause(tokens)
         pack["image_prompt"] = f"{content_prompt} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
 
     # References: ONLY the search-result URLs the AI vetted as matching THIS exact

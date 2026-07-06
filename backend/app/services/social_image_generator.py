@@ -320,10 +320,67 @@ def compose_luxquant_image(
 # ── xAI (Grok) image generation + prototype editorial renderer ──────────
 XAI_API_BASE = os.environ.get("XAI_API_BASE", "https://api.x.ai/v1")
 XAI_IMAGE_MODEL = os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality")
+XAI_IMAGE_EDIT_MODEL = os.environ.get("XAI_IMAGE_EDIT_MODEL", "grok-imagine-image-quality")
 XAI_IMAGE_TIMEOUT = int(os.environ.get("XAI_IMAGE_TIMEOUT", "280"))
 IMAGE_PROVIDER = os.environ.get("SOCIAL_IMAGE_PROVIDER", "xai").strip().lower()
 SOCIAL_LOGO_PATH = os.environ.get("SOCIAL_LOGO_PATH", str(ASSETS_DIR / "logo-luxquant.png"))
+# Curated library of real face photos keyed by slug, e.g. faces/vitalik-buterin.jpg.
+# When a story's featured_person matches a file here, the image is generated via
+# xAI image-edit conditioned on that photo so the likeness is accurate.
+SOCIAL_FACE_DIR = Path(os.environ.get("SOCIAL_FACE_DIR", str(ASSETS_DIR / "faces")))
 LUX_RED = (190, 0, 28, 238)
+
+
+def _slugify_name(name: str) -> str:
+    """'Vitalik Buterin, Ethereum co-founder' -> 'vitalik-buterin'."""
+    base = re.split(r"[,(]", name or "", 1)[0]
+    return re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
+
+
+def resolve_face_reference(featured_person: Optional[str]) -> Optional[str]:
+    """Return the path to a curated face photo for this person, or None."""
+    slug = _slugify_name(featured_person or "")
+    if not slug:
+        return None
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        path = SOCIAL_FACE_DIR / f"{slug}{ext}"
+        if path.exists():
+            return str(path)
+    return None
+
+
+def _edit_xai_image(prompt: str, reference_path: str, out_path: Path) -> None:
+    """Generate via xAI image-edit conditioned on a reference photo (JSON + base64
+    data URI, per xAI /images/edits spec)."""
+    api_key = os.environ.get("XAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("XAI_API_KEY is not configured")
+    with open(reference_path, "rb") as handle:
+        b64 = base64.b64encode(handle.read()).decode("utf-8")
+    ext = Path(reference_path).suffix.lstrip(".").lower() or "png"
+    mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    response = requests.post(
+        f"{XAI_API_BASE.rstrip('/')}/images/edits",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={
+            "model": XAI_IMAGE_EDIT_MODEL,
+            "prompt": prompt,
+            "image": {"url": f"data:image/{mime};base64,{b64}", "type": "image_url"},
+            "response_format": "b64_json",
+        },
+        timeout=XAI_IMAGE_TIMEOUT,
+    )
+    response.raise_for_status()
+    item = (response.json().get("data") or [{}])[0]
+    if item.get("b64_json"):
+        out_path.write_bytes(base64.b64decode(item["b64_json"]))
+        return
+    if item.get("url"):
+        img = requests.get(item["url"], timeout=120)
+        img.raise_for_status()
+        out_path.write_bytes(img.content)
+        return
+    raise RuntimeError("xAI image edit response missing b64_json/url")
 
 
 def _generate_xai_image(prompt: str, out_path: Path) -> None:
@@ -457,6 +514,7 @@ def generate_ai_social_image(
     angle: Optional[str],
     reference_image_url: Optional[str] = None,
     override_prompt: Optional[str] = None,
+    featured_person: Optional[str] = None,
 ) -> GeneratedSocialImage:
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
@@ -475,20 +533,40 @@ def generate_ai_social_image(
     # Preferred backend: xAI/Grok raw image + LuxQuant editorial renderer
     # (bottom gradient + white headline + logo), matching the prototype look.
     if IMAGE_PROVIDER == "xai":
+        face_path = resolve_face_reference(featured_person)
+        gen_prompt = prompt
+        mode = "ai_xai"
         try:
-            _generate_xai_image(prompt, raw_path)
+            if face_path:
+                # Accurate likeness: condition on the curated reference photo.
+                edit_prompt = (
+                    "Place the exact person shown in the reference image — preserving their real face, "
+                    "hair, and likeness precisely — as the foreground subject of this scene: " + prompt
+                )
+                _edit_xai_image(edit_prompt, face_path, raw_path)
+                mode = "ai_xai_face"
+            else:
+                if featured_person:
+                    # Famous figure requested but no verified reference photo on file:
+                    # never fabricate a face — render the person generically instead.
+                    gen_prompt = prompt + (
+                        " Show the central person only from behind or as a shadowed silhouette, "
+                        "face not visible, to avoid depicting an inaccurate likeness."
+                    )
+                _generate_xai_image(gen_prompt, raw_path)
             _compose_editorial_card(str(raw_path), headline, str(out_path))
             return GeneratedSocialImage(
                 image_path=str(out_path),
-                image_mode="ai_xai",
-                image_prompt=prompt,
+                image_mode=mode,
+                image_prompt=gen_prompt,
                 reference_image_url=reference_image_url,
+                reference_image_path=face_path,
             )
         except Exception as exc:
             return GeneratedSocialImage(
                 image_path=None,
                 image_mode="template_fallback",
-                image_prompt=prompt,
+                image_prompt=gen_prompt,
                 reference_image_url=reference_image_url,
                 error_message=f"xai image failed: {type(exc).__name__}: {exc}",
             )

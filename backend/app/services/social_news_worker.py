@@ -470,6 +470,7 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
             angle=angle,
             reference_image_url=_image_reference_for(item),
             override_prompt=ai_image_prompt,
+            featured_person=(ai_pack or {}).get("featured_person"),
         )
         draft.image_mode = ai_image.image_mode
         draft.image_prompt = ai_image_prompt or ai_image.image_prompt
