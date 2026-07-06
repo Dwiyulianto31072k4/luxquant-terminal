@@ -27,6 +27,19 @@ XAI_TIMEOUT = int(os.environ.get("XAI_CHAT_TIMEOUT", "150"))
 
 PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 
+# Consistent LuxQuant look + hard negatives appended in code (research: separate
+# the "content" prompt the AI writes from a fixed "style" so results stay on-brand
+# and reproducible). Kept concise so no single keyword gets diluted.
+IMAGE_STYLE_SUFFIX = (
+    "Premium editorial business-news photography, one continuous realistic scene, "
+    "natural directional lighting with soft shadows and real lens depth. "
+    "Lower-left third kept dark and mostly empty for a headline overlay."
+)
+IMAGE_NEGATIVE_SUFFIX = (
+    "No text, no letters, no numbers, no logos, no watermark, no readable UI or chart "
+    "labels, no fake tickers, no purple theme, no collage seams, no generic stock-photo look."
+)
+
 # Standard closing blocks appended to every AI caption (kept out of the AI body
 # so the URL and wording are always exact, never hallucinated).
 CAPTION_DISCLAIMER = os.environ.get(
@@ -124,14 +137,24 @@ def build_editorial_pack(
     )
     user = (
         "Create a complete social-news pack from this source context. Return JSON only with keys: "
-        "headline, image_prompt, caption, hashtags, source_note.\n\n"
-        "Headline: 7-12 words, premium editorial, clear, not clickbait.\n"
-        "Image prompt: realistic editorial photo/composite for xAI image generation. Mention key actors, tokens, "
-        "institutions, charts, and real-world context if relevant. No logo, no watermark, no readable text, no fake "
-        "letters/numbers, no purple theme. Natural business/crypto news look. Leave lower-left clean for headline overlay.\n"
+        "headline, visual_concept, image_prompt, caption, hashtags, source_note.\n\n"
+        "Headline: 7-12 words, premium editorial, clear, not clickbait.\n\n"
+        "visual_concept: FIRST reason about the picture as an object with keys: "
+        "primary_subject (the single most important thing to depict as a tangible physical object or scene — the named "
+        "token/coin, exchange, company, person, asset, or event; never a vague concept), "
+        "action (what is happening AND its market direction/sentiment — e.g. outflows = funds leaving, rally = rising, "
+        "crash/liquidation = falling/red, upgrade = building/roadmap), "
+        "metaphor (one concrete visual metaphor that shows that action).\n\n"
+        "image_prompt: A concise 40-70 word photorealistic scene that VISUALLY tells THIS specific story, built from "
+        "visual_concept. Order: subject in the foreground -> setting -> lighting. Rules: "
+        "(1) make primary_subject the clear physical focus in the foreground, not a faint background hint; "
+        "(2) encode the action/sentiment from visual_concept — do NOT default to a generic analyst-at-a-desk with green "
+        "up-arrow charts; if the news is bearish/outflows, the scene must read as pressure/withdrawal, not growth; "
+        "(3) state the lighting direction and quality. "
+        "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
         "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
         "crypto/markets, then a brief caveat. Do NOT include hashtags, a disclaimer, a call-to-action, or a source line "
-        "in the caption body — those are appended separately. Plain paragraphs only.\n"
+        "in the caption body — those are appended separately. Plain paragraphs only.\n\n"
         "Hashtags: 5-8 relevant hashtags.\n\n"
         f"Source context:\n{json.dumps(context, ensure_ascii=False)}"
     )
@@ -155,4 +178,10 @@ def build_editorial_pack(
         tags = tags.split()
     tags = [t if str(t).startswith("#") else f"#{t}" for t in tags if str(t).strip()]
     pack["hashtags"] = tags[:8]
+
+    # Compose final image prompt: AI-written scene (content) + fixed LuxQuant style + hard negatives.
+    content_prompt = str(pack.get("image_prompt") or "").strip()
+    if content_prompt:
+        pack["image_prompt"] = f"{content_prompt} {IMAGE_STYLE_SUFFIX} {IMAGE_NEGATIVE_SUFFIX}"
+
     return pack
