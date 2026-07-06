@@ -42,6 +42,29 @@ export function AiCostTab() {
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [aiEnabled, setAiEnabled] = useState(null); // null=loading
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    workspaceApi.getAiSettings()
+      .then((s) => setAiEnabled(s.assistant_enabled !== false))
+      .catch(() => setAiEnabled(true));
+  }, []);
+
+  const toggleAi = async () => {
+    if (toggling || aiEnabled === null) return;
+    const next = !aiEnabled;
+    setToggling(true);
+    setAiEnabled(next); // optimistic
+    try {
+      const res = await workspaceApi.setAiSettings(next);
+      setAiEnabled(res.assistant_enabled !== false);
+    } catch {
+      setAiEnabled(!next); // revert
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -65,6 +88,28 @@ export function AiCostTab() {
 
   return (
     <div className="space-y-6">
+      {/* AI Assistant master switch */}
+      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white">AI Assistant</p>
+          <p className="mt-1 text-[11px] text-white/45">
+            {aiEnabled === false
+              ? 'Turned OFF — the help widget is hidden everywhere (no bubble, no badge).'
+              : 'Turned ON — the help widget is available across the app.'}
+          </p>
+        </div>
+        <button
+          onClick={toggleAi}
+          disabled={toggling || aiEnabled === null}
+          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${aiEnabled ? 'bg-emerald-500/80' : 'bg-white/15'}`}
+          aria-label="Toggle AI Assistant"
+          role="switch"
+          aria-checked={!!aiEnabled}
+        >
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${aiEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+      </div>
+
       {/* Range selector + refresh */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.02] p-1">

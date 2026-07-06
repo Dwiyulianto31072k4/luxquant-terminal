@@ -11,13 +11,39 @@ for the admin Management System "AI Cost" tab.
       most recent calls.
 """
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.core.database import get_db
 from app.api.deps import get_admin_user
+from app.core.redis import get_redis
 
 router = APIRouter(prefix="/api/v1/workspace/ai-cost", tags=["ai-cost"])
+
+_ASSISTANT_ENABLED_KEY = "lq:assistant:enabled"
+
+
+class AiSettings(BaseModel):
+    assistant_enabled: bool
+
+
+@router.get("/settings")
+def get_settings(_admin=Depends(get_admin_user)):
+    try:
+        enabled = get_redis().get(_ASSISTANT_ENABLED_KEY) != "0"
+    except Exception:
+        enabled = True
+    return {"assistant_enabled": enabled}
+
+
+@router.post("/settings")
+def set_settings(body: AiSettings, _admin=Depends(get_admin_user)):
+    try:
+        get_redis().set(_ASSISTANT_ENABLED_KEY, "1" if body.assistant_enabled else "0")
+    except Exception as e:
+        return {"assistant_enabled": True, "error": str(e)}
+    return {"assistant_enabled": body.assistant_enabled}
 
 
 def _table_exists(db: Session) -> bool:

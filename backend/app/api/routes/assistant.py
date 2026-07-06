@@ -384,7 +384,25 @@ def _cache_key(page_id: str, message: str) -> str:
     return f"lq:assistant:ans:{page_id}:{h}"
 
 
+# ── Global on/off switch (admin-controlled, stored in Redis) ─────────
+ENABLED_KEY = "lq:assistant:enabled"
+
+
+def assistant_enabled() -> bool:
+    """Default ON. Only False when an admin has explicitly turned it off."""
+    try:
+        return get_redis().get(ENABLED_KEY) != "0"
+    except Exception:
+        return True
+
+
 # ── Endpoints ───────────────────────────────────────────────────────
+@router.get("/assistant/status")
+async def status():
+    """Public — the widget checks this and hides entirely when disabled."""
+    return {"enabled": assistant_enabled()}
+
+
 @router.get("/assistant/pages")
 async def pages():
     """List every page the assistant can help with (for the full-page selector)."""
@@ -405,6 +423,9 @@ async def suggestions(page_id: str = "signals"):
 
 @router.post("/assistant/chat")
 async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
+    if not assistant_enabled():
+        return {"answer": "The assistant is currently turned off.", "cached": False, "error": "disabled"}
+
     guide = _load_guide(req.page_id)
     if guide is None:
         return {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getSuggestions, askAssistant } from '../../services/assistantApi';
+import { getSuggestions, askAssistant, getAssistantStatus } from '../../services/assistantApi';
 import { renderMarkdown } from './markdown';
 
 /**
@@ -13,12 +13,20 @@ import { renderMarkdown } from './markdown';
 export default function AssistantWidget({ pageId = 'signals' }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [enabled, setEnabled] = useState(null); // null=loading, false=hidden
   const [label, setLabel] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content}
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
+
+  // Global on/off (admin-controlled). When off, render nothing at all.
+  useEffect(() => {
+    let alive = true;
+    getAssistantStatus().then((s) => { if (alive) setEnabled(s.enabled !== false); });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -52,6 +60,9 @@ export default function AssistantWidget({ pageId = 'signals' }) {
   }, [input, loading, messages, pageId]);
 
   const hasChat = messages.length > 0 || loading;
+
+  // Admin turned the assistant off (or still loading status) — show nothing.
+  if (enabled === false || enabled === null) return null;
 
   return (
     <>
@@ -126,7 +137,7 @@ export default function AssistantWidget({ pageId = 'signals' }) {
                       ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
                       : 'bg-white/[0.05] text-white/90 border border-white/5'
                   }`}>
-                    {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content)}</div> : m.content}
+                    {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => { setOpen(false); navigate(path); })}</div> : m.content}
                   </div>
                 </div>
               ))}

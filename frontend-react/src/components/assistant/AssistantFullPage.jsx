@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getPages, getSuggestions, askAssistant } from '../../services/assistantApi';
+import { getPages, getSuggestions, askAssistant, getAssistantStatus } from '../../services/assistantApi';
 import { renderMarkdown } from './markdown';
 
 /**
@@ -19,8 +19,10 @@ export default function AssistantFullPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const scrollRef = useRef(null);
 
+  useEffect(() => { getAssistantStatus().then((s) => setEnabled(s.enabled !== false)); }, []);
   useEffect(() => { getPages().then((d) => setPages(d.pages || [])); }, []);
 
   // Reset the conversation when the topic changes, load its suggestions.
@@ -57,6 +59,17 @@ export default function AssistantFullPage() {
   }, [input, loading, messages, pageId]);
 
   const changePage = (pid) => setParams({ page: pid });
+
+  if (!enabled) {
+    return (
+      <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-4xl items-center justify-center px-4 text-center">
+        <div>
+          <p className="font-display text-lg font-semibold text-white">Assistant is currently off</p>
+          <p className="mt-2 text-sm text-white/60">The LuxQuant Assistant has been turned off by an admin.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-6">
@@ -119,7 +132,7 @@ export default function AssistantFullPage() {
                 ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
                 : 'bg-white/[0.05] text-white/90 border border-white/5'
             }`}>
-              {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content)}</div> : m.content}
+              {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content, (path) => navigate(path))}</div> : m.content}
             </div>
           </div>
         ))}

@@ -34,6 +34,14 @@ export const workspaceApi = {
     const response = await api.get('/api/v1/workspace/ai-cost/recent', { params: { limit } });
     return response.data;
   },
+  getAiSettings: async () => {
+    const response = await api.get('/api/v1/workspace/ai-cost/settings');
+    return response.data;
+  },
+  setAiSettings: async (assistant_enabled) => {
+    const response = await api.post('/api/v1/workspace/ai-cost/settings', { assistant_enabled });
+    return response.data;
+  },
 
   // ════════════════════════════════════
   // FOLLOW-UPS
