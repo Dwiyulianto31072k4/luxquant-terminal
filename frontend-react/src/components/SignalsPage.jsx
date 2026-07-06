@@ -10,6 +10,7 @@ import { watchlistApi } from '../services/watchlistApi';
 import moneyFlowApi from '../services/moneyFlowApi';
 import CoinLogo from './CoinLogo';
 import CompassSnapshot from './aiArenaV6/CompassSnapshot';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -1566,6 +1567,9 @@ const SignalsPage = () => {
           onSwitchSignal={(newSignal) => openSignal(newSignal, "chart")}
         />
       )}
+
+      {/* Context-aware help assistant (MVP: Potential Trades page) */}
+      <AssistantWidget pageId="signals" />
     </div>
   );
 };
