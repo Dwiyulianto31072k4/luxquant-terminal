@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 XAI_API_BASE = os.environ.get("XAI_API_BASE", "https://api.x.ai/v1")
 XAI_CHAT_MODEL = os.environ.get("XAI_CHAT_MODEL", "grok-4")
 XAI_TIMEOUT = int(os.environ.get("XAI_CHAT_TIMEOUT", "150"))
+# Lower temperature for factual news content (research: reduces hallucination).
+XAI_CHAT_TEMPERATURE = float(os.environ.get("XAI_CHAT_TEMPERATURE", "0.2"))
 
 TAVILY_API_BASE = os.environ.get("TAVILY_API_BASE", "https://api.tavily.com")
 TAVILY_TIMEOUT = int(os.environ.get("TAVILY_TIMEOUT", "35"))
@@ -74,7 +76,7 @@ def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
     return "\n\n".join(p for p in parts if p)
 
 
-def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float = 0.45) -> dict[str, Any]:
+def _xai_chat(api_key: str, messages: list[dict[str, str]], temperature: float = XAI_CHAT_TEMPERATURE):
     payload = {
         "model": XAI_CHAT_MODEL,
         "messages": messages,
@@ -177,12 +179,16 @@ def build_editorial_pack(
     context = _build_context(news, article_text, tavily)
     system = (
         "You are LuxQuant's senior crypto and business news editor plus image prompt director. "
-        "Everything must be in English for a global audience. Be accurate, premium, and sober. "
-        "Do not invent exact facts, quotes, or numbers beyond the source context."
+        "Everything must be in English for a global audience. Be accurate, premium, and sober.\n"
+        "GROUNDING RULES (critical): Only state facts, numbers, names, dates and quotes that appear in the provided "
+        "source context or search results. Never invent, estimate, or infer values that are not present in the sources. "
+        "If a detail is missing, omit it rather than guess. When sources disagree, prefer the most recent figure. "
+        "Before finalizing, silently re-check every number, name and date against the sources and remove anything you "
+        "cannot ground in them."
     )
     user = (
         "Create a complete social-news pack from this source context. Return JSON only with keys: "
-        "headline, visual_concept, image_prompt, caption, hashtags, source_note.\n\n"
+        "headline, visual_concept, image_prompt, caption, hashtags, source_note, used_references.\n\n"
         "Headline: 7-12 words, premium editorial, clear, not clickbait.\n\n"
         "visual_concept: FIRST reason about the picture as an object with keys: "
         "primary_subject (the single most important thing to depict as a tangible physical object or scene — the named "
@@ -201,10 +207,15 @@ def build_editorial_pack(
         "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
         "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
         "crypto/markets or the broader macro picture, then a brief caveat. If external search results are provided, use "
-        "them to add accurate context and figures. Do NOT include hashtags, a disclaimer, a call-to-action, or a source "
+        "them to add accurate context and PREFER the most up-to-date figures found there over the original item's numbers. "
+        "Do NOT include hashtags, a disclaimer, a call-to-action, or a source "
         "line in the caption body — those are appended separately. Plain paragraphs only.\n\n"
         "source_note: name the most authoritative ORIGINAL source. If external search results are provided, prefer the "
         "original publisher found there (e.g. the agency or outlet) over a social-media handle.\n\n"
+        "used_references: ONLY from the provided search results, return the array of exact URLs that DIRECTLY correspond "
+        "to THIS specific event and support the figures/claims in your caption. Exclude any result about a different "
+        "incident, location, or date even if the topic is similar. If none clearly match, return an empty array []. "
+        "Never invent URLs — copy them exactly from the search results.\n\n"
         "Hashtags: 5-8 relevant hashtags.\n\n"
         f"Source context:\n{json.dumps(context, ensure_ascii=False)}"
     )
@@ -234,14 +245,27 @@ def build_editorial_pack(
     if content_prompt:
         pack["image_prompt"] = f"{content_prompt} {IMAGE_STYLE_SUFFIX} {IMAGE_NEGATIVE_SUFFIX}"
 
-    # Attach the Tavily reference links used for enrichment so a human can verify.
+    # References: ONLY the search-result URLs the AI vetted as matching THIS exact
+    # event. Titles/URLs are taken from the real Tavily results (never AI-invented),
+    # and if nothing matches we show none — better empty than a wrong reference.
     references = []
     if tavily:
-        for it in (tavily.get("results") or [])[:5]:
+        by_url = {}
+        for it in (tavily.get("results") or []):
             u = (it.get("url") or "").strip()
-            if u:
-                references.append({"title": (it.get("title") or u)[:140], "url": u})
+            if u and u not in by_url:
+                by_url[u] = {
+                    "title": (it.get("title") or u)[:140],
+                    "date": str(it.get("published_date") or "")[:10],
+                }
+        used = pack.get("used_references")
+        if isinstance(used, list):
+            for u in used:
+                u = str(u).strip()
+                if u in by_url and not any(r["url"] == u for r in references):
+                    references.append({"title": by_url[u]["title"], "url": u, "date": by_url[u]["date"]})
     pack["references"] = references
+    pack.pop("used_references", None)
 
     # Token usage (for cost tracking).
     pack["_usage"] = {

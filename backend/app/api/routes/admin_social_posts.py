@@ -153,6 +153,20 @@ async def publish_approved_social_posts(
     return {"ok": True, "results": results}
 
 
+@router.delete("/{post_id}")
+async def delete_social_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Delete a social post draft (any status)."""
+    res = db.execute(text("DELETE FROM social_posts WHERE id = :id"), {"id": post_id})
+    db.commit()
+    if res.rowcount == 0:
+        raise HTTPException(404, "social post not found")
+    return {"ok": True, "deleted": post_id}
+
+
 @router.patch("/{post_id}/status")
 async def update_social_post_status(
     post_id: int,

@@ -97,15 +97,11 @@ const ImageCard = ({ post, onOpen }) => (
     <span className="absolute top-2 left-2">
       <StatusBadge status={post.status} />
     </span>
-    <div className="absolute inset-x-0 bottom-0 p-2.5 pt-8 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
-      <p className="text-white text-[12px] font-semibold leading-snug line-clamp-2">{post.headline}</p>
-      <p className="text-white/50 text-[9.5px] font-mono mt-0.5">#{post.id} · {post.source_domain || "—"}</p>
-    </div>
   </button>
 );
 
 // ── Instagram-style detail modal ────────────────────────────────
-const PostModal = ({ post, onClose, onStatus, busy }) => {
+const PostModal = ({ post, onClose, onStatus, onDelete, busy }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   if (!post) return null;
   const isXai = post.image_mode === "ai_xai";
@@ -191,7 +187,7 @@ const PostModal = ({ post, onClose, onStatus, busy }) => {
                         rel="noopener noreferrer"
                         className="block text-[11px] text-blue-400/90 hover:text-blue-300 truncate"
                       >
-                        {i + 1}. {s.label || s.url}
+                        {i + 1}. {s.date ? <span className="text-text-muted/70">[{s.date}] </span> : null}{s.label || s.url}
                       </a>
                     ))}
                 </div>
@@ -209,35 +205,44 @@ const PostModal = ({ post, onClose, onStatus, busy }) => {
           </div>
 
           {/* actions */}
-          <div className="px-4 py-3 border-t border-white/[0.08] flex items-center gap-2">
+          <div className="px-4 py-3 border-t border-white/[0.08] flex items-center gap-3">
+            <button
+              disabled={busy}
+              onClick={() => onDelete(post.id)}
+              className="text-[11px] font-mono text-red-400/70 hover:text-red-400 disabled:opacity-40 transition-colors"
+            >
+              Delete
+            </button>
             {post.source_url && (
               <a
                 href={post.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] font-mono text-text-muted hover:text-gold-primary transition-colors mr-auto"
+                className="text-[11px] font-mono text-text-muted hover:text-gold-primary transition-colors"
               >
                 source ↗
               </a>
             )}
-            {post.status !== "approved" && (
-              <button
-                disabled={busy}
-                onClick={() => onStatus(post.id, "approved")}
-                className="px-4 py-1.5 rounded text-[12px] font-medium bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 disabled:opacity-40 transition-colors"
-              >
-                Approve
-              </button>
-            )}
-            {post.status !== "rejected" && (
-              <button
-                disabled={busy}
-                onClick={() => onStatus(post.id, "rejected")}
-                className="px-4 py-1.5 rounded text-[12px] font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-40 transition-colors"
-              >
-                Reject
-              </button>
-            )}
+            <div className="ml-auto flex items-center gap-2">
+              {post.status !== "approved" && (
+                <button
+                  disabled={busy}
+                  onClick={() => onStatus(post.id, "approved")}
+                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 disabled:opacity-40 transition-colors"
+                >
+                  Approve
+                </button>
+              )}
+              {post.status !== "rejected" && (
+                <button
+                  disabled={busy}
+                  onClick={() => onStatus(post.id, "rejected")}
+                  className="px-4 py-1.5 rounded text-[12px] font-medium bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 disabled:opacity-40 transition-colors"
+                >
+                  Reject
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -289,6 +294,20 @@ const SocialPostsAdminPage = () => {
       setSelected((prev) => (prev && prev.id === id ? { ...prev, status: next } : prev));
     } catch (e) {
       setError(e?.response?.data?.detail || "Failed to update status");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this draft permanently?")) return;
+    setBusyId(id);
+    try {
+      await api.delete(`/api/v1/admin/social-posts/${id}`);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      setSelected(null);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Failed to delete draft");
     } finally {
       setBusyId(null);
     }
@@ -382,6 +401,7 @@ const SocialPostsAdminPage = () => {
         post={selected}
         onClose={() => setSelected(null)}
         onStatus={handleStatus}
+        onDelete={handleDelete}
         busy={busyId === selected?.id}
       />
     </div>

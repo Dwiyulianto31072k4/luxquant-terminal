@@ -439,7 +439,12 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
     if ai_pack and isinstance(ai_pack.get("references"), list):
         for r in ai_pack["references"][:5]:
             if r.get("url"):
-                sources.append({"label": r.get("title") or r["url"], "url": r["url"], "type": "reference"})
+                sources.append({
+                    "label": r.get("title") or r["url"],
+                    "url": r["url"],
+                    "date": r.get("date"),
+                    "type": "reference",
+                })
 
     draft = SocialDraft(
         news_id=item.id,
