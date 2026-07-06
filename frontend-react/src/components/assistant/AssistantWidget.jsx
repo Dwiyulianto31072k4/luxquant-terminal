@@ -1,14 +1,84 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSuggestions, askAssistant } from '../../services/assistantApi';
 
-// Render lightweight markdown: **bold** -> gold bold. Line breaks preserved by
-// the container's `whitespace-pre-wrap`.
-function renderRich(text) {
-  return String(text).split(/\*\*(.+?)\*\*/g).map((part, i) =>
-    i % 2 === 1
-      ? <strong key={i} className="font-semibold text-gold-primary">{part}</strong>
-      : <span key={i}>{part}</span>
-  );
+// ── Lightweight markdown renderer (no dependency) ──
+// Handles: # / ## / ### headings, bullet & numbered lists, --- dividers,
+// **bold** (gold), `inline code`, and paragraphs. Tuned for typical LLM output.
+function renderInline(text) {
+  const nodes = [];
+  const re = /(\*\*(.+?)\*\*|`([^`]+)`)/g;
+  let last = 0, m, i = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) nodes.push(<span key={i++}>{text.slice(last, m.index)}</span>);
+    if (m[2] !== undefined) nodes.push(<strong key={i++} className="font-semibold text-gold-primary">{m[2]}</strong>);
+    else if (m[3] !== undefined) nodes.push(<code key={i++} className="rounded bg-white/10 px-1 py-0.5 font-mono text-[12px] text-gold-primary/90">{m[3]}</code>);
+    last = re.lastIndex;
+  }
+  if (last < text.length) nodes.push(<span key={i++}>{text.slice(last)}</span>);
+  return nodes;
+}
+
+function renderMarkdown(text) {
+  const lines = String(text).replace(/\r/g, '').split('\n');
+  const blocks = [];
+  let list = null; // { ordered, items: [] }
+  let para = [];   // buffer of paragraph lines
+  let k = 0;
+
+  const flushPara = () => {
+    if (para.length) { blocks.push(<p key={k++} className="leading-relaxed">{renderInline(para.join(' '))}</p>); para = []; }
+  };
+  const flushList = () => {
+    if (list) {
+      const Tag = list.ordered ? 'ol' : 'ul';
+      blocks.push(
+        <Tag key={k++} className={`space-y-1 pl-1 ${list.ordered ? 'list-decimal list-inside' : ''}`}>
+          {list.items.map((it, j) => (
+            <li key={j} className="leading-relaxed">
+              {!list.ordered && <span className="mr-2 text-gold-primary/70">•</span>}
+              {renderInline(it)}
+            </li>
+          ))}
+        </Tag>
+      );
+      list = null;
+    }
+  };
+
+  for (let raw of lines) {
+    const line = raw.trimEnd();
+    const t = line.trim();
+
+    if (t === '') { flushPara(); flushList(); continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); flushList(); blocks.push(<div key={k++} className="my-1 h-px bg-white/10" />); continue; }
+
+    const h = t.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      flushPara(); flushList();
+      blocks.push(<p key={k++} className="mt-1 font-semibold text-white">{renderInline(h[2])}</p>);
+      continue;
+    }
+
+    const ol = t.match(/^\d+[.)]\s+(.*)$/);
+    const ul = t.match(/^[-*]\s+(.*)$/);
+    if (ol) {
+      flushPara();
+      if (!list || !list.ordered) { flushList(); list = { ordered: true, items: [] }; }
+      list.items.push(ol[1]);
+      continue;
+    }
+    if (ul) {
+      flushPara();
+      if (!list || list.ordered) { flushList(); list = { ordered: false, items: [] }; }
+      list.items.push(ul[1]);
+      continue;
+    }
+
+    flushList();
+    para.push(t);
+  }
+  flushPara(); flushList();
+  return blocks;
 }
 
 /**
@@ -120,12 +190,12 @@ export default function AssistantWidget({ pageId = 'signals' }) {
 
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed sm:text-[14px] ${
+                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed sm:text-[14px] ${
                     m.role === 'user'
-                      ? 'bg-gold-primary text-[#1a1206] font-medium'
+                      ? 'whitespace-pre-wrap bg-gold-primary text-[#1a1206] font-medium'
                       : 'bg-white/[0.05] text-white/90 border border-white/5'
                   }`}>
-                    {m.role === 'assistant' ? renderRich(m.content) : m.content}
+                    {m.role === 'assistant' ? <div className="space-y-2">{renderMarkdown(m.content)}</div> : m.content}
                   </div>
                 </div>
               ))}
