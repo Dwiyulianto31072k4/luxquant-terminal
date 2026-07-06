@@ -136,7 +136,7 @@ export default function AssistantWidget({ pageId = 'signals' }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-[9998] flex items-center gap-2 rounded-full bg-gold-primary text-[#1a1206] pl-3 pr-4 h-12 font-bold text-sm shadow-[0_6px_24px_-6px_rgba(212,168,83,0.8)] hover:bg-gold-primary/90 transition-all active:scale-[0.97]"
+          className="fixed bottom-24 right-4 z-[9998] flex items-center gap-2 rounded-full bg-gold-primary text-[#1a1206] pl-3 pr-4 h-12 font-bold text-sm shadow-[0_6px_24px_-6px_rgba(212,168,83,0.8)] hover:bg-gold-primary/90 transition-all active:scale-[0.97] sm:bottom-5 sm:right-5"
           aria-label="Open LuxQuant Assistant"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 20l1-4.4A8 8 0 1121 12z" /></svg>
