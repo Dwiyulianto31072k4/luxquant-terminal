@@ -1,6 +1,17 @@
 // LuxQuant Assistant API — context-aware help assistant (MVP)
 const API_BASE = '/api/v1';
 
+export async function getPages() {
+  try {
+    const r = await fetch(`${API_BASE}/assistant/pages`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json(); // { pages: [{page_id, label}] }
+  } catch (e) {
+    console.error('[assistant] pages error:', e);
+    return { pages: [] };
+  }
+}
+
 export async function getSuggestions(pageId = 'signals') {
   try {
     const r = await fetch(`${API_BASE}/assistant/suggestions?page_id=${encodeURIComponent(pageId)}`);

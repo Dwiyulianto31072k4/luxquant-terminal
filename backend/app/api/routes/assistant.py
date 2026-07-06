@@ -17,11 +17,13 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
 
 from app.core.redis import cache_get, cache_set, get_redis
 from app.services.ai_cost import log_usage, extract_usage
+from app.services import assistant_cache as semcache
 
 FEATURE = "assistant"  # cost-tracking label (generalizes to other features later)
 
@@ -383,6 +385,12 @@ def _cache_key(page_id: str, message: str) -> str:
 
 
 # ── Endpoints ───────────────────────────────────────────────────────
+@router.get("/assistant/pages")
+async def pages():
+    """List every page the assistant can help with (for the full-page selector)."""
+    return {"pages": [{"page_id": pid, "label": meta["label"]} for pid, meta in PAGES.items()]}
+
+
 @router.get("/assistant/suggestions")
 async def suggestions(page_id: str = "signals"):
     meta = PAGES.get(page_id)
@@ -421,6 +429,16 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
         background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True)
         return {"answer": cached, "cached": True}
 
+    # 1b) Semantic cache — different wording, same meaning is also free.
+    #     (No-ops safely if embeddings / pgvector are unavailable.)
+    emb = await semcache.embed(req.message)
+    if emb:
+        hit = await run_in_threadpool(semcache.lookup, req.page_id, emb)
+        if hit:
+            cache_set(ckey, hit, ttl=86400)  # promote to exact cache too
+            background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True)
+            return {"answer": hit, "cached": True}
+
     # 2) Build messages: static guide prefix first (prompt-cache friendly)
     messages = [{"role": "system", "content": SYSTEM_PROMPT.format(guide=guide)}]
     for m in req.history[-6:]:  # keep prompt short
@@ -451,4 +469,7 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
 
     if answer:
         cache_set(ckey, answer, ttl=86400)  # 24h; bust when guide changes
+        # Persist to the semantic cache so similar future questions are free.
+        if emb:
+            background.add_task(semcache.store, req.page_id, req.message, answer, emb)
     return {"answer": answer, "cached": False}

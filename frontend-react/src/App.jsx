@@ -74,6 +74,7 @@ const DailyPerformancePage = lazy(
 );
 const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
+const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -1538,6 +1539,16 @@ function App() {
                   <RequireAuth>
                     <AppShell>
                       <JournalPage />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/assistant"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <AssistantFullPage />
                     </AppShell>
                   </RequireAuth>
                 }

@@ -1,85 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getSuggestions, askAssistant } from '../../services/assistantApi';
-
-// ── Lightweight markdown renderer (no dependency) ──
-// Handles: # / ## / ### headings, bullet & numbered lists, --- dividers,
-// **bold** (gold), `inline code`, and paragraphs. Tuned for typical LLM output.
-function renderInline(text) {
-  const nodes = [];
-  const re = /(\*\*(.+?)\*\*|`([^`]+)`)/g;
-  let last = 0, m, i = 0;
-  while ((m = re.exec(text))) {
-    if (m.index > last) nodes.push(<span key={i++}>{text.slice(last, m.index)}</span>);
-    if (m[2] !== undefined) nodes.push(<strong key={i++} className="font-semibold text-gold-primary">{m[2]}</strong>);
-    else if (m[3] !== undefined) nodes.push(<code key={i++} className="rounded bg-white/10 px-1 py-0.5 font-mono text-[12px] text-gold-primary/90">{m[3]}</code>);
-    last = re.lastIndex;
-  }
-  if (last < text.length) nodes.push(<span key={i++}>{text.slice(last)}</span>);
-  return nodes;
-}
-
-function renderMarkdown(text) {
-  const lines = String(text).replace(/\r/g, '').split('\n');
-  const blocks = [];
-  let list = null; // { ordered, items: [] }
-  let para = [];   // buffer of paragraph lines
-  let k = 0;
-
-  const flushPara = () => {
-    if (para.length) { blocks.push(<p key={k++} className="leading-relaxed">{renderInline(para.join(' '))}</p>); para = []; }
-  };
-  const flushList = () => {
-    if (list) {
-      const Tag = list.ordered ? 'ol' : 'ul';
-      blocks.push(
-        <Tag key={k++} className={`space-y-1 pl-1 ${list.ordered ? 'list-decimal list-inside' : ''}`}>
-          {list.items.map((it, j) => (
-            <li key={j} className="leading-relaxed">
-              {!list.ordered && <span className="mr-2 text-gold-primary/70">•</span>}
-              {renderInline(it)}
-            </li>
-          ))}
-        </Tag>
-      );
-      list = null;
-    }
-  };
-
-  for (let raw of lines) {
-    const line = raw.trimEnd();
-    const t = line.trim();
-
-    if (t === '') { flushPara(); flushList(); continue; }
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flushPara(); flushList(); blocks.push(<div key={k++} className="my-1 h-px bg-white/10" />); continue; }
-
-    const h = t.match(/^(#{1,6})\s+(.*)$/);
-    if (h) {
-      flushPara(); flushList();
-      blocks.push(<p key={k++} className="mt-1 font-semibold text-white">{renderInline(h[2])}</p>);
-      continue;
-    }
-
-    const ol = t.match(/^\d+[.)]\s+(.*)$/);
-    const ul = t.match(/^[-*]\s+(.*)$/);
-    if (ol) {
-      flushPara();
-      if (!list || !list.ordered) { flushList(); list = { ordered: true, items: [] }; }
-      list.items.push(ol[1]);
-      continue;
-    }
-    if (ul) {
-      flushPara();
-      if (!list || list.ordered) { flushList(); list = { ordered: false, items: [] }; }
-      list.items.push(ul[1]);
-      continue;
-    }
-
-    flushList();
-    para.push(t);
-  }
-  flushPara(); flushList();
-  return blocks;
-}
+import { renderMarkdown } from './markdown';
 
 /**
  * LuxQuant Assistant — floating, page-aware help widget.
@@ -89,6 +11,7 @@ function renderMarkdown(text) {
  * Usage:  <AssistantWidget pageId="signals" />
  */
 export default function AssistantWidget({ pageId = 'signals' }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -162,6 +85,14 @@ export default function AssistantWidget({ pageId = 'signals' }) {
                   {label && <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-gold-primary/70">{label}</p>}
                 </div>
               </div>
+              <button
+                onClick={() => { setOpen(false); navigate(`/assistant?page=${encodeURIComponent(pageId)}`); }}
+                className="mr-1 hidden sm:inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-text-muted hover:bg-white/5 hover:text-white transition-all font-mono text-[10px] uppercase tracking-wider"
+                title="Open full page"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                Full Page
+              </button>
               <button onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-text-muted hover:bg-white/5 hover:text-white transition-all" aria-label="Close">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
