@@ -15,6 +15,7 @@ import CompassBrief from "./aiArenaV6/CompassBrief";
 import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 import BrainPanel from "./aiArenaV6/BrainPanel";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 let pdfJsRuntimePromise;
 
@@ -1226,6 +1227,9 @@ export default function AIArenaPageV6() {
           </p>
         </footer>
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="ai-research" />
     </div>
   );
 }

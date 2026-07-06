@@ -53,6 +53,34 @@ PAGES = {
             "What is BTC Corr (rho / beta)?",
         ],
     },
+    "autotrade": {
+        "file": "autotrade-page.md",
+        "label": "AutoTrade",
+        "suggestions": [
+            "How do I set up AutoTrade?",
+            "What do the engine states (Live / Paused) mean?",
+            "What is Dry Run mode?",
+            "What do the risk limits do?",
+            "How do I limit my risk on AutoTrade?",
+            "What's the difference between Spot and Futures here?",
+            "Why isn't the bot placing trades?",
+            "What does TP source 'signal level' vs 'custom' mean?",
+        ],
+    },
+    "ai-research": {
+        "file": "ai-research-page.md",
+        "label": "AI Research",
+        "suggestions": [
+            "What is the BTC Compass?",
+            "What does 'The Read' show?",
+            "What does confidence % mean?",
+            "What is the invalidation level?",
+            "What is the Verdict Ledger?",
+            "What does the Brain panel show?",
+            "How do I read the projection chart?",
+            "What's the difference between tactical and longer view?",
+        ],
+    },
 }
 
 SYSTEM_PROMPT = """You are the LuxQuant Assistant, a helpful in-app guide for the \

@@ -42,6 +42,7 @@ import SignalQueue from "./autotrade/SignalQueue";
 import PnLSummary from "./autotrade/PnLSummary";
 import TradeHistoryCalendar from "./autotrade/TradeHistoryCalendar";
 import AutoTradeHelpModal from "./autotrade/AutoTradeHelpModal";
+import AssistantWidget from "./assistant/AssistantWidget";
 import {
   BinanceIcon,
   TelegramIcon,
@@ -947,6 +948,9 @@ export default function AutoTradePage() {
         isOpen={showHelp}
         onClose={() => setShowHelp(false)}
       />
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="autotrade" />
     </div>
   );
 }
