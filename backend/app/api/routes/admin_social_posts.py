@@ -41,6 +41,15 @@ class PublishApprovedIn(BaseModel):
     dry_run: bool = False
 
 
+def _ensure_gen_meta(db) -> None:
+    """Make sure the cost column exists before we SELECT it (self-heal on fresh DBs)."""
+    try:
+        db.execute(text("ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS gen_meta JSONB"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 def _row_to_dict(row) -> dict:
     data = dict(row)
     image_path = data.get("image_path")
@@ -61,6 +70,7 @@ async def list_social_posts(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
+    _ensure_gen_meta(db)
     limit = max(1, min(limit, 100))
     where = ""
     params = {"limit": limit}
@@ -88,6 +98,8 @@ async def social_post_cost_summary(
     admin: User = Depends(get_admin_user),
 ):
     """Aggregate generation-cost estimates for business monitoring."""
+    _ensure_gen_meta(db)
+
     def _agg(where: str) -> dict:
         row = db.execute(text(f"""
             SELECT
