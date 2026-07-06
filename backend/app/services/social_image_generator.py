@@ -338,7 +338,7 @@ def _slugify_name(name: str) -> str:
 
 
 def resolve_face_reference(featured_person: Optional[str]) -> Optional[str]:
-    """Return the path to a curated face photo for this person, or None."""
+    """Return the path to a cached face photo for this person, or None."""
     slug = _slugify_name(featured_person or "")
     if not slug:
         return None
@@ -347,6 +347,69 @@ def resolve_face_reference(featured_person: Optional[str]) -> Optional[str]:
         if path.exists():
             return str(path)
     return None
+
+
+# Auto-fetch a portrait from Wikipedia when a figure isn't cached yet. Wikipedia's
+# lead image is identity-reliable (the page for a name shows that person), unlike a
+# generic image search that could return the wrong face.
+FACE_AUTOFETCH = os.environ.get("SOCIAL_FACE_AUTOFETCH", "1").strip().lower() not in ("0", "false", "no", "")
+WIKI_SUMMARY_API = os.environ.get("SOCIAL_WIKI_API", "https://en.wikipedia.org/api/rest_v1/page/summary/")
+FACE_MISS_TTL = int(os.environ.get("SOCIAL_FACE_MISS_TTL", str(14 * 24 * 3600)))
+
+
+def fetch_face_reference(featured_person: Optional[str]) -> Optional[str]:
+    """Best-effort: download a public figure's Wikipedia portrait and cache it in the
+    face library for reuse. Returns the saved path, or None. Never raises."""
+    import time
+    import urllib.parse
+
+    name = re.split(r"[,(]", featured_person or "", 1)[0].strip()
+    slug = _slugify_name(name)
+    if not slug or not name:
+        return None
+    miss_marker = SOCIAL_FACE_DIR / f"{slug}.miss"
+    try:
+        if miss_marker.exists() and (time.time() - miss_marker.stat().st_mtime) < FACE_MISS_TTL:
+            return None
+    except Exception:
+        pass
+
+    def _mark_miss() -> None:
+        try:
+            SOCIAL_FACE_DIR.mkdir(parents=True, exist_ok=True)
+            miss_marker.write_text("")
+        except Exception:
+            pass
+
+    try:
+        SOCIAL_FACE_DIR.mkdir(parents=True, exist_ok=True)
+        title = urllib.parse.quote(name.replace(" ", "_"), safe="")
+        headers = {"User-Agent": "LuxQuantBot/1.0 (editorial news illustration)"}
+        resp = requests.get(f"{WIKI_SUMMARY_API}{title}", headers=headers, timeout=20)
+        if resp.status_code != 200:
+            _mark_miss()
+            return None
+        data = resp.json()
+        if data.get("type") == "disambiguation":
+            _mark_miss()
+            return None
+        img_url = (data.get("originalimage") or {}).get("source") or (data.get("thumbnail") or {}).get("source")
+        if not img_url:
+            _mark_miss()
+            return None
+        img = requests.get(img_url, headers=headers, timeout=25)
+        img.raise_for_status()
+        ctype = img.headers.get("content-type", "")
+        if not ctype.startswith("image/") or len(img.content) < 8_000:
+            _mark_miss()
+            return None
+        ext = ".png" if "png" in ctype else ".webp" if "webp" in ctype else ".jpg"
+        path = SOCIAL_FACE_DIR / f"{slug}{ext}"
+        path.write_bytes(img.content)
+        return str(path)
+    except Exception:
+        _mark_miss()
+        return None
 
 
 def _edit_xai_image(prompt: str, reference_path: str, out_path: Path) -> None:
@@ -534,6 +597,9 @@ def generate_ai_social_image(
     # (bottom gradient + white headline + logo), matching the prototype look.
     if IMAGE_PROVIDER == "xai":
         face_path = resolve_face_reference(featured_person)
+        if not face_path and featured_person and FACE_AUTOFETCH:
+            # Not cached yet — try to fetch and store the portrait for this and future posts.
+            face_path = fetch_face_reference(featured_person)
         gen_prompt = prompt
         mode = "ai_xai"
         try:
