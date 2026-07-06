@@ -92,26 +92,24 @@ const PostModal = ({ post, onClose, onStatus, busy }) => {
       </button>
 
       <div
-        className="flex flex-col md:flex-row w-full max-w-[940px] max-h-[90vh] rounded-xl overflow-hidden bg-[#0c0a10] border border-white/10"
+        className="flex flex-col md:flex-row w-full max-w-[940px] h-auto md:h-[86vh] max-h-[92vh] rounded-xl overflow-hidden bg-[#0c0a10] border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Left — post image */}
-        <div className="md:flex-1 bg-black flex items-center justify-center min-h-0">
-          {post.image_url ? (
-            <img
-              src={post.image_url}
-              alt=""
-              className="w-full md:w-auto md:max-w-full max-h-[42vh] md:max-h-[90vh] object-contain"
-            />
-          ) : (
-            <div className="w-full aspect-[4/5] flex items-center justify-center text-text-muted text-[12px] font-mono">
-              no image
-            </div>
-          )}
-        </div>
+        {/* Left — post image (fills modal height, IG-style, no letterbox) */}
+        {post.image_url ? (
+          <img
+            src={post.image_url}
+            alt=""
+            className="w-full md:w-auto md:h-full max-h-[45vh] md:max-h-none object-contain bg-black flex-shrink-0"
+          />
+        ) : (
+          <div className="w-full md:w-auto md:h-full aspect-[4/5] bg-black flex items-center justify-center text-text-muted text-[12px] font-mono flex-shrink-0">
+            no image
+          </div>
+        )}
 
         {/* Right — IG-style caption column */}
-        <div className="w-full md:w-[360px] flex-shrink-0 flex flex-col bg-[#0c0a10] border-t md:border-t-0 md:border-l border-white/10 min-h-0">
+        <div className="w-full md:w-[360px] md:h-full flex-shrink-0 flex flex-col bg-[#0c0a10] border-t md:border-t-0 md:border-l border-white/10 min-h-0">
           {/* account header */}
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.08]">
             <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />
@@ -123,7 +121,7 @@ const PostModal = ({ post, onClose, onStatus, busy }) => {
           </div>
 
           {/* caption body (scrolls) */}
-          <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3.5 space-y-3">
             <div className="text-[13px] leading-relaxed text-text-secondary/90 whitespace-pre-line">
               <span className="text-white font-semibold mr-1.5">{IG_HANDLE}</span>
               {post.caption}
