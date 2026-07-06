@@ -41,13 +41,13 @@ PAGES = {
         "label": "Potential Trades",
         "suggestions": [
             "What do the WR and Streak columns mean?",
-            "How do I find promising small-cap coins?",
-            "What's the difference between NORMAL and HIGH risk?",
+            "What is Deep Analysis on a signal?",
+            "What does the BTC Compass tell me?",
+            "How do I read the Trade Proof (before/after)?",
             "What does the 'Worth It' verdict mean?",
-            "How do I use the Advanced Filters?",
+            "How do I find promising small-cap coins?",
             "What do statuses TP1, WIN, and LOSS mean?",
             "What is BTC Corr (rho / beta)?",
-            "How do I save a signal to my watchlist?",
         ],
     },
 }
