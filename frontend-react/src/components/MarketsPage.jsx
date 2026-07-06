@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import NewsPreviewModal from "./NewsPreviewModal";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const API_BASE = '/api/v1';
 
@@ -888,6 +889,9 @@ const MarketsPage = () => {
           onClose={() => setSelectedArticle(null)}
         />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="markets" />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import NewsPreviewModal from "./NewsPreviewModal";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const API_BASE = "/api/v1";
 
@@ -954,6 +955,9 @@ const BitcoinPage = () => {
           onClose={closeArticle}
         />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="bitcoin" />
     </div>
   );
 };

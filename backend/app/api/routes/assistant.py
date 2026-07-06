@@ -81,6 +81,34 @@ PAGES = {
             "What's the difference between tactical and longer view?",
         ],
     },
+    "bitcoin": {
+        "file": "bitcoin-page.md",
+        "label": "Bitcoin",
+        "suggestions": [
+            "What is BTC dominance?",
+            "How do I read the Fear & Greed index?",
+            "What does RSI overbought / oversold mean?",
+            "What is MVRV?",
+            "What does the funding rate tell me?",
+            "What is hashrate and difficulty?",
+            "How far is BTC from its all-time high?",
+            "What does the long/short ratio mean?",
+        ],
+    },
+    "markets": {
+        "file": "markets-page.md",
+        "label": "Markets",
+        "suggestions": [
+            "How do I read the heatmap?",
+            "What does the Trending section show?",
+            "What are Top Categories?",
+            "What do ETF flows mean?",
+            "What are liquidations?",
+            "How do the coin table tabs work?",
+            "What do stablecoin supply changes signal?",
+            "What is funding sentiment?",
+        ],
+    },
 }
 
 SYSTEM_PROMPT = """You are the LuxQuant Assistant, a helpful in-app guide for the \
