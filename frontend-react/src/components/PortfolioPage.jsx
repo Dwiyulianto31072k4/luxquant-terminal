@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getExecutions, getMe, getPortfolio } from "../services/autotradeApi";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 function fmtUsd(value) {
   return Number(value || 0).toLocaleString(undefined, {
@@ -160,6 +161,9 @@ export default function PortfolioPage() {
           </div>
         )}
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="portfolio" />
     </div>
   );
 }

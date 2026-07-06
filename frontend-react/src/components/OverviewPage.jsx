@@ -2,6 +2,7 @@ import Seo from "./Seo";
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TopPerformers from './TopPerformers';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const API_BASE = '/api/v1';
 
@@ -352,6 +353,9 @@ const OverviewPage = () => {
           )}
         </>
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="home" />
     </div>
   );
 };

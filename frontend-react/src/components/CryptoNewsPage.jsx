@@ -18,6 +18,7 @@ import { GoldButton, GhostButton } from "./autotrade/AutoTradeUI";
 import Modal from "./ui/Modal";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
@@ -1640,6 +1641,9 @@ const CryptoNewsPage = () => {
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="crypto-news" />
     </div>
   );
 };

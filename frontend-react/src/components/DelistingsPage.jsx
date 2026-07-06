@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import delistingApi from '../services/delistingApi';
 import CoinLogo from './CoinLogo';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const EX_META = {
   binance: { label: 'Binance', domain: 'binance.com', color: '#f0b90b' },
@@ -230,6 +231,9 @@ export default function DelistingsPage() {
           </div>
         </>
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="delistings" />
     </div>
   );
 }

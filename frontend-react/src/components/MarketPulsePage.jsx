@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -520,6 +521,9 @@ const MarketPulsePage = () => {
       {chartModalPair && (
         <CoinChartModal pair={chartModalPair} onClose={closeChartModal} />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="market-pulse" />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import orderbookApi from "../services/orderbookApi";
 import api from "../services/api";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 // ═══════════════════════════════════════════
 // Config
@@ -925,6 +926,9 @@ export default function OrderBookPage() {
           </>
         )}
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="orderbook" />
     </div>
   );
 }

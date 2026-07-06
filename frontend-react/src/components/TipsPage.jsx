@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next'; // <-- 1. Import i18n
 import { useAuth } from '../context/AuthContext';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const API_BASE = '/api/v1';
 
@@ -357,6 +358,9 @@ const TipsPage = () => {
           t={t}
         />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="tips" />
     </div>
   );
 };

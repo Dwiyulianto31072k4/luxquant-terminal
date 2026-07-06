@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import calendarApi from '../services/calendarApi';
+import AssistantWidget from './assistant/AssistantWidget';
 
 /* ──────────────────────────────────────────────────────────────
    MacroCalendarPage — Web3 Flowscan-minimal reskin
@@ -480,6 +481,9 @@ const MacroCalendarPage = () => {
         .scrollbar-thin::-webkit-scrollbar-thumb{background:rgba(212,168,83,0.15);border-radius:2px}
         .scrollbar-thin::-webkit-scrollbar-thumb:hover{background:rgba(212,168,83,0.3)}
       `}</style>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="calendar" />
     </div>
   );
 };

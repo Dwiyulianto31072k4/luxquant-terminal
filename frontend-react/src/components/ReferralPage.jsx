@@ -5,6 +5,7 @@ import { referralApi } from '../services/referralApi';
 
 import CashoutRequestModal from './referral/CashoutRequestModal';
 import CashoutHistoryList from './referral/CashoutHistoryList';
+import AssistantWidget from './assistant/AssistantWidget';
 
 // ════════════════════════════════════════════════════════════════════
 // Helper Components
@@ -828,6 +829,9 @@ const ReferralPage = () => {
         availableBalance={cashoutBalance?.balance_usdt || 0}
         onSuccess={() => fetchAll()}
       />
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="referral" />
     </div>
   );
 };
