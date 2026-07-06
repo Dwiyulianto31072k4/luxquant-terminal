@@ -40,14 +40,14 @@ PAGES = {
         "file": "signals-page.md",
         "label": "Potential Trades",
         "suggestions": [
-            "Apa arti kolom WR dan Streak?",
-            "Gimana cara cari coin small-cap yang menjanjikan?",
-            "Beda Risk NORMAL vs HIGH apa?",
-            "Apa maksud Verdict 'Worth It'?",
-            "Gimana cara pakai Advanced Filters?",
-            "Apa arti status TP1, WIN, dan LOSS?",
-            "BTC Corr (rho / beta) itu apa?",
-            "Cara nyimpen sinyal ke watchlist?",
+            "What do the WR and Streak columns mean?",
+            "How do I find promising small-cap coins?",
+            "What's the difference between NORMAL and HIGH risk?",
+            "What does the 'Worth It' verdict mean?",
+            "How do I use the Advanced Filters?",
+            "What do statuses TP1, WIN, and LOSS mean?",
+            "What is BTC Corr (rho / beta)?",
+            "How do I save a signal to my watchlist?",
         ],
     },
 }
@@ -62,7 +62,7 @@ say you don't know and suggest contacting support. Do not invent features.
 - You must REFUSE to give trading recommendations, buy/sell calls, price \
 predictions, or any financial advice. If asked, briefly decline and remind the \
 user that LuxQuant provides data and tools, and trading decisions are theirs.
-- Reply in the SAME language as the user's question (Indonesian or English).
+- Always reply in clear, simple English (the audience is global).
 - Be concise and friendly. Use short paragraphs or short bullet lists.
 
 GUIDE:
@@ -143,7 +143,7 @@ async def chat(req: ChatRequest, request: Request):
     guide = _load_guide(req.page_id)
     if guide is None:
         return {
-            "answer": "Maaf, bantuan untuk halaman ini belum tersedia.",
+            "answer": "Sorry, help for this page isn't available yet.",
             "cached": False,
             "error": "unknown_page",
         }
@@ -151,7 +151,7 @@ async def chat(req: ChatRequest, request: Request):
     ip = (request.client.host if request.client else "unknown")
     if _rate_limited(ip):
         return {
-            "answer": "Terlalu banyak pertanyaan dalam waktu singkat. Coba lagi sebentar lagi ya.",
+            "answer": "Too many questions in a short time. Please try again in a moment.",
             "cached": False,
             "error": "rate_limited",
         }
@@ -181,7 +181,7 @@ async def chat(req: ChatRequest, request: Request):
     except Exception as e:
         print(f"⚠️ [assistant] model call failed: {e}")
         return {
-            "answer": "Maaf, asisten sedang tidak tersedia. Coba lagi nanti.",
+            "answer": "Sorry, the assistant is unavailable right now. Please try again later.",
             "cached": False,
             "error": "model_unavailable",
         }
