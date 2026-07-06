@@ -109,6 +109,34 @@ PAGES = {
             "What is funding sentiment?",
         ],
     },
+    "performance": {
+        "file": "performance-page.md",
+        "label": "Performance Hub",
+        "suggestions": [
+            "How is win rate calculated?",
+            "What is the difference between the All-Time, Daily, and Research views?",
+            "What does Expected Value (EV) mean?",
+            "What is calibration?",
+            "What does the 'small sample' badge mean?",
+            "What does 'resolved signals' mean?",
+            "What is the By Pattern breakdown?",
+            "How reliable are these stats?",
+        ],
+    },
+    "money-flow": {
+        "file": "money-flow-page.md",
+        "label": "Money Flow",
+        "suggestions": [
+            "What does Net Buying vs Net Selling mean?",
+            "What is sector rotation?",
+            "What does stablecoin dominance tell me?",
+            "What is the Whale tab?",
+            "What does the intensity bar show?",
+            "What is DEX flow?",
+            "How do I find where money is flowing in?",
+            "What are the highlighted 'call' rows?",
+        ],
+    },
 }
 
 SYSTEM_PROMPT = """You are the LuxQuant Assistant, a helpful in-app guide for the \

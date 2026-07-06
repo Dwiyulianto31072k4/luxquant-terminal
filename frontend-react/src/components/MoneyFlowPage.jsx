@@ -13,6 +13,7 @@ import moneyFlowApi from "../services/moneyFlowApi";
 import WhaleAlertPage from "./WhaleAlertPage";
 import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -729,6 +730,9 @@ export default function MoneyFlowPage() {
           )}
         </div>
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="money-flow" />
     </div>
   );
 }

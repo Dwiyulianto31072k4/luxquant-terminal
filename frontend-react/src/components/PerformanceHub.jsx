@@ -18,6 +18,7 @@
 // ════════════════════════════════════════════════════════════════
 import { Suspense, lazy, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const AnalyzePage = lazy(() => import("./AnalyzePage"));
 const DailyPerformancePage = lazy(() => import("./DailyPerformancePage"));
@@ -385,6 +386,9 @@ const PerformanceHub = () => {
           </Suspense>
         </div>
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="performance" />
     </div>
   );
 };
