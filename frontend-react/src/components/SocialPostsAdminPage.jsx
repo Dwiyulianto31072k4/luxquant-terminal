@@ -1,10 +1,13 @@
 // src/components/SocialPostsAdminPage.jsx
 // Admin review UI for AI-generated social post drafts.
-// Grid of image-only cards; click a card to open a modal with the full
-// layout (image + caption + hashtags + actions). Publishing stays separate.
+// Grid of image-only cards; clicking one opens an Instagram-style modal
+// (image left, caption right) as a mirror preview of the eventual post.
 
 import { useCallback, useEffect, useState } from "react";
 import api from "../services/authApi";
+
+const IG_AVATAR = "/logo.png";
+const IG_HANDLE = "luxquant.tw";
 
 const STATUS_TABS = [
   { key: "", label: "All" },
@@ -34,6 +37,13 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const VerifiedTick = () => (
+  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" fill="#3b82f6" />
+    <path d="M7.5 12.5l2.8 2.8 6.2-6.6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 // ── Image-only card (default view) ──────────────────────────────
 const ImageCard = ({ post, onOpen }) => (
   <button
@@ -62,74 +72,86 @@ const ImageCard = ({ post, onOpen }) => (
   </button>
 );
 
-// ── Detail modal (image + full layout below) ────────────────────
+// ── Instagram-style detail modal ────────────────────────────────
 const PostModal = ({ post, onClose, onStatus, busy }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   if (!post) return null;
   const isXai = post.image_mode === "ai_xai";
+
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-8"
       onClick={onClose}
     >
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-4 sm:top-4 sm:right-6 text-white/80 hover:text-white text-2xl leading-none z-10"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+
       <div
-        className="relative w-full max-w-lg my-auto rounded-xl bg-[#0c0a10] border border-white/10 overflow-hidden"
+        className="flex flex-col md:flex-row w-full max-w-[940px] max-h-[90vh] rounded-xl overflow-hidden bg-[#0c0a10] border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/60 text-white/80 hover:text-white flex items-center justify-center text-[14px]"
-        >
-          ✕
-        </button>
+        {/* Left — post image */}
+        <div className="md:flex-1 bg-black flex items-center justify-center min-h-0">
+          {post.image_url ? (
+            <img
+              src={post.image_url}
+              alt=""
+              className="w-full md:w-auto md:max-w-full max-h-[42vh] md:max-h-[90vh] object-contain"
+            />
+          ) : (
+            <div className="w-full aspect-[4/5] flex items-center justify-center text-text-muted text-[12px] font-mono">
+              no image
+            </div>
+          )}
+        </div>
 
-        {/* Image on top */}
-        {post.image_url ? (
-          <img src={post.image_url} alt="" className="w-full h-auto object-contain bg-black" />
-        ) : (
-          <div className="w-full aspect-[4/5] flex items-center justify-center text-text-muted text-[12px] font-mono bg-black/40">
-            no image
-          </div>
-        )}
-
-        {/* Full layout below */}
-        <div className="p-5 space-y-3">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* Right — IG-style caption column */}
+        <div className="w-full md:w-[360px] flex-shrink-0 flex flex-col bg-[#0c0a10] border-t md:border-t-0 md:border-l border-white/10 min-h-0">
+          {/* account header */}
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.08]">
+            <img src={IG_AVATAR} alt="" className="w-8 h-8 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />
+            <div className="flex items-center gap-1 min-w-0 mr-auto">
+              <span className="text-white text-[13px] font-semibold truncate">{IG_HANDLE}</span>
+              <VerifiedTick />
+            </div>
             <StatusBadge status={post.status} />
-            <span className="text-text-muted text-[10px] font-mono">
-              #{post.id} · {post.source_domain || "—"} · score {Math.round(post.score || 0)} · {isXai ? "xAI" : (post.image_mode || "img")}
-            </span>
           </div>
 
-          <h2 className="text-white text-lg font-semibold leading-snug">{post.headline}</h2>
-
-          <p className="text-text-secondary/90 text-[13px] leading-relaxed whitespace-pre-line">{post.caption}</p>
-
-          {Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {post.hashtags.map((h, i) => (
-                <span key={i} className="text-[11px] font-mono text-gold-primary/80">{h}</span>
-              ))}
+          {/* caption body (scrolls) */}
+          <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-3">
+            <div className="text-[13px] leading-relaxed text-text-secondary/90 whitespace-pre-line">
+              <span className="text-white font-semibold mr-1.5">{IG_HANDLE}</span>
+              {post.caption}
             </div>
-          )}
 
-          {post.image_prompt && (
-            <div>
-              <button
-                onClick={() => setShowPrompt((v) => !v)}
-                className="text-[10px] font-mono text-text-muted hover:text-white transition-colors"
-              >
-                {showPrompt ? "▾ hide image prompt" : "▸ image prompt"}
-              </button>
-              {showPrompt && (
-                <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-black/30 rounded p-2 border border-white/5">
-                  {post.image_prompt}
-                </p>
-              )}
+            {post.image_prompt && (
+              <div>
+                <button
+                  onClick={() => setShowPrompt((v) => !v)}
+                  className="text-[10px] font-mono text-text-muted hover:text-white transition-colors"
+                >
+                  {showPrompt ? "▾ hide image prompt" : "▸ image prompt"}
+                </button>
+                {showPrompt && (
+                  <p className="mt-1 text-[11px] text-text-muted leading-relaxed bg-black/30 rounded p-2 border border-white/5">
+                    {post.image_prompt}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="text-[10px] font-mono text-text-muted/80 pt-1">
+              #{post.id} · {post.source_domain || "—"} · score {Math.round(post.score || 0)} · {isXai ? "xAI" : (post.image_mode || "img")}
             </div>
-          )}
+          </div>
 
-          <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
+          {/* actions */}
+          <div className="px-4 py-3 border-t border-white/[0.08] flex items-center gap-2">
             {post.source_url && (
               <a
                 href={post.source_url}
@@ -228,7 +250,7 @@ const SocialPostsAdminPage = () => {
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
           <h1 className="text-white text-xl font-semibold">Social Posts</h1>
-          <p className="text-text-muted text-[12px]">AI-generated drafts — click a card to review, approve, reject.</p>
+          <p className="text-text-muted text-[12px]">AI-generated drafts — click a card for the Instagram-style preview.</p>
         </div>
         <div className="flex items-center gap-2">
           <input
