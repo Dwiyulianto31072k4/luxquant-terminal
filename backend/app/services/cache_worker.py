@@ -1481,6 +1481,15 @@ async def bitcoin_data_cache_loop():
                 if news:
                     cache_set("lq:bitcoin:news", news, ttl=360)
                     cached += 1
+                # Best-effort: backfill og:image for RSS rows that arrived
+                # without a picture (covers macro/market/bitcoin feeds).
+                try:
+                    from app.services.news_image_enricher import enrich_missing_images
+                    filled = await enrich_missing_images(limit=25)
+                    if filled:
+                        print(f"🖼️  og:image backfilled for {filled} news rows")
+                except Exception as e:
+                    print(f"⚠️ image enrich skipped: {type(e).__name__}: {e}")
 
             elapsed = round((time.time() - start) * 1000)
             print(f"✅ Bitcoin data cache: {cached} keys in {elapsed}ms")

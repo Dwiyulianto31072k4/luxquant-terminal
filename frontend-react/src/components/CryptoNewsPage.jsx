@@ -165,8 +165,10 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
     );
   }
 
-  if (isHeadline) {
-    return (
+  // Universal fallback: the LuxQuant News branded card for any item without an
+  // image of its own. og:image backfill fills real pictures where possible; the
+  // rest (e.g. Google News redirects) land here. Source still shows via DomainBadge.
+  return (
       <div
         className="w-full h-full flex flex-col items-center justify-center select-none relative overflow-hidden"
         style={{
@@ -209,10 +211,6 @@ const BrandThumbnail = ({ domain, isHeadline = false }) => {
         </div>
       </div>
     );
-  }
-
-  const faviconUrl = getFaviconUrl(domain, 128);
-  return <FaviconGlassCard domain={domain} faviconUrl={faviconUrl} color={color} />;
 };
 
 const FaviconGlassCard = ({ domain, faviconUrl, color }) => {
