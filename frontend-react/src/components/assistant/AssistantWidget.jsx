@@ -214,7 +214,7 @@ export default function AssistantWidget({ pageId = 'signals' }) {
             </div>
 
             {/* Input */}
-            <div className="border-t border-white/10 bg-[#0a0a0a] p-3 sm:px-6 sm:py-4">
+            <div className="border-t border-white/10 bg-[#0a0a0a] p-3 pb-24 sm:px-6 sm:py-4 sm:pb-4">
               <div className="flex items-end gap-2">
                 <textarea
                   rows={1}
