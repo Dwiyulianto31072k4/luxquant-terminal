@@ -13,6 +13,7 @@ import { watchlistApi } from '../services/watchlistApi';
 import StarButton from './StarButton';
 import CoinLogo from './CoinLogo';
 import SignalModal from './SignalModal';
+import AssistantWidget from './assistant/AssistantWidget';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const PRICE_REFRESH_INTERVAL = 15000;
@@ -553,6 +554,9 @@ const WatchlistPage = () => {
           onClose={() => setSelectedSignal(null)}
         />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="watchlist" />
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLocation } from "react-router-dom";
 import api from "../services/authApi";
 import CoinLogo from "./CoinLogo";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 // ════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -479,6 +480,9 @@ const JournalPage = () => {
       {activeTab === "analytics" && (
         <AnalyticsView stats={stats} insights={insights} entries={entries} />
       )}
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="journal" />
     </div>
   );
 };

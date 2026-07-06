@@ -137,6 +137,48 @@ PAGES = {
             "What are the highlighted 'call' rows?",
         ],
     },
+    "onchain": {
+        "file": "onchain-page.md",
+        "label": "On-Chain",
+        "suggestions": [
+            "What is a whale alert?",
+            "What does 'Smart Money' mean?",
+            "What do exchange deposits signal?",
+            "What is the difference between Mint and Burn?",
+            "How do I filter by transaction size?",
+            "What is a liquidation alert?",
+            "What does the whale threshold mean?",
+            "How do I focus on only big transactions?",
+        ],
+    },
+    "journal": {
+        "file": "journal-page.md",
+        "label": "Journal",
+        "suggestions": [
+            "How do I log a trade?",
+            "What are the mistake tags for?",
+            "What is planned vs actual entry?",
+            "How is R:R calculated?",
+            "What are strategy tags?",
+            "Can I journal a LuxQuant signal directly?",
+            "Why should I track my emotions?",
+            "How do I review my past trades?",
+        ],
+    },
+    "watchlist": {
+        "file": "watchlist-page.md",
+        "label": "Watchlist",
+        "suggestions": [
+            "How do I add a signal to my watchlist?",
+            "How do I remove a signal?",
+            "What do the filter tabs mean?",
+            "How do I sort by P&L?",
+            "What does the TP Hit filter show?",
+            "Are prices live here?",
+            "What is the difference between Open and Closed?",
+            "How do I track only active signals?",
+        ],
+    },
 }
 
 SYSTEM_PROMPT = """You are the LuxQuant Assistant, a helpful in-app guide for the \

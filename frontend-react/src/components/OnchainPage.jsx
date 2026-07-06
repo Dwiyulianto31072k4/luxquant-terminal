@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
+import AssistantWidget from "./assistant/AssistantWidget";
 
 const API = "/api/v1/onchain";
 const PER_PAGE = 30;
@@ -530,6 +531,9 @@ const OnchainPage = () => {
         <span className="text-text-muted/30">·</span>
         <span>Auto-refresh 60s</span>
       </div>
+
+      {/* Context-aware help assistant */}
+      <AssistantWidget pageId="onchain" />
     </div>
   );
 };
