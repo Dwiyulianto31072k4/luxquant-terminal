@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSuggestions, askAssistant } from '../../services/assistantApi';
 
+// Render lightweight markdown: **bold** -> gold bold. Line breaks preserved by
+// the container's `whitespace-pre-wrap`.
+function renderRich(text) {
+  return String(text).split(/\*\*(.+?)\*\*/g).map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="font-semibold text-gold-primary">{part}</strong>
+      : <span key={i}>{part}</span>
+  );
+}
+
 /**
  * LuxQuant Assistant — floating, page-aware help widget.
  * Desktop: wide, centered panel (Gate-AI style) with a 2-column suggestion grid.
@@ -115,7 +125,7 @@ export default function AssistantWidget({ pageId = 'signals' }) {
                       ? 'bg-gold-primary text-[#1a1206] font-medium'
                       : 'bg-white/[0.05] text-white/90 border border-white/5'
                   }`}>
-                    {m.content}
+                    {m.role === 'assistant' ? renderRich(m.content) : m.content}
                   </div>
                 </div>
               ))}
