@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -129,17 +129,22 @@ async def social_post_cost_summary(
 @router.post("/generate-draft")
 async def generate_social_post_draft(
     payload: GenerateDraftIn,
+    background_tasks: BackgroundTasks,
     admin: User = Depends(get_admin_user),
 ):
     if payload.limit < 1 or payload.limit > 5:
         raise HTTPException(400, "limit must be between 1 and 5")
-    drafts = generate_drafts(
+    # The full pipeline (search + AI text + AI image) can take 1-2 minutes, which
+    # exceeds Cloudflare's ~100s origin timeout. Run it in the background and return
+    # immediately; the client polls the list until the new draft(s) appear.
+    background_tasks.add_task(
+        generate_drafts,
         news_id=payload.news_id,
         platform=payload.platform,
         limit=payload.limit,
         dry_run=False,
     )
-    return {"ok": True, "drafts": drafts}
+    return {"ok": True, "status": "generating"}
 
 
 @router.post("/publish-approved")

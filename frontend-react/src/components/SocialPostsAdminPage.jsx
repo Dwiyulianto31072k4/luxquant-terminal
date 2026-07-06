@@ -316,14 +316,38 @@ const SocialPostsAdminPage = () => {
   const handleGenerate = async () => {
     setGenerating(true);
     setError(null);
+    const prevIds = new Set(posts.map((p) => p.id));
     try {
       const body = { limit: 1 };
       if (newsId.trim()) body.news_id = Number(newsId.trim());
       await api.post("/api/v1/admin/social-posts/generate-draft", body);
       setNewsId("");
-      await load();
+      // Generation runs server-side in the background (search + AI text + AI image
+      // can take 1–2 min, beyond Cloudflare's request timeout). Poll the list until
+      // the new draft appears instead of waiting on one long request.
+      const params = { limit: 60 };
+      if (status) params.status = status;
+      let appeared = false;
+      for (let i = 0; i < 45 && !appeared; i++) {
+        await new Promise((r) => setTimeout(r, 4000));
+        try {
+          const res = await api.get("/api/v1/admin/social-posts", { params });
+          const list = Array.isArray(res.data) ? res.data : [];
+          if (list.some((p) => !prevIds.has(p.id))) {
+            setPosts(list);
+            appeared = true;
+          }
+        } catch {
+          /* transient — keep polling */
+        }
+      }
+      if (appeared) {
+        load(); // refresh cost summary too
+      } else {
+        setError("Still generating — it's taking longer than usual. Click Refresh in a moment.");
+      }
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to generate draft");
+      setError(e?.response?.data?.detail || "Failed to start generation");
     } finally {
       setGenerating(false);
     }
