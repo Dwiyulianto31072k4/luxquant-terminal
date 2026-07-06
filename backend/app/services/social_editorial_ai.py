@@ -55,9 +55,16 @@ CAPTION_CTA = os.environ.get(
 )
 
 
+def _normalize_paragraphs(text: str) -> str:
+    """Collapse mixed single/double newlines into uniform blank-line-separated
+    paragraphs so caption spacing is consistent (AI sometimes uses \\n, sometimes \\n\\n)."""
+    paras = [p.strip() for p in re.split(r"\n+", text or "") if p.strip()]
+    return "\n\n".join(paras)
+
+
 def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
     """Build the final post caption: body → source → disclaimer → CTA → hashtags."""
-    body = str(pack.get("caption") or "").strip()
+    body = _normalize_paragraphs(str(pack.get("caption") or ""))
     raw_note = str(pack.get("source_note") or "").strip() or (source_domain or "")
     note = ""
     if raw_note:
