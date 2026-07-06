@@ -12,6 +12,7 @@ Nothing here runs on its own; it is called by the RSS services once wired.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Iterable, Optional
 
@@ -61,9 +62,11 @@ def classify(title: str, description: str = "", raw_text: str = "") -> str:
 
 
 def _synthetic_msg_id(url: str) -> int:
-    """Deterministic positive int from a URL (Postgres hashtext parity not
-    required — just needs to be stable per URL for the unique constraint)."""
-    return abs(hash(url)) % 2_147_483_647
+    """Stable positive int4 from a URL. Uses md5 (not builtin hash(), which is
+    randomized per process) so the (source_channel, source_msg_id) unique
+    constraint stays consistent across worker restarts."""
+    digest = hashlib.md5(url.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) % 2_147_483_647
 
 
 def persist_rss_items(

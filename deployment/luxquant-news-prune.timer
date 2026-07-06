@@ -1,0 +1,11 @@
+[Unit]
+Description=Run LuxQuant crypto_news retention daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+AccuracySec=1min
+Unit=luxquant-news-prune.service
+
+[Install]
+WantedBy=timers.target
