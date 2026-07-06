@@ -97,6 +97,20 @@ CAPTION_CTA = os.environ.get(
     "SOCIAL_CAPTION_CTA",
     "Read more crypto news at luxquant.tw/crypto-news",
 )
+# Neutral CTA for non-financial (general/geopolitical) stories where the crypto CTA
+# and the "not financial advice" line do not apply.
+CAPTION_CTA_GENERAL = os.environ.get(
+    "SOCIAL_CAPTION_CTA_GENERAL",
+    "Follow LuxQuant for global market and macro intelligence.",
+)
+# AI-visual disclosure — kept in the caption (not burned into the image) for a clean
+# visual, satisfying platform/legal AI-labeling expectations.
+CAPTION_AI_LABEL = os.environ.get(
+    "SOCIAL_CAPTION_AI_LABEL",
+    "Illustration generated with AI.",
+)
+# Topics that are financial in nature → keep the NFA disclaimer + crypto CTA.
+FINANCIAL_TOPICS = {"crypto", "markets", "macro"}
 
 
 def _normalize_paragraphs(text: str) -> str:
@@ -107,14 +121,30 @@ def _normalize_paragraphs(text: str) -> str:
 
 
 def assemble_caption(pack: dict, *, source_domain: Optional[str] = None) -> str:
-    """Build the final post caption: body → source → disclaimer → CTA → hashtags."""
+    """Build the final post caption: body → source → AI label → [disclaimer] → CTA → hashtags.
+
+    The disclaimer and crypto CTA are only added for financially-relevant topics, so a
+    war/geopolitics story is not force-fitted with a 'not financial advice' line. The AI
+    label is always included (all images are AI-generated) and kept in the caption, not
+    burned into the image.
+    """
     body = _normalize_paragraphs(str(pack.get("caption") or ""))
     raw_note = str(pack.get("source_note") or "").strip() or (source_domain or "")
     note = ""
     if raw_note:
         note = raw_note if raw_note.lower().startswith("source") else f"Source: {raw_note}"
+
+    topic = str(pack.get("topic") or "").strip().lower()
+    is_financial = topic in FINANCIAL_TOPICS or bool(pack.get("tokens"))
+    # Default to financial framing when the topic is unknown (safer for a crypto brand).
+    if not topic:
+        is_financial = True
+
+    disclaimer = CAPTION_DISCLAIMER if is_financial else ""
+    cta = CAPTION_CTA if is_financial else CAPTION_CTA_GENERAL
     tags = " ".join(pack.get("hashtags") or [])
-    parts = [body, note, CAPTION_DISCLAIMER, CAPTION_CTA, tags]
+
+    parts = [body, note, CAPTION_AI_LABEL, disclaimer, cta, tags]
     return "\n\n".join(p for p in parts if p)
 
 
@@ -221,16 +251,22 @@ def build_editorial_pack(
     context = _build_context(news, article_text, tavily)
     system = (
         "You are LuxQuant's senior crypto and business news editor plus image prompt director. "
-        "Everything must be in English for a global audience. Be accurate, premium, and sober.\n"
+        "Everything must be in English for a global audience. Be accurate, premium, sober, and genuinely engaging.\n"
         "GROUNDING RULES (critical): Only state facts, numbers, names, dates and quotes that appear in the provided "
         "source context or search results. Never invent, estimate, or infer values that are not present in the sources. "
-        "If a detail is missing, omit it rather than guess. When sources disagree, prefer the most recent figure. "
-        "Before finalizing, silently re-check every number, name and date against the sources and remove anything you "
-        "cannot ground in them."
+        "If a detail is missing, omit it rather than guess. When sources disagree, prefer the most recent figure. Never "
+        "attribute a quote to anyone unless it appears verbatim in a source. Do not allege wrongdoing, crime or failure "
+        "about a named person or company unless a source explicitly states it. Before finalizing, silently re-check "
+        "every number, name, date and quote against the sources and remove anything you cannot ground in them.\n"
+        "SAFETY & COMPLIANCE RULES: Never promise, guarantee or imply profit, returns or price targets. Never advise the "
+        "audience to buy, sell or hold any asset. Do not use hype or FOMO language (e.g. 'to the moon', 'last chance', "
+        "'don't miss out'). Do not downplay risk. For stories involving death, war, disaster or personal tragedy, write "
+        "soberly and respectfully and never trivialize human harm. Keep contested political topics evenhanded and "
+        "non-partisan. Avoid demographic, national, religious or cultural stereotypes in both text and imagery."
     )
     user = (
         "Create a complete social-news pack from this source context. Return JSON only with keys: "
-        "headline, visual_concept, image_prompt, caption, hashtags, source_note, tokens, used_references.\n\n"
+        "headline, visual_concept, image_prompt, caption, hashtags, source_note, topic, tokens, used_references.\n\n"
         "Headline: 7-12 words, premium editorial, clear, not clickbait.\n\n"
         "visual_concept: FIRST reason about the picture as an object with keys: "
         "primary_subject (the single most important thing to depict as a tangible physical object or scene — the named "
@@ -265,11 +301,18 @@ def build_editorial_pack(
         "labels, since any rendered text becomes gibberish; "
         "(7) state the lighting direction and quality. "
         "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
-        "Caption: 3-4 short punchy paragraphs, English. Lead with the key fact (what happened), then why it matters for "
-        "crypto/markets or the broader macro picture, then a brief caveat. If external search results are provided, use "
-        "them to add accurate context and PREFER the most up-to-date figures found there over the original item's numbers. "
-        "Do NOT include hashtags, a disclaimer, a call-to-action, or a source "
+        "Caption: Write like a sharp human editor, NOT an AI. 3-4 short punchy paragraphs, plain English. Open with a "
+        "strong hook in the FIRST ~80 characters that sparks curiosity and states the key fact — never a generic "
+        "AI-sounding intro (banned openers include 'In today's fast-paced world', 'In a groundbreaking move', 'In an "
+        "unprecedented', 'The world of crypto'). Then explain why it matters for markets or the wider picture, then a "
+        "brief, honest caveat. Weave the key names/assets in naturally as keywords. If external search results are "
+        "provided, use them for accurate context and PREFER the most up-to-date figures found there. Keep it human, "
+        "specific and free of filler. Do NOT include hashtags, a disclaimer, a call-to-action, an AI label, or a source "
         "line in the caption body — those are appended separately. Plain paragraphs only.\n\n"
+        "topic: classify the story as exactly one of 'crypto' (specific tokens/protocols/exchanges), 'markets' "
+        "(stocks, ETFs, companies, trading), 'macro' (central banks, rates, inflation, the economy), or 'general' "
+        "(politics, geopolitics, disasters, other non-financial news). Be honest — this controls whether a financial "
+        "disclaimer is attached.\n\n"
         "source_note: name the most authoritative ORIGINAL source. If external search results are provided, prefer the "
         "original publisher found there (e.g. the agency or outlet) over a social-media handle.\n\n"
         "tokens: array of crypto token symbols that THIS news genuinely centers on (e.g. [\"BTC\"], [\"ETH\",\"SOL\"]). "
@@ -280,7 +323,8 @@ def build_editorial_pack(
         "to THIS specific event and support the figures/claims in your caption. Exclude any result about a different "
         "incident, location, or date even if the topic is similar. If none clearly match, return an empty array []. "
         "Never invent URLs — copy them exactly from the search results.\n\n"
-        "Hashtags: 5-8 relevant hashtags.\n\n"
+        "Hashtags: 4-7 specific hashtags that fit THIS story's topic (do not force crypto hashtags onto a "
+        "non-crypto story); no generic filler tags.\n\n"
         f"Source context:\n{json.dumps(context, ensure_ascii=False)}"
     )
 
@@ -324,6 +368,12 @@ def build_editorial_pack(
         tokens = [tokens]
     tokens = [str(t).strip() for t in tokens if str(t).strip()]
     pack["tokens"] = tokens
+
+    # Normalize topic classification (drives the topic-aware disclaimer/CTA).
+    topic = str(pack.get("topic") or "").strip().lower()
+    if topic not in ("crypto", "markets", "macro", "general"):
+        topic = "crypto" if tokens else ""
+    pack["topic"] = topic
 
     # Compose final image prompt: AI-written scene (content) + fixed LuxQuant style +
     # code-chosen coin clause (encourage vs forbid) + always-on negatives.
