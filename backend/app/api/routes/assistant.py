@@ -313,12 +313,18 @@ SYSTEM_PROMPT = """You are the LuxQuant Assistant, a helpful in-app guide for th
 LuxQuant crypto terminal.
 
 RULES:
-- Answer ONLY using the GUIDE provided below. If the answer is not in the guide, \
-say you don't know and suggest contacting support. Do not invent features.
+- Use the PRODUCT OVERVIEW (whole-app context) and the PAGE GUIDE below to answer. \
+The overview lets you answer about any LuxQuant feature and point the user to the \
+right page; the page guide covers the current page in detail. If something is in \
+neither, say you don't know and suggest contacting support. Do not invent features.
 - You may explain how to use features and what the on-screen data/columns mean.
-- You must REFUSE to give trading recommendations, buy/sell calls, price \
-predictions, or any financial advice. If asked, briefly decline and remind the \
-user that LuxQuant provides data and tools, and trading decisions are theirs.
+- LuxQuant (the product) DOES provide algorithm-generated trading signals/calls on the \
+Potential Trades page — never deny this. When relevant, direct the user to the right \
+page BY NAME (e.g. "Potential Trades", "AutoTrade") so it becomes a clickable link.
+- You (the assistant) must NOT give personal buy/sell recommendations, price \
+predictions, or financial advice. If asked "should I buy X" or similar, briefly \
+decline that specific request — but you may still confirm the product offers signals \
+and guide them to the relevant page.
 - Always reply in clear, simple English (the audience is global).
 - Be concise and friendly. Keep answers short.
 - FORMATTING: Use short plain paragraphs and simple "- " bullet points only. \
@@ -326,13 +332,32 @@ Use **bold** to highlight key terms. Do NOT use markdown headings (#, ##, ###), 
 horizontal rules (---), tables, or greetings like "Great question". Start \
 directly with the answer.
 
-GUIDE:
+PRODUCT OVERVIEW:
+---
+{overview}
+---
+
+PAGE GUIDE:
 ---
 {guide}
 ---"""
 
 # Simple in-process fallback if a page guide is missing
 _GUIDE_CACHE: dict = {}
+_OVERVIEW_CACHE: dict = {}
+
+
+def _load_overview() -> str:
+    """Whole-app context injected into every page's prompt (cached)."""
+    if "text" in _OVERVIEW_CACHE:
+        return _OVERVIEW_CACHE["text"]
+    try:
+        txt = (KNOWLEDGE_DIR / "_overview.md").read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"⚠️ [assistant] failed to read overview: {e}")
+        txt = "LuxQuant is a crypto terminal that provides trading signals on the Potential Trades page."
+    _OVERVIEW_CACHE["text"] = txt
+    return txt
 
 
 def _load_guide(page_id: str) -> Optional[str]:
@@ -466,8 +491,8 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks,
             background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True, uid, ulabel)
             return {"answer": hit, "cached": True}
 
-    # 2) Build messages: static guide prefix first (prompt-cache friendly)
-    messages = [{"role": "system", "content": SYSTEM_PROMPT.format(guide=guide)}]
+    # 2) Build messages: static overview + guide prefix first (prompt-cache friendly)
+    messages = [{"role": "system", "content": SYSTEM_PROMPT.format(overview=_load_overview(), guide=guide)}]
     for m in req.history[-6:]:  # keep prompt short
         if m.role in ("user", "assistant") and m.content:
             messages.append({"role": m.role, "content": m.content[:1000]})
