@@ -235,6 +235,9 @@ async def verify_payment(
         current_user.subscription_granted_at = now
         if hasattr(current_user, "subscription_source"):
             current_user.subscription_source = "payment"
+        # Access (re)granted → clear any stale VIP grace immediately.
+        if hasattr(current_user, "telegram_grace_until"):
+            current_user.telegram_grace_until = None
 
         if plan and plan.duration_days:
             current_user.subscription_expires_at = now + timedelta(days=plan.duration_days)

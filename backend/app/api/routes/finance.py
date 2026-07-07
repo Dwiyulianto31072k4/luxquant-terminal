@@ -764,6 +764,10 @@ async def create_manual_payment(
     # ─── Grant subscription ───
     user.role = "subscriber"
     user.subscription_expires_at = new_expires_at
+    # Access is (re)granted → clear any stale VIP grace so the worker won't
+    # send expiry reminders or kick this now-active/lifetime member.
+    if hasattr(user, "telegram_grace_until"):
+        user.telegram_grace_until = None
     if hasattr(user, "subscription_granted_by"):
         user.subscription_granted_by = admin.id
     if hasattr(user, "subscription_granted_at"):
@@ -960,6 +964,9 @@ def approve_payment(
     user.role = 'subscriber'
     if hasattr(user, 'subscription_expires_at'):
         user.subscription_expires_at = new_expires_at
+    # Access is (re)granted → clear any stale VIP grace immediately.
+    if hasattr(user, 'telegram_grace_until'):
+        user.telegram_grace_until = None
     if hasattr(user, 'subscription_granted_by'):
         user.subscription_granted_by = admin.id
     if hasattr(user, 'subscription_granted_at'):

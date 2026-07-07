@@ -57,6 +57,15 @@ MSG_KICKED = (
     f"Renew anytime to rejoin: {SITE_URL}"
 )
 
+# SQL predicate: user currently HAS active access (admin, or premium/subscriber
+# with lifetime `subscription_expires_at IS NULL` or a future expiry). Such users
+# must NEVER receive expiry reminders or be kicked. Requires a :now bind param.
+_ACTIVE_ACCESS = """(
+    role = 'admin'
+    OR (role IN ('premium', 'subscriber')
+        AND (subscription_expires_at IS NULL OR subscription_expires_at > :now))
+)"""
+
 
 def _acquire_cycle_lock() -> bool:
     """True kalau process ini boleh jalanin cycle.
@@ -74,6 +83,40 @@ def _acquire_cycle_lock() -> bool:
     except Exception as e:
         logger.warning(f"Sub worker lock error (fallback to run): {e}")
         return True
+
+
+def _mark_final_reminder(user_id, grace_until) -> bool:
+    """Dedup guard: return True only the FIRST time a final reminder should be
+    sent for this user's current grace deadline. Prevents re-sending every cycle
+    (the ~5-min spam). Keyed by (user, grace deadline) so a new grace period can
+    remind again."""
+    try:
+        if not is_redis_available():
+            return True  # fallback: allow (a rare dup beats silent failure)
+        epoch = int(grace_until.timestamp()) if grace_until else 0
+        key = f"lq:vip:finalrem:{user_id}:{epoch}"
+        got = get_redis().set(key, "1", nx=True, ex=93600)  # ~26h
+        return bool(got)
+    except Exception:
+        return True
+
+
+async def _clear_stale_grace(db, now):
+    """Self-heal the root cause: when a user renews or is upgraded (incl. to
+    LIFETIME), their old `telegram_grace_until` was never cleared — so the
+    reminder/kick logic kept treating them as expired. Clear grace for anyone who
+    currently has active access."""
+    res = db.execute(
+        text(f"""
+            UPDATE users
+            SET telegram_grace_until = NULL, updated_at = NOW()
+            WHERE telegram_grace_until IS NOT NULL
+              AND {_ACTIVE_ACCESS}
+        """),
+        {"now": now},
+    )
+    db.commit()
+    return res.rowcount
 
 
 async def _expire_and_start_grace(db, now):
@@ -125,20 +168,24 @@ async def _send_final_reminders(db, now):
     """Kirim reminder #2 buat user yang mendekati deadline kick (best-effort)."""
     threshold = now + timedelta(hours=FINAL_REMINDER_BEFORE_HOURS)
     rows = db.execute(
-        text("""
-            SELECT id, telegram_id
+        text(f"""
+            SELECT id, telegram_id, telegram_grace_until
             FROM users
             WHERE telegram_grace_until IS NOT NULL
               AND telegram_grace_until > :now
               AND telegram_grace_until <= :threshold
               AND telegram_in_group = TRUE
               AND telegram_id IS NOT NULL
+              AND NOT {_ACTIVE_ACCESS}
         """),
         {"now": now, "threshold": threshold},
     ).fetchall()
 
     sent = 0
     for r in rows:
+        # Dedup: send the final reminder only ONCE per grace deadline.
+        if not _mark_final_reminder(r.id, r.telegram_grace_until):
+            continue
         try:
             ok = await send_dm(r.telegram_id, MSG_FINAL)
             if ok:
@@ -151,13 +198,14 @@ async def _send_final_reminders(db, now):
 async def _kick_past_grace(db, now):
     """T>=grace_until: kick dari group kalau masih di dalam, lalu clear grace."""
     rows = db.execute(
-        text("""
+        text(f"""
             SELECT id, telegram_id
             FROM users
             WHERE telegram_grace_until IS NOT NULL
               AND telegram_grace_until <= :now
               AND telegram_in_group = TRUE
               AND telegram_id IS NOT NULL
+              AND NOT {_ACTIVE_ACCESS}
         """),
         {"now": now},
     ).fetchall()
@@ -268,6 +316,10 @@ async def subscription_expiry_loop():
             try:
                 now = datetime.now(timezone.utc)
 
+                # Self-heal first: drop stale grace for anyone now active
+                # (renewed / upgraded / lifetime) so they aren't reminded/kicked.
+                unstuck = await _clear_stale_grace(db, now)
+
                 expired = await _expire_and_start_grace(db, now)
                 reminded = await _send_final_reminders(db, now)
                 kicked = await _kick_past_grace(db, now)
@@ -286,10 +338,11 @@ async def subscription_expiry_loop():
                 expired_payments = result_pay.rowcount
                 db.commit()
 
-                if expired or kicked or reminded or expired_payments or reconciled:
+                if expired or kicked or reminded or expired_payments or reconciled or unstuck:
                     logger.info(
                         f"♻️ Subscription worker: expired {expired} users, "
                         f"reminded {reminded}, kicked {kicked}, "
+                        f"unstuck {unstuck} stale-grace, "
                         f"reconciled {reconciled} in-group, "
                         f"expired {expired_payments} payments"
                     )
