@@ -69,7 +69,12 @@ deploy_luxquant() {
     echo ""
     echo "📦 [2/6] Membangun Frontend React..."
     cd "$FRONTEND_PATH"
-    npm run build
+    # Low CPU/IO priority so the build never starves the live gunicorn workers.
+    # This box has few cores — a full-speed vite build was pegging every core for
+    # ~20-40s and tripping WORKER TIMEOUT on the still-running workers during a
+    # deploy. `nice`+`ionice` makes the build yield to gunicorn; it just finishes
+    # a little slower and the deploy no longer causes a blip.
+    nice -n 19 ionice -c3 npm run build
     echo "   → Deploying ke Nginx (keep old bundles so in-flight users don't break)..."
     mkdir -p "$NGINX_WWW_PATH"
     # Copy the fresh build OVER the existing files — this updates index.html and
