@@ -1082,6 +1082,15 @@ async def get_top_performers(
     if cached:
         return cached
 
+    # Fresh cache expired → serve the recent stale copy INSTANTLY instead of
+    # recomputing inline. The poller re-warms the fresh key every cycle; this
+    # stops a burst of users from all recomputing at once (cache stampede) when
+    # the 5-min TTL rolls over — which is what produced the slow top-performers
+    # spikes. (Threadpool offload below still makes any true cold-start non-fatal.)
+    stale, _ = cache_get_with_stale(cache_key)
+    if stale:
+        return stale
+
     date_conditions_hit = "AND su.update_at >= :date_from"
     params = {"date_from": actual_from, "limit": limit}
     if actual_to:
