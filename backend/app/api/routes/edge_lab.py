@@ -35,7 +35,7 @@ from datetime import datetime, timedelta
 import math
 
 from app.core.database import get_db
-from app.core.redis import cache_get, cache_set
+from app.core.redis import cache_get, cache_set, cache_get_with_stale
 
 router = APIRouter()
 
@@ -141,6 +141,11 @@ async def get_edge_lab(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # Rollover → serve recent stale instantly instead of recomputing inline
+    # (prevents a burst of users all recomputing at once during a crunch).
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
 
     # ─── Common params + sector WHERE clause helper ───
     sector_clause = "" if sector_filter == "all" else "AND COALESCE(c.sector, 'uncategorized') = :sector"
@@ -520,6 +525,11 @@ async def get_edge_lab_drill(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # Rollover → serve recent stale instantly instead of recomputing inline
+    # (prevents a burst of users all recomputing at once during a crunch).
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
 
     sector_clause = "" if sector_filter == "all" else "AND COALESCE(c.sector, 'uncategorized') = :sector"
     params = {"start": start_str, "end": end_str, "limit": limit}
@@ -701,6 +711,11 @@ async def get_tag_wr(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # Rollover → serve recent stale instantly instead of recomputing inline
+    # (prevents a burst of users all recomputing at once during a crunch).
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
 
     params = {"start": start_str, "end": end_str, "min_n": min_n}
 
@@ -787,6 +802,11 @@ async def get_wr_vs_btc(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # Rollover → serve recent stale instantly instead of recomputing inline
+    # (prevents a burst of users all recomputing at once during a crunch).
+    _stale, _ = cache_get_with_stale(cache_key)
+    if _stale:
+        return _stale
 
     # ─── 1. WR series from daily_market_regime ───
     if range == "all":

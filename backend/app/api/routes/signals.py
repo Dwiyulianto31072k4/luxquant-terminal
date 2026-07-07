@@ -584,6 +584,11 @@ async def get_signals_bulk_7d(
     cached = cache_get(cache_key)
     if cached:
         return cached
+    # Rollover: serve recent stale instantly (the poller re-warms the fresh key)
+    # so a burst of users can't all recompute at once when the TTL expires.
+    stale, _ = cache_get_with_stale(cache_key)
+    if stale:
+        return stale
 
     try:
         from datetime import datetime, timedelta
@@ -909,7 +914,13 @@ async def get_signal_stats(db: Session = Depends(get_db)):
     if cached:
         cached.pop("_cached_at", None)
         return SignalStats(**cached)
-    
+    # Rollover → serve recent stale instantly (poller re-warms) instead of
+    # recomputing inline on the event loop.
+    stale, _ = cache_get_with_stale("lq:signals:stats")
+    if stale:
+        stale.pop("_cached_at", None)
+        return SignalStats(**stale)
+
     try:
         stats_query = text(f"""
             WITH {SIGNAL_OUTCOMES_CTE}

@@ -153,10 +153,12 @@ async def get_notifications(
 
 
 @router.get("/unread-count", response_model=NotificationUnreadCount)
-async def get_unread_count(
+def get_unread_count(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # plain `def` → FastAPI runs it in a threadpool, so this frequently-polled
+    # count query never blocks the event loop when Postgres is slow.
     read_at = _get_read_cutoff(db, current_user.id)
     sql = "SELECT COUNT(*) FROM notifications n WHERE " + SQL_VISIBLE + " AND " + SQL_UNREAD
     count = db.execute(
