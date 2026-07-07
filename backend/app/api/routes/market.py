@@ -433,6 +433,9 @@ async def _fetch_binance_tickers(client):
                 tickers[item["symbol"]] = {
                     "price": float(item["lastPrice"]),
                     "volume": float(item["quoteVolume"]),
+                    "change": float(item.get("priceChangePercent", 0) or 0),
+                    "high_24h": float(item.get("highPrice", 0) or 0),
+                    "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
             return tickers
     except Exception as e:
@@ -447,6 +450,9 @@ async def _fetch_binance_tickers(client):
                 tickers[item["symbol"]] = {
                     "price": float(item["lastPrice"]),
                     "volume": float(item["quoteVolume"]),
+                    "change": float(item.get("priceChangePercent", 0) or 0),
+                    "high_24h": float(item.get("highPrice", 0) or 0),
+                    "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
             return tickers
     except Exception as e:
@@ -478,6 +484,7 @@ async def _fetch_bybit_tickers(client):
                         tickers[symbol] = {
                             "price": float(item.get("lastPrice", 0) or 0),
                             "volume": float(item.get("turnover24h", 0) or 0),
+                            "change": float(item.get("price24hPcnt", 0) or 0) * 100,
                         }
                     if tickers:
                         return tickers
@@ -550,6 +557,7 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
                         spot_tickers[item["symbol"]] = {
                             "price": float(item["lastPrice"]),
                             "volume": float(item["quoteVolume"]),
+                            "change": float(item.get("priceChangePercent", 0) or 0),
                         }
                     cache_set(spot_cache_key, spot_tickers, ttl=5)
             except Exception:
@@ -573,6 +581,7 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
                                 spot_tickers[symbol_name] = {
                                     "price": float(item.get("lastPrice", 0) or 0),
                                     "volume": float(item.get("turnover24h", 0) or 0),
+                                    "change": float(item.get("price24hPcnt", 0) or 0) * 100,
                                 }
                         if spot_tickers:
                             cache_set(spot_cache_key, spot_tickers, ttl=5)

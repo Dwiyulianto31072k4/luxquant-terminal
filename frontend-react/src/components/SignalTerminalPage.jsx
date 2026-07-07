@@ -32,34 +32,35 @@ function shortNum(v) {
   return Number(v).toFixed(0);
 }
 
-// ── squarified treemap ──
-function squarify(items, x, y, w, h) {
-  const total = items.reduce((s, i) => s + i.v, 0) || 1;
-  let list = items.map((i) => ({ ...i, area: (i.v / total) * w * h }));
+// ── squarified treemap (bounded — rows laid along the shorter side) ──
+function tmWorst(row, side) {
+  const s = row.reduce((a, b) => a + b.area, 0);
+  const mx = Math.max(...row.map((r) => r.area)), mn = Math.min(...row.map((r) => r.area));
+  return Math.max((side * side * mx) / (s * s), (s * s) / (side * side * mn));
+}
+function squarify(items, x0, y0, W0, H0) {
   const rects = [];
-  const worst = (row, len) => {
-    const s = row.reduce((a, b) => a + b.area, 0);
-    const mx = Math.max(...row.map((r) => r.area)), mn = Math.min(...row.map((r) => r.area));
-    return Math.max((len * len * mx) / (s * s), (s * s) / (len * len * mn));
-  };
-  let X = x, Y = y, W = w, H = h;
-  while (list.length) {
-    const vert = W < H, len = vert ? W : H;
-    let row = [list[0]], rest = list.slice(1);
-    while (rest.length) {
-      const cand = [...row, rest[0]];
-      if (worst(row, len) >= worst(cand, len)) { row = cand; rest = rest.slice(1); } else break;
+  const total = items.reduce((s, i) => s + i.v, 0) || 1;
+  const nodes = items.map((i) => ({ d: i.d, area: (i.v / total) * W0 * H0 }));
+  let x = x0, y = y0, w = W0, h = H0, i = 0;
+  while (i < nodes.length) {
+    const side = Math.min(w, h) || 1;
+    let row = [], best = Infinity, j = i;
+    while (j < nodes.length) {
+      const cand = [...row, nodes[j]];
+      const r = tmWorst(cand, side);
+      if (row.length === 0 || r <= best) { row = cand; best = tmWorst(row, side); j++; } else break;
     }
-    const ra = row.reduce((a, b) => a + b.area, 0), thick = ra / len;
-    let off = vert ? X : Y;
-    row.forEach((r) => {
-      const seg = (r.area / ra) * len;
-      if (vert) rects.push({ ...r, x: off, y: Y, w: thick, h: seg });
-      else rects.push({ ...r, x: X, y: off, w: seg, h: thick });
-      off += seg;
-    });
-    if (vert) { X += thick; W -= thick; } else { Y += thick; H -= thick; }
-    list = rest;
+    const rowArea = row.reduce((s, n) => s + n.area, 0) || 1;
+    const rowThick = rowArea / side;
+    let off = w >= h ? y : x;
+    for (const n of row) {
+      const len = n.area / rowThick;
+      if (w >= h) { rects.push({ d: n.d, x, y: off, w: rowThick, h: len }); off += len; }
+      else { rects.push({ d: n.d, x: off, y, w: len, h: rowThick }); off += len; }
+    }
+    if (w >= h) { x += rowThick; w -= rowThick; } else { y += rowThick; h -= rowThick; }
+    i = j;
   }
   return rects;
 }
@@ -202,6 +203,7 @@ export default function SignalTerminalPage() {
       const priceObj = prices[s.pair];
       const livePrice = priceObj ? (typeof priceObj === "number" ? priceObj : priceObj.price) : (flow?.price ?? null);
       const liveVol = priceObj && typeof priceObj !== "number" ? priceObj.volume : (flow?.volume_24h ?? 0);
+      const liveChange = priceObj && typeof priceObj !== "number" && priceObj.change != null ? priceObj.change : null;
       const mcap = flow?.market_cap ?? parseMcap(s.market_cap);
       const entry = parseFloat(s.entry) || 0;
       return {
@@ -212,7 +214,7 @@ export default function SignalTerminalPage() {
         market_cap: mcap,
         volume_24h: liveVol || flow?.volume_24h || 0,
         flow_intensity: flow?.flow_intensity ?? (mcap ? (liveVol || 0) / mcap : 0),
-        price_change_24h: flow?.price_change_24h ?? 0,
+        price_change_24h: liveChange ?? flow?.price_change_24h ?? 0,
         from_call: entry && livePrice ? ((livePrice - entry) / entry) * 100 : 0,
         win_rate: ci?.win_rate ?? null,
         streak: ci?.current_streak ? (ci.current_streak.type === "win" ? ci.current_streak.length : -ci.current_streak.length) : 0,
@@ -422,7 +424,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
   const items = model.map((d) => ({ v: Math.max(sm.get(d) || 0, 1e-6), d })).sort((a, b) => b.v - a.v);
   const rects = squarify(items, 0, 0, w, H);
   return (
-    <div ref={ref} className="relative w-full" style={{ height: H }}>
+    <div ref={ref} className="relative w-full overflow-hidden rounded-lg" style={{ height: H }}>
       {rects.map((r) => {
         const d = r.d, big = r.w > 58 && r.h > 34, fs = Math.max(9, Math.min(14, r.w / 6));
         return (
