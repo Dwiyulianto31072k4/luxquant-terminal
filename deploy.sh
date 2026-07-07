@@ -163,7 +163,10 @@ deploy_luxquant() {
     if [ -f "$LIQUIDATION_STREAM_UNIT" ]; then
         echo "   → Prewarming estimated liquidation forecast..."
         cd "$LUXQUANT_PATH/backend"
-        if ./venv/bin/python -c \
+        # Low priority so this prewarm can't starve the freshly-reloaded gunicorn
+        # workers (they've just booted and must send heartbeats; on a small box a
+        # full-speed prewarm was tripping WORKER TIMEOUT on those new workers).
+        if nice -n 19 ionice -c3 ./venv/bin/python -c \
             'import asyncio; from app.services.binance_liquidation_map import fetch_binance_estimated_heatmap; result = asyncio.run(fetch_binance_estimated_heatmap()); raise SystemExit(0 if result.available else 1)'; then
             echo "   ✅ Liquidation forecast prewarmed"
         else

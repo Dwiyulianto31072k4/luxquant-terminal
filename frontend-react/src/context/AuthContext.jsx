@@ -22,6 +22,16 @@ export const AuthProvider = ({ children }) => {
 
   // ─── Check token on mount ───
   useEffect(() => {
+    let cancelled = false;
+
+    const getMeWithTimeout = () =>
+      Promise.race([
+        authApi.getMe(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+        ),
+      ]);
+
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -29,25 +39,46 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      try {
-        const userData = await Promise.race([
-          authApi.getMe(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Auth check timeout')), 8000)
-          )
-        ]);
-        setUser(userData);
-      } catch (err) {
-        if (err?.response?.status === 401) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+      // Validate the session, but RETRY through TRANSIENT backend hiccups
+      // (deploy reload, momentary 5xx / timeout / network) so a single failed
+      // /auth/me never bounces a still-logged-in user to the login page. Only a
+      // genuine 401 (token invalid/expired — and authApi already tried a token
+      // refresh before surfacing it) means we should actually log out.
+      const MAX_ATTEMPTS = 4;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS && !cancelled; attempt++) {
+        try {
+          const userData = await getMeWithTimeout();
+          if (!cancelled) {
+            setUser(userData);
+            setLoading(false);
+          }
+          return;
+        } catch (err) {
+          if (err?.response?.status === 401) {
+            // Genuine auth failure → clear token and log out.
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            if (!cancelled) {
+              setUser(null);
+              setLoading(false);
+            }
+            return;
+          }
+          // Transient error → DON'T touch the token, wait a bit, and retry.
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise((r) => setTimeout(r, attempt * 1500));
+            continue;
+          }
+          // Retries exhausted but token is still (as far as we know) valid —
+          // do NOT destroy the session; just stop the spinner. Per-request auth
+          // will re-validate once the backend is reachable again.
+          if (!cancelled) setLoading(false);
         }
-        setUser(null);
-      } finally {
-        setLoading(false);
       }
     };
+
     initAuth();
+    return () => { cancelled = true; };
   }, []);
 
   // ─── Google Login via OAuth2 Redirect (full-page, Cloudflare-style) ───
