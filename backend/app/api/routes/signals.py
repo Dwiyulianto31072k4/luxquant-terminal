@@ -857,11 +857,14 @@ async def get_signals(
 # ============================================
 
 @router.get("/active")
-async def get_active_signals(
+def get_active_signals(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
+    # NOTE: plain `def` (not async) on purpose — FastAPI runs it in a threadpool
+    # so the synchronous DB query below can never block the event loop / freeze
+    # a worker when Postgres is slow during a peak-load crunch.
     cached = cache_get(f"lq:signals:active:{limit}")
     if cached and "items" in cached:
         return cached["items"]
@@ -1210,8 +1213,10 @@ async def get_top_performers(
     """)
 
     try:
-        gainers_rows = db.execute(gainers_sql, params).fetchall()
-        fastest_rows = db.execute(fastest_sql, params).fetchall()
+        # Offload the heavy CTE queries off the event loop (this endpoint must
+        # stay async for the awaited sparkline fetch below).
+        gainers_rows = await run_in_threadpool(lambda: db.execute(gainers_sql, params).fetchall())
+        fastest_rows = await run_in_threadpool(lambda: db.execute(fastest_sql, params).fetchall())
 
         def fmt_dur(sec):
             if not sec or sec <= 0: return "N/A"
@@ -1264,7 +1269,7 @@ async def get_top_performers(
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
             WHERE 1=1 {date_conditions_hit} AND s.entry > 0
         """)
-        total_count = db.execute(count_sql, params).scalar() or 0
+        total_count = (await run_in_threadpool(lambda: db.execute(count_sql, params).scalar())) or 0
 
         unique_pairs_sql = text(f"""
             SELECT COUNT(DISTINCT UPPER(s.pair)) FROM signals s
@@ -1272,7 +1277,7 @@ async def get_top_performers(
                 AND su.update_type IN ('tp1', 'tp2', 'tp3', 'tp4')
             WHERE 1=1 {date_conditions_hit} AND s.entry > 0
         """)
-        unique_pairs = db.execute(unique_pairs_sql, params).scalar() or 0
+        unique_pairs = (await run_in_threadpool(lambda: db.execute(unique_pairs_sql, params).scalar())) or 0
 
         gainers_list = [row_to_dict(r) for r in gainers_rows]
         fastest_list = [row_to_dict(r) for r in fastest_rows]
