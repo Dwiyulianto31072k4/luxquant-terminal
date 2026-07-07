@@ -15,6 +15,7 @@ UPDATED:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc, text
 from typing import Optional, List
@@ -37,7 +38,7 @@ from app.schemas.signal import (
 from app.config import settings
 from app.core.redis import (
     cache_get, cache_set, cache_get_with_stale,
-    build_signals_page_key, is_redis_available
+    build_signals_page_key, is_redis_available, get_redis
 )
 from app.utils.chart_urls import chart_path_to_url
 from app.services.coin_intel_worker import compute_daily_regimes, compute_coin_intel
@@ -1305,14 +1306,32 @@ async def get_top_performers(
 # GET /signals/coin-intel (SUBSCRIBER ONLY)
 # ============================================
 
-@router.get("/coin-intel")
-async def get_coin_intel(
-    current_user: User = Depends(require_subscription),
-):
+def _compute_coin_intel_once():
+    """
+    Heavy coin-intel compute — MUST run in a threadpool, never in the async
+    event loop (it does synchronous DB work for many seconds). Single-flight
+    across workers via a Redis SETNX lock so a cold cache + traffic burst can't
+    make every worker compute at once (that was the WORKER TIMEOUT cause).
+    """
+    # Someone may have just filled the cache while we were queued.
     cached = cache_get("lq:signals:coin-intel")
     if cached:
         return cached
-    
+
+    r = None
+    lock_ok = False
+    try:
+        r = get_redis()
+        # Only ONE worker computes at a time; lock auto-expires in 90s.
+        lock_ok = bool(r and r.set("lock:coin-intel:compute", "1", nx=True, ex=90))
+    except Exception:
+        lock_ok = True  # Redis unavailable → fall back to computing directly
+
+    if not lock_ok:
+        # Another worker is already computing — hand back stale data if we have it.
+        stale, _ = cache_get_with_stale("lq:signals:coin-intel")
+        return stale
+
     try:
         db = SessionLocal()
         try:
@@ -1324,11 +1343,40 @@ async def get_coin_intel(
             return result
         finally:
             db.close()
-    except Exception as e:
+    finally:
+        try:
+            if r and lock_ok:
+                r.delete("lock:coin-intel:compute")
+        except Exception:
+            pass
+
+
+@router.get("/coin-intel")
+async def get_coin_intel(
+    current_user: User = Depends(require_subscription),
+):
+    # 1) Fresh cache — the normal path (poller keeps this warm).
+    cached = cache_get("lq:signals:coin-intel")
+    if cached:
+        return cached
+
+    # 2) Cache expired but a recent stale copy exists → serve it instantly.
+    #    NEVER block the event loop just because the poller is mid-refresh.
+    stale, _ = cache_get_with_stale("lq:signals:coin-intel")
+    if stale:
+        return stale
+
+    # 3) Truly cold cache: compute OFF the event loop (threadpool) + single-flight.
+    try:
+        result = await run_in_threadpool(_compute_coin_intel_once)
+    except Exception:
+        result = None
+    if not result:
         raise HTTPException(
             status_code=503,
             detail="Coin intelligence not yet available. Ready after first cache cycle (~90s)."
         )
+    return result
 
 
 # ============================================
