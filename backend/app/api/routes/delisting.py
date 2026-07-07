@@ -11,6 +11,7 @@ from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, Query
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -68,7 +69,9 @@ async def list_delistings(
         q = q.filter(DelistingEvent.exchange == exchange.lower())
     rows = q.limit(limit).all()
 
-    prices = _all_prices()
+    # _all_prices() does a synchronous Binance call (cached 60s). Offload to a
+    # threadpool so it never blocks the async event loop / freezes the worker.
+    prices = await run_in_threadpool(_all_prices)
 
     # ── Lookup call LuxQuant per token (pintasan buka call) ──
     pairs = list({f"{s}USDT" for r in rows for s in (r.symbols or [])})

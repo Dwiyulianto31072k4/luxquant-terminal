@@ -10,6 +10,7 @@ AI Arena v4 API Routes
 """
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 import json
 
 from app.core.redis import cache_get, cache_set, get_redis
@@ -110,7 +111,8 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
             raise HTTPException(status_code=400, detail=f"Invalid timeframe. Use: {list(TIMEFRAME_CONFIG.keys())}")
 
         config = TIMEFRAME_CONFIG[tf]
-        klines = fetch_bybit_klines(interval=config["interval"], limit=config["limit"])
+        # Network fetch — offload to threadpool so it never blocks the event loop.
+        klines = await run_in_threadpool(fetch_bybit_klines, interval=config["interval"], limit=config["limit"])
         if not klines:
             raise HTTPException(status_code=503, detail=f"Could not fetch {tf} kline data")
 
@@ -122,7 +124,7 @@ async def get_chart_data(tf: str = Query("4H", description="Timeframe: 1D, 4H, 1
             color = "rgba(74,222,128,0.3)" if k["close"] >= k["open"] else "rgba(248,113,113,0.3)"
             volumes.append({"time": ts, "value": k["volume"], "color": color})
 
-        tech = compute_technicals_for_tf(klines, tf)
+        tech = await run_in_threadpool(compute_technicals_for_tf, klines, tf)
 
         # Build MA overlay data for the chart
         closes = [k["close"] for k in klines]

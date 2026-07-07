@@ -18,6 +18,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 
+from fastapi.concurrency import run_in_threadpool
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -255,9 +257,12 @@ async def get_journey_insights(
             # journey_aggregate worker) — this is just an instant read, never
             # a heavy synchronous walk over every signal.
             from app.services.journey_aggregate import get_result as get_aggregate
-            result = get_aggregate(db)
+            result = await run_in_threadpool(get_aggregate, db)
         else:
-            result = compute_insights(db, pair_upper)
+            # compute_insights does synchronous DB work + aggregation. Run it in
+            # a threadpool so a cold-cache miss never blocks the event loop
+            # (that pattern was the WORKER TIMEOUT cause on /coin-intel).
+            result = await run_in_threadpool(compute_insights, db, pair_upper)
     except Exception as e:
         log.exception(f"compute_insights failed for {pair_upper}: {e}")
         raise HTTPException(
