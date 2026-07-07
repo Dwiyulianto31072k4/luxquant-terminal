@@ -96,6 +96,10 @@ def _ensure_table(db) -> None:
     """))
     db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_ts ON ai_usage_log (ts);"))
     db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_feature ON ai_usage_log (feature);"))
+    # Who asked (nullable — assistant is usable while logged out).
+    db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"))
+    db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"))
+    db.execute(text("CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage_log (user_id);"))
     db.commit()
     _TABLE_READY = True
 
@@ -106,11 +110,14 @@ def log_usage(
     usage: Optional[dict] = None,
     page_id: Optional[str] = None,
     served_from_cache: bool = False,
+    user_id: Optional[int] = None,
+    user_label: Optional[str] = None,
 ) -> None:
     """Insert one usage row. Never raises — safe to call from any handler.
 
     When `served_from_cache` is True, the answer came from our own Redis cache
     so token counts and cost are zero (this is how we measure app-layer savings).
+    `user_id`/`user_label` record who asked (null when logged out).
     """
     u = usage or {"prompt": 0, "hit": 0, "miss": 0, "completion": 0, "total": 0}
     cost = 0.0 if served_from_cache else compute_cost(model, u["hit"], u["miss"], u["completion"])
@@ -123,10 +130,10 @@ def log_usage(
                     INSERT INTO ai_usage_log
                         (feature, page_id, model, prompt_tokens, cache_hit_tokens,
                          cache_miss_tokens, completion_tokens, total_tokens,
-                         cost_usd, served_from_cache)
+                         cost_usd, served_from_cache, user_id, user_label)
                     VALUES
                         (:feature, :page_id, :model, :prompt, :hit, :miss,
-                         :completion, :total, :cost, :cached)
+                         :completion, :total, :cost, :cached, :user_id, :user_label)
                 """),
                 {
                     "feature": feature,
@@ -139,6 +146,8 @@ def log_usage(
                     "total": u["total"],
                     "cost": cost,
                     "cached": served_from_cache,
+                    "user_id": user_id,
+                    "user_label": user_label,
                 },
             )
             db.commit()

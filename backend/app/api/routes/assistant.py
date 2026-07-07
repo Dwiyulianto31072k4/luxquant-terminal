@@ -16,9 +16,11 @@ import hashlib
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import APIRouter, Request, BackgroundTasks, Depends
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
+
+from app.api.deps import get_current_user_optional
 from openai import AsyncOpenAI
 
 from app.core.redis import cache_get, cache_set, get_redis
@@ -422,9 +424,13 @@ async def suggestions(page_id: str = "signals"):
 
 
 @router.post("/assistant/chat")
-async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
+async def chat(req: ChatRequest, request: Request, background: BackgroundTasks,
+               user=Depends(get_current_user_optional)):
     if not assistant_enabled():
         return {"answer": "The assistant is currently turned off.", "cached": False, "error": "disabled"}
+
+    uid = getattr(user, "id", None)
+    ulabel = (getattr(user, "username", None) or getattr(user, "email", None)) if user else None
 
     guide = _load_guide(req.page_id)
     if guide is None:
@@ -447,7 +453,7 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
     cached = cache_get(ckey)
     if cached:
         # Log a $0 cache-served row so we can measure app-layer savings.
-        background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True)
+        background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True, uid, ulabel)
         return {"answer": cached, "cached": True}
 
     # 1b) Semantic cache — different wording, same meaning is also free.
@@ -457,7 +463,7 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
         hit = await run_in_threadpool(semcache.lookup, req.page_id, emb)
         if hit:
             cache_set(ckey, hit, ttl=86400)  # promote to exact cache too
-            background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True)
+            background.add_task(log_usage, FEATURE, MODEL, None, req.page_id, True, uid, ulabel)
             return {"answer": hit, "cached": True}
 
     # 2) Build messages: static guide prefix first (prompt-cache friendly)
@@ -478,7 +484,8 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks):
         answer = (res.choices[0].message.content or "").strip()
         # Track token usage & cost (non-blocking, after response is sent).
         background.add_task(
-            log_usage, FEATURE, MODEL, extract_usage(getattr(res, "usage", None)), req.page_id, False
+            log_usage, FEATURE, MODEL, extract_usage(getattr(res, "usage", None)),
+            req.page_id, False, uid, ulabel
         )
     except Exception as e:
         print(f"⚠️ [assistant] model call failed: {e}")

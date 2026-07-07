@@ -196,6 +196,35 @@ export function AiCostTab() {
             </div>
           </div>
 
+          {/* Top users */}
+          <div>
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">Top users</p>
+            <div className="overflow-hidden rounded-xl border border-white/[0.06]">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] uppercase tracking-wider text-white/40">
+                    <th className="px-3 py-2">User</th>
+                    <th className="px-3 py-2 text-right">Questions</th>
+                    <th className="px-3 py-2 text-right">Cost</th>
+                    <th className="px-3 py-2 text-right">Tokens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(summary.top_users || []).length === 0 ? (
+                    <tr><td colSpan={4} className="px-3 py-4 text-center font-mono text-xs text-white/40">No data</td></tr>
+                  ) : summary.top_users.map((u, i) => (
+                    <tr key={i} className="border-b border-white/[0.03] font-mono text-[11px] text-white/80">
+                      <td className={`px-3 py-2 ${u.user === 'anonymous' ? 'text-white/40 italic' : 'text-white/85'}`}>{u.user}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtNum(u.calls)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtUSD(u.cost)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtTokens(u.tokens)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Recent calls */}
           <div>
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">Recent calls</p>
@@ -204,6 +233,7 @@ export function AiCostTab() {
                 <thead>
                   <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] uppercase tracking-wider text-white/40">
                     <th className="px-3 py-2">Time (UTC)</th>
+                    <th className="px-3 py-2">User</th>
                     <th className="px-3 py-2">Feature</th>
                     <th className="px-3 py-2">Model</th>
                     <th className="px-3 py-2 text-right">Tokens</th>
@@ -212,10 +242,11 @@ export function AiCostTab() {
                 </thead>
                 <tbody>
                   {recent.length === 0 ? (
-                    <tr><td colSpan={5} className="px-3 py-4 text-center font-mono text-xs text-white/40">No calls yet</td></tr>
+                    <tr><td colSpan={6} className="px-3 py-4 text-center font-mono text-xs text-white/40">No calls yet</td></tr>
                   ) : recent.map((r, i) => (
                     <tr key={i} className="border-b border-white/[0.03] font-mono text-[11px] text-white/75">
                       <td className="px-3 py-2 whitespace-nowrap text-white/50">{r.ts}</td>
+                      <td className={`px-3 py-2 whitespace-nowrap ${r.user === 'anonymous' ? 'text-white/35 italic' : 'text-white/70'}`}>{r.user || 'anonymous'}</td>
                       <td className="px-3 py-2 uppercase tracking-wider text-gold-primary/70">{r.feature}</td>
                       <td className="px-3 py-2 text-white/60">{r.cached ? <span className="text-teal-400">cache hit</span> : r.model}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{r.cached ? '—' : fmtNum(r.tokens)}</td>

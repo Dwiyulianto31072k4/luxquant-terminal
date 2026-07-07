@@ -1,6 +1,17 @@
 // LuxQuant Assistant API — context-aware help assistant (MVP)
 const API_BASE = '/api/v1';
 
+// Attach the auth token when logged in so the backend can attribute the
+// question to a user (for the admin AI Cost "who asked" tracking).
+function authHeaders() {
+  try {
+    const token = localStorage.getItem('access_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function getAssistantStatus() {
   try {
     const r = await fetch(`${API_BASE}/assistant/status`);
@@ -37,7 +48,7 @@ export async function getSuggestions(pageId = 'signals') {
 export async function askAssistant({ message, pageId = 'signals', history = [] }) {
   const r = await fetch(`${API_BASE}/assistant/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ message, page_id: pageId, history }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);

@@ -60,6 +60,7 @@ def _empty_summary(days: int) -> dict:
         "cache_hit_rate": 0,
         "by_feature": [],
         "daily": [],
+        "top_users": [],
     }
 
 
@@ -109,6 +110,19 @@ def summary(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db), 
         GROUP BY 1 ORDER BY 1
     """), {"d": days}).mappings().all()
 
+    top_users = db.execute(text("""
+        SELECT COALESCE(user_label, 'anonymous') AS user_label,
+               user_id,
+               COUNT(*) AS calls,
+               COALESCE(SUM(cost_usd),0) AS cost,
+               COALESCE(SUM(total_tokens),0) AS tokens
+        FROM ai_usage_log
+        WHERE ts >= now() - make_interval(days => :d)
+        GROUP BY user_label, user_id
+        ORDER BY calls DESC
+        LIMIT 20
+    """), {"d": days}).mappings().all()
+
     calls = int(rng.get("calls") or 0)
     cache_calls = int(rng.get("cache_calls") or 0)
     cache_hit_rate = round((cache_calls / calls) * 100, 1) if calls else 0
@@ -136,6 +150,12 @@ def summary(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db), 
              "calls": int(r["calls"]), "tokens": int(r["tokens"])}
             for r in daily
         ],
+        "top_users": [
+            {"user": r["user_label"], "user_id": r["user_id"],
+             "calls": int(r["calls"]), "cost": round(float(r["cost"]), 6),
+             "tokens": int(r["tokens"])}
+            for r in top_users
+        ],
     }
 
 
@@ -145,7 +165,8 @@ def recent(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), 
         return {"items": []}
     rows = db.execute(text("""
         SELECT to_char(ts, 'YYYY-MM-DD HH24:MI:SS') AS ts, feature, page_id, model,
-               total_tokens, completion_tokens, cost_usd, served_from_cache
+               total_tokens, completion_tokens, cost_usd, served_from_cache,
+               user_label
         FROM ai_usage_log ORDER BY ts DESC LIMIT :lim
     """), {"lim": limit}).mappings().all()
     return {"items": [
@@ -155,5 +176,6 @@ def recent(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), 
             "completion_tokens": int(r["completion_tokens"] or 0),
             "cost": round(float(r["cost_usd"] or 0), 8),
             "cached": bool(r["served_from_cache"]),
+            "user": r["user_label"] or "anonymous",
         } for r in rows
     ]}
