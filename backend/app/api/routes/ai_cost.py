@@ -51,6 +51,20 @@ def _table_exists(db: Session) -> bool:
     return row is not None
 
 
+def _ensure_user_columns(db: Session) -> None:
+    """The usage table may predate user attribution — add the columns if missing
+    so the summary/recent queries never fail on an old table."""
+    try:
+        db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_id BIGINT"))
+        db.execute(text("ALTER TABLE ai_usage_log ADD COLUMN IF NOT EXISTS user_label TEXT"))
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
 def _empty_summary(days: int) -> dict:
     return {
         "days": days,
@@ -68,6 +82,7 @@ def _empty_summary(days: int) -> dict:
 def summary(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db), _admin=Depends(get_admin_user)):
     if not _table_exists(db):
         return _empty_summary(days)
+    _ensure_user_columns(db)
 
     def scalars(q, **p):
         return db.execute(text(q), p).mappings().first() or {}
@@ -163,6 +178,7 @@ def summary(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db), 
 def recent(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db), _admin=Depends(get_admin_user)):
     if not _table_exists(db):
         return {"items": []}
+    _ensure_user_columns(db)
     rows = db.execute(text("""
         SELECT to_char(ts, 'YYYY-MM-DD HH24:MI:SS') AS ts, feature, page_id, model,
                total_tokens, completion_tokens, cost_usd, served_from_cache,
