@@ -11,6 +11,7 @@ import moneyFlowApi from '../services/moneyFlowApi';
 import CoinLogo from './CoinLogo';
 import CompassSnapshot from './aiArenaV6/CompassSnapshot';
 import AssistantWidget from './assistant/AssistantWidget';
+import { filtersToParams } from '../utils/signalFilters';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -633,6 +634,17 @@ const SignalsPage = () => {
     setSortOrder("desc");
   };
 
+  // Buka LuxQuant Terminal (visualisasi) membawa filter aktif saat ini.
+  const goTerminal = () => {
+    const params = filtersToParams({
+      searchPair, statusFilter, riskFilter, streakFilter,
+      corrDecoupled, corrHighAlign, verdictFilter,
+      selectedDates, selectedTags, showWatchlistOnly, sortBy, sortOrder,
+    });
+    const qs = params.toString();
+    navigate(qs ? `/terminal?${qs}` : "/terminal");
+  };
+
   const toggleDateFilter = (dateVal) => {
     if (dateVal === "all") {
       setSelectedDates([]);
@@ -892,23 +904,37 @@ const SignalsPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-full">
-          <span className="relative flex h-1.5 w-1.5">
-            {!loading && (
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-            )}
-            <span
-              className="relative inline-flex h-1.5 w-1.5 rounded-full"
-              style={{ backgroundColor: loading ? '#fbbf24' : '#10b981' }}
-            />
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">
-            {loading
-              ? 'Syncing'
-              : lastUpdated
-              ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
-              : 'Ready'}
-          </span>
+        <div className="flex items-center gap-2">
+          {/* Open the LuxQuant Terminal (visualizations) carrying current filters */}
+          <button
+            onClick={goTerminal}
+            title="Visualize the current (filtered) signals in the Terminal"
+            className="group flex items-center gap-2 bg-gold-primary/[0.08] hover:bg-gold-primary/[0.15] border border-gold-primary/30 hover:border-gold-primary/50 px-3.5 py-1.5 rounded-full transition-colors"
+          >
+            <svg className="w-3.5 h-3.5 text-gold-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="8" height="10" rx="1" /><rect x="13" y="3" width="8" height="6" rx="1" /><rect x="13" y="11" width="8" height="10" rx="1" /><rect x="3" y="15" width="8" height="6" rx="1" />
+            </svg>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-gold-primary">Terminal</span>
+          </button>
+
+          <div className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-full">
+            <span className="relative flex h-1.5 w-1.5">
+              {!loading && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+              )}
+              <span
+                className="relative inline-flex h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: loading ? '#fbbf24' : '#10b981' }}
+              />
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">
+              {loading
+                ? 'Syncing'
+                : lastUpdated
+                ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                : 'Ready'}
+            </span>
+          </div>
         </div>
       </div>
 

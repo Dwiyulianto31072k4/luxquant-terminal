@@ -31,6 +31,7 @@ import AnnouncementModal from "./components/AnnouncementModal";
 const OverviewPage = lazy(() => import("./components/OverviewPage"));
 const FooterV2 = lazy(() => import("./components/landing/v2/sections/FooterV2"));
 const SignalsPage = lazy(() => import("./components/SignalsPage"));
+const SignalTerminalPage = lazy(() => import("./components/SignalTerminalPage"));
 const BitcoinPage = lazy(() => import("./components/BitcoinPage"));
 const MarketsPage = lazy(() => import("./components/MarketsPage"));
 const ApiKeysPage = lazy(() => import("./components/ApiKeysPage"));
@@ -1604,6 +1605,18 @@ function App() {
                     <AppShell>
                       <PremiumGate>
                         <SignalsPage />
+                      </PremiumGate>
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/terminal"
+                element={
+                  <RequireAuth>
+                    <AppShell>
+                      <PremiumGate>
+                        <SignalTerminalPage />
                       </PremiumGate>
                     </AppShell>
                   </RequireAuth>
