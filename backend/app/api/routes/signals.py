@@ -1298,7 +1298,11 @@ async def get_top_performers(
             "top_gainers": gainers_list,
             "fastest_hits": fastest_list,
         }
-        cache_set(cache_key, result, ttl=60)
+        # 5-min TTL: the poller pre-warms the common variants every cycle, so
+        # users read this cache instead of ever triggering the heavy compute.
+        # The long TTL keeps last-good data serving even if the poller falls
+        # behind during a peak-load crunch.
+        cache_set(cache_key, result, ttl=300)
         return result
     except Exception as e:
         stale, _ = cache_get_with_stale(cache_key)

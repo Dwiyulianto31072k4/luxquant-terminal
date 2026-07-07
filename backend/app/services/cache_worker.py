@@ -946,6 +946,20 @@ async def signal_cache_loop():
                     intel_ms = -1
                     print(f"   ⚠️ Coin Intel error: {type(e).__name__}: {e}")
 
+                # Step 7: Top Performers — keep the common landing/terminal
+                # variants warm so USERS read cache instead of triggering the
+                # heavy CTE + Binance-sparkline compute themselves. Endpoint TTL
+                # is 5 min and the query is offloaded to a threadpool, so even a
+                # rare user-triggered recompute is non-fatal. Lazy import avoids
+                # a circular import at module load.
+                try:
+                    from app.api.routes.signals import get_top_performers
+                    for (tp_days, tp_limit) in ((7, 10), (1, 10), (7, 20), (1, 20)):
+                        await get_top_performers(days=tp_days, limit=tp_limit, db=db)
+                        cached += 1
+                except Exception as e:
+                    print(f"   ⚠️ Top Performers prewarm error: {type(e).__name__}: {e}")
+
                 elapsed = round((time.time() - start) * 1000)
                 intel_info = f" | Intel: {intel_ms}ms" if intel_ms >= 0 else ""
                 print(f"✅ Signal cache: {cached} keys in {elapsed}ms (CTE: {cte_ms}ms{intel_info})")
