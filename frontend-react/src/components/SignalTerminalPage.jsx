@@ -160,26 +160,8 @@ export default function SignalTerminalPage() {
     return () => clearInterval(iv);
   }, [fetchAll]);
 
-  // live prices for all pairs (chunked, backend proxy — Binance Futures)
-  const allPairs = useMemo(() => [...new Set(signals.map((s) => s.pair).filter(Boolean))], [signals]);
-  useEffect(() => {
-    if (!allPairs.length) return;
-    let alive = true;
-    const run = async () => {
-      const acc = {};
-      for (let i = 0; i < allPairs.length; i += 100) {
-        const batch = allPairs.slice(i, i + 100);
-        try {
-          const r = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${batch.join(",")}`);
-          if (r.ok) Object.assign(acc, await r.json());
-        } catch (_) {}
-      }
-      if (alive) setPrices(acc);
-    };
-    run();
-    const iv = setInterval(run, 15000);
-    return () => { alive = false; clearInterval(iv); };
-  }, [allPairs]);
+  // (live-price polling is defined below, after `filteredSignals`, so it fetches
+  //  prices ONLY for the pairs currently in view — not all 7-day signals.)
 
   // verdict per pair
   const verdictByPair = useMemo(() => {
@@ -193,6 +175,33 @@ export default function SignalTerminalPage() {
     () => applySignalFilters(signals, filters, { coinIntel, verdictByPair }),
     [signals, filters, coinIntel, verdictByPair]
   );
+
+  // Live prices — ONLY for the pairs currently in view (filtered), refreshed
+  // every 30s. Previously this fetched all 700+ 7-day pairs every 15s, which
+  // piled avoidable load on the shared /market/prices proxy during peak windows.
+  const pricePairs = useMemo(
+    () => [...new Set(filteredSignals.map((s) => s.pair).filter(Boolean))],
+    [filteredSignals]
+  );
+  useEffect(() => {
+    if (!pricePairs.length) return;
+    let alive = true;
+    const run = async () => {
+      const acc = {};
+      for (let i = 0; i < pricePairs.length; i += 100) {
+        const batch = pricePairs.slice(i, i + 100);
+        try {
+          const r = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${batch.join(",")}`);
+          if (r.ok) Object.assign(acc, await r.json());
+        } catch (_) {}
+      }
+      // Merge (never replace) so switching filters doesn't blank prices we already have.
+      if (alive) setPrices((prev) => ({ ...prev, ...acc }));
+    };
+    run();
+    const iv = setInterval(run, 30000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [pricePairs]);
 
   // build per-pair model joining every source
   const model = useMemo(() => {

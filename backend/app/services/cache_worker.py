@@ -865,7 +865,14 @@ async def signal_cache_loop():
             db = SessionLocal()
             try:
                 cached = 0
-                ttl = interval + 15
+                # Generous TTL floor (5 min) so that when the poller falls
+                # behind during a peak-load crunch (its own queries slow to
+                # ~10s each), the signal caches DON'T expire and drop requests
+                # through to the (also-slow) DB — which froze the async-def
+                # endpoints and tripped WORKER TIMEOUT. Normal operation still
+                # refreshes every `interval`, so data stays fresh; the long TTL
+                # is purely a safety net that keeps serving last-good data.
+                ttl = interval + 300
 
                 # Step 1: Pre-compute outcomes ONCE (UNLOGGED TABLE)
                 t0 = time.time()
