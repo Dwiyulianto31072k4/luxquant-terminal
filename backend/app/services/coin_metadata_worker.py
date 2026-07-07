@@ -1088,30 +1088,57 @@ def run_single_pair(pair: str):
 
 def run_listen_daemon():
     logger.info(f"Mode: DAEMON — LISTEN {LISTEN_CHANNEL}")
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = conn.cursor()
-    cur.execute(f"LISTEN {LISTEN_CHANNEL};")
-    logger.info(f"Listening on '{LISTEN_CHANNEL}'...")
     client = get_http_client()
     try:
+        # Outer loop: if the long-lived LISTEN connection drops (idle SSL/NAT
+        # timeout after ~10 min → 'SSL connection has been closed unexpectedly'),
+        # log it and reconnect instead of crashing + relying on a 30s systemd
+        # restart (that churn was hammering CoinGecko and the DB every 10 min).
         while True:
-            if select.select([conn], [], [], 60) == ([], [], []):
-                continue
-            conn.poll()
-            while conn.notifies:
-                notify = conn.notifies.pop(0)
-                pair = notify.payload
-                logger.info(f"NOTIFY received: {pair}")
-                coin = get_coin_by_pair(pair)
-                if coin and coin["review_status"] == "pending":
-                    process_coin(coin, client)
-    except KeyboardInterrupt:
-        logger.info("Shutting down daemon...")
+            conn = None
+            try:
+                # TCP keepalives keep an idle connection alive so a NAT/firewall
+                # doesn't silently drop it between NOTIFYs.
+                conn = psycopg2.connect(
+                    DATABASE_URL,
+                    keepalives=1,
+                    keepalives_idle=30,
+                    keepalives_interval=10,
+                    keepalives_count=5,
+                )
+                conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+                cur = conn.cursor()
+                cur.execute(f"LISTEN {LISTEN_CHANNEL};")
+                logger.info(f"Listening on '{LISTEN_CHANNEL}'...")
+                while True:
+                    if select.select([conn], [], [], 60) == ([], [], []):
+                        # Idle tick — ping so a silently-dropped connection is
+                        # detected here (→ reconnect) rather than on next poll().
+                        cur.execute("SELECT 1;")
+                        cur.fetchone()
+                        continue
+                    conn.poll()
+                    while conn.notifies:
+                        notify = conn.notifies.pop(0)
+                        pair = notify.payload
+                        logger.info(f"NOTIFY received: {pair}")
+                        coin = get_coin_by_pair(pair)
+                        if coin and coin["review_status"] == "pending":
+                            process_coin(coin, client)
+            except KeyboardInterrupt:
+                logger.info("Shutting down daemon...")
+                return
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                logger.warning(f"LISTEN connection lost ({e}); reconnecting in 5s...")
+                time.sleep(5)
+            finally:
+                try:
+                    if conn is not None:
+                        conn.close()
+                except Exception:
+                    pass
     finally:
         client.close()
-        cur.close()
-        conn.close()
 
 
 def run_refresh_stale():

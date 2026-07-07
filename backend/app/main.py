@@ -209,6 +209,26 @@ app.add_middleware(
 # Reads Bearer JWT + URL, dedupes via Redis, writes async — never blocks.
 app.add_middleware(ActivityTrackerMiddleware)
 
+# ── Slow-request logger (diagnostic) ────────────────────────────────
+# Names any request that takes too long, so a WORKER TIMEOUT cluster can be
+# traced to the exact slow endpoint (e.g. a sync DB read stalled by batch-write
+# contention). Requests that complete in 5–60s are logged here; ones that get
+# the worker SIGABRT'd never return, but the surviving-but-slow siblings still
+# reveal the culprit path. Logs to journald (grep: "SLOW").
+import time as _slow_time
+
+@app.middleware("http")
+async def _log_slow_requests(request, call_next):
+    _t0 = _slow_time.perf_counter()
+    response = await call_next(request)
+    _dur = _slow_time.perf_counter() - _t0
+    if _dur >= 5.0:
+        try:
+            print(f"🐢 SLOW {_dur:6.1f}s  {request.method} {request.url.path}", flush=True)
+        except Exception:
+            pass
+    return response
+
 # Routes
 app.include_router(signals.router, prefix="/api/v1/signals", tags=["signals"])
 app.include_router(announcements_router, tags=["announcements"])
