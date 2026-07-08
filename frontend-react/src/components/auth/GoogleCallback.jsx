@@ -16,35 +16,14 @@ const GoogleCallback = () => {
 
   useEffect(() => {
     // ==========================================
-    // 1. Kalau sudah ada token, langsung masuk
+    // Proses token yang MASUK dari URL DULUAN.
+    // Token baru dari redirect OAuth harus selalu menang atas token apa pun
+    // yang masih tersimpan di localStorage. (Dulu cek `existingToken` di sini
+    // duluan → token autotrade basi men-short-circuit ke /autotrade dan token
+    // baru dibuang → login loop setelah rotasi JWT secret.)
     // ==========================================
-    const existingToken = localStorage.getItem(AUTOTRADE_TOKEN_KEY);
 
-    if (existingToken) {
-      navigate("/autotrade", {
-        replace: true,
-      });
-      return;
-    }
-
-    // ==========================================
-    // 2. Dev token (untuk development)
-    // ==========================================
-    const DEV_TOKEN = import.meta.env.VITE_DEV_AUTOTRADE_TOKEN;
-
-    if (import.meta.env.DEV && DEV_TOKEN) {
-      localStorage.setItem(AUTOTRADE_TOKEN_KEY, DEV_TOKEN);
-
-      navigate("/autotrade", {
-        replace: true,
-      });
-
-      return;
-    }
-
-    // ==========================================
-    // 3. Google OAuth normal
-    // ==========================================
+    // 1a. Hash-based token (alur alternatif)
     const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
 
     const hashToken = hashParams.get("token");
@@ -71,6 +50,7 @@ const GoogleCallback = () => {
       return;
     }
 
+    // 1b. Query-param token (alur Google redirect normal)
     const params = new URLSearchParams(location.search);
 
     const token = params.get("token");
@@ -85,6 +65,11 @@ const GoogleCallback = () => {
 
       if (cryptobotToken) {
         syncCryptobotAuth(cryptobotToken);
+      } else {
+        // Tak ada token autotrade baru — buang yang basi supaya /autotrade
+        // tidak short-circuit pakai token mati.
+        localStorage.removeItem(AUTOTRADE_TOKEN_KEY);
+        localStorage.removeItem(AUTOTRADE_REFRESH_TOKEN_KEY);
       }
 
       if (userStr) {
@@ -100,11 +85,41 @@ const GoogleCallback = () => {
       navigate("/", {
         replace: true,
       });
-    } else {
-      navigate("/login", {
+
+      return;
+    }
+
+    // ==========================================
+    // Di bawah sini: TIDAK ada token masuk dari URL.
+    // ==========================================
+
+    // 2. Dev token (untuk development)
+    const DEV_TOKEN = import.meta.env.VITE_DEV_AUTOTRADE_TOKEN;
+
+    if (import.meta.env.DEV && DEV_TOKEN) {
+      localStorage.setItem(AUTOTRADE_TOKEN_KEY, DEV_TOKEN);
+
+      navigate("/autotrade", {
         replace: true,
       });
+
+      return;
     }
+
+    // 3. Sudah ada sesi → langsung masuk
+    const existingToken = localStorage.getItem(AUTOTRADE_TOKEN_KEY);
+
+    if (existingToken) {
+      navigate("/autotrade", {
+        replace: true,
+      });
+      return;
+    }
+
+    // 4. Tidak ada apa-apa → kembali ke login
+    navigate("/login", {
+      replace: true,
+    });
   }, [location, navigate, setUser]);
 
   return (
