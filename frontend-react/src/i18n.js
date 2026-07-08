@@ -19,6 +19,7 @@ import { helpModalEn, helpModalZh } from './locales/helpModal';
 import { moreFeaturesEn, moreFeaturesZh } from './locales/moreFeatures';
 import { apiKeysEn, apiKeysZh } from './locales/apiKeys';
 import { guideEn, guideZh } from './locales/guide';
+import { terminalEn, terminalZh } from './locales/terminal';
 
 const resources = {
   en: {
@@ -49,6 +50,7 @@ const resources = {
       helpModal: helpModalEn,
       mfm: moreFeaturesEn,
       apiKeys: apiKeysEn,
+      terminal: terminalEn,
     }
   },
   zh: {
@@ -79,6 +81,7 @@ const resources = {
       helpModal: helpModalZh,
       mfm: moreFeaturesZh,
       apiKeys: apiKeysZh,
+      terminal: terminalZh,
     }
   }
 };

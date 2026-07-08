@@ -74,6 +74,10 @@ const DailyPerformancePage = lazy(
   () => import("./components/DailyPerformancePage"),
 );
 const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
+const TerminalLayout = lazy(() => import("./components/terminal/TerminalLayout"));
+const TradeReplayView = lazy(
+  () => import("./components/terminal/TradeReplayView"),
+);
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
 
@@ -104,6 +108,7 @@ const LOGIN_REQUIRED = [
   "/market-pulse",
   "/crypto-news",
   "/signals",
+  "/terminal",
   "/analytics",
   "/performance",
   "/bitcoin",
@@ -131,6 +136,7 @@ const LOGIN_REQUIRED = [
 
 const PREMIUM_REQUIRED = [
   "/signals",
+  "/terminal",
   "/bitcoin",
   "/markets",
   "/watchlist",
@@ -152,6 +158,13 @@ const PREMIUM_REQUIRED = [
 // ════════════════════════════════════════
 // ROUTE GUARDS
 // ════════════════════════════════════════
+// /terminal index → Market Map, PRESERVING the query string so the
+// existing "TERMINAL" button on Potential Trades keeps carrying filters.
+function TerminalIndex() {
+  const location = useLocation();
+  return <Navigate to={`/terminal/map${location.search}`} replace />;
+}
+
 function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -547,6 +560,12 @@ function AppShell({ children }) {
   ];
 
   const moreMenuItems = [
+    {
+      path: "/terminal",
+      label: "Terminal",
+      icon: "🖥️",
+      description: "Research terminal — replay, screener, edge analytics",
+    },
     {
       path: "/money-flow",
       label: "Money Flow",
@@ -1610,18 +1629,37 @@ function App() {
                   </RequireAuth>
                 }
               />
+              {/* ══════════════════════════════════════════════
+                  LUXQUANT TERMINAL — left-nav research terminal.
+                  Hosts EXISTING pages as sections (Screener = SignalsPage,
+                  Market Map = SignalTerminalPage, Edge Lab, Money Flow,
+                  Pulse, Watchlist — all reused, not rebuilt) + NEW views
+                  (Trade Replay). Index redirects to Market Map keeping the
+                  query string, so the old TERMINAL-button flow is intact.
+                  ══════════════════════════════════════════════ */}
               <Route
                 path="/terminal"
                 element={
                   <RequireAuth>
                     <AppShell>
                       <PremiumGate>
-                        <SignalTerminalPage />
+                        <TerminalLayout />
                       </PremiumGate>
                     </AppShell>
                   </RequireAuth>
                 }
-              />
+              >
+                <Route index element={<TerminalIndex />} />
+                <Route path="map" element={<SignalTerminalPage />} />
+                <Route path="screener" element={<SignalsPage />} />
+                <Route path="replay" element={<TradeReplayView />} />
+                <Route path="replay/:signalId" element={<TradeReplayView />} />
+                <Route path="edge" element={<EdgeLabPage />} />
+                <Route path="moneyflow" element={<MoneyFlowPage />} />
+                <Route path="pulse" element={<MarketPulsePage />} />
+                <Route path="watchlist" element={<WatchlistTabs />} />
+                <Route path="*" element={<TerminalIndex />} />
+              </Route>
               <Route
                 path="/autotrade"
                 element={
@@ -1813,15 +1851,10 @@ function App() {
                 element={<Navigate to="/admin/workspace#users" replace />}
               />
 
-              {/* Backward compat */}
-              <Route
-                path="/terminal"
-                element={<Navigate to="/home" replace />}
-              />
-              <Route
-                path="/terminal/watchlist"
-                element={<Navigate to="/watchlist" replace />}
-              />
+              {/* Backward compat — old /terminal/<page> URLs from the legacy
+                  URL scheme. watchlist is NOT redirected anymore (it's now a
+                  real terminal section); unknown children are handled by the
+                  terminal's own catch-all. */}
               <Route
                 path="/terminal/referral"
                 element={<Navigate to="/referral" replace />}
@@ -1833,10 +1866,6 @@ function App() {
               <Route
                 path="/terminal/payment"
                 element={<Navigate to="/payment" replace />}
-              />
-              <Route
-                path="/terminal/*"
-                element={<Navigate to="/home" replace />}
               />
 
               {/* Landing V2 — preview */}

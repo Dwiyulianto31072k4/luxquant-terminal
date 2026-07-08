@@ -607,19 +607,51 @@ async def get_batch_prices(symbols: str = "BTCUSDT,ETHUSDT"):
 # ============================================================
 
 @router.get("/klines")
-async def get_klines(symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 100):
-    """Proxy Binance klines (OHLC data) through backend to avoid CORS."""
+async def get_klines(
+    symbol: str = "BTCUSDT",
+    interval: str = "1h",
+    limit: int = 100,
+    start_time: Optional[int] = Query(None, alias="startTime", description="Epoch ms — historical window start"),
+    end_time: Optional[int] = Query(None, alias="endTime", description="Epoch ms — historical window end"),
+):
+    """Proxy Binance klines (OHLC data) through backend to avoid CORS.
+
+    Additive v2 (Terminal Trade Replay): optional startTime/endTime (epoch ms)
+    for historical windows, with automatic futures fallback when the pair
+    doesn't exist on spot (many alt signals are futures-listed only).
+    Response format is the raw Binance kline array — unchanged.
+    """
+    params = {"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 500)}
+    if start_time is not None:
+        params["startTime"] = start_time
+    if end_time is not None:
+        params["endTime"] = end_time
+
+    client = get_binance_client()
+    last_err = None
+
+    # 1) Spot first (existing behavior)
     try:
-        client = get_binance_client()
-        response = await client.get(
-            f"{BINANCE_SPOT_API}/api/v3/klines",
-            params={"symbol": symbol.upper(), "interval": interval, "limit": min(limit, 500)}
-        )
+        response = await client.get(f"{BINANCE_SPOT_API}/api/v3/klines", params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data:  # non-empty
+                return data
+        else:
+            last_err = f"spot HTTP {response.status_code}"
+    except Exception as e:
+        last_err = f"spot {e}"
+
+    # 2) Futures fallback (pair not on spot, or empty spot history)
+    try:
+        response = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/klines", params=params)
         if response.status_code == 200:
             return response.json()
-        raise Exception(f"HTTP {response.status_code}")
+        last_err = f"{last_err or ''}; futures HTTP {response.status_code}"
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Klines fetch failed: {str(e)}")
+        last_err = f"{last_err or ''}; futures {e}"
+
+    raise HTTPException(status_code=502, detail=f"Klines fetch failed: {last_err}")
 
 
 # ============================================================
