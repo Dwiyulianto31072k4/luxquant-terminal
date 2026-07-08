@@ -18,6 +18,7 @@ import re
 import logging
 
 from app.core.database import get_db
+from app.core.redis import cache_get, cache_set
 from app.api.deps import get_admin_user
 from app.models.user import User
 from app.models.subscription import Payment, SubscriptionPlan
@@ -248,6 +249,13 @@ def _hydrate(db: Session, payments: list) -> list:
 
 @router.get("/stats")
 def finance_stats(db: Session = Depends(get_db), admin: User = Depends(get_admin_user)):
+    # 13 sequential Payment aggregates. Admin-only and refreshed often on the
+    # Finance tab — cache so repeat loads read Redis instead of re-scanning the
+    # payments table (a contributor to the admin-load Postgres crunch).
+    cached = cache_get("workspace:finance:stats")
+    if cached is not None:
+        return cached
+
     now = datetime.now(timezone.utc)
     stale_cutoff = now - timedelta(hours=24)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -267,7 +275,7 @@ def finance_stats(db: Session = Depends(get_db), admin: User = Depends(get_admin
     total_count = db.query(Payment).filter(active).count()
     total_credit_redeemed = db.query(func.coalesce(func.sum(Payment.credit_redeemed), 0)).filter(Payment.status == 'confirmed', active).scalar() or 0
 
-    return {
+    result = {
         "total_revenue": float(total_revenue),
         "revenue_this_month": float(revenue_this_month),
         "revenue_today": float(revenue_today),
@@ -281,6 +289,8 @@ def finance_stats(db: Session = Depends(get_db), admin: User = Depends(get_admin
         "total_count": total_count,
         "total_credit_redeemed": float(total_credit_redeemed),
     }
+    cache_set("workspace:finance:stats", result, ttl=60)
+    return result
 
 
 # ════════════════════════════════════════════════════════════════════

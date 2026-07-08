@@ -55,11 +55,24 @@ async def _amain() -> None:
 
     if is_redis_available():
         print("🟢 Redis connected — starting cache/overview/fx/whale/notification workers")
-        start_cache_workers()
-        start_overview_workers()
-        start_notification_worker()
-        start_fx_worker()
-        start_whale_worker()
+        # Stagger the FIRST warm of each subsystem. If every worker fires its
+        # cold-warm cycle at t=0 (what happens on `systemctl restart`), the
+        # heavy Postgres tasks (Signal-cache CTE ~7s + notification batch ~12s)
+        # and the slow external fetches (Whale ~18s, CoinGecko ~20s) all land at
+        # once and peg the shared 2-core box → burst WORKER TIMEOUTs on the API
+        # workers. Phasing the starts apart keeps them from colliding on restart
+        # (and, since intervals match, keeps them phase-separated afterwards).
+        async def _staggered_start():
+            start_cache_workers()          # signal cache (heavy Postgres CTE)
+            await asyncio.sleep(8)
+            start_overview_workers()       # market / overview / coingecko / bitcoin
+            await asyncio.sleep(8)
+            start_notification_worker()    # notification batch (heavy Postgres writes)
+            await asyncio.sleep(6)
+            start_fx_worker()
+            await asyncio.sleep(4)
+            start_whale_worker()           # slow external fetch
+        asyncio.create_task(_staggered_start())
         from app.services.cache_invalidator import cache_invalidator_loop
         asyncio.create_task(cache_invalidator_loop())
         print("⚡ Signal cache invalidator started (LISTEN new_signal)")

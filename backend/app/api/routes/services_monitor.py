@@ -38,6 +38,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import get_admin_user
+from app.core.redis import cache_get, cache_set
 from app.models.user import User
 
 logger = logging.getLogger("luxquant.services_monitor")
@@ -397,6 +398,14 @@ class ServiceActionRequest(BaseModel):
 @router.get("/services")
 def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
     """Live health of every monitored LuxQuant + infra unit."""
+    # This endpoint spawns a systemctl/journalctl subprocess per unit (~15-20).
+    # On the admin dashboard it can be hit repeatedly, and that subprocess storm
+    # is a real CPU spike on a 2-core box (a driver of the burst WORKER TIMEOUTs).
+    # A short cache means rapid reloads read Redis instead of re-forking systemd.
+    cached = cache_get("workspace:services")
+    if cached is not None:
+        return cached
+
     if not _systemctl_available():
         return {
             "available": False,
@@ -422,7 +431,9 @@ def list_services(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
         if h in summary:
             summary[h] += 1
 
-    return {"available": True, "services": services, "summary": summary}
+    result = {"available": True, "services": services, "summary": summary}
+    cache_set("workspace:services", result, ttl=15)
+    return result
 
 
 @router.get("/services/topology")

@@ -1,6 +1,6 @@
 import os
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
@@ -31,6 +31,15 @@ Base = declarative_base()
 def get_db():
     db = SessionLocal()
     try:
+        # Safety net: cap any single web statement so a heavy admin aggregate
+        # (or a DB crunch) can never hold a worker long enough to hit gunicorn's
+        # 60s WORKER TIMEOUT and cascade into a box-wide stall. Web-only — the
+        # poller and background workers use their own sessions, so their long
+        # cache-warm queries are unaffected.
+        try:
+            db.execute(text("SET statement_timeout = '20s'"))
+        except Exception:
+            pass
         yield db
     finally:
         db.close()

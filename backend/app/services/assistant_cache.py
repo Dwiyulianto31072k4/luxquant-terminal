@@ -90,10 +90,10 @@ def lookup(page_id: str, emb: List[float]) -> Optional[str]:
                 return None
             vec = _vec_literal(emb)
             row = db.execute(text("""
-                SELECT id, answer, 1 - (embedding <=> :vec::vector) AS sim
+                SELECT id, answer, 1 - (embedding <=> CAST(:vec AS vector)) AS sim
                 FROM assistant_semcache
                 WHERE page_id = :p
-                ORDER BY embedding <=> :vec::vector
+                ORDER BY embedding <=> CAST(:vec AS vector)
                 LIMIT 1
             """), {"vec": vec, "p": page_id}).mappings().first()
             if row and float(row["sim"]) >= SIM_THRESHOLD:
@@ -118,7 +118,7 @@ def store(page_id: str, question: str, answer: str, emb: List[float]) -> None:
                 return
             db.execute(text("""
                 INSERT INTO assistant_semcache (page_id, question, answer, embedding)
-                VALUES (:p, :q, :a, :vec::vector)
+                VALUES (:p, :q, :a, CAST(:vec AS vector))
             """), {"p": page_id, "q": question[:1000], "a": answer, "vec": _vec_literal(emb)})
             db.commit()
         finally:
