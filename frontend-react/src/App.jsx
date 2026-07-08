@@ -78,6 +78,9 @@ const TerminalLayout = lazy(() => import("./components/terminal/TerminalLayout")
 const TradeReplayView = lazy(
   () => import("./components/terminal/TradeReplayView"),
 );
+const DeepScreenerView = lazy(
+  () => import("./components/terminal/DeepScreenerView"),
+);
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
 
@@ -158,11 +161,17 @@ const PREMIUM_REQUIRED = [
 // ════════════════════════════════════════
 // ROUTE GUARDS
 // ════════════════════════════════════════
-// /terminal index → Market Map, PRESERVING the query string so the
-// existing "TERMINAL" button on Potential Trades keeps carrying filters.
+// /terminal index:
+//   · WITH query string (came from the Potential Trades "TERMINAL" button
+//     carrying filters) → Market Map, filters preserved — old flow intact.
+//   · clean open (nav/More menu) → Deep Screener, the terminal's main view.
 function TerminalIndex() {
   const location = useLocation();
-  return <Navigate to={`/terminal/map${location.search}`} replace />;
+  return location.search ? (
+    <Navigate to={`/terminal/map${location.search}`} replace />
+  ) : (
+    <Navigate to="/terminal/scan" replace />
+  );
 }
 
 function RequireAuth({ children }) {
@@ -1650,6 +1659,7 @@ function App() {
                 }
               >
                 <Route index element={<TerminalIndex />} />
+                <Route path="scan" element={<DeepScreenerView />} />
                 <Route path="map" element={<SignalTerminalPage />} />
                 <Route path="screener" element={<SignalsPage />} />
                 <Route path="replay" element={<TradeReplayView />} />

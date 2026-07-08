@@ -21,6 +21,17 @@ const SECTIONS = [
     group: "signals",
     items: [
       {
+        id: "scan",
+        isNew: true,
+        icon: (
+          <>
+            <circle cx="10" cy="10" r="6" />
+            <path d="M14.5 14.5 L21 21" />
+            <path d="M7.5 10 h5 M10 7.5 v5" strokeOpacity="0.55" />
+          </>
+        ),
+      },
+      {
         id: "map",
         icon: (
           <>
