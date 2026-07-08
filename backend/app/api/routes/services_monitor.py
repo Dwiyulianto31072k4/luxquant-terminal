@@ -32,13 +32,18 @@ import re
 import shutil
 import subprocess
 import time
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from sqlalchemy import text
+
 from app.api.deps import get_admin_user
-from app.core.redis import cache_get, cache_set
+from app.core.database import engine
+from app.core.redis import cache_get, cache_set, get_redis
 from app.models.user import User
 
 logger = logging.getLogger("luxquant.services_monitor")
@@ -503,3 +508,160 @@ def control_service(
         "state": state,
         "actor": getattr(admin, "username", None),
     }
+
+
+# ════════════════════════════════════════════════════════════════════
+# Backend health — WORKER TIMEOUT / SLOW / DB / Redis observability
+# ════════════════════════════════════════════════════════════════════
+
+_SLOW_RE = re.compile(r"SLOW\s+([\d.]+)s\s+([A-Z]+)\s+(\S+)")
+_ERR_RE = re.compile(r"\b(ERROR|Traceback|Exception)\b")
+
+
+def _norm_path(p: str) -> str:
+    """Collapse ids so the same endpoint aggregates together."""
+    p = re.sub(r"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27,}", "/:id", p)  # uuid
+    p = re.sub(r"/\d+", "/:id", p)                                # numeric ids
+    return p.split("?", 1)[0]
+
+
+def _parse_ts(line: str):
+    """Parse the leading short-iso timestamp of a journald line."""
+    try:
+        tok = line.split(" ", 1)[0]
+        # short-iso example: 2026-07-08T12:00:00+0000  → make offset ISO-friendly
+        if len(tok) >= 24 and tok[-5] in "+-" and tok[-3] != ":":
+            tok = tok[:-2] + ":" + tok[-2:]
+        return datetime.fromisoformat(tok)
+    except Exception:
+        return None
+
+
+@router.get("/backend-health")
+def backend_health(admin: User = Depends(get_admin_user)) -> dict[str, Any]:
+    """Observability for the API backend: WORKER TIMEOUT bursts, SLOW requests,
+    DB connection pressure, Redis memory. Parses journald once for 24h + queries
+    Postgres/Redis, then caches for 60s (journald parse is subprocess-heavy)."""
+    cached = cache_get("workspace:backend_health")
+    if cached is not None:
+        return cached
+
+    now = datetime.now(timezone.utc)
+    h1 = now - timedelta(hours=1)
+
+    # ── journald: WORKER TIMEOUT + SLOW + errors (one pass, 24h) ──
+    timeouts: list = []
+    slow_agg: dict = defaultdict(lambda: [0, 0.0])  # (method, path) -> [count, max_s]
+    slow_total = 0
+    errors: list = []
+    journ_ok = False
+    if _systemctl_available():
+        rc, out, _ = _run(
+            ["journalctl", "-u", "luxquant-backend", "--since", "24 hours ago",
+             "--no-pager", "-o", "short-iso"],
+            timeout=25.0,
+        )
+        journ_ok = rc == 0
+        for line in out.splitlines():
+            if "WORKER TIMEOUT" in line:
+                timeouts.append(_parse_ts(line))
+                continue
+            m = _SLOW_RE.search(line)
+            if m:
+                slow_total += 1
+                key = (m.group(2), _norm_path(m.group(3)))
+                slow_agg[key][0] += 1
+                slow_agg[key][1] = max(slow_agg[key][1], float(m.group(1)))
+                continue
+            if _ERR_RE.search(line):
+                ts = _parse_ts(line)
+                msg = line.split(": ", 1)[-1].strip()[:180]
+                errors.append({"ts": ts.isoformat() if ts else None, "msg": msg})
+
+    to_valid = [t for t in timeouts if t]
+    hourly = [0] * 24
+    for t in to_valid:
+        ago = int((now - t).total_seconds() // 3600)
+        if 0 <= ago < 24:
+            hourly[23 - ago] += 1
+    worker_timeout = {
+        "count_1h": sum(1 for t in to_valid if t >= h1),
+        "count_24h": len(to_valid),
+        "last": max(to_valid).isoformat() if to_valid else None,
+        "hourly": hourly,  # oldest → newest, 24 buckets
+    }
+
+    slow_top = sorted(
+        ({"method": k[0], "path": k[1], "count": v[0], "max_s": round(v[1], 1)}
+         for k, v in slow_agg.items()),
+        key=lambda x: (-x["count"], -x["max_s"]),
+    )[:8]
+
+    # ── Postgres connection pressure ──
+    db: dict = {}
+    try:
+        with engine.connect() as c:
+            rows = c.execute(
+                text("SELECT state, count(*) FROM pg_stat_activity GROUP BY state")
+            ).fetchall()
+            maxc = int(c.execute(text("SHOW max_connections")).scalar())
+        by_state = {(r[0] or "unknown"): int(r[1]) for r in rows}
+        used = sum(by_state.values())
+        db = {
+            "used": used, "max": maxc,
+            "pct": round(100.0 * used / maxc, 1) if maxc else 0,
+            "active": by_state.get("active", 0),
+            "idle": by_state.get("idle", 0),
+            "idle_in_tx": by_state.get("idle in transaction", 0),
+        }
+    except Exception as e:  # pragma: no cover
+        db = {"error": str(e)[:140]}
+
+    # ── Redis memory ──
+    redis_stats: dict = {}
+    try:
+        info = get_redis().info("memory")
+        used = int(info.get("used_memory", 0))
+        maxm = int(info.get("maxmemory", 0))
+        redis_stats = {
+            "ok": True,
+            "used_mb": round(used / 1048576, 1),
+            "max_mb": round(maxm / 1048576, 1) if maxm else 0,
+            "pct": round(100.0 * used / maxm, 1) if maxm else 0,
+            "policy": info.get("maxmemory_policy"),
+        }
+    except Exception as e:  # pragma: no cover
+        redis_stats = {"ok": False, "error": str(e)[:140]}
+
+    # ── Backend uptime ──
+    uptime_seconds = None
+    started_raw = None
+    rc, ts_out, _ = _run(
+        ["systemctl", "show", "luxquant-backend", "-p", "ActiveEnterTimestamp", "--value"],
+        timeout=5.0,
+    )
+    started_raw = (ts_out or "").strip() or None
+    if started_raw:
+        try:
+            parts = started_raw.split()  # "Wed 2026-07-08 07:00:00 UTC"
+            dt = datetime.strptime(f"{parts[1]} {parts[2]}", "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+            uptime_seconds = int((now - dt).total_seconds())
+        except Exception:
+            pass
+
+    result = {
+        "generated_at": now.isoformat(),
+        "window_hours": 24,
+        "journald_ok": journ_ok,
+        "worker_timeout": worker_timeout,
+        "slow": {"count_24h": slow_total, "top": slow_top},
+        "errors": {"count_24h": len(errors), "recent": errors[-8:][::-1]},
+        "db": db,
+        "redis": redis_stats,
+        "uptime_seconds": uptime_seconds,
+        "started": started_raw,
+    }
+    cache_set("workspace:backend_health", result, ttl=60)
+    return result

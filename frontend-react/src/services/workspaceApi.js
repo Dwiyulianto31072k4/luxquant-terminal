@@ -120,6 +120,11 @@ export const workspaceApi = {
     return response.data;
   },
 
+  getBackendHealth: async () => {
+    const response = await api.get('/api/v1/workspace/backend-health');
+    return response.data;
+  },
+
   // ════════════════════════════════════
   // PAYMENT RECORD AUDIT + PROFIT SHARING
   // ════════════════════════════════════

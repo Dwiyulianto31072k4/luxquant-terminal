@@ -17,6 +17,7 @@ import {
   RefreshIcon, LoaderIcon, BanIcon, ZapIcon, ClockIcon,
 } from '../Icons';
 import SystemMap from './SystemMap';
+import BackendHealthPanel from './BackendHealthPanel';
 
 const CARDS_PER_PAGE = 12;
 const HEALTH_ORDER = { down: 0, warn: 1, unknown: 2, ok: 3, idle: 4 };
@@ -262,6 +263,9 @@ export const SystemTab = () => {
 
   return (
     <div>
+      {/* backend observability: timeouts / slow / DB / redis */}
+      <BackendHealthPanel />
+
       {/* header row */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
