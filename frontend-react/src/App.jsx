@@ -75,11 +75,8 @@ const DailyPerformancePage = lazy(
 );
 const EdgeLabPage = lazy(() => import("./components/EdgeLabPage"));
 const TerminalLayout = lazy(() => import("./components/terminal/TerminalLayout"));
-const TradeReplayView = lazy(
-  () => import("./components/terminal/TradeReplayView"),
-);
-const DeepScreenerView = lazy(
-  () => import("./components/terminal/DeepScreenerView"),
+const SignalsAnalytics = lazy(
+  () => import("./components/terminal/SignalsAnalytics"),
 );
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
@@ -1659,11 +1656,8 @@ function App() {
                 }
               >
                 <Route index element={<TerminalIndex />} />
-                <Route path="scan" element={<DeepScreenerView />} />
+                <Route path="scan" element={<SignalsAnalytics />} />
                 <Route path="map" element={<SignalTerminalPage />} />
-                <Route path="screener" element={<SignalsPage />} />
-                <Route path="replay" element={<TradeReplayView />} />
-                <Route path="replay/:signalId" element={<TradeReplayView />} />
                 <Route path="edge" element={<EdgeLabPage />} />
                 <Route path="moneyflow" element={<MoneyFlowPage />} />
                 <Route path="pulse" element={<MarketPulsePage />} />

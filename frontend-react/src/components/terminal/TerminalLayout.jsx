@@ -42,26 +42,6 @@ const SECTIONS = [
           </>
         ),
       },
-      {
-        id: "screener",
-        icon: (
-          <>
-            <path d="M4 5 h16" />
-            <path d="M7 12 h10" />
-            <path d="M10 19 h4" />
-          </>
-        ),
-      },
-      {
-        id: "replay",
-        isNew: true,
-        icon: (
-          <>
-            <circle cx="12" cy="12" r="9" />
-            <path d="M10 8.5 L15.5 12 L10 15.5 Z" />
-          </>
-        ),
-      },
     ],
   },
   {
@@ -125,9 +105,9 @@ export default function TerminalLayout() {
   const activeItem = ALL_ITEMS.find((i) => i.id === seg);
 
   const goSection = (id) => {
-    // keep the shared filter query string across sections; replay manages
-    // its own params, so hand it a clean URL.
-    const search = id === "replay" ? "" : location.search;
+    // sections manage their own query params — switch with a clean URL
+    // except Market Map ⇄ shared signal filters (compatible keys).
+    const search = id === "map" ? location.search : "";
     navigate(`/terminal/${id}${search}`);
   };
 
