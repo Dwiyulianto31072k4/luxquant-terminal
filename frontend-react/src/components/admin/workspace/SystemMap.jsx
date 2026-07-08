@@ -9,6 +9,7 @@
 // Data: /api/v1/workspace/services/topology
 //
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import ReactFlow, {
   Background, Controls, MiniMap, Handle, Position,
   useNodesState, useEdgesState, ReactFlowProvider,
@@ -182,13 +183,19 @@ const ConnRow = ({ name, type, dir }) => {
   );
 };
 
-function DetailDrawer({ selectedId, topo, onClose, onAction }) {
+function DetailModal({ selectedId, topo, onClose, onAction }) {
   const [view, setView] = useState(null); // {kind, id}
   useEffect(() => {
     if (!selectedId) { setView(null); return; }
     if (selectedId.startsWith('cat:')) setView({ kind: 'cluster', id: selectedId.slice(4) });
     else setView({ kind: 'auto', id: selectedId });
   }, [selectedId]);
+  useEffect(() => {
+    if (!selectedId) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, onClose]);
 
   if (!selectedId || !view) return null;
   const nodes = topo.nodes || [], externals = topo.externals || [], edges = topo.edges || [];
@@ -233,12 +240,14 @@ function DetailDrawer({ selectedId, topo, onClose, onAction }) {
         {backToCluster && <button className="lqd-back" onClick={() => setView({ kind: 'cluster', id: n.category })}>← {n.category}</button>}
         <h3>{n.name}</h3>
         <div className="lqd-sub">{n.fn || n.description || ''}</div>
-        <div className="lqd-kv"><span>status</span><Pill h={n.health} /></div>
-        <div className="lqd-kv"><span>type</span><span>{n.kind}</span></div>
-        <div className="lqd-kv"><span>uptime</span><span>{n.uptime_seconds != null ? fmtUptime(n.uptime_seconds) : '—'}</span></div>
-        <div className="lqd-kv"><span>memory</span><span>{fmtBytes(n.memory_bytes)}</span></div>
-        <div className="lqd-kv"><span>pid</span><span>{n.main_pid || '—'}</span></div>
-        <div className="lqd-kv"><span>restarts</span><span>{n.restarts || 0}</span></div>
+        <div className="lqd-statwrap">
+          <div className="lqd-kv"><span>status</span><Pill h={n.health} /></div>
+          <div className="lqd-kv"><span>type</span><span>{n.kind}</span></div>
+          <div className="lqd-kv"><span>uptime</span><span>{n.uptime_seconds != null ? fmtUptime(n.uptime_seconds) : '—'}</span></div>
+          <div className="lqd-kv"><span>memory</span><span>{fmtBytes(n.memory_bytes)}</span></div>
+          <div className="lqd-kv"><span>pid</span><span>{n.main_pid || '—'}</span></div>
+          <div className="lqd-kv"><span>restarts</span><span>{n.restarts || 0}</span></div>
+        </div>
         <div className="lqd-caps">Connections</div>{connFor(n.name)}
         <div className="lqd-acts">
           <button className="lqd-cbtn" style={{ borderColor: hex(C.gold, 0.3), color: C.gold }} onClick={() => onAction(n.unit, 'restart')}>↻ Restart</button>
@@ -250,15 +259,14 @@ function DetailDrawer({ selectedId, topo, onClose, onAction }) {
     );
   }
 
-  return (
-    <>
-      <div className="lqd-backdrop" onClick={onClose} />
-      <div className="lqd-drawer">
-        <div className="lqd-close" onClick={onClose}>✕</div>
-        <div className="lqd-grip" />
+  return createPortal(
+    <div className="lqm-overlay" onClick={onClose}>
+      <div className="lqm-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <button className="lqm-close" onClick={onClose} aria-label="Close">✕</button>
         <div className="lqd-body">{body}</div>
       </div>
-    </>
+    </div>,
+    document.body,
   );
 }
 
@@ -347,7 +355,7 @@ function MapFlow({ topo, onAction }) {
           ))}
         </div>
 
-        <DetailDrawer selectedId={selectedId} topo={topo} onClose={closeDrawer} onAction={onAction} />
+        <DetailModal selectedId={selectedId} topo={topo} onClose={closeDrawer} onAction={onAction} />
       </div>
     </div>
   );
@@ -377,45 +385,43 @@ const CSS = `
 .lqf-legend span{display:inline-flex;align-items:center;gap:6px}
 .lqf-lz{width:18px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
 
-/* drawer */
-.lqd-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:5;animation:lqfade .2s ease}
+/* node detail — centered modal (SignalModal-style) */
+.lqm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:lqfade .18s ease}
 @keyframes lqfade{from{opacity:0}to{opacity:1}}
-.lqd-drawer{position:absolute;z-index:6;background:#0a0805;box-shadow:0 -10px 40px rgba(0,0,0,.5);animation:lqslide .28s cubic-bezier(.16,1,.3,1);overflow-y:auto}
-.lqd-grip{display:none}
-.lqd-close{position:absolute;top:12px;right:14px;cursor:pointer;color:#6b5c52;font-size:18px;z-index:2}
-.lqd-body{padding:18px}
-.lqd-body h3{font-size:16px;font-weight:600;margin:0 0 2px;color:#f5f0e8}
-.lqd-sub{font-size:12px;color:#a8967e;line-height:1.5;margin:4px 0 6px}
-.lqd-caps{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a8967e;margin:16px 0 4px}
-.lqd-back{background:transparent;border:none;color:#a8967e;font-size:11px;cursor:pointer;padding:0 0 8px}
-.lqd-svc{border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px;margin-top:9px;cursor:pointer;background:rgba(255,255,255,.015);transition:.15s}
-.lqd-svc:hover{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}
-.lqd-st{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;color:#f5f0e8}
-.lqd-sd{font-size:10.5px;color:#a8967e;margin-top:2px}
+.lqm-card{position:relative;width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#100b09,#0a0605);border:1px solid rgba(212,168,83,.22);border-radius:18px;box-shadow:0 30px 90px rgba(0,0,0,.65);overflow:hidden;animation:lqpop .26s cubic-bezier(.16,1,.3,1)}
+@keyframes lqpop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.lqm-card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(212,168,83,.5),transparent);z-index:2}
+.lqm-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0a0a0a;color:#a8967e;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:3}
+.lqm-close:hover{color:#fff;border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.14)}
+.lqd-body{padding:22px;overflow-y:auto}
+.lqd-body h3{font-size:18px;font-weight:600;margin:0 0 3px;color:#f5f0e8;padding-right:34px}
+.lqd-sub{font-size:12.5px;color:#a8967e;line-height:1.6;margin:4px 0 6px}
+.lqd-caps{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#a8967e;margin:20px 0 8px}
+.lqd-back{background:transparent;border:none;color:#a8967e;font-size:12px;cursor:pointer;padding:0 0 10px}
+.lqd-back:hover{color:#f5f0e8}
+.lqd-statwrap{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.lqd-svc{border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px;margin-top:10px;cursor:pointer;background:rgba(255,255,255,.015);transition:.15s}
+.lqd-svc:hover{border-color:rgba(212,168,83,.35);background:rgba(255,255,255,.04);transform:translateY(-1px)}
+.lqd-st{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;color:#f5f0e8}
+.lqd-sd{font-size:11px;color:#a8967e;margin-top:3px;line-height:1.4}
 .lqd-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .lqd-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-.lqd-pill{font-size:9.5px;padding:2px 7px;border-radius:5px;font-weight:600}
-.lqd-kv{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07);color:#f5f0e8}
+.lqd-pill{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600}
+.lqd-kv{display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);color:#f5f0e8}
 .lqd-kv span:first-child{color:#a8967e}
-.lqd-conn{font-size:11px;padding:6px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07);color:#f5f0e8}
+.lqd-conn{font-size:12px;padding:8px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);color:#f5f0e8}
 .lqd-line{width:16px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
-.lqd-acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.lqd-cbtn{font-size:11px;font-weight:600;padding:7px 12px;border-radius:7px;cursor:pointer;border:1px solid;background:transparent;transition:.15s}
+.lqd-acts{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.lqd-cbtn{font-size:12px;font-weight:600;padding:9px 16px;border-radius:9px;cursor:pointer;border:1px solid;background:transparent;transition:.15s}
 .lqd-cbtn:hover{filter:brightness(1.3)}
-
-/* desktop: side drawer */
-@media(min-width:768px){
-  .lqd-drawer{top:0;right:0;height:100%;width:340px;border-left:1px solid rgba(255,255,255,.12)}
-  @keyframes lqslide{from{transform:translateX(100%)}to{transform:translateX(0)}}
-}
-/* mobile: bottom-sheet */
-@media(max-width:767px){
-  .lqd-drawer{left:0;right:0;bottom:0;max-height:74%;border-top:1px solid rgba(255,255,255,.12);border-radius:16px 16px 0 0}
-  .lqd-grip{display:block;width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:8px auto 0}
-  @keyframes lqslide{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media(max-width:640px){
+  .lqm-overlay{padding:0;align-items:flex-end}
+  .lqm-card{width:100%;max-height:90vh;border-radius:18px 18px 0 0;animation:lqup .28s cubic-bezier(.16,1,.3,1)}
+  .lqd-statwrap{grid-template-columns:1fr}
   .lqf-legend{display:none}
   .lqf-mini{display:none}
 }
+@keyframes lqup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 `;
 
 // ════════════════════════════════════════════════════════════════════
