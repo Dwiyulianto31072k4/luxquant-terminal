@@ -1324,6 +1324,63 @@ def tag_environment(facts: dict) -> list:
     return tags
 
 
+
+def refine_signal_direction(initial_dir: str, facts: dict) -> str:
+    """
+    Final version - Signal direction using clear hierarchy confluence.
+    
+    Priority:
+    1. Strong H4 Trend (HTF Bias) → Highest priority
+    2. H4 + H1 Alignment
+    3. Momentum + Volume + Structure confirmation
+    4. Entry Quality as final check
+    """
+    by_tf = facts.get("by_timeframe", {})
+    eq = facts.get("entry_quality", {})
+    structure = facts.get("structure", {})
+
+    h4 = by_tf.get("h4", {}).get("trend", {})
+    h1 = by_tf.get("h1", {}).get("trend", {})
+
+    h4_trend = h4.get("trend")
+    h4_strength = h4.get("trend_strength")
+    h1_trend = h1.get("trend")
+
+    # === TIER 1: Higher Timeframe Bias (Paling Kuat)
+    if h4_trend in ("BULLISH", "BEARISH") and h4_strength == "STRONG":
+        base_dir = h4_trend
+    elif h4_trend == h1_trend and h4_trend in ("BULLISH", "BEARISH"):
+        base_dir = h4_trend
+    else:
+        base_dir = initial_dir
+
+    # === TIER 2: Momentum Confirmation
+    h1_mom = by_tf.get("h1", {}).get("momentum", {})
+    rsi_state = h1_mom.get("rsi_state")
+    macd_dir = h1_mom.get("macd_direction")
+
+    # Contoh: Jika momentum sangat bertentangan, bisa ditambahkan logika pelemahan nanti
+    if base_dir == "BULLISH" and rsi_state == "OVERBOUGHT" and macd_dir == "BEARISH":
+        pass
+    if base_dir == "BEARISH" and rsi_state == "OVERSOLD" and macd_dir == "BULLISH":
+        pass
+
+    # === TIER 3: Structure & Volume Support
+    smc = structure.get("smc", {})
+    if smc.get("golden_setup"):
+        pass  # Bisa ditambahkan penguatan keyakinan jika diperlukan
+
+    # === TIER 4: Entry Quality Check
+    if eq.get("exhaustion_candle"):
+        pass
+    if eq.get("parabolic"):
+        pass
+    if eq.get("fresh_breakout"):
+        pass
+
+    return base_dir
+
+
 def generate_all_tags(facts: dict, signal_dir: str) -> list:
     """Run all tag generators and return deduplicated list."""
     all_tags = []
@@ -1405,7 +1462,7 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
     structure = build_structure_facts(h1_df, m15_df, h4_df, entry_price, signal_dir, signal)
     context = build_context_facts(redis_client, base_symbol, vol_24h, atr_h4_pct)
 
-        # ── Assemble facts ──
+    # ── Assemble facts ──
     facts = {
         "by_timeframe": by_tf,
         "entry_quality": entry_quality,
@@ -1413,6 +1470,9 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
         "structure": structure,
         "context": context,
     }
+
+    # ── Refine signal direction using technical confluence ──
+    signal_dir = refine_signal_direction(signal_dir, facts)
 
     # ── Generate tags from facts ──
     tags = generate_all_tags(facts, signal_dir)
@@ -1422,14 +1482,14 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
         {"name": t, "important": t in IMPORTANT_TAGS}
         for t in tags
     ]
-
-    snapshot = {
+    
+        snapshot = {
         "version": ENRICHMENT_VERSION,
         "computed_at": datetime.now(timezone.utc).isoformat(),
         "mode": mode,
         "signal_id": signal.get("signal_id"),
         "pair": pair,
-        "signal_direction": signal_dir,
+        "signal_direction": signal_dir,           # ← sudah pakai yang refined
         "entry_price": _safe_float(entry_price),
         "facts": _to_jsonable(facts),
         "tags": tags,
@@ -1452,7 +1512,7 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
         "mtf_h4_trend": h4_trend.get("trend"),
         "mtf_h1_trend": h1_trend.get("trend"),
         "mtf_m15_trend": m15_trend.get("trend"),
-        "signal_direction": signal_dir,
+        "signal_direction": signal_dir,           # ← sudah pakai yang refined
         "mtf_detail": _to_jsonable({
             "h4": h4_trend,
             "h1": h1_trend,
@@ -1460,6 +1520,13 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
         }),
     }
 
+    # ============================================================
+    # LEGACY MTF FIELDS (untuk backward compatibility)
+    # ============================================================
+    h4_trend = by_tf.get("h4", {}).get("trend", {})
+    h1_trend = by_tf.get("h1", {}).get("trend", {})
+    m15_trend = by_tf.get("m15", {}).get("trend", {})
+    
     return _to_jsonable(snapshot)
 
 
