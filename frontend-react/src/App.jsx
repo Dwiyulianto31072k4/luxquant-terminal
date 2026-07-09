@@ -159,9 +159,9 @@ const PREMIUM_REQUIRED = [
 // ROUTE GUARDS
 // ════════════════════════════════════════
 // /terminal index:
-//   · WITH query string (came from the Potential Trades "TERMINAL" button
-//     carrying filters) → Market Map, filters preserved — old flow intact.
-//   · clean open (nav/More menu) → Deep Screener, the terminal's main view.
+//   · WITH query string (TERMINAL button carrying filters) → Market Map
+//     tab (own route — keeps its filter params), old flow intact.
+//   · clean open → Signals Analytics (Overview).
 function TerminalIndex() {
   const location = useLocation();
   return location.search ? (
@@ -1658,10 +1658,6 @@ function App() {
                 <Route index element={<TerminalIndex />} />
                 <Route path="scan" element={<SignalsAnalytics />} />
                 <Route path="map" element={<SignalTerminalPage />} />
-                <Route path="edge" element={<EdgeLabPage />} />
-                <Route path="moneyflow" element={<MoneyFlowPage />} />
-                <Route path="pulse" element={<MarketPulsePage />} />
-                <Route path="watchlist" element={<WatchlistTabs />} />
                 <Route path="*" element={<TerminalIndex />} />
               </Route>
               <Route

@@ -1,22 +1,12 @@
 // ════════════════════════════════════════════════════════════════
-// Signals Analytics — Allium-style visual screening + LIVE anomaly
-// detection over active signals.
+// Signals Analytics — the VISUAL layer of Potential Trades (7-day
+// window, same data), Allium-style. Tabs live in TerminalLayout.
 //
-// Structure mirrors Allium: page tabs → dropdown multi-select filter
-// chips → KPI cards with descriptions → titled SECTION bands → grid of
-// chart cards (tinted headers, legends). Dark+gold house skin.
-//
-// LIVE layer (no new backend): /market/prices is polled every 30s and
-// a rolling in-memory history (≈20 min) powers:
-//   · Anomaly Scatter   — 24h change × volume intensity (vol/mcap)
-//   · RS vs BTC         — coin chg minus BTC chg (who pumps alone)
-//   · Volume Spike 15m  — Δ turnover between polls vs expected rate
-//   · Session Movers    — price move since the page has been open
-//
-// DATA SANITY: pairs whose live/entry ratio is implausible (redenoms,
-// stale entries) are quarantined into a visible "suspect" list and
-// excluded from every aggregate; aggregates use MEDIAN, chart domains
-// are clamped. "In Profit Now" removed (unreliable source data).
+//   · Fixed 7-day window, scope=all → includes TP4 (closed_win) & SL
+//   · Every coin mention = CoinLogo + click → latest call (SignalModal)
+//   · Every chart expandable (fullscreen) · scatters wheel/button zoom
+//   · Live anomaly layer from 30s price polling (rolling ~20 min)
+//   · Data sanity: implausible live/entry pairs quarantined, medians
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -24,7 +14,11 @@ import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Cell, PieChart, Pie, ScatterChart, Scatter, ReferenceLine,
+  FunnelChart, Funnel, LabelList,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
 } from "recharts";
+import CoinLogo from "../CoinLogo";
+import SignalModal from "../SignalModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -44,7 +38,13 @@ const GRAYBAR = "rgba(255,255,255,0.25)";
 const GRID = "rgba(212,168,83,0.06)";
 const AXIS = "#a59585";
 
-const STATUS_COLORS = { open: GRAYBAR, tp1: "#2dd4a0", tp2: "#4ade80", tp3: "#86efac" };
+// full lifecycle incl. final outcomes (Potential Trades semantics)
+const STATUS_ORDER = ["open", "tp1", "tp2", "tp3", "closed_win", "closed_loss"];
+const STATUS_LABEL = { open: "open", tp1: "tp1", tp2: "tp2", tp3: "tp3", closed_win: "tp4", closed_loss: "sl" };
+const STATUS_COLORS = {
+  open: GRAYBAR, tp1: "#2dd4a0", tp2: "#4ade80", tp3: "#86efac",
+  closed_win: GOLD, closed_loss: NEG,
+};
 const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
 
 const fmtPct = (v, dp = 1) => {
@@ -71,13 +71,12 @@ const parseMcap = (mc) => {
   return num;
 };
 
-// live/entry plausibility band — outside ⇒ quarantined as suspect data
-// (redenominated pairs, stale/mis-scaled entries). -95% … +400%.
+// live/entry plausibility band — outside ⇒ quarantined (redenoms, stale)
 const PLAUSIBLE_LO = 0.05;
 const PLAUSIBLE_HI = 5;
 
-// ── URL-synced global filters ──────────────────────────────────────
-const DEFAULTS = { tab: "overview", d: "7", st: "all", sectors: "", risks: "", dec: "", q: "" };
+// ── URL-synced global filters (window is FIXED 7d like Potential Trades) ──
+const DEFAULTS = { tab: "overview", st: "all", sectors: "", risks: "", dec: "", q: "" };
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => { const v = sp.get(k); if (v != null) f[k] = v; });
@@ -91,28 +90,12 @@ const toParams = (f) => {
 const csv = (s) => (s ? s.split(",").filter(Boolean) : []);
 
 // ════════════════════════════════════════════════════════════════
-// UI atoms (Allium structural language, dark+gold skin)
+// UI atoms
 // ════════════════════════════════════════════════════════════════
-
-// section band — like Allium's "Market Cap" section headers
 const SectionBand = ({ title, desc }) => (
   <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] px-4 py-3">
     <div className="text-[14px] text-white/95">{title}</div>
     {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
-  </div>
-);
-
-// chart card — tinted header strip like Allium's pink card headers
-const Card = ({ title, desc, children, right }) => (
-  <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
-    <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
-      <div>
-        <div className="text-[12.5px] text-white/90">{title}</div>
-        {desc && <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
-      </div>
-      {right}
-    </div>
-    <div className="p-3">{children}</div>
   </div>
 );
 
@@ -137,7 +120,17 @@ const Chip = ({ active, onClick, children }) => (
   </button>
 );
 
-// Allium-style dropdown multi-select chip: [Label  v1 v2 +N ▾]
+const IconBtn = ({ onClick, title, children }) => (
+  <button
+    onClick={onClick}
+    title={title}
+    className="w-6 h-6 flex items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.02] text-text-muted hover:text-gold-primary hover:border-gold-primary/30 transition-colors font-mono text-[11px] leading-none"
+  >
+    {children}
+  </button>
+);
+
+// Allium-style dropdown multi-select chip
 function FilterMulti({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
   const toggle = (v) =>
@@ -184,16 +177,8 @@ function FilterMulti({ label, options, selected, onChange }) {
               </button>
             )}
             {options.map((o) => (
-              <label
-                key={o}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(o)}
-                  onChange={() => toggle(o)}
-                  className="accent-[#d4a853] w-3 h-3"
-                />
+              <label key={o} className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] cursor-pointer">
+                <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} className="accent-[#d4a853] w-3 h-3" />
                 <span className="font-mono text-[10.5px] text-white/80">{o}</span>
               </label>
             ))}
@@ -252,6 +237,94 @@ const LegendChips = ({ entries, activeKey, onPick }) => (
   </div>
 );
 
+// ── expandable chart card (fullscreen) + optional zoom controls ────
+function XCard({ title, desc, render, zoom, hint }) {
+  const { t } = useTranslation();
+  const [big, setBig] = useState(false);
+  const controls = (
+    <div className="flex items-center gap-1 shrink-0">
+      {zoom && (
+        <>
+          <IconBtn onClick={zoom.zoomOut} title="zoom out">−</IconBtn>
+          <IconBtn onClick={zoom.zoomIn} title="zoom in">+</IconBtn>
+          <IconBtn onClick={zoom.reset} title="reset">⟲</IconBtn>
+        </>
+      )}
+      <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>⤢</IconBtn>
+    </div>
+  );
+  const body = (h) => (
+    <>
+      <div onWheel={zoom?.onWheel}>{render(h)}</div>
+      {hint && (
+        <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">{hint}</div>
+      )}
+    </>
+  );
+  return (
+    <>
+      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
+        <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[12.5px] text-white/90">{title}</div>
+            {desc && <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+          </div>
+          {controls}
+        </div>
+        <div className="p-3">{body(240)}</div>
+      </div>
+
+      {big && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm p-3 md:p-8 flex items-center justify-center"
+          onClick={() => setBig(false)}
+        >
+          <div
+            className="w-full max-w-[1400px] max-h-full overflow-auto rounded-lg bg-[#0c0a07] border border-gold-primary/25"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[14px] text-white/95">{title}</div>
+                {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {zoom && (
+                  <>
+                    <IconBtn onClick={zoom.zoomOut} title="zoom out">−</IconBtn>
+                    <IconBtn onClick={zoom.zoomIn} title="zoom in">+</IconBtn>
+                    <IconBtn onClick={zoom.reset} title="reset">⟲</IconBtn>
+                  </>
+                )}
+                <IconBtn onClick={() => setBig(false)} title="close">✕</IconBtn>
+              </div>
+            </div>
+            <div className="p-4">{body(Math.max(360, Math.round(window.innerHeight * 0.6)))}</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// wheel/button zoom over fixed base domains (scatters)
+function useZoom(x0, x1, y0, y1) {
+  const [scale, setScale] = useState(1);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const rx = (x1 - x0) / 2 / scale, ry = (y1 - y0) / 2 / scale;
+  return {
+    domX: [cx - rx, cx + rx],
+    domY: [cy - ry, cy + ry],
+    zoomIn: () => setScale((s) => Math.min(10, s * 1.4)),
+    zoomOut: () => setScale((s) => Math.max(1, s / 1.4)),
+    reset: () => setScale(1),
+    onWheel: (e) => {
+      if (e.deltaY < 0) setScale((s) => Math.min(10, s * 1.15));
+      else setScale((s) => Math.max(1, s / 1.15));
+    },
+  };
+}
+
 function makeBins(values, size, min, max) {
   const bins = [];
   for (let lo = min; lo < max; lo += size) bins.push({ lo, hi: lo + size, count: 0 });
@@ -264,8 +337,22 @@ function makeBins(values, size, min, max) {
   return bins.map((b) => ({ x: `${b.lo}`, mid: (b.lo + b.hi) / 2, count: b.count }));
 }
 
-// ranked horizontal bars (movers / spikes / RS)
-function RankBars({ data, fmt, suffix }) {
+// coin pill: logo + pair, click → latest call
+const CoinPill = ({ pair, onPair, className = "" }) => (
+  <button
+    onClick={onPair ? () => onPair(pair) : undefined}
+    className={`flex items-center gap-1.5 min-w-0 group ${className}`}
+    title={pair}
+  >
+    <CoinLogo pair={pair} size={16} />
+    <span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate transition-colors">
+      {pair}
+    </span>
+  </button>
+);
+
+// ranked horizontal diverging bars with coin pills
+function RankBars({ data, fmt, suffix, onPair }) {
   if (!data.length)
     return <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">—</div>;
   const max = Math.max(...data.map((d) => Math.abs(d.v))) || 1;
@@ -273,7 +360,7 @@ function RankBars({ data, fmt, suffix }) {
     <div className="space-y-1.5 py-1">
       {data.map((d) => (
         <div key={d.pair} className="flex items-center gap-2">
-          <span className="w-24 shrink-0 font-mono text-[10.5px] text-white/85 truncate">{d.pair}</span>
+          <span className="w-28 shrink-0"><CoinPill pair={d.pair} onPair={onPair} /></span>
           <span className="flex-1 h-4 rounded-sm bg-white/[0.03] overflow-hidden relative">
             <span
               className="absolute top-0 bottom-0 rounded-sm"
@@ -331,16 +418,16 @@ function SectorBars({ data, dataKey, color, fmt, onPick, diverging = false }) {
   );
 }
 
-function Donut({ data, active, onPick }) {
+function Donut({ data, active, onPick, h = 190 }) {
   const clean = data.filter((d) => d.value > 0);
   return (
     <>
-      <div style={{ height: 190 }}>
+      <div style={{ height: h }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={clean} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="85%" paddingAngle={2} stroke="none">
               {clean.map((d, i) => (
-                <Cell key={i} fill={d.color} fillOpacity={active === d.name ? 1 : 0.75} />
+                <Cell key={i} fill={d.color} fillOpacity={active === d.key ? 1 : 0.75} />
               ))}
             </Pie>
             <Tooltip content={<DarkTip />} />
@@ -348,7 +435,7 @@ function Donut({ data, active, onPick }) {
         </ResponsiveContainer>
       </div>
       <LegendChips
-        entries={clean.map((d) => ({ key: d.name, label: d.name, value: d.value, color: d.color }))}
+        entries={clean.map((d) => ({ key: d.key, label: d.name, value: d.value, color: d.color }))}
         activeKey={active}
         onPick={onPick}
       />
@@ -356,32 +443,34 @@ function Donut({ data, active, onPick }) {
   );
 }
 
-const CHART_H = 240;
-
 // ════════════════════════════════════════════════════════════════
 export default function SignalsAnalytics() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(() => parseF(searchParams));
+  // tab is owned by the SHELL tab bar (URL) — keep local state in sync
+  const tab = searchParams.get("tab") || "overview";
   const setF = (patch) => {
-    const next = { ...filters, ...patch };
+    const next = { ...filters, ...patch, tab };
     setFilters(next);
     setSearchParams(toParams(next), { replace: true });
   };
-  const resetF = () => setF({ ...DEFAULTS, tab: filters.tab, d: filters.d });
+  const resetF = () => setF({ ...DEFAULTS, tab });
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [prices, setPrices] = useState({});
-  const [tick, setTick] = useState(0); // bumps on every price poll → recompute live layers
-  const histRef = useRef(new Map()); // pair -> [{t, price, vol}]
+  const [tick, setTick] = useState(0);
+  const histRef = useRef(new Map());
 
-  const fetchData = useCallback(async (days) => {
-    setLoading(true);
+  // drill-down: coin → latest call → SignalModal
+  const [selectedSignal, setSelectedSignal] = useState(null);
+
+  const fetchData = useCallback(async () => {
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=${days}&scope=active`, { headers: authHeaders() });
+      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=7&scope=all`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`http ${r.status}`);
       setData(await r.json());
     } catch (e) {
@@ -390,15 +479,36 @@ export default function SignalsAnalytics() {
       setLoading(false);
     }
   }, []);
-  useEffect(() => { fetchData(filters.d); }, [filters.d, fetchData]);
   useEffect(() => {
-    const iv = setInterval(() => fetchData(filters.d), 60000);
+    fetchData();
+    const iv = setInterval(fetchData, 60000);
     return () => clearInterval(iv);
-  }, [filters.d, fetchData]);
+  }, [fetchData]);
 
   const items = data?.items || [];
 
-  // ── live prices poll (BTC always included) + rolling history ──
+  // latest call per pair (created_at is ISO text — string compare works)
+  const latestByPair = useMemo(() => {
+    const m = {};
+    items.forEach((s) => {
+      if (!m[s.pair] || (s.created_at || "") > (m[s.pair].created_at || "")) m[s.pair] = s;
+    });
+    return m;
+  }, [items]);
+
+  const openPair = useCallback(async (pair) => {
+    const base = latestByPair[pair];
+    if (!base) return;
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/signals/detail/${base.signal_id}`, { headers: authHeaders() });
+      const full = r.ok ? await r.json() : {};
+      setSelectedSignal({ ...base, ...full });
+    } catch {
+      setSelectedSignal(base);
+    }
+  }, [latestByPair]);
+
+  // ── live prices poll (BTC always) + rolling history ────────────
   const allPairs = useMemo(() => {
     const s = new Set(items.map((x) => x.pair).filter(Boolean));
     s.add("BTCUSDT");
@@ -418,7 +528,6 @@ export default function SignalsAnalytics() {
         } catch { /* noop */ }
       }
       if (!alive) return;
-      // append to rolling history (~20 min @30s = 40 samples)
       const now = Date.now();
       Object.entries(acc).forEach(([pair, d]) => {
         const price = typeof d === "number" ? d : d?.price;
@@ -438,14 +547,12 @@ export default function SignalsAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pairsKey]);
 
-  // ── live helpers + DATA SANITY quarantine ──────────────────────
   const liveOf = useCallback((pair) => {
     const d = prices[pair];
     if (!d) return null;
     return typeof d === "number" ? { price: d, volume: null, change: null } : d;
   }, [prices]);
 
-  // fc = live % from entry, or {suspect} when scale is implausible
   const fcOf = useCallback((s) => {
     const lv = liveOf(s.pair);
     if (!lv?.price || !s.entry) return { v: null, suspect: false };
@@ -480,22 +587,20 @@ export default function SignalsAnalytics() {
   // ── aggregations (suspect-aware, median-based) ─────────────────
   const agg = useMemo(() => {
     const byDay = {};
-    const statusMix = { open: 0, tp1: 0, tp2: 0, tp3: 0 };
+    const statusMix = Object.fromEntries(STATUS_ORDER.map((k) => [k, 0]));
     const riskMix = { LOW: 0, NORMAL: 0, HIGH: 0 };
     const bySector = {};
     let decoupled = 0, extended = 0, leads = 0, betaN = 0, betaSum = 0;
     const fcVals = [], betaVals = [], alignVals = [];
-    const scatterOpp = [], scatterBeta = [], anomPts = [];
+    const scatterOpp = [], scatterBeta = [], anomPts = [], peakPts = [];
     const suspects = [], moversArr = [], rsArr = [], decoupledList = [];
     const btcChg = liveOf("BTCUSDT")?.change ?? null;
-
-    // per-pair dedupe for live layers (several signals can share a pair)
     const seenPair = new Set();
 
     view.forEach((s) => {
       const day = (s.created_at || "").slice(5, 10);
       if (day) {
-        byDay[day] = byDay[day] || { day, open: 0, tp1: 0, tp2: 0, tp3: 0 };
+        byDay[day] = byDay[day] || Object.fromEntries([["day", day], ...STATUS_ORDER.map((k) => [k, 0])]);
         if (byDay[day][s.status] != null) byDay[day][s.status] += 1;
       }
       if (statusMix[s.status] != null) statusMix[s.status] += 1;
@@ -517,7 +622,7 @@ export default function SignalsAnalytics() {
           seenPair.add(`sus:${s.pair}`);
           suspects.push({ pair: s.pair, v });
         }
-        return; // quarantined — excluded from every aggregate below
+        return;
       }
       if (v != null) {
         fcVals.push(v);
@@ -526,22 +631,17 @@ export default function SignalsAnalytics() {
           scatterOpp.push({ x: v, y: Math.max(0, s.max_target_pct - v), pair: s.pair, risk: s.risk_norm });
         if (s.beta_30d != null)
           scatterBeta.push({ x: s.beta_30d, y: v, pair: s.pair, dec: s.is_decoupled });
+        if (s.peak_pct != null && s.peak_pct > -50 && s.peak_pct < 300)
+          peakPts.push({ x: s.peak_pct, y: v, pair: s.pair, win: s.status === "closed_win" });
         if (!seenPair.has(s.pair)) {
           seenPair.add(s.pair);
           moversArr.push({ pair: s.pair, v });
           if (s.is_decoupled) decoupledList.push({ pair: s.pair, v });
-
           const lv = liveOf(s.pair);
-          // anomaly scatter: 24h change × volume intensity (vol/mcap %)
           const mcap = parseMcap(s.market_cap);
           if (lv?.change != null && lv?.volume && mcap) {
-            const flow = (lv.volume / mcap) * 100;
-            anomPts.push({
-              x: lv.change, y: flow, pair: s.pair,
-              dec: s.is_decoupled, sector: sec,
-            });
+            anomPts.push({ x: lv.change, y: (lv.volume / mcap) * 100, pair: s.pair, dec: s.is_decoupled, sector: sec });
           }
-          // relative strength vs BTC (24h chg − BTC chg)
           if (lv?.change != null && btcChg != null && s.pair !== "BTCUSDT") {
             rsArr.push({ pair: s.pair, v: lv.change - btcChg });
           }
@@ -549,27 +649,34 @@ export default function SignalsAnalytics() {
       }
     });
 
-    // anomaly threshold: heavy flow = > 3× median flow AND positive move
     const flows = anomPts.map((p) => p.y);
     const medFlow = median(flows) || 0;
     anomPts.forEach((p) => { p.hot = medFlow > 0 && p.y > medFlow * 3 && p.x > 5; });
 
     const days = Object.values(byDay).sort((a, b) => a.day.localeCompare(b.day));
     const sectors = Object.values(bySector)
-      .map((x) => ({
-        sector: x.sector, count: x.count,
-        medFc: median(x.fcs),
-        medTgt: median(x.tgts),
-      }))
+      .map((x) => ({ sector: x.sector, count: x.count, medFc: median(x.fcs), medTgt: median(x.tgts) }))
       .sort((a, b) => b.count - a.count);
 
+    // TP progression funnel (status = highest level reached)
+    const reached = (lvls) => lvls.reduce((a, k) => a + (statusMix[k] || 0), 0);
+    const funnel = [
+      { name: "Called", value: view.length, fill: GRAYBAR },
+      { name: "TP1+", value: reached(["tp1", "tp2", "tp3", "closed_win"]), fill: "#2dd4a0" },
+      { name: "TP2+", value: reached(["tp2", "tp3", "closed_win"]), fill: "#4ade80" },
+      { name: "TP3+", value: reached(["tp3", "closed_win"]), fill: "#86efac" },
+      { name: "TP4", value: statusMix.closed_win || 0, fill: GOLD },
+    ];
+    const closedN = (statusMix.closed_win || 0) + (statusMix.closed_loss || 0);
+    const winRate = closedN ? Math.round(((statusMix.closed_win || 0) / closedN) * 100) : null;
+
     return {
-      days, statusMix, riskMix, sectors,
+      days, statusMix, riskMix, sectors, funnel, winRate, closedN,
       decoupled, extended, leads,
       avgBeta: betaN ? betaSum / betaN : null,
       medFc: median(fcVals), fcN: fcVals.length,
       fcVals, betaVals, alignVals,
-      scatterOpp, scatterBeta, anomPts, medFlow,
+      scatterOpp, scatterBeta, anomPts, peakPts, medFlow,
       suspects: suspects.sort((a, b) => Math.abs(b.v) - Math.abs(a.v)),
       movers: moversArr, rs: rsArr,
       decoupledList: decoupledList.sort((a, b) => b.v - a.v),
@@ -579,7 +686,7 @@ export default function SignalsAnalytics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, prices, tick]);
 
-  // ── LIVE session layers from rolling history ───────────────────
+  // ── live session layers ────────────────────────────────────────
   const session = useMemo(() => {
     const spikes = [];
     const movers15 = [];
@@ -588,21 +695,18 @@ export default function SignalsAnalytics() {
     pairsInView.forEach((pair) => {
       const h = histRef.current.get(pair);
       if (!h || h.length < 2) return;
-      // pick the sample closest to 15 min ago (min 4 min span)
       const target = now - 15 * 60e3;
       let base = h[0];
       for (const smp of h) if (Math.abs(smp.t - target) < Math.abs(base.t - target)) base = smp;
       const last = h[h.length - 1];
       const spanMin = (last.t - base.t) / 60e3;
       if (spanMin < 4) return;
-      // price move over the window
       if (base.price > 0) {
         const mv = (last.price / base.price - 1) * 100;
         if (Number.isFinite(mv)) movers15.push({ pair, v: mv });
       }
-      // volume spike: traded notional in window vs expected pace
       if (base.vol != null && last.vol != null && last.vol > 0) {
-        const traded = Math.max(0, last.vol - base.vol); // 24h-rolling Δ ≈ fresh notional
+        const traded = Math.max(0, last.vol - base.vol);
         const expected = last.vol * (spanMin / 1440);
         if (expected > 0) {
           const ratio = traded / expected;
@@ -624,48 +728,22 @@ export default function SignalsAnalytics() {
   const rsTop = useMemo(() => [...agg.rs].sort((a, b) => b.v - a.v).slice(0, 8), [agg.rs]);
   const rsBottom = useMemo(() => [...agg.rs].sort((a, b) => a.v - b.v).slice(0, 8), [agg.rs]);
 
-  const TABS = [
-    ["overview", t("terminal.viz.tabOverview")],
-    ["anomaly", t("terminal.viz.tabAnomaly")],
-    ["live", t("terminal.viz.tabLive")],
-    ["btc", t("terminal.viz.tabBtc")],
-    ["sectors", t("terminal.viz.tabSectors")],
-  ];
-  const tab = filters.tab;
   const hasDrill = ["st", "sectors", "risks", "dec", "q"].some((k) => filters[k] !== DEFAULTS[k]);
-
-  // clamp for fc-based charts (suspects already removed; belt & braces)
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
+
+  // zoom instances for scatters
+  const zAnom = useZoom(-30, 30, 0, 60);
+  const zOpp = useZoom(-60, 60, 0, 120);
+  const zBeta = useZoom(-0.5, 2.5, -60, 60);
+  const zPeak = useZoom(-20, 150, -60, 100);
+
+  const scatterTick = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
+  const barTick = { fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" };
 
   // ════════════════════════════════════════════════════════════
   return (
     <div className="space-y-3">
-      {/* ── page tabs ── */}
-      <div className="flex items-center gap-1 border-b border-white/[0.06] overflow-x-auto [&::-webkit-scrollbar]:hidden">
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setF({ tab: id })}
-            className={`relative shrink-0 px-3.5 py-2 text-[12.5px] transition-colors ${
-              tab === id ? "text-gold-primary" : "text-text-muted hover:text-white"
-            }`}
-          >
-            {label}
-            {tab === id && <span className="absolute left-3 right-3 bottom-0 h-[2px] bg-gold-primary rounded-full" />}
-          </button>
-        ))}
-        <div className="ml-auto hidden sm:flex items-center gap-3 pr-1 font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
-          {agg.btcPrice && (
-            <span>
-              BTC <span className="text-white/80">${Number(agg.btcPrice).toLocaleString()}</span>{" "}
-              <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>{fmtPct(agg.btcChg)}</span>
-            </span>
-          )}
-          <span>{view.length} {t("terminal.viz.signals")}</span>
-        </div>
-      </div>
-
-      {/* ── Allium-style filter row: search · window · status · dropdowns ── */}
+      {/* ── filter row (Allium chips) + live BTC ── */}
       <div className="flex items-center gap-2 flex-wrap">
         <input
           value={filters.q}
@@ -674,15 +752,9 @@ export default function SignalsAnalytics() {
           className="w-36 bg-white/[0.03] border border-white/[0.08] rounded-md px-3 py-1.5 text-[11.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
         />
         <div className="flex gap-1">
-          {["3", "7", "14", "30"].map((d) => (
-            <Chip key={d} active={filters.d === d} onClick={() => setF({ d })}>{d}D</Chip>
-          ))}
-        </div>
-        <span className="h-4 w-px bg-white/[0.08]" />
-        <div className="flex gap-1">
-          {["all", "open", "tp1", "tp2", "tp3"].map((s) => (
+          {["all", ...STATUS_ORDER].map((s) => (
             <Chip key={s} active={filters.st === s} onClick={() => setF({ st: s })}>
-              {s === "all" ? t("terminal.viz.all") : s}
+              {s === "all" ? t("terminal.viz.all") : STATUS_LABEL[s] || s}
             </Chip>
           ))}
         </div>
@@ -705,11 +777,20 @@ export default function SignalsAnalytics() {
         {hasDrill && (
           <button
             onClick={resetF}
-            className="ml-auto font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative transition-colors"
+            className="font-mono text-[9.5px] uppercase tracking-wider text-text-muted hover:text-negative transition-colors"
           >
             × {t("terminal.viz.reset")}
           </button>
         )}
+        <div className="ml-auto hidden sm:flex items-center gap-3 font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+          {agg.btcPrice && (
+            <span>
+              BTC <span className="text-white/80">${Number(agg.btcPrice).toLocaleString()}</span>{" "}
+              <span className={agg.btcChg >= 0 ? "text-positive" : "text-negative"}>{fmtPct(agg.btcChg)}</span>
+            </span>
+          )}
+          <span>{view.length} {t("terminal.viz.signals")}</span>
+        </div>
       </div>
 
       {/* ── loading / error ── */}
@@ -723,7 +804,7 @@ export default function SignalsAnalytics() {
         <div className="rounded-lg border border-negative/25 bg-negative/[0.06] px-4 py-3 flex items-center gap-3">
           <span className="font-mono text-[11px] text-negative">⚠ {t("terminal.viz.error")}</span>
           <button
-            onClick={() => fetchData(filters.d)}
+            onClick={fetchData}
             className="px-3 py-1 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-negative/15 text-negative border border-negative/30"
           >
             ↻
@@ -736,8 +817,14 @@ export default function SignalsAnalytics() {
           {/* ═══════════ OVERVIEW ═══════════ */}
           {tab === "overview" && (
             <>
-              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-5 gap-2">
                 <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
+                <Kpi
+                  label={t("terminal.viz.kWinRate")}
+                  value={agg.winRate != null ? `${agg.winRate}%` : "—"}
+                  desc={t("terminal.viz.kWinRateDesc")}
+                  tone={agg.winRate >= 50 ? "text-positive" : "text-negative"}
+                />
                 <Kpi
                   label={t("terminal.viz.kMedianFc")}
                   value={fmtPct(agg.medFc)}
@@ -748,53 +835,97 @@ export default function SignalsAnalytics() {
                 <Kpi label={t("terminal.viz.kSuspect")} value={agg.suspects.length} desc={t("terminal.viz.kSuspectDesc")} tone={agg.suspects.length ? "text-warning" : undefined} />
               </div>
 
-              <Card title={t("terminal.viz.flowTitle")} desc={t("terminal.viz.flowDesc")}>
-                <div style={{ height: CHART_H }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={agg.days} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                      <CartesianGrid stroke={GRID} vertical={false} />
-                      <XAxis dataKey="day" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
-                      {["open", "tp1", "tp2", "tp3"].map((k) => (
-                        <Bar key={k} dataKey={k} stackId="s" fill={STATUS_COLORS[k]} radius={k === "tp3" ? [2, 2, 0, 0] : 0} />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <LegendChips
-                  entries={["open", "tp1", "tp2", "tp3"].map((k) => ({ key: k, label: k, value: agg.statusMix[k], color: STATUS_COLORS[k] }))}
-                  activeKey={filters.st}
-                  onPick={(k) => setF({ st: filters.st === k ? "all" : k })}
-                />
-              </Card>
+              <XCard
+                title={t("terminal.viz.flowTitle")}
+                desc={t("terminal.viz.flowDesc")}
+                render={(h) => (
+                  <>
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={agg.days} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} vertical={false} />
+                          <XAxis dataKey="day" tick={scatterTick} axisLine={false} tickLine={false} />
+                          <YAxis tick={scatterTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          {STATUS_ORDER.map((k, i) => (
+                            <Bar key={k} dataKey={k} name={STATUS_LABEL[k]} stackId="s" fill={STATUS_COLORS[k]} radius={i === STATUS_ORDER.length - 1 ? [2, 2, 0, 0] : 0} />
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <LegendChips
+                      entries={STATUS_ORDER.map((k) => ({ key: k, label: STATUS_LABEL[k], value: agg.statusMix[k], color: STATUS_COLORS[k] }))}
+                      activeKey={filters.st}
+                      onPick={(k) => setF({ st: filters.st === k ? "all" : k })}
+                    />
+                  </>
+                )}
+              />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.statusTitle")} desc={t("terminal.viz.statusDesc")}>
-                  <Donut
-                    data={Object.entries(agg.statusMix).map(([k, v]) => ({ name: k, value: v, color: STATUS_COLORS[k] }))}
-                    active={filters.st}
-                    onPick={(k) => setF({ st: filters.st === k ? "all" : k })}
-                  />
-                </Card>
-                <Card title={t("terminal.viz.riskTitle")} desc={t("terminal.viz.riskDesc")}>
-                  <Donut
-                    data={Object.entries(agg.riskMix).map(([k, v]) => ({ name: k, value: v, color: RISK_COLORS[k] }))}
-                    active={selRisks.length === 1 ? selRisks[0] : null}
-                    onPick={(k) => setF({ risks: selRisks.length === 1 && selRisks[0] === k ? "" : k })}
-                  />
-                </Card>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <XCard
+                  title={t("terminal.viz.funnelTitle")}
+                  desc={t("terminal.viz.funnelDesc")}
+                  render={(h) => (
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <FunnelChart margin={{ top: 8, right: 90, left: 8, bottom: 8 }}>
+                          <Tooltip content={<DarkTip />} />
+                          <Funnel dataKey="value" data={agg.funnel} isAnimationActive={false}>
+                            <LabelList
+                              position="right"
+                              dataKey="name"
+                              fill={AXIS}
+                              stroke="none"
+                              fontSize={10}
+                              fontFamily="JetBrains Mono"
+                              formatter={(name) => name}
+                            />
+                          </Funnel>
+                        </FunnelChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                />
+                <XCard
+                  title={t("terminal.viz.statusTitle")}
+                  desc={t("terminal.viz.statusDesc")}
+                  render={(h) => (
+                    <Donut
+                      h={Math.max(150, h - 50)}
+                      data={STATUS_ORDER.map((k) => ({ key: k, name: STATUS_LABEL[k], value: agg.statusMix[k], color: STATUS_COLORS[k] }))}
+                      active={filters.st}
+                      onPick={(k) => setF({ st: filters.st === k ? "all" : k })}
+                    />
+                  )}
+                />
+                <XCard
+                  title={t("terminal.viz.riskTitle")}
+                  desc={t("terminal.viz.riskDesc")}
+                  render={(h) => (
+                    <Donut
+                      h={Math.max(150, h - 50)}
+                      data={Object.entries(agg.riskMix).map(([k, v]) => ({ key: k, name: k, value: v, color: RISK_COLORS[k] }))}
+                      active={selRisks.length === 1 ? selRisks[0] : null}
+                      onPick={(k) => setF({ risks: selRisks.length === 1 && selRisks[0] === k ? "" : k })}
+                    />
+                  )}
+                />
               </div>
 
-              <Card title={t("terminal.viz.sectorCountTitle")} desc={t("terminal.viz.sectorCountDesc")}>
-                <SectorBars
-                  data={agg.sectors.slice(0, 12)}
-                  dataKey="count"
-                  color={() => GOLD}
-                  fmt={(v) => v}
-                  onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
-                />
-              </Card>
+              <XCard
+                title={t("terminal.viz.sectorCountTitle")}
+                desc={t("terminal.viz.sectorCountDesc")}
+                render={() => (
+                  <SectorBars
+                    data={agg.sectors.slice(0, 12)}
+                    dataKey="count"
+                    color={() => GOLD}
+                    fmt={(v) => v}
+                    onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
+                  />
+                )}
+              />
             </>
           )}
 
@@ -810,92 +941,81 @@ export default function SignalsAnalytics() {
                   desc={t("terminal.viz.kBtcDesc")}
                   tone={agg.btcChg >= 0 ? "text-positive" : "text-negative"}
                 />
-                <Kpi
-                  label={t("terminal.viz.kHot")}
-                  value={agg.anomPts.filter((p) => p.hot).length}
-                  desc={t("terminal.viz.kHotDesc")}
-                  tone="text-gold-primary"
+                <Kpi label={t("terminal.viz.kHot")} value={agg.anomPts.filter((p) => p.hot).length} desc={t("terminal.viz.kHotDesc")} tone="text-gold-primary" />
+                <Kpi label={t("terminal.viz.kSpikes")} value={session.spikes.length} desc={t("terminal.viz.kSpikesDesc")} tone={session.spikes.length ? "text-orange-400" : undefined} />
+                <Kpi label={t("terminal.viz.kSession")} value={`${Math.max(0, session.samples - 1) * 0.5}m`} desc={t("terminal.viz.kSessionDesc")} />
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <XCard
+                  title={t("terminal.viz.anomTitle")}
+                  desc={t("terminal.viz.anomDesc")}
+                  zoom={zAnom}
+                  hint={t("terminal.viz.anomHint")}
+                  render={(h) => (
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} />
+                          <XAxis type="number" dataKey="x" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zAnom.domX} allowDataOverflow />
+                          <YAxis type="number" dataKey="y" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zAnom.domY} allowDataOverflow />
+                          <Tooltip content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                          <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
+                          {agg.medFlow > 0 && <ReferenceLine y={agg.medFlow * 3} stroke={ORANGE} strokeDasharray="3 3" />}
+                          <Scatter data={agg.anomPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                            {agg.anomPts.map((p, i) => (
+                              <Cell key={i} fill={p.hot ? GOLD : p.dec ? CYAN : GRAYBAR} cursor="pointer" />
+                            ))}
+                          </Scatter>
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 />
-                <Kpi
-                  label={t("terminal.viz.kSpikes")}
-                  value={session.spikes.length}
-                  desc={t("terminal.viz.kSpikesDesc")}
-                  tone={session.spikes.length ? "text-orange-400" : undefined}
-                />
-                <Kpi
-                  label={t("terminal.viz.kSession")}
-                  value={`${Math.max(0, session.samples - 1) * 0.5}m`}
-                  desc={t("terminal.viz.kSessionDesc")}
+
+                <XCard
+                  title={t("terminal.viz.spikeTitle")}
+                  desc={t("terminal.viz.spikeDesc")}
+                  render={() =>
+                    session.spikes.length === 0 ? (
+                      <div className="py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
+                        {session.samples < 2 ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
+                      </div>
+                    ) : (
+                      <RankBars data={session.spikes.map((s) => ({ ...s, color: ORANGE }))} fmt={(v) => `${v.toFixed(1)}`} suffix="×" onPair={openPair} />
+                    )
+                  }
                 />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.anomTitle")} desc={t("terminal.viz.anomDesc")}>
-                  <div style={{ height: 280 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} />
-                        <XAxis type="number" dataKey="x" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} unit="%" domain={[-30, 30]} allowDataOverflow />
-                        <YAxis type="number" dataKey="y" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} unit="%" />
-                        <Tooltip content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                        <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                        {agg.medFlow > 0 && <ReferenceLine y={agg.medFlow * 3} stroke={ORANGE} strokeDasharray="3 3" />}
-                        <Scatter data={agg.anomPts} fillOpacity={0.85}>
-                          {agg.anomPts.map((p, i) => (
-                            <Cell key={i} fill={p.hot ? GOLD : p.dec ? CYAN : GRAYBAR} />
-                          ))}
-                        </Scatter>
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
-                    {t("terminal.viz.anomHint")}
-                  </div>
-                </Card>
-
-                <Card title={t("terminal.viz.spikeTitle")} desc={t("terminal.viz.spikeDesc")}>
-                  {session.spikes.length === 0 ? (
-                    <div className="py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
-                      {session.samples < 2 ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
-                    </div>
-                  ) : (
-                    <RankBars
-                      data={session.spikes.map((s) => ({ ...s, color: ORANGE }))}
-                      fmt={(v) => `${v.toFixed(1)}`}
-                      suffix="×"
-                    />
-                  )}
-                </Card>
+                <XCard title={t("terminal.viz.rsUpTitle")} desc={t("terminal.viz.rsUpDesc")} render={() => <RankBars data={rsTop} onPair={openPair} />} />
+                <XCard title={t("terminal.viz.rsDownTitle")} desc={t("terminal.viz.rsDownDesc")} render={() => <RankBars data={rsBottom} onPair={openPair} />} />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.rsUpTitle")} desc={t("terminal.viz.rsUpDesc")}>
-                  <RankBars data={rsTop} />
-                </Card>
-                <Card title={t("terminal.viz.rsDownTitle")} desc={t("terminal.viz.rsDownDesc")}>
-                  <RankBars data={rsBottom} />
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={`${t("terminal.viz.sessTitle")} ↑`} desc={t("terminal.viz.sessDesc")}>
-                  {session.samples < 2 ? (
-                    <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                      {t("terminal.viz.spikeWarming")}
-                    </div>
-                  ) : (
-                    <RankBars data={session.gain15} fmt={(v) => fmtPct(v, 2)} />
-                  )}
-                </Card>
-                <Card title={`${t("terminal.viz.sessTitle")} ↓`} desc={t("terminal.viz.sessDesc")}>
-                  {session.samples < 2 ? (
-                    <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                      {t("terminal.viz.spikeWarming")}
-                    </div>
-                  ) : (
-                    <RankBars data={session.lose15} fmt={(v) => fmtPct(v, 2)} />
-                  )}
-                </Card>
+                <XCard
+                  title={`${t("terminal.viz.sessTitle")} ↑`}
+                  desc={t("terminal.viz.sessDesc")}
+                  render={() =>
+                    session.samples < 2 ? (
+                      <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.spikeWarming")}</div>
+                    ) : (
+                      <RankBars data={session.gain15} fmt={(v) => fmtPct(v, 2)} onPair={openPair} />
+                    )
+                  }
+                />
+                <XCard
+                  title={`${t("terminal.viz.sessTitle")} ↓`}
+                  desc={t("terminal.viz.sessDesc")}
+                  render={() =>
+                    session.samples < 2 ? (
+                      <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.spikeWarming")}</div>
+                    ) : (
+                      <RankBars data={session.lose15} fmt={(v) => fmtPct(v, 2)} onPair={openPair} />
+                    )
+                  }
+                />
               </div>
             </>
           )}
@@ -918,68 +1038,101 @@ export default function SignalsAnalytics() {
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.fcDistTitle")} desc={t("terminal.viz.fcDistDesc")}>
-                  <div style={{ height: CHART_H }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={makeBins(fcClamped, 2, -20, 20)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} vertical={false} />
-                        <XAxis dataKey="x" tick={{ fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
-                        <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
-                        <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
-                          {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
-                            <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.75} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
+                <XCard
+                  title={t("terminal.viz.fcDistTitle")}
+                  desc={t("terminal.viz.fcDistDesc")}
+                  render={(h) => (
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={makeBins(fcClamped, 2, -20, 20)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} vertical={false} />
+                          <XAxis dataKey="x" tick={barTick} axisLine={false} tickLine={false} />
+                          <YAxis tick={scatterTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
+                          <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
+                            {makeBins(fcClamped, 2, -20, 20).map((b, i) => (
+                              <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.75} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                />
 
-                <Card title={t("terminal.viz.oppTitle")} desc={t("terminal.viz.oppDesc")}>
-                  <div style={{ height: CHART_H }}>
+                <XCard
+                  title={t("terminal.viz.oppTitle")}
+                  desc={t("terminal.viz.oppDesc")}
+                  zoom={zOpp}
+                  hint={t("terminal.viz.oppHint")}
+                  render={(h) => (
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} />
+                          <XAxis type="number" dataKey="x" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zOpp.domX} allowDataOverflow />
+                          <YAxis type="number" dataKey="y" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zOpp.domY} allowDataOverflow />
+                          <Tooltip content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                          <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
+                          <Scatter data={agg.scatterOpp} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                            {agg.scatterOpp.map((p, i) => (
+                              <Cell key={i} fill={RISK_COLORS[p.risk] || GRAYBAR} cursor="pointer" />
+                            ))}
+                          </Scatter>
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                />
+              </div>
+
+              <XCard
+                title={t("terminal.viz.peakTitle")}
+                desc={t("terminal.viz.peakDesc")}
+                zoom={zPeak}
+                hint={t("terminal.viz.peakHint")}
+                render={(h) => (
+                  <div style={{ height: Math.max(h, 280) }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                         <CartesianGrid stroke={GRID} />
-                        <XAxis type="number" dataKey="x" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} unit="%" domain={[-60, 60]} allowDataOverflow />
-                        <YAxis type="number" dataKey="y" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} unit="%" domain={[0, 120]} allowDataOverflow />
-                        <Tooltip content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                        <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
-                        <Scatter data={agg.scatterOpp} fillOpacity={0.8}>
-                          {agg.scatterOpp.map((p, i) => (
-                            <Cell key={i} fill={RISK_COLORS[p.risk] || GRAYBAR} />
+                        <XAxis type="number" dataKey="x" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zPeak.domX} allowDataOverflow />
+                        <YAxis type="number" dataKey="y" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zPeak.domY} allowDataOverflow />
+                        <Tooltip content={<ScatterTip xLabel="peak %" yLabel="now %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                        <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 150, y: 150 }]} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
+                        <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
+                        <Scatter data={agg.peakPts} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                          {agg.peakPts.map((p, i) => (
+                            <Cell key={i} fill={p.win ? GOLD : p.y >= 0 ? POS : NEG} cursor="pointer" />
                           ))}
                         </Scatter>
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
-                    {t("terminal.viz.oppHint")}
-                  </div>
-                </Card>
-              </div>
+                )}
+              />
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.topGainers")} desc={t("terminal.viz.topGainersDesc")}>
-                  <RankBars data={gainers} />
-                </Card>
-                <Card title={t("terminal.viz.topLosers")} desc={t("terminal.viz.topLosersDesc")}>
-                  <RankBars data={losers} />
-                </Card>
+                <XCard title={t("terminal.viz.topGainers")} desc={t("terminal.viz.topGainersDesc")} render={() => <RankBars data={gainers} onPair={openPair} />} />
+                <XCard title={t("terminal.viz.topLosers")} desc={t("terminal.viz.topLosersDesc")} render={() => <RankBars data={losers} onPair={openPair} />} />
               </div>
 
               {agg.suspects.length > 0 && (
-                <Card title={t("terminal.viz.suspectTitle")} desc={t("terminal.viz.suspectDesc")}>
-                  <div className="flex flex-wrap gap-1.5 py-2">
-                    {agg.suspects.slice(0, 30).map((s) => (
-                      <span key={s.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-warning/25 bg-warning/[0.06] font-mono text-[10px]">
-                        <span className="text-warning">{s.pair}</span>
-                        <span className="text-text-muted">{fmtPct(s.v, 0)}</span>
-                      </span>
-                    ))}
-                  </div>
-                </Card>
+                <XCard
+                  title={t("terminal.viz.suspectTitle")}
+                  desc={t("terminal.viz.suspectDesc")}
+                  render={() => (
+                    <div className="flex flex-wrap gap-1.5 py-2">
+                      {agg.suspects.slice(0, 30).map((s) => (
+                        <span key={s.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-warning/25 bg-warning/[0.06] font-mono text-[10px]">
+                          <CoinPill pair={s.pair} onPair={openPair} />
+                          <span className="text-text-muted">{fmtPct(s.v, 0)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                />
               )}
             </>
           )}
@@ -995,86 +1148,101 @@ export default function SignalsAnalytics() {
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.betaDistTitle")} desc={t("terminal.viz.betaDistDesc")}>
-                  <div style={{ height: CHART_H }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={makeBins(agg.betaVals, 0.25, 0, 2.5)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} vertical={false} />
-                        <XAxis dataKey="x" tick={{ fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
-                        <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
-                          {makeBins(agg.betaVals, 0.25, 0, 2.5).map((b, i) => (
-                            <Cell key={i} fill={b.mid < 0.8 ? POS : b.mid <= 1.2 ? GOLD : NEG} fillOpacity={0.8} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <LegendChips
-                    entries={[
-                      { key: "def", label: t("terminal.viz.betaDef"), value: agg.betaVals.filter((b) => b < 0.8).length, color: POS },
-                      { key: "neu", label: t("terminal.viz.betaNeu"), value: agg.betaVals.filter((b) => b >= 0.8 && b <= 1.2).length, color: GOLD },
-                      { key: "agg", label: t("terminal.viz.betaAgg"), value: agg.betaVals.filter((b) => b > 1.2).length, color: NEG },
-                    ]}
-                  />
-                </Card>
+                <XCard
+                  title={t("terminal.viz.betaDistTitle")}
+                  desc={t("terminal.viz.betaDistDesc")}
+                  render={(h) => (
+                    <>
+                      <div style={{ height: h }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={makeBins(agg.betaVals, 0.25, 0, 2.5)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                            <CartesianGrid stroke={GRID} vertical={false} />
+                            <XAxis dataKey="x" tick={barTick} axisLine={false} tickLine={false} />
+                            <YAxis tick={scatterTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                            <Bar dataKey="count" name="signals" radius={[2, 2, 0, 0]}>
+                              {makeBins(agg.betaVals, 0.25, 0, 2.5).map((b, i) => (
+                                <Cell key={i} fill={b.mid < 0.8 ? POS : b.mid <= 1.2 ? GOLD : NEG} fillOpacity={0.8} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <LegendChips
+                        entries={[
+                          { key: "def", label: t("terminal.viz.betaDef"), value: agg.betaVals.filter((b) => b < 0.8).length, color: POS },
+                          { key: "neu", label: t("terminal.viz.betaNeu"), value: agg.betaVals.filter((b) => b >= 0.8 && b <= 1.2).length, color: GOLD },
+                          { key: "agg", label: t("terminal.viz.betaAgg"), value: agg.betaVals.filter((b) => b > 1.2).length, color: NEG },
+                        ]}
+                      />
+                    </>
+                  )}
+                />
 
-                <Card title={t("terminal.viz.betaPerfTitle")} desc={t("terminal.viz.betaPerfDesc")}>
-                  <div style={{ height: CHART_H }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} />
-                        <XAxis type="number" dataKey="x" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} domain={[-0.5, 2.5]} allowDataOverflow />
-                        <YAxis type="number" dataKey="y" tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} unit="%" domain={[-60, 60]} allowDataOverflow />
-                        <Tooltip content={<ScatterTip xLabel="β 30d" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                        <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
-                        <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
-                        <Scatter data={agg.scatterBeta} fillOpacity={0.8}>
-                          {agg.scatterBeta.map((p, i) => (
-                            <Cell key={i} fill={p.dec ? CYAN : GRAYBAR} />
-                          ))}
-                        </Scatter>
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
-                    {t("terminal.viz.betaPerfHint")}
-                  </div>
-                </Card>
+                <XCard
+                  title={t("terminal.viz.betaPerfTitle")}
+                  desc={t("terminal.viz.betaPerfDesc")}
+                  zoom={zBeta}
+                  hint={t("terminal.viz.betaPerfHint")}
+                  render={(h) => (
+                    <div style={{ height: h }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} />
+                          <XAxis type="number" dataKey="x" tick={scatterTick} axisLine={false} tickLine={false} domain={zBeta.domX} allowDataOverflow />
+                          <YAxis type="number" dataKey="y" tick={scatterTick} axisLine={false} tickLine={false} unit="%" domain={zBeta.domY} allowDataOverflow />
+                          <Tooltip content={<ScatterTip xLabel="β 30d" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                          <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
+                          <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                          <Scatter data={agg.scatterBeta} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                            {agg.scatterBeta.map((p, i) => (
+                              <Cell key={i} fill={p.dec ? CYAN : GRAYBAR} cursor="pointer" />
+                            ))}
+                          </Scatter>
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.alignTitle")} desc={t("terminal.viz.alignDesc")}>
-                  <div style={{ height: 200 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={makeBins(agg.alignVals, 10, 0, 100)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                        <CartesianGrid stroke={GRID} vertical={false} />
-                        <XAxis dataKey="x" tick={{ fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
-                        <Bar dataKey="count" name="signals" fill={PURPLE} fillOpacity={0.8} radius={[2, 2, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-
-                <Card title={t("terminal.viz.decListTitle")} desc={t("terminal.viz.decListDesc")}>
-                  {agg.decoupledList.length === 0 ? (
-                    <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">
-                      {t("terminal.viz.none")}
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5 py-2">
-                      {agg.decoupledList.slice(0, 24).map((d) => (
-                        <span key={d.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-cyan-400/25 bg-cyan-400/[0.06] font-mono text-[10px]">
-                          <span className="text-cyan-300">{d.pair}</span>
-                          <span className={d.v >= 0 ? "text-positive" : "text-negative"}>{fmtPct(d.v)}</span>
-                        </span>
-                      ))}
+                <XCard
+                  title={t("terminal.viz.alignTitle")}
+                  desc={t("terminal.viz.alignDesc")}
+                  render={(h) => (
+                    <div style={{ height: Math.min(h, 220) }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={makeBins(agg.alignVals, 10, 0, 100)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                          <CartesianGrid stroke={GRID} vertical={false} />
+                          <XAxis dataKey="x" tick={barTick} axisLine={false} tickLine={false} />
+                          <YAxis tick={scatterTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <Bar dataKey="count" name="signals" fill={PURPLE} fillOpacity={0.8} radius={[2, 2, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   )}
-                </Card>
+                />
+
+                <XCard
+                  title={t("terminal.viz.decListTitle")}
+                  desc={t("terminal.viz.decListDesc")}
+                  render={() =>
+                    agg.decoupledList.length === 0 ? (
+                      <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.none")}</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 py-2">
+                        {agg.decoupledList.slice(0, 24).map((d) => (
+                          <span key={d.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-cyan-400/25 bg-cyan-400/[0.06] font-mono text-[10px]">
+                            <CoinPill pair={d.pair} onPair={openPair} />
+                            <span className={d.v >= 0 ? "text-positive" : "text-negative"}>{fmtPct(d.v)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  }
+                />
               </div>
             </>
           )}
@@ -1083,38 +1251,77 @@ export default function SignalsAnalytics() {
           {tab === "sectors" && (
             <>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                <Card title={t("terminal.viz.sectorCountTitle")} desc={t("terminal.viz.sectorCountDesc")}>
-                  <SectorBars
-                    data={agg.sectors.slice(0, 12)}
-                    dataKey="count"
-                    color={() => GOLD}
-                    fmt={(v) => v}
-                    onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
-                  />
-                </Card>
-                <Card title={t("terminal.viz.sectorFcTitle")} desc={t("terminal.viz.sectorFcDesc")}>
-                  <SectorBars
-                    data={agg.sectors.filter((s) => s.medFc != null).slice(0, 12)}
-                    dataKey="medFc"
-                    color={(v) => (v >= 0 ? POS : NEG)}
-                    fmt={(v) => fmtPct(v)}
-                    onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
-                    diverging
-                  />
-                </Card>
-              </div>
-              <Card title={t("terminal.viz.sectorTgtTitle")} desc={t("terminal.viz.sectorTgtDesc")}>
-                <SectorBars
-                  data={agg.sectors.filter((s) => s.medTgt != null).slice(0, 12)}
-                  dataKey="medTgt"
-                  color={() => GOLD}
-                  fmt={(v) => fmtPct(v, 0)}
-                  onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
+                <XCard
+                  title={t("terminal.viz.radarTitle")}
+                  desc={t("terminal.viz.radarDesc")}
+                  render={(h) => (
+                    <div style={{ height: Math.max(h, 260) }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={agg.sectors.filter((s) => s.sector !== "unclassified").slice(0, 7)} outerRadius="72%">
+                          <PolarGrid stroke="rgba(212,168,83,0.12)" />
+                          <PolarAngleAxis dataKey="sector" tick={{ fill: AXIS, fontSize: 9.5, fontFamily: "JetBrains Mono" }} />
+                          <Radar dataKey="count" name="signals" stroke={GOLD} fill={GOLD} fillOpacity={0.25} />
+                          <Tooltip content={<DarkTip />} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 />
-              </Card>
+                <XCard
+                  title={t("terminal.viz.sectorCountTitle")}
+                  desc={t("terminal.viz.sectorCountDesc")}
+                  render={() => (
+                    <SectorBars
+                      data={agg.sectors.slice(0, 12)}
+                      dataKey="count"
+                      color={() => GOLD}
+                      fmt={(v) => v}
+                      onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
+                    />
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <XCard
+                  title={t("terminal.viz.sectorFcTitle")}
+                  desc={t("terminal.viz.sectorFcDesc")}
+                  render={() => (
+                    <SectorBars
+                      data={agg.sectors.filter((s) => s.medFc != null).slice(0, 12)}
+                      dataKey="medFc"
+                      color={(v) => (v >= 0 ? POS : NEG)}
+                      fmt={(v) => fmtPct(v)}
+                      onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
+                      diverging
+                    />
+                  )}
+                />
+                <XCard
+                  title={t("terminal.viz.sectorTgtTitle")}
+                  desc={t("terminal.viz.sectorTgtDesc")}
+                  render={() => (
+                    <SectorBars
+                      data={agg.sectors.filter((s) => s.medTgt != null).slice(0, 12)}
+                      dataKey="medTgt"
+                      color={() => GOLD}
+                      fmt={(v) => fmtPct(v, 0)}
+                      onPick={(sec) => setF({ sectors: selSectors.includes(sec) ? "" : sec })}
+                    />
+                  )}
+                />
+              </div>
             </>
           )}
         </>
+      )}
+
+      {/* ── drill-down: latest call for a coin ── */}
+      {selectedSignal && (
+        <SignalModal
+          signal={selectedSignal}
+          isOpen={!!selectedSignal}
+          onClose={() => setSelectedSignal(null)}
+        />
       )}
     </div>
   );

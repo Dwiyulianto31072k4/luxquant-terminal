@@ -96,6 +96,7 @@ _SCREENER_SQL = f"""
         s.entry, s.target1, s.target2, s.target3, s.target4, s.stop1,
         s.created_at,
         s.market_cap,
+        s.peak_pct,
         s.volume_rank_num, s.volume_rank_den,
         -- normalized risk (raw column is dirty: high/High, med/Medium/Normal, low)
         CASE
@@ -225,6 +226,7 @@ def get_deep_screener(
                 "last_update_at": str(r["last_update_at"]) if r["last_update_at"] else None,
                 "risk_norm": r["risk_norm"],
                 "market_cap": r["market_cap"],
+                "peak_pct": _to_float(r["peak_pct"]),
                 "volume_rank_num": r["volume_rank_num"],
                 "volume_rank_den": r["volume_rank_den"],
                 # intel
