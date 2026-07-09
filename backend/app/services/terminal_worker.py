@@ -46,7 +46,11 @@ from app.core.leader import is_leader
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 
 SWEEP_INTERVAL = 120          # seconds between sweeps
-SLICE_SIZE = 120              # pairs per sweep for the heavy per-pair calls
+# Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
+# 3 calls × SLICE_SIZE per sweep (2 min) → keep ≤ 40 pairs/sweep
+# (= 3×40×2.5 = 300 req/5min, safely under). Full board coverage ≈ 20 min,
+# fine for 5m-period metrics. Klines (weight-based limit) can go faster.
+SLICE_SIZE = 40
 BLOB_KEY = "lq:terminal:deriv"
 BLOB_TTL = SWEEP_INTERVAL + 300   # generous floor; cache_set also keeps 10× stale
 
@@ -156,6 +160,9 @@ async def _sweep():
     for i, p in enumerate(deriv_pairs):
         try:
             r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": p})
+            if r.status_code in (418, 429):
+                print(f"⚠️ Terminal deriv: OI rate-limited ({r.status_code}) — stopping OI pass")
+                break
             if r.status_code == 200:
                 contracts = float(r.json().get("openInterest") or 0)
                 px = fut.get(p, {}).get("price") or 0
@@ -163,7 +170,7 @@ async def _sweep():
         except Exception:
             pass
         if i % 10 == 9:
-            await asyncio.sleep(0.5)   # ~20 req/s ceiling
+            await asyncio.sleep(1.0)   # ~10 req/s ceiling — polite to the shared IP
 
     # ── 4) SLOW metrics for a rotating slice (LSR/topLSR/taker/RSI) ─
     slice_pairs = deriv_pairs[_slice_cursor:_slice_cursor + SLICE_SIZE]
@@ -174,47 +181,48 @@ async def _sweep():
     if _slice_cursor >= len(deriv_pairs):
         _slice_cursor = 0
 
+    throttled = False  # emergency brake — 429/418 means the WHOLE IP is at risk
     for i, p in enumerate(slice_pairs):
+        if throttled:
+            break
         slow = _slow.setdefault(p, {})
-        try:
-            r = await client.get(
-                f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
-                params={"symbol": p, "period": "5m", "limit": 1},
-            )
-            if r.status_code == 200 and r.json():
-                slow["lsr"] = round(float(r.json()[0].get("longShortRatio") or 0), 3)
-        except Exception:
-            pass
-        try:
-            r = await client.get(
-                f"{BINANCE_FUTURES_API}/futures/data/topLongShortPositionRatio",
-                params={"symbol": p, "period": "5m", "limit": 1},
-            )
-            if r.status_code == 200 and r.json():
-                slow["top_lsr"] = round(float(r.json()[0].get("longShortRatio") or 0), 3)
-        except Exception:
-            pass
-        try:
-            r = await client.get(
-                f"{BINANCE_FUTURES_API}/futures/data/takerlongshortRatio",
-                params={"symbol": p, "period": "5m", "limit": 1},
-            )
-            if r.status_code == 200 and r.json():
-                slow["taker"] = round(float(r.json()[0].get("buySellRatio") or 0), 3)
-        except Exception:
-            pass
+        for url, key, field in (
+            ("/futures/data/globalLongShortAccountRatio", "lsr", "longShortRatio"),
+            ("/futures/data/topLongShortPositionRatio", "top_lsr", "longShortRatio"),
+            ("/futures/data/takerlongshortRatio", "taker", "buySellRatio"),
+        ):
+            try:
+                r = await client.get(
+                    f"{BINANCE_FUTURES_API}{url}",
+                    params={"symbol": p, "period": "5m", "limit": 1},
+                )
+                if r.status_code in (418, 429):
+                    print(f"⚠️ Terminal deriv: rate-limited ({r.status_code}) — aborting slice, backing off")
+                    throttled = True
+                    break
+                if r.status_code == 200 and r.json():
+                    slow[key] = round(float(r.json()[0].get(field) or 0), 3)
+            except Exception:
+                pass
+            await asyncio.sleep(0.35)  # ≤ ~3 req/s on the strict futures/data pool
+        if throttled:
+            break
         try:
             r = await client.get(
                 f"{BINANCE_FUTURES_API}/fapi/v1/klines",
                 params={"symbol": p, "interval": "1h", "limit": 20},
             )
+            if r.status_code in (418, 429):
+                throttled = True
+                break
             if r.status_code == 200:
                 closes = [float(k[4]) for k in r.json()]
                 slow["rsi"] = _rsi14(closes)
         except Exception:
             pass
-        if i % 5 == 4:
-            await asyncio.sleep(0.5)
+        await asyncio.sleep(0.15)
+    if throttled:
+        await asyncio.sleep(60)  # cool the IP before the next sweep
 
     # ── 5) assemble blob ───────────────────────────────────────────
     for p in pairs:
