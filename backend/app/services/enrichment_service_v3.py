@@ -997,13 +997,15 @@ def tag_htf_bias(facts: dict, signal_dir: str) -> list:
 
 
 def tag_mtf_alignment(facts: dict, signal_dir: str) -> list:
-    """Generate MTF alignment tags."""
+    """Generate MTF alignment tags. (Fixed version)"""
     tags = []
     by_tf = facts.get("by_timeframe", {})
-    m15 = by_tf.get("m15", {}).get("trend", {}).get("trend")
-    h1 = by_tf.get("h1", {}).get("trend", {}).get("trend")
-    h4 = by_tf.get("h4", {}).get("trend", {}).get("trend")
 
+    m15 = by_tf.get("m15", {}).get("trend", {}).get("trend")
+    h1  = by_tf.get("h1", {}).get("trend", {}).get("trend")
+    h4  = by_tf.get("h4", {}).get("trend", {}).get("trend")
+
+    # === MTF Alignment ===
     if m15 == h1 == h4 and m15 in ("BULLISH", "BEARISH"):
         tags.append("MTF_FULL_ALIGNED")
         if m15 == "BULLISH":
@@ -1017,11 +1019,11 @@ def tag_mtf_alignment(facts: dict, signal_dir: str) -> list:
     else:
         tags.append("MTF_DIVERGENT")
 
-    # Against HTF
+    # === Against HTF ===
     if h4 in ("BULLISH", "BEARISH") and h4 != signal_dir:
         tags.append("MTF_AGAINST_HTF")
 
-    # Trend strong on H1
+    # === H1 Trend Strength ===
     h1_strength = by_tf.get("h1", {}).get("trend", {}).get("trend_strength")
     if h1_strength == "STRONG":
         tags.append("TREND_STRONG_H1")
@@ -1403,7 +1405,7 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
     structure = build_structure_facts(h1_df, m15_df, h4_df, entry_price, signal_dir, signal)
     context = build_context_facts(redis_client, base_symbol, vol_24h, atr_h4_pct)
 
-    # ── Assemble facts ──
+        # ── Assemble facts ──
     facts = {
         "by_timeframe": by_tf,
         "entry_quality": entry_quality,
@@ -1437,6 +1439,25 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
             "important_tag_count": sum(1 for t in tags if t in IMPORTANT_TAGS),
             "structure_available": structure["smc"]["available"],
         },
+    }
+
+    # ============================================================
+    # LEGACY MTF FIELDS (untuk backward compatibility)
+    # ============================================================
+    h4_trend = by_tf.get("h4", {}).get("trend", {})
+    h1_trend = by_tf.get("h1", {}).get("trend", {})
+    m15_trend = by_tf.get("m15", {}).get("trend", {})
+
+    snapshot["legacy_mtf"] = {
+        "mtf_h4_trend": h4_trend.get("trend"),
+        "mtf_h1_trend": h1_trend.get("trend"),
+        "mtf_m15_trend": m15_trend.get("trend"),
+        "signal_direction": signal_dir,
+        "mtf_detail": _to_jsonable({
+            "h4": h4_trend,
+            "h1": h1_trend,
+            "m15": m15_trend,
+        }),
     }
 
     return _to_jsonable(snapshot)

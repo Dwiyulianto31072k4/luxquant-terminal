@@ -188,15 +188,22 @@ def update_enrichment_status(signal_id: str, status: str):
         """), {"status": status, "sid": signal_id})
 
 
-def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
-                          signal_direction: str):
+def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict):
     """
     Save entry snapshot (frozen forever).
     Also initializes live_snapshot with the same value.
-    Preserves legacy columns with default values for backward compat.
+    Now also saves legacy MTF columns from snapshot["legacy_mtf"].
     """
     snapshot_json = json.dumps(snapshot)
     now = datetime.now(timezone.utc)
+
+    # Ambil legacy MTF fields jika ada
+    legacy = snapshot.get("legacy_mtf", {}) or {}
+    mtf_h4 = legacy.get("mtf_h4_trend")
+    mtf_h1 = legacy.get("mtf_h1_trend")
+    mtf_m15 = legacy.get("mtf_m15_trend")
+    sig_dir = legacy.get("signal_direction") or snapshot.get("signal_direction", "BULLISH")
+    mtf_detail_json = json.dumps(legacy.get("mtf_detail", {}))
 
     with engine.begin() as conn:
         conn.execute(text("""
@@ -205,21 +212,29 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
                 entry_snapshot, live_snapshot, live_updated_at,
                 confidence_score, rating, regime,
                 score_breakdown, weights_used,
-                signal_direction, mtf_detail, patterns_detected, smc_detail,
+                mtf_h4_trend, mtf_h1_trend, mtf_m15_trend,
+                signal_direction, mtf_detail,
+                patterns_detected, smc_detail,
                 analyzed_at, enrichment_version
             ) VALUES (
                 :signal_id, :pair,
                 CAST(:entry_snapshot AS jsonb), CAST(:live_snapshot AS jsonb), :live_updated_at,
                 0, 'N/A', 'normal',
                 CAST('{}' AS jsonb), CAST('{}' AS jsonb),
-                :signal_direction, CAST('{}' AS jsonb), CAST('[]' AS jsonb), CAST('{}' AS jsonb),
+                :mtf_h4_trend, :mtf_h1_trend, :mtf_m15_trend,
+                :signal_direction, CAST(:mtf_detail AS jsonb),
+                CAST('[]' AS jsonb), CAST('{}' AS jsonb),
                 :analyzed_at, :version
             )
             ON CONFLICT (signal_id) DO UPDATE SET
                 entry_snapshot = EXCLUDED.entry_snapshot,
                 live_snapshot = EXCLUDED.live_snapshot,
                 live_updated_at = EXCLUDED.live_updated_at,
+                mtf_h4_trend = EXCLUDED.mtf_h4_trend,
+                mtf_h1_trend = EXCLUDED.mtf_h1_trend,
+                mtf_m15_trend = EXCLUDED.mtf_m15_trend,
                 signal_direction = EXCLUDED.signal_direction,
+                mtf_detail = EXCLUDED.mtf_detail,
                 analyzed_at = EXCLUDED.analyzed_at,
                 enrichment_version = EXCLUDED.enrichment_version
         """), {
@@ -228,7 +243,11 @@ def upsert_entry_snapshot(signal_id: str, pair: str, snapshot: dict,
             "entry_snapshot": snapshot_json,
             "live_snapshot": snapshot_json,
             "live_updated_at": now,
-            "signal_direction": signal_direction,
+            "mtf_h4_trend": mtf_h4,
+            "mtf_h1_trend": mtf_h1,
+            "mtf_m15_trend": mtf_m15,
+            "signal_direction": sig_dir,
+            "mtf_detail": mtf_detail_json,
             "analyzed_at": now,
             "version": ENRICHMENT_VERSION,
         })
@@ -352,7 +371,7 @@ async def process_signal_entry(signal: dict, dry_run: bool = False) -> dict:
 
     if not dry_run:
         try:
-            upsert_entry_snapshot(sid, pair, snapshot, signal_dir)
+            upsert_entry_snapshot(sid, pair, snapshot)
             update_enrichment_status(sid, "done")
             logger.info(f"[ENTRY {short_id}] Saved to DB")
         except Exception as e:
