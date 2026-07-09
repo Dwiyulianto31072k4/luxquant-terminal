@@ -63,9 +63,9 @@ export default function TerminalLayout() {
   };
 
   return (
-    <div>
+    <div className="flex flex-col lg:h-[calc(100vh-7rem)] lg:overflow-hidden">
       {/* ── breadcrumb strip ── */}
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             onClick={() => navigate("/signals")}
@@ -86,7 +86,7 @@ export default function TerminalLayout() {
       </div>
 
       {/* ── mobile: horizontal chips ── */}
-      <div className="lg:hidden -mx-3 px-3 mb-3 flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="shrink-0 lg:hidden -mx-3 px-3 mb-3 flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {ALL_ITEMS.map(([id, route]) => (
           <button
             key={id}
@@ -103,9 +103,9 @@ export default function TerminalLayout() {
         ))}
       </div>
 
-      <div className="flex gap-4 items-start">
+      <div className="flex gap-4 items-stretch lg:flex-1 lg:min-h-0">
         {/* ── Allium-style left sidebar ── */}
-        <aside className="hidden lg:block w-[196px] shrink-0 sticky top-[80px]">
+        <aside className="hidden lg:block w-[196px] shrink-0 lg:overflow-y-auto lg:pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
           <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
             <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
             <nav className="p-2 space-y-3">
@@ -147,8 +147,9 @@ export default function TerminalLayout() {
           </div>
         </aside>
 
-        {/* ── content ── */}
-        <main className="flex-1 min-w-0">
+        {/* ── content — own scroll region (Allium): never bleeds under the
+            global header, page no longer grows forever ── */}
+        <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
           <Outlet />
         </main>
       </div>

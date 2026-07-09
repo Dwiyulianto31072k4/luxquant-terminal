@@ -360,13 +360,13 @@ export default function SignalsAnalytics() {
   // ════════════════════════════════════════════════════════════
   return (
     <div className="space-y-3">
-      {/* ── filter row + live BTC + freshness ── */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* ── filter row + live BTC + freshness — sticky & solid (Allium) ── */}
+      <div className="sticky top-0 z-30 flex items-center gap-2 flex-wrap bg-[#0a0806] border-b border-white/[0.07] px-1 py-2 -mx-0.5 rounded-b-md">
         <input
           value={filters.q}
           onChange={(e) => setF({ q: e.target.value })}
           placeholder={t("terminal.viz.searchPair")}
-          className="w-36 bg-white/[0.03] border border-white/[0.08] rounded-md px-3 py-1.5 text-[11.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+          className="w-36 bg-[#15120d] border border-white/[0.1] rounded-md px-3 py-1.5 text-[11.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
         />
         <div className="flex gap-1">
           {["all", ...STATUS_ORDER].map((s) => (

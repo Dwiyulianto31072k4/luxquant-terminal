@@ -3,6 +3,11 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { classifyCoin } from "./coinIntelShared";
 import CoinLogo from "./CoinLogo";
 import {
+  ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+  CartesianGrid, Tooltip, Cell,
+} from "recharts";
+import { GOLD, GRID, AXIS, TICK_SM } from "./terminal/vizShared";
+import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
   parseMcap, maxTargetPct,
 } from "../utils/signalFilters";
@@ -279,7 +284,7 @@ export default function SignalTerminalPage() {
       <div className="flex flex-wrap items-center gap-2">
         {[["treemap", "Treemap"], ["bubble", "Bubble"], ["matrix", "Matrix"], ["sector", "Sectors"]].map(([v, l]) => (
           <button key={v} onClick={() => setView(v)}
-            className={`font-mono text-[11px] uppercase tracking-wide px-4 py-2 rounded-lg transition-colors ${view === v ? "text-gold-primary border border-gold-primary/35 bg-gold-primary/[0.07]" : "text-white/55 bg-white/[0.02] hover:bg-white/[0.04]"}`}>{l}</button>
+            className={`font-mono text-[11px] uppercase tracking-wide px-4 py-2 rounded-lg border transition-colors ${view === v ? "text-gold-primary border-gold-primary/40 bg-gold-primary/[0.12]" : "text-white/55 border-white/[0.08] bg-[#15120d] hover:bg-[#1c1811]"}`}>{l}</button>
         ))}
         <div className="flex-1" />
         {view === "treemap" && (
@@ -348,7 +353,7 @@ function FilterBar({ filters, setF }) {
   const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-gold-primary border-gold-primary/40 bg-gold-primary/[0.08]" : "text-white/55 border-white/[0.08] bg-[#0a0506] hover:border-white/20"}`;
   const sel = "appearance-none bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-xs text-white/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-3 flex flex-wrap gap-2.5 items-center">
+    <div className="sticky top-0 z-30 bg-[#0a0806] border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
       <div className="relative">
         <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
         <input value={filters.searchPair} onChange={(e) => setF({ searchPair: e.target.value })} placeholder="Search pair…"
@@ -430,11 +435,16 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
     ro.observe(el); setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
-  const H = 420;
+  const H = 380;
   const sm = METRICS[sizeBy];
-  const items = model.map((d) => ({ v: Math.max(sm.get(d) || 0, 1e-6), d })).sort((a, b) => b.v - a.v);
+  // √-scale the size metric so a few mega-caps (BTC/ETH) don't swallow the
+  // canvas and small caps stay legible — you can actually SEE the smallest.
+  const items = model
+    .map((d) => ({ v: Math.sqrt(Math.max(sm.get(d) || 0, 0)) + 0.5, d }))
+    .sort((a, b) => b.v - a.v);
   const rects = squarify(items, 0, 0, w, H);
   return (
+    <>
     <div ref={ref} className="relative w-full overflow-hidden rounded-lg" style={{ height: H }}>
       {rects.map((r) => {
         const d = r.d, big = r.w > 58 && r.h > 34, fs = Math.max(9, Math.min(14, r.w / 6));
@@ -453,33 +463,62 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
         );
       })}
     </div>
+    <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+      tile size = {sm.lbl} (√-scaled) · color = {METRICS[colorBy].lbl} · click → latest call
+    </div>
+    </>
   );
 }
 
-// ── Bubble ──
-function Bubble({ model, colorBy, onPick }) {
-  const W = 900, H = 420, pad = { l: 48, r: 16, t: 16, b: 40 };
-  const gx = (d) => d.flow_intensity * 100, gy = (d) => d.win_rate ?? 0;
-  const xs = model.map(gx), ys = model.map(gy);
-  const xmn = Math.min(...xs), xmx = Math.max(...xs), ymn = Math.min(...ys), ymx = Math.max(...ys);
-  const px = (v) => pad.l + ((v - xmn) / ((xmx - xmn) || 1)) * (W - pad.l - pad.r);
-  const py = (v) => H - pad.b - ((v - ymn) / ((ymx - ymn) || 1)) * (H - pad.t - pad.b);
-  const mcmx = Math.max(...model.map((d) => d.market_cap || 0), 1);
+// ── Bubble (recharts ScatterChart — log-x so it isn't crammed; bubble = mcap) ──
+function BubbleTip({ active, payload, colorBy }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload?.d;
+  if (!d) return null;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 420 }}>
-      {[0, 1, 2, 3, 4].map((i) => <line key={i} x1={pad.l} x2={W - pad.r} y1={pad.t + (i / 4) * (H - pad.t - pad.b)} y2={pad.t + (i / 4) * (H - pad.t - pad.b)} stroke="rgba(255,255,255,.05)" />)}
-      <text x={W / 2} y={H - 8} textAnchor="middle" fontFamily="monospace" fontSize="9" fill="rgba(255,255,255,.35)">VOL / MCAP →</text>
-      <text transform={`translate(14,${H / 2}) rotate(-90)`} textAnchor="middle" fontFamily="monospace" fontSize="9" fill="rgba(255,255,255,.35)">WIN RATE →</text>
-      {model.map((d) => {
-        const r = 6 + Math.sqrt((d.market_cap || 0) / mcmx) * 26;
-        return (
-          <g key={d.signal_id} onClick={() => onPick(d)} style={{ cursor: "pointer" }}>
-            <circle cx={px(gx(d))} cy={py(gy(d))} r={r} fill={colorByMetric(d, colorBy, model)} fillOpacity="0.82" stroke="rgba(0,0,0,.4)" />
-            {r > 14 && <text x={px(gx(d))} y={py(gy(d)) + 3} textAnchor="middle" fontFamily="monospace" fontSize="8" fontWeight="700" fill="#0a0506">{d.sym}</text>}
-          </g>
-        );
-      })}
-    </svg>
+    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{d.sym}</span></div>
+      <div className="text-white/55">Win rate: <span className="text-white/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
+      <div className="text-white/55">Vol/MCap: <span className="text-white/90">{(d.flow_intensity * 100).toFixed(2)}%</span></div>
+      <div className="text-white/55">MCap: <span className="text-white/90">${shortNum(d.market_cap)}</span></div>
+      <div className="text-white/55">{METRICS[colorBy].lbl}: <span className="text-white/90">{METRICS[colorBy].get(d) == null ? "—" : METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</span></div>
+    </div>
+  );
+}
+function Bubble({ model, colorBy, onPick }) {
+  const data = model.map((d) => ({
+    x: Math.max((d.flow_intensity || 0) * 100, 0.05), // clamp for log scale
+    y: d.win_rate ?? 0,
+    z: Math.max(d.market_cap || 1, 1),
+    d,
+  }));
+  return (
+    <div style={{ height: 380 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ScatterChart margin={{ top: 12, right: 18, left: 6, bottom: 24 }}>
+          <CartesianGrid stroke={GRID} />
+          <XAxis
+            type="number" dataKey="x" scale="log" domain={[0.05, "auto"]} allowDataOverflow
+            tick={TICK_SM} axisLine={false} tickLine={false} unit="%"
+            label={{ value: "VOL / MCAP (log)", position: "insideBottom", offset: -10, fill: AXIS, fontSize: 9, fontFamily: "monospace" }}
+          />
+          <YAxis
+            type="number" dataKey="y" domain={[0, 100]} tick={TICK_SM} axisLine={false} tickLine={false} unit="%"
+            label={{ value: "WIN RATE", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }}
+          />
+          <ZAxis type="number" dataKey="z" range={[36, 640]} />
+          <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={colorBy} />} />
+          <Scatter data={data} onClick={(p) => { const o = p?.payload || p; if (o?.d) onPick(o.d); }}>
+            {data.map((p, i) => (
+              <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, colorBy, model)} fillOpacity={0.82} stroke="rgba(0,0,0,0.45)" />
+            ))}
+          </Scatter>
+        </ScatterChart>
+      </ResponsiveContainer>
+      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+        bubble size = market cap · color = {METRICS[colorBy].lbl} · click → latest call
+      </div>
+    </div>
   );
 }
 
@@ -539,7 +578,7 @@ function SectorView({ model, colorBy, onPick }) {
           <div key={k} className="bg-[#0a0506] border border-white/[0.06] rounded-xl p-3">
             <div className="font-mono text-xs font-semibold text-white mb-0.5">{k} risk</div>
             <div className="font-mono text-[9px] uppercase tracking-wide text-white/35 mb-2">{list.length} signals</div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gold-primary/20 [&::-webkit-scrollbar-thumb]:rounded-full">
               {list.map((d) => {
                 const v = METRICS[colorBy].get(d) ?? 0;
                 return (
