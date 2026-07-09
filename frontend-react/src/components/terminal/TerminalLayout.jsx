@@ -22,7 +22,8 @@ export function TerminalIndexRedirect() {
 const GROUPS = [
   { g: "gSignals", items: [["confluence", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
   { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"]] },
-  { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["sectors", "scan"], ["map", "map"]] },
+  { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["sectors", "scan"]] },
+  { g: "gMarketMap", items: [["treemap", "map"], ["bubble", "map"], ["matrix", "map"]] },
 ];
 const ALL_ITEMS = GROUPS.flatMap((x) => x.items);
 
@@ -41,6 +42,9 @@ const ICON_PATHS = {
   btc: <><circle cx="12" cy="12" r="9.2" opacity="0.5" /><path d="M10 7h3.2c1.6 0 2.6 1 2.6 2.3 0 1-.6 1.7-1.4 2 1 .3 1.7 1.1 1.7 2.2 0 1.5-1.1 2.5-2.9 2.5H10zm2 2v2h1.1c.7 0 1.1-.4 1.1-1s-.4-1-1.1-1zm0 3.6V15h1.3c.8 0 1.2-.4 1.2-1.1s-.5-1.1-1.3-1.1zM11 5h1.5v2H11zm0 12h1.5v2H11z" /></>,
   sectors: <><path d="M12 3a9 9 0 1 0 9 9h-9z" opacity="0.55" /><path d="M11 3v8H3a9 9 0 0 1 8-8z" /></>,
   map: <><rect x="3" y="3" width="11" height="18" rx="1.4" /><rect x="15" y="3" width="6" height="8" rx="1.4" opacity="0.6" /><rect x="15" y="13" width="6" height="8" rx="1.4" opacity="0.6" /></>,
+  treemap: <><rect x="3" y="3" width="11" height="18" rx="1.4" /><rect x="15" y="3" width="6" height="8" rx="1.4" opacity="0.6" /><rect x="15" y="13" width="6" height="8" rx="1.4" opacity="0.6" /></>,
+  bubble: <><circle cx="8" cy="14" r="4.5" /><circle cx="16" cy="8" r="3" opacity="0.6" /><circle cx="18" cy="17" r="2.2" opacity="0.6" /></>,
+  matrix: <><rect x="3" y="3" width="5" height="5" rx="1" /><rect x="10" y="3" width="5" height="5" rx="1" opacity="0.6" /><rect x="17" y="3" width="4" height="5" rx="1" /><rect x="3" y="10" width="5" height="5" rx="1" opacity="0.6" /><rect x="10" y="10" width="5" height="5" rx="1" /><rect x="17" y="10" width="4" height="5" rx="1" opacity="0.6" /><rect x="3" y="17" width="5" height="4" rx="1" /><rect x="10" y="17" width="5" height="4" rx="1" opacity="0.6" /><rect x="17" y="17" width="4" height="4" rx="1" /></>,
 };
 const TabIcon = ({ id }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-[15px] h-[15px] shrink-0" aria-hidden="true">
@@ -55,10 +59,10 @@ export default function TerminalLayout() {
   const [searchParams] = useSearchParams();
 
   const isMap = location.pathname.startsWith("/terminal/map");
-  const active = isMap ? "map" : searchParams.get("tab") || "confluence";
+  const active = isMap ? (searchParams.get("view") || "treemap") : searchParams.get("tab") || "confluence";
 
   const go = (id, route) => {
-    if (route === "map") navigate("/terminal/map");
+    if (route === "map") navigate(`/terminal/map?view=${id}`);
     else navigate(`/terminal/scan${id === "confluence" ? "" : `?tab=${id}`}`);
   };
 

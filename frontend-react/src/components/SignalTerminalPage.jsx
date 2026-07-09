@@ -4,7 +4,7 @@ import { classifyCoin } from "./coinIntelShared";
 import CoinLogo from "./CoinLogo";
 import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
-  CartesianGrid, Tooltip, Cell,
+  CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
 import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph } from "./terminal/vizShared";
 import {
@@ -103,17 +103,21 @@ export default function SignalTerminalPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // which market-map view — now driven by the left nav (?view=)
+  const view = searchParams.get("view") || "treemap";
+
   // filters initialized from URL (carried from Potential Trades)
   const [filters, setFilters] = useState(() => parseFilters(searchParams));
   const setF = (patch) => {
     const next = { ...filters, ...patch };
     setFilters(next);
-    setSearchParams(filtersToParams(next), { replace: true });
+    const p = filtersToParams(next);
+    p.set("view", view); // preserve which view the nav selected
+    setSearchParams(p, { replace: true });
   };
 
-  const [view, setView] = useState("treemap");
   const [sizeBy, setSizeBy] = useState("market_cap");
-  const [colorBy, setColorBy] = useState("max_target");
+  const [colorBy, setColorBy] = useState(() => (searchParams.get("view") === "bubble" ? "price_change_24h" : "max_target"));
 
   const authHeaders = () => {
     const token = localStorage.getItem("access_token");
@@ -249,24 +253,16 @@ export default function SignalTerminalPage() {
       {/* Filter bar (parity with Potential Trades) */}
       <FilterBar filters={filters} setF={setF} coinIntel={coinIntel} verdictByPair={verdictByPair} signals={signals} />
 
-      {/* View tabs + encoders */}
+      {/* encoders — view itself is chosen from the left nav now */}
       <div className="flex flex-wrap items-center gap-2">
-        {[["treemap", "Treemap"], ["bubble", "Bubble"], ["matrix", "Matrix"], ["sector", "Sectors"]].map(([v, l]) => (
-          <button key={v} onClick={() => setView(v)}
-            className={`font-mono text-[11px] uppercase tracking-wide px-4 py-2 rounded-lg border transition-colors ${view === v ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-white/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`}>{l}</button>
-        ))}
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-primary/80">{view}</span>
         <div className="flex-1" />
-        {view === "treemap" && (
-          <>
-            <Enc label="Size" value={sizeBy} onChange={setSizeBy} />
-            <Enc label="Color" value={colorBy} onChange={setColorBy} />
-          </>
-        )}
-        {(view === "bubble" || view === "matrix" || view === "sector") && <Enc label="Color" value={colorBy} onChange={setColorBy} />}
+        {view === "treemap" && <Enc label="Size" value={sizeBy} onChange={setSizeBy} />}
+        <Enc label="Color" value={colorBy} onChange={setColorBy} />
       </div>
 
-      {/* Macro strip */}
-      <MacroStrip macro={macro} sectors={sectors} model={model} />
+      {/* Macro strip — market context, shown on the treemap overview */}
+      {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={model} />}
 
       {/* Main stage */}
       <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] p-4 relative overflow-hidden">
@@ -454,38 +450,47 @@ function BubbleTip({ active, payload, colorBy }) {
     </div>
   );
 }
+const fmtLogTick = (v) => {
+  if (v == null) return "";
+  if (v >= 100) return Math.round(v) + "%";
+  if (v >= 10) return v.toFixed(0) + "%";
+  if (v >= 1) return v.toFixed(1) + "%";
+  return v.toFixed(2) + "%";
+};
 function Bubble({ model, colorBy, onPick }) {
   const data = model.map((d) => ({
-    x: Math.max((d.flow_intensity || 0) * 100, 0.05), // clamp for log scale
+    x: Math.min(Math.max((d.flow_intensity || 0) * 100, 0.05), 5000), // clamp for log scale
     y: d.win_rate ?? 0,
     z: Math.max(d.market_cap || 1, 1),
     d,
   }));
   return (
-    <div style={{ height: 380 }}>
+    <div style={{ height: 480 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 12, right: 18, left: 6, bottom: 24 }}>
-          <CartesianGrid stroke={GRID} />
+        <ScatterChart margin={{ top: 14, right: 22, left: 8, bottom: 28 }}>
+          <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
           <XAxis
             type="number" dataKey="x" scale="log" domain={[0.05, "auto"]} allowDataOverflow
-            tick={TICK_SM} axisLine={false} tickLine={false} unit="%"
-            label={{ value: "VOL / MCAP (log)", position: "insideBottom", offset: -10, fill: AXIS, fontSize: 9, fontFamily: "monospace" }}
+            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtLogTick}
+            label={{ value: "VOLUME / MARKET CAP  (log scale — turnover)", position: "insideBottom", offset: -12, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }}
           />
           <YAxis
-            type="number" dataKey="y" domain={[0, 100]} tick={TICK_SM} axisLine={false} tickLine={false} unit="%"
-            label={{ value: "WIN RATE", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }}
+            type="number" dataKey="y" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
+            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"}
+            label={{ value: "WIN RATE", angle: -90, position: "insideLeft", offset: 16, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }}
           />
-          <ZAxis type="number" dataKey="z" range={[36, 640]} />
+          <ZAxis type="number" dataKey="z" range={[26, 460]} />
+          <ReferenceLine y={50} stroke="rgba(212,168,83,0.35)" strokeDasharray="4 4" />
           <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={colorBy} />} />
           <Scatter data={data} onClick={(p) => { const o = p?.payload || p; if (o?.d) onPick(o.d); }}>
             {data.map((p, i) => (
-              <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, colorBy, model)} fillOpacity={0.82} stroke="rgba(0,0,0,0.45)" />
+              <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, colorBy, model)} fillOpacity={0.55} stroke="rgba(0,0,0,0.55)" strokeWidth={0.5} />
             ))}
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
       <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
-        bubble size = market cap · color = {METRICS[colorBy].lbl} · click → latest call
+        each bubble = one coin · size = market cap · color = {METRICS[colorBy].lbl} · gold line = 50% win rate · click → latest call
       </div>
     </div>
   );
