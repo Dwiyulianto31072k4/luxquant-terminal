@@ -70,24 +70,23 @@ export default function SignalsAnalytics() {
   };
   const resetF = () => setF({ ...DEFAULTS, tab });
 
-  // hydrate last session instantly, refresh silently
+  // hydrate last session instantly, refresh silently.
+  // ONE backend worker fills EVERYTHING (prices, 15m movers, volume spikes,
+  // funding/OI/LSR/RSI) into a Redis blob every minute — the page only READS.
   const seedRef = useRef(hydrate());
   const [data, setData] = useState(seedRef.current.data || null);
   const [deriv, setDeriv] = useState(seedRef.current.deriv || null);
-  const [prices, setPrices] = useState(seedRef.current.prices || {});
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
-  const [tick, setTick] = useState(0);
-  const histRef = useRef(new Map());
   const [selectedSignal, setSelectedSignal] = useState(null);
 
-  // persist to localStorage (throttled by effect cadence)
+  // persist to localStorage
   useEffect(() => {
     if (!data) return;
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, prices }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv }));
     } catch { /* quota — skip */ }
-  }, [data, deriv, prices]);
+  }, [data, deriv]);
 
   const fetchData = useCallback(async () => {
     setError(null);
@@ -114,8 +113,9 @@ export default function SignalsAnalytics() {
   useEffect(() => {
     fetchData();
     fetchDeriv();
-    const iv = setInterval(() => { fetchData(); fetchDeriv(); }, 60000);
-    return () => clearInterval(iv);
+    const ivData = setInterval(fetchData, 60000);
+    const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); };
   }, [fetchData, fetchDeriv]);
 
   const items = data?.items || [];
@@ -141,50 +141,12 @@ export default function SignalsAnalytics() {
     }
   }, [latestByPair]);
 
-  // ── live prices poll + rolling history ─────────────────────────
-  const allPairs = useMemo(() => {
-    const s = new Set(items.map((x) => x.pair).filter(Boolean));
-    s.add("BTCUSDT");
-    return [...s];
-  }, [items]);
-  const pairsKey = allPairs.join(",");
-  useEffect(() => {
-    if (!allPairs.length) return;
-    let alive = true;
-    const run = async () => {
-      const acc = {};
-      for (let i = 0; i < allPairs.length; i += 100) {
-        const batch = allPairs.slice(i, i + 100);
-        try {
-          const r = await fetch(`${API_BASE}/api/v1/market/prices?symbols=${batch.join(",")}`);
-          if (r.ok) Object.assign(acc, await r.json());
-        } catch { /* noop */ }
-      }
-      if (!alive) return;
-      const now = Date.now();
-      Object.entries(acc).forEach(([pair, d]) => {
-        const price = typeof d === "number" ? d : d?.price;
-        const vol = typeof d === "number" ? null : d?.volume;
-        if (!price) return;
-        const h = histRef.current.get(pair) || [];
-        h.push({ t: now, price, vol });
-        while (h.length > 40) h.shift();
-        histRef.current.set(pair, h);
-      });
-      setPrices((prev) => ({ ...prev, ...acc }));
-      setTick((x) => x + 1);
-    };
-    run();
-    const iv = setInterval(run, 30000);
-    return () => { alive = false; clearInterval(iv); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pairsKey]);
-
+  // ── everything live comes from the worker blob (no client polling) ──
   const liveOf = useCallback((pair) => {
-    const d = prices[pair];
-    if (!d) return null;
-    return typeof d === "number" ? { price: d, volume: null, change: null } : d;
-  }, [prices]);
+    const d = deriv?.pairs?.[pair];
+    if (!d?.price) return null;
+    return { price: d.price, volume: d.vol24h, change: d.price_chg_24h };
+  }, [deriv]);
 
   const fcOf = useCallback((s) => {
     const lv = liveOf(s.pair);
@@ -226,7 +188,7 @@ export default function SignalsAnalytics() {
     });
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestByPair, prices, tick]);
+  }, [latestByPair, deriv]);
 
   // ── aggregations (suspect-aware, median-based) ─────────────────
   const agg = useMemo(() => {
@@ -238,7 +200,7 @@ export default function SignalsAnalytics() {
     const fcVals = [], betaVals = [], alignVals = [], tt1Vals = [], maeVals = [];
     const scatterOpp = [], scatterBeta = [], anomPts = [], peakPts = [];
     const suspects = [], moversArr = [], rsArr = [], decoupledList = [];
-    const btcChg = liveOf("BTCUSDT")?.change ?? null;
+    const btcChg = deriv?.btc?.chg ?? liveOf("BTCUSDT")?.change ?? null;
     const seenPair = new Set();
 
     view.forEach((s) => {
@@ -334,47 +296,32 @@ export default function SignalsAnalytics() {
       movers: moversArr, rs: rsArr,
       decoupledList: decoupledList.sort((a, b) => b.v - a.v),
       btcChg,
-      btcPrice: liveOf("BTCUSDT")?.price ?? null,
+      btcPrice: deriv?.btc?.price ?? liveOf("BTCUSDT")?.price ?? null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, prices, tick]);
+  }, [view, deriv]);
 
-  // ── live session layers (spike / 15m movers) ───────────────────
+  // ── live session layers — PRECOMPUTED server-side by the worker ──
+  // (chg_15m & spike_15m ship in the blob → no client warm-up ever)
   const session = useMemo(() => {
-    const spikes = [];
+    const seen = new Set();
     const movers15 = [];
-    const now = Date.now();
-    const pairsInView = new Set(view.map((s) => s.pair));
-    pairsInView.forEach((pair) => {
-      const h = histRef.current.get(pair);
-      if (!h || h.length < 2) return;
-      const target = now - 15 * 60e3;
-      let base = h[0];
-      for (const smp of h) if (Math.abs(smp.t - target) < Math.abs(base.t - target)) base = smp;
-      const last = h[h.length - 1];
-      const spanMin = (last.t - base.t) / 60e3;
-      if (spanMin < 4) return;
-      if (base.price > 0) {
-        const mv = (last.price / base.price - 1) * 100;
-        if (Number.isFinite(mv)) movers15.push({ pair, v: mv });
-      }
-      if (base.vol != null && last.vol != null && last.vol > 0) {
-        const traded = Math.max(0, last.vol - base.vol);
-        const expected = last.vol * (spanMin / 1440);
-        if (expected > 0) {
-          const ratio = traded / expected;
-          if (ratio > 1.5) spikes.push({ pair, v: ratio });
-        }
-      }
+    const spikes = [];
+    view.forEach((s) => {
+      if (!s.pair || seen.has(s.pair)) return;
+      seen.add(s.pair);
+      const d = deriv?.pairs?.[s.pair];
+      if (!d) return;
+      if (d.chg_15m != null) movers15.push({ pair: s.pair, v: d.chg_15m });
+      if (d.spike_15m != null && d.spike_15m > 1.5) spikes.push({ pair: s.pair, v: d.spike_15m });
     });
     return {
       spikes: spikes.sort((a, b) => b.v - a.v).slice(0, 10),
       gain15: movers15.sort((a, b) => b.v - a.v).slice(0, 8),
       lose15: movers15.sort((a, b) => a.v - b.v).slice(0, 8),
-      samples: histRef.current.get("BTCUSDT")?.length || 0,
+      warming: !deriv || deriv.warming || movers15.length === 0,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, tick]);
+  }, [view, deriv]);
 
   const gainers = useMemo(() => [...agg.movers].sort((a, b) => b.v - a.v).slice(0, 8), [agg.movers]);
   const losers = useMemo(() => [...agg.movers].sort((a, b) => a.v - b.v).slice(0, 8), [agg.movers]);
@@ -644,7 +591,12 @@ export default function SignalsAnalytics() {
                 />
                 <Kpi label={t("terminal.viz.kHot")} value={agg.anomPts.filter((p) => p.hot).length} desc={t("terminal.viz.kHotDesc")} tone="text-gold-primary" />
                 <Kpi label={t("terminal.viz.kSpikes")} value={session.spikes.length} desc={t("terminal.viz.kSpikesDesc")} tone={session.spikes.length ? "text-orange-400" : undefined} />
-                <Kpi label={t("terminal.viz.kSession")} value={`${Math.max(0, session.samples - 1) * 0.5}m`} desc={t("terminal.viz.kSessionDesc")} />
+                <Kpi
+                  label={t("terminal.viz.kSession")}
+                  value={deriv?.generated_at ? `${Math.max(0, Math.round((Date.now() - Date.parse(deriv.generated_at)) / 1000))}s` : "—"}
+                  desc={t("terminal.viz.kSessionDesc")}
+                  tone={deriv?.stale ? "text-warning" : undefined}
+                />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
@@ -680,7 +632,7 @@ export default function SignalsAnalytics() {
                   render={() =>
                     session.spikes.length === 0 ? (
                       <div className="py-14 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed">
-                        {session.samples < 2 ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
+                        {session.warming ? t("terminal.viz.spikeWarming") : t("terminal.viz.none")}
                       </div>
                     ) : (
                       <RankBars data={session.spikes.map((s) => ({ ...s, color: ORANGE }))} fmt={(v) => `${v.toFixed(1)}`} suffix="×" onPair={openPair} />
@@ -699,7 +651,7 @@ export default function SignalsAnalytics() {
                   title={`${t("terminal.viz.sessTitle")} ↑`}
                   desc={t("terminal.viz.sessDesc")}
                   render={() =>
-                    session.samples < 2 ? (
+                    session.warming ? (
                       <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.spikeWarming")}</div>
                     ) : (
                       <RankBars data={session.gain15} fmt={(v) => fmtPct(v, 2)} onPair={openPair} />
@@ -710,7 +662,7 @@ export default function SignalsAnalytics() {
                   title={`${t("terminal.viz.sessTitle")} ↓`}
                   desc={t("terminal.viz.sessDesc")}
                   render={() =>
-                    session.samples < 2 ? (
+                    session.warming ? (
                       <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.spikeWarming")}</div>
                     ) : (
                       <RankBars data={session.lose15} fmt={(v) => fmtPct(v, 2)} onPair={openPair} />

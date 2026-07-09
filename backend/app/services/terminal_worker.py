@@ -44,8 +44,9 @@ from app.core.http_client import get_binance_client
 from app.core.leader import is_leader
 
 BINANCE_FUTURES_API = "https://fapi.binance.com"
+BINANCE_SPOT_API = "https://api.binance.com"
 
-SWEEP_INTERVAL = 120          # seconds between sweeps
+SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
 # 3 calls × SLICE_SIZE per sweep (2 min) → keep ≤ 40 pairs/sweep
 # (= 3×40×2.5 = 300 req/5min, safely under). Full board coverage ≈ 20 min,
@@ -54,11 +55,14 @@ SLICE_SIZE = 40
 BLOB_KEY = "lq:terminal:deriv"
 BLOB_TTL = SWEEP_INTERVAL + 300   # generous floor; cache_set also keeps 10× stale
 
-# in-process anchors (leader is a single process; warms ≈1h after boot)
+# in-process anchors (leader is a single process; warms in minutes/hours)
 _oi_hist = {}    # pair -> deque[(ts, oi)]
 _vol_hist = {}   # pair -> deque[(ts, vol24h)]
+_px_hist = {}    # pair -> deque[(ts, price)]  — powers server-side 15m movers
 _slice_cursor = 0
 _slow = {}       # pair -> last slow metrics (lsr/top_lsr/taker/rsi) carried between sweeps
+_oi_last = {}    # pair -> last known OI (OI pass alternates sweeps)
+_sweep_n = 0     # sweep counter — heavy blocks alternate to keep sweeps < 60s
 
 
 def _pairs_7d(db):
@@ -114,9 +118,31 @@ def _anchor_chg(hist, pair, now_val, ts, minutes, append=True):
     return round((now_val - best[1]) / best[1] * 100, 2)
 
 
+def _spike_15m(pair, vol_now, ts):
+    """Traded notional in the last ~15min vs the pair's normal pace (× ratio).
+    Reads _vol_hist (already appended by the vol_chg_1h call this sweep)."""
+    dq = _vol_hist.get(pair)
+    if not dq or len(dq) < 2 or not vol_now:
+        return None
+    target = ts - 15 * 60
+    best = None
+    for (t0, v0) in dq:
+        if best is None or abs(t0 - target) < abs(best[0] - target):
+            best = (t0, v0)
+    span_min = (ts - best[0]) / 60
+    if span_min < 4 or not best[1]:
+        return None
+    traded = max(0.0, vol_now - best[1])
+    expected = vol_now * (span_min / 1440)
+    if expected <= 0:
+        return None
+    return round(traded / expected, 2)
+
+
 async def _sweep():
     """One full precompute sweep. Never raises (returns key count)."""
-    global _slice_cursor
+    global _slice_cursor, _sweep_n
+    _sweep_n += 1
     client = get_binance_client()
     db = SessionLocal()
     try:
@@ -155,31 +181,53 @@ async def _sweep():
 
     deriv_pairs = [p for p in pairs if p in fut or p in funding]
 
-    # ── 3) open interest per deriv pair (throttled) ────────────────
-    oi_now = {}
-    for i, p in enumerate(deriv_pairs):
-        try:
-            r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": p})
-            if r.status_code in (418, 429):
-                print(f"⚠️ Terminal deriv: OI rate-limited ({r.status_code}) — stopping OI pass")
-                break
-            if r.status_code == 200:
-                contracts = float(r.json().get("openInterest") or 0)
-                px = fut.get(p, {}).get("price") or 0
-                oi_now[p] = contracts * px if px else contracts
-        except Exception:
-            pass
-        if i % 10 == 9:
-            await asyncio.sleep(1.0)   # ~10 req/s ceiling — polite to the shared IP
+    # ── 2b) SPOT tickers — single call (covers spot-only pairs) ────
+    spot = {}
+    try:
+        r = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr")
+        if r.status_code == 200:
+            wanted = set(pairs)
+            for row in r.json():
+                sym = row.get("symbol")
+                if sym in wanted:
+                    spot[sym] = {
+                        "vol": float(row.get("quoteVolume") or 0),
+                        "chg": float(row.get("priceChangePercent") or 0),
+                        "price": float(row.get("lastPrice") or 0),
+                    }
+    except Exception:
+        pass
 
-    # ── 4) SLOW metrics for a rotating slice (LSR/topLSR/taker/RSI) ─
-    slice_pairs = deriv_pairs[_slice_cursor:_slice_cursor + SLICE_SIZE]
-    if not slice_pairs:
-        _slice_cursor = 0
-        slice_pairs = deriv_pairs[:SLICE_SIZE]
-    _slice_cursor += SLICE_SIZE
-    if _slice_cursor >= len(deriv_pairs):
-        _slice_cursor = 0
+    # ── 3) open interest per deriv pair — EVERY OTHER sweep ────────
+    # (keeps each 60s sweep short; OI Δ anchors only need ~2min cadence)
+    if _sweep_n % 2 == 1:
+        for i, p in enumerate(deriv_pairs):
+            try:
+                r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": p})
+                if r.status_code in (418, 429):
+                    print(f"⚠️ Terminal deriv: OI rate-limited ({r.status_code}) — stopping OI pass")
+                    break
+                if r.status_code == 200:
+                    contracts = float(r.json().get("openInterest") or 0)
+                    px = fut.get(p, {}).get("price") or 0
+                    _oi_last[p] = contracts * px if px else contracts
+            except Exception:
+                pass
+            if i % 10 == 9:
+                await asyncio.sleep(1.0)   # ~10 req/s ceiling
+    oi_now = _oi_last
+
+    # ── 4) SLOW metrics slice (LSR/topLSR/taker/RSI) — alternate sweep ─
+    if _sweep_n % 2 == 0:
+        slice_pairs = deriv_pairs[_slice_cursor:_slice_cursor + SLICE_SIZE]
+        if not slice_pairs:
+            _slice_cursor = 0
+            slice_pairs = deriv_pairs[:SLICE_SIZE]
+        _slice_cursor += SLICE_SIZE
+        if _slice_cursor >= len(deriv_pairs):
+            _slice_cursor = 0
+    else:
+        slice_pairs = []
 
     throttled = False  # emergency brake — 429/418 means the WHOLE IP is at risk
     for i, p in enumerate(slice_pairs):
@@ -224,31 +272,41 @@ async def _sweep():
     if throttled:
         await asyncio.sleep(60)  # cool the IP before the next sweep
 
-    # ── 5) assemble blob ───────────────────────────────────────────
+    # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
+    oi_appended = _sweep_n % 2 == 1  # only anchor OI on sweeps that refreshed it
     for p in pairs:
         has_deriv = p in fut or p in funding
-        f = fut.get(p, {})
+        f = fut.get(p) or spot.get(p) or {}
         slow = _slow.get(p, {})
         oi = oi_now.get(p)
+        price = f.get("price")
+        vol = f.get("vol")
         out[p] = {
             "has_deriv": has_deriv,
+            "price": price,
+            "price_chg_24h": f.get("chg"),
+            "vol24h": vol,
+            # server-side LIVE layers (no client warm-up needed):
+            "chg_15m": _anchor_chg(_px_hist, p, price, now, 15) if price else None,
+            "vol_chg_1h": _anchor_chg(_vol_hist, p, vol, now, 60) if vol else None,
+            "spike_15m": _spike_15m(p, vol, now) if vol else None,
+            # derivatives:
             "funding": funding.get(p),
             "oi": oi,
-            "oi_chg_1h": _anchor_chg(_oi_hist, p, oi, now, 60) if oi else None,
+            "oi_chg_1h": _anchor_chg(_oi_hist, p, oi, now, 60, append=oi_appended) if oi else None,
             "oi_chg_4h": _anchor_chg(_oi_hist, p, oi, now, 240, append=False) if oi else None,
             "lsr": slow.get("lsr"),
             "top_lsr": slow.get("top_lsr"),
             "taker": slow.get("taker"),
             "rsi": slow.get("rsi"),
-            "vol24h": f.get("vol"),
-            "vol_chg_1h": _anchor_chg(_vol_hist, p, f.get("vol"), now, 60) if f.get("vol") else None,
-            "price_chg_24h": f.get("chg"),
         }
 
+    btc = fut.get("BTCUSDT") or spot.get("BTCUSDT") or {}
     blob = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_pairs": len(pairs),
         "deriv_pairs": len(deriv_pairs),
+        "btc": {"price": btc.get("price"), "chg": btc.get("chg")},
         "pairs": out,
     }
     cache_set(BLOB_KEY, blob, ttl=BLOB_TTL)
@@ -269,6 +327,16 @@ async def terminal_deriv_loop():
                 continue
             start = time.time()
             n = await _sweep()
+            # prewarm the screener cache too — users always read warm Redis
+            try:
+                from app.api.routes.terminal import get_deep_screener
+                db = SessionLocal()
+                try:
+                    get_deep_screener(days=7, scope="all", db=db, current_user=None)
+                finally:
+                    db.close()
+            except Exception as e:
+                print(f"   ⚠️ screener prewarm: {type(e).__name__}: {e}")
             print(f"✅ Terminal deriv blob: {n} pairs in {round((time.time()-start)*1000)}ms")
         except Exception as e:
             print(f"❌ Terminal deriv worker error: {type(e).__name__}: {e}")
