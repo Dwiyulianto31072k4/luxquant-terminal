@@ -18,7 +18,7 @@ import {
   API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS,
   TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median,
   SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
-  LegendChips, Warming, Chip,
+  LegendChips, Warming, Chip, ScrollArea,
 } from "./vizShared";
 
 // join view pairs with the deriv blob → one row per unique pair
@@ -76,6 +76,14 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   const gain = [...rows].filter((r) => r.oi_chg_1h != null).sort((a, b) => b.oi_chg_1h - a.oi_chg_1h);
   const top = gain.slice(0, 8).map((r) => ({ pair: r.pair, v: r.oi_chg_1h }));
   const bottom = gain.slice(-8).reverse().map((r) => ({ pair: r.pair, v: r.oi_chg_1h }));
+  // fallback so the tab is NEVER empty while OI-Δ is still warming:
+  // rank the biggest leveraged books by notional (always present in the blob)
+  const hasDelta = gain.length > 0;
+  const bigOi = [...rows]
+    .filter((r) => (r.oi || 0) > 0)
+    .sort((a, b) => b.oi - a.oi)
+    .slice(0, 14)
+    .map((r) => ({ pair: r.pair, v: r.oi, color: GOLD }));
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -89,42 +97,56 @@ export function OITab({ view, deriv, pairFc, openPair }) {
         <Kpi label={t("terminal.viz.kDerivCov")} value={`${rows.length}/${rows.length + noDeriv.length}`} desc={t("terminal.viz.kDerivCovDesc")} />
       </div>
 
-      <XCard
-        title={t("terminal.viz.oiQuadTitle")}
-        desc={t("terminal.viz.oiQuadDesc")}
-        zoom={zQuad}
-        hint={t("terminal.viz.oiQuadHint")}
-        render={(h) => (
-          <div style={{ height: Math.max(h, 300) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                <ReferenceArea x1={0} x2={zQuad.domX[1]} y1={0} y2={zQuad.domY[1]} fill={POS} fillOpacity={0.04} />
-                <ReferenceArea x1={zQuad.domX[0]} x2={0} y1={0} y2={zQuad.domY[1]} fill={NEG} fillOpacity={0.04} />
-                <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow />
-                <Tooltip content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
-                <Scatter data={quad} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                  {quad.map((p, i) => (
-                    <Cell
-                      key={i}
-                      cursor="pointer"
-                      fill={p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE}
-                    />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      />
+      {hasDelta ? (
+        <>
+          <XCard
+            title={t("terminal.viz.oiQuadTitle")}
+            desc={t("terminal.viz.oiQuadDesc")}
+            zoom={zQuad}
+            hint={t("terminal.viz.oiQuadHint")}
+            render={(h) => (
+              <div style={{ height: Math.max(h, 300) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                    <ReferenceArea x1={0} x2={zQuad.domX[1]} y1={0} y2={zQuad.domY[1]} fill={POS} fillOpacity={0.04} />
+                    <ReferenceArea x1={zQuad.domX[0]} x2={0} y1={0} y2={zQuad.domY[1]} fill={NEG} fillOpacity={0.04} />
+                    <CartesianGrid stroke={GRID} />
+                    <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow />
+                    <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow />
+                    <Tooltip content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                    <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
+                    <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                    <Scatter data={quad} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                      {quad.map((p, i) => (
+                        <Cell
+                          key={i}
+                          cursor="pointer"
+                          fill={p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE}
+                        />
+                      ))}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <XCard title={t("terminal.viz.oiTopTitle")} desc={t("terminal.viz.oiTopDesc")} render={() => <RankBars data={top} onPair={openPair} />} />
-        <XCard title={t("terminal.viz.oiBottomTitle")} desc={t("terminal.viz.oiBottomDesc")} render={() => <RankBars data={bottom} onPair={openPair} />} />
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            <XCard title={t("terminal.viz.oiTopTitle")} desc={t("terminal.viz.oiTopDesc")} render={() => <RankBars data={top} onPair={openPair} />} />
+            <XCard title={t("terminal.viz.oiBottomTitle")} desc={t("terminal.viz.oiBottomDesc")} render={() => <RankBars data={bottom} onPair={openPair} />} />
+          </div>
+        </>
+      ) : (
+        <XCard
+          title={t("terminal.viz.oiBigTitle")}
+          desc={t("terminal.viz.oiBigDesc")}
+          render={() => (
+            <ScrollArea max={420}>
+              <RankBars data={bigOi} onPair={openPair} fmt={fmtMoney} />
+            </ScrollArea>
+          )}
+        />
+      )}
 
       <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
     </>

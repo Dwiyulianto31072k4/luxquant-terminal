@@ -31,7 +31,7 @@ import {
   XCard, useZoom, CoinPill, RankBars, SectorBars, Donut,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab } from "./DerivTabs";
-import { ConfluenceTab, PostSignalTab } from "./ConfluenceTabs";
+import { ConfluenceTab } from "./ConfluenceTabs";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
@@ -442,22 +442,11 @@ export default function SignalsAnalytics() {
             <ConfluenceTab {...derivProps} postsignal={postsignal} openPair={openPair} />
           )}
 
-          {/* ═══════════ POST-SIGNAL INTELLIGENCE ═══════════ */}
-          {tab === "postsignal" && (
-            <PostSignalTab view={view} pairFc={pairFc} postsignal={postsignal} openPair={openPair} />
-          )}
-
           {/* ═══════════ OVERVIEW ═══════════ */}
           {tab === "overview" && (
             <>
-              <div className="grid grid-cols-2 xl:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
-                <Kpi
-                  label={t("terminal.viz.kWinRate")}
-                  value={agg.winRate != null ? `${agg.winRate}%` : "—"}
-                  desc={t("terminal.viz.kWinRateDesc")}
-                  tone={agg.winRate >= 50 ? "text-positive" : "text-negative"}
-                />
                 <Kpi
                   label={t("terminal.viz.kMedianFc")}
                   value={fmtPct(agg.medFc)}

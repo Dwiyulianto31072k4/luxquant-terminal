@@ -20,13 +20,33 @@ export function TerminalIndexRedirect() {
 }
 
 const GROUPS = [
-  { g: "gSignals", items: [["confluence", "scan"], ["postsignal", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
+  { g: "gSignals", items: [["confluence", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
   { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"]] },
   { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["sectors", "scan"], ["map", "map"]] },
 ];
 const ALL_ITEMS = GROUPS.flatMap((x) => x.items);
 
 const tabKey = (id) => `terminal.viz.tab${id.charAt(0).toUpperCase()}${id.slice(1)}`;
+
+// ── per-tab glyphs — solid LuxQuant gold via currentColor ──
+const ICON_PATHS = {
+  confluence: <><circle cx="9" cy="12" r="5.2" opacity="0.55" /><circle cx="15" cy="12" r="5.2" opacity="0.55" /></>,
+  overview: <><rect x="3" y="3" width="7.5" height="7.5" rx="1.4" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.4" opacity="0.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.4" opacity="0.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.4" /></>,
+  live: <><path d="M2 12h4l2.5-7 4 15 3-9 2.5 4H22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></>,
+  anomaly: <><path d="M13 2 3 14h7l-1 8 10-12h-7z" /></>,
+  oi: <><rect x="3" y="12" width="4" height="9" rx="1" /><rect x="10" y="6" width="4" height="15" rx="1" opacity="0.6" /><rect x="17" y="9" width="4" height="12" rx="1" /></>,
+  ls: <><path d="M7 3 3 8h3v13h2V8h3zM17 21l4-5h-3V3h-2v13h-3z" /></>,
+  funding: <><circle cx="7" cy="7" r="3" /><circle cx="17" cy="17" r="3" opacity="0.6" /><path d="M6 18 18 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
+  vsbtc: <><path d="M3 8h13l-3-3 1.4-1.4L20 9l-5.6 5.4L13 13l3-3H3zM21 16H8l3 3-1.4 1.4L4 15l5.6-5.4L11 11l-3 3h13z" opacity="0.85" /></>,
+  btc: <><circle cx="12" cy="12" r="9.2" opacity="0.5" /><path d="M10 7h3.2c1.6 0 2.6 1 2.6 2.3 0 1-.6 1.7-1.4 2 1 .3 1.7 1.1 1.7 2.2 0 1.5-1.1 2.5-2.9 2.5H10zm2 2v2h1.1c.7 0 1.1-.4 1.1-1s-.4-1-1.1-1zm0 3.6V15h1.3c.8 0 1.2-.4 1.2-1.1s-.5-1.1-1.3-1.1zM11 5h1.5v2H11zm0 12h1.5v2H11z" /></>,
+  sectors: <><path d="M12 3a9 9 0 1 0 9 9h-9z" opacity="0.55" /><path d="M11 3v8H3a9 9 0 0 1 8-8z" /></>,
+  map: <><rect x="3" y="3" width="11" height="18" rx="1.4" /><rect x="15" y="3" width="6" height="8" rx="1.4" opacity="0.6" /><rect x="15" y="13" width="6" height="8" rx="1.4" opacity="0.6" /></>,
+};
+const TabIcon = ({ id }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-[15px] h-[15px] shrink-0" aria-hidden="true">
+    {ICON_PATHS[id] || <rect x="4" y="4" width="16" height="16" rx="2" />}
+  </svg>
+);
 
 export default function TerminalLayout() {
   const { t } = useTranslation();
@@ -71,12 +91,13 @@ export default function TerminalLayout() {
           <button
             key={id}
             onClick={() => go(id, route)}
-            className={`shrink-0 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md border font-mono text-[10px] uppercase tracking-wider transition-colors ${
               active === id
                 ? "bg-gold-primary/15 text-gold-primary border-gold-primary/30"
                 : "bg-white/[0.03] text-text-muted border-white/[0.06] hover:text-white"
             }`}
           >
+            <TabIcon id={id} />
             {t(tabKey(id))}
           </button>
         ))}
@@ -113,7 +134,10 @@ export default function TerminalLayout() {
                             style={{ background: "rgb(212,168,83)", boxShadow: "0 0 6px rgba(212,168,83,0.6)" }}
                           />
                         )}
-                        {t(tabKey(id))}
+                        <span className={`flex items-center gap-2.5 ${active === id ? "text-gold-primary" : "text-gold-primary/45"}`}>
+                          <TabIcon id={id} />
+                          <span className={active === id ? "text-gold-primary" : "text-white/85"}>{t(tabKey(id))}</span>
+                        </span>
                       </button>
                     ))}
                   </div>

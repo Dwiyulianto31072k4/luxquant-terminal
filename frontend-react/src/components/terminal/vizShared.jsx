@@ -87,6 +87,32 @@ export const PLAUSIBLE_LO = 0.05;
 export const PLAUSIBLE_HI = 5;
 
 // ── atoms ──────────────────────────────────────────────────────────
+
+// bounded scroll region — keeps panels from growing forever (thin gold bar)
+export const ScrollArea = ({ children, max = 460, className = "" }) => (
+  <div
+    className={`overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25 [&::-webkit-scrollbar-track]:bg-transparent ${className}`}
+    style={{ maxHeight: max }}
+  >
+    {children}
+  </div>
+);
+
+// latest signal status tag (open / tp1-3 / tp4 / sl) — reuses palette
+export const StatusTag = ({ status }) => {
+  if (!status) return null;
+  const label = STATUS_LABEL[status] || status;
+  const color = STATUS_COLORS[status] || GRAYBAR;
+  return (
+    <span
+      className="px-1.5 py-0.5 rounded-sm font-mono text-[8.5px] uppercase tracking-wider border"
+      style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+    >
+      {label}
+    </span>
+  );
+};
+
 export const SectionBand = ({ title, desc }) => (
   <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] px-4 py-3">
     <div className="text-[14px] text-white/95">{title}</div>

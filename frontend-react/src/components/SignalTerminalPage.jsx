@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { classifyCoin } from "./coinIntelShared";
+import CoinLogo from "./CoinLogo";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
   parseMcap, maxTargetPct,
@@ -294,7 +295,8 @@ export default function SignalTerminalPage() {
       <MacroStrip macro={macro} sectors={sectors} model={model} />
 
       {/* Main stage */}
-      <div className="bg-white/[0.02] rounded-2xl p-4 border border-white/[0.06]">
+      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] p-4 relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         {model.length === 0 ? (
           <div className="h-[360px] flex items-center justify-center font-mono text-xs text-white/40">
             {loading ? "Loading signals…" : "No signals match the current filters."}
@@ -388,7 +390,7 @@ function MacroStrip({ macro, sectors, model }) {
   const maxAbs = Math.max(...topSectors.map((s) => Math.abs(s.mcap_change_24h ?? 0)), 1);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] p-4">
         <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-3">Dominance & Altseason</div>
         <div className="flex justify-around">
           {gauge(macro?.btc_dominance, "#F7931A", "BTC Dom")}
@@ -441,8 +443,11 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
             className="absolute rounded-md overflow-hidden cursor-pointer border border-black/40 hover:outline hover:outline-1 hover:outline-white/60 transition-transform hover:-translate-y-0.5"
             style={{ left: r.x, top: r.y, width: r.w - 3, height: r.h - 3, background: colorByMetric(d, colorBy, model) }}>
             <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
-              <div className="font-mono font-bold leading-none text-white" style={{ fontSize: fs }}>{d.sym}</div>
-              {big && <div className="font-mono leading-none text-white/90" style={{ fontSize: Math.max(8, fs - 3) }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
+              <div className="flex items-center gap-1 min-w-0">
+                {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
+                <div className="font-mono font-bold leading-none text-white truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>
+              </div>
+              {big && <div className="font-mono leading-none text-white/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
             </div>
           </div>
         );
@@ -501,7 +506,9 @@ function Matrix({ model, onPick }) {
         <tbody>
           {rows.map((d) => (
             <tr key={d.signal_id}>
-              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[11px] font-bold text-white px-2 py-1 cursor-pointer hover:text-gold-primary z-10">{d.sym}</td>
+              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[11px] font-bold text-white px-2 py-1 cursor-pointer hover:text-gold-primary z-10">
+                <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={15} /><span>{d.sym}</span></span>
+              </td>
               {MX_COLS.map((k) => (
                 <td key={k} className="p-0 text-center">
                   <div onClick={() => onPick(d)} className="m-0.5 h-6 rounded flex items-center justify-center font-mono text-[10px] font-semibold cursor-pointer hover:outline hover:outline-1 hover:outline-white" style={{ background: colorByMetric(d, k, model), color: "#0a0506" }}>
@@ -537,7 +544,10 @@ function SectorView({ model, colorBy, onPick }) {
                 const v = METRICS[colorBy].get(d) ?? 0;
                 return (
                   <div key={d.signal_id} onClick={() => onPick(d)} className="flex items-center gap-2 cursor-pointer group">
-                    <span className="font-mono text-[11px] text-white/70 w-16 group-hover:text-gold-primary">{d.sym}</span>
+                    <span className="flex items-center gap-1.5 w-20 shrink-0">
+                      <CoinLogo pair={d.pair} size={15} />
+                      <span className="font-mono text-[11px] text-white/70 group-hover:text-gold-primary truncate">{d.sym}</span>
+                    </span>
                     <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
                       <div className="h-full rounded" style={{ width: `${(Math.abs(v) / mx) * 100}%`, background: colorByMetric(d, colorBy, model) }} />
                     </div>
@@ -566,11 +576,13 @@ function Screener({ model, onPick }) {
   });
   const stColor = (s) => ({ open: "#60a5fa", tp1: "#34d399", tp2: "#34d399", tp3: "#34d399", closed_win: "#34d399", closed_loss: "#f87171" }[s] || "#9ca3af");
   return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-3">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-2 flex justify-between">
-        <span>Signal Screener</span><span className="text-white/30">{model.length} pairs</span>
+    <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
+      <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-center justify-between">
+        <span className="text-[12.5px] text-white/90">Signal Screener</span>
+        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>
       </div>
-      <div className="overflow-auto max-h-[420px]">
+      <div className="overflow-auto max-h-[440px] p-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
         <table className="w-full border-collapse font-mono text-[11px]">
           <thead>
             <tr>{SCR.map(([k, l], i) => (
@@ -583,7 +595,12 @@ function Screener({ model, onPick }) {
           <tbody>
             {rows.map((d) => (
               <tr key={d.signal_id} onClick={() => onPick(d)} className="cursor-pointer hover:bg-white/[0.03]">
-                <td className="text-left font-bold text-white px-2 py-1.5 border-b border-white/[0.04]">{d.sym}</td>
+                <td className="text-left px-2 py-1.5 border-b border-white/[0.04]">
+                  <span className="flex items-center gap-1.5">
+                    <CoinLogo pair={d.pair} size={16} />
+                    <span className="font-bold text-white">{d.sym}</span>
+                  </span>
+                </td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]"><span className="px-1.5 py-0.5 rounded text-[9px] uppercase" style={{ color: stColor(d.status), border: `1px solid ${stColor(d.status)}` }}>{d.status}</span></td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.price_change_24h >= 0 ? "#34d399" : "#f87171" }}>{d.price_change_24h >= 0 ? "+" : ""}{d.price_change_24h.toFixed(1)}%</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.from_call >= 0 ? "#34d399" : "#f87171" }}>{d.from_call >= 0 ? "+" : ""}{d.from_call.toFixed(1)}%</td>

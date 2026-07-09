@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-// Confluence Screener + Post-Signal Intelligence tabs.
+// Confluence Screener — the hero landing tab.
 //
 // Data (all verified real):
 //   · item.v3 — refined direction, H4/H1/M15 trend + H4 strength and
@@ -7,20 +7,15 @@
 //     (live_snapshot ?? entry_snapshot) by /terminal/screener
 //   · deriv blob — live price / Δ from call / spike badges (worker)
 //   · postsignal blob — per-pair historical avg move after a call
-//     (24h/48h/7d from signal_journey.events, worker ~6h pass)
+//     (used only as light context on the card footer)
+//   · item.status — the signal's latest lifecycle state (open/tp1…/sl)
 // ════════════════════════════════════════════════════════════════
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Cell, ScatterChart, Scatter, ReferenceLine,
-} from "recharts";
 import CoinLogo from "../CoinLogo";
 import {
-  GOLD, POS, NEG, CYAN, ORANGE, GRAYBAR, GRID, TICK, TICK_SM,
-  fmtPct, median, makeBins,
-  SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
-  Warming, Chip,
+  POS, NEG, fmtPct,
+  SectionBand, Kpi, Chip, ScrollArea, StatusTag,
 } from "./vizShared";
 
 // ── v3 tag knowledge (mirrors IMPORTANT_TAGS in enrichment_service_v3) ──
@@ -48,7 +43,6 @@ const EQ_TAGS = {
   OVEREXTENDED: { tone: "text-negative border-negative/30 bg-negative/10" },
 };
 const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
-
 const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "#fbbf24" };
 
 // confluence score = positive important reasons − warnings (for sorting)
@@ -71,9 +65,12 @@ function SignalCard({ s, live, ps, onPair, t }) {
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
   const dir = v3.direction || s.signal_direction || "—";
-  const dirTone = dir === "BULLISH" ? "text-positive border-positive/30 bg-positive/10"
-    : dir === "BEARISH" ? "text-negative border-negative/30 bg-negative/10"
+  const bull = dir === "BULLISH";
+  const bear = dir === "BEARISH";
+  const dirTone = bull ? "text-positive border-positive/30 bg-positive/10"
+    : bear ? "text-negative border-negative/30 bg-negative/10"
     : "text-white/60 border-white/[0.1] bg-white/[0.05]";
+  const edge = bull ? "before:bg-positive/70" : bear ? "before:bg-negative/70" : "before:bg-white/20";
   const htfStrong = v3.h4_strength === "STRONG" || tags.includes("HTF_TREND_STRONG");
   const align = tags.includes("MTF_FULL_ALIGNED") ? "FULL ALIGNED"
     : tags.includes("MTF_LTF_ALIGNED") ? "LTF ALIGNED"
@@ -90,30 +87,40 @@ function SignalCard({ s, live, ps, onPair, t }) {
   return (
     <button
       onClick={() => onPair(s.pair)}
-      className="text-left rounded-lg bg-[#0c0a07] border border-white/[0.07] hover:border-gold-primary/25 transition-colors overflow-hidden flex flex-col"
+      className={`relative text-left rounded-xl bg-gradient-to-b from-white/[0.025] to-transparent border border-white/[0.07] hover:border-gold-primary/30 hover:from-gold-primary/[0.04] transition-colors overflow-hidden flex flex-col
+        before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] ${edge}`}
     >
-      <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
       {/* header */}
-      <div className="px-3.5 pt-3 flex items-center gap-2">
-        <CoinLogo pair={s.pair} size={22} />
-        <span className="font-mono text-[13px] text-white/95 truncate">{s.pair}</span>
-        <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider ${dirTone}`}>{dir}</span>
-        {htfStrong && (
-          <span className="px-1.5 py-0.5 rounded-sm border border-gold-primary/35 bg-gold-primary/12 text-gold-primary font-mono text-[8.5px] uppercase tracking-wider">
-            HTF STRONG
+      <div className="pl-4 pr-3 pt-3 flex items-center gap-2">
+        <CoinLogo pair={s.pair} size={24} />
+        <div className="min-w-0 flex flex-col">
+          <span className="font-mono text-[13px] text-white/95 leading-none truncate">{s.pair}</span>
+          <span className="mt-1 flex items-center gap-1">
+            <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider ${dirTone}`}>{dir}</span>
+            {htfStrong && (
+              <span className="px-1.5 py-0.5 rounded-sm border border-gold-primary/35 bg-gold-primary/12 text-gold-primary font-mono text-[8.5px] uppercase tracking-wider">
+                HTF STRONG
+              </span>
+            )}
           </span>
-        )}
-        <span className={`ml-auto font-mono text-[12px] tabular-nums ${fc == null ? "text-text-muted/60" : fc >= 0 ? "text-positive" : "text-negative"}`}>
-          {fc == null ? "—" : fmtPct(fc)}
-        </span>
+        </div>
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <span className={`font-mono text-[13px] tabular-nums leading-none ${fc == null ? "text-text-muted/60" : fc >= 0 ? "text-positive" : "text-negative"}`}>
+            {fc == null ? "—" : fmtPct(fc)}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="font-mono text-[7.5px] uppercase tracking-[0.15em] text-text-muted/50">{t("terminal.viz.confLast")}</span>
+            <StatusTag status={s.status} />
+          </span>
+        </div>
       </div>
 
       {/* MTF + alignment + entry quality */}
-      <div className="px-3.5 mt-2 flex items-center gap-2 flex-wrap">
+      <div className="pl-4 pr-3 mt-2.5 flex items-center gap-2 flex-wrap">
         {hasIntel ? (
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-2">
             {[["4H", v3.h4], ["1H", v3.h1], ["15", v3.m15]].map(([lbl, tr]) => (
-              <span key={lbl} className="flex items-center gap-0.5" title={`${lbl}: ${tr || "?"}`}>
+              <span key={lbl} className="flex items-center gap-1" title={`${lbl}: ${tr || "?"}`}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: TREND_DOT[tr] || "rgba(255,255,255,0.15)" }} />
                 <span className="font-mono text-[8px] text-text-muted/70">{lbl}</span>
               </span>
@@ -139,7 +146,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
 
       {/* key reasons */}
       {reasons.length > 0 && (
-        <div className="px-3.5 mt-2.5">
+        <div className="pl-4 pr-3 mt-2.5">
           <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/60 mb-1">{t("terminal.viz.confReasons")}</div>
           {reasons.map((r) => (
             <div key={r} className="flex items-center gap-1.5 py-0.5">
@@ -152,15 +159,15 @@ function SignalCard({ s, live, ps, onPair, t }) {
 
       {/* warnings */}
       {warns.length > 0 && (
-        <div className="px-3.5 mt-1.5 flex items-center gap-1.5 flex-wrap">
+        <div className="pl-4 pr-3 mt-1.5 flex items-center gap-1.5 flex-wrap">
           {warns.map((w) => (
             <span key={w} className="font-mono text-[8px] uppercase tracking-wider text-negative/80">⚠ {nice(w)}</span>
           ))}
         </div>
       )}
 
-      {/* post-signal footer */}
-      <div className="mt-auto px-3.5 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
+      {/* footer — historical context */}
+      <div className="mt-auto pl-4 pr-3 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
         {avg != null ? (
           <>
             <span className="text-text-muted">{t("terminal.viz.confAvg")} <span className="text-white/70">{fmtPct(avg)}</span></span>
@@ -235,147 +242,27 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair }) {
         ))}
       </div>
 
-      {/* card grid */}
+      {/* card grid — bounded, scrolls inside */}
       {cards.length === 0 ? (
         <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed px-6">
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {cards.slice(0, 60).map((s) => (
-            <SignalCard
-              key={s.signal_id}
-              s={s}
-              t={t}
-              onPair={openPair}
-              live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
-              ps={psPairs[s.pair]}
-            />
-          ))}
-        </div>
+        <ScrollArea max={720}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {cards.slice(0, 90).map((s) => (
+              <SignalCard
+                key={s.signal_id}
+                s={s}
+                t={t}
+                onPair={openPair}
+                live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
+                ps={psPairs[s.pair]}
+              />
+            ))}
+          </div>
+        </ScrollArea>
       )}
-    </>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════
-// TAB: POST-SIGNAL INTELLIGENCE
-// ════════════════════════════════════════════════════════════════
-export function PostSignalTab({ view, pairFc, postsignal, openPair }) {
-  const { t } = useTranslation();
-  const zPs = useZoom(-15, 15, -30, 30);
-  const psPairs = postsignal?.pairs || {};
-  const warming = !postsignal || postsignal.warming || Object.keys(psPairs).length === 0;
-
-  const joined = useMemo(() => {
-    const seen = new Set();
-    const rows = [];
-    view.forEach((s) => {
-      if (!s.pair || seen.has(s.pair)) return;
-      seen.add(s.pair);
-      const ps = psPairs[s.pair];
-      const fc = pairFc[s.pair];
-      if (!ps || ps.avg_24h == null) return;
-      rows.push({
-        pair: s.pair,
-        x: ps.avg_24h,
-        y: fc ?? null,
-        delta: fc != null ? fc - ps.avg_24h : null,
-        tp1: ps.tp1_rate,
-        n: ps.n,
-      });
-    });
-    return rows;
-  }, [view, psPairs, pairFc]);
-
-  const withLive = joined.filter((r) => r.y != null);
-  const leaders = [...withLive].sort((a, b) => b.delta - a.delta).slice(0, 8).map((r) => ({ pair: r.pair, v: r.delta }));
-  const laggards = [...withLive].sort((a, b) => a.delta - b.delta).slice(0, 8).map((r) => ({ pair: r.pair, v: r.delta }));
-  const outperfN = withLive.filter((r) => r.delta > 0).length;
-  const avgVals = joined.map((r) => r.x);
-  const tp1Vals = joined.map((r) => r.tp1).filter((v) => v != null);
-
-  if (warming) {
-    return (
-      <>
-        <SectionBand title={t("terminal.viz.tabPostsignal")} desc={t("terminal.viz.psSectionDesc")} />
-        <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07]">
-          <Warming text={t("terminal.viz.psWarming")} />
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <SectionBand title={t("terminal.viz.tabPostsignal")} desc={t("terminal.viz.psSectionDesc")} />
-
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-        <Kpi
-          label={t("terminal.viz.psKOutperf")}
-          value={withLive.length ? `${outperfN}/${withLive.length}` : "—"}
-          desc={t("terminal.viz.psKOutperfDesc")}
-          tone={outperfN > withLive.length / 2 ? "text-positive" : "text-negative"}
-        />
-        <Kpi label={t("terminal.viz.psKAvgMove")} value={fmtPct(median(avgVals))} desc={t("terminal.viz.psKAvgMoveDesc")} tone="text-gold-primary" />
-        <Kpi label={t("terminal.viz.psKTp1")} value={tp1Vals.length ? `${median(tp1Vals).toFixed(0)}%` : "—"} desc={t("terminal.viz.psKTp1Desc")} />
-        <Kpi label={t("terminal.viz.psKCoverage")} value={`${joined.length}`} desc={t("terminal.viz.psKCoverageDesc")} />
-      </div>
-
-      <XCard
-        title={t("terminal.viz.psScatterTitle")}
-        desc={t("terminal.viz.psScatterDesc")}
-        zoom={zPs}
-        hint={t("terminal.viz.psScatterHint")}
-        render={(h) => (
-          <div style={{ height: Math.max(h, 320) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
-                <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPs.domX} allowDataOverflow />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPs.domY} allowDataOverflow />
-                <Tooltip content={<ScatterTip xLabel="hist avg 24h %" yLabel="live now %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
-                <ReferenceLine segment={[{ x: -15, y: -15 }, { x: 15, y: 15 }]} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
-                <ReferenceLine x={0} stroke="rgba(255,255,255,0.1)" />
-                <Scatter data={withLive} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                  {withLive.map((p, i) => (
-                    <Cell key={i} cursor="pointer" fill={p.delta > 5 ? GOLD : p.delta > 0 ? POS : p.delta < -5 ? NEG : GRAYBAR} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      />
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-        <XCard title={t("terminal.viz.psLeadersTitle")} desc={t("terminal.viz.psLeadersDesc")} render={() => <RankBars data={leaders} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />} />
-        <XCard title={t("terminal.viz.psLaggardsTitle")} desc={t("terminal.viz.psLaggardsDesc")} render={() => <RankBars data={laggards} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />} />
-      </div>
-
-      <XCard
-        title={t("terminal.viz.psAvgDistTitle")}
-        desc={t("terminal.viz.psAvgDistDesc")}
-        render={(h) => (
-          <div style={{ height: h }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={makeBins(avgVals, 2, -10, 14)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
-                <CartesianGrid stroke={GRID} vertical={false} />
-                <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
-                <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
-                <ReferenceLine x="0" stroke={GOLD} strokeDasharray="3 3" />
-                <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
-                  {makeBins(avgVals, 2, -10, 14).map((b, i) => (
-                    <Cell key={i} fill={b.mid >= 0 ? POS : NEG} fillOpacity={0.75} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      />
     </>
   );
 }
