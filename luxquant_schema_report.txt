@@ -1,0 +1,2060 @@
+================================================================================
+ LUXQUANT DATABASE — SCHEMA & DATA REPORT
+ db=luxquant · postgres 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1) · size 1592 MB · generated 2026-07-08 15:43:36Z
+================================================================================
+
+TABLES (74) — sorted by size
+--------------------------------------------------------------------------------
+  signal_journey                                   51,638 rows       620 MB
+  signal_enrichment_history                        64,847 rows       321 MB
+  signal_enrichment                                52,854 rows       200 MB
+  signals                                          52,911 rows       131 MB
+  signal_updates                                  227,452 rows       109 MB
+  signal_btc_correlation                           52,911 rows        68 MB
+  mf_sector_snapshots                              67,101 rows        37 MB
+  mf_coin_snapshots                                52,250 rows        16 MB
+  notifications                                     6,437 rows        12 MB
+  ai_arena_anomaly_checks                          14,915 rows        11 MB
+  journey_agg_processed                            49,941 rows      7528 kB
+  _cache_outcomes                                  51,702 rows      7248 kB
+  user_activity_events                             28,785 rows      6952 kB
+  ai_arena_reports                                    536 rows      6512 kB
+  x_posts                                          12,599 rows      6136 kB
+  market_pulse                                      4,227 rows      4400 kB
+  coins                                               747 rows      1720 kB
+  compass_reads                                        80 rows      1600 kB
+  tg_call_posts                                     6,018 rows      1592 kB
+  crypto_news                                       1,016 rows      1384 kB
+  discord_relays                                    2,305 rows      1120 kB
+  onchain_alerts                                      798 rows       936 kB
+  compass_projection_contracts                         80 rows       888 kB
+  users                                               612 rows       824 kB
+  daily_market_regime                                 924 rows       808 kB
+  channel_messages                                    410 rows       632 kB
+  compass_projection_events                           254 rows       416 kB
+  notification_tg_deliveries                        3,713 rows       408 kB
+  news_article_extracts                                38 rows       320 kB
+  social_posts                                         33 rows       280 kB
+  watchlist                                           233 rows       264 kB
+  delisting_events                                     40 rows       264 kB
+  journey_agg_state                                     1 rows       240 kB
+  trade_journals                                       52 rows       224 kB
+  compass_projection_resolutions                       68 rows       208 kB
+  ai_arena_verdict_outcomes                             0 rows       200 kB
+  notification_reads                                   51 rows       192 kB
+  payments                                            162 rows       176 kB
+  receiving_wallets                                     6 rows       160 kB
+  assistant_semcache                                    9 rows       152 kB
+  exchange_accounts                                    20 rows       152 kB
+  referral_codes                                       38 rows       120 kB
+  referral_uses                                         4 rows       120 kB
+  autotrade_config                                     20 rows       112 kB
+  autotrade_alert_relay                               310 rows       112 kB
+  cashout_requests                                      1 rows       112 kB
+  mf_macro_snapshots                                  209 rows       112 kB
+  tg_call_post_failures                                 9 rows        80 kB
+  tips                                                  1 rows        80 kB
+  admin_followups                                       1 rows        80 kB
+  credit_ledger                                         3 rows        80 kB
+  brand_todos                                           3 rows        80 kB
+  legacy_members                                      235 rows        80 kB
+  announcements                                         0 rows        80 kB
+  coin_watch                                           62 rows        80 kB
+  ai_usage_log                                         49 rows        80 kB
+  trade_orders                                          0 rows        72 kB
+  _pnl_leverage_backup_20260531                       489 rows        72 kB
+  autotrade_relay_config                                3 rows        64 kB
+  x_post_failures                                      17 rows        64 kB
+  api_keys                                             22 rows        64 kB
+  announcement_views                                    0 rows        56 kB
+  subscription_plans                                    3 rows        48 kB
+  notification_preferences                             26 rows        48 kB
+  signal_btc_assessments                                0 rows        48 kB
+  trade_log                                             0 rows        48 kB
+  tg_call_config                                        1 rows        32 kB
+  marketing_campaigns                                   0 rows        32 kB
+  btc_market_context_snapshots                          0 rows        32 kB
+  payment_record_assignments                            0 rows        32 kB
+  referral_payouts                                      0 rows        32 kB
+  daily_pnl                                             0 rows        24 kB
+  outbox_events                                         0 rows        24 kB
+  _bak_portal_cleanup                                   5 rows        16 kB
+
+RELATIONSHIPS (55 foreign keys)
+--------------------------------------------------------------------------------
+  admin_followups.user_id  →  users.id
+  admin_followups.created_by  →  users.id
+  admin_followups.completed_by  →  users.id
+  ai_arena_reports.previous_report_id  →  ai_arena_reports.id
+  ai_arena_verdict_outcomes.report_id  →  ai_arena_reports.id
+  announcement_views.user_id  →  users.id
+  announcements.target_user_id  →  users.id
+  announcements.created_by  →  users.id
+  api_keys.user_id  →  users.id
+  autotrade_config.user_id  →  users.id
+  brand_todos.completed_by  →  users.id
+  brand_todos.created_by  →  users.id
+  cashout_requests.ledger_final_id  →  credit_ledger.id
+  cashout_requests.ledger_reserve_id  →  credit_ledger.id
+  cashout_requests.reviewed_by_admin_id  →  users.id
+  cashout_requests.user_id  →  users.id
+  coin_watch.user_id  →  users.id
+  coins.reviewed_by  →  users.id
+  compass_reads.report_pk  →  ai_arena_reports.id
+  credit_ledger.ref_use_id  →  referral_uses.id
+  credit_ledger.ref_payment_id  →  payments.id
+  credit_ledger.user_id  →  users.id
+  daily_pnl.user_id  →  users.id
+  exchange_accounts.user_id  →  users.id
+  marketing_campaigns.created_by  →  users.id
+  notification_preferences.user_id  →  users.id
+  notification_reads.user_id  →  users.id
+  notification_reads.notification_id  →  notifications.id
+  notification_tg_deliveries.user_id  →  users.id
+  notification_tg_deliveries.notification_id  →  notifications.id
+  notifications.user_id  →  users.id
+  payment_record_assignments.user_id  →  users.id
+  payment_record_assignments.assigned_admin_id  →  users.id
+  payments.plan_id  →  subscription_plans.id
+  payments.referral_use_id  →  referral_uses.id
+  payments.user_id  →  users.id
+  referral_codes.user_id  →  users.id
+  referral_payouts.user_id  →  users.id
+  referral_uses.referrer_id  →  users.id
+  referral_uses.payment_id  →  payments.id
+  referral_uses.referral_code_id  →  referral_codes.id
+  referral_uses.referred_id  →  users.id
+  signal_btc_assessments.signal_id  →  signals.signal_id
+  signal_btc_correlation.signal_id  →  signals.signal_id
+  signal_enrichment.signal_id  →  signals.signal_id
+  signal_enrichment_history.signal_id  →  signals.signal_id
+  signal_journey.signal_id  →  signals.signal_id
+  tips.created_by  →  users.id
+  trade_log.user_id  →  users.id
+  trade_orders.signal_id  →  signals.signal_id
+  trade_orders.user_id  →  users.id
+  user_activity_events.user_id  →  users.id
+  users.referred_by  →  users.id
+  users.admin_enriched_by  →  users.id
+  watchlist.user_id  →  users.id
+
+VIEWS / MATERIALIZED VIEWS (2)
+--------------------------------------------------------------------------------
+  [view] coins_with_signal_stats
+  [view] v_signal_with_correlation
+
+================================================================================
+ PER-TABLE DETAIL
+================================================================================
+
+▓▓ signal_journey   (51,638 rows · 620 MB)
+   columns:
+     - signal_id                      text                       PK · NOT NULL
+     - direction                      text                       NOT NULL
+     - computed_at                    timestamp with time zone   NOT NULL · default now()
+     - last_event_at                  timestamp with time zone   
+     - data_source                    text                       NOT NULL
+     - kline_interval                 text                       NOT NULL · default '1h'::text
+     - swing_threshold_pct            real                       NOT NULL · default 1.5
+     - coverage_from                  timestamp with time zone   NOT NULL
+     - coverage_until                 timestamp with time zone   NOT NULL
+     - coverage_status                text                       NOT NULL
+     - events                         jsonb                      NOT NULL
+     - overall_mae_pct                real                       
+     - overall_mae_at                 timestamp with time zone   
+     - overall_mfe_pct                real                       
+     - overall_mfe_at                 timestamp with time zone   
+     - initial_mae_pct                real                       
+     - initial_mae_at                 timestamp with time zone   
+     - initial_mae_before             text                       
+     - time_to_tp1_seconds            integer                    
+     - time_to_outcome_seconds        integer                    
+     - pct_time_above_entry           real                       
+     - tp_then_sl                     boolean                    NOT NULL · default false
+     - tps_hit_before_sl              jsonb                      
+     - realized_outcome_pct           real                       
+     - missed_potential_pct           real                       
+   indexes:
+     · idx_journey_computed: btree (computed_at)
+     · idx_journey_events_gin: gin (events)
+     · idx_journey_initial_mae: btree (initial_mae_pct)
+     · idx_journey_mae: btree (overall_mae_pct)
+     · idx_journey_mfe: btree (overall_mfe_pct)
+     · idx_journey_status: btree (coverage_status)
+     · idx_journey_tp_then_sl: btree (tp_then_sl) WHERE (tp_then_sl = true)
+     · signal_journey_pkey: btree (signal_id)
+   references:
+     → signals.signal_id (via signal_id)
+   value distribution (low-cardinality columns):
+     · direction: long=51,638
+     · data_source: binance_spot=24,706, binance_futures=18,541, bybit_linear=5,993, unavailable=1,721, bybit_spot=677
+     · kline_interval: 1h=51,638
+     · coverage_status: live=34,319, frozen=8,274, sl_truncated=7,324, unavailable=1,721
+     · initial_mae_before: tp1=37,821, sl=12,096, None=1,721
+     · tp_then_sl: false=51,638
+   sample rows:
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 · direction=long · computed_at=2026-05-02 06:52:58.520500+00:00 · last_event_at=2025-03-15 20:24:38+00:00 · data_source=binance_spot · kline_interval=1h · swing_threshold_pct=1.5 · coverage_from=2025-03-15 16:05:03+00:00 · coverage_until=2025-03-29 20:24:38+00:00 · coverage_status=frozen · events=[{'at': '2025-03-15T16:05:03+00:00', 'pct': 0.0, 'type': ... · overall_mae_pct=-14.46 · overall_mae_at=2025-03-29 20:00:00+00:00 · overall_mfe_pct=13.08 · overall_mfe_at=2025-03-15 20:00:00+00:00 · initial_mae_pct=None · initial_mae_at=None · initial_mae_ }
+     { signal_id=ffff22b6-ba30-4902-a6e0-910b05ad22d7 · direction=long · computed_at=2026-05-02 08:38:28.545530+00:00 · last_event_at=2024-06-04 14:03:28+00:00 · data_source=binance_futures · kline_interval=1h · swing_threshold_pct=1.5 · coverage_from=2024-06-04 11:04:28+00:00 · coverage_until=2026-05-02 08:38:28.354873+00:00 · coverage_status=live · events=[{'at': '2024-06-04T11:04:28+00:00', 'pct': 0.0, 'type': ... · overall_mae_pct=-64.41 · overall_mae_at=2024-08-05 06:00:00+00:00 · overall_mfe_pct=2.85 · overall_mfe_at=2024-06-05 10:00:00+00:00 · initial_mae_pct=-0.91 · initial_mae_at=2024-06-04  }
+
+▓▓ signal_enrichment_history   (64,847 rows · 321 MB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('signal_enrichment_history_id_se
+     - signal_id                      text                       NOT NULL
+     - snapshot                       jsonb                      NOT NULL
+     - recorded_at                    timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_enrichment_history_recorded: btree (recorded_at)
+     · idx_enrichment_history_signal: btree (signal_id, recorded_at DESC)
+     · signal_enrichment_history_pkey: btree (id)
+   references:
+     → signals.signal_id (via signal_id)
+   sample rows:
+     { id=622374 · signal_id=4095a2a6-bb0e-4001-ab13-515c213ae951 · snapshot={'mode': 'live', 'pair': 'LUNA2USDT', 'tags': ['BEARISH_M... · recorded_at=2026-07-08 15:43:36.064741+00:00 }
+     { id=622373 · signal_id=8dd4fbba-4c71-414f-b4f1-bebbe40e8c89 · snapshot={'mode': 'live', 'pair': 'AWEUSDT', 'tags': ['RANGING_M15... · recorded_at=2026-07-08 15:42:59.547598+00:00 }
+
+▓▓ signal_enrichment   (52,854 rows · 200 MB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('signal_enrichment_id_seq'::regc
+     - signal_id                      text                       NOT NULL
+     - pair                           text                       NOT NULL
+     - confidence_score               smallint                   NOT NULL · default 0
+     - rating                         character varying(16)      NOT NULL · default 'AVOID'::character varying
+     - regime                         character varying(16)      NOT NULL · default 'normal'::character varying
+     - score_breakdown                jsonb                      NOT NULL · default '{}'::jsonb
+     - weights_used                   jsonb                      NOT NULL · default '{}'::jsonb
+     - mtf_h4_trend                   character varying(16)      
+     - mtf_h1_trend                   character varying(16)      
+     - mtf_m15_trend                  character varying(16)      
+     - signal_direction               character varying(16)      
+     - mtf_detail                     jsonb                      NOT NULL · default '{}'::jsonb
+     - patterns_detected              jsonb                      NOT NULL · default '[]'::jsonb
+     - smc_fvg_count                  smallint                   default 0
+     - smc_ob_count                   smallint                   default 0
+     - smc_sweep_count                smallint                   default 0
+     - smc_golden_setup               boolean                    default false
+     - smc_detail                     jsonb                      NOT NULL · default '{}'::jsonb
+     - btc_trend                      character varying(16)      
+     - btc_dom_trend                  character varying(16)      
+     - fear_greed                     smallint                   
+     - atr_percentile                 real                       
+     - confluence_notes               text                       
+     - warnings                       ARRAY                      
+     - analyzed_at                    timestamp with time zone   NOT NULL · default now()
+     - enrichment_version             character varying(8)       NOT NULL · default 'v2.1'::character varying
+     - entry_snapshot                 jsonb                      NOT NULL · default '{}'::jsonb
+     - live_snapshot                  jsonb                      NOT NULL · default '{}'::jsonb
+     - live_updated_at                timestamp with time zone   
+   indexes:
+     · idx_enrichment_analyzed: btree (analyzed_at DESC)
+     · idx_enrichment_pair: btree (pair)
+     · idx_enrichment_rating: btree (rating)
+     · idx_enrichment_score: btree (confidence_score DESC)
+     · signal_enrichment_pkey: btree (id)
+     · uq_enrichment_signal: btree (signal_id)
+   references:
+     → signals.signal_id (via signal_id)
+   value distribution (low-cardinality columns):
+     · rating: AVOID=42,339, N/A=7,745, LOW=2,623, WEAK=146, MODERATE=1
+     · regime: normal=21,723, low_vol=17,295, skip=8,601, high_vol=5,235
+     · mtf_h4_trend: RANGING=18,732, None=16,346, BEARISH=14,744, BULLISH=3,032
+     · mtf_h1_trend: RANGING=19,841, None=16,346, BEARISH=10,035, BULLISH=6,632
+     · mtf_m15_trend: RANGING=17,929, None=16,346, BEARISH=10,059, BULLISH=8,520
+     · signal_direction: BULLISH=44,272, None=8,582
+     · smc_golden_setup: false=52,854
+     · btc_trend: RANGING=36,508, None=16,346
+     · btc_dom_trend: FLAT=36,508, None=16,346
+     · enrichment_version: v2.1=41,918, v3.0-pit=8,160, v3.0=2,772, v2.3.1=4
+   sample rows:
+     { id=142635 · signal_id=897ae1f2-9eb8-4509-ab5b-ac63fe0a0098 · pair=PLAYUSDT · confidence_score=0 · rating=N/A · regime=normal · score_breakdown={} · weights_used={} · mtf_h4_trend=None · mtf_h1_trend=None · mtf_m15_trend=None · signal_direction=BULLISH · mtf_detail={} · patterns_detected=[] · smc_fvg_count=0 · smc_ob_count=0 · smc_sweep_count=0 · smc_golden_setup=False · smc_detail={} · btc_trend=None · btc_dom_trend=None · fear_greed=None · atr_percentile=None · confluence_notes=None · warnings=None · analyzed_at=2026-07-08 12:51:01.731421+00:00 · enrichment_version=v3.0 · entry_snapshot={'mod }
+     { id=142634 · signal_id=7fdb703e-92c1-4fb0-b957-49d36ee95a81 · pair=ZBTUSDT · confidence_score=0 · rating=N/A · regime=normal · score_breakdown={} · weights_used={} · mtf_h4_trend=None · mtf_h1_trend=None · mtf_m15_trend=None · signal_direction=BULLISH · mtf_detail={} · patterns_detected=[] · smc_fvg_count=0 · smc_ob_count=0 · smc_sweep_count=0 · smc_golden_setup=False · smc_detail={} · btc_trend=None · btc_dom_trend=None · fear_greed=None · atr_percentile=None · confluence_notes=None · warnings=None · analyzed_at=2026-07-08 12:42:21.679540+00:00 · enrichment_version=v3.0 · entry_snapshot={'mode }
+
+▓▓ signals   (52,911 rows · 131 MB)
+   columns:
+     - signal_id                      text                       PK · NOT NULL
+     - channel_id                     bigint                     
+     - call_message_id                bigint                     
+     - message_link                   text                       
+     - pair                           text                       
+     - entry                          real                       
+     - target1                        real                       
+     - target2                        real                       
+     - target3                        real                       
+     - target4                        real                       
+     - stop1                          real                       
+     - stop2                          real                       
+     - risk_level                     text                       
+     - volume_rank_num                bigint                     
+     - volume_rank_den                bigint                     
+     - created_at                     text                       
+     - status                         text                       
+     - raw_text                       text                       
+     - text_sha1                      text                       
+     - edit_date                      text                       
+     - market_cap                     text                       
+     - risk_reasons                   text                       
+     - entry_chart_path               text                       
+     - latest_chart_path              text                       
+     - chart_status                   text                       default 'pending'::text
+     - enrichment_status              character varying(16)      default 'pending'::character varying
+     - peak_price                     numeric                    
+     - peak_pct                       numeric                    
+     - peak_at                        timestamp without time zone 
+     - peak_updated_at                timestamp without time zone 
+     - pnl_card_entry_path            text                       
+     - pnl_card_latest_path           text                       
+     - pnl_card_status                text                       default 'pending'::text
+     - pnl_leverage                   integer                    
+     - pnl_style                      integer                    
+     - max_leverage                   integer                    
+     - max_leverage_status            character varying(20)      default 'pending'::character varying
+     - max_leverage_at                timestamp with time zone   
+   indexes:
+     · idx_16386_idx_signals_callid: btree (call_message_id)
+     · idx_16386_idx_signals_pair: btree (pair)
+     · idx_16386_idx_signals_status: btree (status)
+     · idx_16386_sqlite_autoindex_signals_1: btree (signal_id)
+     · idx_16386_sqlite_autoindex_signals_2: btree (call_message_id)
+     · idx_signals_callid: btree (call_message_id)
+     · idx_signals_enrichment: btree (enrichment_status)
+     · idx_signals_max_leverage_status: btree (max_leverage_status) WHERE ((max_leverage_status)::text = 'pending'::text)
+     · idx_signals_pair: btree (pair)
+     · idx_signals_pair_call_id: btree (pair, call_message_id DESC)
+     · idx_signals_pair_created_at: btree (pair, created_at DESC)
+     · idx_signals_peak_pct: btree (peak_pct DESC NULLS LAST) WHERE (peak_pct IS NOT NULL)
+     · idx_signals_peak_updated_at: btree (peak_updated_at NULLS FIRST, status) WHERE (entry > (0)::double precision)
+     · idx_signals_pnl_card_status: btree (pnl_card_status) WHERE ((pnl_card_status = ANY (ARRAY['pending'::text, 'entry_done'::text])) OR (pnl_card_status ~~ 'updated:%'::text))
+     · idx_signals_status: btree (status)
+     · idx_signals_status_created_at: btree (status, created_at DESC)
+     · uq_signals_call_mid: btree (call_message_id)
+   value distribution (low-cardinality columns):
+     · risk_level: high=20,317, low=11,924, High=6,909, None=5,358, Medium=3,850, Normal=2,867, med=1,686
+     · status: closed_win=27,245, closed_loss=9,553, tp2=6,628, tp3=5,062, tp1=3,216, open=1,207
+     · chart_status: complete=45,996, updated:tp2=2,981, updated:tp3=2,333, updated:tp1=1,414, entry_done=169, error=18
+     · enrichment_status: done=52,831, error=78, processing=2
+     · pnl_card_status: skipped:no_chart_partner=40,524, complete=4,443, updated:tp2=3,448, updated:tp3=2,689, updated:tp1=1,621, entry_done=168, pending=18
+     · max_leverage_status: pending=51,647, done=1,264
+   sample rows:
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 · channel_id=-1002051092635 · call_message_id=56164 · message_link=https://t.me/c/2051092635/56164 · pair=USTCUSDT · entry=0.013 · target1=0.0131 · target2=0.0133 · target3=0.0137 · target4=0.0144 · stop1=0.0126 · stop2=0.0118 · risk_level=high · volume_rank_num=285 · volume_rank_den=401 · created_at=2025-03-15T16:05:03+00:00 · status=closed_win · raw_text=USTCUSDT 🆕
+
+Volume(24H) Ranked: 285th/401
+
+Risk Level: ⚠️... · text_sha1=561b5b62fc06a9f970dcf8f265c3ab70b98373a8 · edit_date=None · market_cap=None · risk_reasons=- The volume rank outside the  }
+     { signal_id=ffff22b6-ba30-4902-a6e0-910b05ad22d7 · channel_id=-1002051092635 · call_message_id=18116 · message_link=https://t.me/c/2051092635/18116 · pair=ARUSDT · entry=45.26 · target1=45.97 · target2=46.69 · target3=48.82 · target4=52.39 · stop1=43.51 · stop2=39.56 · risk_level=low · volume_rank_num=70 · volume_rank_den=277 · created_at=2024-06-04T11:04:28+00:00 · status=closed_win · raw_text=ARUSDT 🆕
+
+Volume(24H) Ranked: 70th/277
+
+Risk Level: 🟢 Nor... · text_sha1=3d8ba1ba8f8c269a6d3b4b9d9f90750eb18acab1 · edit_date=None · market_cap=None · risk_reasons=None · entry_chart_path=None · latest_ch }
+
+▓▓ signal_updates   (227,452 rows · 109 MB)
+   columns:
+     - signal_id                      text                       
+     - channel_id                     bigint                     PK · NOT NULL
+     - update_message_id              bigint                     PK · NOT NULL
+     - message_link                   text                       
+     - update_type                    text                       PK · NOT NULL
+     - price                          real                       
+     - update_at                      text                       
+     - raw_text                       text                       
+     - reply_to_msg_id                bigint                     
+     - linked_msg_id                  bigint                     
+   indexes:
+     · idx_16392_idx_updates_sid: btree (signal_id)
+     · idx_16392_idx_updates_uid: btree (update_message_id)
+     · idx_16392_sqlite_autoindex_signal_updates_1: btree (channel_id, update_message_id, update_type)
+     · idx_signal_updates_signal_time: btree (signal_id, update_at)
+     · idx_updates_sid: btree (signal_id)
+     · idx_updates_uid: btree (update_message_id)
+     · uq_updates_chan_mid_type: btree (channel_id, update_message_id, update_type)
+   value distribution (low-cardinality columns):
+     · update_type: tp1=106,580, tp2=66,900, tp3=30,917, sl=13,067, tp4=9,988
+   sample rows:
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 · channel_id=-1002051092635 · update_message_id=56166 · message_link=https://t.me/c/2051092635/56166 · update_type=tp1 · price=0.0131 · update_at=2025-03-15T16:09:38+00:00 · raw_text=USTCUSDT
+
+Target 1: 0.0131 ✅ · reply_to_msg_id=56164 · linked_msg_id=None }
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 · channel_id=-1002051092635 · update_message_id=56182 · message_link=https://t.me/c/2051092635/56182 · update_type=tp1 · price=0.0131 · update_at=2025-03-15T16:29:40+00:00 · raw_text=USTCUSDT
+
+Target 1: 0.0131 ✅
+Target 2: 0.0133 ✅ · reply_to_msg_id=56164 · linked_msg_id=None }
+
+▓▓ signal_btc_correlation   (52,911 rows · 68 MB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('signal_btc_correlation_id_seq':
+     - signal_id                      text                       NOT NULL
+     - pair                           text                       NOT NULL
+     - corr_1h_7d                     numeric                    
+     - corr_4h_30d                    numeric                    
+     - beta_30d                       numeric                    
+     - r_squared_30d                  numeric                    
+     - corr_zscore                    numeric                    
+     - btc_context                    jsonb                      NOT NULL · default '{}'::jsonb
+     - is_decoupled                   boolean                    NOT NULL · default false
+     - interpretation                 jsonb                      NOT NULL · default '{}'::jsonb
+     - data_source                    character varying(20)      
+     - sample_quality                 character varying(10)      
+     - worker_version                 character varying(8)       NOT NULL · default 'v1.0'::character varying
+     - analyzed_at                    timestamp with time zone   NOT NULL · default now()
+     - sample_size                    integer                    
+     - confidence                     character varying(20)      default 'insufficient_data'::character varying
+     - tail_corr_btc_down             numeric                    
+     - tail_corr_btc_up               numeric                    
+     - downside_beta                  numeric                    
+     - lead_lag_hours                 integer                    
+     - volatility_ratio               numeric                    
+     - coin_volatility_pct            numeric                    
+     - momentum_divergence_7d         numeric                    
+     - is_extended                    boolean                    default false
+     - snapshot_at                    timestamp with time zone   
+   indexes:
+     · idx_correlation_alignment: btree ((((interpretation ->> 'alignment_score'::text))::integer) DESC)
+     · idx_correlation_analyzed_at: btree (analyzed_at DESC)
+     · idx_correlation_confidence: btree (confidence)
+     · idx_correlation_decoupled: btree (is_decoupled) WHERE (is_decoupled = true)
+     · idx_correlation_downside_beta: btree (downside_beta DESC NULLS LAST)
+     · idx_correlation_extended: btree (is_extended) WHERE (is_extended = true)
+     · idx_correlation_pair: btree (pair)
+     · idx_correlation_snapshot_at: btree (snapshot_at DESC NULLS LAST)
+     · signal_btc_correlation_pkey: btree (id)
+     · uq_correlation_signal: btree (signal_id)
+   references:
+     → signals.signal_id (via signal_id)
+   value distribution (low-cardinality columns):
+     · is_decoupled: false=52,401, true=510
+     · data_source: binance=38,763, coingecko=13,306, none=842
+     · sample_quality: high=46,325, low=5,951, medium=635
+     · worker_version: v2.0=52,911
+     · confidence: high=46,325, insufficient_data=5,734, medium=635, low=217
+     · is_extended: false=51,186, true=1,725
+   sample rows:
+     { id=52982 · signal_id=897ae1f2-9eb8-4509-ab5b-ac63fe0a0098 · pair=PLAYUSDT · corr_1h_7d=-0.0962 · corr_4h_30d=0.0308 · beta_30d=0.1889 · r_squared_30d=0.0009 · corr_zscore=-0.7356 · btc_context={'price': 62067.89, 'trend': 'below_ema200', 'regime': 'r... · is_decoupled=False · interpretation={'summary': 'Correlation +0.03 with beta 0.19. R² of 0.00... · data_source=coingecko · sample_quality=high · worker_version=v2.0 · analyzed_at=2026-07-08 12:50:09.755441+00:00 · sample_size=720 · confidence=high · tail_corr_btc_down=0.0569 · tail_corr_btc_up=0.0257 · downside_beta=0.5018 · lead_lag_hours=-1 }
+     { id=52981 · signal_id=7fdb703e-92c1-4fb0-b957-49d36ee95a81 · pair=ZBTUSDT · corr_1h_7d=0.0916 · corr_4h_30d=0.2690 · beta_30d=0.8765 · r_squared_30d=0.0724 · corr_zscore=-0.9230 · btc_context={'price': 62157.49, 'trend': 'below_ema200', 'regime': 'r... · is_decoupled=False · interpretation={'summary': 'Correlation +0.27 with beta 0.88. R² of 0.07... · data_source=binance · sample_quality=high · worker_version=v2.0 · analyzed_at=2026-07-08 12:35:09.764463+00:00 · sample_size=999 · confidence=high · tail_corr_btc_down=0.1962 · tail_corr_btc_up=0.2101 · downside_beta=0.8220 · lead_lag_hours=0 · vo }
+
+▓▓ mf_sector_snapshots   (67,101 rows · 37 MB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('mf_sector_snapshots_id_seq'::re
+     - snapshot_at                    timestamp with time zone   NOT NULL
+     - category_id                    text                       NOT NULL
+     - name                           text                       
+     - market_cap                     numeric                    
+     - volume_24h                     numeric                    
+     - market_cap_change_24h          numeric                    
+     - top_3_coins                    jsonb                      
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_mf_sector_cat_time: btree (category_id, snapshot_at DESC)
+     · idx_mf_sector_time: btree (snapshot_at DESC)
+     · mf_sector_snapshots_pkey: btree (id)
+     · uq_mf_sector: btree (snapshot_at, category_id)
+
+▓▓ mf_coin_snapshots   (52,250 rows · 16 MB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('mf_coin_snapshots_id_seq'::regc
+     - snapshot_at                    timestamp with time zone   NOT NULL
+     - coin_id                        text                       NOT NULL
+     - symbol                         text                       
+     - price                          numeric                    
+     - market_cap                     numeric                    
+     - volume_24h                     numeric                    
+     - price_change_24h               numeric                    
+     - price_change_7d                numeric                    
+     - price_change_30d               numeric                    
+     - is_luxquant_signal             boolean                    default false
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_mf_coin_coin_time: btree (coin_id, snapshot_at DESC)
+     · idx_mf_coin_lux: btree (snapshot_at DESC) WHERE (is_luxquant_signal = true)
+     · idx_mf_coin_time: btree (snapshot_at DESC)
+     · mf_coin_snapshots_pkey: btree (id)
+     · uq_mf_coin: btree (snapshot_at, coin_id)
+   value distribution (low-cardinality columns):
+     · is_luxquant_signal: false=31,275, true=20,975
+   sample rows:
+     { id=59000 · snapshot_at=2026-07-08 12:00:00+00:00 · coin_id=avant-usd · symbol=AVUSD · price=0.999183 · market_cap=108294834.0 · volume_24h=12833.54 · price_change_24h=-0.05136 · price_change_7d=0.05504610381176578 · price_change_30d=0.0798985937542647 · is_luxquant_signal=False · created_at=2026-07-08 12:02:08.593920+00:00 }
+     { id=58999 · snapshot_at=2026-07-08 12:00:00+00:00 · coin_id=bitmart-token · symbol=BMX · price=0.32194 · market_cap=109259139.0 · volume_24h=9741748.0 · price_change_24h=1.38506 · price_change_7d=-1.524036025283411 · price_change_30d=7.215970267932928 · is_luxquant_signal=False · created_at=2026-07-08 12:02:08.593920+00:00 }
+
+▓▓ notifications   (6,437 rows · 12 MB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('notifications_id_seq'::regclass
+     - user_id                        integer                    
+     - type                           text                       NOT NULL
+     - title                          text                       NOT NULL
+     - body                           text                       
+     - data                           jsonb                      
+     - source_type                    text                       
+     - source_id                      text                       
+     - is_read                        boolean                    default false
+     - created_at                     timestamp with time zone   default now()
+     - telegram_sent_at               timestamp with time zone   
+   indexes:
+     · idx_notif_created: btree (created_at DESC)
+     · idx_notif_source: btree (source_type, source_id)
+     · idx_notif_tg_pending: btree (created_at) WHERE ((telegram_sent_at IS NULL) AND (user_id IS NOT NULL))
+     · idx_notif_type: btree (type)
+     · idx_notif_user: btree (user_id)
+     · idx_notif_user_read: btree (user_id, is_read)
+     · notifications_pkey: btree (id)
+     · uniq_notif_broadcast_source: btree (type, source_type, source_id) WHERE ((user_id IS NULL) AND (source_id IS NOT NULL))
+     · uniq_notif_user_source: btree (user_id, type, source_type, source_id) WHERE ((user_id IS NOT NULL) AND (source_id IS NOT NULL))
+   references:
+     → users.id (via user_id)
+
+▓▓ ai_arena_anomaly_checks   (14,915 rows · 11 MB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('ai_arena_anomaly_checks_id_seq'
+     - checked_at                     timestamp with time zone   default now()
+     - btc_price                      double precision           
+     - oi_usd                         double precision           
+     - funding_rate                   double precision           
+     - fear_greed                     integer                    
+     - trigger_hit                    boolean                    default false
+     - anomaly_type                   character varying(50)      
+     - anomaly_detail                 text                       
+     - report_triggered_id            character varying(20)      
+   indexes:
+     · ai_arena_anomaly_checks_pkey: btree (id)
+     · idx_anomaly_checked_at: btree (checked_at)
+   value distribution (low-cardinality columns):
+     · trigger_hit: false=14,584, true=331
+   sample rows:
+     { id=14915 · checked_at=2026-07-08 15:42:30.378598+00:00 · btc_price=61623.3 · oi_usd=None · funding_rate=None · fear_greed=None · trigger_hit=False · anomaly_type=cooldown_active · anomaly_detail={"1h_window_ignored": "latest_report_age_below_60m", "4h_... · report_triggered_id=None }
+     { id=14914 · checked_at=2026-07-08 15:40:17.983694+00:00 · btc_price=61736.9 · oi_usd=None · funding_rate=None · fear_greed=None · trigger_hit=False · anomaly_type=cooldown_active · anomaly_detail={"1h_window_ignored": "latest_report_age_below_60m", "4h_... · report_triggered_id=None }
+
+▓▓ journey_agg_processed   (49,941 rows · 7528 kB)
+   columns:
+     - signal_id                      text                       PK · NOT NULL
+   indexes:
+     · journey_agg_processed_pkey: btree (signal_id)
+   sample rows:
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 }
+     { signal_id=ffff22b6-ba30-4902-a6e0-910b05ad22d7 }
+
+▓▓ _cache_outcomes   (51,702 rows · 7248 kB)
+   columns:
+     - signal_id                      text                       
+     - outcome                        text                       
+   indexes:
+     · idx_cache_outcomes_out: btree (outcome)
+     · idx_cache_outcomes_sid: btree (signal_id)
+   value distribution (low-cardinality columns):
+     · outcome: tp2=15,538, tp3=11,414, tp4=9,987, sl=7,477, tp1=7,286
+   sample rows:
+     { signal_id=ffff9a2c-9fb4-415d-9c4e-e411d8b87583 · outcome=tp4 }
+     { signal_id=ffff22b6-ba30-4902-a6e0-910b05ad22d7 · outcome=tp1 }
+
+▓▓ user_activity_events   (28,785 rows · 6952 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('user_activity_events_id_seq'::r
+     - user_id                        integer                    NOT NULL
+     - feature                        character varying(50)      NOT NULL
+     - occurred_at                    timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · ix_activity_feature_time: btree (feature, occurred_at DESC)
+     · ix_activity_user_time: btree (user_id, occurred_at DESC)
+     · ix_user_activity_events_feature: btree (feature)
+     · ix_user_activity_events_occurred_at: btree (occurred_at)
+     · ix_user_activity_events_user_id: btree (user_id)
+     · user_activity_events_pkey: btree (id)
+   references:
+     → users.id (via user_id)
+
+▓▓ ai_arena_reports   (536 rows · 6512 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('ai_arena_reports_id_seq'::regcl
+     - report_id                      character varying(20)      NOT NULL
+     - timestamp                      timestamp with time zone   default now()
+     - generated_in_seconds           double precision           
+     - data_sources_count             integer                    
+     - btc_price                      double precision           
+     - fear_greed                     integer                    
+     - sentiment                      character varying(20)      
+     - confidence                     integer                    
+     - bias_direction                 character varying(10)      
+     - report_json                    json                       NOT NULL
+     - created_at                     timestamp with time zone   default now()
+     - timeframes_analyzed            jsonb                      
+     - chart_image_path               character varying(255)     
+     - is_anomaly_triggered           boolean                    default false
+     - anomaly_reason                 text                       
+     - previous_report_id             integer                    
+     - bluf_text                      text                       
+     - schema_version                 character varying(10)      default 'v4'::character varying
+     - primary_direction_30d          character varying(10)      
+     - primary_confidence_30d         integer                    
+     - secondary_direction_7d         character varying(10)      
+     - secondary_confidence_7d        integer                    
+     - tactical_direction_24h         character varying(10)      
+     - tactical_confidence_24h        integer                    
+     - cycle_score                    double precision           
+     - cycle_phase                    character varying(20)      
+     - critique_decision              character varying(30)      
+     - total_cost_usd                 double precision           
+   indexes:
+     · ai_arena_reports_pkey: btree (id)
+     · idx_ai_arena_reports_schema_version: btree (schema_version)
+     · idx_ai_arena_reports_v6_timestamp: btree ("timestamp" DESC) WHERE ((schema_version)::text = 'v6.1'::text)
+     · ix_ai_arena_reports_id: btree (id)
+     · ix_ai_arena_reports_report_id: btree (report_id)
+     · ix_ai_arena_reports_timestamp: btree ("timestamp")
+   references:
+     → ai_arena_reports.id (via previous_report_id)
+   value distribution (low-cardinality columns):
+     · sentiment: bullish=418, cautious=110, neutral=4, fear=2, bearish=2
+     · bias_direction: LONG=504, NEUTRAL=30, SHORT=2
+     · chart_image_path: None=527, /opt/luxquant/ai-arena-charts/rpt_06afaac9.png=1, /opt/luxquant/ai-arena-charts/rpt_aef63150.png=1, /opt/luxquant/ai-arena-charts/rpt_26573f5d.png=1, /opt/luxquant/ai-arena-charts/rpt_c71308ec.png=1, /opt/luxquant/ai-arena-charts/rpt_77d4a6c8.png=1, /opt/luxquant/ai-arena-charts/rpt_b28cd7a5.png=1, /opt/luxquant/ai-arena-charts/rpt_04c722aa.png=1, /opt/luxquant/ai-arena-charts/rpt_10b302
+     · is_anomaly_triggered: false=376, true=160
+     · schema_version: v6.1=402, v4=134
+     · primary_direction_30d: bullish=401, None=134, neutral=1
+     · secondary_direction_7d: neutral=251, None=134, bullish=129, bearish=22
+     · tactical_direction_24h: neutral=195, None=134, bearish=121, bullish=86
+     · cycle_phase: BOTTOM=240, ACCUMULATION=162, None=134
+     · critique_decision: approved_with_caveat=373, None=134, needs_revision=29
+   sample rows:
+     { id=538 · report_id=v6_9721ebdaca · timestamp=2026-07-08 15:24:31.174933+00:00 · generated_in_seconds=50.66952959448099 · data_sources_count=23 · btc_price=61608.1 · fear_greed=20 · sentiment=bullish · confidence=75 · bias_direction=LONG · report_json={'schema_version': 'v6.1', 'report_id': 'v6_9721ebdaca', ... · created_at=2026-07-08 15:24:31.174933+00:00 · timeframes_analyzed=None · chart_image_path=None · is_anomaly_triggered=True · anomaly_reason=support_level_touched_61627 · previous_report_id=None · bluf_text=Bearish Tape Intact — Targeting $60k, Event Risk Looms · schema_version=v6.1 · p }
+     { id=537 · report_id=v6_30deb44b62 · timestamp=2026-07-08 14:53:34.812311+00:00 · generated_in_seconds=93.9201241582632 · data_sources_count=23 · btc_price=61788.0 · fear_greed=20 · sentiment=bullish · confidence=75 · bias_direction=LONG · report_json={'schema_version': 'v6.1', 'report_id': 'v6_30deb44b62', ... · created_at=2026-07-08 14:53:34.812311+00:00 · timeframes_analyzed=None · chart_image_path=None · is_anomaly_triggered=True · anomaly_reason=support_level_touched_61628 · previous_report_id=None · bluf_text=Bearish Tape Dominates — Downside Sweep Likely Toward $60.3k · schema_version=v6. }
+
+▓▓ x_posts   (12,599 rows · 6136 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('x_posts_id_seq'::regclass)
+     - signal_id                      text                       NOT NULL
+     - event_type                     text                       NOT NULL
+     - tweet_id                       text                       
+     - tweet_text                     text                       
+     - has_image                      boolean                    default false
+     - style_used                     text                       
+     - created_at                     timestamp without time zone default now()
+     - hook_category                  text                       
+     - structural_pattern             text                       
+     - tg_message_id                  bigint                     
+   indexes:
+     · idx_x_posts_created: btree (created_at)
+     · idx_x_posts_signal: btree (signal_id)
+     · x_posts_pkey: btree (id)
+     · x_posts_signal_id_event_type_key: btree (signal_id, event_type)
+
+▓▓ market_pulse   (4,227 rows · 4400 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('market_pulse_id_seq'::regclass)
+     - source                         text                       NOT NULL
+     - source_msg_id                  integer                    NOT NULL
+     - pair                           text                       NOT NULL
+     - base_symbol                    text                       
+     - direction                      text                       NOT NULL
+     - pct_change                     real                       NOT NULL
+     - timeframe                      text                       
+     - event_type                     text                       
+     - event_type_zh                  text                       
+     - move_seconds                   integer                    
+     - has_media                      boolean                    default false
+     - raw_text                       text                       
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_mp_created: btree (created_at DESC)
+     · idx_mp_direction: btree (direction)
+     · idx_mp_event: btree (event_type)
+     · idx_mp_pair: btree (pair)
+     · idx_mp_pair_created: btree (pair, created_at DESC)
+     · idx_mp_source: btree (source)
+     · idx_mp_source_created: btree (source, created_at DESC)
+     · idx_mp_timeframe: btree (timeframe)
+     · market_pulse_pkey: btree (id)
+     · market_pulse_source_source_msg_id_key: btree (source, source_msg_id)
+   value distribution (low-cardinality columns):
+     · source: pulse=3,471, price_movement=756
+     · direction: bearish=2,302, bullish=1,925
+     · timeframe: 2h=1,573, 5m=1,137, None=756, 1d=557, 1w=147, 1m=54, 15m=3
+     · event_type: Minor Drop=1,198, Minor Rise=1,017, flash_move=509, 24h Low Break=315, rapid_move=247, Moderate Drop=197, Moderate Rise=173, 24h High Break=132, Weekly Low Break=105, Sharp Sell-off=66, Strong Rally=59, Breakout Then Pullback=56, Dip and Rebound=54, Monthly Low Break=42, Weekly High Break=42, Monthly High Break=12, High-Volume Minor Rise=2, High-Volume Moderate Rise=1
+     · event_type_zh: 小幅下跌=1,198, 小幅上漲=1,017, None=756, 24小時新低=315, 明顯下跌=197, 明顯上漲=173, 24小時新高=132, 本週新低=105, 大幅下跌=66, 強勢上漲=59, 衝高回落=56, 探底回升=54, 本週新高=42, 本月新低=42, 本月新高=12, 放量小幅上漲=2, 放量明顯上漲=1
+     · has_media: true=4,134, false=93
+   sample rows:
+     { id=314301 · source=pulse · source_msg_id=599565 · pair=TAGUSDT · base_symbol=TAG · direction=bearish · pct_change=-11.13 · timeframe=5m · event_type=Sharp Sell-off · event_type_zh=大幅下跌 · move_seconds=None · has_media=False · raw_text=🔴 TAGUSDT -11.13% (5m) Sharp Sell-off
+🔴 TAGUSDT -11.13% (... · created_at=2026-07-08 15:43:19.700697+00:00 }
+     { id=314300 · source=pulse · source_msg_id=599564 · pair=LABUSDT · base_symbol=LAB · direction=bearish · pct_change=-14.11 · timeframe=5m · event_type=Sharp Sell-off · event_type_zh=大幅下跌 · move_seconds=None · has_media=True · raw_text=🔴 LABUSDT -14.11% (5m) Sharp Sell-off
+🔴 LABUSDT -14.11% (... · created_at=2026-07-08 15:43:13.412427+00:00 }
+
+▓▓ coins   (747 rows · 1720 kB)
+   columns:
+     - pair                           text                       PK · NOT NULL
+     - base_symbol                    text                       NOT NULL
+     - quote_symbol                   text                       default 'USDT'::text
+     - token_type                     text                       
+     - sector                         text                       
+     - has_utility                    boolean                    
+     - utility_details                jsonb                      
+     - coingecko_id                   text                       
+     - market_cap_rank                integer                    
+     - market_cap_usd                 numeric                    
+     - description                    text                       
+     - website                        text                       
+     - whitepaper_url                 text                       
+     - categories_raw                 jsonb                      
+     - review_status                  text                       default 'pending'::text
+     - reviewed_by                    integer                    
+     - reviewed_at                    timestamp with time zone   
+     - review_notes                   text                       
+     - metadata_source                text                       default 'pending'::text
+     - last_fetched_at                timestamp with time zone   
+     - fetch_error                    text                       
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+     - summary                        text                       
+     - use_cases                      jsonb                      
+     - key_features                   jsonb                      
+     - risk_notes                     text                       
+   indexes:
+     · coins_pkey: btree (pair)
+     · idx_coins_base_symbol: btree (base_symbol)
+     · idx_coins_coingecko_id: btree (coingecko_id)
+     · idx_coins_has_utility: btree (has_utility)
+     · idx_coins_last_fetched: btree (last_fetched_at NULLS FIRST)
+     · idx_coins_market_cap_rank: btree (market_cap_rank)
+     · idx_coins_review_status: btree (review_status)
+     · idx_coins_sector: btree (sector)
+     · idx_coins_token_type: btree (token_type)
+   references:
+     → users.id (via reviewed_by)
+   value distribution (low-cardinality columns):
+     · quote_symbol: USDT=747
+     · token_type: utility=226, layer1=163, defi=106, memecoin=82, rwa=53, layer2=51, None=23, stablecoin=22, governance=16, privacy=3, exchange=2
+     · sector: infrastructure=248, defi=124, other=85, hype=82, ai=65, rwa=53, gamefi=34, payments=23, None=23, socialfi=7, privacy=3
+     · has_utility: true=640, false=84, None=23
+     · review_status: auto_categorized=710, fetch_failed=23, manual_reviewed=14
+     · metadata_source: coingecko=677, manual=47, pending=23
+     · fetch_error: None=724, no_coingecko_match=20, fetch_failed:citrea=1, fetch_failed:cisco-systems-ondo-tokenized-stock=1, fetch_failed:bitcoin=1
+   sample rows:
+     { pair=ZRXUSDT · base_symbol=ZRX · quote_symbol=USDT · token_type=defi · sector=defi · has_utility=True · utility_details={'staking': 'Stake tokens to earn protocol fees / rewards... · coingecko_id=0x · market_cap_rank=297 · market_cap_usd=101277616.00 · description= · website=https://www.0xprotocol.org/ · whitepaper_url=None · categories_raw=['decentralized exchange (dex)', 'exchange-based tokens',... · review_status=auto_categorized · reviewed_by=None · reviewed_at=None · review_notes=None · metadata_source=coingecko · last_fetched_at=2026-05-08 08:22:45.848096+00:00 · fetch_error=None · creat }
+     { pair=ZROUSDT · base_symbol=ZRO · quote_symbol=USDT · token_type=layer1 · sector=infrastructure · has_utility=True · utility_details={'gas_fee': 'Required to pay transaction fees', 'staking'... · coingecko_id=layerzero · market_cap_rank=131 · market_cap_usd=371973179.00 · description= · website=https://layerzero.network/ · whitepaper_url=None · categories_raw=['smart contract platform', 'bnb chain ecosystem', 'avala... · review_status=auto_categorized · reviewed_by=None · reviewed_at=None · review_notes=None · metadata_source=coingecko · last_fetched_at=2026-05-08 08:22:30.205451+00:00 · fetch_ }
+
+▓▓ compass_reads   (80 rows · 1600 kB)
+   columns:
+     - read_id                        character varying(48)      PK · NOT NULL
+     - report_pk                      integer                    
+     - report_id                      character varying(40)      
+     - issued_at                      timestamp with time zone   NOT NULL
+     - btc_reference_price            numeric                    NOT NULL
+     - snapshot_hash                  character varying(80)      
+     - schema_version                 character varying(20)      NOT NULL · default 'compass_2.0'::character varying
+     - model_version                  character varying(80)      
+     - prompt_version                 character varying(80)      
+     - source_json                    jsonb                      
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · compass_reads_pkey: btree (read_id)
+     · idx_compass_reads_issued_at: btree (issued_at DESC)
+     · idx_compass_reads_report_id: btree (report_id)
+     · idx_compass_reads_snapshot_hash: btree (snapshot_hash)
+   references:
+     → ai_arena_reports.id (via report_pk)
+   value distribution (low-cardinality columns):
+     · schema_version: v6.1=80
+     · model_version: deepseek-reasoner=80
+     · prompt_version: compass_2_target_first_v1=80
+   sample rows:
+     { read_id=read_v6_fe936cc327 · report_pk=511 · report_id=v6_fe936cc327 · issued_at=2026-07-06 15:15:40.623452+00:00 · btc_reference_price=62487.000000000000 · snapshot_hash=4ff2ca768c1b5ec46e646eb9d52f4bd30d56ffa7d9282c6c727e829b4... · schema_version=v6.1 · model_version=deepseek-reasoner · prompt_version=compass_2_target_first_v1 · source_json={'liquidity': {'layer': {'layer': 'liquidity', 'metrics':... · created_at=2026-07-06 15:15:40.621583+00:00 }
+     { read_id=read_v6_fe0c0da746 · report_pk=503 · report_id=v6_fe0c0da746 · issued_at=2026-07-06 01:36:34.504087+00:00 · btc_reference_price=63879.000000000000 · snapshot_hash=34bc3b2b21a3570b08275577f17e46180413d6127877fc191322810e8... · schema_version=v6.1 · model_version=deepseek-reasoner · prompt_version=compass_2_target_first_v1 · source_json={'liquidity': {'layer': {'layer': 'liquidity', 'metrics':... · created_at=2026-07-06 01:36:34.497606+00:00 }
+
+▓▓ tg_call_posts   (6,018 rows · 1592 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('tg_call_posts_id_seq'::regclass
+     - signal_id                      text                       NOT NULL
+     - event_type                     text                       NOT NULL
+     - tg_message_id                  bigint                     
+     - posted_at                      timestamp with time zone   default now()
+     - status                         text                       default 'posted'::text
+   indexes:
+     · idx_tg_call_posts_signal: btree (signal_id)
+     · tg_call_posts_pkey: btree (id)
+     · tg_call_posts_signal_id_event_type_key: btree (signal_id, event_type)
+   value distribution (low-cardinality columns):
+     · event_type: call=1,793, tp1=1,446, tp2=1,215, tp3=696, closed_loss=569, tp4=299
+     · status: posted=6,018
+   sample rows:
+     { id=6018 · signal_id=7b861369-0e39-4f06-9d2d-043d2b9a9b53 · event_type=tp3 · tg_message_id=805992 · posted_at=2026-07-08 13:54:38.983659+00:00 · status=posted }
+     { id=6017 · signal_id=b52b2e72-71c1-4860-a802-9231b3410ad6 · event_type=tp3 · tg_message_id=805991 · posted_at=2026-07-08 13:49:31.674604+00:00 · status=posted }
+
+▓▓ crypto_news   (1,016 rows · 1384 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('crypto_news_id_seq'::regclass)
+     - source_channel                 text                       NOT NULL
+     - source_msg_id                  integer                    NOT NULL
+     - content_type                   text                       NOT NULL
+     - title                          text                       
+     - description                    text                       
+     - url                            text                       
+     - domain                         text                       
+     - image_url                      text                       
+     - published_at                   text                       
+     - raw_text                       text                       
+     - has_photo                      boolean                    default false
+     - has_webpage                    boolean                    default false
+     - created_at                     timestamp with time zone   default now()
+     - video_url                      text                       
+     - has_video                      boolean                    default false
+     - category                       text                       NOT NULL · default 'crypto'::text
+     - source_type                    text                       NOT NULL · default 'telegram'::text
+   indexes:
+     · crypto_news_pkey: btree (id)
+     · crypto_news_source_channel_source_msg_id_key: btree (source_channel, source_msg_id)
+     · idx_cn_category_created: btree (category, created_at DESC)
+     · idx_cn_created: btree (created_at DESC)
+     · idx_cn_domain: btree (domain)
+     · idx_cn_source_type: btree (source_type)
+     · idx_cn_type: btree (content_type)
+     · ux_cn_rss_url: btree (url) WHERE ((source_type = 'rss'::text) AND (url IS NOT NULL))
+
+▓▓ discord_relays   (2,305 rows · 1120 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('discord_relays_id_seq'::regclas
+     - signal_id                      text                       NOT NULL
+     - event_type                     text                       NOT NULL
+     - discord_message_id             text                       NOT NULL
+     - discord_channel_id             text                       NOT NULL
+     - tweet_url                      text                       NOT NULL
+     - parent_message_id              text                       
+     - posted_at                      timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · discord_relays_pkey: btree (id)
+     · idx_discord_relays_posted_at: btree (posted_at DESC)
+     · idx_discord_relays_signal: btree (signal_id, event_type)
+     · uq_discord_relays_signal_event: btree (signal_id, event_type)
+
+▓▓ onchain_alerts   (798 rows · 936 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('onchain_alerts_id_seq'::regclas
+     - source_channel                 text                       NOT NULL
+     - source_msg_id                  integer                    NOT NULL
+     - source_name                    text                       
+     - alert_type                     text                       default 'transfer'::text
+     - token                          text                       
+     - amount_raw                     text                       
+     - amount_usd                     numeric                    
+     - from_entity                    text                       
+     - to_entity                      text                       
+     - blockchain                     text                       
+     - tx_hash                        text                       
+     - tx_url                         text                       
+     - title                          text                       
+     - raw_text                       text                       
+     - image_url                      text                       
+     - has_photo                      boolean                    default false
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_onchain_created: btree (created_at DESC)
+     · idx_onchain_token: btree (token)
+     · idx_onchain_type: btree (alert_type)
+     · onchain_alerts_pkey: btree (id)
+     · onchain_alerts_source_channel_source_msg_id_key: btree (source_channel, source_msg_id)
+
+▓▓ compass_projection_contracts   (80 rows · 888 kB)
+   columns:
+     - projection_id                  character varying(64)      PK · NOT NULL
+     - read_id                        character varying(48)      NOT NULL
+     - version                        integer                    NOT NULL · default 1
+     - status                         character varying(32)      NOT NULL · default 'ACTIVE'::character varying
+     - primary_bias                   character varying(48)      NOT NULL
+     - reference_price                numeric                    NOT NULL
+     - support_level                  numeric                    NOT NULL
+     - support_trigger                character varying(32)      NOT NULL
+     - confirmation_level             numeric                    NOT NULL
+     - confirmation_trigger           character varying(32)      NOT NULL
+     - primary_touch_level            numeric                    NOT NULL
+     - primary_touch_trigger          character varying(32)      NOT NULL
+     - extension_low                  numeric                    NOT NULL
+     - extension_high                 numeric                    NOT NULL
+     - invalidation_level             numeric                    NOT NULL
+     - invalidation_trigger           character varying(32)      NOT NULL
+     - alternative_path               jsonb                      NOT NULL
+     - market_mode                    character varying(48)      NOT NULL
+     - expected_pace                  character varying(32)      NOT NULL
+     - soft_review_after_minutes      integer                    NOT NULL
+     - stale_after_minutes            integer                    NOT NULL
+     - probabilities                  jsonb                      NOT NULL
+     - key_conditions                 jsonb                      NOT NULL
+     - key_risks                      jsonb                      NOT NULL
+     - contract_json                  jsonb                      NOT NULL
+     - active_from                    timestamp with time zone   NOT NULL
+     - superseded_at                  timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · compass_projection_contracts_pkey: btree (projection_id)
+     · idx_compass_projection_market_mode: btree (market_mode, active_from DESC)
+     · idx_compass_projection_read_id: btree (read_id)
+     · idx_compass_projection_status: btree (status, active_from DESC)
+     · uq_compass_projection_read_version: btree (read_id, version)
+   value distribution (low-cardinality columns):
+     · status: RESOLVED=68, SUPERSEDED=11, ACTIVE=1
+     · primary_bias: BULLISH_CONTINUATION=38, NEUTRAL_RANGE=29, BEARISH_CONTINUATION=13
+     · support_trigger: 15m_close_below=79, intrabar_touch=1
+     · confirmation_trigger: 5m_close_above=66, 5m_close_below=9, 15m_close_below=4, 15m_close_above=1
+     · primary_touch_trigger: intrabar_touch=80
+     · invalidation_trigger: 15m_close_below=67, 15m_close_above=13
+     · market_mode: SELECTIVE_RISK_ON=34, CHOPPY_RANGE=26, DEFENSIVE=16, BTC_ONLY_RISK_ON=3, ALTCOIN_FRIENDLY=1
+     · expected_pace: near_term=30, immediate=28, developing=22
+   sample rows:
+     { projection_id=cmp_v6_fe936cc327_v1 · read_id=read_v6_fe936cc327 · version=1 · status=RESOLVED · primary_bias=NEUTRAL_RANGE · reference_price=62487.000000000000 · support_level=61300.000000000000 · support_trigger=15m_close_below · confirmation_level=64000.000000000000 · confirmation_trigger=5m_close_above · primary_touch_level=64000.000000000000 · primary_touch_trigger=intrabar_touch · extension_low=64000.000000000000 · extension_high=65000.000000000000 · invalidation_level=61253.710000000000 · invalidation_trigger=15m_close_below · alternative_path=[60000.0, 60800.0] · market_mode=CHOPPY_RANG }
+     { projection_id=cmp_v6_fe0c0da746_v1 · read_id=read_v6_fe0c0da746 · version=1 · status=RESOLVED · primary_bias=NEUTRAL_RANGE · reference_price=63879.000000000000 · support_level=62432.000000000000 · support_trigger=15m_close_below · confirmation_level=63800.000000000000 · confirmation_trigger=5m_close_above · primary_touch_level=64000.000000000000 · primary_touch_trigger=intrabar_touch · extension_low=64000.000000000000 · extension_high=64500.000000000000 · invalidation_level=62400.000000000000 · invalidation_trigger=15m_close_below · alternative_path=[61800.0, 62000.0] · market_mode=CHOPPY_RANG }
+
+▓▓ users   (612 rows · 824 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('users_id_seq'::regclass)
+     - email                          character varying(255)     NOT NULL
+     - username                       character varying(100)     NOT NULL
+     - password_hash                  character varying(255)     
+     - is_active                      boolean                    default true
+     - is_verified                    boolean                    default false
+     - created_at                     timestamp with time zone   default CURRENT_TIMESTAMP
+     - updated_at                     timestamp with time zone   default CURRENT_TIMESTAMP
+     - is_admin                       boolean                    default false
+     - role                           character varying(20)      default 'free'::character varying
+     - auth_provider                  character varying(50)      default 'local'::character varying
+     - google_id                      character varying(255)     
+     - avatar_url                     text                       
+     - telegram_id                    bigint                     
+     - telegram_username              character varying(100)     
+     - subscription_expires_at        timestamp with time zone   
+     - subscription_granted_by        integer                    
+     - subscription_granted_at        timestamp with time zone   
+     - subscription_note              text                       
+     - referred_by                    integer                    
+     - referral_code_used             character varying(20)      
+     - discord_id                     bigint                     
+     - discord_username               character varying(100)     
+     - referral_credit_usdt           numeric                    NOT NULL · default 0
+     - lifetime_credit_earned         numeric                    NOT NULL · default 0
+     - last_login_at                  timestamp with time zone   
+     - first_login_at                 timestamp with time zone   
+     - login_count                    integer                    NOT NULL · default 0
+     - subscription_source            character varying(30)      
+     - country_code                   character varying(2)       
+     - currency_code                  character varying(3)       default 'USD'::character varying
+     - admin_telegram_username        character varying(100)     
+     - admin_discord_handle           character varying(100)     
+     - admin_notes                    text                       
+     - admin_enriched_by              integer                    
+     - admin_enriched_at              timestamp with time zone   
+     - notifications_read_at          timestamp with time zone   NOT NULL · default now()
+     - telegram_in_group              boolean                    NOT NULL · default false
+     - telegram_grace_until           timestamp with time zone   
+     - last_active_at                 timestamp with time zone   
+     - total_sessions                 integer                    NOT NULL · default 0
+     - last_feature_touched           character varying(50)      
+     - ui_prefs                       jsonb                      
+     - telegram_bot_started_at        timestamp with time zone   
+   indexes:
+     · idx_users_admin_dc: btree (lower((admin_discord_handle)::text)) WHERE (admin_discord_handle IS NOT NULL)
+     · idx_users_admin_tg: btree (lower((admin_telegram_username)::text)) WHERE (admin_telegram_username IS NOT NULL)
+     · idx_users_email: btree (email)
+     · idx_users_enriched_at: btree (admin_enriched_at DESC NULLS LAST) WHERE (admin_enriched_at IS NOT NULL)
+     · idx_users_google_id: btree (google_id)
+     · idx_users_last_login: btree (last_login_at DESC NULLS LAST)
+     · idx_users_notifications_read_at: btree (notifications_read_at)
+     · idx_users_referred_by: btree (referred_by) WHERE (referred_by IS NOT NULL)
+     · idx_users_role: btree (role)
+     · idx_users_sub_expires: btree (subscription_expires_at) WHERE (subscription_expires_at IS NOT NULL)
+     · idx_users_subscription_source: btree (subscription_source) WHERE (subscription_source IS NOT NULL)
+     · idx_users_telegram_grace_until: btree (telegram_grace_until) WHERE (telegram_grace_until IS NOT NULL)
+     · idx_users_telegram_id: btree (telegram_id)
+     · idx_users_telegram_in_group: btree (telegram_in_group) WHERE (telegram_in_group = true)
+     · idx_users_username: btree (username)
+     · ix_users_discord_id: btree (discord_id)
+     · users_discord_id_key: btree (discord_id)
+     · users_email_key: btree (email)
+     · users_google_id_key: btree (google_id)
+     · users_pkey: btree (id)
+     · users_telegram_id_key: btree (telegram_id)
+     · users_username_key: btree (username)
+   references:
+     → users.id (via referred_by)
+     → users.id (via admin_enriched_by)
+
+▓▓ daily_market_regime   (924 rows · 808 kB)
+   columns:
+     - date                           date                       PK · NOT NULL
+     - total_closed                   integer                    NOT NULL · default 0
+     - wins                           integer                    NOT NULL · default 0
+     - losses                         integer                    NOT NULL · default 0
+     - win_rate                       real                       NOT NULL · default 0
+     - regime                         text                       NOT NULL · default 'insufficient'::text
+     - computed_at                    timestamp without time zone NOT NULL · default CURRENT_TIMESTAMP
+   indexes:
+     · daily_market_regime_pkey: btree (date)
+     · idx_dmr_date_regime: btree (date, regime)
+     · idx_dmr_regime: btree (regime)
+   value distribution (low-cardinality columns):
+     · regime: strong=723, neutral=151, insufficient=27, weak=23
+   sample rows:
+     { date=2026-07-08 · total_closed=21 · wins=18 · losses=3 · win_rate=85.71 · regime=strong · computed_at=2026-07-08 15:42:21.279761 }
+     { date=2026-07-07 · total_closed=46 · wins=33 · losses=13 · win_rate=71.74 · regime=strong · computed_at=2026-07-08 15:42:21.279761 }
+
+▓▓ channel_messages   (410 rows · 632 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('channel_messages_id_seq'::regcl
+     - channel_id                     bigint                     
+     - message_id                     integer                    
+     - message_type                   text                       default 'unknown'::text
+     - pair                           text                       
+     - percentage                     real                       
+     - direction                      text                       
+     - summary_data                   jsonb                      
+     - raw_text                       text                       
+     - message_date                   timestamp with time zone   
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · channel_messages_message_id_key: btree (message_id)
+     · channel_messages_pkey: btree (id)
+     · idx_cm_date: btree (message_date)
+     · idx_cm_pair: btree (pair)
+     · idx_cm_type: btree (message_type)
+
+▓▓ compass_projection_events   (254 rows · 416 kB)
+   columns:
+     - event_id                       bigint                     PK · NOT NULL · default nextval('compass_projection_events_event
+     - projection_id                  character varying(64)      NOT NULL
+     - event_time                     timestamp with time zone   NOT NULL
+     - event_type                     character varying(48)      NOT NULL
+     - price                          numeric                    
+     - source                         character varying(80)      
+     - evidence_json                  jsonb                      
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · compass_projection_events_pkey: btree (event_id)
+     · idx_compass_projection_events_projection_time: btree (projection_id, event_time)
+     · idx_compass_projection_events_type: btree (event_type, event_time DESC)
+   value distribution (low-cardinality columns):
+     · event_type: FORECAST_ISSUED=80, CALIBRATION_ADJUSTED=64, CONFIRMATION_TOUCHED=42, TARGET_TOUCHED=33, STALE_MARKED=20, INVALIDATION_TOUCHED=15
+     · source: compass_projection_resolver=110, ai_arena_v6_worker=80, compass_reachability=49, compass_recalibrate_backfill=15
+   sample rows:
+     { event_id=980 · projection_id=cmp_v6_9721ebdaca_v1 · event_time=2026-07-08 15:24:31.176635+00:00 · event_type=CALIBRATION_ADJUSTED · price=61608.000000000000 · source=compass_reachability · evidence_json={'flags': ['tight_invalidation', 'invalidation_widened'],... · created_at=2026-07-08 15:24:31.174933+00:00 }
+     { event_id=979 · projection_id=cmp_v6_9721ebdaca_v1 · event_time=2026-07-08 15:24:31.176635+00:00 · event_type=FORECAST_ISSUED · price=61608.000000000000 · source=ai_arena_v6_worker · evidence_json={'support': {'level': 60000.0, 'reason': 'Psychological r... · created_at=2026-07-08 15:24:31.174933+00:00 }
+
+▓▓ notification_tg_deliveries   (3,713 rows · 408 kB)
+   columns:
+     - notification_id                integer                    PK · NOT NULL
+     - user_id                        integer                    PK · NOT NULL
+     - sent_at                        timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_tg_deliv_user: btree (user_id, notification_id)
+     · notification_tg_deliveries_pkey: btree (notification_id, user_id)
+   references:
+     → users.id (via user_id)
+     → notifications.id (via notification_id)
+
+▓▓ news_article_extracts   (38 rows · 320 kB)
+   columns:
+     - news_id                        integer                    PK · NOT NULL
+     - url                            text                       NOT NULL
+     - domain                         text                       
+     - provider                       text                       NOT NULL · default 'direct'::text
+     - status                         text                       NOT NULL · default 'pending'::text
+     - title                          text                       
+     - extracted_text                 text                       
+     - summary                        text                       
+     - image_url                      text                       
+     - canonical_url                  text                       
+     - source_domain                  text                       
+     - error_message                  text                       
+     - extracted_at                   timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · ix_news_article_extracts_domain: btree (domain, updated_at DESC)
+     · ix_news_article_extracts_status: btree (status, updated_at DESC)
+     · news_article_extracts_pkey: btree (news_id)
+
+▓▓ social_posts   (33 rows · 280 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('social_posts_id_seq'::regclass)
+     - source_type                    text                       NOT NULL · default 'crypto_news'::text
+     - news_id                        integer                    
+     - source_url                     text                       
+     - source_domain                  text                       
+     - platform                       text                       NOT NULL · default 'x'::text
+     - status                         text                       NOT NULL · default 'draft'::text
+     - angle                          text                       
+     - template_style                 text                       NOT NULL · default 'market_pulse'::text
+     - headline                       text                       NOT NULL
+     - caption                        text                       NOT NULL
+     - hashtags                       ARRAY                      NOT NULL · default '{}'::text[]
+     - image_path                     text                       
+     - score                          numeric                    NOT NULL · default 0
+     - sources_json                   jsonb                      NOT NULL · default '[]'::jsonb
+     - scheduled_at                   timestamp with time zone   
+     - posted_at                      timestamp with time zone   
+     - posted_url                     text                       
+     - error_message                  text                       
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+     - image_mode                     text                       NOT NULL · default 'template'::text
+     - image_prompt                   text                       
+     - reference_image_url            text                       
+     - reference_image_path           text                       
+     - gen_meta                       jsonb                      
+   indexes:
+     · ix_social_posts_image_mode: btree (image_mode, created_at DESC)
+     · ix_social_posts_news_id: btree (news_id)
+     · ix_social_posts_platform: btree (platform, created_at DESC)
+     · ix_social_posts_status: btree (status, created_at DESC)
+     · social_posts_pkey: btree (id)
+     · ux_social_posts_news_platform: btree (news_id, platform) WHERE (news_id IS NOT NULL)
+
+▓▓ watchlist   (233 rows · 264 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('watchlist_id_seq'::regclass)
+     - user_id                        integer                    NOT NULL
+     - signal_id                      character varying(255)     NOT NULL
+     - created_at                     timestamp with time zone   default CURRENT_TIMESTAMP
+   indexes:
+     · idx_watchlist_user_id: btree (user_id)
+     · watchlist_pkey: btree (id)
+     · watchlist_user_id_signal_id_key: btree (user_id, signal_id)
+   references:
+     → users.id (via user_id)
+
+▓▓ delisting_events   (40 rows · 264 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('delisting_events_id_seq'::regcl
+     - exchange                       text                       NOT NULL
+     - ann_id                         text                       NOT NULL
+     - title                          text                       NOT NULL
+     - url                            text                       
+     - announced_at                   timestamp with time zone   
+     - delist_at                      timestamp with time zone   
+     - symbols                        ARRAY                      
+     - price_at_announce              jsonb                      
+     - notified                       boolean                    NOT NULL · default false
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+     - peak_since_announce            jsonb                      
+   indexes:
+     · delisting_events_pkey: btree (id)
+     · ix_delisting_announced: btree (announced_at DESC)
+     · ix_delisting_exchange: btree (exchange, announced_at DESC)
+     · uq_delisting_exchange_ann: btree (exchange, ann_id)
+
+▓▓ journey_agg_state   (1 rows · 240 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL
+     - acc                            jsonb                      NOT NULL · default '{}'::jsonb
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · journey_agg_state_pkey: btree (id)
+   sample rows:
+     { id=1 · acc={'v': 7, 'tp': {'TP1': {'max': 335672.0, 'min': 1.0, 'sum... · updated_at=2026-07-08 12:42:20.499150+00:00 }
+
+▓▓ trade_journals   (52 rows · 224 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('trade_journals_id_seq'::regclas
+     - user_id                        integer                    NOT NULL
+     - signal_id                      text                       
+     - pair                           character varying(50)      NOT NULL
+     - direction                      character varying(10)      default 'long'::character varying
+     - status                         character varying(20)      default 'open'::character varying
+     - planned_entry                  double precision           
+     - planned_tp1                    double precision           
+     - planned_tp2                    double precision           
+     - planned_tp3                    double precision           
+     - planned_tp4                    double precision           
+     - planned_sl                     double precision           
+     - actual_entry                   double precision           NOT NULL
+     - actual_exit                    double precision           
+     - leverage                       double precision           default 1.0
+     - position_size_usd              double precision           
+     - fees_usd                       double precision           default 0.0
+     - pnl_usd                        double precision           
+     - pnl_pct                        double precision           
+     - rr_ratio                       double precision           
+     - emotions                       jsonb                      default '{}'::jsonb
+     - strategy_tags                  ARRAY                      default '{}'::text[]
+     - confluence_tags                ARRAY                      default '{}'::text[]
+     - mistakes                       ARRAY                      default '{}'::text[]
+     - notes                          text                       
+     - chart_before_url               character varying(500)     
+     - chart_after_url                character varying(500)     
+     - tradingview_link               character varying(500)     
+     - context_snapshot               jsonb                      default '{}'::jsonb
+     - entry_at                       timestamp with time zone   NOT NULL · default now()
+     - exit_at                        timestamp with time zone   
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_journal_emotions: gin (emotions)
+     · idx_journal_entry_at: btree (entry_at DESC)
+     · idx_journal_pair: btree (pair)
+     · idx_journal_signal: btree (signal_id)
+     · idx_journal_status: btree (status)
+     · idx_journal_user: btree (user_id)
+     · idx_journal_user_entry: btree (user_id, entry_at DESC)
+     · trade_journals_pkey: btree (id)
+
+▓▓ compass_projection_resolutions   (68 rows · 208 kB)
+   columns:
+     - resolution_id                  bigint                     PK · NOT NULL · default nextval('compass_projection_resolutions_
+     - projection_id                  character varying(64)      NOT NULL
+     - outcome                        character varying(48)      NOT NULL
+     - first_barrier                  character varying(48)      
+     - first_barrier_at               timestamp with time zone   
+     - first_barrier_price            numeric                    
+     - max_favorable_excursion_pct    numeric                    
+     - max_adverse_excursion_pct      numeric                    
+     - time_to_confirmation_seconds   integer                    
+     - time_to_target_seconds         integer                    
+     - time_to_invalidation_seconds   integer                    
+     - reason_codes                   jsonb                      NOT NULL · default '[]'::jsonb
+     - observed_facts                 jsonb                      NOT NULL · default '{}'::jsonb
+     - interpretation                 text                       
+     - evaluator_version              character varying(40)      NOT NULL
+     - policy_version                 character varying(40)      NOT NULL
+     - resolved_at                    timestamp with time zone   NOT NULL
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · compass_projection_resolutions_pkey: btree (resolution_id)
+     · compass_projection_resolutions_projection_id_key: btree (projection_id)
+     · idx_compass_projection_resolutions_outcome: btree (outcome, resolved_at DESC)
+   value distribution (low-cardinality columns):
+     · outcome: RANGE_HELD=20, LATE_HIT=20, CLEAN_HIT=12, INVALIDATED_FIRST=11, RANGE_BREAK_DOWN=4, RANGE_BREAK_UP=1
+     · first_barrier: TARGET=33, None=20, INVALIDATION=15
+     · evaluator_version: compass_resolver_v1.1=68
+     · policy_version: target_first_v1=68
+   sample rows:
+     { resolution_id=472 · projection_id=cmp_v6_3e5466f217_v1 · outcome=INVALIDATED_FIRST · first_barrier=INVALIDATION · first_barrier_at=2026-07-08 15:14:00+00:00 · first_barrier_price=61666.000000000000 · max_favorable_excursion_pct=1.27980000 · max_adverse_excursion_pct=-2.93070000 · time_to_confirmation_seconds=2924 · time_to_target_seconds=None · time_to_invalidation_seconds=87344 · reason_codes=['invalidation_first_close_below', 'after_window'] · observed_facts={'bias': 'BULLISH_CONTINUATION', 'window_end': '2026-07-0... · interpretation=BTC broke the invalidation barrier 61,666 before reaching }
+     { resolution_id=471 · projection_id=cmp_v6_499d847d90_v1 · outcome=RANGE_BREAK_DOWN · first_barrier=INVALIDATION · first_barrier_at=2026-07-08 08:32:00+00:00 · first_barrier_price=62023.370000000000 · max_favorable_excursion_pct=0.38480000 · max_adverse_excursion_pct=-2.46390000 · time_to_confirmation_seconds=None · time_to_target_seconds=None · time_to_invalidation_seconds=40111 · reason_codes=['lower_band_breached_close_below'] · observed_facts={'bias': 'NEUTRAL_RANGE', 'window_end': '2026-07-08T13:23... · interpretation=Price broke below the projected range floor at 62,023 bef... · evaluator_ }
+
+▓▓ ai_arena_verdict_outcomes   (0 rows · 200 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('ai_arena_verdict_outcomes_id_se
+     - report_id                      integer                    NOT NULL
+     - report_uuid                    character varying(40)      NOT NULL
+     - horizon                        character varying(10)      NOT NULL
+     - direction                      character varying(10)      NOT NULL
+     - confidence                     integer                    
+     - price_at_call                  double precision           NOT NULL
+     - called_at                      timestamp with time zone   NOT NULL
+     - horizon_target_at              timestamp with time zone   NOT NULL
+     - price_at_horizon               double precision           
+     - move_pct                       double precision           
+     - outcome                        character varying(15)      NOT NULL · default 'pending'::character varying
+     - threshold_pct                  double precision           default 1.0
+     - neutral_band_pct               double precision           default 2.0
+     - evaluated_at                   timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · ai_arena_verdict_outcomes_pkey: btree (id)
+     · idx_outcomes_called_at: btree (called_at DESC)
+     · idx_outcomes_horizon_outcome: btree (horizon, outcome) WHERE ((outcome)::text = ANY ((ARRAY['hit'::character varying, 'miss'::character varying])::text[]))
+     · idx_outcomes_pending: btree (outcome, horizon_target_at) WHERE ((outcome)::text = 'pending'::text)
+     · idx_outcomes_report_uuid: btree (report_uuid)
+     · uq_outcome_report_horizon: btree (report_id, horizon)
+   references:
+     → ai_arena_reports.id (via report_id)
+
+▓▓ notification_reads   (51 rows · 192 kB)
+   columns:
+     - notification_id                integer                    PK · NOT NULL
+     - user_id                        integer                    PK · NOT NULL
+     - read_at                        timestamp with time zone   default now()
+   indexes:
+     · idx_nr_user: btree (user_id)
+     · notification_reads_pkey: btree (notification_id, user_id)
+   references:
+     → users.id (via user_id)
+     → notifications.id (via notification_id)
+
+▓▓ payments   (162 rows · 176 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('payments_id_seq'::regclass)
+     - user_id                        integer                    NOT NULL
+     - plan_id                        integer                    NOT NULL
+     - amount_usdt                    numeric                    NOT NULL
+     - tx_hash                        character varying(100)     
+     - wallet_from                    character varying(50)      
+     - wallet_to                      character varying(50)      
+     - network                        character varying(20)      default 'BSC'::character varying
+     - status                         character varying(20)      NOT NULL · default 'pending'::character varying
+     - verified_at                    timestamp with time zone   
+     - expires_at                     timestamp with time zone   
+     - bscscan_data                   jsonb                      
+     - notes                          text                       
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+     - referral_use_id                integer                    
+     - discount_amount                numeric                    default 0
+     - final_amount                   numeric                    
+     - credit_redeemed                numeric                    default 0
+     - deleted_at                     timestamp with time zone   
+     - method                         character varying(20)      NOT NULL · default 'onchain_bsc'::character varying
+     - reference                      character varying(200)     
+     - paid_currency                  character varying(10)      
+     - paid_amount                    numeric                    
+     - fx_rate                        numeric                    
+     - partner_source                 character varying(30)      NOT NULL · default 'regular'::character varying
+   indexes:
+     · idx_payments_partner_source: btree (partner_source)
+     · idx_payments_status: btree (status)
+     · idx_payments_tx_hash: btree (tx_hash)
+     · idx_payments_user: btree (user_id)
+     · idx_payments_user_status: btree (user_id, status)
+     · payments_pkey: btree (id)
+   references:
+     → subscription_plans.id (via plan_id)
+     → referral_uses.id (via referral_use_id)
+     → users.id (via user_id)
+
+▓▓ receiving_wallets   (6 rows · 160 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('receiving_wallets_id_seq'::regc
+     - label                          character varying(50)      NOT NULL
+     - address                        character varying(50)      NOT NULL
+     - exchange_name                  character varying(50)      NOT NULL
+     - network                        character varying(20)      NOT NULL · default 'BSC'::character varying
+     - is_active                      boolean                    NOT NULL · default true
+     - last_used_at                   timestamp with time zone   
+     - total_received_count           integer                    NOT NULL · default 0
+     - notes                          text                       
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_recvwallet_active_lastused: btree (is_active, last_used_at NULLS FIRST)
+     · idx_recvwallet_address_lower: btree (lower((address)::text))
+     · idx_recvwallet_exchange: btree (exchange_name)
+     · idx_recvwallet_network: btree (network)
+     · receiving_wallets_address_key: btree (address)
+     · receiving_wallets_label_key: btree (label)
+     · receiving_wallets_pkey: btree (id)
+
+▓▓ assistant_semcache   (9 rows · 152 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('assistant_semcache_id_seq'::reg
+     - page_id                        text                       NOT NULL
+     - question                       text                       NOT NULL
+     - answer                         text                       NOT NULL
+     - embedding                      USER-DEFINED               NOT NULL
+     - hits                           integer                    default 0
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · assistant_semcache_pkey: btree (id)
+     · idx_semcache_page: btree (page_id)
+
+▓▓ exchange_accounts   (20 rows · 152 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('exchange_accounts_id_seq'::regc
+     - user_id                        integer                    NOT NULL
+     - exchange_id                    character varying(20)      NOT NULL
+     - label                          character varying(100)     default ''::character varying
+     - trading_mode                   character varying(10)      NOT NULL · default 'both'::character varying
+     - api_key_enc                    text                       NOT NULL
+     - api_secret_enc                 text                       NOT NULL
+     - passphrase_enc                 text                       
+     - is_active                      boolean                    default true
+     - is_testnet                     boolean                    default false
+     - custom_base_url                character varying(255)     
+     - balance_cache                  jsonb                      
+     - balance_updated_at             timestamp with time zone   
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · exchange_accounts_pkey: btree (id)
+     · idx_exacc_active: btree (user_id, is_active)
+     · idx_exacc_exchange: btree (exchange_id)
+     · idx_exacc_user: btree (user_id)
+   references:
+     → users.id (via user_id)
+
+▓▓ referral_codes   (38 rows · 120 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('referral_codes_id_seq'::regclas
+     - user_id                        integer                    NOT NULL
+     - code                           character varying(20)      NOT NULL
+     - discount_pct                   numeric                    default 10.00
+     - commission_pct                 numeric                    default 10.00
+     - max_uses                       integer                    
+     - times_used                     integer                    default 0
+     - is_active                      boolean                    default true
+     - expires_at                     timestamp with time zone   
+     - created_at                     timestamp with time zone   default now()
+     - share_count                    integer                    NOT NULL · default 0
+     - qr_count                       integer                    NOT NULL · default 0
+     - last_shared_at                 timestamp with time zone   
+   indexes:
+     · idx_referral_codes_active: btree (is_active) WHERE (is_active = true)
+     · idx_referral_codes_code: btree (code)
+     · idx_referral_codes_code_lower: btree (lower((code)::text))
+     · idx_referral_codes_shared: btree (last_shared_at DESC NULLS LAST) WHERE (share_count > 0)
+     · idx_referral_codes_user: btree (user_id)
+     · referral_codes_code_key: btree (code)
+     · referral_codes_pkey: btree (id)
+   references:
+     → users.id (via user_id)
+
+▓▓ referral_uses   (4 rows · 120 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('referral_uses_id_seq'::regclass
+     - referral_code_id               integer                    NOT NULL
+     - referrer_id                    integer                    NOT NULL
+     - referred_id                    integer                    NOT NULL
+     - payment_id                     integer                    
+     - discount_amount                numeric                    default 0
+     - commission_amount              numeric                    default 0
+     - status                         character varying(20)      default 'pending'::character varying
+     - created_at                     timestamp with time zone   default now()
+     - first_login_at                 timestamp with time zone   
+     - total_commission_earned        numeric                    NOT NULL · default 0
+     - total_payments                 integer                    NOT NULL · default 0
+     - last_payment_at                timestamp with time zone   
+   indexes:
+     · idx_referral_uses_code: btree (referral_code_id)
+     · idx_referral_uses_referred: btree (referred_id)
+     · idx_referral_uses_referrer: btree (referrer_id)
+     · idx_referral_uses_referrer_status: btree (referrer_id, status)
+     · idx_referral_uses_status: btree (status)
+     · referral_uses_pkey: btree (id)
+     · uq_referred_user: btree (referred_id)
+   references:
+     → users.id (via referrer_id)
+     → payments.id (via payment_id)
+     → referral_codes.id (via referral_code_id)
+     → users.id (via referred_id)
+
+▓▓ autotrade_config   (20 rows · 112 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('autotrade_config_id_seq'::regcl
+     - user_id                        integer                    NOT NULL
+     - exchange_account_id            integer                    NOT NULL
+     - enabled                        boolean                    default false
+     - mode                           character varying(10)      default 'auto'::character varying
+     - default_market_type            character varying(10)      default 'futures'::character varying
+     - max_position_pct               real                       default 5.0
+     - max_leverage                   integer                    default 10
+     - max_concurrent_trades          integer                    default 5
+     - daily_loss_limit_pct           real                       default 10.0
+     - margin_mode                    character varying(10)      default 'isolated'::character varying
+     - tp_strategy                    character varying(30)      default 'equal_split'::character varying
+     - tp_custom_splits               jsonb                      
+     - sl_to_breakeven_after          character varying(10)      default 'tp1'::character varying
+     - risk_filter                    character varying(20)      default 'all'::character varying
+     - pair_whitelist                 jsonb                      
+     - pair_blacklist                 jsonb                      default '[]'::jsonb
+     - min_volume_rank                integer                    
+     - trailing_stop_enabled          boolean                    default false
+     - trailing_stop_type             character varying(12)      default 'percent'::character varying
+     - trailing_stop_value            numeric                    default 1.5
+     - trailing_activation            character varying(20)      default 'breakeven'::character varying
+     - trailing_update_interval       integer                    default 15
+     - max_trailing_distance          numeric                    
+     - max_loss_protection_enabled    boolean                    default false
+     - max_loss_per_trade_pct         numeric                    default 1.5
+     - emergency_close_trigger_pct    numeric                    default 2.0
+     - liquidation_buffer_pct         numeric                    default 220
+     - liquidation_warning_pct        numeric                    default 320
+     - auto_topup_margin              boolean                    default false
+     - auto_topup_max_pct             numeric                    default 30
+     - emergency_action               character varying(30)      default 'partial_close'::character varying
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · autotrade_config_pkey: btree (id)
+     · autotrade_config_user_id_exchange_account_id_key: btree (user_id, exchange_account_id)
+     · idx_atconfig_enabled: btree (enabled) WHERE (enabled = true)
+     · idx_atconfig_user: btree (user_id)
+   references:
+     → users.id (via user_id)
+
+▓▓ autotrade_alert_relay   (310 rows · 112 kB)
+   columns:
+     - alert_id                       character varying(36)      PK · NOT NULL
+     - notification_id                bigint                     
+     - luxquant_user_id               integer                    
+     - status                         character varying(16)      NOT NULL
+     - relayed_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · autotrade_alert_relay_pkey: btree (alert_id)
+     · ix_autotrade_relay_at: btree (relayed_at DESC)
+
+▓▓ cashout_requests   (1 rows · 112 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('cashout_requests_id_seq'::regcl
+     - user_id                        integer                    NOT NULL
+     - amount_usdt                    numeric                    NOT NULL
+     - method                         character varying(30)      NOT NULL · default 'telegram_admin'::character varying
+     - destination_telegram           character varying(100)     
+     - destination_note               text                       
+     - status                         character varying(20)      NOT NULL · default 'pending'::character varying
+     - admin_note                     text                       
+     - tx_hash                        character varying(100)     
+     - requested_at                   timestamp with time zone   NOT NULL · default now()
+     - reviewed_at                    timestamp with time zone   
+     - completed_at                   timestamp with time zone   
+     - reviewed_by_admin_id           integer                    
+     - ledger_reserve_id              integer                    
+     - ledger_final_id                integer                    
+   indexes:
+     · cashout_requests_pkey: btree (id)
+     · idx_cashout_pending: btree (requested_at DESC) WHERE ((status)::text = 'pending'::text)
+     · idx_cashout_status: btree (status)
+     · idx_cashout_user: btree (user_id)
+     · idx_cashout_user_status: btree (user_id, status)
+     · uq_cashout_one_active_per_user: btree (user_id) WHERE ((status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying])::text[]))
+   references:
+     → credit_ledger.id (via ledger_final_id)
+     → credit_ledger.id (via ledger_reserve_id)
+     → users.id (via reviewed_by_admin_id)
+     → users.id (via user_id)
+
+▓▓ mf_macro_snapshots   (209 rows · 112 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('mf_macro_snapshots_id_seq'::reg
+     - snapshot_at                    timestamp with time zone   NOT NULL
+     - btc_dominance                  numeric                    
+     - eth_dominance                  numeric                    
+     - stablecoin_dominance           numeric                    
+     - total_market_cap               numeric                    
+     - total_volume_24h               numeric                    
+     - altseason_index                numeric                    
+     - altseason_window               text                       default '30d'::text
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_mf_macro_time: btree (snapshot_at DESC)
+     · mf_macro_snapshots_pkey: btree (id)
+     · uq_mf_macro: btree (snapshot_at)
+
+▓▓ tg_call_post_failures   (9 rows · 80 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('tg_call_post_failures_id_seq'::
+     - signal_id                      text                       NOT NULL
+     - event_type                     text                       NOT NULL
+     - attempt_count                  integer                    default 1
+     - last_error                     text                       
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · tg_call_post_failures_pkey: btree (id)
+     · tg_call_post_failures_signal_id_event_type_key: btree (signal_id, event_type)
+   value distribution (low-cardinality columns):
+     · signal_id: 21158f92-8df5-4b73-9730-d0e540e3759a=1, efa1eb2b-8656-4d5b-b6e6-002a50309f86=1, ce53fc26-6965-4ded-a5b9-dafff1daa507=1, 9918b8d5-3512-4b8b-b513-537311690db6=1, b06e9154-da96-44bc-af11-54eedacf70ce=1, fb6074a2-3681-44db-b352-91f120735e38=1, a6ed5a0a-0139-4028-b117-07a3c7db809a=1, e0efe87c-cb93-4ed8-9b22-dfd9456e915d=1, bd00aeb3-3cd7-4403-9d52-396ff2d84ea2=1
+     · event_type: tp2=3, tp1=3, call=1, tp3=1, tp4=1
+     · last_error: HTTP Error 401: Unauthorized=7, <urlopen error Socket error: 0x06: TTL expired>=1, <urlopen error Error connecting to SOCKS5 proxy 76.13.192.241:1080: timed out>=1
+   sample rows:
+     { id=61 · signal_id=e0efe87c-cb93-4ed8-9b22-dfd9456e915d · event_type=tp2 · attempt_count=1 · last_error=<urlopen error Socket error: 0x06: TTL expired> · updated_at=2026-07-02 10:15:07.989923+00:00 }
+     { id=60 · signal_id=fb6074a2-3681-44db-b352-91f120735e38 · event_type=tp2 · attempt_count=1 · last_error=<urlopen error Error connecting to SOCKS5 proxy 76.13.192... · updated_at=2026-06-23 16:13:08.207695+00:00 }
+
+▓▓ tips   (1 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('tips_id_seq'::regclass)
+     - title                          character varying(255)     NOT NULL
+     - description                    text                       
+     - cover_image                    character varying(500)     
+     - pdf_path                       character varying(500)     NOT NULL
+     - category                       character varying(100)     default 'General'::character varying
+     - created_by                     integer                    
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+     - is_active                      boolean                    default true
+   indexes:
+     · idx_tips_active: btree (is_active)
+     · idx_tips_category: btree (category)
+     · idx_tips_created: btree (created_at DESC)
+     · tips_pkey: btree (id)
+   references:
+     → users.id (via created_by)
+
+▓▓ admin_followups   (1 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('admin_followups_id_seq'::regcla
+     - user_id                        integer                    
+     - title                          character varying(200)     NOT NULL
+     - note                           text                       
+     - category                       character varying(50)      default 'general'::character varying
+     - due_date                       timestamp with time zone   NOT NULL
+     - reminder_sent_at               timestamp with time zone   
+     - status                         character varying(20)      NOT NULL · default 'pending'::character varying
+     - priority                       character varying(20)      NOT NULL · default 'normal'::character varying
+     - created_by                     integer                    NOT NULL
+     - completed_by                   integer                    
+     - completed_at                   timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · admin_followups_pkey: btree (id)
+     · idx_followups_due_date: btree (due_date)
+     · idx_followups_status: btree (status)
+     · idx_followups_user_id: btree (user_id)
+   references:
+     → users.id (via user_id)
+     → users.id (via created_by)
+     → users.id (via completed_by)
+
+▓▓ credit_ledger   (3 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('credit_ledger_id_seq'::regclass
+     - user_id                        integer                    NOT NULL
+     - amount                         numeric                    NOT NULL
+     - type                           character varying(20)      NOT NULL
+     - ref_payment_id                 integer                    
+     - ref_use_id                     integer                    
+     - balance_after                  numeric                    NOT NULL
+     - note                           text                       
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · credit_ledger_pkey: btree (id)
+     · idx_credit_ledger_payment: btree (ref_payment_id) WHERE (ref_payment_id IS NOT NULL)
+     · idx_credit_ledger_type: btree (type)
+     · idx_credit_ledger_user_time: btree (user_id, created_at DESC)
+   references:
+     → referral_uses.id (via ref_use_id)
+     → payments.id (via ref_payment_id)
+     → users.id (via user_id)
+
+▓▓ brand_todos   (3 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('brand_todos_id_seq'::regclass)
+     - title                          character varying(200)     NOT NULL
+     - description                    text                       
+     - category                       character varying(50)      default 'other'::character varying
+     - status                         character varying(20)      NOT NULL · default 'backlog'::character varying
+     - priority                       character varying(20)      NOT NULL · default 'normal'::character varying
+     - due_date                       date                       
+     - tags                           jsonb                      NOT NULL · default '[]'::jsonb
+     - created_by                     integer                    NOT NULL
+     - completed_by                   integer                    
+     - completed_at                   timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · brand_todos_pkey: btree (id)
+     · idx_todos_category: btree (category)
+     · idx_todos_priority: btree (priority)
+     · idx_todos_status: btree (status)
+   references:
+     → users.id (via completed_by)
+     → users.id (via created_by)
+
+▓▓ legacy_members   (235 rows · 80 kB)
+   columns:
+     - telegram_id                    bigint                     PK · NOT NULL
+     - username                       character varying(100)     
+     - full_name                      character varying(255)     
+     - snapshot_at                    timestamp with time zone   NOT NULL · default now()
+     - claimed                        boolean                    NOT NULL · default false
+     - claimed_at                     timestamp with time zone   
+     - revoked                        boolean                    NOT NULL · default false
+     - revoked_at                     timestamp with time zone   
+   indexes:
+     · idx_legacy_members_claimed: btree (claimed) WHERE (claimed = false)
+     · legacy_members_pkey: btree (telegram_id)
+
+▓▓ announcements   (0 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('announcements_id_seq'::regclass
+     - title                          text                       NOT NULL
+     - body                           text                       
+     - image_url                      text                       
+     - cta_label                      text                       
+     - cta_url                        text                       
+     - audience                       text                       NOT NULL · default 'all'::text
+     - target_role                    text                       
+     - target_user_id                 integer                    
+     - max_shows                      integer                    NOT NULL · default 3
+     - cooldown_hours                 integer                    NOT NULL · default 72
+     - status                         text                       NOT NULL · default 'draft'::text
+     - starts_at                      timestamp with time zone   
+     - ends_at                        timestamp with time zone   
+     - created_by                     integer                    
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · announcements_pkey: btree (id)
+     · ix_ann_audience: btree (audience)
+     · ix_ann_schedule: btree (starts_at, ends_at)
+     · ix_ann_status: btree (status)
+   references:
+     → users.id (via target_user_id)
+     → users.id (via created_by)
+
+▓▓ coin_watch   (62 rows · 80 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('coin_watch_id_seq'::regclass)
+     - user_id                        integer                    NOT NULL
+     - symbol                         text                       NOT NULL
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · coin_watch_pkey: btree (id)
+     · coin_watch_user_id_symbol_key: btree (user_id, symbol)
+     · idx_coin_watch_symbol: btree (symbol)
+     · idx_coin_watch_user: btree (user_id)
+   references:
+     → users.id (via user_id)
+   sample rows:
+     { id=63 · user_id=513 · symbol=BREVUSDT · created_at=2026-07-02 07:10:45.029009+00:00 }
+     { id=62 · user_id=265 · symbol=SUIUSDT · created_at=2026-07-02 07:09:29.608779+00:00 }
+
+▓▓ ai_usage_log   (49 rows · 80 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('ai_usage_log_id_seq'::regclass)
+     - ts                             timestamp with time zone   NOT NULL · default now()
+     - feature                        text                       NOT NULL
+     - page_id                        text                       
+     - model                          text                       NOT NULL
+     - prompt_tokens                  integer                    default 0
+     - cache_hit_tokens               integer                    default 0
+     - cache_miss_tokens              integer                    default 0
+     - completion_tokens              integer                    default 0
+     - total_tokens                   integer                    default 0
+     - cost_usd                       numeric                    default 0
+     - served_from_cache              boolean                    default false
+     - user_id                        bigint                     
+     - user_label                     text                       
+   indexes:
+     · ai_usage_log_pkey: btree (id)
+     · idx_ai_usage_feature: btree (feature)
+     · idx_ai_usage_ts: btree (ts)
+     · idx_ai_usage_user: btree (user_id)
+
+▓▓ trade_orders   (0 rows · 72 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('trade_orders_id_seq'::regclass)
+     - signal_id                      text                       
+     - user_id                        integer                    NOT NULL
+     - exchange_account_id            integer                    NOT NULL
+     - exchange_id                    character varying(20)      NOT NULL
+     - market_type                    character varying(10)      NOT NULL
+     - exchange_order_id              character varying(100)     
+     - pair                           character varying(30)      NOT NULL
+     - side                           character varying(10)      NOT NULL
+     - order_type                     character varying(20)      NOT NULL
+     - entry_price                    real                       
+     - target_entry                   real                       
+     - qty                            real                       NOT NULL
+     - qty_filled                     real                       default 0
+     - leverage                       integer                    default 1
+     - margin_mode                    character varying(10)      default 'isolated'::character varying
+     - status                         character varying(20)      NOT NULL · default 'pending'::character varying
+     - close_reason                   character varying(20)      
+     - realized_pnl                   real                       
+     - fee_total                      real                       
+     - error_message                  text                       
+     - tp_orders                      jsonb                      
+     - sl_order_id                    character varying(100)     
+     - sl_price                       real                       
+     - sl_current                     real                       
+     - trailing_enabled               boolean                    default false
+     - trailing_type                  character varying(12)      
+     - trailing_value                 numeric                    
+     - trailing_activation            character varying(20)      
+     - trailing_activated             boolean                    default false
+     - highest_price                  numeric                    
+     - lowest_price                   numeric                    
+     - last_trail_updated_at          timestamp with time zone   
+     - max_loss_amount                real                       
+     - margin_allocated               real                       
+     - created_at                     timestamp with time zone   default now()
+     - filled_at                      timestamp with time zone   
+     - closed_at                      timestamp with time zone   
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_torders_exacc: btree (exchange_account_id)
+     · idx_torders_open: btree (user_id, status) WHERE ((status)::text = ANY ((ARRAY['pending'::character varying, 'placed'::character varying, 'filled'::character varying, 'partial'::character varying])::text[]))
+     · idx_torders_pair: btree (pair)
+     · idx_torders_signal: btree (signal_id)
+     · idx_torders_status: btree (status)
+     · idx_torders_trailing: btree (trailing_enabled, status) WHERE ((trailing_enabled = true) AND ((status)::text = ANY ((ARRAY['filled'::character varying, 'partial'::character varying])::text[])))
+     · idx_torders_user: btree (user_id)
+     · trade_orders_pkey: btree (id)
+   references:
+     → signals.signal_id (via signal_id)
+     → users.id (via user_id)
+
+▓▓ _pnl_leverage_backup_20260531   (489 rows · 72 kB)
+   columns:
+     - signal_id                      text                       
+     - pnl_leverage                   integer                    
+     - max_leverage                   integer                    
+     - backed_up_at                   timestamp with time zone   
+   sample rows:
+     { signal_id=fff5a5be-a7d0-43d7-abf0-38b5cd5c5349 · pnl_leverage=75 · max_leverage=75 · backed_up_at=2026-05-31 03:59:46.172009+00:00 }
+     { signal_id=ff51ef1f-0891-49eb-912a-edcf20ece5c9 · pnl_leverage=20 · max_leverage=50 · backed_up_at=2026-05-31 03:59:46.172009+00:00 }
+
+▓▓ autotrade_relay_config   (3 rows · 64 kB)
+   columns:
+     - key                            text                       PK · NOT NULL
+     - value                          text                       NOT NULL
+   indexes:
+     · autotrade_relay_config_pkey: btree (key)
+
+▓▓ x_post_failures   (17 rows · 64 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('x_post_failures_id_seq'::regcla
+     - signal_id                      text                       NOT NULL
+     - event_type                     text                       NOT NULL
+     - attempt_count                  integer                    default 1
+     - last_error                     text                       
+     - last_attempt_at                timestamp without time zone default now()
+   indexes:
+     · idx_x_post_failures_signal: btree (signal_id)
+     · x_post_failures_pkey: btree (id)
+     · x_post_failures_signal_id_event_type_key: btree (signal_id, event_type)
+
+▓▓ api_keys   (22 rows · 64 kB)
+   columns:
+     - id                             bigint                     PK · NOT NULL · default nextval('api_keys_id_seq'::regclass)
+     - user_id                        integer                    NOT NULL
+     - key_prefix                     text                       NOT NULL
+     - key_hash                       text                       NOT NULL
+     - name                           text                       
+     - scopes                         ARRAY                      NOT NULL · default ARRAY['*'::text]
+     - rate_limit_per_min             integer                    
+     - is_active                      boolean                    NOT NULL · default true
+     - last_used_at                   timestamp with time zone   
+     - revoked_at                     timestamp with time zone   
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · api_keys_key_hash_key: btree (key_hash)
+     · api_keys_pkey: btree (id)
+     · idx_api_keys_user: btree (user_id)
+   references:
+     → users.id (via user_id)
+
+▓▓ announcement_views   (0 rows · 56 kB)
+   columns:
+     - announcement_id                integer                    PK · NOT NULL
+     - user_id                        integer                    PK · NOT NULL
+     - shows                          integer                    NOT NULL · default 0
+     - last_shown_at                  timestamp with time zone   
+     - dismissed_at                   timestamp with time zone   
+     - acted_at                       timestamp with time zone   
+   indexes:
+     · announcement_views_pkey: btree (announcement_id, user_id)
+     · ix_annview_user: btree (user_id)
+   references:
+     → users.id (via user_id)
+
+▓▓ subscription_plans   (3 rows · 48 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('subscription_plans_id_seq'::reg
+     - name                           character varying(50)      NOT NULL
+     - label                          character varying(100)     NOT NULL
+     - description                    text                       default ''::text
+     - price_usdt                     numeric                    NOT NULL
+     - duration_days                  integer                    
+     - is_active                      boolean                    default true
+     - sort_order                     integer                    default 0
+     - created_at                     timestamp with time zone   default now()
+     - updated_at                     timestamp with time zone   default now()
+   indexes:
+     · subscription_plans_name_key: btree (name)
+     · subscription_plans_pkey: btree (id)
+
+▓▓ notification_preferences   (26 rows · 48 kB)
+   columns:
+     - user_id                        integer                    PK · NOT NULL
+     - notif_type                     text                       PK · NOT NULL
+     - in_app                         boolean                    NOT NULL · default true
+     - telegram                       boolean                    NOT NULL · default false
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_notif_pref_user: btree (user_id)
+     · notification_preferences_pkey: btree (user_id, notif_type)
+   references:
+     → users.id (via user_id)
+
+▓▓ signal_btc_assessments   (0 rows · 48 kB)
+   columns:
+     - assessment_id                  bigint                     PK · NOT NULL · default nextval('signal_btc_assessments_assessme
+     - signal_id                      text                       NOT NULL
+     - projection_id                  character varying(64)      
+     - snapshot_id                    character varying(64)      
+     - as_of                          timestamp with time zone   NOT NULL
+     - btc_impact                     character varying(32)      NOT NULL
+     - entry_aggression               character varying(32)      NOT NULL
+     - holder_context                 character varying(40)      NOT NULL
+     - btc_vulnerability_score        integer                    
+     - reason_codes                   jsonb                      NOT NULL · default '[]'::jsonb
+     - explanation                    text                       
+     - source_freshness_seconds       integer                    
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_signal_btc_assessments_aggression: btree (entry_aggression, as_of DESC)
+     · idx_signal_btc_assessments_impact: btree (btc_impact, as_of DESC)
+     · idx_signal_btc_assessments_projection: btree (projection_id)
+     · idx_signal_btc_assessments_signal_time: btree (signal_id, as_of DESC)
+     · signal_btc_assessments_pkey: btree (assessment_id)
+   references:
+     → signals.signal_id (via signal_id)
+
+▓▓ trade_log   (0 rows · 48 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('trade_log_id_seq'::regclass)
+     - trade_order_id                 integer                    
+     - user_id                        integer                    NOT NULL
+     - event                          character varying(50)      NOT NULL
+     - details                        jsonb                      
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · idx_tlog_created: btree (created_at)
+     · idx_tlog_event: btree (event)
+     · idx_tlog_order: btree (trade_order_id)
+     · idx_tlog_user: btree (user_id)
+     · trade_log_pkey: btree (id)
+   references:
+     → users.id (via user_id)
+
+▓▓ tg_call_config   (1 rows · 32 kB)
+   columns:
+     - key                            text                       PK · NOT NULL
+     - value                          text                       NOT NULL
+   indexes:
+     · tg_call_config_pkey: btree (key)
+   value distribution (low-cardinality columns):
+     · key: start_ts=1
+     · value: 2026-06-20 09:25:02.811199+00=1
+   sample rows:
+     { key=start_ts · value=2026-06-20 09:25:02.811199+00 }
+
+▓▓ marketing_campaigns   (0 rows · 32 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('marketing_campaigns_id_seq'::re
+     - name                           character varying(200)     NOT NULL
+     - description                    text                       
+     - platform                       character varying(50)      
+     - budget_usd                     numeric                    NOT NULL · default 0
+     - spent_usd                      numeric                    NOT NULL · default 0
+     - extra_data                     jsonb                      NOT NULL · default '{}'::jsonb
+     - line_items                     jsonb                      NOT NULL · default '[]'::jsonb
+     - start_date                     date                       
+     - end_date                       date                       
+     - status                         character varying(20)      NOT NULL · default 'planning'::character varying
+     - created_by                     integer                    NOT NULL
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_campaigns_platform: btree (platform)
+     · idx_campaigns_status: btree (status)
+     · marketing_campaigns_pkey: btree (id)
+   references:
+     → users.id (via created_by)
+
+▓▓ btc_market_context_snapshots   (0 rows · 32 kB)
+   columns:
+     - snapshot_id                    character varying(64)      PK · NOT NULL
+     - captured_at                    timestamp with time zone   NOT NULL
+     - btc_price                      numeric                    NOT NULL
+     - market_mode                    character varying(48)      NOT NULL
+     - dominance_state                character varying(48)      
+     - breadth_state                  character varying(48)      
+     - volatility_regime              character varying(48)      
+     - liquidity_state                character varying(48)      
+     - funding_state                  character varying(48)      
+     - open_interest_state            character varying(48)      
+     - is_data_fresh                  boolean                    NOT NULL · default true
+     - freshness_seconds              integer                    
+     - snapshot_json                  jsonb                      NOT NULL
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · btc_market_context_snapshots_pkey: btree (snapshot_id)
+     · idx_btc_market_context_captured_at: btree (captured_at DESC)
+     · idx_btc_market_context_mode: btree (market_mode, captured_at DESC)
+
+▓▓ payment_record_assignments   (0 rows · 32 kB)
+   columns:
+     - user_id                        integer                    PK · NOT NULL
+     - assigned_admin_id              integer                    
+     - status                         character varying(20)      NOT NULL · default 'pending'::character varying
+     - note                           text                       
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - updated_at                     timestamp with time zone   NOT NULL · default now()
+   indexes:
+     · idx_pra_admin: btree (assigned_admin_id)
+     · idx_pra_status: btree (status)
+     · payment_record_assignments_pkey: btree (user_id)
+   references:
+     → users.id (via user_id)
+     → users.id (via assigned_admin_id)
+
+▓▓ referral_payouts   (0 rows · 32 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('referral_payouts_id_seq'::regcl
+     - user_id                        integer                    NOT NULL
+     - amount_usdt                    numeric                    NOT NULL
+     - wallet_address                 character varying(100)     
+     - network                        character varying(20)      
+     - tx_hash                        character varying(100)     
+     - status                         character varying(20)      default 'pending'::character varying
+     - requested_at                   timestamp with time zone   default now()
+     - completed_at                   timestamp with time zone   
+     - notes                          text                       
+   indexes:
+     · idx_referral_payouts_status: btree (status)
+     · idx_referral_payouts_user: btree (user_id)
+     · referral_payouts_pkey: btree (id)
+   references:
+     → users.id (via user_id)
+
+▓▓ daily_pnl   (0 rows · 24 kB)
+   columns:
+     - id                             integer                    PK · NOT NULL · default nextval('daily_pnl_id_seq'::regclass)
+     - user_id                        integer                    NOT NULL
+     - exchange_account_id            integer                    NOT NULL
+     - date                           date                       NOT NULL
+     - trades_opened                  integer                    default 0
+     - trades_closed                  integer                    default 0
+     - wins                           integer                    default 0
+     - losses                         integer                    default 0
+     - realized_pnl                   real                       default 0
+     - fees_total                     real                       default 0
+     - net_pnl                        real                       default 0
+     - created_at                     timestamp with time zone   default now()
+   indexes:
+     · daily_pnl_pkey: btree (id)
+     · daily_pnl_user_id_exchange_account_id_date_key: btree (user_id, exchange_account_id, date)
+     · idx_dpnl_user_date: btree (user_id, date)
+   references:
+     → users.id (via user_id)
+
+▓▓ outbox_events   (0 rows · 24 kB)
+   columns:
+     - event_id                       bigint                     PK · NOT NULL · default nextval('outbox_events_event_id_seq'::re
+     - event_type                     character varying(80)      NOT NULL
+     - payload                        jsonb                      NOT NULL
+     - created_at                     timestamp with time zone   NOT NULL · default now()
+     - published_at                   timestamp with time zone   
+     - attempts                       integer                    NOT NULL · default 0
+     - last_error                     text                       
+   indexes:
+     · idx_outbox_events_unpublished: btree (created_at) WHERE (published_at IS NULL)
+     · outbox_events_pkey: btree (event_id)
+
+▓▓ _bak_portal_cleanup   (5 rows · 16 kB)
+   columns:
+     - signal_id                      text                       
+     - channel_id                     bigint                     
+     - call_message_id                bigint                     
+     - message_link                   text                       
+     - pair                           text                       
+     - entry                          real                       
+     - target1                        real                       
+     - target2                        real                       
+     - target3                        real                       
+     - target4                        real                       
+     - stop1                          real                       
+     - stop2                          real                       
+     - risk_level                     text                       
+     - volume_rank_num                bigint                     
+     - volume_rank_den                bigint                     
+     - created_at                     text                       
+     - status                         text                       
+     - raw_text                       text                       
+     - text_sha1                      text                       
+     - edit_date                      text                       
+     - market_cap                     text                       
+     - risk_reasons                   text                       
+     - entry_chart_path               text                       
+     - latest_chart_path              text                       
+     - chart_status                   text                       
+     - enrichment_status              character varying(16)      
+     - peak_price                     numeric                    
+     - peak_pct                       numeric                    
+     - peak_at                        timestamp without time zone 
+     - peak_updated_at                timestamp without time zone 
+     - pnl_card_entry_path            text                       
+     - pnl_card_latest_path           text                       
+     - pnl_card_status                text                       
+     - pnl_leverage                   integer                    
+     - pnl_style                      integer                    
+     - max_leverage                   integer                    
+     - max_leverage_status            character varying(20)      
+     - max_leverage_at                timestamp with time zone   

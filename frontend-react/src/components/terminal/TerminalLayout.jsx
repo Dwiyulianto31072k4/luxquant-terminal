@@ -20,7 +20,7 @@ export function TerminalIndexRedirect() {
 }
 
 const GROUPS = [
-  { g: "gSignals", items: [["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
+  { g: "gSignals", items: [["confluence", "scan"], ["postsignal", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
   { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"]] },
   { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["sectors", "scan"], ["map", "map"]] },
 ];
@@ -35,11 +35,11 @@ export default function TerminalLayout() {
   const [searchParams] = useSearchParams();
 
   const isMap = location.pathname.startsWith("/terminal/map");
-  const active = isMap ? "map" : searchParams.get("tab") || "overview";
+  const active = isMap ? "map" : searchParams.get("tab") || "confluence";
 
   const go = (id, route) => {
     if (route === "map") navigate("/terminal/map");
-    else navigate(`/terminal/scan${id === "overview" ? "" : `?tab=${id}`}`);
+    else navigate(`/terminal/scan${id === "confluence" ? "" : `?tab=${id}`}`);
   };
 
   return (

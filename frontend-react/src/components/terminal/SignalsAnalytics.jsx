@@ -31,9 +31,10 @@ import {
   XCard, useZoom, CoinPill, RankBars, SectorBars, Donut,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab } from "./DerivTabs";
+import { ConfluenceTab, PostSignalTab } from "./ConfluenceTabs";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
-const DEFAULTS = { tab: "overview", st: "all", sectors: "", risks: "", dec: "", q: "" };
+const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
 const parseF = (sp) => {
   const f = { ...DEFAULTS };
   Object.keys(DEFAULTS).forEach((k) => { const v = sp.get(k); if (v != null) f[k] = v; });
@@ -62,7 +63,7 @@ export default function SignalsAnalytics() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(() => parseF(searchParams));
-  const tab = searchParams.get("tab") || "overview";
+  const tab = searchParams.get("tab") || "confluence";
   const setF = (patch) => {
     const next = { ...filters, ...patch, tab };
     setFilters(next);
@@ -76,6 +77,7 @@ export default function SignalsAnalytics() {
   const seedRef = useRef(hydrate());
   const [data, setData] = useState(seedRef.current.data || null);
   const [deriv, setDeriv] = useState(seedRef.current.deriv || null);
+  const [postsignal, setPostsignal] = useState(seedRef.current.postsignal || null);
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
@@ -84,9 +86,9 @@ export default function SignalsAnalytics() {
   useEffect(() => {
     if (!data) return;
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, postsignal }));
     } catch { /* quota — skip */ }
-  }, [data, deriv]);
+  }, [data, deriv, postsignal]);
 
   const fetchData = useCallback(async () => {
     setError(null);
@@ -110,13 +112,25 @@ export default function SignalsAnalytics() {
       }
     } catch { /* keep previous */ }
   }, []);
+  const fetchPostsignal = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/terminal/postsignal`, { headers: authHeaders() });
+      if (r.ok) {
+        const j = await r.json();
+        // keep last good blob while the worker is warming (heavy ~6h pass)
+        setPostsignal((prev) => (j.warming && prev?.pairs && Object.keys(prev.pairs).length ? prev : j));
+      }
+    } catch { /* keep previous */ }
+  }, []);
   useEffect(() => {
     fetchData();
     fetchDeriv();
+    fetchPostsignal();
     const ivData = setInterval(fetchData, 60000);
     const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
-    return () => { clearInterval(ivData); clearInterval(ivDeriv); };
-  }, [fetchData, fetchDeriv]);
+    const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); };
+  }, [fetchData, fetchDeriv, fetchPostsignal]);
 
   const items = data?.items || [];
 
@@ -423,6 +437,16 @@ export default function SignalsAnalytics() {
 
       {data && (
         <>
+          {/* ═══════════ CONFLUENCE SCREENER (landing) ═══════════ */}
+          {tab === "confluence" && (
+            <ConfluenceTab {...derivProps} postsignal={postsignal} openPair={openPair} />
+          )}
+
+          {/* ═══════════ POST-SIGNAL INTELLIGENCE ═══════════ */}
+          {tab === "postsignal" && (
+            <PostSignalTab view={view} pairFc={pairFc} postsignal={postsignal} openPair={openPair} />
+          )}
+
           {/* ═══════════ OVERVIEW ═══════════ */}
           {tab === "overview" && (
             <>

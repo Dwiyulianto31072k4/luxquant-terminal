@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LuxQuant · System Map</title>
+<style>
+  :root{
+    --bg:#0a0506; --panel:#0a0805; --line:rgba(255,255,255,0.07); --line2:rgba(255,255,255,0.12);
+    --gold:#d4a853; --goldsoft:rgba(212,168,83,0.45);
+    --txt:#f5f0e8; --txt2:#a8967e; --txt3:#6b5c52;
+    --ok:#34d399; --down:#f87171; --warn:#fbbf24; --idle:#8a7a6e; --teal:#2dd4bf; --blue:#60a5fa; --purple:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 18% -10%,#1a0d12,#0a0506 60%);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:26px 30px 60px;-webkit-font-smoothing:antialiased}
+  .eyebrow{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:rgba(212,168,83,.6);font-weight:600}
+  h1{font-size:30px;font-weight:300;letter-spacing:-.02em;margin:6px 0 2px}
+  h1 b{font-weight:600;background:linear-gradient(135deg,#f0d890,#d4a853 50%,#b8860b);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:12px;color:var(--txt2);margin-bottom:20px}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .between{justify-content:space-between}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:8px;font-size:11px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .chip b{font-size:13px;font-variant-numeric:tabular-nums}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .seg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;color:var(--txt2);border:0;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer}
+  .seg button.on{background:rgba(212,168,83,.14);color:var(--gold)}
+  .btn{background:rgba(212,168,83,.10);border:1px solid rgba(212,168,83,.28);color:var(--gold);padding:7px 13px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:transparent;border-color:var(--line2);color:var(--txt2)}
+  .wrap{margin-top:18px}
+  #map{position:relative;background:linear-gradient(180deg,#0c0709,#0a0506);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  #map::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,var(--goldsoft),transparent);z-index:2}
+  svg{display:block;width:100%;height:640px}
+  .tierlbl{fill:var(--txt3);font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+  .nlabel{fill:var(--txt);font-size:11px;font-weight:600;text-anchor:middle}
+  .nsub{fill:var(--txt2);font-size:9px;text-anchor:middle}
+  .ncount{fill:#fff;font-size:15px;font-weight:700;text-anchor:middle}
+  .node{cursor:pointer;transition:opacity .2s}
+  .node circle.main{transition:transform .18s ease}
+  .node.hot circle.core{filter:brightness(1.25)}
+  .edge{fill:none;stroke-width:1.6;opacity:.34;transition:opacity .2s}
+  .edge.flow{stroke-dasharray:5 6;animation:flow 1s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-11}}
+  .edge.dim{opacity:.05}
+  .node.dim{opacity:.14}
+  .legend{position:absolute;bottom:12px;left:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--txt2);background:rgba(10,5,6,.72);padding:8px 12px;border:1px solid var(--line);border-radius:10px;z-index:2}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .lz{width:18px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
+  #tip{position:absolute;pointer-events:none;z-index:5;max-width:250px;background:#140a0e;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:11px;opacity:0;transition:opacity .15s;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+  #tip.on{opacity:1}
+  #tip .tt{font-weight:700;font-size:12px;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  #tip .tf{color:var(--txt2);line-height:1.5}
+  #tip .tm{color:var(--txt3);font-size:10px;margin-top:5px}
+  #panel{position:absolute;top:0;right:0;height:100%;width:340px;background:var(--panel);border-left:1px solid var(--line2);transform:translateX(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);padding:18px;overflow-y:auto;z-index:4}
+  #panel.open{transform:translateX(0)}
+  #panel h3{font-size:16px;font-weight:600;margin-bottom:2px}
+  .pclose{position:absolute;top:14px;right:14px;cursor:pointer;color:var(--txt3);font-size:18px}
+  .svc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:9px;cursor:pointer;background:rgba(255,255,255,.015);transition:.15s}
+  .svc:hover{border-color:var(--line2);background:rgba(255,255,255,.04);transform:translateX(-2px)}
+  .svc .t{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .svc .d{font-size:10.5px;color:var(--txt2);margin-top:2px}
+  .pill{font-size:9.5px;padding:2px 7px;border-radius:5px;font-weight:600}
+  .kv{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .kv span:first-child{color:var(--txt2)}
+  .conn{font-size:11px;padding:6px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .paccts{display:flex;gap:7px;margin-top:14px}
+  .cbtn{font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;display:inline-flex;gap:5px;align-items:center;border:1px solid;transition:.15s}
+  .cbtn:hover{filter:brightness(1.3)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden;cursor:pointer;transition:.18s}
+  .card:hover{border-color:var(--line2);transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.5)}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,.06),transparent)}
+  .card.down{border-color:rgba(248,113,113,.4)}
+  .card.down::before{background:linear-gradient(to right,transparent,rgba(248,113,113,.5),transparent)}
+  .card .ct{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .card .cd{font-size:11px;color:var(--txt2);margin-top:3px}
+  .metas{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+  .m{font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--txt2);font-variant-numeric:tabular-nums}
+  .cbtns{display:flex;gap:8px;margin-top:12px}
+  .grp{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+  .pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:22px}
+  .pager button{background:transparent;border:1px solid var(--line2);color:var(--txt2);border-radius:7px;padding:6px 11px;font-size:12px;cursor:pointer}
+  .pager button:disabled{opacity:.35;cursor:default}
+  .pager b{color:var(--gold)}
+  .status{margin-left:auto;font-weight:600;font-size:11px}
+</style>
+</head>
+<body>
+  <div class="eyebrow">LuxQuant · Pulse</div>
+  <h1>System <b>Map</b></h1>
+  <div class="sub">VPS service health & connectivity — hover for what each does, click a cluster to drill in.</div>
+  <div class="row between">
+    <div class="row" id="summary"></div>
+    <div class="row">
+      <div class="seg" id="viewseg"><button data-v="map" class="on">Map</button><button data-v="cards">Cards</button></div>
+      <button class="btn ghost" onclick="location.reload()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div id="map">
+      <svg id="svg" viewBox="0 0 1160 640" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend" id="legend"></div>
+      <div id="tip"></div>
+      <div id="panel"><div class="pclose" onclick="closePanel()">✕</div><div id="pbody"></div></div>
+    </div>
+    <div id="cardsview" style="display:none"></div>
+  </div>
+<script>
+const C={ok:'#34d399',down:'#f87171',warn:'#fbbf24',idle:'#8a7a6e',gold:'#d4a853',teal:'#2dd4bf',blue:'#60a5fa',purple:'#a78bfa'};
+const EDGE={depends:{c:'#8a7a6e',flow:false,label:'depends on'},db:{c:'#60a5fa',flow:false,label:'Postgres'},cache:{c:'#f87171',flow:false,label:'Redis'},poll:{c:'#fbbf24',flow:true,label:'polls external'},deliver:{c:'#a78bfa',flow:true,label:'delivers to'},proxy:{c:'#34d399',flow:false,label:'proxies'}};
+function s(id,name,desc,fn,health,kind,cat,uptime,mem,pid,restarts){return{id,name,desc,fn,health,kind,cat,uptime,mem,pid,restarts};}
+const SERVICES=[
+  s('pg','postgresql@16-main','Primary database','Stores every signal, user, payment, trade and journey record — the source of truth.','ok','service','Infrastructure','62d 4h','410 MB',612,0),
+  s('redis','redis-server','Cache & pub/sub','Holds pre-computed signal/market caches and broadcasts new_signal events to workers.','ok','service','Infrastructure','62d 4h','24 MB',640,0),
+  s('nginx','nginx','Reverse proxy','Terminates TLS and proxies public traffic to the FastAPI backend on :8002.','ok','service','Infrastructure','62d 4h','18 MB',700,0),
+  s('backend','luxquant-backend','FastAPI (gunicorn ×4)','Serves the whole terminal API to users. 4 rolling workers, zero-downtime reloads.','ok','service','Core API','2h 10m','512 MB',3269038,0),
+  s('poller','luxquant-poller','Background poller (leader)','The sole process that calls CoinGecko/Binance/Bybit and rebuilds caches for everyone.','ok','service','Core API','1h 5m','300 MB',3277843,0),
+  s('sync','luxquant-sync','Incremental Telegram scraper','Pulls new signal messages from the VIP Telegram channel into the DB. Currently down.','down','service','Signals','—','—',0,0),
+  s('journeyw','luxquant-journey-worker','Signal journey (LISTEN)','Tracks each open signal toward TP/SL in real time as prices move.','ok','service','Signals','24d 18h','48 MB',2809590,0),
+  s('journeyr','luxquant-journey-refresh','Journey refresh (timer)','Rebuilds the platform-wide time-to-TP aggregate every 6 hours.','idle','timer','Signals','—','—',0,0),
+  s('enrich','luxquant-enrichment-v3','Facts + tags daemon','Attaches facts and tags to coins so the terminal can show context.','ok','service','Signals','24d 18h','475 MB',2809703,0),
+  s('btc','luxquant-btc-correlation-worker','BTC correlation (LISTEN)','Computes each new signal’s correlation to Bitcoin.','ok','service','Signals','24d','62 MB',2810110,0),
+  s('maxlev','luxquant-max-leverage-worker','Max leverage (LISTEN)','Looks up the real Binance max leverage for each new signal pair.','ok','service','AutoTrade / Cryptobot','24d','40 MB',2810230,0),
+  s('cbapi','cryptobot-api','Cryptobot API','Internal trading-engine API that the autotrade stack talks to.','ok','service','AutoTrade / Cryptobot','12d','180 MB',2711000,1),
+  s('cbexec','cryptobot-executor','Dry-run executor','Simulates order execution for signals in dry-run mode.','ok','service','AutoTrade / Cryptobot','12d','120 MB',2711010,0),
+  s('cbprice','cryptobot-price-watch','Binance ws price watch','Streams live Binance prices to drive execution and monitoring.','ok','service','AutoTrade / Cryptobot','12d','90 MB',2711020,2),
+  s('cbsig','cryptobot-signal-updates','Signal ingestion','Ingests LuxQuant signals into the trading engine.','ok','service','AutoTrade / Cryptobot','12d','110 MB',2711030,0),
+  s('cbrec','cryptobot-position-reconciler','Futures reconciler','Reconciles open Binance futures positions against internal state.','ok','service','AutoTrade / Cryptobot','12d','95 MB',2711040,0),
+  s('cbmon','cryptobot-monitoring-alerts','Monitoring + alerts','Watches engine health and sends Telegram alerts on anomalies.','ok','service','AutoTrade / Cryptobot','12d','70 MB',2711050,0),
+  s('atrelay','luxquant-autotrade-relay','Cryptobot → inbox relay','Bridges cryptobot alerts into the LuxQuant autotrade inbox.','ok','service','AutoTrade / Cryptobot','18d','35 MB',2650000,0),
+  s('liq','luxquant-binance-liquidation-stream','Liquidation ws stream','Streams Binance liquidations to validate the Compass heatmap.','ok','service','Market Data','18d','88 MB',2650100,0),
+  s('coinmeta','luxquant-coin-metadata','Coin metadata daemon','Keeps coin names, logos and metadata fresh from CoinGecko.','ok','service','Market Data','18d','60 MB',2650200,0),
+  s('chart','luxquant-chart-worker','Chart renderer','Renders chart images used across the terminal and posts.','ok','service','Market Data','18d','140 MB',2650300,0),
+  s('pnl','luxquant-pnl-card-worker','PnL card renderer','Generates Binance-style PnL cards for wins.','ok','service','Market Data','18d','130 MB',2650400,0),
+  s('realtime','luxquant-realtime','Sync realtime listener','Listens for DB changes and keeps live views in sync.','ok','service','Market Data','18d','55 MB',2650500,0),
+  s('mflow','luxquant-money-flow','Money flow (timer)','Snapshots market money-flow on a timer.','idle','timer','Market Data','—','—',0,0),
+  s('fwd','luxquant-forwarder','Market pulse forwarder','Forwards market pulse & price-movement alerts to Telegram.','ok','service','Distribution','18d','44 MB',2650600,0),
+  s('onfwd','luxquant-onchain-forwarder','Onchain forwarder','Forwards on-chain events to Telegram.','ok','service','Distribution','18d','40 MB',2650700,0),
+  s('tgdel','luxquant-tg-delivery','Telegram delivery','Delivers signal messages to Telegram subscribers.','ok','service','Distribution','18d','50 MB',2650800,0),
+  s('callp','luxquant-call-poster','Call + tracking poster','Posts new calls and their live tracking to channels.','ok','service','Distribution','18d','48 MB',2650900,0),
+  s('xpost','luxquant-x-poster','X (Twitter) poster','Publishes TP hits and highlights to X / Twitter.','ok','service','Distribution','18d','42 MB',2651000,0),
+  s('drc','luxquantdrc','TG → Discord forwarder','Mirrors Telegram signal posts into Discord.','ok','service','Distribution','18d','38 MB',2651100,0),
+  s('notif','luxquant-notif-producer','Notification producer','Produces in-app notifications from news and market pulse.','ok','service','Distribution','18d','52 MB',2651200,0),
+  s('drelay','luxquant-discord-relay','X TP3/TP4 → Discord','Relays big TP3/TP4 tweets into Discord.','ok','service','Discord','18d','36 MB',2651300,0),
+  s('dbot','discord-trading-bot','Discord signal bot','Serves signals and commands to the Discord community.','ok','service','Discord','30d','80 MB',2400000,0),
+  s('news','crypto-news-bot','Crypto news TG bot','Curates and posts crypto news to Telegram.','ok','service','News','30d','75 MB',2400100,0),
+  s('cmon','luxquant-arena-v6-monitor','Compass monitor (timer)','Every 2 min checks BTC and fires a fresh Compass read on material moves.','ok','timer','AI Compass','2m','—',0,0),
+  s('ceval','luxquant-arena-v6-evaluator','Compass evaluator (timer)','Validates past Compass verdicts and calibrates confidence.','ok','timer','AI Compass','27m','—',0,0),
+  s('cres','luxquant-compass-resolver','Compass resolver (timer)','Resolves projection first-barrier outcomes for the Compass.','ok','timer','AI Compass','1m','—',0,0),
+  s('cref','luxquant-compass-reflection','Compass reflection (timer)','Daily learning loop that updates the Compass brain vault.','idle','timer','AI Compass','—','—',0,0)
+];
+const EXT=[
+  {id:'coingecko',name:'CoinGecko',fn:'Market prices, coin metadata and global stats provider.'},
+  {id:'binance',name:'Binance',fn:'Spot/futures prices, klines, leverage and liquidations.'},
+  {id:'bybit',name:'Bybit',fn:'Spot & derivatives feed used by the Compass poller.'},
+  {id:'telegram',name:'Telegram',fn:'Where signals, alerts and news are delivered to members.'},
+  {id:'discord',name:'Discord',fn:'Community delivery channel for signals and relays.'},
+  {id:'x',name:'X / Twitter',fn:'Public posting of TP hits and highlights.'}
+];
+const EDGES=[
+  ['nginx','backend','proxy'],['backend','pg','db'],['backend','redis','cache'],
+  ['poller','pg','db'],['poller','redis','cache'],['poller','coingecko','poll'],['poller','binance','poll'],['poller','bybit','poll'],
+  ['cmon','bybit','poll'],['cmon','pg','db'],['ceval','pg','db'],['cres','pg','db'],['cref','pg','db'],
+  ['journeyw','pg','db'],['journeyr','pg','db'],['enrich','pg','db'],['btc','pg','db'],['maxlev','binance','poll'],['maxlev','pg','db'],
+  ['cbapi','pg','db'],['cbexec','binance','poll'],['cbprice','binance','poll'],['cbsig','pg','db'],['cbrec','binance','poll'],['cbmon','telegram','deliver'],
+  ['atrelay','cbapi','depends'],['atrelay','pg','db'],
+  ['liq','binance','poll'],['coinmeta','coingecko','poll'],['chart','pg','db'],['pnl','pg','db'],['realtime','pg','db'],['mflow','pg','db'],
+  ['fwd','telegram','deliver'],['onfwd','telegram','deliver'],['tgdel','telegram','deliver'],['callp','telegram','deliver'],['xpost','x','deliver'],['drc','discord','deliver'],['notif','redis','cache'],
+  ['drelay','discord','deliver'],['dbot','discord','deliver'],['news','telegram','deliver'],['sync','telegram','poll'],['sync','pg','db']
+];
+const CATS=['Core API','AI Compass','AutoTrade / Cryptobot','Signals','Market Data','Distribution','Discord','News'];
+const CATCOLOR={'Core API':C.gold,'AI Compass':C.purple,'AutoTrade / Cryptobot':C.teal,'Signals':C.blue,'Market Data':C.blue,'Distribution':C.purple,'Discord':'#5865F2','News':C.warn,'Infrastructure':C.ok};
+const CATFN={'AI Compass':'BTC Compass engine — event-driven reads, evaluation, resolver and daily reflection.','AutoTrade / Cryptobot':'The trading engine: ingestion, execution, price watch, reconciliation and alerts.','Signals':'Turns raw signals into tracked journeys, facts, tags and correlations.','Market Data':'Fetches and renders market data: liquidations, metadata, charts, PnL, money flow.','Distribution':'Delivers signals, alerts and posts out to Telegram, Discord and X.','Discord':'Discord-facing bots and relays.','News':'Crypto news curation and posting.'};
+function hstatus(l){if(l.some(x=>x.health==='down'))return 'down';if(l.some(x=>x.health==='warn'))return 'warn';if(l.every(x=>x.health==='idle'))return 'idle';return 'ok';}
+const sum={total:SERVICES.length,ok:0,down:0,warn:0,idle:0};SERVICES.forEach(x=>sum[x.health]++);
+document.getElementById('summary').innerHTML=chip(C.gold,'services',sum.total)+chip(C.ok,'running',sum.ok)+(sum.warn?chip(C.warn,'busy',sum.warn):'')+(sum.down?chip(C.down,'failed',sum.down):'')+chip(C.idle,'idle',sum.idle);
+function chip(c,l,v){return `<div class="chip"><span class="dot" style="background:${c}"></span>${l}<b style="color:${c}">${v}</b></div>`;}
+const svg=document.getElementById('svg'),NS='http://www.w3.org/2000/svg',nodePos={},tip=document.getElementById('tip');
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function txt(x,y,t,c){const e=el('text',{x,y,class:c});e.textContent=t;return e;}
+function cById(h){return h==='ok'?C.ok:h==='down'?C.down:h==='warn'?C.warn:C.idle;}
+function cssid(x){return x.replace(/[^a-z0-9]/gi,'_');}
+function hex(c,a){const h=c.replace('#','');return`rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;}
+function buildMap(){
+  svg.innerHTML='';
+  const defs=el('defs',{});defs.innerHTML='<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';svg.appendChild(defs);
+  const tiers=[
+    {cx:95,lbl:'External APIs',r:20,items:EXT.map(e=>({id:e.id,name:e.name,fn:e.fn,ext:true}))},
+    {cx:360,lbl:'Infrastructure',r:26,items:SERVICES.filter(x=>x.cat==='Infrastructure')},
+    {cx:645,lbl:'Core',r:30,items:SERVICES.filter(x=>x.cat==='Core API')},
+    {cx:960,lbl:'Worker clusters',r:30,items:CATS.filter(c=>c!=='Core API').map(c=>({id:'cat:'+c,cluster:c}))}
+  ];
+  tiers.forEach(t=>svg.appendChild(txt(t.cx,30,t.lbl,'tierlbl')).setAttribute('text-anchor','middle'));
+  tiers.forEach(t=>{const n=t.items.length,top=80,span=520,gap=n>1?span/(n-1):0;t.items.forEach((it,i)=>{nodePos[it.id]={x:t.cx,y:n>1?top+gap*i:top+span/2,r:t.r,it};});});
+  const drawn=new Set();
+  EDGES.forEach(([a,b,type])=>{
+    let A=a,B=b;const sa=SERVICES.find(x=>x.id===a);if(sa&&!['Infrastructure','Core API'].includes(sa.cat))A='cat:'+sa.cat;
+    const sb=SERVICES.find(x=>x.id===b);if(sb&&!['Infrastructure','Core API'].includes(sb.cat))B='cat:'+sb.cat;
+    if(!nodePos[A]||!nodePos[B])return;const key=A+B+type;if(drawn.has(key))return;drawn.add(key);
+    const p=nodePos[A],q=nodePos[B],x1=p.x+(q.x>p.x?p.r:-p.r),x2=q.x+(q.x>p.x?-q.r:q.r),mx=(x1+x2)/2;
+    const e=el('path',{d:`M${x1},${p.y} C${mx},${p.y} ${mx},${q.y} ${x2},${q.y}`,class:'edge'+(EDGE[type].flow?' flow':''),stroke:EDGE[type].c});
+    e.dataset.a=A;e.dataset.b=B;svg.appendChild(e);
+  });
+  Object.values(nodePos).forEach(drawNode);
+  document.getElementById('legend').innerHTML=Object.values(EDGE).map(v=>`<span><i class="lz" style="border-top-color:${v.c};border-top-style:${v.flow?'dashed':'solid'}"></i>${v.label}</span>`).join('');
+}
+function drawNode(np){
+  const {x,y,r,it}=np,g=el('g',{class:'node',id:'n_'+cssid(it.id)});
+  let health='ok',title=it.name,sub='',stroke=C.idle,list=[];
+  if(it.ext){title=it.name;sub='external';stroke='#8a7a6e';}
+  else if(it.cluster){list=SERVICES.filter(s=>s.cat===it.cluster);health=hstatus(list);title=it.cluster.replace(' / Cryptobot','');sub=list.length+' services';stroke=CATCOLOR[it.cluster];}
+  else{health=it.health;sub=it.kind==='timer'?'timer':(it.uptime!=='—'?'up '+it.uptime:'inactive');stroke=cById(health);list=[it];}
+  const hc=it.ext?stroke:cById(health);
+  g.appendChild(el('circle',{cx:x,cy:y,r:r+7,fill:hex(hc,.14),class:'halo'}));
+  g.appendChild(el('circle',{class:'core',cx:x,cy:y,r,fill:hex(hc,it.ext?.10:.16),stroke:hex(hc,.75),'stroke-width':2,filter:'url(#glow)'}));
+  if(health==='down'){const ring=el('circle',{cx:x,cy:y,r,fill:'none',stroke:C.down,'stroke-width':2});ring.innerHTML='<animate attributeName="r" from="'+r+'" to="'+(r+14)+'" dur="1.4s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.7" to="0" dur="1.4s" repeatCount="indefinite"/>';g.appendChild(ring);}
+  if(it.cluster)g.appendChild(txt(x,y+5,list.length,'ncount'));
+  else{const ic=cById(health);g.appendChild(el('circle',{cx:x,cy:y,r:5,fill:it.ext?'#8a7a6e':ic}));}
+  g.appendChild(txt(x,y+r+16,title.length>18?title.slice(0,17)+'…':title,'nlabel'));
+  g.appendChild(txt(x,y+r+28,sub,'nsub'));
+  g.addEventListener('mouseenter',ev=>{g.classList.add('hot');highlight(it.id);showTip(ev,it,list,health);});
+  g.addEventListener('mousemove',ev=>moveTip(ev));
+  g.addEventListener('mouseleave',()=>{g.classList.remove('hot');clearHi();tip.classList.remove('on');});
+  g.addEventListener('click',()=>openNode(it));
+  svg.appendChild(g);
+}
+function showTip(ev,it,list,health){
+  let name=it.cluster?it.cluster:it.name, fn=it.cluster?CATFN[it.cluster]:it.fn, col=it.ext?'#8a7a6e':(it.cluster?CATCOLOR[it.cluster]:cById(health));
+  let meta=it.ext?'External dependency':it.cluster?(list.length+' services · '+health):(it.desc);
+  tip.innerHTML=`<div class="tt"><span class="dot" style="background:${col}"></span>${name}</div><div class="tf">${fn}</div><div class="tm">${meta}</div>`;
+  tip.classList.add('on');moveTip(ev);
+}
+function moveTip(ev){const m=document.getElementById('map').getBoundingClientRect();let x=ev.clientX-m.left+14,y=ev.clientY-m.top+14;if(x>m.width-260)x=ev.clientX-m.left-260;tip.style.left=x+'px';tip.style.top=y+'px';}
+function highlight(id){let node=id;const sv=SERVICES.find(s=>s.id===id);if(sv&&!['Infrastructure','Core API'].includes(sv.cat))node='cat:'+sv.cat;const keep=new Set([node]);
+  svg.querySelectorAll('.edge').forEach(e=>{if(e.dataset.a===node||e.dataset.b===node){e.classList.remove('dim');keep.add(e.dataset.a);keep.add(e.dataset.b);}else e.classList.add('dim');});
+  svg.querySelectorAll('.node').forEach(n=>{const nid=n.id.replace('n_','');n.classList.toggle('dim',![...keep].some(k=>cssid(k)===nid));});}
+function clearHi(){svg.querySelectorAll('.edge').forEach(e=>e.classList.remove('dim'));svg.querySelectorAll('.node').forEach(n=>n.classList.remove('dim'));}
+const panel=document.getElementById('panel'),pbody=document.getElementById('pbody');
+function openNode(it){if(it.ext){pbody.innerHTML=`<h3>${it.name}</h3><div class="sub" style="margin:4px 0 12px">${it.fn}</div><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);margin-bottom:4px">Used by</div>${connectionsFor(it.id)}`;panel.classList.add('open');return;}if(it.cluster){openCluster(it.cluster);return;}openService(it);}
+function openCluster(cat){const list=SERVICES.filter(s=>s.cat===cat),h=hstatus(list);
+  pbody.innerHTML=`<h3>${cat}</h3><div class="sub" style="margin:4px 0 6px">${CATFN[cat]||''}</div><div style="margin-bottom:10px">${statusPill(h)} · ${list.length} services</div>`+
+    list.map(s=>`<div class="svc" onclick='openService(${JSON.stringify(s)})'><div class="row between"><span class="t"><span class="dot" style="background:${cById(s.health)}"></span>${s.name}</span>${statusPill(s.health)}</div><div class="d">${s.desc}</div></div>`).join('');
+  panel.classList.add('open');}
+function openService(s){pbody.innerHTML=`<h3>${s.name}</h3><div class="sub" style="margin:4px 0 10px">${s.fn||s.desc}</div>
+  <div class="kv"><span>status</span><span>${statusPill(s.health)}</span></div><div class="kv"><span>type</span><span>${s.kind}</span></div><div class="kv"><span>uptime</span><span>${s.uptime}</span></div><div class="kv"><span>memory</span><span>${s.mem}</span></div><div class="kv"><span>pid</span><span>${s.pid||'—'}</span></div><div class="kv"><span>restarts</span><span>${s.restarts}</span></div>
+  <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);margin:16px 0 4px">Connections</div>${connectionsFor(s.id)}
+  <div class="paccts"><span class="cbtn" style="border-color:rgba(212,168,83,.3);color:${C.gold}">↻ Restart</span>${s.health==='ok'?'<span class="cbtn" style="border-color:rgba(248,113,113,.3);color:'+C.down+'">⊘ Stop</span>':'<span class="cbtn" style="border-color:rgba(52,211,153,.3);color:'+C.ok+'">⚡ Start</span>'}</div>`;panel.classList.add('open');}
+function connectionsFor(id){const out=EDGES.filter(e=>e[0]===id).map(e=>connRow(nameOf(e[1]),e[2],'out'));const inc=EDGES.filter(e=>e[1]===id).map(e=>connRow(nameOf(e[0]),e[2],'in'));const all=out.concat(inc);return all.length?all.join(''):'<div class="conn" style="color:var(--txt3)">no mapped connections</div>';}
+function connRow(name,type,dir){const v=EDGE[type];return `<div class="conn"><span class="lz" style="width:14px;border-top-color:${v.c};border-top-style:${v.flow?'dashed':'solid'}"></span>${dir==='out'?'→':'←'} ${name}<span style="margin-left:auto;color:${v.c};font-size:10px">${v.label}</span></div>`;}
+function nameOf(id){const s=SERVICES.find(x=>x.id===id);if(s)return s.name;const e=EXT.find(x=>x.id===id);return e?e.name:id;}
+function statusPill(h){const m={ok:['Running',C.ok],down:['Failed',C.down],warn:['Busy',C.warn],idle:['Idle',C.idle]}[h];return `<span class="pill" style="background:${hex(m[1],.14)};color:${m[1]}">${m[0]}</span>`;}
+function closePanel(){panel.classList.remove('open');}
+const PER=9;let page=1;
+function buildCards(){const cv=document.getElementById('cardsview'),total=Math.ceil(SERVICES.length/PER),ord={down:0,warn:1,ok:2,idle:3};
+  const slice=[...SERVICES].sort((a,b)=>ord[a.health]-ord[b.health]).slice((page-1)*PER,page*PER);let byCat={};slice.forEach(s=>{(byCat[s.cat]=byCat[s.cat]||[]).push(s);});
+  let html='';for(const cat in byCat){html+=`<div class="grp"><span class="dot" style="background:${CATCOLOR[cat]||C.idle}"></span>${cat} · ${byCat[cat].length}</div><div class="cards">`+byCat[cat].map(cardHtml).join('')+'</div>';}
+  html+=`<div class="pager"><button onclick="page=Math.max(1,page-1);buildCards()" ${page===1?'disabled':''}>← Prev</button><span>Page <b>${page}</b> / ${total}</span><button onclick="page=Math.min(${total},page+1);buildCards()" ${page===total?'disabled':''}>Next →</button></div>`;cv.innerHTML=html;}
+function cardHtml(s){const m={ok:['Running',C.ok],down:['Failed',C.down],warn:['Busy',C.warn],idle:['Idle',C.idle]}[s.health];
+  return `<div class="card ${s.health==='down'?'down':''}" onclick='openService(${JSON.stringify(s)})'><div class="row between"><span class="ct"><span class="dot" style="background:${m[1]}"></span>${s.name}${s.kind==='timer'?' <span class="pill" style="background:rgba(96,165,250,.14);color:'+C.blue+'">timer</span>':''}</span><span class="status" style="color:${m[1]}">${m[0]}</span></div><div class="cd">${s.desc}</div><div class="metas"><span class="m">${s.uptime!=='—'?'up '+s.uptime:s.kind}</span>${s.mem!=='—'?'<span class="m">'+s.mem+'</span>':''}${s.restarts?'<span class="m">'+s.restarts+' restart</span>':''}${s.pid?'<span class="m">pid '+s.pid+'</span>':''}</div><div class="cbtns"><span class="cbtn" style="border-color:rgba(212,168,83,.3);color:${C.gold}">↻ Restart</span>${s.health==='ok'?'<span class="cbtn" style="border-color:rgba(248,113,113,.3);color:'+C.down+'">⊘ Stop</span>':'<span class="cbtn" style="border-color:rgba(52,211,153,.3);color:'+C.ok+'">⚡ Start</span>'}</div></div>`;}
+document.getElementById('viewseg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#viewseg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');const v=b.dataset.v;document.getElementById('map').style.display=v==='map'?'block':'none';document.getElementById('cardsview').style.display=v==='cards'?'block':'none';if(v==='cards')buildCards();});
+buildMap();
+</script>
+</body>
+</html>

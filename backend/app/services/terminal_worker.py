@@ -63,6 +63,30 @@ _slice_cursor = 0
 _slow = {}       # pair -> last slow metrics (lsr/top_lsr/taker/rsi) carried between sweeps
 _oi_last = {}    # pair -> last known OI (OI pass alternates sweeps)
 _sweep_n = 0     # sweep counter — heavy blocks alternate to keep sweeps < 60s
+_oi_cursor = 0   # OI is ALSO sliced (rotating) — never a 400+ burst again
+OI_SLICE = 120
+_fapi_banned_until = 0.0  # global cooldown when Binance answers 418/429
+
+# post-signal historical stats (heavy — runs every ~6h)
+PS_KEY = "lq:terminal:postsignal"
+PS_INTERVAL = 6 * 3600
+PS_TTL = 8 * 3600
+_last_ps = 0.0
+
+
+def _note_ban(resp, default_secs):
+    """Honor Retry-After; escalate the global fapi cooldown."""
+    global _fapi_banned_until
+    try:
+        retry = int(resp.headers.get("Retry-After", "0"))
+    except Exception:
+        retry = 0
+    _fapi_banned_until = time.time() + max(default_secs, retry)
+    print(f"⚠️ Terminal deriv: fapi cooldown {round(_fapi_banned_until - time.time())}s (status {resp.status_code})")
+
+
+def _fapi_ok():
+    return time.time() >= _fapi_banned_until
 
 
 def _pairs_7d(db):
@@ -157,27 +181,33 @@ async def _sweep():
 
     # ── 1) funding for ALL futures symbols — single call ──────────
     funding = {}
-    try:
-        r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
-        if r.status_code == 200:
-            for row in r.json():
-                funding[row.get("symbol")] = float(row.get("lastFundingRate") or 0)
-    except Exception:
-        pass
+    if _fapi_ok():
+        try:
+            r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
+            if r.status_code in (418, 429):
+                _note_ban(r, 600 if r.status_code == 418 else 120)
+            elif r.status_code == 200:
+                for row in r.json():
+                    funding[row.get("symbol")] = float(row.get("lastFundingRate") or 0)
+        except Exception:
+            pass
 
     # ── 2) futures 24h tickers — single call ──────────────────────
     fut = {}
-    try:
-        r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
-        if r.status_code == 200:
-            for row in r.json():
-                fut[row.get("symbol")] = {
-                    "vol": float(row.get("quoteVolume") or 0),
-                    "chg": float(row.get("priceChangePercent") or 0),
-                    "price": float(row.get("lastPrice") or 0),
-                }
-    except Exception:
-        pass
+    if _fapi_ok():
+        try:
+            r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
+            if r.status_code in (418, 429):
+                _note_ban(r, 600 if r.status_code == 418 else 120)
+            elif r.status_code == 200:
+                for row in r.json():
+                    fut[row.get("symbol")] = {
+                        "vol": float(row.get("quoteVolume") or 0),
+                        "chg": float(row.get("priceChangePercent") or 0),
+                        "price": float(row.get("lastPrice") or 0),
+                    }
+        except Exception:
+            pass
 
     deriv_pairs = [p for p in pairs if p in fut or p in funding]
 
@@ -198,14 +228,25 @@ async def _sweep():
     except Exception:
         pass
 
-    # ── 3) open interest per deriv pair — EVERY OTHER sweep ────────
-    # (keeps each 60s sweep short; OI Δ anchors only need ~2min cadence)
-    if _sweep_n % 2 == 1:
-        for i, p in enumerate(deriv_pairs):
+    # ── 3) open interest — SLICED rotating pass on odd sweeps ──────
+    # (OI_SLICE pairs per pass at ~5 req/s; full board ≈ 8 min — plenty
+    #  for Δ1h/Δ4h anchors, and never a burst that can trip a ban)
+    global _oi_cursor
+    if _sweep_n % 2 == 1 and _fapi_ok() and deriv_pairs:
+        oi_slice = deriv_pairs[_oi_cursor:_oi_cursor + OI_SLICE]
+        if not oi_slice:
+            _oi_cursor = 0
+            oi_slice = deriv_pairs[:OI_SLICE]
+        _oi_cursor += OI_SLICE
+        if _oi_cursor >= len(deriv_pairs):
+            _oi_cursor = 0
+        for i, p in enumerate(oi_slice):
+            if not _fapi_ok():
+                break
             try:
                 r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": p})
                 if r.status_code in (418, 429):
-                    print(f"⚠️ Terminal deriv: OI rate-limited ({r.status_code}) — stopping OI pass")
+                    _note_ban(r, 600 if r.status_code == 418 else 120)
                     break
                 if r.status_code == 200:
                     contracts = float(r.json().get("openInterest") or 0)
@@ -213,8 +254,8 @@ async def _sweep():
                     _oi_last[p] = contracts * px if px else contracts
             except Exception:
                 pass
-            if i % 10 == 9:
-                await asyncio.sleep(1.0)   # ~10 req/s ceiling
+            if i % 5 == 4:
+                await asyncio.sleep(1.0)   # ~5 req/s ceiling
     oi_now = _oi_last
 
     # ── 4) SLOW metrics slice (LSR/topLSR/taker/RSI) — alternate sweep ─
@@ -229,9 +270,8 @@ async def _sweep():
     else:
         slice_pairs = []
 
-    throttled = False  # emergency brake — 429/418 means the WHOLE IP is at risk
     for i, p in enumerate(slice_pairs):
-        if throttled:
+        if not _fapi_ok():
             break
         slow = _slow.setdefault(p, {})
         for url, key, field in (
@@ -239,21 +279,22 @@ async def _sweep():
             ("/futures/data/topLongShortPositionRatio", "top_lsr", "longShortRatio"),
             ("/futures/data/takerlongshortRatio", "taker", "buySellRatio"),
         ):
+            if not _fapi_ok():
+                break
             try:
                 r = await client.get(
                     f"{BINANCE_FUTURES_API}{url}",
                     params={"symbol": p, "period": "5m", "limit": 1},
                 )
                 if r.status_code in (418, 429):
-                    print(f"⚠️ Terminal deriv: rate-limited ({r.status_code}) — aborting slice, backing off")
-                    throttled = True
+                    _note_ban(r, 600 if r.status_code == 418 else 120)
                     break
                 if r.status_code == 200 and r.json():
                     slow[key] = round(float(r.json()[0].get(field) or 0), 3)
             except Exception:
                 pass
             await asyncio.sleep(0.35)  # ≤ ~3 req/s on the strict futures/data pool
-        if throttled:
+        if not _fapi_ok():
             break
         try:
             r = await client.get(
@@ -261,7 +302,7 @@ async def _sweep():
                 params={"symbol": p, "interval": "1h", "limit": 20},
             )
             if r.status_code in (418, 429):
-                throttled = True
+                _note_ban(r, 600 if r.status_code == 418 else 120)
                 break
             if r.status_code == 200:
                 closes = [float(k[4]) for k in r.json()]
@@ -269,8 +310,6 @@ async def _sweep():
         except Exception:
             pass
         await asyncio.sleep(0.15)
-    if throttled:
-        await asyncio.sleep(60)  # cool the IP before the next sweep
 
     # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
     oi_appended = _sweep_n % 2 == 1  # only anchor OI on sweeps that refreshed it
@@ -313,6 +352,113 @@ async def _sweep():
     return len(out)
 
 
+def _parse_ts(s):
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+
+
+def _horizon_pct(events, entry_ts, hours):
+    """pct (sign-normalized) at the event closest to entry+H, within ±50% H."""
+    target = entry_ts + hours * 3600
+    best = None
+    for ev in events:
+        ts = _parse_ts(ev.get("at"))
+        pct = ev.get("pct")
+        if ts is None or pct is None:
+            continue
+        if best is None or abs(ts - target) < abs(best[0] - target):
+            best = (ts, pct)
+    if not best or abs(best[0] - target) > hours * 3600 * 0.5:
+        return None
+    try:
+        return float(best[1])
+    except Exception:
+        return None
+
+
+def compute_postsignal_stats():
+    """Per-pair avg movement after a call (24h/48h/7d), avg peak/MAE, TP1 rate.
+    Source: signal_journey.events (price path) + signals.peak_pct.
+    Last 60 days, max 20 signals per pair, min 5 samples per pair.
+    Heavy → worker-only; result cached with long TTL + stale copy.
+    """
+    db = SessionLocal()
+    try:
+        pairs = _pairs_7d(db)
+        if not pairs:
+            return 0
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%Y-%m-%d %H:%M:%S")
+        rows = db.execute(text("""
+            WITH ranked AS (
+                SELECT s.pair, s.peak_pct, j.events, j.initial_mae_pct,
+                       j.time_to_tp1_seconds,
+                       ROW_NUMBER() OVER (PARTITION BY s.pair ORDER BY s.created_at DESC) AS rn
+                FROM signal_journey j
+                JOIN signals s ON s.signal_id = j.signal_id
+                WHERE s.created_at >= :cutoff AND s.pair = ANY(:pairs)
+            )
+            SELECT pair, peak_pct, events, initial_mae_pct, time_to_tp1_seconds
+            FROM ranked WHERE rn <= 20
+        """), {"cutoff": cutoff, "pairs": pairs}).mappings()
+
+        acc = {}
+        for r in rows:
+            p = r["pair"]
+            a = acc.setdefault(p, {"r24": [], "r48": [], "r7d": [], "peak": [], "mae": [], "tp1": 0, "n": 0})
+            a["n"] += 1
+            if r["time_to_tp1_seconds"]:
+                a["tp1"] += 1
+            if r["peak_pct"] is not None:
+                try:
+                    a["peak"].append(float(r["peak_pct"]))
+                except Exception:
+                    pass
+            if r["initial_mae_pct"] is not None:
+                a["mae"].append(float(r["initial_mae_pct"]))
+            events = r["events"] or []
+            if events:
+                entry_ts = None
+                for ev in events:
+                    if ev.get("type") == "entry":
+                        entry_ts = _parse_ts(ev.get("at"))
+                        break
+                if entry_ts is None:
+                    entry_ts = _parse_ts(events[0].get("at"))
+                if entry_ts:
+                    for hours, key in ((24, "r24"), (48, "r48"), (168, "r7d")):
+                        v = _horizon_pct(events, entry_ts, hours)
+                        if v is not None:
+                            a[key].append(v)
+
+        def _avg(xs):
+            return round(sum(xs) / len(xs), 2) if xs else None
+
+        out = {}
+        for p, a in acc.items():
+            if a["n"] < 5:
+                continue
+            out[p] = {
+                "avg_24h": _avg(a["r24"]),
+                "avg_48h": _avg(a["r48"]),
+                "avg_7d": _avg(a["r7d"]),
+                "avg_peak": _avg(a["peak"]),
+                "avg_mae": _avg(a["mae"]),
+                "tp1_rate": round(a["tp1"] / a["n"] * 100, 1),
+                "n": a["n"],
+            }
+
+        blob = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "pairs": out,
+        }
+        cache_set(PS_KEY, blob, ttl=PS_TTL)
+        return len(out)
+    finally:
+        db.close()
+
+
 async def terminal_deriv_loop():
     """Leader-elected background loop (same pattern as the other cache loops)."""
     print(f"🔄 Terminal derivatives worker started (interval: {SWEEP_INTERVAL}s)")
@@ -337,6 +483,17 @@ async def terminal_deriv_loop():
                     db.close()
             except Exception as e:
                 print(f"   ⚠️ screener prewarm: {type(e).__name__}: {e}")
+            # post-signal historical stats — every ~6h (heavy journey scan)
+            global _last_ps
+            if time.time() - _last_ps > PS_INTERVAL:
+                try:
+                    t_ps = time.time()
+                    n_ps = compute_postsignal_stats()
+                    _last_ps = time.time()
+                    print(f"   📊 Post-signal stats: {n_ps} pairs in {round((time.time()-t_ps)*1000)}ms")
+                except Exception as e:
+                    _last_ps = time.time() - PS_INTERVAL + 900  # retry in 15 min
+                    print(f"   ⚠️ post-signal stats: {type(e).__name__}: {e}")
             print(f"✅ Terminal deriv blob: {n} pairs in {round((time.time()-start)*1000)}ms")
         except Exception as e:
             print(f"❌ Terminal deriv worker error: {type(e).__name__}: {e}")

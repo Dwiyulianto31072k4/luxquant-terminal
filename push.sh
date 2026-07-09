@@ -14,30 +14,32 @@ cd "$(dirname "$0")"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 # Default commit message (override by passing one as the first arg)
-MSG="${1:-"Login redesign + footer Ecosystem (DRC) + 3D icon polish
+MSG="${1:-"fix(signals): strict base-token aware token search
 
-- Login: real NVIDIA/SAMSUNG/AMD coins (shared AssetCoins component)
-- Login desktop: white MEXC card, connected More Options dropdown
-- Login mobile: full-height layout, big headline + coins, terms pinned bottom
-- LeftBrandPanel: static smaller iMac, redesigned market icons
-- Terms modal aligned to login (maroon to black, white pill button)
-- Footer Ecosystem: Daily Rekom Crypto tile (IG) + premium 3D pop hover
-- Hero slider 11s auto-advance; FreeTier + PhoneMockup fixes"}"
+- Search now matches the base token, not a raw substring of the pair
+- 'MUSDT' -> exact pair match only (no more XLMUSDT / ATOMUSDT noise)
+- 'M' -> prefix match on base token (M, MANA, MELANIA; not NMR / XLM)"}"
+
+# Hanya file yang diubah untuk fix ini
+FILES=(
+  "frontend-react/src/components/SignalsPage.jsx"
+)
 
 echo "==> Repo:   $(pwd)"
 echo "==> Branch: $BRANCH"
-echo "==> Changes:"
-git status --short
+echo "==> File yang akan di-push:"
+printf '    %s\n' "${FILES[@]}"
 
-# Bail out cleanly if there is nothing to commit
-if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-  echo "==> Nothing to commit. Working tree clean."
+git add -- "${FILES[@]}"
+
+# Bail out cleanly if there is nothing staged
+if git diff --cached --quiet; then
+  echo "==> Tidak ada perubahan pada file tsb. Berhenti."
   exit 0
 fi
 
-git add -A
 git commit -m "$MSG"
-git push origin "$BRANCH"
+git push origin HEAD:main
 
-echo "==> Done. Pushed to origin/$BRANCH"
+echo "==> Done. Pushed to origin/main"
 echo "==> Next: deploy with  ./deploy.sh luxquant"

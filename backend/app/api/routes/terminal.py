@@ -147,13 +147,25 @@ _SCREENER_SQL = f"""
 
         -- journey excursions (precomputed by journey worker)
         j.time_to_tp1_seconds,
-        j.initial_mae_pct
+        j.initial_mae_pct,
+
+        -- v3 CONFLUENCE facts — live JSONB snapshot (columns are legacy/empty
+        -- in v3; the real facts live in live_snapshot/entry_snapshot)
+        sn.snap->>'signal_direction'                                    AS v3_direction,
+        sn.snap->'facts'->'by_timeframe'->'h4'->'trend'->>'trend'          AS v3_h4,
+        sn.snap->'facts'->'by_timeframe'->'h4'->'trend'->>'trend_strength' AS v3_h4_strength,
+        sn.snap->'facts'->'by_timeframe'->'h1'->'trend'->>'trend'          AS v3_h1,
+        sn.snap->'facts'->'by_timeframe'->'m15'->'trend'->>'trend'         AS v3_m15,
+        sn.snap->'tags'                                                 AS v3_tags
     FROM signals s
     LEFT JOIN signal_outcomes so      ON so.signal_id = s.signal_id
     LEFT JOIN last_updates lu         ON lu.signal_id = s.signal_id
     LEFT JOIN signal_enrichment e     ON e.signal_id  = s.signal_id
     LEFT JOIN signal_btc_correlation c ON c.signal_id = s.signal_id
     LEFT JOIN signal_journey j        ON j.signal_id  = s.signal_id
+    LEFT JOIN LATERAL (
+        SELECT COALESCE(e.live_snapshot, e.entry_snapshot) AS snap
+    ) sn ON true
     LEFT JOIN coins co                ON co.pair      = s.pair
     WHERE s.created_at >= :cutoff
       {{scope_clause}}
@@ -275,6 +287,15 @@ def get_deep_screener(
                 # journey
                 "time_to_tp1_seconds": r["time_to_tp1_seconds"],
                 "initial_mae_pct": _to_float(r["initial_mae_pct"]),
+                # v3 confluence facts (from JSONB snapshot)
+                "v3": {
+                    "direction": r["v3_direction"],
+                    "h4": r["v3_h4"],
+                    "h4_strength": r["v3_h4_strength"],
+                    "h1": r["v3_h1"],
+                    "m15": r["v3_m15"],
+                    "tags": r["v3_tags"] or [],
+                },
             })
 
         result = {
@@ -316,6 +337,33 @@ def get_derivatives(current_user: User = Depends(require_subscription)):
         cached["stale"] = False
         return cached
     stale, _ = cache_get_with_stale(DERIV_BLOB_KEY)
+    if stale:
+        stale["stale"] = True
+        return stale
+    return {"warming": True, "pairs": {}, "generated_at": None}
+
+
+# ============================================================
+# POST-SIGNAL STATS — historical avg movement per pair, from
+# signal_journey.events. Precomputed by terminal_worker (~6h).
+# ============================================================
+
+POSTSIGNAL_BLOB_KEY = "lq:terminal:postsignal"
+
+
+@router.get("/postsignal")
+def get_postsignal(current_user: User = Depends(require_subscription)):
+    """Per-pair historical post-signal behavior:
+    {pairs: {PAIR: {avg_24h, avg_48h, avg_7d, avg_peak, avg_mae, tp1_rate, n}}}
+
+    READ-ONLY from Redis — worker computes it in background (fresh →
+    stale → warming). Never computed in the request path.
+    """
+    cached = cache_get(POSTSIGNAL_BLOB_KEY)
+    if cached:
+        cached["stale"] = False
+        return cached
+    stale, _ = cache_get_with_stale(POSTSIGNAL_BLOB_KEY)
     if stale:
         stale["stale"] = True
         return stale
