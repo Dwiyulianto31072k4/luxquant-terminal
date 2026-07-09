@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
   CartesianGrid, Tooltip, Cell,
 } from "recharts";
-import { GOLD, GRID, AXIS, TICK_SM } from "./terminal/vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph } from "./terminal/vizShared";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
   parseMcap, maxTargetPct,
@@ -245,38 +245,7 @@ export default function SignalTerminalPage() {
   const hasFilters = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
 
   return (
-    <div className="space-y-5 pb-16">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="h-px w-8 bg-gold-primary/40" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Terminal Signals</span>
-          </div>
-          <h1 className="font-display text-2xl lg:text-3xl font-normal text-white tracking-tight">LuxQuant Terminal</h1>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-white/60 mt-1.5">
-            <span className="text-white tabular-nums">{model.length}</span> of {signals.length} potential trades
-            {hasFilters && <span className="text-gold-primary"> · filtered from Potential Trades</span>}
-            <span className="mx-2 text-white/25">·</span>source <span className="text-gold-primary">Binance Futures</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/signals?${filtersToParams(filters).toString()}`)}
-            className="font-mono text-[10px] uppercase tracking-wider text-white/70 hover:text-white bg-white/[0.04] hover:bg-white/[0.07] px-3 py-2 rounded-lg transition-colors">
-            ← Back to table
-          </button>
-          <div className="flex items-center gap-2 bg-white/[0.03] px-3 py-1.5 rounded-full">
-            <span className="relative flex h-1.5 w-1.5">
-              {!loading && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />}
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: loading ? "#fbbf24" : "#10b981" }} />
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-white/55">
-              {loading ? "Syncing" : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}` : "Ready"}
-            </span>
-          </div>
-        </div>
-      </div>
-
+    <div className="space-y-4 pb-6">
       {/* Filter bar (parity with Potential Trades) */}
       <FilterBar filters={filters} setF={setF} coinIntel={coinIntel} verdictByPair={verdictByPair} signals={signals} />
 
@@ -411,7 +380,7 @@ function MacroStrip({ macro, sectors, model }) {
             const c = s.mcap_change_24h ?? 0;
             return (
               <div key={s.category_id || s.name} className="flex items-center gap-2">
-                <span className="font-mono text-[11px] text-white/70 w-28 truncate">{s.name}</span>
+                <span className="font-mono text-[11px] text-white/70 w-32 flex items-center gap-1.5"><SectorGlyph sector={s.name} /><span className="truncate">{s.name}</span></span>
                 <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
                   <div className="h-full rounded" style={{ width: `${(Math.abs(c) / maxAbs) * 100}%`, background: c >= 0 ? "linear-gradient(90deg,#059669,#34d399)" : "linear-gradient(90deg,#dc2626,#f87171)" }} />
                 </div>

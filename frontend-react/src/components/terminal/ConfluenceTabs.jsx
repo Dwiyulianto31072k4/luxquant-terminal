@@ -144,24 +144,28 @@ function SignalCard({ s, live, ps, onPair, t }) {
         )}
       </div>
 
-      {/* key reasons */}
+      {/* key reasons — as soft pills, not a raw bullet list */}
       {reasons.length > 0 && (
         <div className="pl-4 pr-3 mt-2.5">
-          <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/60 mb-1">{t("terminal.viz.confReasons")}</div>
-          {reasons.map((r) => (
-            <div key={r} className="flex items-center gap-1.5 py-0.5">
-              <span className="w-1 h-1 rounded-full bg-gold-primary shrink-0" />
-              <span className="text-[10.5px] text-white/75 truncate">{nice(r)}</span>
-            </div>
-          ))}
+          <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55 mb-1.5">{t("terminal.viz.confReasons")}</div>
+          <div className="flex flex-wrap gap-1">
+            {reasons.map((r) => (
+              <span key={r} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-gold-primary/[0.07] border border-gold-primary/15 text-[9.5px] text-white/80">
+                <span className="w-1 h-1 rounded-full bg-gold-primary/80" />
+                {nice(r)}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* warnings */}
+      {/* warnings — small outlined chips */}
       {warns.length > 0 && (
-        <div className="pl-4 pr-3 mt-1.5 flex items-center gap-1.5 flex-wrap">
+        <div className="pl-4 pr-3 mt-2 flex items-center gap-1 flex-wrap">
           {warns.map((w) => (
-            <span key={w} className="font-mono text-[8px] uppercase tracking-wider text-negative/80">⚠ {nice(w)}</span>
+            <span key={w} className="px-1.5 py-0.5 rounded-[4px] bg-negative/[0.08] border border-negative/25 text-negative/90 font-mono text-[8px] uppercase tracking-wider">
+              {nice(w)}
+            </span>
           ))}
         </div>
       )}

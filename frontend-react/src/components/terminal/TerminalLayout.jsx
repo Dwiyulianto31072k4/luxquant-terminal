@@ -63,7 +63,7 @@ export default function TerminalLayout() {
   };
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-7rem)] lg:overflow-hidden">
+    <div className="flex flex-col lg:h-[calc(100vh-6rem)] lg:overflow-hidden rounded-xl border border-white/[0.07] bg-[#0a0806] p-3 lg:p-4 shadow-2xl shadow-black/40">
       {/* ── breadcrumb strip ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">

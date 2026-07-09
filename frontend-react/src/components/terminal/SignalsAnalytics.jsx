@@ -81,19 +81,20 @@ export default function SignalsAnalytics() {
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
+  const [days, setDays] = useState(() => Number(seedRef.current.days) || 7); // lookback window
 
   // persist to localStorage
   useEffect(() => {
     if (!data) return;
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, postsignal }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, postsignal, days }));
     } catch { /* quota — skip */ }
-  }, [data, deriv, postsignal]);
+  }, [data, deriv, postsignal, days]);
 
   const fetchData = useCallback(async () => {
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=7&scope=all`, { headers: authHeaders() });
+      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=${days}&scope=all`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`http ${r.status}`);
       setData(await r.json());
     } catch (e) {
@@ -101,7 +102,7 @@ export default function SignalsAnalytics() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [days]);
   const fetchDeriv = useCallback(async () => {
     try {
       const r = await fetch(`${API_BASE}/api/v1/terminal/derivatives`, { headers: authHeaders() });
@@ -349,6 +350,22 @@ export default function SignalsAnalytics() {
 
   const hasDrill = ["st", "sectors", "risks", "dec", "q"].some((k) => filters[k] !== DEFAULTS[k]);
   const fcClamped = useMemo(() => agg.fcVals.filter((v) => v >= -95 && v <= 300), [agg.fcVals]);
+  // robust live-performance metrics (ignore implausible suspects)
+  const liveStats = useMemo(() => {
+    const n = fcClamped.length;
+    return {
+      n,
+      profitPct: n ? Math.round((fcClamped.filter((v) => v > 0).length / n) * 100) : null,
+      bigWin: fcClamped.filter((v) => v > 10).length,
+      bigLoss: fcClamped.filter((v) => v < -10).length,
+    };
+  }, [fcClamped]);
+  // share of calls in window that have reached at least TP1
+  const tpHitPct = useMemo(() => {
+    if (!view.length) return null;
+    const hit = view.filter((s) => ["tp1", "tp2", "tp3", "closed_win"].includes(s.status)).length;
+    return Math.round((hit / view.length) * 100);
+  }, [view]);
 
   const zAnom = useZoom(-30, 30, 0, 60);
   const zOpp = useZoom(-60, 60, 0, 120);
@@ -373,6 +390,22 @@ export default function SignalsAnalytics() {
             <Chip key={s} active={filters.st === s} onClick={() => setF({ st: s })}>
               {s === "all" ? t("terminal.viz.all") : STATUS_LABEL[s] || s}
             </Chip>
+          ))}
+        </div>
+        <span className="h-4 w-px bg-white/[0.08]" />
+        {/* lookback window — applies to every tab */}
+        <div className="flex items-center gap-1 rounded-md bg-[#15120d] border border-white/[0.09] p-0.5">
+          <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
+          {[1, 3, 7, 14, 30].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`px-2 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
+                days === d ? "bg-gold-primary/20 text-gold-primary" : "text-text-muted hover:text-white"
+              }`}
+            >
+              {d}d
+            </button>
           ))}
         </div>
         <span className="h-4 w-px bg-white/[0.08]" />
@@ -448,13 +481,18 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
                 <Kpi
-                  label={t("terminal.viz.kMedianFc")}
-                  value={fmtPct(agg.medFc)}
-                  desc={t("terminal.viz.kMedianFcDesc")}
-                  tone={agg.medFc > 0 ? "text-positive" : "text-negative"}
+                  label={t("terminal.viz.kInProfit")}
+                  value={liveStats.profitPct == null ? "—" : `${liveStats.profitPct}%`}
+                  desc={t("terminal.viz.kInProfitDesc")}
+                  tone={liveStats.profitPct != null && liveStats.profitPct >= 50 ? "text-positive" : "text-negative"}
+                />
+                <Kpi
+                  label={t("terminal.viz.kTpReached")}
+                  value={tpHitPct == null ? "—" : `${tpHitPct}%`}
+                  desc={t("terminal.viz.kTpReachedDesc")}
+                  tone="text-positive"
                 />
                 <Kpi label={t("terminal.viz.kDecoupled")} value={agg.decoupled} desc={t("terminal.viz.kDecoupledDesc")} tone={agg.decoupled ? "text-cyan-400" : undefined} />
-                <Kpi label={t("terminal.viz.kSuspect")} value={agg.suspects.length} desc={t("terminal.viz.kSuspectDesc")} tone={agg.suspects.length ? "text-warning" : undefined} />
               </div>
 
               <XCard
@@ -693,14 +731,14 @@ export default function SignalsAnalytics() {
 
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
-                  label={t("terminal.viz.kMedianFc")}
-                  value={fmtPct(agg.medFc)}
-                  desc={`${agg.fcN} ${t("terminal.viz.live")}`}
-                  tone={agg.medFc > 0 ? "text-positive" : "text-negative"}
+                  label={t("terminal.viz.kInProfit")}
+                  value={liveStats.profitPct == null ? "—" : `${liveStats.profitPct}%`}
+                  desc={t("terminal.viz.kInProfitDesc")}
+                  tone={liveStats.profitPct != null && liveStats.profitPct >= 50 ? "text-positive" : "text-negative"}
                 />
                 <Kpi label={t("terminal.viz.kBest")} value={gainers[0] ? fmtPct(gainers[0].v) : "—"} desc={gainers[0]?.pair} tone="text-positive" />
-                <Kpi label={t("terminal.viz.kWorst")} value={losers[0] ? fmtPct(losers[0].v) : "—"} desc={losers[0]?.pair} tone="text-negative" />
-                <Kpi label={t("terminal.viz.kSuspect")} value={agg.suspects.length} desc={t("terminal.viz.kSuspectDesc")} tone={agg.suspects.length ? "text-warning" : undefined} />
+                <Kpi label={t("terminal.viz.kBigWin")} value={liveStats.bigWin} desc={t("terminal.viz.kBigWinDesc")} tone={liveStats.bigWin ? "text-positive" : undefined} />
+                <Kpi label={t("terminal.viz.kBigLoss")} value={liveStats.bigLoss} desc={t("terminal.viz.kBigLossDesc")} tone={liveStats.bigLoss ? "text-negative" : undefined} />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">

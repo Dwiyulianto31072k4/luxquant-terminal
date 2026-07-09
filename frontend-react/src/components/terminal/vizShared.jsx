@@ -33,6 +33,19 @@ export const STATUS_COLORS = {
 };
 export const RISK_COLORS = { LOW: POS, NORMAL: GOLD, HIGH: NEG };
 
+// ── sector symbols (item: "sektor kasih simbol") ────────────────────
+export const SECTOR_EMOJI = {
+  infrastructure: "🏗️", defi: "🏦", ai: "🤖", gamefi: "🎮", hype: "🔥",
+  payments: "💳", rwa: "🏛️", privacy: "🛡️", socialfi: "💬", meme: "🐸",
+  depin: "📡", nft: "🖼️", l1: "⛓️", l2: "🧩", oracle: "🔮", dex: "🔁",
+  lending: "🏦", metaverse: "🌐", other: "◈", unclassified: "◦",
+};
+export const SectorGlyph = ({ sector, size = 13 }) => (
+  <span className="shrink-0 leading-none" style={{ fontSize: size }} aria-hidden="true">
+    {SECTOR_EMOJI[(sector || "").toLowerCase()] || "◈"}
+  </span>
+);
+
 export const TICK = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
 export const TICK_SM = { fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" };
 
@@ -295,24 +308,26 @@ export function XCard({ title, desc, render, zoom, hint }) {
 
       {big && (
         <div
-          className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm p-3 md:p-8 flex items-center justify-center"
+          className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm p-3 md:p-6 flex items-center justify-center"
           onClick={() => setBig(false)}
         >
           <div
-            className="w-full max-w-[1400px] max-h-full overflow-auto rounded-lg bg-[#0c0a07] border border-gold-primary/25"
+            className="flex flex-col w-[94vw] max-w-[1600px] h-[90vh] rounded-xl bg-[#0c0a07] border border-gold-primary/25 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
+            <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[14px] text-white/95">{title}</div>
-                {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
+                <div className="text-[15px] text-white/95">{title}</div>
+                {desc && <div className="text-[11.5px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {zoomBtns}
                 <IconBtn onClick={() => setBig(false)} title="close">✕</IconBtn>
               </div>
             </div>
-            <div className="p-4">{body(Math.max(360, Math.round(window.innerHeight * 0.6)))}</div>
+            <div className="flex-1 min-h-0 overflow-auto p-5 flex flex-col">
+              <div className="flex-1 min-h-0">{body(Math.max(420, Math.round(window.innerHeight * 0.74)))}</div>
+            </div>
           </div>
         </div>
       )}
@@ -395,8 +410,9 @@ export function SectorBars({ data, dataKey, color, fmt, onPick, diverging = fals
         const c = color(v);
         return (
           <button key={d.sector} onClick={() => onPick(d.sector)} className="w-full flex items-center gap-2 group" title={d.sector}>
-            <span className="w-28 shrink-0 text-left font-mono text-[10px] text-text-muted group-hover:text-white truncate transition-colors">
-              {d.sector}
+            <span className="w-28 shrink-0 flex items-center gap-1.5 text-left font-mono text-[10px] text-text-muted group-hover:text-white transition-colors">
+              <SectorGlyph sector={d.sector} />
+              <span className="truncate">{d.sector}</span>
             </span>
             <span className="flex-1 h-4 rounded-sm bg-white/[0.03] overflow-hidden relative">
               {diverging ? (
