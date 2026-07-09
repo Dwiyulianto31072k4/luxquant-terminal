@@ -1,0 +1,591 @@
+// ════════════════════════════════════════════════════════════════
+// Derivatives & vs-BTC tabs for Signals Analytics.
+//
+// Data: `deriv` blob from GET /api/v1/terminal/derivatives —
+// precomputed in the background by app/services/terminal_worker.py
+// (funding · OI + Δ · long/short · taker · RSI · volume Δ per pair).
+// Never empty: endpoint serves fresh → stale → {warming:true}.
+// ════════════════════════════════════════════════════════════════
+import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Cell, ScatterChart, Scatter, ReferenceLine, ReferenceArea,
+  LineChart, Line, Legend,
+} from "recharts";
+import CoinLogo from "../CoinLogo";
+import {
+  API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS,
+  TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median,
+  SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
+  LegendChips, Warming, Chip,
+} from "./vizShared";
+
+// join view pairs with the deriv blob → one row per unique pair
+function usePairRows(view, deriv, pairFc) {
+  return useMemo(() => {
+    const seen = new Set();
+    const rows = [];
+    const noDeriv = [];
+    (view || []).forEach((s) => {
+      if (!s.pair || seen.has(s.pair)) return;
+      seen.add(s.pair);
+      const d = deriv?.pairs?.[s.pair];
+      if (!d) return;
+      const row = { pair: s.pair, sector: s.sector, fc: pairFc[s.pair] ?? null, ...d };
+      if (d.has_deriv) rows.push(row);
+      else noDeriv.push(row);
+    });
+    return { rows, noDeriv };
+  }, [view, deriv, pairFc]);
+}
+
+const NoDerivStrip = ({ noDeriv, onPair }) => {
+  const { t } = useTranslation();
+  if (!noDeriv.length) return null;
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-2.5 flex items-center gap-2 flex-wrap">
+      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/70 shrink-0">
+        {t("terminal.viz.noDeriv")} · {noDeriv.length}
+      </span>
+      {noDeriv.slice(0, 12).map((d) => (
+        <CoinPill key={d.pair} pair={d.pair} onPair={onPair} className="opacity-60" />
+      ))}
+      {noDeriv.length > 12 && (
+        <span className="font-mono text-[9px] text-text-muted/60">+{noDeriv.length - 12}</span>
+      )}
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════
+// TAB: OPEN INTEREST
+// ════════════════════════════════════════════════════════════════
+export function OITab({ view, deriv, pairFc, openPair }) {
+  const { t } = useTranslation();
+  const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
+  const zQuad = useZoom(-20, 20, -15, 15);
+
+  const quad = useMemo(
+    () => rows
+      .filter((r) => r.oi_chg_1h != null && r.price_chg_24h != null)
+      .map((r) => ({ x: r.price_chg_24h, y: r.oi_chg_1h, pair: r.pair })),
+    [rows],
+  );
+  const oiTotal = rows.reduce((a, r) => a + (r.oi || 0), 0);
+  const gain = [...rows].filter((r) => r.oi_chg_1h != null).sort((a, b) => b.oi_chg_1h - a.oi_chg_1h);
+  const top = gain.slice(0, 8).map((r) => ({ pair: r.pair, v: r.oi_chg_1h }));
+  const bottom = gain.slice(-8).reverse().map((r) => ({ pair: r.pair, v: r.oi_chg_1h }));
+
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabOi")} desc={t("terminal.viz.oiSectionDesc")} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label={t("terminal.viz.kOiTotal")} value={fmtMoney(oiTotal)} desc={t("terminal.viz.kOiTotalDesc")} />
+        <Kpi label={t("terminal.viz.kOiBuild")} value={gain[0] ? fmtPct(gain[0].oi_chg_1h) : "—"} desc={gain[0]?.pair} tone="text-positive" />
+        <Kpi label={t("terminal.viz.kOiUnwind")} value={gain.length ? fmtPct(gain[gain.length - 1].oi_chg_1h) : "—"} desc={gain[gain.length - 1]?.pair} tone="text-negative" />
+        <Kpi label={t("terminal.viz.kDerivCov")} value={`${rows.length}/${rows.length + noDeriv.length}`} desc={t("terminal.viz.kDerivCovDesc")} />
+      </div>
+
+      <XCard
+        title={t("terminal.viz.oiQuadTitle")}
+        desc={t("terminal.viz.oiQuadDesc")}
+        zoom={zQuad}
+        hint={t("terminal.viz.oiQuadHint")}
+        render={(h) => (
+          <div style={{ height: Math.max(h, 300) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                <ReferenceArea x1={0} x2={zQuad.domX[1]} y1={0} y2={zQuad.domY[1]} fill={POS} fillOpacity={0.04} />
+                <ReferenceArea x1={zQuad.domX[0]} x2={0} y1={0} y2={zQuad.domY[1]} fill={NEG} fillOpacity={0.04} />
+                <CartesianGrid stroke={GRID} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow />
+                <Tooltip content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                <Scatter data={quad} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                  {quad.map((p, i) => (
+                    <Cell
+                      key={i}
+                      cursor="pointer"
+                      fill={p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE}
+                    />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard title={t("terminal.viz.oiTopTitle")} desc={t("terminal.viz.oiTopDesc")} render={() => <RankBars data={top} onPair={openPair} />} />
+        <XCard title={t("terminal.viz.oiBottomTitle")} desc={t("terminal.viz.oiBottomDesc")} render={() => <RankBars data={bottom} onPair={openPair} />} />
+      </div>
+
+      <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: LONG / SHORT
+// ════════════════════════════════════════════════════════════════
+export function LongShortTab({ view, deriv, pairFc, openPair }) {
+  const { t } = useTranslation();
+  const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
+  const zDiv = useZoom(0, 4, 0, 4);
+
+  const lsrVals = rows.map((r) => r.lsr).filter((v) => v != null);
+  const crowdedLong = rows.filter((r) => (r.lsr ?? 0) > 2.5);
+  const crowdedShort = rows.filter((r) => r.lsr != null && r.lsr < 0.7);
+  const divPts = rows
+    .filter((r) => r.lsr != null && r.top_lsr != null)
+    .map((r) => ({
+      x: Math.min(r.lsr, 4), y: Math.min(r.top_lsr, 4), pair: r.pair,
+      smart: (r.lsr > 1.5 && r.top_lsr < 0.9) || (r.lsr < 0.8 && r.top_lsr > 1.3),
+    }));
+  const takers = [...rows]
+    .filter((r) => r.taker != null)
+    .map((r) => ({ pair: r.pair, v: (r.taker - 1) * 100 }))
+    .sort((a, b) => b.v - a.v);
+
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabLs")} desc={t("terminal.viz.lsSectionDesc")} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label={t("terminal.viz.kLsrMed")} value={lsrVals.length ? median(lsrVals).toFixed(2) : "—"} desc={t("terminal.viz.kLsrMedDesc")} />
+        <Kpi label={t("terminal.viz.kCrowdLong")} value={crowdedLong.length} desc={t("terminal.viz.kCrowdLongDesc")} tone={crowdedLong.length ? "text-negative" : undefined} />
+        <Kpi label={t("terminal.viz.kCrowdShort")} value={crowdedShort.length} desc={t("terminal.viz.kCrowdShortDesc")} tone={crowdedShort.length ? "text-positive" : undefined} />
+        <Kpi label={t("terminal.viz.kSmartDiv")} value={divPts.filter((p) => p.smart).length} desc={t("terminal.viz.kSmartDivDesc")} tone="text-gold-primary" />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard
+          title={t("terminal.viz.lsrDistTitle")}
+          desc={t("terminal.viz.lsrDistDesc")}
+          render={(h) => (
+            <div style={{ height: h }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                  <CartesianGrid stroke={GRID} vertical={false} />
+                  <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
+                  <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                  <ReferenceLine x="1" stroke={GOLD} strokeDasharray="3 3" />
+                  <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
+                    {makeBins(lsrVals.map((v) => Math.min(v, 4)), 0.25, 0, 4).map((b, i) => (
+                      <Cell key={i} fill={b.mid > 2.5 ? NEG : b.mid < 0.7 ? POS : GOLD} fillOpacity={0.75} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        />
+
+        <XCard
+          title={t("terminal.viz.lsDivTitle")}
+          desc={t("terminal.viz.lsDivDesc")}
+          zoom={zDiv}
+          hint={t("terminal.viz.lsDivHint")}
+          render={(h) => (
+            <div style={{ height: h }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                  <CartesianGrid stroke={GRID} />
+                  <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domX} allowDataOverflow />
+                  <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domY} allowDataOverflow />
+                  <Tooltip content={<ScatterTip xLabel="retail LSR" yLabel="top-trader LSR" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                  <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                  <ReferenceLine y={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                  <Scatter data={divPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                    {divPts.map((p, i) => (
+                      <Cell key={i} fill={p.smart ? GOLD : GRAYBAR} cursor="pointer" />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard
+          title={t("terminal.viz.takerTitle")}
+          desc={t("terminal.viz.takerDesc")}
+          render={() => <RankBars data={takers.slice(0, 8)} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />}
+        />
+        <XCard
+          title={t("terminal.viz.crowdedTitle")}
+          desc={t("terminal.viz.crowdedDesc")}
+          render={() => (
+            <div className="py-2 space-y-3">
+              <div>
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-negative/80 mb-1.5">
+                  {t("terminal.viz.kCrowdLong")} — LSR &gt; 2.5
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {crowdedLong.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                  {crowdedLong.slice(0, 12).map((r) => (
+                    <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-negative/25 bg-negative/[0.06] font-mono text-[10px]">
+                      <CoinPill pair={r.pair} onPair={openPair} />
+                      <span className="text-negative">{r.lsr?.toFixed(2)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-positive/80 mb-1.5">
+                  {t("terminal.viz.kCrowdShort")} — LSR &lt; 0.7
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {crowdedShort.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                  {crowdedShort.slice(0, 12).map((r) => (
+                    <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-positive/25 bg-positive/[0.06] font-mono text-[10px]">
+                      <CoinPill pair={r.pair} onPair={openPair} />
+                      <span className="text-positive">{r.lsr?.toFixed(2)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        />
+      </div>
+
+      <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: FUNDING & SQUEEZE
+// ════════════════════════════════════════════════════════════════
+export function FundingTab({ view, deriv, pairFc, openPair }) {
+  const { t } = useTranslation();
+  const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
+  const zFund = useZoom(-0.15, 0.15, -30, 30);
+
+  const withF = rows.filter((r) => r.funding != null).map((r) => ({ ...r, fPct: r.funding * 100 }));
+  const sorted = [...withF].sort((a, b) => a.fPct - b.fPct);
+  const negTop = sorted.slice(0, 8).map((r) => ({ pair: r.pair, v: r.fPct }));
+  const posTop = sorted.slice(-8).reverse().map((r) => ({ pair: r.pair, v: r.fPct }));
+
+  // squeeze composite: shorts paying + OI building + price rising
+  const shortSqueeze = withF
+    .filter((r) => r.fPct < -0.005 && (r.oi_chg_1h ?? 0) > 1 && (r.price_chg_24h ?? 0) > 0)
+    .sort((a, b) => a.fPct - b.fPct);
+  const longSqueeze = withF
+    .filter((r) => r.fPct > 0.02 && (r.oi_chg_1h ?? 0) > 1 && (r.price_chg_24h ?? 0) < 0)
+    .sort((a, b) => b.fPct - a.fPct);
+
+  const fundFc = withF
+    .filter((r) => r.fc != null)
+    .map((r) => ({ x: r.fPct, y: r.fc, pair: r.pair, neg: r.fPct < 0 }));
+
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabFunding")} desc={t("terminal.viz.fundSectionDesc")} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label={t("terminal.viz.kFundNeg")} value={negTop[0] ? `${negTop[0].v.toFixed(3)}%` : "—"} desc={negTop[0]?.pair} tone="text-positive" />
+        <Kpi label={t("terminal.viz.kFundPos")} value={posTop[0] ? `+${posTop[0].v.toFixed(3)}%` : "—"} desc={posTop[0]?.pair} tone="text-negative" />
+        <Kpi label={t("terminal.viz.kShortSq")} value={shortSqueeze.length} desc={t("terminal.viz.kShortSqDesc")} tone={shortSqueeze.length ? "text-gold-primary" : undefined} />
+        <Kpi label={t("terminal.viz.kLongSq")} value={longSqueeze.length} desc={t("terminal.viz.kLongSqDesc")} tone={longSqueeze.length ? "text-orange-400" : undefined} />
+      </div>
+
+      <XCard
+        title={t("terminal.viz.squeezeTitle")}
+        desc={t("terminal.viz.squeezeDesc")}
+        render={() => (
+          <div className="py-2 space-y-3">
+            <div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-gold-primary/80 mb-1.5">
+                {t("terminal.viz.shortSqList")}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {shortSqueeze.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                {shortSqueeze.slice(0, 10).map((r) => (
+                  <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-gold-primary/30 bg-gold-primary/[0.08] font-mono text-[10px]">
+                    <CoinPill pair={r.pair} onPair={openPair} />
+                    <span className="text-text-muted">f {r.fPct.toFixed(3)}%</span>
+                    <span className="text-positive">OI {fmtPct(r.oi_chg_1h)}</span>
+                    <span className="text-positive">{fmtPct(r.price_chg_24h)}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-orange-400/80 mb-1.5">
+                {t("terminal.viz.longSqList")}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {longSqueeze.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                {longSqueeze.slice(0, 10).map((r) => (
+                  <span key={r.pair} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-orange-400/30 bg-orange-400/[0.08] font-mono text-[10px]">
+                    <CoinPill pair={r.pair} onPair={openPair} />
+                    <span className="text-text-muted">f +{r.fPct.toFixed(3)}%</span>
+                    <span className="text-negative">{fmtPct(r.price_chg_24h)}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard title={t("terminal.viz.fundNegTitle")} desc={t("terminal.viz.fundNegDesc")} render={() => <RankBars data={negTop} onPair={openPair} fmt={(v) => `${v.toFixed(3)}%`} />} />
+        <XCard title={t("terminal.viz.fundPosTitle")} desc={t("terminal.viz.fundPosDesc")} render={() => <RankBars data={posTop} onPair={openPair} fmt={(v) => `+${v.toFixed(3)}%`} />} />
+      </div>
+
+      <XCard
+        title={t("terminal.viz.fundFcTitle")}
+        desc={t("terminal.viz.fundFcDesc")}
+        zoom={zFund}
+        render={(h) => (
+          <div style={{ height: Math.max(h, 280) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                <CartesianGrid stroke={GRID} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domX} allowDataOverflow />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domY} allowDataOverflow />
+                <Tooltip content={<ScatterTip xLabel="funding %" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                <Scatter data={fundFc} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                  {fundFc.map((p, i) => (
+                    <Cell key={i} fill={p.neg ? POS : GRAYBAR} cursor="pointer" />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      />
+
+      <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: vs BTC — rebased trend chart + RSI board + volume Δ
+// ════════════════════════════════════════════════════════════════
+const LINE_COLORS = [POS, CYAN, PURPLE, ORANGE, "#f472b6", "#facc15", "#60a5fa", "#34d399", "#e879f9", "#fca5a5"];
+const WINDOWS = { "24h": { interval: "15m", limit: 96 }, "48h": { interval: "30m", limit: 96 }, "7d": { interval: "2h", limit: 84 } };
+
+export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
+  const { t } = useTranslation();
+  const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
+  const [win, setWin] = useState("24h");
+  const [sel, setSel] = useState(null); // null = not initialized yet
+  const [series, setSeries] = useState({});
+  const [q, setQ] = useState("");
+
+  // default: top-10 movers by |live Δ from call|
+  useEffect(() => {
+    if (sel != null || !movers?.length) return;
+    setSel(movers.slice(0, 10).map((m) => m.pair));
+  }, [movers, sel]);
+
+  const selected = sel || [];
+  const allSymbols = useMemo(() => ["BTCUSDT", ...selected.filter((p) => p !== "BTCUSDT")], [selected]);
+
+  // fetch klines for BTC + selection (cached per symbol+window in-memory)
+  useEffect(() => {
+    let alive = true;
+    const { interval, limit } = WINDOWS[win];
+    (async () => {
+      const out = {};
+      await Promise.all(allSymbols.map(async (sym) => {
+        try {
+          const r = await fetch(`${API_BASE}/api/v1/market/klines?symbol=${sym}&interval=${interval}&limit=${limit}`);
+          if (r.ok) {
+            const raw = await r.json();
+            if (Array.isArray(raw) && raw.length > 2) {
+              out[sym] = raw.map((k) => ({ t: k[0], c: +k[4] }));
+            }
+          }
+        } catch { /* noop */ }
+      }));
+      if (alive) setSeries(out);
+    })();
+    return () => { alive = false; };
+  }, [allSymbols.join(","), win]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // rebase every series to 100 at window start
+  const chartData = useMemo(() => {
+    const btc = series.BTCUSDT;
+    if (!btc?.length) return [];
+    return btc.map((k, i) => {
+      const row = { t: new Date(k.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
+      allSymbols.forEach((sym) => {
+        const s = series[sym];
+        if (s && s[i] && s[0]?.c) row[sym] = +((s[i].c / s[0].c) * 100).toFixed(2);
+      });
+      return row;
+    });
+  }, [series, allSymbols]);
+
+  const searchOpts = useMemo(() => {
+    if (!q) return [];
+    const Q = q.toUpperCase();
+    const pool = [...new Set((view || []).map((s) => s.pair))];
+    return pool.filter((p) => p.includes(Q) && !selected.includes(p)).slice(0, 8);
+  }, [q, view, selected]);
+
+  // RSI board from deriv blob
+  const rsiRows = rows.filter((r) => r.rsi != null);
+  const oversold = rsiRows.filter((r) => r.rsi < 30).sort((a, b) => a.rsi - b.rsi);
+  const overbought = rsiRows.filter((r) => r.rsi > 70).sort((a, b) => b.rsi - a.rsi);
+  const volChg = [...rows]
+    .filter((r) => r.vol_chg_1h != null)
+    .map((r) => ({ pair: r.pair, v: r.vol_chg_1h }))
+    .sort((a, b) => b.v - a.v);
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabVsbtc")} desc={t("terminal.viz.vsSectionDesc")} />
+
+      <XCard
+        title={t("terminal.viz.vsChartTitle")}
+        desc={t("terminal.viz.vsChartDesc")}
+        render={(h) => (
+          <>
+            {/* selection row: window + coin chips + search-add */}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <div className="flex gap-1">
+                {Object.keys(WINDOWS).map((w) => (
+                  <Chip key={w} active={win === w} onClick={() => setWin(w)}>{w}</Chip>
+                ))}
+              </div>
+              <span className="h-4 w-px bg-white/[0.08]" />
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-gold-primary/30 bg-gold-primary/[0.08] font-mono text-[10px]">
+                <CoinLogo pair="BTCUSDT" size={14} />
+                <span className="text-gold-primary">BTC</span>
+              </span>
+              {selected.map((p, i) => (
+                <span key={p} className="flex items-center gap-1.5 px-2 py-1 rounded-sm border border-white/[0.08] bg-white/[0.02] font-mono text-[10px]">
+                  <CoinLogo pair={p} size={14} />
+                  <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>{p.replace(/USDT$/, "")}</span>
+                  <button onClick={() => setSel(selected.filter((x) => x !== p))} className="text-text-muted hover:text-negative">✕</button>
+                </span>
+              ))}
+              <div className="relative">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={t("terminal.viz.vsAdd")}
+                  className="w-28 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1 text-[10.5px] text-white placeholder:text-text-muted/60 focus:outline-none focus:border-gold-primary/40 font-mono"
+                />
+                {searchOpts.length > 0 && (
+                  <div className="absolute z-40 mt-1 left-0 min-w-[160px] rounded-md bg-[#120809] border border-gold-primary/20 shadow-xl p-1">
+                    {searchOpts.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => { if (selected.length < 10) setSel([...selected, p]); setQ(""); }}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-white/[0.05] font-mono text-[10.5px] text-white/85"
+                      >
+                        <CoinLogo pair={p} size={14} /> {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ height: Math.max(h, 320) }}>
+              {chartData.length === 0 ? (
+                <Warming text={t("terminal.viz.vsLoading")} />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="t" tick={TICK_SM} axisLine={false} tickLine={false} minTickGap={40} />
+                    <YAxis tick={TICK} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
+                    <Tooltip content={<DarkTip />} />
+                    <ReferenceLine y={100} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
+                    <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.5} dot={false} />
+                    {selected.map((p, i) => (
+                      <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} />
+                    ))}
+                    <Legend wrapperStyle={{ fontSize: 10, fontFamily: "JetBrains Mono" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </>
+        )}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard
+          title={t("terminal.viz.rsiTitle")}
+          desc={t("terminal.viz.rsiDesc")}
+          render={(h) => (
+            <>
+              <div style={{ height: Math.min(h, 200) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={makeBins(rsiRows.map((r) => r.rsi), 10, 0, 100)} margin={{ top: 4, right: 8, left: -18, bottom: 0 }}>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="x" tick={TICK_SM} axisLine={false} tickLine={false} />
+                    <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                    <Bar dataKey="count" name="pairs" radius={[2, 2, 0, 0]}>
+                      {makeBins(rsiRows.map((r) => r.rsi), 10, 0, 100).map((b, i) => (
+                        <Cell key={i} fill={b.mid < 30 ? POS : b.mid > 70 ? NEG : GOLD} fillOpacity={0.75} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-positive/80">RSI&lt;30</span>
+                  {oversold.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                  {oversold.slice(0, 8).map((r) => (
+                    <span key={r.pair} className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm border border-positive/25 bg-positive/[0.06] font-mono text-[10px]">
+                      <CoinPill pair={r.pair} onPair={openPair} /> <span className="text-positive">{r.rsi}</span>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-negative/80">RSI&gt;70</span>
+                  {overbought.length === 0 && <span className="font-mono text-[10px] text-text-muted">{t("terminal.viz.none")}</span>}
+                  {overbought.slice(0, 8).map((r) => (
+                    <span key={r.pair} className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm border border-negative/25 bg-negative/[0.06] font-mono text-[10px]">
+                      <CoinPill pair={r.pair} onPair={openPair} /> <span className="text-negative">{r.rsi}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        />
+
+        <XCard
+          title={t("terminal.viz.volChgTitle")}
+          desc={t("terminal.viz.volChgDesc")}
+          render={() =>
+            volChg.length === 0 ? (
+              <Warming text={t("terminal.viz.derivWarming")} />
+            ) : (
+              <RankBars data={volChg.slice(0, 10)} onPair={openPair} />
+            )
+          }
+        />
+      </div>
+
+      <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
+    </>
+  );
+}

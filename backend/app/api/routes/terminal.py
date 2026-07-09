@@ -143,12 +143,17 @@ _SCREENER_SQL = f"""
         co.sector,
         co.token_type,
         co.market_cap_rank,
-        co.has_utility
+        co.has_utility,
+
+        -- journey excursions (precomputed by journey worker)
+        j.time_to_tp1_seconds,
+        j.initial_mae_pct
     FROM signals s
     LEFT JOIN signal_outcomes so      ON so.signal_id = s.signal_id
     LEFT JOIN last_updates lu         ON lu.signal_id = s.signal_id
     LEFT JOIN signal_enrichment e     ON e.signal_id  = s.signal_id
     LEFT JOIN signal_btc_correlation c ON c.signal_id = s.signal_id
+    LEFT JOIN signal_journey j        ON j.signal_id  = s.signal_id
     LEFT JOIN coins co                ON co.pair      = s.pair
     WHERE s.created_at >= :cutoff
       {{scope_clause}}
@@ -267,6 +272,9 @@ def get_deep_screener(
                 "token_type": r["token_type"],
                 "market_cap_rank": r["market_cap_rank"],
                 "has_utility": r["has_utility"],
+                # journey
+                "time_to_tp1_seconds": r["time_to_tp1_seconds"],
+                "initial_mae_pct": _to_float(r["initial_mae_pct"]),
             })
 
         result = {
@@ -285,3 +293,30 @@ def get_deep_screener(
         if stale:
             return stale
         raise HTTPException(status_code=500, detail="Screener query failed")
+
+
+# ============================================================
+# DERIVATIVES BLOB — precomputed by app/services/terminal_worker.py
+# ============================================================
+
+DERIV_BLOB_KEY = "lq:terminal:deriv"
+
+
+@router.get("/derivatives")
+def get_derivatives(current_user: User = Depends(require_subscription)):
+    """Funding / OI / long-short / taker / RSI / volume-change per pair.
+
+    READ-ONLY from Redis (worker precomputes in background):
+      fresh → return · expired → serve STALE copy (never empty) ·
+      cold boot only → {"warming": true} so the UI shows a warm-up notice
+      instead of an error. NO computation ever happens in the request path.
+    """
+    cached = cache_get(DERIV_BLOB_KEY)
+    if cached:
+        cached["stale"] = False
+        return cached
+    stale, _ = cache_get_with_stale(DERIV_BLOB_KEY)
+    if stale:
+        stale["stale"] = True
+        return stale
+    return {"warming": True, "pairs": {}, "generated_at": None}

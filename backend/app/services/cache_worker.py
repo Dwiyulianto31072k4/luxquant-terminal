@@ -1528,3 +1528,6 @@ def start_cache_workers():
     loop.create_task(market_cache_loop())
     loop.create_task(coingecko_cache_loop())
     loop.create_task(bitcoin_data_cache_loop())
+    # Terminal derivatives/TA blob (lazy import — avoids circulars at module load)
+    from app.services.terminal_worker import terminal_deriv_loop
+    loop.create_task(terminal_deriv_loop())
