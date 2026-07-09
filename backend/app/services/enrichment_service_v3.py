@@ -1483,7 +1483,7 @@ def compute_snapshot(signal: dict, m15_df: pd.DataFrame, h1_df: pd.DataFrame,
         for t in tags
     ]
     
-        snapshot = {
+    snapshot = {
         "version": ENRICHMENT_VERSION,
         "computed_at": datetime.now(timezone.utc).isoformat(),
         "mode": mode,
