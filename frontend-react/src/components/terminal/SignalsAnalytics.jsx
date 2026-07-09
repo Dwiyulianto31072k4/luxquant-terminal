@@ -255,7 +255,7 @@ export default function SignalsAnalytics() {
           scatterOpp.push({ x: v, y: Math.max(0, s.max_target_pct - v), pair: s.pair, risk: s.risk_norm });
         if (s.beta_30d != null)
           scatterBeta.push({ x: s.beta_30d, y: v, pair: s.pair, dec: s.is_decoupled });
-        if (s.peak_pct != null && s.peak_pct > -50 && s.peak_pct < 300)
+        if (s.peak_pct != null && s.peak_pct > -50 && s.peak_pct < 300 && v >= -95 && v <= 300)
           peakPts.push({ x: s.peak_pct, y: v, pair: s.pair, win: s.status === "closed_win" });
         if (!seenPair.has(s.pair)) {
           seenPair.add(s.pair);
@@ -263,8 +263,10 @@ export default function SignalsAnalytics() {
           if (s.is_decoupled) decoupledList.push({ pair: s.pair, v });
           const lv = liveOf(s.pair);
           const mcap = parseMcap(s.market_cap);
-          if (lv?.change != null && lv?.volume && mcap) {
-            anomPts.push({ x: lv.change, y: (lv.volume / mcap) * 100, pair: s.pair, dec: s.is_decoupled, sector: sec });
+          if (lv?.change != null && lv?.volume && mcap && mcap > 0) {
+            // clamp so a single micro-cap outlier can't blow up the whole axis
+            const volPct = Math.min((lv.volume / mcap) * 100, 150);
+            if (Number.isFinite(volPct)) anomPts.push({ x: lv.change, y: volPct, pair: s.pair, dec: s.is_decoupled, sector: sec });
           }
           if (lv?.change != null && btcChg != null && s.pair !== "BTCUSDT") {
             rsArr.push({ pair: s.pair, v: lv.change - btcChg });
@@ -355,7 +357,8 @@ export default function SignalsAnalytics() {
     const n = fcClamped.length;
     return {
       n,
-      profitPct: n ? Math.round((fcClamped.filter((v) => v > 0).length / n) * 100) : null,
+      up: fcClamped.filter((v) => v > 0).length,
+      down: fcClamped.filter((v) => v < 0).length,
       bigWin: fcClamped.filter((v) => v > 10).length,
       bigLoss: fcClamped.filter((v) => v < -10).length,
     };
@@ -366,6 +369,21 @@ export default function SignalsAnalytics() {
     const hit = view.filter((s) => ["tp1", "tp2", "tp3", "closed_win"].includes(s.status)).length;
     return Math.round((hit / view.length) * 100);
   }, [view]);
+  // "coiled" = high-confluence, clean setups still sitting near entry (not pumped)
+  const coiledCount = useMemo(() => {
+    const STRONG = ["HTF_TREND_STRONG", "MTF_FULL_ALIGNED", "SMC_GOLDEN_SETUP"];
+    const WARN = ["LATE_ENTRY", "OVEREXTENDED", "PARABOLIC", "EXHAUSTION_CANDLE", "LIQ_VERY_LOW", "LIQ_LOW", "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "MTF_AGAINST_HTF"];
+    let n = 0;
+    Object.values(latestByPair).forEach((s) => {
+      const tags = s.v3?.tags || [];
+      if (!tags.length || !STRONG.some((x) => tags.includes(x))) return;
+      if (tags.some((x) => WARN.includes(x))) return;
+      const fc = pairFc[s.pair];
+      if (fc == null || fc < -5 || fc > 6) return;
+      n += 1;
+    });
+    return n;
+  }, [latestByPair, pairFc]);
 
   const zAnom = useZoom(-30, 30, 0, 60);
   const zOpp = useZoom(-60, 60, 0, 120);
@@ -394,14 +412,14 @@ export default function SignalsAnalytics() {
         </div>
         <span className="h-4 w-px bg-white/[0.08]" />
         {/* lookback window — applies to every tab */}
-        <div className="flex items-center gap-1 rounded-md bg-[#15120d] border border-white/[0.09] p-0.5">
+        <div className="flex items-center gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
           <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
           {[1, 3, 7, 14, 30].map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
               className={`px-2 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
-                days === d ? "bg-gold-primary/20 text-gold-primary" : "text-text-muted hover:text-white"
+                days === d ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-white"
               }`}
             >
               {d}d
@@ -481,10 +499,10 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
                 <Kpi
-                  label={t("terminal.viz.kInProfit")}
-                  value={liveStats.profitPct == null ? "—" : `${liveStats.profitPct}%`}
-                  desc={t("terminal.viz.kInProfitDesc")}
-                  tone={liveStats.profitPct != null && liveStats.profitPct >= 50 ? "text-positive" : "text-negative"}
+                  label={t("terminal.viz.kCoiled")}
+                  value={coiledCount}
+                  desc={t("terminal.viz.kCoiledDesc")}
+                  tone={coiledCount ? "text-gold-primary" : undefined}
                 />
                 <Kpi
                   label={t("terminal.viz.kTpReached")}
@@ -731,10 +749,10 @@ export default function SignalsAnalytics() {
 
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
-                  label={t("terminal.viz.kInProfit")}
-                  value={liveStats.profitPct == null ? "—" : `${liveStats.profitPct}%`}
-                  desc={t("terminal.viz.kInProfitDesc")}
-                  tone={liveStats.profitPct != null && liveStats.profitPct >= 50 ? "text-positive" : "text-negative"}
+                  label={t("terminal.viz.kBreadth")}
+                  value={`${liveStats.up}▲ ${liveStats.down}▼`}
+                  desc={t("terminal.viz.kBreadthDesc")}
+                  tone={liveStats.up >= liveStats.down ? "text-positive" : "text-negative"}
                 />
                 <Kpi label={t("terminal.viz.kBest")} value={gainers[0] ? fmtPct(gainers[0].v) : "—"} desc={gainers[0]?.pair} tone="text-positive" />
                 <Kpi label={t("terminal.viz.kBigWin")} value={liveStats.bigWin} desc={t("terminal.viz.kBigWinDesc")} tone={liveStats.bigWin ? "text-positive" : undefined} />

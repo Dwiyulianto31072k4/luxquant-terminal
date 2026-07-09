@@ -253,7 +253,7 @@ export default function SignalTerminalPage() {
       <div className="flex flex-wrap items-center gap-2">
         {[["treemap", "Treemap"], ["bubble", "Bubble"], ["matrix", "Matrix"], ["sector", "Sectors"]].map(([v, l]) => (
           <button key={v} onClick={() => setView(v)}
-            className={`font-mono text-[11px] uppercase tracking-wide px-4 py-2 rounded-lg border transition-colors ${view === v ? "text-gold-primary border-gold-primary/40 bg-gold-primary/[0.12]" : "text-white/55 border-white/[0.08] bg-[#15120d] hover:bg-[#1c1811]"}`}>{l}</button>
+            className={`font-mono text-[11px] uppercase tracking-wide px-4 py-2 rounded-lg border transition-colors ${view === v ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-white/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`}>{l}</button>
         ))}
         <div className="flex-1" />
         {view === "treemap" && (
@@ -319,8 +319,8 @@ function Enc({ label, value, onChange }) {
 
 // ── Filter bar ──
 function FilterBar({ filters, setF }) {
-  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-gold-primary border-gold-primary/40 bg-gold-primary/[0.08]" : "text-white/55 border-white/[0.08] bg-[#0a0506] hover:border-white/20"}`;
-  const sel = "appearance-none bg-[#0a0506] border border-white/[0.1] rounded-lg font-mono text-xs text-white/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
+  const chip = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-2 rounded-lg border transition-colors cursor-pointer ${on ? "text-[#17110a] border-gold-primary bg-gold-primary font-semibold" : "text-white/55 border-white/[0.1] bg-[#0c0a07] hover:border-white/20"}`;
+  const sel = "appearance-none bg-[#0c0a07] border border-white/[0.1] rounded-lg font-mono text-xs text-white/80 px-3 py-2 pr-7 focus:outline-none focus:border-gold-primary/40 cursor-pointer";
   return (
     <div className="sticky top-0 z-30 bg-[#0a0806] border border-white/[0.08] rounded-lg p-3 flex flex-wrap gap-2.5 items-center shadow-lg shadow-black/30">
       <div className="relative">

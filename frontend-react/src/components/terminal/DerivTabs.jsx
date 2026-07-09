@@ -403,6 +403,21 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
 // TAB: vs BTC — rebased trend chart + RSI board + volume Δ
 // ════════════════════════════════════════════════════════════════
 const LINE_COLORS = [POS, CYAN, PURPLE, ORANGE, "#f472b6", "#facc15", "#60a5fa", "#34d399", "#e879f9", "#fca5a5"];
+
+// end-of-line label: coin logo + symbol at the tip of each rebased line
+const makeEndLabel = (sym, color, total) => (props) => {
+  const { x, y, index, value } = props;
+  if (value == null || index !== total - 1 || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const name = sym.replace(/USDT$/, "");
+  const icon = name.toLowerCase().replace(/^1000/, "");
+  const url = `https://assets.coincap.io/assets/icons/${icon}@2x.png`;
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      <image href={url} x={x + 5} y={y - 6.5} width={13} height={13} preserveAspectRatio="xMidYMid slice" />
+      <text x={x + 21} y={y + 3.5} fill={color} fontSize={9.5} fontFamily="JetBrains Mono" fontWeight="600">{name}</text>
+    </g>
+  );
+};
 const WINDOWS = { "24h": { interval: "15m", limit: 96 }, "48h": { interval: "30m", limit: 96 }, "7d": { interval: "2h", limit: 84 } };
 
 export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
@@ -530,15 +545,15 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
                 <Warming text={t("terminal.viz.vsLoading")} />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+                  <LineChart data={chartData} margin={{ top: 6, right: 66, left: -14, bottom: 0 }}>
                     <CartesianGrid stroke={GRID} vertical={false} />
                     <XAxis dataKey="t" tick={TICK_SM} axisLine={false} tickLine={false} minTickGap={40} />
                     <YAxis tick={TICK} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
                     <Tooltip content={<DarkTip />} />
                     <ReferenceLine y={100} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
-                    <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="BTCUSDT" name="BTC" stroke={GOLD} strokeWidth={2.5} dot={false} label={makeEndLabel("BTCUSDT", GOLD, chartData.length)} isAnimationActive={false} />
                     {selected.map((p, i) => (
-                      <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} />
+                      <Line key={p} type="monotone" dataKey={p} name={p.replace(/USDT$/, "")} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={1.5} dot={false} label={makeEndLabel(p, LINE_COLORS[i % LINE_COLORS.length], chartData.length)} isAnimationActive={false} />
                     ))}
                     <Legend wrapperStyle={{ fontSize: 10, fontFamily: "JetBrains Mono" }} />
                   </LineChart>

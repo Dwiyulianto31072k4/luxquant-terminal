@@ -146,8 +146,8 @@ export const Chip = ({ active, onClick, children }) => (
     onClick={onClick}
     className={`shrink-0 px-2.5 py-1.5 rounded-md font-mono text-[9.5px] uppercase tracking-wider border transition-colors ${
       active
-        ? "bg-gold-primary/20 text-gold-primary border-gold-primary/40"
-        : "bg-[#15120d] text-text-muted border-white/[0.09] hover:text-white hover:bg-[#1c1811]"
+        ? "bg-gold-primary text-[#17110a] border-gold-primary font-semibold shadow-sm shadow-gold-primary/20"
+        : "bg-[#0c0a07] text-text-muted border-white/[0.1] hover:text-white hover:border-white/20"
     }`}
   >
     {children}
@@ -175,8 +175,8 @@ export function FilterMulti({ label, options, selected, onChange }) {
         onClick={() => setOpen((o) => !o)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors ${
           selected.length
-            ? "bg-gold-primary/[0.12] border-gold-primary/30"
-            : "bg-[#15120d] border-white/[0.09] hover:bg-[#1c1811]"
+            ? "bg-gold-primary/20 border-gold-primary/45"
+            : "bg-[#0c0a07] border-white/[0.1] hover:border-white/20"
         }`}
       >
         <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{label}</span>
