@@ -616,14 +616,15 @@ export default function SignalsAnalytics() {
                   render={(h) => (
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={agg.equity} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                        <BarChart data={agg.days.map((d) => ({ day: d.day, wins: d.closed_win || 0, losses: -(d.closed_loss || 0) }))} margin={{ top: 6, right: 8, left: -18, bottom: 0 }} stackOffset="sign">
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip content={<DarkTip />} />
-                          <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
-                          <Line type="monotone" dataKey="bal" name="win−loss" stroke={GOLD} strokeWidth={2} dot={{ r: 2, fill: GOLD }} />
-                        </LineChart>
+                          <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
+                          <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
+                          <Bar dataKey="wins" name="TP4 wins" stackId="a" fill={POS} fillOpacity={0.85} radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="losses" name="SL losses" stackId="a" fill={NEG} fillOpacity={0.85} radius={[0, 0, 2, 2]} />
+                        </BarChart>
                       </ResponsiveContainer>
                     </div>
                   )}

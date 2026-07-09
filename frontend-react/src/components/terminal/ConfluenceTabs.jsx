@@ -35,12 +35,12 @@ const WARNING_TAGS = [
   "RISK_OFF_REGIME", "HTF_TREND_EXHAUSTED", "PATTERN_CONFLICTING", "HARMONIC_CONFLICTING",
 ];
 const EQ_TAGS = {
-  FRESH_BREAKOUT: { tone: "text-positive border-positive/30 bg-positive/10" },
-  DEEP_PULLBACK: { tone: "text-cyan-300 border-cyan-400/30 bg-cyan-400/10" },
-  EXHAUSTION_CANDLE: { tone: "text-orange-300 border-orange-400/30 bg-orange-400/10" },
-  PARABOLIC: { tone: "text-negative border-negative/30 bg-negative/10" },
-  LATE_ENTRY: { tone: "text-warning border-warning/30 bg-warning/10" },
-  OVEREXTENDED: { tone: "text-negative border-negative/30 bg-negative/10" },
+  FRESH_BREAKOUT: { tone: "text-[#08160c] bg-positive border-positive" },
+  DEEP_PULLBACK: { tone: "text-[#06232b] bg-cyan-400 border-cyan-400" },
+  EXHAUSTION_CANDLE: { tone: "text-[#1a1206] bg-orange-400 border-orange-400" },
+  PARABOLIC: { tone: "text-[#180808] bg-negative border-negative" },
+  LATE_ENTRY: { tone: "text-[#1a1206] bg-warning border-warning" },
+  OVEREXTENDED: { tone: "text-[#180808] bg-negative border-negative" },
 };
 const nice = (tag) => tag.replaceAll("_", " ").toLowerCase();
 const TREND_DOT = { BULLISH: POS, BEARISH: NEG, RANGING: "#fbbf24" };
@@ -67,15 +67,16 @@ function SignalCard({ s, live, ps, onPair, t }) {
   const dir = v3.direction || s.signal_direction || "—";
   const bull = dir === "BULLISH";
   const bear = dir === "BEARISH";
-  const dirTone = bull ? "text-positive border-positive/30 bg-positive/10"
-    : bear ? "text-negative border-negative/30 bg-negative/10"
-    : "text-white/60 border-white/[0.1] bg-white/[0.05]";
-  const edge = bull ? "before:bg-positive/70" : bear ? "before:bg-negative/70" : "before:bg-white/20";
+  const dirTone = bull ? "text-[#08160c] bg-positive border-positive"
+    : bear ? "text-[#180808] bg-negative border-negative"
+    : "text-white/70 bg-white/10 border-white/15";
+  const edge = bull ? "before:bg-positive" : bear ? "before:bg-negative" : "before:bg-white/25";
+  const cardTint = bull ? "from-positive/[0.06]" : bear ? "from-negative/[0.06]" : "from-white/[0.03]";
   const htfStrong = v3.h4_strength === "STRONG" || tags.includes("HTF_TREND_STRONG");
   const align = tags.includes("MTF_FULL_ALIGNED") ? "FULL ALIGNED"
     : tags.includes("MTF_LTF_ALIGNED") ? "LTF ALIGNED"
     : tags.includes("MTF_AGAINST_HTF") ? "AGAINST HTF" : null;
-  const alignTone = align === "FULL ALIGNED" ? "text-positive" : align === "AGAINST HTF" ? "text-negative" : "text-warning";
+  const alignTone = align === "FULL ALIGNED" ? "text-[#08160c] bg-positive" : align === "AGAINST HTF" ? "text-[#180808] bg-negative" : "text-[#1a1206] bg-warning";
   const eq = Object.keys(EQ_TAGS).find((k) => tags.includes(k));
   const reasons = REASON_PRIORITY.filter((r) => tags.includes(r)).slice(0, 3);
   const warns = WARNING_TAGS.filter((w) => tags.includes(w)).slice(0, 3);
@@ -87,7 +88,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
   return (
     <button
       onClick={() => onPair(s.pair)}
-      className={`relative text-left rounded-xl bg-gradient-to-b from-white/[0.025] to-transparent border border-white/[0.07] hover:border-gold-primary/30 hover:from-gold-primary/[0.04] transition-colors overflow-hidden flex flex-col
+      className={`relative text-left rounded-xl bg-gradient-to-b ${cardTint} to-transparent border border-white/[0.08] hover:border-gold-primary/35 transition-colors overflow-hidden flex flex-col
         before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] ${edge}`}
     >
       {/* header */}
@@ -96,9 +97,9 @@ function SignalCard({ s, live, ps, onPair, t }) {
         <div className="min-w-0 flex flex-col">
           <span className="font-mono text-[13px] text-white/95 leading-none truncate">{s.pair}</span>
           <span className="mt-1 flex items-center gap-1">
-            <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider ${dirTone}`}>{dir}</span>
+            <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider font-semibold ${dirTone}`}>{dir}</span>
             {htfStrong && (
-              <span className="px-1.5 py-0.5 rounded-sm border border-gold-primary/35 bg-gold-primary/12 text-gold-primary font-mono text-[8.5px] uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-sm bg-gold-primary text-[#17110a] font-mono text-[8.5px] uppercase tracking-wider font-semibold">
                 HTF STRONG
               </span>
             )}
@@ -131,14 +132,14 @@ function SignalCard({ s, live, ps, onPair, t }) {
             {t("terminal.viz.confNoIntel")}
           </span>
         )}
-        {align && <span className={`font-mono text-[8.5px] uppercase tracking-wider ${alignTone}`}>{align}</span>}
+        {align && <span className={`px-1.5 py-0.5 rounded-sm font-mono text-[8.5px] uppercase tracking-wider font-semibold ${alignTone}`}>{align}</span>}
         {eq && (
-          <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider ${EQ_TAGS[eq].tone}`}>
+          <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider font-semibold ${EQ_TAGS[eq].tone}`}>
             {nice(eq)}
           </span>
         )}
         {spike != null && spike > 3 && (
-          <span className="px-1.5 py-0.5 rounded-sm border border-orange-400/30 bg-orange-400/10 text-orange-300 font-mono text-[8.5px] uppercase tracking-wider">
+          <span className="px-1.5 py-0.5 rounded-sm bg-orange-400 text-[#1a0e04] font-mono text-[8.5px] uppercase tracking-wider font-semibold">
             vol ×{spike.toFixed(1)}
           </span>
         )}

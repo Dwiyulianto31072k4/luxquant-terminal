@@ -503,14 +503,14 @@ function Matrix({ model, onPick }) {
   const [dir, setDir] = useState(-1);
   const rows = [...model].sort((a, b) => ((METRICS[sortK].get(a) ?? -1e9) - (METRICS[sortK].get(b) ?? -1e9)) * dir);
   return (
-    <div className="overflow-auto max-h-[440px]">
+    <div className="overflow-auto max-h-[560px] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
       <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th className="sticky left-0 bg-[#0a0506] text-left font-mono text-[8.5px] uppercase tracking-wide text-white/50 font-medium px-2 py-1.5 z-10">Pair</th>
+            <th className="sticky left-0 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-3 py-2.5 z-10">Pair</th>
             {MX_COLS.map((k) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className="font-mono text-[8.5px] uppercase tracking-wide text-white/50 font-medium px-1 py-1.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
+                className="font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
                 {METRICS[k].lbl}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}
@@ -519,12 +519,12 @@ function Matrix({ model, onPick }) {
         <tbody>
           {rows.map((d) => (
             <tr key={d.signal_id}>
-              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[11px] font-bold text-white px-2 py-1 cursor-pointer hover:text-gold-primary z-10">
-                <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={15} /><span>{d.sym}</span></span>
+              <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[12px] font-bold text-white px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
+                <span className="flex items-center gap-2"><CoinLogo pair={d.pair} size={20} /><span>{d.sym}</span></span>
               </td>
               {MX_COLS.map((k) => (
                 <td key={k} className="p-0 text-center">
-                  <div onClick={() => onPick(d)} className="m-0.5 h-6 rounded flex items-center justify-center font-mono text-[10px] font-semibold cursor-pointer hover:outline hover:outline-1 hover:outline-white" style={{ background: colorByMetric(d, k, model), color: "#0a0506" }}>
+                  <div onClick={() => onPick(d)} className="m-1 h-9 rounded-md flex items-center justify-center font-mono text-[12px] font-bold cursor-pointer hover:outline hover:outline-1 hover:outline-white transition-transform hover:-translate-y-0.5" style={{ background: colorByMetric(d, k, model), color: "#0a0506" }}>
                     {METRICS[k].get(d) == null ? "—" : METRICS[k].fmt(METRICS[k].get(d))}
                   </div>
                 </td>

@@ -411,10 +411,15 @@ const makeEndLabel = (sym, color, total) => (props) => {
   const name = sym.replace(/USDT$/, "");
   const icon = name.toLowerCase().replace(/^1000/, "");
   const url = `https://assets.coincap.io/assets/icons/${icon}@2x.png`;
+  const cid = `lqclip-${icon}`;
+  const cx = x + 12, r = 7;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <image href={url} x={x + 5} y={y - 6.5} width={13} height={13} preserveAspectRatio="xMidYMid slice" />
-      <text x={x + 21} y={y + 3.5} fill={color} fontSize={9.5} fontFamily="JetBrains Mono" fontWeight="600">{name}</text>
+      <defs><clipPath id={cid}><circle cx={cx} cy={y} r={r} /></clipPath></defs>
+      <circle cx={cx} cy={y} r={r + 1} fill="#0a0806" />
+      <image href={url} x={cx - r} y={y - r} width={r * 2} height={r * 2} preserveAspectRatio="xMidYMid slice" clipPath={`url(#${cid})`} />
+      <circle cx={cx} cy={y} r={r} fill="none" stroke={color} strokeWidth={1.25} opacity={0.65} />
+      <text x={cx + r + 3} y={y + 3.5} fill={color} fontSize={9.5} fontFamily="JetBrains Mono" fontWeight="600">{name}</text>
     </g>
   );
 };
