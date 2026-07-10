@@ -82,11 +82,25 @@ const METRICS = {
   max_target: { lbl: "Max Target %", get: (d) => d.max_target, fmt: (v) => "+" + v.toFixed(0) + "%" },
   btc_align: { lbl: "BTC Align", get: (d) => d.btc_align ?? 0, fmt: (v) => (v ? v.toFixed(0) : "—") },
 };
+// percentile of a pre-sorted array (q in 0..1)
+function quantile(sorted, q) {
+  if (!sorted.length) return 0;
+  const p = (sorted.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (p - lo);
+}
+// robust color: clamp the domain to p5..p95 so a single outlier (e.g. one
+// +154% max-target coin) can't wash every other cell to the same shade.
 function colorByMetric(d, mk, rows) {
-  const m = METRICS[mk], vals = rows.map(m.get).filter((v) => v != null && !isNaN(v));
-  const mn = Math.min(...vals), mx = Math.max(...vals), v = m.get(d) ?? 0;
-  if (m.diverge) { const a = Math.max(Math.abs(mn), Math.abs(mx)) || 1; return heat((v / a + 1) / 2); }
-  return heat((v - mn) / ((mx - mn) || 1));
+  const m = METRICS[mk];
+  const vals = rows.map(m.get).filter((v) => v != null && !isNaN(v)).sort((a, b) => a - b);
+  if (!vals.length) return heat(0.5);
+  const v = m.get(d) ?? 0;
+  const lo = quantile(vals, 0.05), hi = quantile(vals, 0.95);
+  if (m.diverge) {
+    const a = Math.max(Math.abs(lo), Math.abs(hi)) || 1;
+    return heat((Math.max(-1, Math.min(1, v / a)) + 1) / 2);
+  }
+  return heat(Math.max(0, Math.min(1, (v - lo) / ((hi - lo) || 1))));
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -117,7 +131,7 @@ export default function SignalTerminalPage() {
   };
 
   const [sizeBy, setSizeBy] = useState("market_cap");
-  const [colorBy, setColorBy] = useState(() => (searchParams.get("view") === "bubble" ? "price_change_24h" : "max_target"));
+  const [colorBy, setColorBy] = useState(() => (searchParams.get("view") === "bubble" ? "from_call" : "max_target"));
 
   const authHeaders = () => {
     const token = localStorage.getItem("access_token");
@@ -457,49 +471,119 @@ function BubbleTip({ active, payload, colorBy }) {
     </div>
   );
 }
-const fmtLogTick = (v) => {
-  if (v == null) return "";
-  if (v >= 100) return Math.round(v) + "%";
-  if (v >= 10) return v.toFixed(0) + "%";
-  if (v >= 1) return v.toFixed(1) + "%";
-  return v.toFixed(2) + "%";
-};
-function Bubble({ model, colorBy, onPick }) {
-  const data = model.map((d) => ({
-    x: Math.min(Math.max((d.flow_intensity || 0) * 100, 0.05), 5000), // clamp for log scale
-    y: d.win_rate ?? 0,
-    z: Math.max(d.market_cap || 1, 1),
-    d,
-  }));
+// axis domain fitted to the bulk of the data (p2..p98) so clusters spread out
+// instead of squishing against a fixed 0-100 range; outliers get clamped to the
+// edge (still visible) rather than dragging the whole scale.
+function niceDomain(vals, log) {
+  const s = vals.slice().sort((a, b) => a - b);
+  let lo = quantile(s, 0.02), hi = quantile(s, 0.98);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  if (log) {
+    const firstPos = s.find((v) => v > 0) || 1e-4;
+    lo = Math.max(lo, firstPos, 1e-4);
+    if (hi <= lo) hi = lo * 10;
+  } else {
+    const pad = (hi - lo) * 0.06 || 1;
+    lo -= pad; hi += pad;
+  }
+  return [lo, hi];
+}
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// ── MarketScatter — analytics-grade quadrant scatter ────────────────
+// Auto-fits axes, draws median crosshairs (→ 4 quadrants), sizes by market
+// cap, colors robustly, labels the largest caps, and keeps overplotting
+// legible via small semi-transparent dots. Used by Bubble + Explore.
+function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, height = 480, quadrants = null, labelTop = 12 }) {
+  const mx = METRICS[xKey], my = METRICS[yKey];
+  const pts = model
+    .map((d) => ({ xv: mx.get(d), yv: my.get(d), d }))
+    .filter((p) => p.xv != null && p.yv != null && !isNaN(p.xv) && !isNaN(p.yv));
+  if (!pts.length)
+    return <div style={{ height }} className="flex items-center justify-center font-mono text-[11px] text-white/30">No data for these axes.</div>;
+
+  const xs = pts.map((p) => p.xv), ys = pts.map((p) => p.yv);
+  const [x0, x1] = niceDomain(xs, logX);
+  const [y0, y1] = niceDomain(ys, false);
+  const xsS = xs.slice().sort((a, b) => a - b), ysS = ys.slice().sort((a, b) => a - b);
+  const xMed = quantile(xsS, 0.5), yMed = quantile(ysS, 0.5);
+
+  const mcaps = pts.map((p) => Math.max(p.d.market_cap || 1, 1));
+  const sqLo = Math.sqrt(Math.min(...mcaps)), sqHi = Math.sqrt(Math.max(...mcaps));
+  const rOf = (mc) => 4 + ((Math.sqrt(mc) - sqLo) / ((sqHi - sqLo) || 1)) * 20;
+
+  const labSet = new Set(
+    labelTop > 0
+      ? [...pts].sort((a, b) => (b.d.market_cap || 0) - (a.d.market_cap || 0)).slice(0, labelTop).map((p) => p.d.signal_id)
+      : []
+  );
+
+  const data = pts.map((p) => {
+    const mc = Math.max(p.d.market_cap || 1, 1);
+    return {
+      x: clampN(logX ? Math.max(p.xv, x0) : p.xv, x0, x1),
+      y: clampN(p.yv, y0, y1),
+      z: mc, d: p.d,
+      fill: colorByMetric(p.d, colorKey, model),
+      r: rOf(mc),
+      lab: labSet.has(p.d.signal_id) ? p.d.sym : null,
+    };
+  });
+
+  const Dot = (props) => {
+    const { cx, cy, payload } = props;
+    if (cx == null || cy == null) return null;
+    return (
+      <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
+        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke="rgba(0,0,0,0.55)" strokeWidth={0.6} />
+        {payload.lab && (
+          <text x={cx} y={cy - payload.r - 2.5} textAnchor="middle" fontFamily="monospace" fontSize={9} fill="rgba(255,255,255,0.72)" pointerEvents="none">{payload.lab}</text>
+        )}
+      </g>
+    );
+  };
+  const fmtTick = (m) => (v) => { const s = m.fmt(v); return typeof s === "string" ? s : String(s); };
+
   return (
-    <div style={{ height: 480 }}>
+    <div className="relative" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 14, right: 22, left: 8, bottom: 28 }}>
+        <ScatterChart margin={{ top: 16, right: 24, left: 14, bottom: 30 }}>
           <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
-          <XAxis
-            type="number" dataKey="x" scale="log" domain={[0.05, "auto"]} allowDataOverflow
-            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtLogTick}
-            label={{ value: "VOLUME / MARKET CAP  (log scale — turnover)", position: "insideBottom", offset: -12, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }}
-          />
-          <YAxis
-            type="number" dataKey="y" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
-            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"}
-            label={{ value: "WIN RATE", angle: -90, position: "insideLeft", offset: 16, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }}
-          />
+          <XAxis type="number" dataKey="x" scale={logX ? "log" : "linear"} domain={[x0, x1]}
+            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(mx)}
+            label={{ value: mx.lbl + (logX ? "  (log)" : ""), position: "insideBottom", offset: -14, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
+          <YAxis type="number" dataKey="y" domain={[y0, y1]}
+            tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(my)}
+            label={{ value: my.lbl, angle: -90, position: "insideLeft", offset: 6, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
           <ZAxis type="number" dataKey="z" range={[26, 460]} />
-          <ReferenceLine y={50} stroke="rgba(212,168,83,0.35)" strokeDasharray="4 4" />
-          <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={colorBy} />} />
-          <Scatter data={data} onClick={(p) => { const o = p?.payload || p; if (o?.d) onPick(o.d); }}>
-            {data.map((p, i) => (
-              <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, colorBy, model)} fillOpacity={0.55} stroke="rgba(0,0,0,0.55)" strokeWidth={0.5} />
-            ))}
-          </Scatter>
+          <ReferenceLine x={xMed} stroke="rgba(212,168,83,0.28)" strokeDasharray="5 5" />
+          <ReferenceLine y={yMed} stroke="rgba(212,168,83,0.28)" strokeDasharray="5 5" />
+          <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={colorKey} />} />
+          <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
         </ScatterChart>
       </ResponsiveContainer>
-      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
-        each bubble = one coin · size = market cap · color = {METRICS[colorBy].lbl} · gold line = 50% win rate · click → latest call
-      </div>
+      {quadrants && (
+        <>
+          <span className="pointer-events-none absolute top-5 right-6 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[0]}</span>
+          <span className="pointer-events-none absolute top-5 left-16 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[1]}</span>
+          <span className="pointer-events-none absolute bottom-10 left-16 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[2]}</span>
+          <span className="pointer-events-none absolute bottom-10 right-6 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[3]}</span>
+        </>
+      )}
     </div>
+  );
+}
+
+function Bubble({ model, colorBy, onPick }) {
+  return (
+    <>
+      <MarketScatter model={model} xKey="flow_intensity" yKey="price_change_24h" colorKey={colorBy}
+        onPick={onPick} logX height={480} labelTop={14}
+        quadrants={["🔥 Hot money · rising", "Quiet climbers", "Fading · ignored", "Heavy churn · falling"]} />
+      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+        X = turnover (Vol/MCap, log) · Y = 24h momentum · size = market cap · color = {METRICS[colorBy].lbl} · dashed = median · labels = largest caps · click → latest call
+      </div>
+    </>
   );
 }
 
@@ -514,10 +598,10 @@ function Matrix({ model, onPick }) {
       <table className="w-full border-separate" style={{ borderSpacing: 0 }}>
         <thead>
           <tr>
-            <th className="sticky left-0 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-3 py-2.5 z-10">Pair</th>
+            <th className="sticky left-0 top-0 z-30 bg-[#0a0506] text-left font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-3 py-2.5">Pair</th>
             {MX_COLS.map((k) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className="font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
+                className="sticky top-0 z-20 bg-[#0a0506] font-mono text-[10px] uppercase tracking-wide text-white/55 font-medium px-1.5 py-2.5 text-center cursor-pointer hover:text-gold-primary whitespace-nowrap">
                 {METRICS[k].lbl}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}
@@ -600,47 +684,21 @@ function ExploreView({ model, onPick }) {
   const [yk, setYk] = useState("win_rate");
   const [ck, setCk] = useState("price_change_24h");
   const [logX, setLogX] = useState(true);
+  const [labels, setLabels] = useState(true);
   const mx = METRICS[xk], my = METRICS[yk];
-  const data = model
-    .map((d) => ({ x: mx.get(d), y: my.get(d), z: Math.max(d.market_cap || 1, 1), d }))
-    .filter((p) => p.x != null && p.y != null && !isNaN(p.x) && !isNaN(p.y))
-    .map((p) => (logX ? { ...p, x: Math.max(p.x, 1e-4) } : p));
-  const fmtTick = (m) => (v) => {
-    const s = m.fmt(v);
-    return typeof s === "string" ? s : String(s);
-  };
+  const toggle = (on) => `font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${on ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-white/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`;
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <MetricPick label="X" value={xk} onChange={setXk} />
         <MetricPick label="Y" value={yk} onChange={setYk} />
         <MetricPick label="Color" value={ck} onChange={setCk} />
-        <button onClick={() => setLogX((v) => !v)}
-          className={`font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${logX ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-white/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`}>
-          {logX ? "Log X" : "Lin X"}
-        </button>
+        <button onClick={() => setLogX((v) => !v)} className={toggle(logX)}>{logX ? "Log X" : "Lin X"}</button>
+        <button onClick={() => setLabels((v) => !v)} className={toggle(labels)}>Labels</button>
       </div>
-      <div style={{ height: 480 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 14, right: 22, left: 12, bottom: 28 }}>
-            <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
-            <XAxis type="number" dataKey="x" scale={logX ? "log" : "linear"} domain={logX ? [0.0001, "auto"] : ["auto", "auto"]} allowDataOverflow
-              tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(mx)}
-              label={{ value: mx.lbl + (logX ? "  (log)" : ""), position: "insideBottom", offset: -12, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
-            <YAxis type="number" dataKey="y" tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(my)}
-              label={{ value: my.lbl, angle: -90, position: "insideLeft", offset: 4, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
-            <ZAxis type="number" dataKey="z" range={[26, 420]} />
-            <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={ck} />} />
-            <Scatter data={data} onClick={(p) => { const o = p?.payload || p; if (o?.d) onPick(o.d); }}>
-              {data.map((p, i) => (
-                <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, ck, model)} fillOpacity={0.6} stroke="rgba(0,0,0,0.55)" strokeWidth={0.5} />
-              ))}
-            </Scatter>
-          </ScatterChart>
-        </ResponsiveContainer>
-      </div>
+      <MarketScatter model={model} xKey={xk} yKey={yk} colorKey={ck} onPick={onPick} logX={logX} height={480} labelTop={labels ? 12 : 0} />
       <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
-        X = {mx.lbl} · Y = {my.lbl} · color = {METRICS[ck].lbl} · size = market cap · click → latest call
+        X = {mx.lbl} · Y = {my.lbl} · color = {METRICS[ck].lbl} · size = market cap · dashed = median · click → latest call
       </div>
     </>
   );
@@ -665,12 +723,12 @@ function Screener({ model, onPick }) {
         <span className="text-[12.5px] text-white/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>
       </div>
-      <div className="overflow-auto max-h-[440px] p-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
+      <div className="overflow-auto max-h-[440px] px-2 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
         <table className="w-full border-collapse font-mono text-[11px]">
           <thead>
             <tr>{SCR.map(([k, l], i) => (
               <th key={k} onClick={() => { setDir(sortK === k ? -dir : -1); setSortK(k); }}
-                className={`${i === 0 ? "text-left" : "text-right"} font-medium text-[9px] uppercase tracking-wide text-white/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
+                className={`${i === 0 ? "text-left" : "text-right"} sticky top-0 z-10 bg-[#0c0a07] font-medium text-[9px] uppercase tracking-wide text-white/40 px-2 py-2 border-b border-white/[0.08] cursor-pointer hover:text-gold-primary whitespace-nowrap`}>
                 {l}{sortK === k ? (dir < 0 ? " ▼" : " ▲") : ""}
               </th>
             ))}</tr>
