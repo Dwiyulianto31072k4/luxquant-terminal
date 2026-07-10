@@ -318,22 +318,27 @@ async def _sweep():
         _oi_cursor += OI_SLICE
         if _oi_cursor >= len(deriv_pairs):
             _oi_cursor = 0
-        for i, p in enumerate(oi_slice):
-            if not _fapi_ok():
-                break
+        # openInterest is fapi/v1 (weight 1, 2400/min limit) → safe to fire in
+        # small CONCURRENT chunks. 120 sequential awaits over India→Binance RTT
+        # took ~70s; chunked gather does it in a few seconds, well under limits.
+        async def _one_oi(p):
             try:
                 r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/openInterest", params={"symbol": p})
                 if r.status_code in (418, 429):
                     _note_ban(r, 600 if r.status_code == 418 else 120)
-                    break
+                    return
                 if r.status_code == 200:
                     contracts = float(r.json().get("openInterest") or 0)
                     px = fut.get(p, {}).get("price") or 0
                     _oi_last[p] = contracts * px if px else contracts
             except Exception:
                 pass
-            if i % 5 == 4:
-                await asyncio.sleep(1.0)   # ~5 req/s ceiling
+
+        for j in range(0, len(oi_slice), 15):
+            if not _fapi_ok():
+                break
+            await asyncio.gather(*[_one_oi(p) for p in oi_slice[j:j + 15]])
+            await asyncio.sleep(0.4)   # ≈ 15 req / 0.4s ≈ under the fapi/v1 ceiling
     oi_now = _oi_last
 
     # ── 4) SLOW metrics slice (LSR/topLSR/taker/RSI) — alternate sweep ─
