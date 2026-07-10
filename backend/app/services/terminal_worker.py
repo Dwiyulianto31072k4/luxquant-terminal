@@ -46,7 +46,8 @@ from app.core.leader import is_leader
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 BINANCE_SPOT_API = "https://api.binance.com"
 
-WS_BLOB_KEY = "lq:terminal:ws"   # realtime funding/price/vol from binance_ws_worker
+WS_BLOB_KEY = "lq:terminal:ws"       # realtime funding/price/vol from binance_ws_worker
+BYBIT_BLOB_KEY = "lq:terminal:bybit" # funding/OI/price/vol from bybit_worker (1 call, no Binance ban)
 SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
 # 3 calls × SLICE_SIZE per sweep (2 min) — keep the sequential futures/data pass
@@ -235,17 +236,33 @@ async def _sweep():
     now = time.time()
     out = {}
 
-    # ── 0) prefer realtime WS ingest (funding/price/vol) — ZERO REST weight.
-    #      Fall back to REST premiumIndex + ticker ONLY when the WS blob is
-    #      stale/cold. This removes the biggest source of 418 IP bans. ──────
+    # ── 0) SOURCE PRIORITY for funding/price/vol/OI:
+    #      Bybit (1 call, NOT affected by Binance bans) → Binance WS (if the IP
+    #      allows it) → Binance REST premiumIndex+ticker (last resort). ───────
+    funding = {}
+    fut = {}
+    bybit_oi = {}   # OI in USD from Bybit — replaces the 120-call Binance OI pass
+
+    by = cache_get(BYBIT_BLOB_KEY) or {}
+    by_pairs = by.get("pairs") or {}
+    by_fresh = bool(by_pairs) and (now - (by.get("generated_at") or 0) < 120)
+
     ws = cache_get(WS_BLOB_KEY) or {}
     ws_pairs = ws.get("pairs") or {}
     ws_fresh = bool(ws_pairs) and (now - (ws.get("generated_at") or 0) < 90)
 
-    funding = {}
-    fut = {}
-
-    if ws_fresh:
+    if by_fresh:
+        for sym, d in by_pairs.items():
+            fr = d.get("funding")
+            if fr is not None:
+                funding[sym] = fr
+            price = d.get("price")
+            if price:
+                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price}
+            oi = d.get("oi")
+            if oi:
+                bybit_oi[sym] = oi
+    elif ws_fresh:
         for sym, d in ws_pairs.items():
             fr = d.get("funding")
             if fr is not None:
@@ -314,11 +331,14 @@ async def _sweep():
     except Exception:
         pass
 
-    # ── 3) open interest — SLICED rotating pass on odd sweeps ──────
-    # (OI_SLICE pairs per pass at ~5 req/s; full board ≈ 8 min — plenty
-    #  for Δ1h/Δ4h anchors, and never a burst that can trip a ban)
+    # ── 3) open interest ──────────────────────────────────────────
+    # Bybit already gave OI for every pair in ONE call → use it and SKIP the
+    # heavy Binance per-symbol OI pass entirely. Only fall back to Binance OI
+    # (sliced) when Bybit is stale/cold.
     global _oi_cursor
-    if _sweep_n % 2 == 1 and _fapi_ok() and deriv_pairs:
+    if bybit_oi:
+        _oi_last.update(bybit_oi)
+    elif _sweep_n % 2 == 1 and _fapi_ok() and deriv_pairs:
         oi_slice = deriv_pairs[_oi_cursor:_oi_cursor + OI_SLICE]
         if not oi_slice:
             _oi_cursor = 0
@@ -410,7 +430,9 @@ async def _sweep():
         await asyncio.sleep(0.5)
 
     # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
-    oi_appended = _sweep_n % 2 == 1  # only anchor OI on sweeps that refreshed it
+    # Bybit refreshes OI EVERY sweep → anchor every sweep; Binance-only refreshes
+    # OI on odd sweeps → anchor only then.
+    oi_appended = bool(bybit_oi) or (_sweep_n % 2 == 1)
     for p in pairs:
         has_deriv = p in fut or p in funding
         f = fut.get(p) or spot.get(p) or {}

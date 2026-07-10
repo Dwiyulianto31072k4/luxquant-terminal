@@ -1537,3 +1537,9 @@ def start_cache_workers():
         loop.create_task(binance_ws_loop())
     except Exception as e:
         print(f"⚠️ Binance WS worker not started: {type(e).__name__}: {e}")
+    # Bybit derivatives — funding/OI/price/vol in ONE call (no Binance ban risk)
+    try:
+        from app.services.bybit_worker import bybit_deriv_loop
+        loop.create_task(bybit_deriv_loop())
+    except Exception as e:
+        print(f"⚠️ Bybit worker not started: {type(e).__name__}: {e}")

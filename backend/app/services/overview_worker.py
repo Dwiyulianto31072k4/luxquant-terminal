@@ -125,17 +125,25 @@ async def fetch_derivatives_pulse():
         return None
     # shared Binance fapi cooldown (lazy import avoids any circular-import order issue)
     from app.services.terminal_worker import _fapi_ok, _note_ban
-    # realtime WS funding/mark first (zero REST weight); REST only when WS is cold
+    # source priority: Bybit (1 call, no Binance ban) → Binance WS → Binance REST
+    by = cache_get("lq:terminal:bybit") or {}
+    by_pairs = by.get("pairs") or {}
+    by_fresh = bool(by_pairs) and (time.time() - (by.get("generated_at") or 0) < 120)
     ws = cache_get("lq:terminal:ws") or {}
     ws_pairs = ws.get("pairs") or {}
     ws_fresh = bool(ws_pairs) and (time.time() - (ws.get("generated_at") or 0) < 90)
-    if not ws_fresh and not _fapi_ok():
+    if not by_fresh and not ws_fresh and not _fapi_ok():
         return None  # global Binance fapi cooldown active — do NOT poke a live ban
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            # 1. Funding + mark — from WS if fresh, else REST premiumIndex
-            if ws_fresh:
+            # 1. Funding + mark — Bybit → WS → REST premiumIndex
+            if by_fresh:
+                premium_data = [
+                    {"symbol": s, "lastFundingRate": d.get("funding") or 0, "markPrice": d.get("mark") or 0}
+                    for s, d in by_pairs.items() if d.get("funding") is not None
+                ]
+            elif ws_fresh:
                 premium_data = [
                     {"symbol": s, "lastFundingRate": d.get("funding") or 0, "markPrice": d.get("mark") or 0}
                     for s, d in ws_pairs.items() if d.get("funding") is not None
@@ -163,9 +171,10 @@ async def fetch_derivatives_pulse():
             top_positive = all_funding[:5]
             top_negative = all_funding[-5:][::-1]
 
-            # 2. Long/short ratio BTC & ETH
+            # 2. Long/short ratio BTC & ETH — Binance-only; skip entirely during
+            #    any fapi cooldown so we never poke a live ban.
             ls_results = {}
-            for sym in ["BTCUSDT", "ETHUSDT"]:
+            for sym in (["BTCUSDT", "ETHUSDT"] if _fapi_ok() else []):
                 try:
                     ls_res = await client.get(
                         f"{BINANCE_FUTURES_API}/futures/data/globalLongShortAccountRatio",
@@ -181,9 +190,16 @@ async def fetch_derivatives_pulse():
                 except Exception:
                     continue
 
-            # 3. Aggregated OI for top coins
+            # 3. Aggregated OI for top coins — Bybit (1 blob) if fresh, else
+            #    Binance per-symbol (skipped during any ban).
             oi_results = []
-            for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]:
+            _TOP_OI = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
+            if by_fresh:
+                for sym in _TOP_OI:
+                    d = by_pairs.get(sym)
+                    if d and d.get("oi"):
+                        oi_results.append({"symbol": sym.replace("USDT", ""), "oi_usd": round(d["oi"], 0)})
+            for sym in (_TOP_OI if (not by_fresh and _fapi_ok()) else []):
                 try:
                     oi_res = await client.get(
                         f"{BINANCE_FUTURES_API}/fapi/v1/openInterest",
