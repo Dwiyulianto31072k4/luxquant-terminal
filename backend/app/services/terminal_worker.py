@@ -39,13 +39,14 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 
 from app.core.database import SessionLocal
-from app.core.redis import cache_set, is_redis_available
+from app.core.redis import cache_set, cache_get, is_redis_available
 from app.core.http_client import get_binance_client
 from app.core.leader import is_leader
 
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 BINANCE_SPOT_API = "https://api.binance.com"
 
+WS_BLOB_KEY = "lq:terminal:ws"   # realtime funding/price/vol from binance_ws_worker
 SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
 # 3 calls × SLICE_SIZE per sweep (2 min) → keep ≤ 40 pairs/sweep
@@ -123,6 +124,53 @@ def _rsi14(closes):
     return round(100 - 100 / (1 + rs), 1)
 
 
+# ── anchor persistence — survive restarts so 15m/1h warm-up isn't lost ──
+_ANCHORS_KEY = "lq:terminal:anchors"
+_ANCHORS_TTL = 6 * 3600
+ANCHOR_SAVE_INTERVAL = 180   # save every ~3 min
+ANCHOR_KEEP = 75             # samples/pair to persist (≥1h at 60s; keeps blob small)
+_last_anchor_save = 0.0
+
+
+def _save_anchors():
+    """Snapshot rolling anchors to Redis (trimmed) so a restart keeps warm-up."""
+    def dump(hist):
+        out = {}
+        for p, dq in hist.items():
+            if dq:
+                out[p] = [[t, v] for (t, v) in list(dq)[-ANCHOR_KEEP:]]
+        return out
+    try:
+        cache_set(_ANCHORS_KEY, {
+            "saved_at": time.time(),
+            "oi": dump(_oi_hist), "vol": dump(_vol_hist), "px": dump(_px_hist),
+        }, ttl=_ANCHORS_TTL)
+    except Exception as e:
+        print(f"   ⚠️ anchor save: {type(e).__name__}: {e}")
+
+
+def _load_anchors():
+    """Reload rolling anchors from Redis at worker start (fresh boot only)."""
+    try:
+        blob = cache_get(_ANCHORS_KEY)
+        if not blob:
+            return
+        age = time.time() - (blob.get("saved_at") or 0)
+        if age > _ANCHORS_TTL:
+            return
+        def load(hist, key):
+            for p, rows in (blob.get(key) or {}).items():
+                dq = hist.setdefault(p, deque(maxlen=300))
+                for r in rows:
+                    if isinstance(r, (list, tuple)) and len(r) == 2:
+                        dq.append((r[0], r[1]))
+        load(_oi_hist, "oi"); load(_vol_hist, "vol"); load(_px_hist, "px")
+        print(f"   ♻️ anchors restored from Redis (age {round(age)}s): "
+              f"oi={len(_oi_hist)} vol={len(_vol_hist)} px={len(_px_hist)}")
+    except Exception as e:
+        print(f"   ⚠️ anchor load: {type(e).__name__}: {e}")
+
+
 def _anchor_chg(hist, pair, now_val, ts, minutes, append=True):
     """Δ% vs the sample closest to `minutes` ago (None until warm).
     Set append=False on repeat reads within the same sweep (avoid double-append)."""
@@ -179,44 +227,61 @@ async def _sweep():
     now = time.time()
     out = {}
 
-    # ── 1) funding for ALL futures symbols — single call ──────────
-    funding = {}
-    if _fapi_ok():
-        try:
-            r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
-            if r.status_code in (418, 429):
-                _note_ban(r, 600 if r.status_code == 418 else 120)
-            elif r.status_code == 451:
-                _note_ban(r, 1800)  # geo/legal block — back off longer, keep logging
-                print("⛔ Terminal deriv: fapi 451 (region blocked) — futures data unavailable from this server IP")
-            elif r.status_code == 200:
-                for row in r.json():
-                    funding[row.get("symbol")] = float(row.get("lastFundingRate") or 0)
-            else:
-                print(f"⚠️ Terminal deriv: fapi funding status {r.status_code}")
-        except Exception as e:
-            print(f"⚠️ Terminal deriv: fapi funding error {type(e).__name__}: {e}")
+    # ── 0) prefer realtime WS ingest (funding/price/vol) — ZERO REST weight.
+    #      Fall back to REST premiumIndex + ticker ONLY when the WS blob is
+    #      stale/cold. This removes the biggest source of 418 IP bans. ──────
+    ws = cache_get(WS_BLOB_KEY) or {}
+    ws_pairs = ws.get("pairs") or {}
+    ws_fresh = bool(ws_pairs) and (now - (ws.get("generated_at") or 0) < 30)
 
-    # ── 2) futures 24h tickers — single call ──────────────────────
+    funding = {}
     fut = {}
-    if _fapi_ok():
-        try:
-            r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
-            if r.status_code in (418, 429):
-                _note_ban(r, 600 if r.status_code == 418 else 120)
-            elif r.status_code == 451:
-                _note_ban(r, 1800)
-            elif r.status_code == 200:
-                for row in r.json():
-                    fut[row.get("symbol")] = {
-                        "vol": float(row.get("quoteVolume") or 0),
-                        "chg": float(row.get("priceChangePercent") or 0),
-                        "price": float(row.get("lastPrice") or 0),
-                    }
-            else:
-                print(f"⚠️ Terminal deriv: fapi ticker status {r.status_code}")
-        except Exception as e:
-            print(f"⚠️ Terminal deriv: fapi ticker error {type(e).__name__}: {e}")
+
+    if ws_fresh:
+        for sym, d in ws_pairs.items():
+            fr = d.get("funding")
+            if fr is not None:
+                funding[sym] = fr
+            price = d.get("price")
+            if price:
+                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price}
+    else:
+        # ── 1) funding for ALL futures symbols — single REST call ──────
+        if _fapi_ok():
+            try:
+                r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
+                if r.status_code in (418, 429):
+                    _note_ban(r, 600 if r.status_code == 418 else 120)
+                elif r.status_code == 451:
+                    _note_ban(r, 1800)  # geo/legal block — back off longer, keep logging
+                    print("⛔ Terminal deriv: fapi 451 (region blocked) — futures data unavailable from this server IP")
+                elif r.status_code == 200:
+                    for row in r.json():
+                        funding[row.get("symbol")] = float(row.get("lastFundingRate") or 0)
+                else:
+                    print(f"⚠️ Terminal deriv: fapi funding status {r.status_code}")
+            except Exception as e:
+                print(f"⚠️ Terminal deriv: fapi funding error {type(e).__name__}: {e}")
+
+        # ── 2) futures 24h tickers — single REST call ──────────────────
+        if _fapi_ok():
+            try:
+                r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
+                if r.status_code in (418, 429):
+                    _note_ban(r, 600 if r.status_code == 418 else 120)
+                elif r.status_code == 451:
+                    _note_ban(r, 1800)
+                elif r.status_code == 200:
+                    for row in r.json():
+                        fut[row.get("symbol")] = {
+                            "vol": float(row.get("quoteVolume") or 0),
+                            "chg": float(row.get("priceChangePercent") or 0),
+                            "price": float(row.get("lastPrice") or 0),
+                        }
+                else:
+                    print(f"⚠️ Terminal deriv: fapi ticker status {r.status_code}")
+            except Exception as e:
+                print(f"⚠️ Terminal deriv: fapi ticker error {type(e).__name__}: {e}")
 
     deriv_pairs = [p for p in pairs if p in fut or p in funding]
     if not deriv_pairs:
@@ -513,6 +578,8 @@ async def terminal_deriv_loop():
     """Leader-elected background loop (same pattern as the other cache loops)."""
     print(f"🔄 Terminal derivatives worker started (interval: {SWEEP_INTERVAL}s)")
     await asyncio.sleep(6)
+    global _last_anchor_save
+    _anchors_restored = False
     while True:
         if not is_leader():
             await asyncio.sleep(15)
@@ -521,8 +588,16 @@ async def terminal_deriv_loop():
             if not is_redis_available():
                 await asyncio.sleep(SWEEP_INTERVAL)
                 continue
+            # reload warm-up anchors once, on first leader sweep after (re)start
+            if not _anchors_restored:
+                _load_anchors()
+                _anchors_restored = True
             start = time.time()
             n = await _sweep()
+            # persist anchors so a restart never wipes the 15m/1h warm-up
+            if time.time() - _last_anchor_save > ANCHOR_SAVE_INTERVAL:
+                _save_anchors()
+                _last_anchor_save = time.time()
             # prewarm the screener cache too — users always read warm Redis
             try:
                 from app.api.routes.terminal import get_deep_screener

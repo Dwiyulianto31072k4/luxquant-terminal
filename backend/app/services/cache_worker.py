@@ -1531,3 +1531,9 @@ def start_cache_workers():
     # Terminal derivatives/TA blob (lazy import — avoids circulars at module load)
     from app.services.terminal_worker import terminal_deriv_loop
     loop.create_task(terminal_deriv_loop())
+    # Binance WS ingest — realtime funding/mark/price/vol (zero REST weight)
+    try:
+        from app.services.binance_ws_worker import binance_ws_loop
+        loop.create_task(binance_ws_loop())
+    except Exception as e:
+        print(f"⚠️ Binance WS worker not started: {type(e).__name__}: {e}")

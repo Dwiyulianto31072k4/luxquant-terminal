@@ -13,7 +13,7 @@ import traceback
 import os
 import httpx
 from datetime import datetime
-from app.core.redis import cache_set, is_redis_available
+from app.core.redis import cache_set, cache_get, is_redis_available
 
 # Import shared failure tracker from cache_worker
 from app.services.cache_worker import _tracker
@@ -125,15 +125,25 @@ async def fetch_derivatives_pulse():
         return None
     # shared Binance fapi cooldown (lazy import avoids any circular-import order issue)
     from app.services.terminal_worker import _fapi_ok, _note_ban
-    if not _fapi_ok():
+    # realtime WS funding/mark first (zero REST weight); REST only when WS is cold
+    ws = cache_get("lq:terminal:ws") or {}
+    ws_pairs = ws.get("pairs") or {}
+    ws_fresh = bool(ws_pairs) and (time.time() - (ws.get("generated_at") or 0) < 30)
+    if not ws_fresh and not _fapi_ok():
         return None  # global Binance fapi cooldown active — do NOT poke a live ban
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            # 1. Premium index (all funding rates)
-            premium_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
-            premium_res.raise_for_status()
-            premium_data = premium_res.json()
+            # 1. Funding + mark — from WS if fresh, else REST premiumIndex
+            if ws_fresh:
+                premium_data = [
+                    {"symbol": s, "lastFundingRate": d.get("funding") or 0, "markPrice": d.get("mark") or 0}
+                    for s, d in ws_pairs.items() if d.get("funding") is not None
+                ]
+            else:
+                premium_res = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
+                premium_res.raise_for_status()
+                premium_data = premium_res.json()
 
             all_funding = []
             for item in premium_data:
