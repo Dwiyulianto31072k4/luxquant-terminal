@@ -12,6 +12,7 @@
 // ════════════════════════════════════════════════════════════════
 import { Outlet, useNavigate, useLocation, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { SignalStatusProvider } from "../../context/SignalStatusContext";
 
 // index redirect that PRESERVES the query string (TERMINAL button → map)
 export function TerminalIndexRedirect() {
@@ -157,7 +158,9 @@ export default function TerminalLayout() {
         {/* ── content — own scroll region (Allium): never bleeds under the
             global header, page no longer grows forever ── */}
         <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
-          <Outlet />
+          <SignalStatusProvider>
+            <Outlet />
+          </SignalStatusProvider>
         </main>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
+import { SignalStatusContext, STATUS_META } from '../context/SignalStatusContext';
 
 /**
  * CoinLogo Component - Optimized with Multi-Layer Caching
@@ -198,6 +199,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   const [failed, setFailed] = useState(false);
   const sourceIndexRef = useRef(0);
   const sourcesRef = useRef([]);
+  const statusMap = useContext(SignalStatusContext); // null outside the terminal
 
   const symbol = pair
     ? pair.replace(/USDT$/i, '').replace(/BUSD$/i, '').replace(/USDC$/i, '').replace(/USD$/i, '').toUpperCase()
@@ -242,9 +244,12 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
     }
   };
 
+  const info = statusMap && pair ? statusMap[pair.toUpperCase()] : null;
+
+  let logo;
   if (failed || !resolvedUrl) {
     const [color1, color2] = getGradientForSymbol(symbol);
-    return (
+    logo = (
       <div
         className={`rounded-full flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0 ${className}`}
         style={{
@@ -258,25 +263,50 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
         {getInitials(symbol)}
       </div>
     );
+  } else {
+    logo = (
+      <img
+        src={resolvedUrl}
+        alt={symbol}
+        width={size}
+        height={size}
+        className={`rounded-full flex-shrink-0 ${className}`}
+        onError={handleError}
+        onLoad={handleLoad}
+        loading="lazy"
+        decoding="async"
+        style={{
+          width: size, height: size, objectFit: 'cover',
+          backgroundColor: '#1a0a0a',
+        }}
+        title={symbol}
+      />
+    );
   }
 
+  if (!info) return logo;
+
+  // Terminal-only: overlay a live signal-status dot + hover tooltip so users
+  // can spot at a glance whether a coin's call is open / hit a TP / stopped out.
+  const meta = STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: '#9ca3af', desc: '' };
+  const dot = Math.max(6, Math.round(size * 0.32));
   return (
-    <img
-      src={resolvedUrl}
-      alt={symbol}
-      width={size}
-      height={size}
-      className={`rounded-full flex-shrink-0 ${className}`}
-      onError={handleError}
-      onLoad={handleLoad}
-      loading="lazy"
-      decoding="async"
-      style={{
-        width: size, height: size, objectFit: 'cover',
-        backgroundColor: '#1a0a0a',
-      }}
-      title={symbol}
-    />
+    <span className="relative inline-flex shrink-0 group/coinst" style={{ width: size, height: size }}>
+      {logo}
+      <span
+        className="absolute -bottom-0.5 -right-0.5 rounded-full ring-1 ring-black/70"
+        style={{ width: dot, height: dot, background: meta.color }}
+      />
+      <span
+        className="pointer-events-none absolute z-[95] left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] opacity-0 group-hover/coinst:opacity-100 transition-opacity whitespace-nowrap rounded-md bg-[#120809] border px-2 py-1.5 shadow-xl"
+        style={{ borderColor: `${meta.color}55` }}
+      >
+        <span className="block font-mono text-[10px] font-bold" style={{ color: meta.color }}>{symbol} · {meta.label}</span>
+        <span className="block font-mono text-[8.5px] text-white/55 mt-0.5">
+          {meta.desc}{info.n > 1 ? ` · ${info.n} signals` : ''}
+        </span>
+      </span>
+    </span>
   );
 };
 
