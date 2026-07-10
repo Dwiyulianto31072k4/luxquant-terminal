@@ -232,7 +232,7 @@ async def _sweep():
     #      stale/cold. This removes the biggest source of 418 IP bans. ──────
     ws = cache_get(WS_BLOB_KEY) or {}
     ws_pairs = ws.get("pairs") or {}
-    ws_fresh = bool(ws_pairs) and (now - (ws.get("generated_at") or 0) < 30)
+    ws_fresh = bool(ws_pairs) and (now - (ws.get("generated_at") or 0) < 90)
 
     funding = {}
     fut = {}
@@ -334,11 +334,11 @@ async def _sweep():
             except Exception:
                 pass
 
-        for j in range(0, len(oi_slice), 15):
+        for j in range(0, len(oi_slice), 6):
             if not _fapi_ok():
                 break
-            await asyncio.gather(*[_one_oi(p) for p in oi_slice[j:j + 15]])
-            await asyncio.sleep(0.4)   # ≈ 15 req / 0.4s ≈ under the fapi/v1 ceiling
+            await asyncio.gather(*[_one_oi(p) for p in oi_slice[j:j + 6]])
+            await asyncio.sleep(0.5)   # peak ≈ 6 req / 0.5s ≈ 12 req/s — safe burst
     oi_now = _oi_last
 
     # ── 4) SLOW metrics slice (LSR/topLSR/taker/RSI) — alternate sweep ─
@@ -395,11 +395,11 @@ async def _sweep():
         except Exception:
             pass
 
-    for j in range(0, len(slice_pairs), 15):
+    for j in range(0, len(slice_pairs), 6):
         if not _fapi_ok():
             break
-        await asyncio.gather(*[_one_rsi(p) for p in slice_pairs[j:j + 15]])
-        await asyncio.sleep(0.3)
+        await asyncio.gather(*[_one_rsi(p) for p in slice_pairs[j:j + 6]])
+        await asyncio.sleep(0.5)
 
     # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
     oi_appended = _sweep_n % 2 == 1  # only anchor OI on sweeps that refreshed it

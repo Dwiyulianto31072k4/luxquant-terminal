@@ -128,7 +128,7 @@ async def fetch_derivatives_pulse():
     # realtime WS funding/mark first (zero REST weight); REST only when WS is cold
     ws = cache_get("lq:terminal:ws") or {}
     ws_pairs = ws.get("pairs") or {}
-    ws_fresh = bool(ws_pairs) and (time.time() - (ws.get("generated_at") or 0) < 30)
+    ws_fresh = bool(ws_pairs) and (time.time() - (ws.get("generated_at") or 0) < 90)
     if not ws_fresh and not _fapi_ok():
         return None  # global Binance fapi cooldown active — do NOT poke a live ban
 
