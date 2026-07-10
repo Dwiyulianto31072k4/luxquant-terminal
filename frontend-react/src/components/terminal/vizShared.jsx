@@ -2,10 +2,11 @@
 // Terminal viz — shared atoms, palette & helpers.
 // Used by SignalsAnalytics + DerivTabs. Dark+gold, Allium structure.
 // ════════════════════════════════════════════════════════════════
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import CoinLogo from "../CoinLogo";
+import { SignalStatusContext, STATUS_META, timeAgo } from "../../context/SignalStatusContext";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -358,19 +359,27 @@ export function useZoom(x0, x1, y0, y1) {
   };
 }
 
-// coin pill: logo + pair, click → latest call
-export const CoinPill = ({ pair, onPair, className = "" }) => (
-  <button
-    onClick={onPair ? () => onPair(pair) : undefined}
-    className={`flex items-center gap-1.5 min-w-0 group ${className}`}
-    title={pair}
-  >
-    <CoinLogo pair={pair} size={16} />
-    <span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate transition-colors">
-      {pair}
-    </span>
-  </button>
-);
+// coin pill: logo + pair. Hovering the NAME (not just the logo) shows signal
+// status + when it was called; the logo carries the status dot + click-modal.
+export const CoinPill = ({ pair, onPair, className = "" }) => {
+  const ctx = useContext(SignalStatusContext);
+  const info = ctx?.map && pair ? ctx.map[pair.toUpperCase()] : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af" }) : null;
+  const ago = info ? timeAgo(info.created) : null;
+  const tip = info ? `${pair} · ${meta.label}${ago ? ` · called ${ago}` : ""}` : pair;
+  return (
+    <button
+      onClick={onPair ? () => onPair(pair) : undefined}
+      className={`flex items-center gap-1.5 min-w-0 group ${className}`}
+      title={tip}
+    >
+      <CoinLogo pair={pair} size={16} />
+      <span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate transition-colors">
+        {pair}
+      </span>
+    </button>
+  );
+};
 
 // ranked horizontal diverging bars with coin pills
 export function RankBars({ data, fmt, suffix, onPair }) {

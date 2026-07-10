@@ -60,7 +60,7 @@ function scoreOf(tags) {
 // ════════════════════════════════════════════════════════════════
 // SIGNAL CARD — the hero component
 // ════════════════════════════════════════════════════════════════
-function SignalCard({ s, live, ps, onPair, t }) {
+function SignalCard({ s, live, ps, onPair, onOpen, t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
@@ -85,7 +85,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
 
   return (
     <button
-      onClick={() => onPair(s.pair)}
+      onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
       className="group relative text-left rounded-2xl bg-[#0a0805] border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
@@ -201,7 +201,7 @@ const CONF_FILTERS = [
   ["nowarn", "confNoWarn", (tags) => !tags.some((x) => WARNING_TAGS.includes(x))],
 ];
 
-export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair }) {
+export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openSignalRow }) {
   const { t } = useTranslation();
   const [on, setOn] = useState({});
   const toggle = (k) => setOn((o) => ({ ...o, [k]: !o[k] }));
@@ -267,7 +267,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair }) {
             {coiled.map(({ s, fc, golden, htf }) => (
               <button
                 key={s.signal_id}
-                onClick={() => openPair(s.pair)}
+                onClick={() => (openSignalRow ? openSignalRow(s) : openPair(s.pair))}
                 className="flex items-center gap-2 rounded-lg bg-[#0c0a07] border border-white/[0.08] hover:border-gold-primary/35 px-2.5 py-1.5 transition-colors"
               >
                 <CoinLogo pair={s.pair} size={18} />
@@ -304,6 +304,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair }) {
                 s={s}
                 t={t}
                 onPair={openPair}
+                onOpen={openSignalRow}
                 live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
                 ps={psPairs[s.pair]}
               />

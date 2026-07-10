@@ -246,6 +246,10 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   };
 
   const info = statusMap && pair ? statusMap[pair.toUpperCase()] : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: '#9ca3af', desc: '' }) : null;
+  const ago = info ? timeAgo(info.created) : null;
+  // native title → never clipped by overflow-hidden panels
+  const tip = info ? `${symbol} · ${meta.label}${ago ? ` · called ${ago}` : ''} · click for details` : symbol;
 
   let logo;
   if (failed || !resolvedUrl) {
@@ -259,7 +263,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
           boxShadow: `0 2px 8px ${color1}40`,
           border: `1px solid ${color1}50`,
         }}
-        title={symbol}
+        title={tip}
       >
         {getInitials(symbol)}
       </div>
@@ -280,35 +284,25 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
           width: size, height: size, objectFit: 'cover',
           backgroundColor: '#1a0a0a',
         }}
-        title={symbol}
+        title={tip}
       />
     );
   }
 
   if (!info) return logo;
 
-  // Terminal-only: overlay a live signal-status dot + hover tooltip (status +
-  // when it was called) and make the coin clickable → global signal modal.
-  const meta = STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: '#9ca3af', desc: '' };
+  // Terminal-only: overlay a live signal-status dot + make the coin clickable
+  // → global signal modal. Hover (native title) shows status + when called.
   const dot = Math.max(6, Math.round(size * 0.32));
-  const ago = timeAgo(info.created);
   const onClick = (e) => { e.stopPropagation(); e.preventDefault(); statusCtx?.openPair?.(pair); };
   return (
-    <span className="relative inline-flex shrink-0 cursor-pointer group/coinst" style={{ width: size, height: size }} onClick={onClick} title={`${symbol} · ${meta.label}${ago ? ` · called ${ago}` : ''}`}>
+    <span className="relative inline-flex shrink-0 cursor-pointer" style={{ width: size, height: size }} onClick={onClick} title={tip}>
       {logo}
       <span
         className="absolute -bottom-0.5 -right-0.5 rounded-full ring-1 ring-black/70"
         style={{ width: dot, height: dot, background: meta.color }}
+        title={tip}
       />
-      <span
-        className="pointer-events-none absolute z-[95] left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] opacity-0 group-hover/coinst:opacity-100 transition-opacity whitespace-nowrap rounded-md bg-[#120809] border px-2 py-1.5 shadow-xl"
-        style={{ borderColor: `${meta.color}55` }}
-      >
-        <span className="block font-mono text-[10px] font-bold" style={{ color: meta.color }}>{symbol} · {meta.label}</span>
-        <span className="block font-mono text-[8.5px] text-white/55 mt-0.5">
-          {ago ? `called ${ago}` : meta.desc}{info.n > 1 ? ` · ${info.n} calls` : ''} · click for details
-        </span>
-      </span>
     </span>
   );
 };

@@ -145,9 +145,11 @@ export default function SignalsAnalytics() {
     return m;
   }, [items]);
 
-  const openPair = useCallback(async (pair) => {
-    const base = latestByPair[pair];
-    if (!base) return;
+  // open a SPECIFIC signal row (by its own signal_id) — used by the confluence
+  // cards so the modal always matches the card's status (a pair can have >1
+  // signal in 7d; latest-by-pair could differ from the card's).
+  const openSignalRow = useCallback(async (base) => {
+    if (!base?.signal_id) return;
     try {
       const r = await fetch(`${API_BASE}/api/v1/signals/detail/${base.signal_id}`, { headers: authHeaders() });
       const full = r.ok ? await r.json() : {};
@@ -155,7 +157,12 @@ export default function SignalsAnalytics() {
     } catch {
       setSelectedSignal(base);
     }
-  }, [latestByPair]);
+  }, []);
+
+  const openPair = useCallback((pair) => {
+    const base = latestByPair[pair];
+    if (base) openSignalRow(base);
+  }, [latestByPair, openSignalRow]);
 
   // ── everything live comes from the worker blob (no client polling) ──
   const liveOf = useCallback((pair) => {
@@ -391,7 +398,7 @@ export default function SignalsAnalytics() {
   const zBeta = useZoom(-0.5, 2.5, -60, 60);
   const zPeak = useZoom(-20, 150, -60, 100);
 
-  const derivProps = { view, deriv, pairFc, openPair };
+  const derivProps = { view, deriv, pairFc, openPair, openSignalRow };
 
   // ════════════════════════════════════════════════════════════
   return (
