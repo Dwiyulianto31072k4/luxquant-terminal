@@ -77,7 +77,7 @@ const METRICS = {
   volume_24h: { lbl: "Volume 24h", get: (d) => d.volume_24h, fmt: (v) => "$" + shortNum(v) },
   flow_intensity: { lbl: "Vol/MCap", get: (d) => d.flow_intensity * 100, fmt: (v) => (v ? v.toFixed(1) + "%" : "—") },
   price_change_24h: { lbl: "Price Δ 24h", get: (d) => d.price_change_24h, fmt: (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%", diverge: true },
-  from_call: { lbl: "% From Call", get: (d) => d.from_call, fmt: (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%", diverge: true },
+  from_call: { lbl: "% From Call", get: (d) => d.from_call, fmt: (v) => (v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%"), diverge: true },
   win_rate: { lbl: "Win Rate", get: (d) => d.win_rate, fmt: (v) => (v == null ? "—" : v.toFixed(0) + "%") },
   max_target: { lbl: "Max Target %", get: (d) => d.max_target, fmt: (v) => "+" + v.toFixed(0) + "%" },
   btc_align: { lbl: "BTC Align", get: (d) => d.btc_align ?? 0, fmt: (v) => (v ? v.toFixed(0) : "—") },
@@ -234,7 +234,12 @@ export default function SignalTerminalPage() {
         volume_24h: liveVol || flow?.volume_24h || 0,
         flow_intensity: flow?.flow_intensity ?? (mcap ? (liveVol || 0) / mcap : 0),
         price_change_24h: liveChange ?? flow?.price_change_24h ?? 0,
-        from_call: entry && livePrice ? ((livePrice - entry) / entry) * 100 : 0,
+        from_call: (() => {
+          if (!entry || !livePrice) return null;
+          const ratio = livePrice / entry;
+          if (ratio < 0.05 || ratio > 5) return null; // redenom/stale → quarantine (else it shows +1.8M% & skews color)
+          return (ratio - 1) * 100;
+        })(),
         win_rate: ci?.win_rate ?? null,
         streak: ci?.current_streak ? (ci.current_streak.type === "win" ? ci.current_streak.length : -ci.current_streak.length) : 0,
         btc_align: s.btc_align_score ?? null,
@@ -681,7 +686,7 @@ function Screener({ model, onPick }) {
                 </td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]"><span className="px-1.5 py-0.5 rounded text-[9px] uppercase" style={{ color: stColor(d.status), border: `1px solid ${stColor(d.status)}` }}>{d.status}</span></td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.price_change_24h >= 0 ? "#34d399" : "#f87171" }}>{d.price_change_24h >= 0 ? "+" : ""}{d.price_change_24h.toFixed(1)}%</td>
-                <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.from_call >= 0 ? "#34d399" : "#f87171" }}>{d.from_call >= 0 ? "+" : ""}{d.from_call.toFixed(1)}%</td>
+                <td className="text-right px-2 py-1.5 border-b border-white/[0.04]" style={{ color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171" }}>{d.from_call == null ? "—" : (d.from_call >= 0 ? "+" : "") + d.from_call.toFixed(1) + "%"}</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-gold-primary">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-white/80">{(d.flow_intensity * 100).toFixed(1)}%</td>
                 <td className="text-right px-2 py-1.5 border-b border-white/[0.04] text-white/80">{d.btc_align ?? "—"}</td>
