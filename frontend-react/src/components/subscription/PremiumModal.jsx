@@ -125,12 +125,6 @@ const PremiumModal = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       {/* Header */}
       <div className="mb-8 text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold-primary/12 bg-gold-primary/[0.06] px-3 py-1">
-          <span className="h-1 w-1 rounded-full bg-gold-primary" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-gold-primary">
-            {t("pricing.premium_access")}
-          </span>
-        </div>
         <h2 className="mb-2 text-2xl font-bold tracking-tight text-white sm:text-3xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           {t("pricing.upgrade_to")} <span className="text-gold-primary">{t("pricing.premium")}</span>
         </h2>
@@ -161,8 +155,8 @@ const PremiumModal = ({ isOpen, onClose }) => {
                 onClick={() => !creating && handleSubscribe(plan)}
                 className="group relative cursor-pointer rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5"
                 style={{
-                  background: isHighlighted ? "linear-gradient(168deg, rgba(212,168,83,0.08) 0%, rgba(10,5,6,0.95) 50%)" : "rgba(12,7,8,0.6)",
-                  borderColor: isHighlighted ? "rgba(212,168,83,0.25)" : "rgba(212,168,83,0.06)",
+                  background: isHighlighted ? "linear-gradient(168deg, rgba(212,168,83,0.16) 0%, #0c0708 50%)" : "#0c0708",
+                  borderColor: isHighlighted ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.06)",
                 }}
               >
                 {badge && (

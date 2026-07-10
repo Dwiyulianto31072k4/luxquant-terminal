@@ -41,6 +41,7 @@ from app.services.commission_service import (
     apply_referral_discount,
     process_commission_for_payment,
 )
+from app.services.referral_service import refund_redemption
 from app.services.wallet_pool import pick_wallet, increment_usage
 
 logger = logging.getLogger(__name__)
@@ -99,17 +100,19 @@ async def create_subscription(
         if pending.plan_id == data.plan_id:
             return _invoice_response(pending, plan, "Kamu sudah punya invoice untuk paket ini")
         else:
-            # Different plan — cancel old
+            # Different plan — cancel old (refund any redeemed credit first)
+            refund_redemption(db, pending)
             pending.status = "cancelled"
             pending.notes = f"Switched to plan_id={data.plan_id}"
             db.flush()
 
-    # Cancel ALL other pending payments
+    # Cancel ALL other pending payments (refund any redeemed credit first)
     other_pendings = db.query(Payment).filter(
         Payment.user_id == current_user.id,
         Payment.status == "pending"
     ).all()
     for p in other_pendings:
+        refund_redemption(db, p)
         p.status = "cancelled"
         p.notes = "New invoice created"
     db.flush()

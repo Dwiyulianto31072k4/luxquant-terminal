@@ -205,12 +205,11 @@ const PricingPage = () => {
         }
       `}</style>
 
-      {/* Ambient background */}
+      {/* Ambient background — smooth vertical blend so it connects with the
+          header (no contrasting gold band that "cuts" below the nav). */}
       <div className="absolute inset-0 pointer-events-none">
-        <div style={{
-          position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)',
-          width: '800px', height: '600px',
-          background: 'radial-gradient(ellipse, rgba(212,168,83,0.06) 0%, transparent 70%)',
+        <div className="absolute inset-x-0 top-0 h-[440px]" style={{
+          background: 'linear-gradient(180deg, rgba(40,14,16,0.6) 0%, rgba(20,8,10,0.28) 45%, transparent 100%)',
         }} />
         <div style={{
           position: 'absolute', bottom: '-10%', right: '-5%',
@@ -271,16 +270,15 @@ const PricingPage = () => {
                     className={`group relative rounded-2xl transition-all duration-500 flex flex-col ${isHighlighted ? 'md:-mt-3 md:mb-3' : ''}`}
                     style={{
                       background: isCurrent
-                        ? 'linear-gradient(168deg, rgba(34,197,94,0.08) 0%, rgba(10,5,6,0.95) 40%)'
+                        ? 'linear-gradient(168deg, rgba(34,197,94,0.14) 0%, #0c0708 45%)'
                         : isHighlighted
-                          ? 'linear-gradient(168deg, rgba(212,168,83,0.1) 0%, rgba(10,5,6,0.95) 40%)'
-                          : 'rgba(15,8,10,0.7)',
+                          ? 'linear-gradient(168deg, rgba(212,168,83,0.16) 0%, #0c0708 45%)'
+                          : '#0c0708',
                       border: isCurrent
                         ? '1px solid rgba(34,197,94,0.35)'
                         : isHighlighted
                           ? '1px solid rgba(212,168,83,0.35)'
-                          : '1px solid rgba(212,168,83,0.08)',
-                      backdropFilter: 'blur(20px)',
+                          : '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     {/* Hover glow */}
@@ -485,7 +483,7 @@ const PricingPage = () => {
             {/* Payment Info */}
             <div className="max-w-3xl mx-auto">
               <div className="relative rounded-2xl overflow-hidden"
-                style={{ background: 'rgba(12,7,8,0.6)', border: '1px solid rgba(212,168,83,0.06)' }}>
+                style={{ background: '#0c0708', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="absolute top-0 left-0 right-0 h-px"
                   style={{ background: 'linear-gradient(90deg, transparent, rgba(212,168,83,0.15), transparent)' }} />
                 <div className="px-8 py-8 text-center">

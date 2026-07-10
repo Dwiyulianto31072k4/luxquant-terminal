@@ -75,7 +75,7 @@ function squarify(items, x0, y0, W0, H0) {
 const METRICS = {
   market_cap: { lbl: "Market Cap", get: (d) => d.market_cap, fmt: (v) => "$" + shortNum(v) },
   volume_24h: { lbl: "Volume 24h", get: (d) => d.volume_24h, fmt: (v) => "$" + shortNum(v) },
-  flow_intensity: { lbl: "Vol/MCap", get: (d) => d.flow_intensity * 100, fmt: (v) => v.toFixed(1) + "%" },
+  flow_intensity: { lbl: "Vol/MCap", get: (d) => d.flow_intensity * 100, fmt: (v) => (v ? v.toFixed(1) + "%" : "—") },
   price_change_24h: { lbl: "Price Δ 24h", get: (d) => d.price_change_24h, fmt: (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%", diverge: true },
   from_call: { lbl: "% From Call", get: (d) => d.from_call, fmt: (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + "%", diverge: true },
   win_rate: { lbl: "Win Rate", get: (d) => d.win_rate, fmt: (v) => (v == null ? "—" : v.toFixed(0) + "%") },

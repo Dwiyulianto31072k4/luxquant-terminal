@@ -27,6 +27,8 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.core.redis import get_redis, is_redis_available
+from app.models.subscription import Payment
+from app.services.referral_service import refund_redemption
 from app.services.telegram_group import is_in_group, kick_member, send_dm
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,10 @@ logger = logging.getLogger(__name__)
 INTERVAL = 300  # 5 minutes
 GRACE_DAYS = int(os.getenv("VIP_GRACE_DAYS", "3"))
 SITE_URL = os.getenv("PUBLIC_SITE_URL", "https://luxquant.tw")
+
+# A referee is considered churned once their subscription has been expired for
+# this long without renewal.
+CHURN_AFTER_DAYS = int(os.getenv("REFERRAL_CHURN_DAYS", "30"))
 
 # Window (in hours) before kick to send the final reminder.
 FINAL_REMINDER_BEFORE_HOURS = 24
@@ -325,6 +331,29 @@ async def subscription_expiry_loop():
                 kicked = await _kick_past_grace(db, now)
                 reconciled = await _reconcile_in_group(db, now)
 
+                # Refund redeemed credit on invoices about to expire (before we
+                # flip them to 'expired'). Otherwise the referee permanently
+                # loses balance they already spent on an unpaid invoice.
+                expiring_with_credit = (
+                    db.query(Payment)
+                    .filter(
+                        Payment.status == "pending",
+                        Payment.expires_at.isnot(None),
+                        Payment.expires_at < now,
+                        Payment.credit_redeemed > 0,
+                    )
+                    .all()
+                )
+                refunded_credit = 0
+                for p in expiring_with_credit:
+                    try:
+                        if refund_redemption(db, p):
+                            refunded_credit += 1
+                    except Exception as e:
+                        logger.warning(f"Credit refund failed for payment #{p.id}: {e}")
+                if expiring_with_credit:
+                    db.commit()
+
                 result_pay = db.execute(
                     text("""
                         UPDATE payments
@@ -338,13 +367,37 @@ async def subscription_expiry_loop():
                 expired_payments = result_pay.rowcount
                 db.commit()
 
-                if expired or kicked or reminded or expired_payments or reconciled or unstuck:
+                # Churn: referees whose subscription has been expired for longer
+                # than CHURN_AFTER_DAYS without renewal. Reversible — a renewal
+                # flips the ReferralUse back to 'subscribed' via commission hook.
+                churn_cutoff = now - timedelta(days=CHURN_AFTER_DAYS)
+                result_churn = db.execute(
+                    text("""
+                        UPDATE referral_uses
+                        SET status = 'churned'
+                        WHERE status = 'subscribed'
+                          AND referred_id IN (
+                            SELECT id FROM users
+                            WHERE role = 'free'
+                              AND subscription_expires_at IS NOT NULL
+                              AND subscription_expires_at < :cutoff
+                          )
+                    """),
+                    {"cutoff": churn_cutoff},
+                )
+                churned_refs = result_churn.rowcount
+                db.commit()
+
+                if (expired or kicked or reminded or expired_payments or reconciled
+                        or unstuck or refunded_credit or churned_refs):
                     logger.info(
                         f"♻️ Subscription worker: expired {expired} users, "
                         f"reminded {reminded}, kicked {kicked}, "
                         f"unstuck {unstuck} stale-grace, "
                         f"reconciled {reconciled} in-group, "
-                        f"expired {expired_payments} payments"
+                        f"expired {expired_payments} payments, "
+                        f"refunded {refunded_credit} credit-invoices, "
+                        f"churned {churned_refs} referrals"
                     )
             finally:
                 db.close()
