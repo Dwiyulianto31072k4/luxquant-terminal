@@ -258,7 +258,7 @@ export default function SignalTerminalPage() {
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold-primary/80">{view}</span>
         <div className="flex-1" />
         {view === "treemap" && <Enc label="Size" value={sizeBy} onChange={setSizeBy} />}
-        <Enc label="Color" value={colorBy} onChange={setColorBy} />
+        {view !== "explore" && <Enc label="Color" value={colorBy} onChange={setColorBy} />}
       </div>
 
       {/* Macro strip — market context, shown on the treemap overview */}
@@ -277,6 +277,8 @@ export default function SignalTerminalPage() {
           <Bubble model={model} colorBy={colorBy} onPick={(d) => openSignal(d, navigate, filters)} />
         ) : view === "matrix" ? (
           <Matrix model={model} onPick={(d) => openSignal(d, navigate, filters)} />
+        ) : view === "explore" ? (
+          <ExploreView model={model} onPick={(d) => openSignal(d, navigate, filters)} />
         ) : (
           <SectorView model={model} colorBy={colorBy} onPick={(d) => openSignal(d, navigate, filters)} />
         )}
@@ -573,6 +575,69 @@ function SectorView({ model, colorBy, onPick }) {
         );
       })}
     </div>
+  );
+}
+
+// ── Data Explorer — pick any metric for X / Y / color, size = market cap ──
+function MetricPick({ label, value, onChange }) {
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className="font-mono text-[9px] uppercase tracking-widest text-white/35">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-[#0c0a07] border border-white/[0.12] rounded-md font-mono text-[11px] text-white/85 px-2 py-1.5 pr-6 focus:outline-none focus:border-gold-primary/40 cursor-pointer">
+        {Object.entries(METRICS).map(([k, m]) => <option key={k} value={k} className="bg-[#0a0506]">{m.lbl}</option>)}
+      </select>
+    </label>
+  );
+}
+function ExploreView({ model, onPick }) {
+  const [xk, setXk] = useState("flow_intensity");
+  const [yk, setYk] = useState("win_rate");
+  const [ck, setCk] = useState("price_change_24h");
+  const [logX, setLogX] = useState(true);
+  const mx = METRICS[xk], my = METRICS[yk];
+  const data = model
+    .map((d) => ({ x: mx.get(d), y: my.get(d), z: Math.max(d.market_cap || 1, 1), d }))
+    .filter((p) => p.x != null && p.y != null && !isNaN(p.x) && !isNaN(p.y))
+    .map((p) => (logX ? { ...p, x: Math.max(p.x, 1e-4) } : p));
+  const fmtTick = (m) => (v) => {
+    const s = m.fmt(v);
+    return typeof s === "string" ? s : String(s);
+  };
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <MetricPick label="X" value={xk} onChange={setXk} />
+        <MetricPick label="Y" value={yk} onChange={setYk} />
+        <MetricPick label="Color" value={ck} onChange={setCk} />
+        <button onClick={() => setLogX((v) => !v)}
+          className={`font-mono text-[10px] uppercase tracking-wide px-3 py-1.5 rounded-md border transition-colors ${logX ? "text-[#17110a] bg-gold-primary border-gold-primary font-semibold" : "text-white/55 bg-[#0c0a07] border-white/[0.12] hover:border-white/25"}`}>
+          {logX ? "Log X" : "Lin X"}
+        </button>
+      </div>
+      <div style={{ height: 480 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 14, right: 22, left: 12, bottom: 28 }}>
+            <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
+            <XAxis type="number" dataKey="x" scale={logX ? "log" : "linear"} domain={logX ? [0.0001, "auto"] : ["auto", "auto"]} allowDataOverflow
+              tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(mx)}
+              label={{ value: mx.lbl + (logX ? "  (log)" : ""), position: "insideBottom", offset: -12, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
+            <YAxis type="number" dataKey="y" tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(my)}
+              label={{ value: my.lbl, angle: -90, position: "insideLeft", offset: 4, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
+            <ZAxis type="number" dataKey="z" range={[26, 420]} />
+            <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<BubbleTip colorBy={ck} />} />
+            <Scatter data={data} onClick={(p) => { const o = p?.payload || p; if (o?.d) onPick(o.d); }}>
+              {data.map((p, i) => (
+                <Cell key={i} cursor="pointer" fill={colorByMetric(p.d, ck, model)} fillOpacity={0.6} stroke="rgba(0,0,0,0.55)" strokeWidth={0.5} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
+        X = {mx.lbl} · Y = {my.lbl} · color = {METRICS[ck].lbl} · size = market cap · click → latest call
+      </div>
+    </>
   );
 }
 

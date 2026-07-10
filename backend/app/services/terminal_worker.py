@@ -341,6 +341,43 @@ async def _sweep():
         }
 
     btc = fut.get("BTCUSDT") or spot.get("BTCUSDT") or {}
+
+    # ── composite scores (precomputed here; frontend just reads) ──────
+    btc_chg = btc.get("chg") or 0.0
+    _c01 = lambda x: 0.0 if x < 0 else (1.0 if x > 1 else x)          # noqa: E731
+    _cpm = lambda x: -1.0 if x < -1 else (1.0 if x > 1 else x)        # noqa: E731
+    for p, d in out.items():
+        # MOMENTUM 0-100 — relative strength + volume acceleration + spike + rsi
+        chg = d.get("price_chg_24h")
+        rs = (chg - btc_chg) if chg is not None else None
+        accel = d.get("vol_chg_1h")
+        spike = d.get("spike_15m")
+        rsi = d.get("rsi")
+        m, w = 0.0, 0.0
+        if rs is not None:    m += 0.50 * _c01((rs + 15) / 30);  w += 0.50
+        if accel is not None: m += 0.25 * _c01(accel / 60);      w += 0.25
+        if spike is not None: m += 0.15 * _c01((spike - 1) / 4); w += 0.15
+        if rsi is not None:   m += 0.10 * _c01((rsi - 40) / 40); w += 0.10
+        d["momentum"] = round((m / w) * 100, 1) if w > 0 else None
+        d["rs_btc"] = round(rs, 2) if rs is not None else None
+
+        # SQUEEZE 0-100 + side — how crowded/extended one side is (reversal fuel)
+        fr, lsr, top, taker = d.get("funding"), d.get("lsr"), d.get("top_lsr"), d.get("taker")
+        oi_chg = d.get("oi_chg_1h")
+        bias = []
+        if fr is not None:    bias.append(_cpm(fr / 0.0005))       # +0.05% funding = full long
+        if lsr is not None:   bias.append(_cpm((lsr - 1) / 1.5))   # lsr 2.5 → +1
+        if top is not None:   bias.append(_cpm((top - 1) / 1.0))
+        if taker is not None: bias.append(_cpm((taker - 1) / 0.3))
+        if bias:
+            db = sum(bias) / len(bias)                              # -1..1 (long-crowded +)
+            fuel = 0.7 + 0.3 * _c01((oi_chg or 0) / 40)
+            d["squeeze"] = round(min(1.0, abs(db) * fuel) * 100, 1)
+            d["squeeze_side"] = "long" if db > 0.12 else "short" if db < -0.12 else "flat"
+        else:
+            d["squeeze"] = None
+            d["squeeze_side"] = None
+
     blob = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_pairs": len(pairs),

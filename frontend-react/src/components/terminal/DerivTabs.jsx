@@ -9,7 +9,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, Cell, ScatterChart, Scatter, ReferenceLine, ReferenceArea,
   LineChart, Line, Legend,
 } from "recharts";
@@ -628,6 +628,138 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
       </div>
 
       <NoDerivStrip noDeriv={noDeriv} onPair={openPair} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: MOMENTUM — relative strength + volume acceleration (worker score)
+// ════════════════════════════════════════════════════════════════
+export function MomentumTab({ view, deriv, pairFc, openPair }) {
+  const { t } = useTranslation();
+  const { rows } = usePairRows(view, deriv, pairFc);
+  const zM = useZoom(-15, 15, -40, 60);
+
+  const scored = rows.filter((r) => r.momentum != null);
+  const accelerating = scored.filter((r) => r.momentum >= 65).length;
+  const fading = scored.filter((r) => r.momentum < 35).length;
+  const medM = scored.length ? median(scored.map((r) => r.momentum)) : null;
+  const topMom = [...scored].sort((a, b) => b.momentum - a.momentum);
+  const byMom = topMom.slice(0, 10).map((r) => ({ pair: r.pair, v: r.momentum, color: GOLD }));
+  const byRs = [...rows].filter((r) => r.rs_btc != null).sort((a, b) => b.rs_btc - a.rs_btc).slice(0, 10).map((r) => ({ pair: r.pair, v: r.rs_btc }));
+  const byAccel = [...rows].filter((r) => r.vol_chg_1h != null).sort((a, b) => b.vol_chg_1h - a.vol_chg_1h).slice(0, 10).map((r) => ({ pair: r.pair, v: r.vol_chg_1h }));
+  const scatter = rows
+    .filter((r) => r.rs_btc != null && r.vol_chg_1h != null)
+    .map((r) => ({ x: r.rs_btc, y: r.vol_chg_1h, mom: r.momentum ?? 0, pair: r.pair }));
+
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabMomentum")} desc={t("terminal.viz.momSectionDesc")} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label={t("terminal.viz.kAccel")} value={accelerating} desc={t("terminal.viz.kAccelDesc")} tone={accelerating ? "text-positive" : undefined} />
+        <Kpi label={t("terminal.viz.kMedMom")} value={medM == null ? "—" : Math.round(medM)} desc={t("terminal.viz.kMedMomDesc")} tone="text-gold-primary" />
+        <Kpi label={t("terminal.viz.kStrongest")} value={topMom[0] ? Math.round(topMom[0].momentum) : "—"} desc={topMom[0]?.pair} tone="text-positive" />
+        <Kpi label={t("terminal.viz.kFading")} value={fading} desc={t("terminal.viz.kFadingDesc")} tone={fading ? "text-negative" : undefined} />
+      </div>
+
+      <XCard
+        title={t("terminal.viz.momScatterTitle")}
+        desc={t("terminal.viz.momScatterDesc")}
+        zoom={zM}
+        hint={t("terminal.viz.momScatterHint")}
+        render={(h) => (
+          <div style={{ height: Math.max(h, 320) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
+                <ReferenceArea x1={0} x2={zM.domX[1]} y1={0} y2={zM.domY[1]} fill={POS} fillOpacity={0.04} />
+                <CartesianGrid stroke={GRID} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domX} allowDataOverflow />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domY} allowDataOverflow />
+                <Tooltip content={<ScatterTip xLabel="RS vs BTC %" yLabel="vol accel 1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                <Scatter data={scatter} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                  {scatter.map((p, i) => (
+                    <Cell key={i} cursor="pointer" fill={p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <XCard title={t("terminal.viz.momTopTitle")} desc={t("terminal.viz.momTopDesc")} render={() => <RankBars data={byMom} onPair={openPair} fmt={(v) => Math.round(v)} />} />
+        <XCard title={t("terminal.viz.momRsTitle")} desc={t("terminal.viz.momRsDesc")} render={() => <RankBars data={byRs} onPair={openPair} fmt={(v) => fmtPct(v, 1)} />} />
+        <XCard title={t("terminal.viz.momAccelTitle")} desc={t("terminal.viz.momAccelDesc")} render={() => <RankBars data={byAccel} onPair={openPair} fmt={(v) => fmtPct(v, 0)} />} />
+      </div>
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB: SQUEEZE — how crowded/extended one side is (worker score)
+// ════════════════════════════════════════════════════════════════
+export function SqueezeTab({ view, deriv, pairFc, openPair }) {
+  const { t } = useTranslation();
+  const { rows } = usePairRows(view, deriv, pairFc);
+
+  const scored = rows.filter((r) => r.squeeze != null);
+  const crowdedLong = scored.filter((r) => r.squeeze_side === "long" && r.squeeze >= 45);
+  const crowdedShort = scored.filter((r) => r.squeeze_side === "short" && r.squeeze >= 45);
+  const medS = scored.length ? median(scored.map((r) => r.squeeze)) : null;
+  const topS = [...scored].sort((a, b) => b.squeeze - a.squeeze);
+  const longList = [...crowdedLong].sort((a, b) => b.squeeze - a.squeeze).slice(0, 10).map((r) => ({ pair: r.pair, v: r.squeeze, color: NEG }));
+  const shortList = [...crowdedShort].sort((a, b) => b.squeeze - a.squeeze).slice(0, 10).map((r) => ({ pair: r.pair, v: r.squeeze, color: POS }));
+  const scatter = rows
+    .filter((r) => r.lsr != null && r.funding != null)
+    .map((r) => ({ x: Math.min(r.lsr, 4), y: r.funding * 100, z: Math.max(r.oi || 1, 1), side: r.squeeze_side, pair: r.pair }));
+
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabSqueeze")} desc={t("terminal.viz.sqSectionDesc")} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label={t("terminal.viz.kCrowdedLong")} value={crowdedLong.length} desc={t("terminal.viz.kCrowdedLongDesc")} tone={crowdedLong.length ? "text-negative" : undefined} />
+        <Kpi label={t("terminal.viz.kCrowdedShort")} value={crowdedShort.length} desc={t("terminal.viz.kCrowdedShortDesc")} tone={crowdedShort.length ? "text-positive" : undefined} />
+        <Kpi label={t("terminal.viz.kTopSqueeze")} value={topS[0] ? Math.round(topS[0].squeeze) : "—"} desc={topS[0]?.pair} tone="text-gold-primary" />
+        <Kpi label={t("terminal.viz.kMedSqueeze")} value={medS == null ? "—" : Math.round(medS)} desc={t("terminal.viz.kMedSqueezeDesc")} />
+      </div>
+
+      <XCard
+        title={t("terminal.viz.sqScatterTitle")}
+        desc={t("terminal.viz.sqScatterDesc")}
+        hint={t("terminal.viz.sqScatterHint")}
+        render={(h) => (
+          <div style={{ height: Math.max(h, 320) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <CartesianGrid stroke={GRID} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={[0, 4]} label={{ value: "L/S ratio", position: "insideBottom", offset: -4, fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <ZAxis type="number" dataKey="z" range={[24, 400]} />
+                <Tooltip content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
+                <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
+                <Scatter data={scatter} fillOpacity={0.6} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
+                  {scatter.map((p, i) => (
+                    <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <XCard title={t("terminal.viz.sqLongTitle")} desc={t("terminal.viz.sqLongDesc")} render={() => <RankBars data={longList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
+        <XCard title={t("terminal.viz.sqShortTitle")} desc={t("terminal.viz.sqShortDesc")} render={() => <RankBars data={shortList} onPair={openPair} fmt={(v) => Math.round(v)} />} />
+      </div>
     </>
   );
 }

@@ -30,7 +30,7 @@ import {
   SectionBand, Kpi, Chip, FilterMulti, DarkTip, ScatterTip, LegendChips,
   XCard, useZoom, CoinPill, RankBars, SectorBars, Donut,
 } from "./vizShared";
-import { OITab, LongShortTab, FundingTab, VsBtcTab } from "./DerivTabs";
+import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { ConfluenceTab } from "./ConfluenceTabs";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
@@ -864,6 +864,8 @@ export default function SignalsAnalytics() {
           {tab === "oi" && <OITab {...derivProps} />}
           {tab === "ls" && <LongShortTab {...derivProps} />}
           {tab === "funding" && <FundingTab {...derivProps} />}
+          {tab === "squeeze" && <SqueezeTab {...derivProps} />}
+          {tab === "momentum" && <MomentumTab {...derivProps} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}
