@@ -13,6 +13,7 @@
 import { Outlet, useNavigate, useLocation, Navigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { SignalStatusProvider } from "../../context/SignalStatusContext";
+import GlobalSignalModalHost from "../SignalStatusModal";
 
 // index redirect that PRESERVES the query string (TERMINAL button → map)
 export function TerminalIndexRedirect() {
@@ -162,6 +163,7 @@ export default function TerminalLayout() {
         <main className="flex-1 min-w-0 lg:overflow-y-auto lg:pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(212,168,83,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
           <SignalStatusProvider>
             <Outlet />
+            <GlobalSignalModalHost />
           </SignalStatusProvider>
         </main>
       </div>

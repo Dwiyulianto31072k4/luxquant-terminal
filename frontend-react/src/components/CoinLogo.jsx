@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
-import { SignalStatusContext, STATUS_META } from '../context/SignalStatusContext';
+import { SignalStatusContext, STATUS_META, timeAgo } from '../context/SignalStatusContext';
 
 /**
  * CoinLogo Component - Optimized with Multi-Layer Caching
@@ -199,7 +199,8 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
   const [failed, setFailed] = useState(false);
   const sourceIndexRef = useRef(0);
   const sourcesRef = useRef([]);
-  const statusMap = useContext(SignalStatusContext); // null outside the terminal
+  const statusCtx = useContext(SignalStatusContext); // null outside the terminal
+  const statusMap = statusCtx?.map;
 
   const symbol = pair
     ? pair.replace(/USDT$/i, '').replace(/BUSD$/i, '').replace(/USDC$/i, '').replace(/USD$/i, '').toUpperCase()
@@ -286,12 +287,14 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
 
   if (!info) return logo;
 
-  // Terminal-only: overlay a live signal-status dot + hover tooltip so users
-  // can spot at a glance whether a coin's call is open / hit a TP / stopped out.
+  // Terminal-only: overlay a live signal-status dot + hover tooltip (status +
+  // when it was called) and make the coin clickable → global signal modal.
   const meta = STATUS_META[info.status] || { label: (info.status || '—').toUpperCase(), color: '#9ca3af', desc: '' };
   const dot = Math.max(6, Math.round(size * 0.32));
+  const ago = timeAgo(info.created);
+  const onClick = (e) => { e.stopPropagation(); e.preventDefault(); statusCtx?.openPair?.(pair); };
   return (
-    <span className="relative inline-flex shrink-0 group/coinst" style={{ width: size, height: size }}>
+    <span className="relative inline-flex shrink-0 cursor-pointer group/coinst" style={{ width: size, height: size }} onClick={onClick} title={`${symbol} · ${meta.label}${ago ? ` · called ${ago}` : ''}`}>
       {logo}
       <span
         className="absolute -bottom-0.5 -right-0.5 rounded-full ring-1 ring-black/70"
@@ -303,7 +306,7 @@ const CoinLogo = ({ pair, size = 40, className = '' }) => {
       >
         <span className="block font-mono text-[10px] font-bold" style={{ color: meta.color }}>{symbol} · {meta.label}</span>
         <span className="block font-mono text-[8.5px] text-white/55 mt-0.5">
-          {meta.desc}{info.n > 1 ? ` · ${info.n} signals` : ''}
+          {ago ? `called ${ago}` : meta.desc}{info.n > 1 ? ` · ${info.n} calls` : ''} · click for details
         </span>
       </span>
     </span>

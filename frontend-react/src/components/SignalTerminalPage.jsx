@@ -7,6 +7,7 @@ import {
   CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
 import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph } from "./terminal/vizShared";
+import { useSignalStatus } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
   parseMcap, maxTargetPct,
@@ -130,7 +131,8 @@ export default function SignalTerminalPage() {
     setSearchParams(p, { replace: true });
   };
 
-  const [detail, setDetail] = useState(null); // signal clicked from any view → detail modal
+  const { openPair } = useSignalStatus() || {};
+  const pick = (d) => (openPair ? openPair(d.pair) : openSignal(d, navigate, filters));
   const [sizeBy, setSizeBy] = useState("market_cap");
   const [colorBy, setColorBy] = useState(() => (searchParams.get("view") === "bubble" ? "from_call" : "max_target"));
 
@@ -292,27 +294,20 @@ export default function SignalTerminalPage() {
             {loading ? "Loading signals…" : "No signals match the current filters."}
           </div>
         ) : view === "treemap" ? (
-          <Treemap model={model} sizeBy={sizeBy} colorBy={colorBy} onPick={setDetail} />
+          <Treemap model={model} sizeBy={sizeBy} colorBy={colorBy} onPick={pick} />
         ) : view === "bubble" ? (
-          <Bubble model={model} colorBy={colorBy} onPick={setDetail} />
+          <Bubble model={model} colorBy={colorBy} onPick={pick} />
         ) : view === "matrix" ? (
-          <Matrix model={model} onPick={setDetail} />
+          <Matrix model={model} onPick={pick} />
         ) : view === "explore" ? (
-          <ExploreView model={model} onPick={setDetail} />
+          <ExploreView model={model} onPick={pick} />
         ) : (
-          <SectorView model={model} colorBy={colorBy} onPick={setDetail} />
+          <SectorView model={model} colorBy={colorBy} onPick={pick} />
         )}
       </div>
 
       {/* Screener */}
-      <Screener model={model} onPick={setDetail} />
-
-      {/* Click-through detail — status + full stats for the clicked signal */}
-      <SignalDetailModal
-        d={detail}
-        onClose={() => setDetail(null)}
-        onFull={() => { const dd = detail; setDetail(null); if (dd) openSignal(dd, navigate, filters); }}
-      />
+      <Screener model={model} onPick={pick} />
 
       <p className="font-mono text-[10px] text-white/30 leading-relaxed border-t border-white/[0.06] pt-3">
         Filters mirror Potential Trades (shared <span className="text-white/50">signalFilters</span> util). Live data via Binance Futures proxy.
