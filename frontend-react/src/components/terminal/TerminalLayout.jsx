@@ -24,6 +24,7 @@ const GROUPS = [
   { g: "gSignals", items: [["confluence", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
   { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"], ["squeeze", "scan"]] },
   { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["momentum", "scan"], ["sectors", "scan"]] },
+  { g: "gEdge", items: [["edge", "scan"]] },
   { g: "gMarketMap", items: [["treemap", "map"], ["bubble", "map"], ["matrix", "map"], ["explore", "map"]] },
 ];
 const ALL_ITEMS = GROUPS.flatMap((x) => x.items);
@@ -49,6 +50,7 @@ const ICON_PATHS = {
   momentum: <><path d="M3 17l5-5 4 3 8-9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M16 5h5v5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></>,
   squeeze: <><rect x="4" y="9" width="16" height="6" rx="1.5" /><path d="M3 4v5M3 15v5M21 4v5M21 15v5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
   explore: <><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.55" /><circle cx="12" cy="12" r="2.3" /><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
+  edge: <><path d="M3 20h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.5" /><circle cx="7" cy="14" r="2.1" /><circle cx="12" cy="9" r="2.1" opacity="0.7" /><circle cx="17" cy="6" r="2.1" /><path d="M7 14 12 9l5-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" /></>,
 };
 const TabIcon = ({ id }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-[15px] h-[15px] shrink-0" aria-hidden="true">

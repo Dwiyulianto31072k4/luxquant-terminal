@@ -32,6 +32,7 @@ import {
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { ConfluenceTab } from "./ConfluenceTabs";
+import { EdgeTab } from "./EdgeSimulator";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
@@ -866,6 +867,7 @@ export default function SignalsAnalytics() {
           {tab === "funding" && <FundingTab {...derivProps} />}
           {tab === "squeeze" && <SqueezeTab {...derivProps} />}
           {tab === "momentum" && <MomentumTab {...derivProps} />}
+          {tab === "edge" && <EdgeTab />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}

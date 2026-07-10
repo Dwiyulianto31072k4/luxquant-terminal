@@ -1,0 +1,201 @@
+// ════════════════════════════════════════════════════════════════
+// Edge Simulator — visual "where is the real edge" tab.
+//
+// Plots every confluence pattern by SAMPLE SIZE (x, log) vs HISTORICAL
+// WIN RATE (y), colored by expected value, sized by sample. A gold
+// baseline line marks the overall win rate, so users instantly SEE which
+// setups genuinely beat the average with enough data to trust — vs
+// small-sample noise. Click a pattern → the real signals behind it (with
+// outcomes) drill in below.
+//
+// Data: /api/v1/analytics/edge-lab (pattern_ev, totals) + /drill.
+// All real, resolved historical outcomes — no synthetic numbers.
+// ════════════════════════════════════════════════════════════════
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+  CartesianGrid, Tooltip, ReferenceLine,
+} from "recharts";
+import CoinLogo from "../CoinLogo";
+import { edgeLabApi } from "../../services/edgeLabApi";
+import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming } from "./vizShared";
+
+const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
+const evColor = (ev) => (ev == null ? "#6b7280" : ev >= 0 ? "#34d399" : "#f87171");
+const TIER = { reliable: "#34d399", moderate: "#d4a853", unreliable: "#6b7280" };
+
+function EdgeTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0]?.payload?.d;
+  if (!p) return null;
+  return (
+    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg max-w-[250px]">
+      <div className="text-white mb-1">{nice(p.pattern)}</div>
+      <div className="text-white/60">Win rate: <span className="text-white/90">{p.win_rate?.toFixed(1)}%</span></div>
+      <div className="text-white/60">Expected value: <span style={{ color: evColor(p.expected_value) }}>{p.expected_value == null ? "—" : (p.expected_value >= 0 ? "+" : "") + p.expected_value.toFixed(2) + "%/trade"}</span></div>
+      <div className="text-white/60">Sample: <span className="text-white/90">{p.count}</span> · <span style={{ color: TIER[p.reliability] || "#9ca3af" }}>{p.reliability}</span></div>
+      <div className="text-gold-primary/70 mt-1">click → signals behind it</div>
+    </div>
+  );
+}
+
+export function EdgeTab() {
+  const { t } = useTranslation();
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState(null);
+  const [drill, setDrill] = useState(null);
+  const [drillLoading, setDrillLoading] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    edgeLabApi.getEdgeLab(days, "all")
+      .then((d) => { if (alive) { setData(d); setLoading(false); } })
+      .catch(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [days]);
+
+  const pev = useMemo(() => (data?.pattern_ev || []).filter((p) => (p.count || 0) > 0), [data]);
+  const baseline = data?.totals?.win_rate ?? null;
+
+  const openDrill = useCallback((pattern) => {
+    setSel(pattern);
+    setDrill(null);
+    setDrillLoading(true);
+    edgeLabApi.getDrill("pattern", pattern, days, "all", 200)
+      .then((d) => setDrill(d))
+      .catch(() => setDrill(null))
+      .finally(() => setDrillLoading(false));
+  }, [days]);
+
+  const pts = useMemo(
+    () => pev.map((p) => ({ x: Math.max(p.count, 1), y: p.win_rate ?? 0, z: Math.max(p.count, 1), d: p })),
+    [pev]
+  );
+  const bestEV = useMemo(() => {
+    const rel = pev.filter((p) => p.reliability !== "unreliable" && p.expected_value != null);
+    return [...rel].sort((a, b) => b.expected_value - a.expected_value)[0] || null;
+  }, [pev]);
+  const posCount = pev.filter((p) => (p.expected_value ?? 0) > 0).length;
+
+  const Dot = (props) => {
+    const { cx, cy, payload } = props;
+    if (cx == null || cy == null) return null;
+    const p = payload.d;
+    const r = 5 + Math.min(15, Math.sqrt(p.count) * 1.1);
+    const active = sel === p.pattern;
+    const show = p.reliability === "reliable" || active;
+    return (
+      <g style={{ cursor: "pointer" }} onClick={() => openDrill(p.pattern)}>
+        <circle cx={cx} cy={cy} r={r} fill={evColor(p.expected_value)} fillOpacity={active ? 0.85 : 0.5}
+          stroke={active ? GOLD : "rgba(0,0,0,0.5)"} strokeWidth={active ? 1.6 : 0.6} />
+        {show && <text x={cx} y={cy - r - 3} textAnchor="middle" fontFamily="monospace" fontSize={8.5} fill="rgba(255,255,255,0.6)" pointerEvents="none">{nice(p.pattern)}</text>}
+      </g>
+    );
+  };
+
+  return (
+    <>
+      <SectionBand title={t("terminal.viz.tabEdge")} desc={t("terminal.viz.edgeDesc")} />
+
+      <div className="flex items-center gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5 w-fit">
+        <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.edgeLookback")}</span>
+        {[7, 30, 90].map((dv) => (
+          <button key={dv} onClick={() => setDays(dv)}
+            className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${days === dv ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-white"}`}>
+            {dv}d
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <Warming text={t("terminal.viz.edgeLoading")} />
+      ) : pev.length === 0 ? (
+        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeEmpty")}</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+            <Kpi label={t("terminal.viz.edgeKBaseline")} value={baseline == null ? "—" : baseline.toFixed(1) + "%"} desc={t("terminal.viz.edgeKBaselineDesc")} tone="text-gold-primary" />
+            <Kpi label={t("terminal.viz.edgeKBreadth")} value={`${posCount}/${pev.length}`} desc={t("terminal.viz.edgeKBreadthDesc")} tone={posCount ? "text-positive" : undefined} />
+            <Kpi label={t("terminal.viz.edgeKBest")} value={bestEV ? nice(bestEV.pattern) : "—"} desc={bestEV ? `+${bestEV.expected_value.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR` : "—"} tone="text-positive" />
+            <Kpi label={t("terminal.viz.edgeKSample")} value={data?.totals?.count ?? "—"} desc={t("terminal.viz.edgeKSampleDesc")} />
+          </div>
+
+          <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+            <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+              <div className="text-[12.5px] text-white/90">{t("terminal.viz.edgeMapTitle")}</div>
+              <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{t("terminal.viz.edgeMapDesc")}</div>
+            </div>
+            <div className="p-3" style={{ height: 460 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 16, right: 24, left: 10, bottom: 28 }}>
+                  <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
+                  <XAxis type="number" dataKey="x" scale="log" domain={["auto", "auto"]} allowDataOverflow
+                    tick={TICK_SM} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v.toFixed(0))}
+                    label={{ value: "SAMPLE SIZE (log)", position: "insideBottom", offset: -14, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
+                  <YAxis type="number" dataKey="y" tick={TICK_SM} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => v.toFixed(0) + "%"}
+                    label={{ value: "WIN RATE", angle: -90, position: "insideLeft", offset: 8, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
+                  <ZAxis type="number" dataKey="z" range={[30, 60]} />
+                  {baseline != null && (
+                    <ReferenceLine y={baseline} stroke="rgba(212,168,83,0.45)" strokeDasharray="5 5"
+                      label={{ value: `baseline ${baseline.toFixed(0)}%`, fill: AXIS, fontSize: 9, position: "insideTopRight" }} />
+                  )}
+                  <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<EdgeTip />} />
+                  <Scatter data={pts} shape={<Dot />} isAnimationActive={false} />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {sel && (
+            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+              <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between gap-3">
+                <span className="text-[12.5px] text-white/90">{t("terminal.viz.edgeDrillTitle")} <span className="text-gold-primary">{nice(sel)}</span></span>
+                <button onClick={() => { setSel(null); setDrill(null); }} className="font-mono text-[10px] text-text-muted hover:text-white shrink-0">✕</button>
+              </div>
+              {drillLoading ? (
+                <Warming text={t("terminal.viz.edgeDrillLoading")} />
+              ) : drill?.signals?.length ? (
+                <>
+                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 max-h-[380px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
+                    {drill.signals.slice(0, 120).map((s, i) => {
+                      const win = s.outcome && s.outcome !== "sl";
+                      const pk = s.peak_pct;
+                      return (
+                        <div key={s.signal_id || i} className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.06] px-2.5 py-1.5">
+                          <CoinLogo pair={s.pair} size={18} />
+                          <span className="font-mono text-[11px] text-white/85 truncate">{(s.pair || "").replace(/USDT$/i, "")}</span>
+                          <span className={`ml-auto font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-sm ${win ? "text-positive bg-positive/10" : "text-negative bg-negative/10"}`}>{win ? (s.outcome || "win") : "sl"}</span>
+                          {pk != null && <span className={`font-mono text-[10px] tabular-nums shrink-0 ${pk >= 0 ? "text-positive" : "text-negative"}`}>{pk >= 0 ? "+" : ""}{pk.toFixed(1)}%</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {drill.win_rate != null && (
+                    <div className="px-4 py-2.5 border-t border-white/[0.06] font-mono text-[10px] text-text-muted">
+                      {drill.count} signals · <span className="text-white/80">{drill.win_rate.toFixed(1)}% win rate</span>
+                      {baseline != null && (
+                        <span> · vs baseline {baseline.toFixed(1)}% (<span style={{ color: drill.win_rate >= baseline ? "#34d399" : "#f87171" }}>{drill.win_rate >= baseline ? "+" : ""}{(drill.win_rate - baseline).toFixed(1)}pp</span>)</span>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="py-10 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">{t("terminal.viz.edgeDrillEmpty")}</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+export default EdgeTab;
