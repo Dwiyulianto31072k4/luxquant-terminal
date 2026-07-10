@@ -49,10 +49,10 @@ BINANCE_SPOT_API = "https://api.binance.com"
 WS_BLOB_KEY = "lq:terminal:ws"   # realtime funding/price/vol from binance_ws_worker
 SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
-# 3 calls × SLICE_SIZE per sweep (2 min) → keep ≤ 40 pairs/sweep
-# (= 3×40×2.5 = 300 req/5min, safely under). Full board coverage ≈ 20 min,
-# fine for 5m-period metrics. Klines (weight-based limit) can go faster.
-SLICE_SIZE = 40
+# 3 calls × SLICE_SIZE per sweep (2 min) — keep the sequential futures/data pass
+# short enough that the sweep fits the interval. RSI klines are batched
+# concurrently (fapi/v1, weight-based) so they no longer sit on this path.
+SLICE_SIZE = 28
 BLOB_KEY = "lq:terminal:deriv"
 BLOB_TTL = SWEEP_INTERVAL + 300   # generous floor; cache_set also keeps 10× stale
 
@@ -377,8 +377,10 @@ async def _sweep():
             except Exception:
                 pass
             await asyncio.sleep(0.35)  # ≤ ~3 req/s on the strict futures/data pool
-        if not _fapi_ok():
-            break
+
+    # RSI(14) — klines are fapi/v1 (weight-based, NOT the strict pool) so fetch
+    # them CONCURRENTLY in small chunks instead of one-by-one on the hot path.
+    async def _one_rsi(p):
         try:
             r = await client.get(
                 f"{BINANCE_FUTURES_API}/fapi/v1/klines",
@@ -386,13 +388,18 @@ async def _sweep():
             )
             if r.status_code in (418, 429):
                 _note_ban(r, 600 if r.status_code == 418 else 120)
-                break
+                return
             if r.status_code == 200:
                 closes = [float(k[4]) for k in r.json()]
-                slow["rsi"] = _rsi14(closes)
+                _slow.setdefault(p, {})["rsi"] = _rsi14(closes)
         except Exception:
             pass
-        await asyncio.sleep(0.15)
+
+    for j in range(0, len(slice_pairs), 15):
+        if not _fapi_ok():
+            break
+        await asyncio.gather(*[_one_rsi(p) for p in slice_pairs[j:j + 15]])
+        await asyncio.sleep(0.3)
 
     # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
     oi_appended = _sweep_n % 2 == 1  # only anchor OI on sweeps that refreshed it
