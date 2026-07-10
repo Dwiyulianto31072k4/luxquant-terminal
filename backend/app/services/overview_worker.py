@@ -123,6 +123,10 @@ async def fetch_derivatives_pulse():
     """
     if _tracker.should_skip("binance_derivatives"):
         return None
+    # shared Binance fapi cooldown (lazy import avoids any circular-import order issue)
+    from app.services.terminal_worker import _fapi_ok, _note_ban
+    if not _fapi_ok():
+        return None  # global Binance fapi cooldown active — do NOT poke a live ban
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -212,7 +216,14 @@ async def fetch_derivatives_pulse():
                 "timestamp": datetime.utcnow().isoformat(),
             }
     except Exception as e:
-        _tracker.record_failure("binance_derivatives", e, base_interval=60)
+        resp = getattr(e, "response", None)
+        if resp is not None and getattr(resp, "status_code", None) in (418, 429):
+            # honor + SHARE the ban so terminal_worker also backs off; long base
+            # interval so we never re-poke a live Binance ban (which extends it)
+            _note_ban(resp, 900)
+            _tracker.record_failure("binance_derivatives", e, base_interval=900)
+        else:
+            _tracker.record_failure("binance_derivatives", e, base_interval=60)
         return None
 
 
