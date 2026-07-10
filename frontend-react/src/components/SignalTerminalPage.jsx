@@ -130,6 +130,7 @@ export default function SignalTerminalPage() {
     setSearchParams(p, { replace: true });
   };
 
+  const [detail, setDetail] = useState(null); // signal clicked from any view → detail modal
   const [sizeBy, setSizeBy] = useState("market_cap");
   const [colorBy, setColorBy] = useState(() => (searchParams.get("view") === "bubble" ? "from_call" : "max_target"));
 
@@ -284,27 +285,34 @@ export default function SignalTerminalPage() {
       {view === "treemap" && <MacroStrip macro={macro} sectors={sectors} model={model} />}
 
       {/* Main stage */}
-      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] p-4 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+      <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4 relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {model.length === 0 ? (
           <div className="h-[360px] flex items-center justify-center font-mono text-xs text-white/40">
             {loading ? "Loading signals…" : "No signals match the current filters."}
           </div>
         ) : view === "treemap" ? (
-          <Treemap model={model} sizeBy={sizeBy} colorBy={colorBy} onPick={(d) => openSignal(d, navigate, filters)} />
+          <Treemap model={model} sizeBy={sizeBy} colorBy={colorBy} onPick={setDetail} />
         ) : view === "bubble" ? (
-          <Bubble model={model} colorBy={colorBy} onPick={(d) => openSignal(d, navigate, filters)} />
+          <Bubble model={model} colorBy={colorBy} onPick={setDetail} />
         ) : view === "matrix" ? (
-          <Matrix model={model} onPick={(d) => openSignal(d, navigate, filters)} />
+          <Matrix model={model} onPick={setDetail} />
         ) : view === "explore" ? (
-          <ExploreView model={model} onPick={(d) => openSignal(d, navigate, filters)} />
+          <ExploreView model={model} onPick={setDetail} />
         ) : (
-          <SectorView model={model} colorBy={colorBy} onPick={(d) => openSignal(d, navigate, filters)} />
+          <SectorView model={model} colorBy={colorBy} onPick={setDetail} />
         )}
       </div>
 
       {/* Screener */}
-      <Screener model={model} onPick={(d) => openSignal(d, navigate, filters)} />
+      <Screener model={model} onPick={setDetail} />
+
+      {/* Click-through detail — status + full stats for the clicked signal */}
+      <SignalDetailModal
+        d={detail}
+        onClose={() => setDetail(null)}
+        onFull={() => { const dd = detail; setDetail(null); if (dd) openSignal(dd, navigate, filters); }}
+      />
 
       <p className="font-mono text-[10px] text-white/30 leading-relaxed border-t border-white/[0.06] pt-3">
         Filters mirror Potential Trades (shared <span className="text-white/50">signalFilters</span> util). Live data via Binance Futures proxy.
@@ -319,6 +327,87 @@ function openSignal(d, navigate, filters) {
   const p = filtersToParams(filters);
   p.set("signal", String(d.signal_id));
   navigate(`/signals?${p.toString()}`);
+}
+
+const fmtPrice = (v) => {
+  if (!v && v !== 0) return "—";
+  if (v >= 1) return Number(v).toFixed(2);
+  if (v >= 0.01) return Number(v).toFixed(4);
+  return Number(v).toPrecision(3);
+};
+const ST_META = {
+  open: { label: "OPEN", color: "#60a5fa", desc: "Live — no target hit yet" },
+  tp1: { label: "TP1 HIT", color: "#34d399", desc: "First target reached" },
+  tp2: { label: "TP2 HIT", color: "#34d399", desc: "Second target reached" },
+  tp3: { label: "TP3 HIT", color: "#2dd4a0", desc: "Third target reached" },
+  closed_win: { label: "TP4 / WIN", color: "#d4a853", desc: "Final target — closed in profit" },
+  closed_loss: { label: "STOPPED OUT", color: "#f87171", desc: "Hit stop loss" },
+};
+
+// ── Signal detail modal — opens when any point/row/tile is clicked ──
+function SignalDetailModal({ d, onClose, onFull }) {
+  if (!d) return null;
+  const st = ST_META[d.status] || { label: (d.status || "—").toUpperCase(), color: "#9ca3af", desc: "" };
+  const sign = (v) => (v == null ? "text-white/90" : v >= 0 ? "text-positive" : "text-negative");
+  const Stat = ({ label, val, tone }) => (
+    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-3 py-2.5">
+      <div className="font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
+      <div className={`font-mono tabular-nums text-[15px] mt-1 ${tone || "text-white/90"}`}>{val}</div>
+    </div>
+  );
+  return (
+    <div className="fixed inset-x-0 bottom-0 top-16 z-[80] bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-3 md:p-6" onClick={onClose}>
+      <div className="relative w-[94vw] max-w-[540px] max-h-[calc(100vh-6rem)] overflow-auto rounded-2xl bg-[#0a0805] border border-gold-primary/25 shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+
+        <div className="flex items-center gap-3 px-5 pt-5">
+          <CoinLogo pair={d.pair} size={38} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[18px] text-white font-semibold leading-none">{d.sym}</span>
+              <span className="font-mono text-[11px] text-text-muted">{d.pair}</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {d.risk && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-white/15 text-white/60">{d.risk} risk</span>}
+              {d.decoupled && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border border-gold-primary/30 text-gold-primary">btc-decoupled</span>}
+            </div>
+          </div>
+          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-white hover:border-white/25">✕</button>
+        </div>
+
+        {/* status banner */}
+        <div className="mx-5 mt-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: `${st.color}14`, border: `1px solid ${st.color}44` }}>
+          <span className="font-mono text-[15px] font-bold tracking-wider" style={{ color: st.color }}>{st.label}</span>
+          <span className="text-[11px] text-text-muted hidden sm:block">{st.desc}</span>
+          <span className="ml-auto text-right">
+            <span className="block font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/70">from call</span>
+            <span className="font-mono text-[17px] tabular-nums" style={{ color: d.from_call == null ? "#8a8478" : d.from_call >= 0 ? "#34d399" : "#f87171" }}>
+              {d.from_call == null ? "—" : (d.from_call >= 0 ? "+" : "") + d.from_call.toFixed(1) + "%"}
+            </span>
+          </span>
+        </div>
+
+        {/* stats grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 px-5 mt-3">
+          <Stat label="Win Rate" val={d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"} tone="text-gold-primary" />
+          <Stat label="Max Target" val={d.max_target == null ? "—" : "+" + d.max_target.toFixed(0) + "%"} tone="text-emerald-400" />
+          <Stat label="24h Δ" val={(d.price_change_24h >= 0 ? "+" : "") + (d.price_change_24h?.toFixed?.(1) ?? "—") + "%"} tone={sign(d.price_change_24h)} />
+          <Stat label="BTC Align" val={d.btc_align == null ? "—" : d.btc_align.toFixed(0)} />
+          <Stat label="Vol / MCap" val={d.flow_intensity ? (d.flow_intensity * 100).toFixed(1) + "%" : "—"} />
+          <Stat label="Market Cap" val={"$" + shortNum(d.market_cap)} />
+        </div>
+        <div className="grid grid-cols-2 gap-2 px-5 mt-2">
+          <Stat label="Entry" val={d.entry ? "$" + fmtPrice(d.entry) : "—"} />
+          <Stat label="Live Price" val={d.price ? "$" + fmtPrice(d.price) : "—"} />
+        </div>
+
+        <div className="px-5 py-4 mt-4 border-t border-white/[0.06] flex items-center gap-2">
+          <button onClick={onFull} className="flex-1 rounded-xl bg-gold-primary text-[#17110a] font-semibold text-[13px] py-2.5 hover:brightness-105 transition-colors">Open full signal →</button>
+          <button onClick={onClose} className="rounded-xl border border-white/12 text-white/70 text-[13px] px-4 py-2.5 hover:border-white/25 transition-colors">Close</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Encoder select ──
@@ -381,7 +470,8 @@ function MacroStrip({ macro, sectors, model }) {
   const maxAbs = Math.max(...topSectors.map((s) => Math.abs(s.mcap_change_24h ?? 0)), 1);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] p-4">
+      <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] p-4">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-3">Dominance & Altseason</div>
         <div className="flex justify-around">
           {gauge(macro?.btc_dominance, "#F7931A", "BTC Dom")}
@@ -389,7 +479,8 @@ function MacroStrip({ macro, sectors, model }) {
           {gauge(macro?.altseason_index, "#d4af37", "Altseason")}
         </div>
       </div>
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 lg:col-span-2">
+      <div className="relative overflow-hidden bg-[#0a0805] border border-white/[0.07] rounded-2xl p-4 lg:col-span-2">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="font-mono text-[10px] uppercase tracking-widest text-white/50 mb-3">Sector Rotation · Δ Market Cap 24h</div>
         <div className="space-y-1.5">
           {topSectors.length === 0 && <div className="font-mono text-[11px] text-white/30">No sector snapshot yet.</div>}
@@ -717,8 +808,8 @@ function Screener({ model, onPick }) {
   });
   const stColor = (s) => ({ open: "#60a5fa", tp1: "#34d399", tp2: "#34d399", tp3: "#34d399", closed_win: "#34d399", closed_loss: "#f87171" }[s] || "#9ca3af");
   return (
-    <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
-      <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
+    <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+      <div className="h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-center justify-between">
         <span className="text-[12.5px] text-white/90">Signal Screener</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">{model.length} pairs</span>

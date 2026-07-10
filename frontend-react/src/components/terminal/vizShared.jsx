@@ -295,7 +295,8 @@ export function XCard({ title, desc, render, zoom, hint }) {
   );
   return (
     <>
-      <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] overflow-hidden">
+      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         <div className="px-4 py-2.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12.5px] text-white/90">{title}</div>
@@ -311,13 +312,14 @@ export function XCard({ title, desc, render, zoom, hint }) {
 
       {big && (
         <div
-          className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm p-3 md:p-6 flex items-center justify-center"
+          className="fixed inset-x-0 bottom-0 top-16 z-[60] bg-black/80 backdrop-blur-sm p-3 md:p-5 flex items-start justify-center"
           onClick={() => setBig(false)}
         >
           <div
-            className="flex flex-col w-[94vw] max-w-[1600px] h-[90vh] rounded-xl bg-[#0c0a07] border border-gold-primary/25 shadow-2xl shadow-black/50"
+            className="relative flex flex-col w-[94vw] max-w-[1600px] h-full max-h-[calc(100vh-5.5rem)] rounded-2xl bg-[#0a0805] border border-gold-primary/25 shadow-2xl shadow-black/60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
             <div className="shrink-0 px-5 py-3.5 bg-gold-primary/[0.05] border-b border-gold-primary/[0.12] flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[15px] text-white/95">{title}</div>
