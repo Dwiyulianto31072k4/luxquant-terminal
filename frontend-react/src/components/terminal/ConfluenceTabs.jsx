@@ -70,8 +70,6 @@ function SignalCard({ s, live, ps, onPair, t }) {
   const dirTone = bull ? "text-[#08160c] bg-positive border-positive"
     : bear ? "text-[#180808] bg-negative border-negative"
     : "text-white/70 bg-white/10 border-white/15";
-  const edge = bull ? "before:bg-positive" : bear ? "before:bg-negative" : "before:bg-white/25";
-  const cardTint = bull ? "from-positive/[0.06]" : bear ? "from-negative/[0.06]" : "from-white/[0.03]";
   const htfStrong = v3.h4_strength === "STRONG" || tags.includes("HTF_TREND_STRONG");
   const align = tags.includes("MTF_FULL_ALIGNED") ? "FULL ALIGNED"
     : tags.includes("MTF_LTF_ALIGNED") ? "LTF ALIGNED"
@@ -88,12 +86,12 @@ function SignalCard({ s, live, ps, onPair, t }) {
   return (
     <button
       onClick={() => onPair(s.pair)}
-      className={`relative text-left rounded-xl bg-gradient-to-b ${cardTint} to-transparent border border-white/[0.08] hover:border-gold-primary/35 transition-colors overflow-hidden flex flex-col
-        before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] ${edge}`}
+      className="group relative text-left rounded-2xl bg-[#0a0805] border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
     >
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
       {/* header */}
-      <div className="pl-4 pr-3 pt-3 flex items-center gap-2">
-        <CoinLogo pair={s.pair} size={24} />
+      <div className="px-4 pt-3.5 flex items-center gap-2.5">
+        <CoinLogo pair={s.pair} size={26} />
         <div className="min-w-0 flex flex-col">
           <span className="font-mono text-[13px] text-white/95 leading-none truncate">{s.pair}</span>
           <span className="mt-1 flex items-center gap-1">
@@ -117,7 +115,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
       </div>
 
       {/* MTF + alignment + entry quality */}
-      <div className="pl-4 pr-3 mt-2.5 flex items-center gap-2 flex-wrap">
+      <div className="px-4 mt-2.5 flex items-center gap-2 flex-wrap">
         {hasIntel ? (
           <span className="flex items-center gap-2">
             {[["4H", v3.h4], ["1H", v3.h1], ["15", v3.m15]].map(([lbl, tr]) => (
@@ -147,7 +145,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
 
       {/* key reasons — as soft pills, not a raw bullet list */}
       {reasons.length > 0 && (
-        <div className="pl-4 pr-3 mt-2.5">
+        <div className="px-4 mt-2.5">
           <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55 mb-1.5">{t("terminal.viz.confReasons")}</div>
           <div className="flex flex-wrap gap-1">
             {reasons.map((r) => (
@@ -162,7 +160,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
 
       {/* warnings — small outlined chips */}
       {warns.length > 0 && (
-        <div className="pl-4 pr-3 mt-2 flex items-center gap-1 flex-wrap">
+        <div className="px-4 mt-2 flex items-center gap-1 flex-wrap">
           {warns.map((w) => (
             <span key={w} className="px-1.5 py-0.5 rounded-[4px] bg-negative/[0.08] border border-negative/25 text-negative/90 font-mono text-[8px] uppercase tracking-wider">
               {nice(w)}
@@ -172,7 +170,7 @@ function SignalCard({ s, live, ps, onPair, t }) {
       )}
 
       {/* footer — historical context */}
-      <div className="mt-auto pl-4 pr-3 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
+      <div className="mt-auto px-4 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
         {avg != null ? (
           <>
             <span className="text-text-muted">{t("terminal.viz.confAvg")} <span className="text-white/70">{fmtPct(avg)}</span></span>

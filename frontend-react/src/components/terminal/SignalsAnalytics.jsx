@@ -81,7 +81,7 @@ export default function SignalsAnalytics() {
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
-  const [days, setDays] = useState(() => Number(seedRef.current.days) || 7); // lookback window
+  const [days, setDays] = useState(() => { const n = Number(seedRef.current.days); return [1, 3, 7].includes(n) ? n : 7; }); // lookback window (signals live max 7d)
 
   // persist to localStorage
   useEffect(() => {
@@ -414,7 +414,7 @@ export default function SignalsAnalytics() {
         {/* lookback window — applies to every tab */}
         <div className="flex items-center gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
           <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
-          {[1, 3, 7, 14, 30].map((d) => (
+          {[1, 3, 7].map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}

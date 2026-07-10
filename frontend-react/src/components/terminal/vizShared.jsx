@@ -126,17 +126,20 @@ export const StatusTag = ({ status }) => {
   );
 };
 
+// solid landing-page surface + gold top hairline (matches Track Record cards)
 export const SectionBand = ({ title, desc }) => (
-  <div className="rounded-lg border border-white/[0.07] bg-white/[0.015] px-4 py-3">
+  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0805] px-4 py-3.5">
+    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
     <div className="text-[14px] text-white/95">{title}</div>
     {desc && <div className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{desc}</div>}
   </div>
 );
 
 export const Kpi = ({ label, value, desc, tone }) => (
-  <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] px-4 py-3.5 min-w-0">
-    <div className="text-[12px] text-white/85">{label}</div>
-    <div className={`font-mono tabular-nums mt-1.5 text-2xl leading-none truncate ${tone || "text-white/95"}`}>{value}</div>
+  <div className="group relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-4 min-w-0 transition-colors hover:border-gold-primary/25">
+    <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+    <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">{label}</div>
+    <div className={`font-mono tabular-nums mt-2 text-[26px] leading-none truncate ${tone || "text-white/95"}`}>{value}</div>
     {desc && <div className="text-[10px] text-text-muted mt-2 leading-relaxed">{desc}</div>}
   </div>
 );
