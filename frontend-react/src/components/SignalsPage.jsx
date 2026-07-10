@@ -8,6 +8,7 @@ import { classifyCoin } from './coinIntelShared';
 import { InfoTip, GuideModal } from './GuideInfo';
 import { watchlistApi } from '../services/watchlistApi';
 import moneyFlowApi from '../services/moneyFlowApi';
+import { signalsApi } from '../services/api';
 import CoinLogo from './CoinLogo';
 import CompassSnapshot from './aiArenaV6/CompassSnapshot';
 import AssistantWidget from './assistant/AssistantWidget';
@@ -305,13 +306,39 @@ const SignalsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedSignalId = searchParams.get("signal");
   const selectedTab = searchParams.get("tab") || "chart";
+  // Fallback signal object for signals opened by id that aren't in the currently
+  // loaded `allSignals` (SignalsPage only holds the last 7 days). Applies to:
+  //   - clicking an older call in the History tab
+  //   - deep-linking ?signal=<old id> directly
+  // Without this, the URL updates but the modal resolves to null → nothing shows.
+  const [directSignal, setDirectSignal] = useState(null);
+  const fetchedSignalIdRef = useRef(null);
   const selectedSignal = useMemo(() => {
     if (!selectedSignalId) return null;
-    return allSignals.find((s) => String(s.signal_id) === String(selectedSignalId)) || null;
+    const fromList = allSignals.find((s) => String(s.signal_id) === String(selectedSignalId));
+    if (fromList) return fromList;
+    if (directSignal && String(directSignal.signal_id) === String(selectedSignalId)) return directSignal;
+    return null;
+  }, [selectedSignalId, allSignals, directSignal]);
+
+  // If the selected signal isn't in the 7-day list, fetch it by id (once per id).
+  // Mirrors DailyPerformancePage.handlePickSignal so any-age signals open.
+  useEffect(() => {
+    if (!selectedSignalId) return;
+    if (allSignals.some((s) => String(s.signal_id) === String(selectedSignalId))) return;
+    if (fetchedSignalIdRef.current === String(selectedSignalId)) return;
+    fetchedSignalIdRef.current = String(selectedSignalId);
+    let alive = true;
+    signalsApi
+      .getSignal(selectedSignalId)
+      .then((full) => { if (alive && full) setDirectSignal(full); })
+      .catch((err) => console.error("Failed to load signal by id:", err));
+    return () => { alive = false; };
   }, [selectedSignalId, allSignals]);
 
   const openSignal = useCallback((sig, tab = "chart") => {
     if (!sig) return;
+    setDirectSignal(sig);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set("signal", String(sig.signal_id));

@@ -341,7 +341,9 @@ const SignalHistoryTab = ({ signal, onSwitchSignal }) => {
 
   const handleClickCall = (call) => {
     if (onSwitchSignal && call.signal_id !== signal?.signal_id) {
-      onSwitchSignal(call);
+      // Carry the pair so the modal can resolve/fetch the call by signal_id even
+      // when it's an older call not present in the current signals list.
+      onSwitchSignal({ ...call, pair: call.pair || signal?.pair });
     }
   };
 
