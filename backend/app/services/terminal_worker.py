@@ -76,14 +76,22 @@ _last_ps = 0.0
 
 
 def _note_ban(resp, default_secs):
-    """Honor Retry-After; escalate the global fapi cooldown."""
+    """Honor Retry-After; back off HARD so we stop poking a live ban.
+
+    Binance 418 IP-bans ESCALATE (2min → 3 days) every time you hit them while
+    banned. Probing at each cooldown expiry was extending the ban. So enforce a
+    long floor: 418 → ≥1h, 429 → ≥10min. WS keeps the data flowing once the ban
+    lifts on its own — no REST poking needed to recover.
+    """
     global _fapi_banned_until
     try:
         retry = int(resp.headers.get("Retry-After", "0"))
     except Exception:
         retry = 0
-    _fapi_banned_until = time.time() + max(default_secs, retry)
-    print(f"⚠️ Terminal deriv: fapi cooldown {round(_fapi_banned_until - time.time())}s (status {resp.status_code})")
+    status = getattr(resp, "status_code", 0)
+    floor = 3600 if status == 418 else (600 if status == 429 else default_secs)
+    _fapi_banned_until = time.time() + max(default_secs, retry, floor)
+    print(f"⚠️ Terminal deriv: fapi cooldown {round(_fapi_banned_until - time.time())}s (status {status})")
 
 
 def _fapi_ok():
