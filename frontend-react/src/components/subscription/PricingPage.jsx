@@ -176,7 +176,7 @@ const PricingPage = () => {
   };
 
   return (
-    <div className="relative overflow-hidden min-h-screen">
+    <div className="relative min-h-screen">
       <Seo
         title="Pricing &amp; Plans — LuxQuant Terminal"
         description="LuxQuant Terminal pricing and plans. Unlock algorithmic analysis, on-chain intelligence, AutoTrade, and AI research. Free tier available."
@@ -205,18 +205,8 @@ const PricingPage = () => {
         }
       `}</style>
 
-      {/* Ambient background — smooth vertical blend so it connects with the
-          header (no contrasting gold band that "cuts" below the nav). */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-x-0 top-0 h-[440px]" style={{
-          background: 'linear-gradient(180deg, rgba(40,14,16,0.6) 0%, rgba(20,8,10,0.28) 45%, transparent 100%)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-10%', right: '-5%',
-          width: '500px', height: '500px',
-          background: 'radial-gradient(circle, rgba(212,168,83,0.03) 0%, transparent 70%)',
-        }} />
-      </div>
+      {/* No local background — inherits the global .luxury-bg so /pricing
+          blends seamlessly like the home page (no "page-in-page" box). */}
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         {loading ? (
@@ -228,14 +218,6 @@ const PricingPage = () => {
           <>
             {/* Header */}
             <div className="text-center mb-16 sm:mb-20">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
-                style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.15)' }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#d4a853' }} />
-                <span style={{ color: '#d4a853' }} className="text-xs font-semibold tracking-widest uppercase">
-                  {t('pricing.premium_access')}
-                </span>
-              </div>
-
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {isPremium ? t('pricing.switch') : t('pricing.upgrade_to')}{' '}
