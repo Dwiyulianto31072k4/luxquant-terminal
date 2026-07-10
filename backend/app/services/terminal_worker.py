@@ -186,11 +186,16 @@ async def _sweep():
             r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/premiumIndex")
             if r.status_code in (418, 429):
                 _note_ban(r, 600 if r.status_code == 418 else 120)
+            elif r.status_code == 451:
+                _note_ban(r, 1800)  # geo/legal block — back off longer, keep logging
+                print("⛔ Terminal deriv: fapi 451 (region blocked) — futures data unavailable from this server IP")
             elif r.status_code == 200:
                 for row in r.json():
                     funding[row.get("symbol")] = float(row.get("lastFundingRate") or 0)
-        except Exception:
-            pass
+            else:
+                print(f"⚠️ Terminal deriv: fapi funding status {r.status_code}")
+        except Exception as e:
+            print(f"⚠️ Terminal deriv: fapi funding error {type(e).__name__}: {e}")
 
     # ── 2) futures 24h tickers — single call ──────────────────────
     fut = {}
@@ -199,6 +204,8 @@ async def _sweep():
             r = await client.get(f"{BINANCE_FUTURES_API}/fapi/v1/ticker/24hr")
             if r.status_code in (418, 429):
                 _note_ban(r, 600 if r.status_code == 418 else 120)
+            elif r.status_code == 451:
+                _note_ban(r, 1800)
             elif r.status_code == 200:
                 for row in r.json():
                     fut[row.get("symbol")] = {
@@ -206,10 +213,16 @@ async def _sweep():
                         "chg": float(row.get("priceChangePercent") or 0),
                         "price": float(row.get("lastPrice") or 0),
                     }
-        except Exception:
-            pass
+            else:
+                print(f"⚠️ Terminal deriv: fapi ticker status {r.status_code}")
+        except Exception as e:
+            print(f"⚠️ Terminal deriv: fapi ticker error {type(e).__name__}: {e}")
 
     deriv_pairs = [p for p in pairs if p in fut or p in funding]
+    if not deriv_pairs:
+        banned = max(0, round(_fapi_banned_until - time.time()))
+        print(f"⚠️ Terminal deriv: NO futures data ({len(pairs)} pairs spot-only) — "
+              f"fapi {'in cooldown ' + str(banned) + 's' if banned else 'reachable but returned nothing'}")
 
     # ── 2b) SPOT tickers — single call (covers spot-only pairs) ────
     spot = {}

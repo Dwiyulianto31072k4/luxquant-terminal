@@ -438,9 +438,11 @@ async def _fetch_binance_tickers(client):
                     "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
             return tickers
+        else:
+            print(f"⚠️ Binance futures tickers HTTP {response.status_code}")
     except Exception as e:
-        print(f"⚠️ Binance futures tickers failed: {e}")
-    
+        print(f"⚠️ Binance futures tickers failed: {type(e).__name__}: {e or '(no message — likely timeout)'}")
+
     # Fallback: Binance spot
     try:
         response = await client.get(f"{BINANCE_SPOT_API}/api/v3/ticker/24hr")
@@ -455,9 +457,11 @@ async def _fetch_binance_tickers(client):
                     "low_24h": float(item.get("lowPrice", 0) or 0),
                 }
             return tickers
+        else:
+            print(f"⚠️ Binance spot tickers HTTP {response.status_code}")
     except Exception as e:
-        print(f"⚠️ Binance spot tickers failed: {e}")
-    
+        print(f"⚠️ Binance spot tickers failed: {type(e).__name__}: {e or '(no message — likely timeout)'}")
+
     return None
 
 
@@ -747,7 +751,7 @@ async def get_market_overview():
         cache_set("lq:market:overview", result, ttl=15)
         return result
     except Exception as e:
-        print(f"⚠️ Futures unavailable ({e}), falling back to Spot...")
+        print(f"⚠️ Futures unavailable ({type(e).__name__}: {e or 'no message — likely timeout'}), falling back to Spot...")
 
     try:
         result = await _fetch_overview_fallback(client)
