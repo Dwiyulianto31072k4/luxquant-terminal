@@ -258,7 +258,7 @@ async def _sweep():
                 funding[sym] = fr
             price = d.get("price")
             if price:
-                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price}
+                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price, "basis": d.get("basis")}
             oi = d.get("oi")
             if oi:
                 bybit_oi[sym] = oi
@@ -418,8 +418,20 @@ async def _sweep():
                 _note_ban(r, 600 if r.status_code == 418 else 120)
                 return
             if r.status_code == 200:
-                closes = [float(k[4]) for k in r.json()]
+                kl = r.json()
+                closes = [float(k[4]) for k in kl]
                 _slow.setdefault(p, {})["rsi"] = _rsi14(closes)
+                # ATR% (14) on the same 1h candles → typical hourly move as % of
+                # price (volatility for right-sizing stops / expectations)
+                if len(kl) >= 15:
+                    trs = []
+                    for i in range(1, len(kl)):
+                        hi, lo = float(kl[i][2]), float(kl[i][3])
+                        pc = float(kl[i - 1][4])
+                        trs.append(max(hi - lo, abs(hi - pc), abs(lo - pc)))
+                    atr = sum(trs[-14:]) / min(14, len(trs))
+                    last = closes[-1] or 0
+                    _slow[p]["atr_pct"] = round(atr / last * 100, 3) if last else None
         except Exception:
             pass
 
@@ -458,6 +470,8 @@ async def _sweep():
             "top_lsr": slow.get("top_lsr"),
             "taker": slow.get("taker"),
             "rsi": slow.get("rsi"),
+            "basis": f.get("basis"),        # perp premium % (mark vs index, Bybit)
+            "atr_pct": slow.get("atr_pct"),  # hourly ATR as % of price
         }
 
     btc = fut.get("BTCUSDT") or spot.get("BTCUSDT") or {}

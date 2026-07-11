@@ -309,6 +309,13 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
   const negTop = sorted.slice(0, 8).map((r) => ({ pair: r.pair, v: r.fPct }));
   const posTop = sorted.slice(-8).reverse().map((r) => ({ pair: r.pair, v: r.fPct }));
 
+  // perp premium / basis (mark vs index) — rich = greed, inverted = stress
+  const withB = rows.filter((r) => r.basis != null);
+  const bSorted = [...withB].sort((a, b) => a.basis - b.basis);
+  const basisRich = bSorted.slice(-8).reverse().map((r) => ({ pair: r.pair, v: r.basis }));
+  const basisCheap = bSorted.slice(0, 8).map((r) => ({ pair: r.pair, v: r.basis }));
+  const fmtBasis = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(3)}%`;
+
   // squeeze composite: shorts paying + OI building + price rising
   const shortSqueeze = withF
     .filter((r) => r.fPct < -0.005 && (r.oi_chg_1h ?? 0) > 1 && (r.price_chg_24h ?? 0) > 0)
@@ -332,6 +339,13 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
         <Kpi label={t("terminal.viz.kShortSq")} value={shortSqueeze.length} desc={t("terminal.viz.kShortSqDesc")} tone={shortSqueeze.length ? "text-gold-primary" : undefined} />
         <Kpi label={t("terminal.viz.kLongSq")} value={longSqueeze.length} desc={t("terminal.viz.kLongSqDesc")} tone={longSqueeze.length ? "text-orange-400" : undefined} />
       </div>
+
+      {withB.length > 0 && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <XCard title="Perp Premium — richest (mark &gt; index)" desc="Perp trading above spot/index — greed / crowded longs paying up to hold." render={() => <RankBars data={basisRich} onPair={openPair} fmt={fmtBasis} />} />
+          <XCard title="Perp Premium — cheapest / inverted" desc="Perp at or below index — discount, unwinding, or stress." render={() => <RankBars data={basisCheap} onPair={openPair} fmt={fmtBasis} />} />
+        </div>
+      )}
 
       <XCard
         title={t("terminal.viz.squeezeTitle")}

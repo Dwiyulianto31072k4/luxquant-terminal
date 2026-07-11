@@ -977,7 +977,7 @@ export default function SignalsAnalytics() {
           {tab === "squeeze" && <SqueezeTab {...derivProps} />}
           {tab === "momentum" && <MomentumTab {...derivProps} />}
           {tab === "edge" && <EdgeTab />}
-          {tab === "risk" && <RiskTab view={view} />}
+          {tab === "risk" && <RiskTab view={view} deriv={deriv} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}

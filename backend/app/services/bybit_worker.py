@@ -58,9 +58,15 @@ async def _fetch(client):
         if price is None:
             continue
         pcnt = _f(it.get("price24hPcnt"))
+        mark = _f(it.get("markPrice"))
+        idx = _f(it.get("indexPrice"))
+        # perp premium / basis: how far the perp trades above/below index (%)
+        basis = round((mark - idx) / idx * 100, 4) if (mark and idx) else None
         out[sym] = {
             "price": price,
-            "mark": _f(it.get("markPrice")),
+            "mark": mark,
+            "index": idx,
+            "basis": basis,
             "funding": _f(it.get("fundingRate")),
             "chg": round(pcnt * 100, 4) if pcnt is not None else None,
             "vol": _f(it.get("turnover24h")),          # quote (USD) 24h volume

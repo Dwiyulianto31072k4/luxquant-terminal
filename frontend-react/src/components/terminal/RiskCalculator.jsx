@@ -19,7 +19,7 @@ const fmtP = (v) => {
 };
 const fmtUsd = (v) => (v == null || Number.isNaN(v) ? "—" : "$" + v.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 
-export function RiskTab({ view }) {
+export function RiskTab({ view, deriv }) {
   const [account, setAccount] = useState(1000);
   const [riskPct, setRiskPct] = useState(2);
   const [leverage, setLeverage] = useState(5);
@@ -67,6 +67,9 @@ export function RiskTab({ view }) {
   const E = parseFloat(entry), S = parseFloat(sl), T = parseFloat(target);
   const acct = Number(account) || 0, rpct = Number(riskPct) || 0, lev = Math.max(1, Number(leverage) || 1);
   const long = side === "long";
+  const atrPct = pair ? (deriv?.pairs?.[pair]?.atr_pct ?? null) : null; // 1h ATR % of price
+  const slDistPct = E > 0 && S > 0 ? (Math.abs(E - S) / E) * 100 : null;
+  const stopInAtr = atrPct && slDistPct ? slDistPct / atrPct : null; // stop distance in ATRs
 
   const calc = useMemo(() => {
     if (!(E > 0) || !(S > 0) || !(acct > 0) || !(rpct > 0)) return null;
@@ -166,7 +169,7 @@ export function RiskTab({ view }) {
                 <Kpi label="Risk : Reward" value={calc.rr != null ? `1 : ${calc.rr.toFixed(2)}` : "—"} desc="Reward per unit of risk." tone={calc.rr >= 2 ? "text-positive" : calc.rr != null && calc.rr < 1 ? "text-negative" : undefined} />
                 <Kpi label="Breakeven Win Rate" value={calc.breakevenWR != null ? calc.breakevenWR.toFixed(0) + "%" : "—"} desc="Min win rate to not lose money at this R:R." />
                 <Kpi label={`Liq. price ≈ ${lev}×`} value={fmtP(calc.liq)} desc="Isolated margin, fees ignored." tone={calc.slPastLiq ? "text-negative" : undefined} />
-                <Kpi label="Distance to SL" value={E > 0 ? ((Math.abs(E - S) / E) * 100).toFixed(2) + "%" : "—"} desc="Stop distance from entry." />
+                <Kpi label="Distance to SL" value={slDistPct != null ? slDistPct.toFixed(2) + "%" : "—"} desc={atrPct ? `${stopInAtr != null ? stopInAtr.toFixed(1) : "—"}× 1h-ATR · coin ~${atrPct}%/h` : "Stop distance from entry."} tone={stopInAtr != null && stopInAtr < 1 ? "text-warning" : undefined} />
               </div>
 
               {/* warnings */}
