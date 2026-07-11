@@ -186,9 +186,12 @@ const SectionLabel = ({ children }) => (
 );
 
 // ── page ──────────────────────────────────────────────────────────────
+const PAST_PER_PAGE = 5;
+
 export default function StatusPage() {
   const [view, setView] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pastPage, setPastPage] = useState(0);
 
   const load = useCallback(async () => {
     const [pingRes, statusRes] = await Promise.allSettled([
@@ -223,6 +226,12 @@ export default function StatusPage() {
     return c;
   })();
   const updatedText = view?.updatedAt ? fmtTime(view.updatedAt.toISOString()) : "";
+
+  // Past incidents: paginate so the page never grows unbounded (status-page best practice)
+  const pastAll = view?.past || [];
+  const pastPages = Math.max(1, Math.ceil(pastAll.length / PAST_PER_PAGE));
+  const safePage = Math.min(pastPage, pastPages - 1);
+  const pastSlice = pastAll.slice(safePage * PAST_PER_PAGE, safePage * PAST_PER_PAGE + PAST_PER_PAGE);
 
   return (
     <div className="min-h-screen relative" style={{ background: palette.maroon[900] }}>
@@ -277,17 +286,58 @@ export default function StatusPage() {
               </section>
             )}
 
-            {/* components (2/3) + summary rail (1/3) — fills the width */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8">
-              <section className="lg:col-span-2">
-                <SectionLabel>Components</SectionLabel>
-                <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
-                  <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
-                  {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
-                </div>
-              </section>
+            {/* main content (left) + sticky summary rail (right) — no empty gap */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8 items-start">
+              <div className="lg:col-span-2 space-y-8">
+                <section>
+                  <SectionLabel>Components</SectionLabel>
+                  <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
+                    <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
+                    {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
+                  </div>
+                </section>
 
-              <aside className="lg:col-span-1">
+                {pastAll.length > 0 && (
+                  <section>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
+                        <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>Past Incidents</span>
+                      </div>
+                      <span className="font-mono text-[10px] tabular-nums whitespace-nowrap" style={{ color: palette.warm[500] }}>{pastAll.length} total</span>
+                    </div>
+                    <div className="space-y-3">
+                      {pastSlice.map((inc) => <IncidentCard key={inc.id} inc={inc} past />)}
+                    </div>
+
+                    {pastPages > 1 && (
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <button
+                          onClick={() => setPastPage((p) => Math.max(0, p - 1))}
+                          disabled={safePage <= 0}
+                          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                          style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                          Prev
+                        </button>
+                        <span className="font-mono text-[10px] uppercase tracking-wider tabular-nums" style={{ color: palette.warm[400] }}>Page {safePage + 1} / {pastPages}</span>
+                        <button
+                          onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
+                          disabled={safePage >= pastPages - 1}
+                          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                          style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                        >
+                          Next
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+
+              <aside className="lg:col-span-1 lg:sticky lg:top-6">
                 <SectionLabel>Summary</SectionLabel>
                 <div className="relative rounded-2xl border p-5 overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
                   <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
@@ -316,15 +366,6 @@ export default function StatusPage() {
                 </div>
               </aside>
             </div>
-
-            {view.past?.length > 0 && (
-              <section className="mt-10">
-                <SectionLabel>Past Incidents</SectionLabel>
-                <div className="space-y-3">
-                  {view.past.map((inc) => <IncidentCard key={inc.id} inc={inc} past />)}
-                </div>
-              </section>
-            )}
           </>
         )}
       </main>
