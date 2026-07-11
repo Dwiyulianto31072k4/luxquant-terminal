@@ -3,7 +3,7 @@
 // Inspired by pro FX terminals, adapted to crypto. Both read the deriv
 // blob (rsi / atr_pct / range24_pct) joined to the called pairs.
 // ════════════════════════════════════════════════════════════════
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
@@ -36,14 +36,18 @@ function rows(view, deriv) {
 }
 
 // ── RSI HEATMAP ──────────────────────────────────────────────────
-function RsiTip({ active, payload }) {
+// Multi-timeframe swing framework: 1H (entry timing) / 4H (primary) / 1D (trend).
+const RSI_TFS = ["1h", "4h", "1d"];
+const rsiOf = (r, tf) => (r?.[`rsi_${tf}`] != null ? r[`rsi_${tf}`] : r?.rsi);
+
+function RsiTip({ active, payload, tf }) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{sym(d.pair)}</span></div>
-      <div className="text-white/60">RSI(14 · 1h): <span className="text-white/90">{d.y.toFixed(1)}</span></div>
+      <div className="text-white/60">RSI(14 · {tf}): <span className="text-white/90">{d.y.toFixed(1)}</span></div>
       <div className="text-white/45">{d.band}</div>
     </div>
   );
@@ -54,15 +58,17 @@ const rsiBand = (v) => (v >= 70 ? { k: "overbought", c: "#f87171" } : v >= 60 ? 
 export function RsiHeatmapTab({ view, deriv, openPair }) {
   const { t } = useTranslation();
   const { map: statusMap } = useSignalStatus() || {};
+  const [tf, setTf] = useState("4h"); // 4h = primary swing timeframe
   const z = useZoom(0, 1, 0, 100);
-  const rs = useMemo(() => rows(view, deriv).filter((r) => r.rsi != null), [view, deriv]);
+  const rs = useMemo(() => rows(view, deriv).filter((r) => rsiOf(r, tf) != null), [view, deriv, tf]);
   const data = useMemo(() => rs.map((r) => {
-    const b = rsiBand(r.rsi);
-    return { x: hashX(r.pair), y: r.rsi, pair: r.pair, band: b.k, fill: b.c, sc: statusColorOf(statusMap, r.pair) };
-  }), [rs, statusMap]);
-  const avg = rs.length ? rs.reduce((a, r) => a + r.rsi, 0) / rs.length : null;
-  const ob = rs.filter((r) => r.rsi >= 70).length;
-  const os = rs.filter((r) => r.rsi <= 30).length;
+    const v = rsiOf(r, tf);
+    const b = rsiBand(v);
+    return { x: hashX(r.pair), y: v, pair: r.pair, band: b.k, fill: b.c, sc: statusColorOf(statusMap, r.pair) };
+  }), [rs, statusMap, tf]);
+  const avg = rs.length ? rs.reduce((a, r) => a + rsiOf(r, tf), 0) / rs.length : null;
+  const ob = rs.filter((r) => rsiOf(r, tf) >= 70).length;
+  const os = rs.filter((r) => rsiOf(r, tf) <= 30).length;
 
   if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
 
@@ -79,7 +85,18 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
 
   return (
     <>
-      <SectionBand title="RSI Heatmap" desc="14-period RSI (1h) across every active call. Above 70 = overbought (stretched), below 30 = oversold. Dot ring = signal status." />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <SectionBand title="RSI Heatmap" desc={`14-period RSI (${tf}) across every active call. Above 70 = overbought (stretched), below 30 = oversold. Dot ring = signal status.`} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
+          {RSI_TFS.map((f) => (
+            <button key={f} onClick={() => setTf(f)}
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-[#0a0805] text-white/60 border-white/10 hover:text-white hover:border-white/25"}`}>
+              {f}{f === "4h" ? "★" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label="Average RSI" value={avg == null ? "—" : avg.toFixed(1)} desc="Mean across active calls." tone={avg >= 60 ? "text-negative" : avg <= 40 ? "text-positive" : undefined} />
         <Kpi label="Overbought ≥70" value={ob} desc="Stretched — mean-reversion risk." tone={ob ? "text-negative" : undefined} />
@@ -102,7 +119,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
               <ReferenceLine y={70} stroke="#f87171" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "overbought", fill: "#f87171", fontSize: 8, position: "right" }} />
               <ReferenceLine y={30} stroke="#34d399" strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: "oversold", fill: "#34d399", fontSize: 8, position: "right" }} />
               {avg != null && <ReferenceLine y={avg} stroke={GOLD} strokeDasharray="5 5" label={{ value: `avg ${avg.toFixed(0)}`, fill: GOLD, fontSize: 9, position: "right" }} />}
-              <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<RsiTip />} />
+              <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<RsiTip tf={tf} />} />
               <Scatter data={data} shape={<Dot />} isAnimationActive={false} />
             </ScatterChart>
           </ResponsiveContainer>
