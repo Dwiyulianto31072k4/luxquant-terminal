@@ -48,6 +48,7 @@ BINANCE_SPOT_API = "https://api.binance.com"
 
 WS_BLOB_KEY = "lq:terminal:ws"       # realtime funding/price/vol from binance_ws_worker
 BYBIT_BLOB_KEY = "lq:terminal:bybit" # funding/OI/price/vol from bybit_worker (1 call, no Binance ban)
+BYBIT_API = "https://api.bybit.com"   # klines for RSI/ATR (Binance is IP-banned here)
 SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # Binance /futures/data/* endpoints share a strict ~500 req/5min IP limit.
 # 3 calls × SLICE_SIZE per sweep (2 min) — keep the sequential futures/data pass
@@ -406,40 +407,58 @@ async def _sweep():
                 pass
             await asyncio.sleep(0.35)  # ≤ ~3 req/s on the strict futures/data pool
 
-    # RSI(14) — klines are fapi/v1 (weight-based, NOT the strict pool) so fetch
-    # them CONCURRENTLY in small chunks instead of one-by-one on the hot path.
+    # RSI(14) + ATR%(14) from 1h klines. Source priority:
+    #   PRIMARY  Bybit  (reachable here; Binance REST is IP-banned on this host)
+    #   FALLBACK Binance (only if Bybit fails AND Binance isn't in cooldown)
+    # Both kline shapes share indices [_, open(1), high(2), low(3), close(4)];
+    # Bybit returns newest-first so we reverse it. Fetched in small chunks.
     async def _one_rsi(p):
+        kl = None
         try:
             r = await client.get(
-                f"{BINANCE_FUTURES_API}/fapi/v1/klines",
-                params={"symbol": p, "interval": "1h", "limit": 20},
+                f"{BYBIT_API}/v5/market/kline",
+                params={"category": "linear", "symbol": p, "interval": "60", "limit": 21},
             )
-            if r.status_code in (418, 429):
-                _note_ban(r, 600 if r.status_code == 418 else 120)
-                return
             if r.status_code == 200:
-                kl = r.json()
-                closes = [float(k[4]) for k in kl]
-                _slow.setdefault(p, {})["rsi"] = _rsi14(closes)
-                # ATR% (14) on the same 1h candles → typical hourly move as % of
-                # price (volatility for right-sizing stops / expectations)
-                if len(kl) >= 15:
-                    trs = []
-                    for i in range(1, len(kl)):
-                        hi, lo = float(kl[i][2]), float(kl[i][3])
-                        pc = float(kl[i - 1][4])
-                        trs.append(max(hi - lo, abs(hi - pc), abs(lo - pc)))
-                    atr = sum(trs[-14:]) / min(14, len(trs))
-                    last = closes[-1] or 0
-                    _slow[p]["atr_pct"] = round(atr / last * 100, 3) if last else None
+                d = r.json()
+                if d.get("retCode") == 0:
+                    raw = d.get("result", {}).get("list") or []
+                    if len(raw) >= 15:
+                        kl = raw[::-1]  # newest-first → oldest-first
         except Exception:
             pass
+        # fallback to Binance klines only when Bybit gave nothing
+        if kl is None and _fapi_ok():
+            try:
+                r = await client.get(
+                    f"{BINANCE_FUTURES_API}/fapi/v1/klines",
+                    params={"symbol": p, "interval": "1h", "limit": 20},
+                )
+                if r.status_code in (418, 429):
+                    _note_ban(r, 600 if r.status_code == 418 else 120)
+                elif r.status_code == 200:
+                    b = r.json()
+                    if len(b) >= 15:
+                        kl = b
+            except Exception:
+                pass
+        if not kl or len(kl) < 15:
+            return
+        closes = [float(k[4]) for k in kl]
+        _slow.setdefault(p, {})["rsi"] = _rsi14(closes)
+        # ATR% (14) → typical hourly move as % of price (for stops/vol screens)
+        trs = []
+        for i in range(1, len(kl)):
+            hi, lo = float(kl[i][2]), float(kl[i][3])
+            pc = float(kl[i - 1][4])
+            trs.append(max(hi - lo, abs(hi - pc), abs(lo - pc)))
+        atr = sum(trs[-14:]) / min(14, len(trs))
+        last = closes[-1] or 0
+        _slow[p]["atr_pct"] = round(atr / last * 100, 3) if last else None
 
     for j in range(0, len(slice_pairs), 6):
-        if not _fapi_ok():
-            break
         await asyncio.gather(*[_one_rsi(p) for p in slice_pairs[j:j + 6]])
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.4)
 
     # ── 5) assemble blob — price/vol/chg from futures, spot fallback ─
     # Bybit refreshes OI EVERY sweep → anchor every sweep; Binance-only refreshes
