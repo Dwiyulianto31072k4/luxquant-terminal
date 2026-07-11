@@ -36,6 +36,62 @@ import { EdgeTab } from "./EdgeSimulator";
 import { RiskTab } from "./RiskCalculator";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
+// ── Market Regime gauge — fuses altseason, BTC dominance, breadth (calls in
+// profit) and aggregate funding into one risk-on/off score so users read the
+// backdrop before taking a call. All inputs already computed in-house.
+function RegimeGauge({ macro, pairFc, deriv }) {
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const btcDom = macro?.btc_dominance ?? null;
+  const alt = macro?.altseason_index ?? null;
+  const fcs = Object.values(pairFc || {});
+  const breadth = fcs.length ? (fcs.filter((v) => v > 0).length / fcs.length) * 100 : null;
+  const fund = deriv?.pairs ? Object.values(deriv.pairs).map((p) => p.funding).filter((v) => v != null) : [];
+  const avgFund = fund.length ? fund.reduce((a, b) => a + b, 0) / fund.length : null;
+
+  const altScore = alt != null ? clamp(alt, 0, 100) : null;
+  const domScore = btcDom != null ? clamp(((65 - btcDom) / 20) * 100, 0, 100) : null; // 45%→100, 65%→0
+  const breadthScore = breadth;
+  const fundScore = avgFund != null ? clamp(50 + avgFund * 100 * 500, 0, 100) : null;
+
+  const parts = [[altScore, 0.35], [domScore, 0.25], [breadthScore, 0.25], [fundScore, 0.15]].filter(([v]) => v != null);
+  const wsum = parts.reduce((a, [, w]) => a + w, 0) || 1;
+  const regime = parts.length ? parts.reduce((a, [v, w]) => a + v * w, 0) / wsum : null;
+  const regColor = regime == null ? "#9ca3af" : regime >= 65 ? "#34d399" : regime >= 45 ? "#d4a853" : "#f87171";
+  const label = regime == null ? "—" : regime >= 65 ? "Risk-On · Alt Season" : regime >= 52 ? "Constructive" : regime >= 42 ? "Neutral" : "Risk-Off · BTC-led";
+
+  const comp = (lbl, score, raw) => (
+    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] px-2.5 py-2">
+      <div className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted">{lbl}</div>
+      <div className="font-mono text-[13px] text-white/90 mt-0.5">{raw}</div>
+      <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${score || 0}%`, background: regColor }} /></div>
+    </div>
+  );
+
+  return (
+    <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+      <div className="flex items-end justify-between mb-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Market Regime</div>
+          <div className="text-[28px] font-mono tabular-nums leading-none mt-1" style={{ color: regColor }}>{regime == null ? "—" : Math.round(regime)}<span className="text-[13px] text-white/40"> / 100</span></div>
+          <div className="text-[12px] mt-1" style={{ color: regColor }}>{label}</div>
+        </div>
+        <div className="text-right font-mono text-[9px] uppercase tracking-wider text-text-muted/70 leading-relaxed hidden sm:block">take calls with<br />the backdrop</div>
+      </div>
+      <div className="relative h-3 rounded-full overflow-hidden" style={{ background: "linear-gradient(90deg,#f87171,#d4a853,#34d399)" }}>
+        {regime != null && <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-5 rounded-sm bg-white shadow-lg" style={{ left: `${regime}%` }} />}
+      </div>
+      <div className="flex justify-between font-mono text-[8px] uppercase tracking-wider text-text-muted/60 mt-1"><span>risk-off · btc</span><span>neutral</span><span>risk-on · alts</span></div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+        {comp("Altseason", altScore, alt != null ? alt.toFixed(0) : "—")}
+        {comp("BTC Dom (inv)", domScore, btcDom != null ? btcDom.toFixed(0) + "%" : "—")}
+        {comp("Calls in profit", breadthScore, breadth != null ? breadth.toFixed(0) + "%" : "—")}
+        {comp("Avg funding", fundScore, avgFund != null ? (avgFund * 100).toFixed(3) + "%" : "—")}
+      </div>
+    </div>
+  );
+}
+
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
 const parseF = (sp) => {
@@ -131,15 +187,24 @@ export default function SignalsAnalytics() {
       }
     } catch { /* keep previous */ }
   }, []);
+  const [macro, setMacro] = useState(null);
+  const fetchMacro = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/money-flow/macro`, { headers: authHeaders() });
+      if (r.ok) setMacro(await r.json());
+    } catch { /* keep previous */ }
+  }, []);
   useEffect(() => {
     fetchData();
     fetchDeriv();
     fetchPostsignal();
+    fetchMacro();
     const ivData = setInterval(fetchData, 60000);
     const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
     const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
-    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); };
-  }, [fetchData, fetchDeriv, fetchPostsignal]);
+    const ivMacro = setInterval(fetchMacro, 300000);
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); };
+  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro]);
 
   const items = data?.items || [];
 
@@ -537,6 +602,7 @@ export default function SignalsAnalytics() {
           {/* ═══════════ OVERVIEW ═══════════ */}
           {tab === "overview" && (
             <>
+              <RegimeGauge macro={macro} pairFc={pairFc} deriv={deriv} />
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi label={t("terminal.viz.kActive")} value={view.length} desc={t("terminal.viz.kActiveDesc")} />
                 <Kpi

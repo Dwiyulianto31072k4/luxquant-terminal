@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import CoinLogo from "../CoinLogo";
 import { edgeLabApi } from "../../services/edgeLabApi";
-import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming, useZoom } from "./vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming, useZoom, API_BASE, authHeaders } from "./vizShared";
 
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
 const evColor = (ev) => (ev == null ? "#6b7280" : ev >= 0 ? "#34d399" : "#f87171");
@@ -60,6 +60,45 @@ export function EdgeTab() {
 
   const pev = useMemo(() => (data?.pattern_ev || []).filter((p) => (p.count || 0) > 0), [data]);
   const baseline = data?.totals?.win_rate ?? null;
+
+  // ── Edge Economics (all-time): expectancy, profit factor, realized R:R ──
+  const [econ, setEcon] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetch(`${API_BASE}/api/v1/signals/analyze`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API_BASE}/api/v1/signals/journey-insights/ALL`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([a, j]) => {
+      if (!alive) return;
+      const tierAvg = {};
+      (j?.hit_rate_per_tp || []).forEach((h) => { tierAvg[h.tp] = h.avg_exit_gain_pct; });
+      setEcon({ stats: a?.stats || null, tierAvg });
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const economics = useMemo(() => {
+    const s = econ?.stats, ta = econ?.tierAvg;
+    if (!s || !ta) return null;
+    const closed = s.closed_trades || ((s.tp1_count || 0) + (s.tp2_count || 0) + (s.tp3_count || 0) + (s.tp4_count || 0) + (s.sl_count || 0));
+    if (!closed) return null;
+    const tiers = [
+      { k: "TP1", n: s.tp1_count || 0, avg: ta.TP1 ?? 0, color: "#2dd4a0" },
+      { k: "TP2", n: s.tp2_count || 0, avg: ta.TP2 ?? 0, color: "#4ade80" },
+      { k: "TP3", n: s.tp3_count || 0, avg: ta.TP3 ?? 0, color: "#86efac" },
+      { k: "TP4", n: s.tp4_count || 0, avg: ta.TP4 ?? 0, color: GOLD },
+      { k: "SL", n: s.sl_count || 0, avg: ta.SL ?? 0, color: "#f87171" },
+    ];
+    let grossWin = 0, grossLoss = 0, exp = 0;
+    tiers.forEach((tt) => {
+      exp += (tt.n / closed) * tt.avg;
+      if (tt.avg >= 0) grossWin += tt.n * tt.avg; else grossLoss += tt.n * Math.abs(tt.avg);
+    });
+    const pf = grossLoss ? grossWin / grossLoss : null;
+    const avgLoss = Math.abs(ta.SL ?? 0) || null;
+    const avgR = avgLoss ? exp / avgLoss : null;
+    return { closed, tiers, exp, pf, avgR, winRate: s.win_rate };
+  }, [econ]);
 
   const openDrill = useCallback((pattern) => {
     setSel(pattern);
@@ -130,6 +169,39 @@ export function EdgeTab() {
             <Kpi label={t("terminal.viz.edgeKBest")} value={bestEV ? nice(bestEV.pattern) : "—"} desc={bestEV ? `+${bestEV.expected_value.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR` : "—"} tone="text-positive" />
             <Kpi label={t("terminal.viz.edgeKSample")} value={data?.totals?.signals_resolved != null ? data.totals.signals_resolved.toLocaleString() : "—"} desc={t("terminal.viz.edgeKSampleDesc")} />
           </div>
+
+          {/* ── Edge Economics — the money math (all-time) ── */}
+          {economics && (
+            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+              <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+                <div className="text-[12.5px] text-white/90">Edge Economics — all-time</div>
+                <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Win rate alone is marketing. This is the money math: expected profit per trade, profit factor, realized reward:risk, and where winners exit.</div>
+              </div>
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 p-3">
+                <Kpi label="Expectancy / trade" value={(economics.exp >= 0 ? "+" : "") + economics.exp.toFixed(2) + "%"} desc="Avg % return per signal across every outcome." tone={economics.exp >= 0 ? "text-positive" : "text-negative"} />
+                <Kpi label="Profit Factor" value={economics.pf == null ? "—" : economics.pf.toFixed(2)} desc="Gross win ÷ gross loss. >1 = profitable." tone={economics.pf >= 1.5 ? "text-positive" : undefined} />
+                <Kpi label="Reward : Risk" value={economics.avgR == null ? "—" : economics.avgR.toFixed(2) + "R"} desc="Expectancy in units of the average loss." tone="text-gold-primary" />
+                <Kpi label="Win Rate" value={economics.winRate != null ? economics.winRate.toFixed(1) + "%" : "—"} desc={`${economics.closed.toLocaleString()} resolved`} />
+              </div>
+              <div className="px-4 pb-4 space-y-1.5">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-text-muted/60 mb-1">Where winners exit · share &amp; avg P/L</div>
+                {economics.tiers.map((tt) => {
+                  const share = (tt.n / economics.closed) * 100;
+                  return (
+                    <div key={tt.k} className="flex items-center gap-2">
+                      <span className="w-9 font-mono text-[10px] font-bold" style={{ color: tt.color }}>{tt.k}</span>
+                      <div className="flex-1 h-3.5 rounded bg-white/[0.04] overflow-hidden">
+                        <div className="h-full rounded" style={{ width: `${share}%`, background: tt.color, opacity: 0.85 }} />
+                      </div>
+                      <span className="w-12 text-right font-mono text-[10px] text-white/70">{share.toFixed(0)}%</span>
+                      <span className="w-16 text-right font-mono text-[10px]" style={{ color: tt.avg >= 0 ? "#34d399" : "#f87171" }}>{tt.avg >= 0 ? "+" : ""}{tt.avg.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
