@@ -96,33 +96,47 @@ async def bybit_liq_loop():
                 print(f"🩸 Bybit liq connected ({len(syms)} symbols)")
                 backoff = 1
                 last_flush = 0.0
-                async for raw in ws:
+                last_ping = time.time()
+                _flush()  # write an (empty) blob immediately so the UI is never "warming"
+                while True:
                     if not is_leader():
                         break
                     try:
-                        msg = json.loads(raw)
-                        topic = msg.get("topic", "")
-                        if not topic.startswith("allLiquidation"):
-                            continue
-                        for it in (msg.get("data") or []):
-                            price = _f(it.get("p"))
-                            size = _f(it.get("v"))
-                            if not price or not size:
-                                continue
-                            side = "long" if it.get("S") == "Sell" else "short"
-                            ts_ms = _f(it.get("T"))
-                            _events.append({
-                                "ts": ts_ms / 1000.0 if ts_ms else time.time(),
-                                "pair": it.get("s"),
-                                "side": side,
-                                "usd": round(price * size, 2),
-                            })
-                    except Exception:
-                        continue
+                        # timeout so we flush + app-ping even when no liquidation
+                        # frames arrive (allLiquidation only emits on an event).
+                        raw = await asyncio.wait_for(ws.recv(), timeout=3.0)
+                    except asyncio.TimeoutError:
+                        raw = None
+                    if raw is not None:
+                        try:
+                            msg = json.loads(raw)
+                            if msg.get("topic", "").startswith("allLiquidation"):
+                                for it in (msg.get("data") or []):
+                                    price = _f(it.get("p"))
+                                    size = _f(it.get("v"))
+                                    if not price or not size:
+                                        continue
+                                    side = "long" if it.get("S") == "Sell" else "short"
+                                    ts_ms = _f(it.get("T"))
+                                    _events.append({
+                                        "ts": ts_ms / 1000.0 if ts_ms else time.time(),
+                                        "pair": it.get("s"),
+                                        "side": side,
+                                        "usd": round(price * size, 2),
+                                    })
+                        except Exception:
+                            pass
                     now = time.time()
                     if now - last_flush >= FLUSH:
                         _flush()
                         last_flush = now
+                    # Bybit expects an app-level ping every ~20s to keep the stream alive
+                    if now - last_ping >= 18:
+                        try:
+                            await ws.send(json.dumps({"op": "ping"}))
+                        except Exception:
+                            break
+                        last_ping = now
         except Exception as e:
             print(f"🩸 Bybit liq disconnected: {type(e).__name__}: {e} — reconnect in {backoff}s")
             await asyncio.sleep(backoff)

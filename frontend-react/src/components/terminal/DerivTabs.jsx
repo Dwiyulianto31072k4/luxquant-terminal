@@ -198,7 +198,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
       </div>
 
       {/* ── Live liquidation tape (Bybit WS) ── */}
-      {liq && !liq.warming && (liq.events?.length || liq.long_usd_5m || liq.short_usd_5m) ? (
+      {liq && !liq.warming ? (
         <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
           <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
