@@ -182,6 +182,48 @@ def _to_float(v):
         return None
 
 
+K4H_BLOB_KEY = "lq:terminal:k4h"
+
+
+def _anchor_epoch(s):
+    """Parse a signal created_at (TEXT ISO, space or T separator) → epoch seconds."""
+    try:
+        s = str(s).strip().replace("T", " ").split(".")[0].replace("Z", "")
+        dt = datetime.strptime(s[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except Exception:
+        return None
+
+
+def _anchored_vwap(klns, created):
+    """VWAP anchored at the call time, from compact 4h [ts,h,l,c,v] bars.
+    Returns (avwap, price_vs_avwap_pct). Positive % = price above the anchor
+    VWAP → buyers in control since the call."""
+    if not klns or not created:
+        return None, None
+    anchor = _anchor_epoch(created)
+    if anchor is None:
+        return None, None
+    pv = v = 0.0
+    last_close = None
+    for bar in klns:
+        try:
+            ts, h, l, c, vol = bar
+        except (ValueError, TypeError):
+            continue
+        last_close = c
+        if ts + 14400 < anchor:   # 4h bar fully before the call → skip
+            continue
+        pv += (h + l + c) / 3.0 * vol
+        v += vol
+    if v <= 0 or not last_close:
+        return None, None
+    avwap = pv / v
+    if avwap <= 0:
+        return None, None
+    return round(avwap, 8), round((last_close - avwap) / avwap * 100, 2)
+
+
 @router.get("/screener")
 def get_deep_screener(
     days: int = Query(7, ge=1, le=30, description="Lookback window on signal creation"),
@@ -298,6 +340,13 @@ def get_deep_screener(
                 },
             })
 
+        # anchored VWAP since each call's creation (worker's compact 4h kline blob)
+        k4h = (cache_get(K4H_BLOB_KEY) or {}).get("pairs") or {}
+        for it in items:
+            avwap, vs = _anchored_vwap(k4h.get(it["pair"]), it.get("created_at"))
+            it["avwap"] = avwap
+            it["vs_avwap_pct"] = vs
+
         result = {
             "items": items,
             "total": len(items),
@@ -390,3 +439,21 @@ def get_liquidations(current_user: User = Depends(require_subscription)):
         stale["stale"] = True
         return stale
     return {"warming": True, "events": [], "long_usd_5m": 0, "short_usd_5m": 0, "generated_at": None}
+
+
+CVD_BLOB_KEY = "lq:terminal:cvd"
+
+
+@router.get("/cvd")
+def get_cvd(current_user: User = Depends(require_subscription)):
+    """Per-pair cumulative volume delta (order flow) over 15m / 1h windows.
+    READ-ONLY from Redis; the Bybit trade-flow WS worker fills it in background."""
+    cached = cache_get(CVD_BLOB_KEY)
+    if cached:
+        cached["stale"] = False
+        return cached
+    stale, _ = cache_get_with_stale(CVD_BLOB_KEY)
+    if stale:
+        stale["stale"] = True
+        return stale
+    return {"warming": True, "pairs": {}, "n": 0, "generated_at": None}

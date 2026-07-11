@@ -56,6 +56,7 @@ SWEEP_INTERVAL = 60           # ONE worker fills EVERYTHING every minute
 # concurrently (fapi/v1, weight-based) so they no longer sit on this path.
 SLICE_SIZE = 28
 BLOB_KEY = "lq:terminal:deriv"
+K4H_BLOB_KEY = "lq:terminal:k4h"  # compact 4h OHLCV per pair for anchored-VWAP
 BLOB_TTL = SWEEP_INTERVAL + 300   # generous floor; cache_set also keeps 10× stale
 
 # in-process anchors (leader is a single process; warms in minutes/hours)
@@ -132,6 +133,55 @@ def _rsi14(closes):
         return 100.0
     rs = avg_g / avg_l
     return round(100 - 100 / (1 + rs), 1)
+
+
+def _stdev(xs):
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    m = sum(xs) / n
+    return (sum((x - m) ** 2 for x in xs) / n) ** 0.5
+
+
+def _bbw_at(closes, i, w=20):
+    """Bollinger Band Width % at index i (upper-lower = 4·σ over the window)."""
+    seg = closes[i - w + 1:i + 1]
+    m = sum(seg) / w
+    if m <= 0:
+        return None
+    return (4 * _stdev(seg)) / m * 100
+
+
+def _vol_metrics(closes, vols, w=20):
+    """From a kline window derive:
+      pctb   — %B, position of last close inside the 20-band (0=lower, 100=upper)
+      bbwpct — percentile rank of CURRENT band width vs its own history (low = squeeze)
+      rv     — realized volatility, σ of last-20 % returns
+      rvol   — relative volume, last bar vs 20-bar average
+    All single-snapshot friendly; None when not enough data."""
+    out = {"pctb": None, "bbwpct": None, "rv": None, "rvol": None}
+    n = len(closes)
+    if n >= w:
+        seg = closes[-w:]
+        m = sum(seg) / w
+        sd = _stdev(seg)
+        up, lo = m + 2 * sd, m - 2 * sd
+        c = closes[-1]
+        if up > lo:
+            out["pctb"] = round((c - lo) / (up - lo) * 100, 1)
+        cur_bbw = (up - lo) / m * 100 if m > 0 else None
+        series = [b for i in range(w - 1, n) if (b := _bbw_at(closes, i, w)) is not None]
+        if cur_bbw is not None and len(series) >= 10:
+            below = sum(1 for b in series if b <= cur_bbw)
+            out["bbwpct"] = round(below / len(series) * 100, 1)
+        rets = [closes[i] / closes[i - 1] - 1 for i in range(n - w + 1, n) if closes[i - 1]]
+        if rets:
+            out["rv"] = round(_stdev(rets) * 100, 3)
+    if vols and len(vols) >= 21:
+        base = sum(vols[-21:-1]) / 20
+        if base > 0:
+            out["rvol"] = round(vols[-1] / base, 2)
+    return out
 
 
 # ── anchor persistence — survive restarts so 15m/1h warm-up isn't lost ──
@@ -416,12 +466,12 @@ async def _sweep():
     # (by_iv, bn_iv, label)
     _RSI_TFS = (("60", "1h", "1h"), ("240", "4h", "4h"), ("D", "1d", "1d"))
 
-    async def _klines(p, by_iv, bn_iv):
+    async def _klines(p, by_iv, bn_iv, limit=60):
         """Return klines oldest-first (Bybit primary, Binance fallback), or None."""
         try:
             r = await client.get(
                 f"{BYBIT_API}/v5/market/kline",
-                params={"category": "linear", "symbol": p, "interval": by_iv, "limit": 21},
+                params={"category": "linear", "symbol": p, "interval": by_iv, "limit": limit},
             )
             if r.status_code == 200:
                 d = r.json()
@@ -435,7 +485,7 @@ async def _sweep():
             try:
                 r = await client.get(
                     f"{BINANCE_FUTURES_API}/fapi/v1/klines",
-                    params={"symbol": p, "interval": bn_iv, "limit": 20},
+                    params={"symbol": p, "interval": bn_iv, "limit": limit},
                 )
                 if r.status_code in (418, 429):
                     _note_ban(r, 600 if r.status_code == 418 else 120)
@@ -450,7 +500,8 @@ async def _sweep():
     async def _one_rsi(p):
         s = _slow.setdefault(p, {})
         for by_iv, bn_iv, label in _RSI_TFS:
-            kl = await _klines(p, by_iv, bn_iv)
+            # 60 bars → RSI(14) + ATR(14) + Bollinger(20) + a band-width history
+            kl = await _klines(p, by_iv, bn_iv, limit=60)
             if not kl or len(kl) < 15:
                 continue
             closes = [float(k[4]) for k in kl]
@@ -464,6 +515,17 @@ async def _sweep():
             atr = sum(trs[-14:]) / min(14, len(trs))
             last = closes[-1] or 0
             s[f"atr_{label}"] = round(atr / last * 100, 3) if last else None
+            # volatility structure: %B, band-width percentile (squeeze), realized vol, RVOL
+            vols = [float(k[5]) for k in kl]
+            vm = _vol_metrics(closes, vols)
+            for key in ("pctb", "bbwpct", "rv", "rvol"):
+                if vm.get(key) is not None:
+                    s[f"{key}_{label}"] = vm[key]
+            # retain compact 4h OHLCV for anchored-VWAP-since-call (computed later
+            # against each signal's created time). [ts_s, high, low, close, vol]
+            if label == "4h":
+                s["k4h"] = [[int(float(k[0]) / 1000), float(k[2]), float(k[3]),
+                             float(k[4]), float(k[5])] for k in kl]
         # legacy aliases: default momentum/ATR-levels math stays on 1h
         if "rsi_1h" in s:
             s["rsi"] = s["rsi_1h"]
@@ -510,6 +572,10 @@ async def _sweep():
             "atr_pct": slow.get("atr_pct"),  # hourly ATR as % of price
             "range24_pct": f.get("range24"),  # 24h realized range % (ATR levels)
         }
+        # volatility-structure metrics per timeframe (squeeze / %B / RVOL / realized-vol)
+        for _tf in ("1h", "4h", "1d"):
+            for _m in ("pctb", "bbwpct", "rvol", "rv"):
+                out[p][f"{_m}_{_tf}"] = slow.get(f"{_m}_{_tf}")
 
     btc = fut.get("BTCUSDT") or spot.get("BTCUSDT") or {}
 
@@ -557,6 +623,10 @@ async def _sweep():
         "pairs": out,
     }
     cache_set(BLOB_KEY, blob, ttl=BLOB_TTL)
+    # compact 4h klines for anchored-VWAP-since-call (screener computes per signal)
+    k4h = {p: s["k4h"] for p, s in _slow.items() if s.get("k4h")}
+    if k4h:
+        cache_set(K4H_BLOB_KEY, {"generated_at": blob["generated_at"], "pairs": k4h}, ttl=BLOB_TTL)
     return len(out)
 
 

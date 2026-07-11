@@ -1549,3 +1549,9 @@ def start_cache_workers():
         loop.create_task(bybit_liq_loop())
     except Exception as e:
         print(f"⚠️ Bybit liq worker not started: {type(e).__name__}: {e}")
+    # Bybit CVD — cumulative volume delta (order-flow) via WebSocket
+    try:
+        from app.services.bybit_cvd_worker import bybit_cvd_loop
+        loop.create_task(bybit_cvd_loop())
+    except Exception as e:
+        print(f"⚠️ Bybit CVD worker not started: {type(e).__name__}: {e}")

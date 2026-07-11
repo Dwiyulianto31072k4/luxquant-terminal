@@ -48,7 +48,8 @@ function RsiTip({ active, payload, tf }) {
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{sym(d.pair)}</span></div>
       <div className="text-white/60">RSI(14 · {tf}): <span className="text-white/90">{d.y.toFixed(1)}</span></div>
-      <div className="text-white/45">{d.band}</div>
+      {d.pctb != null && <div className="text-white/60">%B: <span className="text-white/90">{d.pctb.toFixed(0)}</span> <span className="text-white/40">{d.pctb >= 100 ? "above upper band" : d.pctb <= 0 ? "below lower band" : "in band"}</span></div>}
+      <div className="text-white/45">{d.band}{d.rsi != null && d.pctb != null && d.rsi <= 30 && d.pctb <= 5 ? " · double-oversold ✓" : d.rsi != null && d.pctb != null && d.rsi >= 70 && d.pctb >= 95 ? " · double-overbought ✗" : ""}</div>
     </div>
   );
 }
@@ -64,7 +65,7 @@ export function RsiHeatmapTab({ view, deriv, openPair }) {
   const data = useMemo(() => rs.map((r) => {
     const v = rsiOf(r, tf);
     const b = rsiBand(v);
-    return { x: hashX(r.pair), y: v, pair: r.pair, band: b.k, fill: b.c, sc: statusColorOf(statusMap, r.pair) };
+    return { x: hashX(r.pair), y: v, pair: r.pair, band: b.k, fill: b.c, rsi: v, pctb: r[`pctb_${tf}`], sc: statusColorOf(statusMap, r.pair) };
   }), [rs, statusMap, tf]);
   const avg = rs.length ? rs.reduce((a, r) => a + rsiOf(r, tf), 0) / rs.length : null;
   const ob = rs.filter((r) => rsiOf(r, tf) >= 70).length;
@@ -194,6 +195,210 @@ export function AtrLevelsTab({ view, deriv, openPair }) {
             );
           })}
         </ScrollArea>
+      </div>
+    </>
+  );
+}
+
+// ── VOLATILITY SQUEEZE (Bollinger Band-Width percentile) ─────────
+// Low band-width percentile = the coin's range has contracted vs its own
+// history → "coiling" before a breakout. Distinct from the positioning
+// Squeeze tab (funding × L/S); this is pure volatility structure.
+const sqzTier = (v) => (v <= 10 ? { k: "COILED", c: "#22d3ee" } : v <= 25 ? { k: "TIGHT", c: "#4ade80" } : v <= 50 ? { k: "NORMAL", c: "#d4a853" } : v <= 75 ? { k: "LOOSE", c: "#fb923c" } : { k: "EXPANDED", c: "#f87171" });
+
+export function VolSqueezeTab({ view, deriv, openPair }) {
+  const { t } = useTranslation();
+  const { map: statusMap } = useSignalStatus() || {};
+  const [tf, setTf] = useState("4h");
+  const data = useMemo(() => {
+    const out = [];
+    rows(view, deriv).forEach((r) => {
+      const bw = r[`bbwpct_${tf}`];
+      if (bw == null) return;
+      out.push({ pair: r.pair, bw, pctb: r[`pctb_${tf}`], tier: sqzTier(bw) });
+    });
+    return out.sort((a, b) => a.bw - b.bw); // tightest first
+  }, [view, deriv, tf]);
+
+  const coiled = data.filter((d) => d.bw <= 10).length;
+  if (deriv?.warming) return <Warming text={t("terminal.viz.derivWarming")} />;
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <SectionBand title="Volatility Squeeze" desc={`Bollinger band-width percentile (${tf}) vs each coin's own recent history. Low = range has contracted → coiling before expansion. Ring = signal status.`} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70 mr-1">Timeframe</span>
+          {RSI_TFS.map((f) => (
+            <button key={f} onClick={() => setTf(f)}
+              className={`px-2.5 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider border transition-colors ${tf === f ? "bg-gold-primary text-black border-gold-primary" : "bg-[#0a0805] text-white/60 border-white/10 hover:text-white hover:border-white/25"}`}>
+              {f}{f === "4h" ? "★" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label="Coiled ≤10%" value={coiled} desc="Tightest ranges — breakout fuel." tone={coiled ? "text-positive" : undefined} />
+        <Kpi label="Most coiled" value={data[0] ? `${data[0].bw.toFixed(0)}%` : "—"} desc={data[0] ? sym(data[0].pair) : "—"} tone="text-positive" />
+        <Kpi label="Most expanded" value={data.length ? `${data[data.length - 1].bw.toFixed(0)}%` : "—"} desc={data.length ? sym(data[data.length - 1].pair) : "—"} tone="text-negative" />
+        <Kpi label="Instruments" value={data.length} desc="Called pairs with band width." />
+      </div>
+      {!data.length ? (
+        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Warming up — band width fills in after the next worker sweep.</div>
+      ) : (
+        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+          <div className="px-4 py-2 flex items-center gap-3 border-b border-white/[0.05] font-mono text-[8.5px] uppercase tracking-wider text-text-muted/70">
+            <span className="w-24">pair</span><span className="flex-1">coiling (full bar = tightest range)</span><span className="w-14 text-right">bw %ile</span>
+          </div>
+          <ScrollArea max={600} className="px-3 py-2">
+            {data.map((d) => {
+              const sc = statusColorOf(statusMap, d.pair);
+              const w = Math.max(4, 100 - d.bw); // tighter → longer bar
+              return (
+                <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
+                  <span className="w-24 flex items-center gap-1.5 shrink-0">
+                    <CoinLogo pair={d.pair} size={15} />
+                    <span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span>
+                  </span>
+                  <span className="flex-1 h-4 rounded-sm bg-white/[0.03] overflow-hidden relative">
+                    <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${w}%`, background: d.tier.c, opacity: 0.85, outline: sc ? `1px solid ${sc}` : "none" }} />
+                  </span>
+                  <span className="w-14 text-right font-mono text-[10.5px] tabular-nums" style={{ color: d.tier.c }}>{d.bw.toFixed(0)}%</span>
+                </button>
+              );
+            })}
+          </ScrollArea>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── ORDER FLOW (Cumulative Volume Delta) ─────────────────────────
+// Y = net taker USD (buy − sell) over 1h; X = 24h price change. The
+// divergence quadrants are the read: price up + CVD down = a rally being
+// sold into (distribution); price down + CVD up = quiet accumulation.
+const fmtUsd = (v) => {
+  const a = Math.abs(v); const s = v < 0 ? "-" : "";
+  if (a >= 1e9) return `${s}$${(a / 1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${s}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${s}$${(a / 1e3).toFixed(0)}K`;
+  return `${s}$${a.toFixed(0)}`;
+};
+
+function FlowTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
+      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{sym(d.pair)}</span></div>
+      <div className="text-white/60">CVD 1h: <span className={d.y >= 0 ? "text-positive" : "text-negative"}>{fmtUsd(d.y)}</span></div>
+      <div className="text-white/60">Price 24h: <span className={d.x >= 0 ? "text-positive" : "text-negative"}>{d.x.toFixed(1)}%</span></div>
+      <div className="text-white/45">{d.tag}</div>
+    </div>
+  );
+}
+
+export function OrderFlowTab({ view, deriv, cvd, openPair }) {
+  const { t } = useTranslation();
+  const { map: statusMap } = useSignalStatus() || {};
+
+  const rowsD = useMemo(() => {
+    const seen = new Set();
+    const flow = cvd?.pairs || {};
+    const out = [];
+    (view || []).forEach((s) => {
+      if (!s.pair || seen.has(s.pair)) return;
+      const c = flow[s.pair];
+      const d = deriv?.pairs?.[s.pair];
+      if (!c || c.cvd_1h == null) return;
+      seen.add(s.pair);
+      const x = d?.price_chg_24h ?? 0;
+      const y = c.cvd_1h;
+      const tag = x >= 0 && y < 0 ? "distribution — sold into strength"
+        : x < 0 && y > 0 ? "accumulation — bought on weakness"
+          : x >= 0 && y >= 0 ? "healthy up — buyers confirm"
+            : "healthy down — sellers confirm";
+      out.push({ pair: s.pair, x, y, tag, sc: statusColorOf(statusMap, s.pair) });
+    });
+    return out;
+  }, [view, deriv, cvd, statusMap]);
+
+  const dom = useMemo(() => {
+    if (!rowsD.length) return { x: [-10, 10], y: [-1e6, 1e6] };
+    const xs = rowsD.map((r) => r.x), ys = rowsD.map((r) => r.y);
+    const xa = Math.max(Math.abs(Math.min(...xs)), Math.abs(Math.max(...xs)), 2);
+    const ya = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 1000);
+    return { x: [-xa * 1.15, xa * 1.15], y: [-ya * 1.15, ya * 1.15] };
+  }, [rowsD]);
+
+  const z = useZoom(dom.x[0], dom.x[1], dom.y[0], dom.y[1]);
+  const distrib = rowsD.filter((r) => r.x >= 0 && r.y < 0).sort((a, b) => a.y - b.y).slice(0, 6);
+  const accum = rowsD.filter((r) => r.x < 0 && r.y > 0).sort((a, b) => b.y - a.y).slice(0, 6);
+
+  if (cvd?.warming) return <Warming text="Warming up — order flow streams in after the trade-feed connects." />;
+  if (!rowsD.length) return (<><SectionBand title="Order Flow (CVD)" desc="Cumulative volume delta vs price. Streaming in…" /><div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Waiting for the trade feed…</div></>);
+
+  const Dot = (props) => {
+    const { cx, cy, payload } = props;
+    if (cx == null || cy == null) return null;
+    const c = payload.y >= 0 ? "#34d399" : "#f87171";
+    return (
+      <g style={{ cursor: "pointer" }} onClick={() => openPair(payload.pair)}>
+        <circle cx={cx} cy={cy} r={5} fill={c} fillOpacity={0.8} stroke={payload.sc || "rgba(0,0,0,0.5)"} strokeWidth={payload.sc ? 1.6 : 0.5} />
+        <text x={cx} y={cy - 8} textAnchor="middle" fontFamily="monospace" fontSize={8} fill="rgba(255,255,255,0.55)" pointerEvents="none">{sym(payload.pair)}</text>
+      </g>
+    );
+  };
+
+  return (
+    <>
+      <SectionBand title="Order Flow (CVD)" desc="Net aggressive buying (green) vs selling (red) over 1h, plotted against 24h price. Watch the divergence corners: price up + CVD down = rally being sold into; price down + CVD up = quiet accumulation." />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+        <Kpi label="Divergences" value={distrib.length + accum.length} desc="Price & flow disagree — highest-signal." tone={distrib.length + accum.length ? "text-warning" : undefined} />
+        <Kpi label="Distribution" value={distrib.length} desc="Up on falling CVD — reversal risk." tone={distrib.length ? "text-negative" : undefined} />
+        <Kpi label="Accumulation" value={accum.length} desc="Down on rising CVD — bounce watch." tone={accum.length ? "text-positive" : undefined} />
+        <Kpi label="Instruments" value={rowsD.length} desc="Called pairs with live flow." />
+      </div>
+      <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+        <div className="p-3" style={{ height: 520, touchAction: "none", cursor: "grab" }}
+          ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove} onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture} onDoubleClick={z.reset}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 12, right: 16, left: 8, bottom: 8 }}>
+              <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
+              <XAxis type="number" dataKey="x" domain={z.domX} allowDataOverflow tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
+              <YAxis type="number" dataKey="y" domain={z.domY} allowDataOverflow tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtUsd} width={52} />
+              <ZAxis range={[40, 40]} />
+              <ReferenceLine x={0} stroke="rgba(255,255,255,0.25)" />
+              <ReferenceLine y={0} stroke="rgba(255,255,255,0.25)" />
+              <Tooltip cursor={{ strokeDasharray: "3 3", stroke: GOLD }} content={<FlowTip />} />
+              <Scatter data={rowsD} shape={<Dot />} isAnimationActive={false} />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div className="grid md:grid-cols-2 gap-2">
+        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Distribution — up but sold into</div>
+          {distrib.length ? distrib.map((d) => (
+            <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
+              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary">{sym(d.pair)}</span></span>
+              <span className="font-mono text-[10px] text-negative tabular-nums">{fmtUsd(d.y)}</span>
+            </button>
+          )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
+        </div>
+        <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Accumulation — down but bought</div>
+          {accum.length ? accum.map((d) => (
+            <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center justify-between py-1 group">
+              <span className="flex items-center gap-1.5"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary">{sym(d.pair)}</span></span>
+              <span className="font-mono text-[10px] text-positive tabular-nums">{fmtUsd(d.y)}</span>
+            </button>
+          )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
+        </div>
       </div>
     </>
   );

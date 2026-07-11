@@ -99,6 +99,7 @@ export default function GlobalSignalModalHost() {
           <Stat label="Max Target" val={s.max_target_pct == null ? "—" : "+" + Number(s.max_target_pct).toFixed(0) + "%"} tone="text-emerald-400" />
           <Stat label="Peak Reached" val={s.peak_pct == null ? "—" : fmtPct0(s.peak_pct)} tone={s.peak_pct >= 0 ? "text-positive" : "text-negative"} />
           <Stat label="Entry" val={s.entry ? fmtPrice(s.entry) : "—"} />
+          {s.vs_avwap_pct != null && <Stat label="vs Call VWAP" val={fmtPct0(s.vs_avwap_pct)} tone={s.vs_avwap_pct >= 0 ? "text-positive" : "text-negative"} />}
           {s.beta_30d != null && <Stat label="Beta 30d" val={Number(s.beta_30d).toFixed(2)} />}
           {calledAbs && <Stat label="Called At" val={new Date(info.created).toLocaleDateString()} />}
           {info.n > 1 && <Stat label="Active Calls" val={`${info.n}`} tone="text-gold-primary" />}

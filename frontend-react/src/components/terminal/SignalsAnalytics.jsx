@@ -34,7 +34,7 @@ import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } fr
 import { ConfluenceTab } from "./ConfluenceTabs";
 import { EdgeTab } from "./EdgeSimulator";
 import { RiskTab } from "./RiskCalculator";
-import { RsiHeatmapTab, AtrLevelsTab } from "./Screeners";
+import { RsiHeatmapTab, AtrLevelsTab, VolSqueezeTab, OrderFlowTab } from "./Screeners";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── Market Regime gauge — fuses altseason, BTC dominance, breadth (calls in
@@ -202,19 +202,28 @@ export default function SignalsAnalytics() {
       if (r.ok) setLiq(await r.json());
     } catch { /* keep previous */ }
   }, []);
+  const [cvd, setCvd] = useState(null);
+  const fetchCvd = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/terminal/cvd`, { headers: authHeaders() });
+      if (r.ok) setCvd(await r.json());
+    } catch { /* keep previous */ }
+  }, []);
   useEffect(() => {
     fetchData();
     fetchDeriv();
     fetchPostsignal();
     fetchMacro();
     fetchLiq();
+    fetchCvd();
     const ivData = setInterval(fetchData, 60000);
     const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
     const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
     const ivMacro = setInterval(fetchMacro, 300000);
     const ivLiq = setInterval(fetchLiq, 6000); // live tape
-    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); clearInterval(ivLiq); };
-  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq]);
+    const ivCvd = setInterval(fetchCvd, 8000); // live order flow
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); clearInterval(ivLiq); clearInterval(ivCvd); };
+  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq, fetchCvd]);
 
   const items = data?.items || [];
 
@@ -990,6 +999,8 @@ export default function SignalsAnalytics() {
           {tab === "risk" && <RiskTab view={view} deriv={deriv} />}
           {tab === "rsi" && <RsiHeatmapTab view={view} deriv={deriv} openPair={openPair} />}
           {tab === "atr" && <AtrLevelsTab view={view} deriv={deriv} openPair={openPair} />}
+          {tab === "vsqueeze" && <VolSqueezeTab view={view} deriv={deriv} openPair={openPair} />}
+          {tab === "flow" && <OrderFlowTab view={view} deriv={deriv} cvd={cvd} openPair={openPair} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}
