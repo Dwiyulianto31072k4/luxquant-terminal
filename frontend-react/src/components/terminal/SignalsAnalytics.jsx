@@ -33,6 +33,7 @@ import {
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { ConfluenceTab } from "./ConfluenceTabs";
 import { EdgeTab } from "./EdgeSimulator";
+import { RiskTab } from "./RiskCalculator";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
@@ -910,6 +911,7 @@ export default function SignalsAnalytics() {
           {tab === "squeeze" && <SqueezeTab {...derivProps} />}
           {tab === "momentum" && <MomentumTab {...derivProps} />}
           {tab === "edge" && <EdgeTab />}
+          {tab === "risk" && <RiskTab view={view} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}
