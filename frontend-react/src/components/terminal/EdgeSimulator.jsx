@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import CoinLogo from "../CoinLogo";
 import { edgeLabApi } from "../../services/edgeLabApi";
-import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming } from "./vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectionBand, Kpi, Warming, useZoom } from "./vizShared";
 
 const nice = (tag) => (tag || "").replaceAll("_", " ").toLowerCase();
 const evColor = (ev) => (ev == null ? "#6b7280" : ev >= 0 ? "#34d399" : "#f87171");
@@ -81,6 +81,13 @@ export function EdgeTab() {
   }, [pev]);
   const posCount = pev.filter((p) => (p.expected_value ?? 0) > 0).length;
 
+  // pan/zoom (seeded from the data extent; hook stays unconditional)
+  const xsA = pts.map((p) => p.x), ysA = pts.map((p) => p.y);
+  const zEdge = useZoom(
+    xsA.length ? Math.min(...xsA) : 1, xsA.length ? Math.max(...xsA) : 10,
+    ysA.length ? Math.min(...ysA) : 0, ysA.length ? Math.max(...ysA) : 100,
+  );
+
   const Dot = (props) => {
     const { cx, cy, payload } = props;
     if (cx == null || cy == null) return null;
@@ -130,16 +137,21 @@ export function EdgeTab() {
               <div className="text-[12.5px] text-white/90">{t("terminal.viz.edgeMapTitle")}</div>
               <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">{t("terminal.viz.edgeMapDesc")}</div>
             </div>
-            <div className="p-3" style={{ height: 460 }}>
+            <div
+              className="p-3" style={{ height: 460, touchAction: "none", cursor: "grab" }}
+              ref={zEdge.ref} onPointerDown={zEdge.onPointerDown} onPointerMove={zEdge.onPointerMove}
+              onPointerUp={zEdge.onPointerUp} onPointerLeave={zEdge.onPointerUp} onClickCapture={zEdge.onClickCapture}
+              onDoubleClick={zEdge.reset} title="drag to pan · wheel to zoom · double-click to reset"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 16, right: 24, left: 10, bottom: 28 }}>
                   <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
-                  <XAxis type="number" dataKey="x" scale="log" domain={["auto", "auto"]} allowDataOverflow
+                  <XAxis type="number" dataKey="x" scale="log" domain={[Math.max(zEdge.domX[0], 0.9), zEdge.domX[1]]} allowDataOverflow
                     tick={TICK_SM} axisLine={false} tickLine={false}
-                    tickFormatter={(v) => (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v.toFixed(0))}
+                    tickFormatter={(v) => (v >= 1000 ? (v / 1000).toFixed(0) + "k" : Math.round(v))}
                     label={{ value: "SAMPLE SIZE (log)", position: "insideBottom", offset: -14, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
-                  <YAxis type="number" dataKey="y" tick={TICK_SM} axisLine={false} tickLine={false}
-                    tickFormatter={(v) => v.toFixed(0) + "%"}
+                  <YAxis type="number" dataKey="y" domain={zEdge.domY} allowDataOverflow tick={TICK_SM} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => Math.round(v) + "%"}
                     label={{ value: "WIN RATE", angle: -90, position: "insideLeft", offset: 8, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
                   <ZAxis type="number" dataKey="z" range={[30, 60]} />
                   {baseline != null && (
