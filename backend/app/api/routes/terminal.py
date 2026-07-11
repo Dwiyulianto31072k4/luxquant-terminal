@@ -457,3 +457,21 @@ def get_cvd(current_user: User = Depends(require_subscription)):
         stale["stale"] = True
         return stale
     return {"warming": True, "pairs": {}, "n": 0, "generated_at": None}
+
+
+OB_BLOB_KEY = "lq:terminal:orderbook"
+
+
+@router.get("/orderbook")
+def get_orderbook(current_user: User = Depends(require_subscription)):
+    """Per-pair order-book imbalance & depth walls (Binance-native calls).
+    READ-ONLY from Redis; the Binance depth WS worker fills it in background."""
+    cached = cache_get(OB_BLOB_KEY)
+    if cached:
+        cached["stale"] = False
+        return cached
+    stale, _ = cache_get_with_stale(OB_BLOB_KEY)
+    if stale:
+        stale["stale"] = True
+        return stale
+    return {"warming": True, "pairs": {}, "n": 0, "generated_at": None}

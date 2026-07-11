@@ -209,6 +209,13 @@ export default function SignalsAnalytics() {
       if (r.ok) setCvd(await r.json());
     } catch { /* keep previous */ }
   }, []);
+  const [ob, setOb] = useState(null);
+  const fetchOb = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/terminal/orderbook`, { headers: authHeaders() });
+      if (r.ok) setOb(await r.json());
+    } catch { /* keep previous */ }
+  }, []);
   useEffect(() => {
     fetchData();
     fetchDeriv();
@@ -216,14 +223,16 @@ export default function SignalsAnalytics() {
     fetchMacro();
     fetchLiq();
     fetchCvd();
+    fetchOb();
     const ivData = setInterval(fetchData, 60000);
     const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
     const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
     const ivMacro = setInterval(fetchMacro, 300000);
     const ivLiq = setInterval(fetchLiq, 6000); // live tape
     const ivCvd = setInterval(fetchCvd, 8000); // live order flow
-    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); clearInterval(ivLiq); clearInterval(ivCvd); };
-  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq, fetchCvd]);
+    const ivOb = setInterval(fetchOb, 8000); // live order book
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); clearInterval(ivLiq); clearInterval(ivCvd); clearInterval(ivOb); };
+  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq, fetchCvd, fetchOb]);
 
   const items = data?.items || [];
 
@@ -1000,7 +1009,7 @@ export default function SignalsAnalytics() {
           {tab === "rsi" && <RsiHeatmapTab view={view} deriv={deriv} openPair={openPair} />}
           {tab === "atr" && <AtrLevelsTab view={view} deriv={deriv} openPair={openPair} />}
           {tab === "vsqueeze" && <VolSqueezeTab view={view} deriv={deriv} openPair={openPair} />}
-          {tab === "flow" && <OrderFlowTab view={view} deriv={deriv} cvd={cvd} openPair={openPair} />}
+          {tab === "flow" && <OrderFlowTab view={view} deriv={deriv} cvd={cvd} ob={ob} openPair={openPair} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}

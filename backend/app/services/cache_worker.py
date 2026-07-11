@@ -1555,3 +1555,9 @@ def start_cache_workers():
         loop.create_task(bybit_cvd_loop())
     except Exception as e:
         print(f"⚠️ Bybit CVD worker not started: {type(e).__name__}: {e}")
+    # Binance order book — bid/ask imbalance & depth walls (calls are Binance-native)
+    try:
+        from app.services.binance_orderbook_worker import binance_orderbook_loop
+        loop.create_task(binance_orderbook_loop())
+    except Exception as e:
+        print(f"⚠️ Binance order-book worker not started: {type(e).__name__}: {e}")

@@ -296,15 +296,17 @@ function FlowTip({ active, payload }) {
       <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{sym(d.pair)}</span></div>
       <div className="text-white/60">CVD 1h: <span className={d.y >= 0 ? "text-positive" : "text-negative"}>{fmtUsd(d.y)}</span></div>
       <div className="text-white/60">Price 24h: <span className={d.x >= 0 ? "text-positive" : "text-negative"}>{d.x.toFixed(1)}%</span></div>
+      {d.imb != null && <div className="text-white/60">Book: <span className={d.imb >= 0 ? "text-positive" : "text-negative"}>{d.imb >= 0 ? "+" : ""}{d.imb.toFixed(0)}%</span> <span className="text-white/40">{d.imb >= 0 ? "bid-stacked" : "ask-stacked"}</span></div>}
       <div className="text-white/45">{d.tag}</div>
     </div>
   );
 }
 
-export function OrderFlowTab({ view, deriv, cvd, openPair }) {
+export function OrderFlowTab({ view, deriv, cvd, ob, openPair }) {
   const { t } = useTranslation();
   const { map: statusMap } = useSignalStatus() || {};
 
+  const book = ob?.pairs || {};
   const rowsD = useMemo(() => {
     const seen = new Set();
     const flow = cvd?.pairs || {};
@@ -321,10 +323,14 @@ export function OrderFlowTab({ view, deriv, cvd, openPair }) {
         : x < 0 && y > 0 ? "accumulation — bought on weakness"
           : x >= 0 && y >= 0 ? "healthy up — buyers confirm"
             : "healthy down — sellers confirm";
-      out.push({ pair: s.pair, x, y, tag, sc: statusColorOf(statusMap, s.pair) });
+      out.push({ pair: s.pair, x, y, tag, imb: book[s.pair]?.imb, sc: statusColorOf(statusMap, s.pair) });
     });
     return out;
-  }, [view, deriv, cvd, statusMap]);
+  }, [view, deriv, cvd, book, statusMap]);
+
+  const bookRows = useMemo(() => rowsD.filter((r) => r.imb != null).map((r) => ({ pair: r.pair, imb: r.imb })), [rowsD]);
+  const bidStacked = useMemo(() => [...bookRows].sort((a, b) => b.imb - a.imb).slice(0, 6), [bookRows]);
+  const askStacked = useMemo(() => [...bookRows].sort((a, b) => a.imb - b.imb).slice(0, 6), [bookRows]);
 
   const dom = useMemo(() => {
     if (!rowsD.length) return { x: [-10, 10], y: [-1e6, 1e6] };
@@ -400,6 +406,34 @@ export function OrderFlowTab({ view, deriv, cvd, openPair }) {
           )) : <div className="font-mono text-[10px] text-text-muted py-2">None right now.</div>}
         </div>
       </div>
+
+      {bookRows.length > 0 && (
+        <>
+          <SectionBand title="Order Book Pressure" desc="Passive intent from the live Binance book: resting bids vs asks (top-20 levels). Bid-stacked = buyers defending below; ask-stacked = sellers capping above. Pairs with aggressive CVD are the strongest reads." />
+          <div className="grid md:grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+              <div className="font-mono text-[9px] uppercase tracking-wider text-positive/80 mb-2">Bid-stacked — support below</div>
+              {bidStacked.map((d) => (
+                <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
+                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span></span>
+                  <span className="flex-1 h-3 rounded-sm bg-white/[0.03] overflow-hidden relative"><span className="absolute inset-y-0 left-0 rounded-sm bg-positive/70" style={{ width: `${Math.min(Math.abs(d.imb), 100)}%` }} /></span>
+                  <span className="w-12 text-right font-mono text-[10px] text-positive tabular-nums">+{d.imb.toFixed(0)}%</span>
+                </button>
+              ))}
+            </div>
+            <div className="rounded-2xl bg-[#0a0805] border border-white/[0.07] p-3">
+              <div className="font-mono text-[9px] uppercase tracking-wider text-negative/80 mb-2">Ask-stacked — resistance above</div>
+              {askStacked.map((d) => (
+                <button key={d.pair} onClick={() => openPair(d.pair)} className="w-full flex items-center gap-2 py-1 group">
+                  <span className="w-20 flex items-center gap-1.5 shrink-0"><CoinLogo pair={d.pair} size={14} /><span className="font-mono text-[10.5px] text-white/85 group-hover:text-gold-primary truncate">{sym(d.pair)}</span></span>
+                  <span className="flex-1 h-3 rounded-sm bg-white/[0.03] overflow-hidden relative"><span className="absolute inset-y-0 left-0 rounded-sm bg-negative/70" style={{ width: `${Math.min(Math.abs(d.imb), 100)}%` }} /></span>
+                  <span className="w-12 text-right font-mono text-[10px] text-negative tabular-nums">{d.imb.toFixed(0)}%</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
