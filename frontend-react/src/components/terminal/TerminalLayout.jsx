@@ -25,6 +25,7 @@ const GROUPS = [
   { g: "gSignals", items: [["confluence", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
   { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"], ["squeeze", "scan"]] },
   { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["momentum", "scan"], ["sectors", "scan"]] },
+  { g: "gScreen", items: [["rsi", "scan"], ["atr", "scan"]] },
   { g: "gEdge", items: [["edge", "scan"], ["risk", "scan"]] },
   { g: "gMarketMap", items: [["treemap", "map"], ["bubble", "map"], ["matrix", "map"], ["explore", "map"]] },
 ];
@@ -53,6 +54,8 @@ const ICON_PATHS = {
   explore: <><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.55" /><circle cx="12" cy="12" r="2.3" /><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></>,
   edge: <><path d="M3 20h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.5" /><circle cx="7" cy="14" r="2.1" /><circle cx="12" cy="9" r="2.1" opacity="0.7" /><circle cx="17" cy="6" r="2.1" /><path d="M7 14 12 9l5-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.5" /></>,
   risk: <><rect x="4" y="3" width="16" height="18" rx="2" opacity="0.5" /><rect x="7" y="6" width="10" height="3" rx="0.6" fill="#0a0806" /><circle cx="8.5" cy="12.5" r="1.1" /><circle cx="12" cy="12.5" r="1.1" /><circle cx="15.5" cy="12.5" r="1.1" /><circle cx="8.5" cy="16.5" r="1.1" /><circle cx="12" cy="16.5" r="1.1" /><circle cx="15.5" cy="16.5" r="1.1" /></>,
+  rsi: <><circle cx="6" cy="8" r="2" /><circle cx="12" cy="15" r="2" opacity="0.7" /><circle cx="18" cy="6" r="2" /><path d="M3 12h18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2 2" opacity="0.5" /></>,
+  atr: <><rect x="3" y="5" width="14" height="3" rx="1" /><rect x="3" y="10.5" width="10" height="3" rx="1" opacity="0.7" /><rect x="3" y="16" width="6" height="3" rx="1" opacity="0.5" /><path d="M20 3v18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2 2" opacity="0.6" /></>,
 };
 const TabIcon = ({ id }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-[15px] h-[15px] shrink-0" aria-hidden="true">

@@ -34,6 +34,7 @@ import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } fr
 import { ConfluenceTab } from "./ConfluenceTabs";
 import { EdgeTab } from "./EdgeSimulator";
 import { RiskTab } from "./RiskCalculator";
+import { RsiHeatmapTab, AtrLevelsTab } from "./Screeners";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── Market Regime gauge — fuses altseason, BTC dominance, breadth (calls in
@@ -987,6 +988,8 @@ export default function SignalsAnalytics() {
           {tab === "momentum" && <MomentumTab {...derivProps} />}
           {tab === "edge" && <EdgeTab />}
           {tab === "risk" && <RiskTab view={view} deriv={deriv} />}
+          {tab === "rsi" && <RsiHeatmapTab view={view} deriv={deriv} openPair={openPair} />}
+          {tab === "atr" && <AtrLevelsTab view={view} deriv={deriv} openPair={openPair} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}

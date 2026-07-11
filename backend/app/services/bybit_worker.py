@@ -62,11 +62,16 @@ async def _fetch(client):
         idx = _f(it.get("indexPrice"))
         # perp premium / basis: how far the perp trades above/below index (%)
         basis = round((mark - idx) / idx * 100, 4) if (mark and idx) else None
+        # 24h realized range as % of price → daily-range exhaustion (ATR levels)
+        h24 = _f(it.get("highPrice24h"))
+        l24 = _f(it.get("lowPrice24h"))
+        range24 = round((h24 - l24) / price * 100, 3) if (h24 and l24 and price) else None
         out[sym] = {
             "price": price,
             "mark": mark,
             "index": idx,
             "basis": basis,
+            "range24": range24,
             "funding": _f(it.get("fundingRate")),
             "chg": round(pcnt * 100, 4) if pcnt is not None else None,
             "vol": _f(it.get("turnover24h")),          # quote (USD) 24h volume

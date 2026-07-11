@@ -258,7 +258,7 @@ async def _sweep():
                 funding[sym] = fr
             price = d.get("price")
             if price:
-                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price, "basis": d.get("basis")}
+                fut[sym] = {"vol": d.get("vol") or 0, "chg": d.get("chg") or 0, "price": price, "basis": d.get("basis"), "range24": d.get("range24")}
             oi = d.get("oi")
             if oi:
                 bybit_oi[sym] = oi
@@ -472,6 +472,7 @@ async def _sweep():
             "rsi": slow.get("rsi"),
             "basis": f.get("basis"),        # perp premium % (mark vs index, Bybit)
             "atr_pct": slow.get("atr_pct"),  # hourly ATR as % of price
+            "range24_pct": f.get("range24"),  # 24h realized range % (ATR levels)
         }
 
     btc = fut.get("BTCUSDT") or spot.get("BTCUSDT") or {}
