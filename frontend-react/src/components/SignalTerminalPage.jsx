@@ -520,6 +520,9 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
     <div ref={ref} className="relative w-full overflow-hidden rounded-lg" style={{ height: H }}>
       {rects.map((r) => {
         const d = r.d, big = r.w > 58 && r.h > 34, fs = Math.max(9, Math.min(14, r.w / 6));
+        // only show the ticker when the tile is wide/tall enough to fit it —
+        // avoids garbled single-letter labels on tiny cells.
+        const showLabel = r.w > 30 && r.h > 16;
         return (
           <div key={d.signal_id} onClick={() => onPick(d)} title={`${d.sym} · ${METRICS[colorBy].fmt(METRICS[colorBy].get(d))}`}
             className="absolute rounded-md overflow-hidden cursor-pointer border border-black/40 hover:outline hover:outline-1 hover:outline-white/60 transition-transform hover:-translate-y-0.5"
@@ -527,7 +530,7 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
             <div className="absolute inset-0 p-1.5 flex flex-col justify-between">
               <div className="flex items-center gap-1 min-w-0">
                 {big && <CoinLogo pair={d.pair} size={Math.min(18, Math.max(12, fs))} />}
-                <div className="font-mono font-bold leading-none text-white truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>
+                {showLabel && <div className="font-mono font-bold leading-none text-white truncate" style={{ fontSize: fs, textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{d.sym}</div>}
               </div>
               {big && <div className="font-mono leading-none text-white/90" style={{ fontSize: Math.max(8, fs - 3), textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>{METRICS[colorBy].fmt(METRICS[colorBy].get(d))}</div>}
             </div>
@@ -622,7 +625,7 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
       lab: labSet.has(p.d.signal_id) ? p.d.sym : null,
       sc: statusColorOf(statusMap, p.d.pair),
     };
-  });
+  }).sort((a, b) => a.z - b.z); // draw big-cap bubbles last → on top, not buried
 
   const Dot = (props) => {
     const { cx, cy, payload } = props;
@@ -664,10 +667,10 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
       </ResponsiveContainer>
       {quadrants && (
         <>
-          <span className="pointer-events-none absolute top-5 right-6 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[0]}</span>
-          <span className="pointer-events-none absolute top-5 left-16 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[1]}</span>
-          <span className="pointer-events-none absolute bottom-10 left-16 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[2]}</span>
-          <span className="pointer-events-none absolute bottom-10 right-6 font-mono text-[8.5px] uppercase tracking-wider text-white/25">{quadrants[3]}</span>
+          <span className="pointer-events-none absolute top-2 right-8 font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[0]}</span>
+          <span className="pointer-events-none absolute top-2 left-[72px] font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[1]}</span>
+          <span className="pointer-events-none absolute bottom-[42px] left-[72px] font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[2]}</span>
+          <span className="pointer-events-none absolute bottom-[42px] right-8 font-mono text-[8px] uppercase tracking-wider text-white/20">{quadrants[3]}</span>
         </>
       )}
     </div>
@@ -713,13 +716,19 @@ function Matrix({ model, onPick }) {
               <td onClick={() => onPick(d)} className="sticky left-0 bg-[#0a0506] font-mono text-[12px] font-bold text-white px-3 py-1 cursor-pointer hover:text-gold-primary z-10">
                 <span className="flex items-center gap-2"><CoinLogo pair={d.pair} size={20} /><span>{d.sym}</span></span>
               </td>
-              {MX_COLS.map((k) => (
-                <td key={k} className="p-0 text-center">
-                  <div onClick={() => onPick(d)} className="m-1 h-9 rounded-md flex items-center justify-center font-mono text-[12px] font-bold cursor-pointer hover:outline hover:outline-1 hover:outline-white transition-transform hover:-translate-y-0.5" style={{ background: colorByMetric(d, k, model), color: "#0a0506" }}>
-                    {METRICS[k].get(d) == null ? "—" : METRICS[k].fmt(METRICS[k].get(d))}
-                  </div>
-                </td>
-              ))}
+              {MX_COLS.map((k) => {
+                const raw = METRICS[k].get(d);
+                const txt = raw == null || Number.isNaN(raw) ? "—" : METRICS[k].fmt(raw);
+                const missing = txt === "—";
+                return (
+                  <td key={k} className="p-0 text-center">
+                    <div onClick={() => onPick(d)} className="m-1 h-9 rounded-md flex items-center justify-center font-mono text-[12px] font-bold cursor-pointer hover:outline hover:outline-1 hover:outline-white transition-transform hover:-translate-y-0.5"
+                      style={missing ? { background: "#211d19", color: "#6b6259" } : { background: colorByMetric(d, k, model), color: "#0a0506" }}>
+                      {txt}
+                    </div>
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
