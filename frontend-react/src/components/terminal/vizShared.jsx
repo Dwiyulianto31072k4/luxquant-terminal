@@ -54,6 +54,19 @@ export function statusColorOf(map, pair) {
   return info ? (STATUS_META[info.status]?.color || null) : null;
 }
 
+// clean axis tick labels at any zoom/pan — rounds to a sensible precision so
+// panned domains never render like "-13.35857808172562%".
+export const fmtAxis = (v) => {
+  if (v == null || Number.isNaN(v)) return "";
+  const a = Math.abs(v);
+  if (a === 0) return "0";
+  if (a >= 100) return String(Math.round(v));
+  if (a >= 10) return v.toFixed(0);
+  if (a >= 1) return v.toFixed(1);
+  if (a >= 0.1) return v.toFixed(2);
+  return v.toFixed(3);
+};
+
 export const TICK = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
 export const TICK_SM = { fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" };
 
@@ -335,7 +348,7 @@ export function XCard({ title, desc, render, zoom, hint }) {
             <IconBtn onClick={() => setBig(true)} title={t("terminal.viz.expand")}>⤢</IconBtn>
           </div>
         </div>
-        <div className="p-3">{body(240)}</div>
+        <div className="p-3">{body(400)}</div>
       </div>
 
       {big && (
@@ -378,6 +391,27 @@ export function useZoom(x0, x1, y0, y1) {
   const elRef = useRef(null);
   const drag = useRef(null);
   const moved = useRef(false);
+  const baseRef = useRef({ x0, x1, y0, y1 });
+  baseRef.current = { x0, x1, y0, y1 };
+
+  // soft-clamp the view to ~6× the base domain: roomy enough to pan out to
+  // outliers, but never a 700,000% void from infinite zoom-out (best practice).
+  const ZMAX = 6;
+  const clampDom = (d) => {
+    const b = baseRef.current;
+    const bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+    const maxW = bw * ZMAX, maxH = bh * ZMAX;
+    const padX = (maxW - bw) / 2, padY = (maxH - bh) / 2;
+    const LX0 = b.x0 - padX, LX1 = b.x1 + padX, LY0 = b.y0 - padY, LY1 = b.y1 + padY;
+    let { x0: a, x1: c, y0: e, y1: f } = d;
+    if (c - a > maxW) { const m = (a + c) / 2; a = m - maxW / 2; c = m + maxW / 2; }
+    if (f - e > maxH) { const m = (e + f) / 2; e = m - maxH / 2; f = m + maxH / 2; }
+    if (a < LX0) { c += LX0 - a; a = LX0; }
+    if (c > LX1) { a -= c - LX1; c = LX1; }
+    if (e < LY0) { f += LY0 - e; e = LY0; }
+    if (f > LY1) { e -= f - LY1; f = LY1; }
+    return { x0: a, x1: c, y0: e, y1: f };
+  };
 
   const reset = useCallback(() => setDom({ x0, x1, y0, y1 }), [x0, x1, y0, y1]);
   // follow the base domain when it changes (autoscaled charts) → refit data
@@ -390,7 +424,7 @@ export function useZoom(x0, x1, y0, y1) {
       const px = d.x0 + fx * w;      // data-x under cursor
       const py = d.y1 - fy * h;      // data-y under cursor (screen-top = y1)
       const nw = w / factor, nh = h / factor;
-      return { x0: px - fx * nw, x1: px + (1 - fx) * nw, y1: py + fy * nh, y0: py - (1 - fy) * nh };
+      return clampDom({ x0: px - fx * nw, x1: px + (1 - fx) * nw, y1: py + fy * nh, y0: py - (1 - fy) * nh });
     }), []);
 
   const fracOf = useCallback((cx, cy) => {
@@ -430,7 +464,7 @@ export function useZoom(x0, x1, y0, y1) {
     const d0 = drag.current.dom;
     const w = d0.x1 - d0.x0, h = d0.y1 - d0.y0;
     const shiftX = -(dx / r.width) * w, shiftY = (dy / r.height) * h;
-    setDom({ x0: d0.x0 + shiftX, x1: d0.x1 + shiftX, y0: d0.y0 + shiftY, y1: d0.y1 + shiftY });
+    setDom(clampDom({ x0: d0.x0 + shiftX, x1: d0.x1 + shiftX, y0: d0.y0 + shiftY, y1: d0.y1 + shiftY }));
   };
   const onPointerUp = (e) => {
     drag.current = null;

@@ -18,7 +18,7 @@ import {
   API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS,
   TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median,
   SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
-  LegendChips, Warming, Chip, ScrollArea, statusColorOf,
+  LegendChips, Warming, Chip, ScrollArea, statusColorOf, fmtAxis,
 } from "./vizShared";
 import { useSignalStatus } from "../../context/SignalStatusContext";
 
@@ -229,8 +229,8 @@ export function LongShortTab({ view, deriv, pairFc, openPair }) {
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                   <CartesianGrid stroke={GRID} />
-                  <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domX} allowDataOverflow />
-                  <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domY} allowDataOverflow />
+                  <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                  <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} domain={zDiv.domY} allowDataOverflow tickFormatter={fmtAxis} />
                   <Tooltip content={<ScatterTip xLabel="retail LSR" yLabel="top-trader LSR" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                   <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                   <ReferenceLine y={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
@@ -387,8 +387,8 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                 <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domX} allowDataOverflow />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domY} allowDataOverflow />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zFund.domY} allowDataOverflow tickFormatter={fmtAxis} />
                 <Tooltip content={<ScatterTip xLabel="funding %" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
@@ -685,8 +685,8 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
               <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                 <ReferenceArea x1={0} x2={zM.domX[1]} y1={0} y2={zM.domY[1]} fill={POS} fillOpacity={0.04} />
                 <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domX} allowDataOverflow />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domY} allowDataOverflow />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zM.domY} allowDataOverflow tickFormatter={fmtAxis} />
                 <Tooltip content={<ScatterTip xLabel="RS vs BTC %" yLabel="vol accel 1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
@@ -752,8 +752,8 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zSq.domX} allowDataOverflow label={{ value: "L/S ratio", position: "insideBottom", offset: -4, fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zSq.domY} allowDataOverflow label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zSq.domX} allowDataOverflow tickFormatter={fmtAxis} label={{ value: "L/S ratio", position: "insideBottom", offset: -4, fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zSq.domY} allowDataOverflow tickFormatter={fmtAxis} label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
                 <ZAxis type="number" dataKey="z" range={[24, 400]} />
                 <Tooltip content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" />

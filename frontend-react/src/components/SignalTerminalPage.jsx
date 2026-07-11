@@ -677,7 +677,7 @@ function Bubble({ model, colorBy, onPick }) {
   return (
     <>
       <MarketScatter model={model} xKey="flow_intensity" yKey="price_change_24h" colorKey={colorBy}
-        onPick={onPick} logX height={480} labelTop={14}
+        onPick={onPick} logX height={560} labelTop={14}
         quadrants={["🔥 Hot money · rising", "Quiet climbers", "Fading · ignored", "Heavy churn · falling"]} />
       <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
         X = turnover (Vol/MCap, log) · Y = 24h momentum · size = market cap · color = {METRICS[colorBy].lbl} · dashed = median · labels = largest caps · click → latest call
@@ -795,7 +795,7 @@ function ExploreView({ model, onPick }) {
         <button onClick={() => setLogX((v) => !v)} className={toggle(logX)}>{logX ? "Log X" : "Lin X"}</button>
         <button onClick={() => setLabels((v) => !v)} className={toggle(labels)}>Labels</button>
       </div>
-      <MarketScatter model={model} xKey={xk} yKey={yk} colorKey={ck} onPick={onPick} logX={logX} height={480} labelTop={labels ? 12 : 0} />
+      <MarketScatter model={model} xKey={xk} yKey={yk} colorKey={ck} onPick={onPick} logX={logX} height={560} labelTop={labels ? 12 : 0} />
       <div className="text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70 mt-1">
         X = {mx.lbl} · Y = {my.lbl} · color = {METRICS[ck].lbl} · size = market cap · dashed = median · click → latest call
       </div>

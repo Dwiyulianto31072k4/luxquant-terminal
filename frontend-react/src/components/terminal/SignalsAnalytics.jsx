@@ -28,7 +28,7 @@ import {
   STATUS_ORDER, STATUS_LABEL, STATUS_COLORS, RISK_COLORS,
   fmtPct, median, parseMcap, csv, makeBins, PLAUSIBLE_LO, PLAUSIBLE_HI,
   SectionBand, Kpi, Chip, FilterMulti, DarkTip, ScatterTip, LegendChips,
-  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf,
+  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf, fmtAxis,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { ConfluenceTab } from "./ConfluenceTabs";
@@ -720,8 +720,8 @@ export default function SignalsAnalytics() {
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                           <CartesianGrid stroke={GRID} />
-                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domX} allowDataOverflow />
-                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domY} allowDataOverflow />
+                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zAnom.domY} allowDataOverflow tickFormatter={fmtAxis} />
                           <Tooltip content={<ScatterTip xLabel="chg 24h %" yLabel="vol/mcap %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                           {agg.medFlow > 0 && <ReferenceLine y={agg.medFlow * 3} stroke={ORANGE} strokeDasharray="3 3" />}
@@ -834,8 +834,8 @@ export default function SignalsAnalytics() {
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                           <CartesianGrid stroke={GRID} />
-                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domX} allowDataOverflow />
-                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domY} allowDataOverflow />
+                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zOpp.domY} allowDataOverflow tickFormatter={fmtAxis} />
                           <Tooltip content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                           <Scatter data={agg.scatterOpp} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
@@ -860,8 +860,8 @@ export default function SignalsAnalytics() {
                     <ResponsiveContainer width="100%" height="100%">
                       <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                         <CartesianGrid stroke={GRID} />
-                        <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domX} allowDataOverflow />
-                        <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domY} allowDataOverflow />
+                        <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                        <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zPeak.domY} allowDataOverflow tickFormatter={fmtAxis} />
                         <Tooltip content={<ScatterTip xLabel="peak %" yLabel="now %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                         <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 150, y: 150 }]} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
@@ -961,8 +961,8 @@ export default function SignalsAnalytics() {
                       <ResponsiveContainer width="100%" height="100%">
                         <ScatterChart margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
                           <CartesianGrid stroke={GRID} />
-                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zBeta.domX} allowDataOverflow />
-                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zBeta.domY} allowDataOverflow />
+                          <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zBeta.domX} allowDataOverflow tickFormatter={fmtAxis} />
+                          <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zBeta.domY} allowDataOverflow tickFormatter={fmtAxis} />
                           <Tooltip content={<ScatterTip xLabel="β 30d" yLabel="Δ call %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                           <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
                           <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
