@@ -33,6 +33,13 @@ const LIFECYCLE_LABEL = {
 const IMPACT_COLOR = {
   critical: palette.red[400], major: palette.red[400], minor: palette.amber[400], maintenance: palette.blue[400],
 };
+// per-update colour so the timeline reads state at a glance
+const UPDATE_COLOR = (status) => {
+  if (status === "resolved" || status === "completed") return palette.green[400];
+  if (status === "monitoring" || status === "scheduled" || status === "in_progress") return palette.blue[400];
+  if (status === "identified" || status === "investigating") return palette.amber[400];
+  return palette.warm[400];
+};
 const OVERALL_LABEL = {
   operational: "All systems operational", maintenance: "Under maintenance",
   degraded: "Some systems degraded", major_outage: "Major outage", unknown: "Status unknown",
@@ -81,9 +88,10 @@ function StatusPill({ status }) {
 function OverallBanner({ overall, label }) {
   const c = meta(overall).color;
   return (
-    <div className="relative rounded-xl border overflow-hidden" style={{ borderColor: tint(c, 0.28), background: `linear-gradient(180deg, ${tint(c, 0.08)}, transparent)` }}>
+    <div className="relative rounded-2xl border overflow-hidden shadow-2xl shadow-black/40" style={{ borderColor: tint(c, 0.3), background: "#0a0805" }}>
       <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${c}, transparent)` }} />
-      <div className="flex items-center gap-4 px-5 py-6 sm:px-8 sm:py-7">
+      <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(130% 120% at 0% 0%, ${tint(c, 0.1)}, transparent 55%)` }} />
+      <div className="relative flex items-center gap-4 px-5 py-6 sm:px-8 sm:py-7">
         <Dot status={overall} size={16} ping={overall === "major_outage"} />
         <div>
           <div className="text-lg sm:text-2xl font-light tracking-tight text-white" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
@@ -109,23 +117,26 @@ function ComponentRow({ c }) {
 function IncidentCard({ inc, past = false }) {
   const accent = IMPACT_COLOR[inc.impact] || palette.warm[400];
   const closed = inc.status === "resolved" || inc.status === "completed";
+  const headColor = closed ? palette.green[400] : accent;
+  const updates = inc.updates?.length > 0 ? inc.updates.slice().reverse() : [];
   return (
-    <div className="relative rounded-xl border overflow-hidden" style={{ borderColor: past ? "rgba(255,255,255,0.08)" : tint(accent, 0.28), background: past ? "transparent" : tint(accent, 0.05) }}>
-      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(accent, 0.4)}, transparent)` }} />
-      <div className="px-4 sm:px-5 py-4">
+    <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: past ? "rgba(255,255,255,0.07)" : tint(accent, 0.3), background: "#0a0805" }}>
+      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(headColor, 0.5)}, transparent)` }} />
+      <div className="px-5 py-4 sm:px-6 sm:py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[14px] text-white/95">{inc.title}</span>
-              {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: palette.warm[300], border: "1px solid rgba(255,255,255,0.08)" }}>Auto-detected</span>}
+              <span className="text-[14px] sm:text-[15px] text-white/95 font-medium">{inc.title}</span>
+              {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.05)", color: palette.warm[300], border: "1px solid rgba(255,255,255,0.08)" }}>Auto-detected</span>}
             </div>
             {inc.affected?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {inc.affected.map((k) => <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: palette.warm[400], border: "1px solid rgba(255,255,255,0.06)" }}>{k.replace(/_/g, " ")}</span>)}
+                {inc.affected.map((k) => <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.04)", color: palette.warm[400], border: "1px solid rgba(255,255,255,0.06)" }}>{k.replace(/_/g, " ")}</span>)}
               </div>
             )}
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded flex-shrink-0" style={{ color: closed ? palette.green[400] : accent, background: `${tint(closed ? palette.green[400] : accent, 0.12)}` }}>
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md flex-shrink-0" style={{ color: headColor, background: tint(headColor, 0.12), border: `1px solid ${tint(headColor, 0.25)}` }}>
+            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: headColor, boxShadow: `0 0 6px ${tint(headColor, 0.6)}` }} />
             {LIFECYCLE_LABEL[inc.status] || inc.status}
           </span>
         </div>
@@ -136,20 +147,29 @@ function IncidentCard({ inc, past = false }) {
           </div>
         )}
 
-        {inc.updates?.length > 0 && (
-          <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-            {inc.updates.slice().reverse().map((u, i) => (
-              <div key={i} className="flex gap-3">
-                <span className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: accent }} />
-                <div className="min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: accent }}>{LIFECYCLE_LABEL[u.status] || u.status}</span>
-                    <span className="font-mono text-[10px]" style={{ color: palette.warm[500] }}>{fmtTime(u.created_at)}</span>
-                  </div>
-                  {u.body && <p className="text-[13px] mt-0.5" style={{ color: palette.warm[200] }}>{u.body}</p>}
-                </div>
+        {/* ── timeline: each update is a dated node on a connecting rail ── */}
+        {updates.length > 0 && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            <div className="relative">
+              {updates.length > 1 && (
+                <span className="absolute left-[6px] top-2 bottom-2 w-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+              )}
+              <div className="space-y-4">
+                {updates.map((u, i) => {
+                  const uc = UPDATE_COLOR(u.status);
+                  return (
+                    <div key={i} className="relative pl-6">
+                      <span className="absolute left-[1px] top-[3px] w-[11px] h-[11px] rounded-full" style={{ background: uc, boxShadow: `0 0 8px ${tint(uc, 0.55)}`, border: "2px solid #0a0805" }} />
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color: uc }}>{LIFECYCLE_LABEL[u.status] || u.status}</span>
+                        <span className="font-mono text-[10px] tabular-nums" style={{ color: palette.warm[500] }}>{fmtTime(u.created_at)}</span>
+                      </div>
+                      {u.body && <p className="text-[13px] leading-relaxed mt-1" style={{ color: palette.warm[200] }}>{u.body}</p>}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>
@@ -261,14 +281,16 @@ export default function StatusPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8">
               <section className="lg:col-span-2">
                 <SectionLabel>Components</SectionLabel>
-                <div className="rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
+                  <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
                   {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
                 </div>
               </section>
 
               <aside className="lg:col-span-1">
                 <SectionLabel>Summary</SectionLabel>
-                <div className="rounded-xl border p-5" style={{ borderColor: "rgba(255,255,255,0.06)", background: "#0a0805" }}>
+                <div className="relative rounded-2xl border p-5 overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
+                  <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
                   <div className="flex items-center gap-3">
                     <Dot status={view.overall} size={12} />
                     <span className="text-[14px] text-white/90">{meta(view.overall).label}</span>
