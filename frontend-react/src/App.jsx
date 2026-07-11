@@ -516,6 +516,17 @@ function AppShell({ children }) {
   const isActive = (path) => location.pathname === path;
   const isAdmin = user?.role === "admin";
 
+  // Footer — exchange-style: shown on all content pages, EXCEPT viewport-locked
+  // "terminal" views (live trade UI / fullscreen chat) and internal admin tooling.
+  // Binance/Coinbase omit the marketing footer on their live trade terminal for
+  // the same reason — those layouts are height-locked so a footer never scrolls
+  // into view and only breaks the layout.
+  const FOOTER_HIDDEN_PATHS = ["/assistant", "/orderbook"];
+  const FOOTER_HIDDEN_PREFIXES = ["/terminal", "/admin"];
+  const showFooter =
+    !FOOTER_HIDDEN_PATHS.includes(location.pathname) &&
+    !FOOTER_HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
+
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", h, { passive: true });
@@ -1304,8 +1315,9 @@ function AppShell({ children }) {
         <Suspense fallback={<PageLoader />}>{children}</Suspense>
       </main>
 
-      {/* Footer — full-width, home page only (exchange-style) */}
-      {location.pathname === "/home" && (
+      {/* Footer — full-width, all content pages (exchange-style).
+          Hidden on viewport-locked terminals & admin — see showFooter above. */}
+      {showFooter && (
         <div className="pb-20 lg:pb-0">
           <Suspense fallback={null}>
             <FooterV2 onNav={() => navigate("/")} />
