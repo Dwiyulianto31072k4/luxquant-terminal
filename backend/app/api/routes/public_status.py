@@ -73,8 +73,18 @@ _COMPONENT_KEYS = {c["key"] for c in COMPONENTS}
 _COMPONENT_META = {c["key"]: c for c in COMPONENTS}
 
 # unit health → public component state ('idle' is normal → OK).
-_DEGRADED = {"warn", "unknown"}
+# NOTE: 'unknown' is deliberately NOT here. 'unknown' means a single
+# `systemctl show` call couldn't be read in time (e.g. it timed out while the
+# box was busy) — that's a transient read miss, not evidence the service is
+# unhealthy. Counting it as degraded caused false "degraded" flags, so we ignore
+# unknown units entirely when computing a component's state (see _auto_components).
+_DEGRADED = {"warn"}
 _DOWN = {"down"}
+
+# OS / distro units that can match our discovery keywords by accident
+# (e.g. "update-notifier" contains "notif") but are NOT part of the product.
+# They must never influence a user-facing component's status.
+_NOISE_PREFIXES = ("update-notifier", "systemd", "snap.", "unattended-upgrades", "packagekit")
 
 # severity ranks for roll-up. maintenance is informational (blue), NOT "worse".
 _RANK = {"operational": 0, "maintenance": 1, "degraded": 2, "major_outage": 3}
@@ -232,8 +242,16 @@ def _auto_components() -> list[dict[str, Any]]:
 
     by_cat: dict[str, list[str]] = {}
     for d in described:
-        cat = d.get("category") or _category(d.get("unit", d.get("name", "")))
-        by_cat.setdefault(cat, []).append(d.get("health", "unknown"))
+        name = d.get("name", "")
+        health = d.get("health", "unknown")
+        # Ignore OS/distro noise units and transient read misses so neither can
+        # flip a user-facing component to "degraded".
+        if health == "unknown":
+            continue
+        if any(name.startswith(p) for p in _NOISE_PREFIXES):
+            continue
+        cat = d.get("category") or _category(d.get("unit", name))
+        by_cat.setdefault(cat, []).append(health)
 
     out: list[dict[str, Any]] = []
     for c in COMPONENTS:
