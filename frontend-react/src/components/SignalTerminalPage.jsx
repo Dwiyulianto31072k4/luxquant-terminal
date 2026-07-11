@@ -631,7 +631,8 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
       <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
         <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke={payload.sc || "rgba(0,0,0,0.55)"} strokeWidth={payload.sc ? 2 : 0.6} />
         {payload.lab && (
-          <text x={cx} y={cy - payload.r - 2.5} textAnchor="middle" fontFamily="monospace" fontSize={9} fill="rgba(255,255,255,0.72)" pointerEvents="none">{payload.lab}</text>
+          <text x={cx} y={cy - payload.r - 3} textAnchor="middle" fontFamily="monospace" fontSize={9.5} fontWeight="700"
+            fill="#fff" stroke="rgba(0,0,0,0.9)" strokeWidth={2.6} paintOrder="stroke" pointerEvents="none">{payload.lab}</text>
         )}
       </g>
     );

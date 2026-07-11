@@ -656,14 +656,17 @@ export default function SignalsAnalytics() {
                   render={(h) => (
                     <div style={{ height: h }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={agg.days.map((d) => ({ day: d.day, wins: d.closed_win || 0, losses: -(d.closed_loss || 0) }))} margin={{ top: 6, right: 8, left: -18, bottom: 0 }} stackOffset="sign">
+                        <BarChart data={agg.days.map((d) => ({ day: d.day, tp1: d.tp1 || 0, tp2: d.tp2 || 0, tp3: d.tp3 || 0, tp4: d.closed_win || 0, sl: -(d.closed_loss || 0) }))} margin={{ top: 6, right: 8, left: -18, bottom: 0 }} stackOffset="sign">
                           <CartesianGrid stroke={GRID} vertical={false} />
                           <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} />
                           <YAxis tick={TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip content={<DarkTip />} cursor={{ fill: "rgba(212,168,83,0.05)" }} />
                           <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
-                          <Bar dataKey="wins" name="TP4 wins" stackId="a" fill={POS} fillOpacity={0.85} radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="losses" name="SL losses" stackId="a" fill={NEG} fillOpacity={0.85} radius={[0, 0, 2, 2]} />
+                          <Bar dataKey="tp1" name="TP1" stackId="a" fill="#2dd4a0" fillOpacity={0.9} />
+                          <Bar dataKey="tp2" name="TP2" stackId="a" fill="#4ade80" fillOpacity={0.9} />
+                          <Bar dataKey="tp3" name="TP3" stackId="a" fill="#86efac" fillOpacity={0.9} />
+                          <Bar dataKey="tp4" name="TP4" stackId="a" fill={GOLD} fillOpacity={0.95} radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="sl" name="SL" stackId="a" fill={NEG} fillOpacity={0.9} radius={[0, 0, 2, 2]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>

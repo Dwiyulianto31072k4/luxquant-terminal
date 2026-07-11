@@ -128,7 +128,7 @@ export function EdgeTab() {
             <Kpi label={t("terminal.viz.edgeKBaseline")} value={baseline == null ? "—" : baseline.toFixed(1) + "%"} desc={t("terminal.viz.edgeKBaselineDesc")} tone="text-gold-primary" />
             <Kpi label={t("terminal.viz.edgeKBreadth")} value={`${posCount}/${pev.length}`} desc={t("terminal.viz.edgeKBreadthDesc")} tone={posCount ? "text-positive" : undefined} />
             <Kpi label={t("terminal.viz.edgeKBest")} value={bestEV ? nice(bestEV.pattern) : "—"} desc={bestEV ? `+${bestEV.expected_value.toFixed(2)}%/trade · ${bestEV.win_rate?.toFixed(0)}% WR` : "—"} tone="text-positive" />
-            <Kpi label={t("terminal.viz.edgeKSample")} value={data?.totals?.count ?? "—"} desc={t("terminal.viz.edgeKSampleDesc")} />
+            <Kpi label={t("terminal.viz.edgeKSample")} value={data?.totals?.signals_resolved != null ? data.totals.signals_resolved.toLocaleString() : "—"} desc={t("terminal.viz.edgeKSampleDesc")} />
           </div>
 
           <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
