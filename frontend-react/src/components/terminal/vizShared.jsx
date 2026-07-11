@@ -2,7 +2,7 @@
 // Terminal viz — shared atoms, palette & helpers.
 // Used by SignalsAnalytics + DerivTabs. Dark+gold, Allium structure.
 // ════════════════════════════════════════════════════════════════
-import { useState, useContext } from "react";
+import { useState, useContext, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import CoinLogo from "../CoinLogo";
@@ -303,9 +303,21 @@ export function XCard({ title, desc, render, zoom, hint }) {
   );
   const body = (h) => (
     <>
-      <div onWheel={zoom?.onWheel}>{render(h)}</div>
+      <div
+        ref={zoom?.ref}
+        onPointerDown={zoom?.onPointerDown}
+        onPointerMove={zoom?.onPointerMove}
+        onPointerUp={zoom?.onPointerUp}
+        onPointerLeave={zoom?.onPointerUp}
+        onClickCapture={zoom?.onClickCapture}
+        style={zoom ? { touchAction: "none", cursor: "grab" } : undefined}
+      >
+        {render(h)}
+      </div>
       {hint && (
-        <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">{hint}</div>
+        <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-text-muted/70">
+          {zoom ? "drag to pan · wheel or −/+ to zoom · ⟲ reset · " : ""}{hint}
+        </div>
       )}
     </>
   );
@@ -356,21 +368,85 @@ export function XCard({ title, desc, render, zoom, hint }) {
   );
 }
 
-// wheel/button zoom over fixed base domains (scatters)
+// Domain-based pan + zoom for scatter charts (best practice — keeps SVG,
+// tooltips and clicks accurate, unlike CSS transforms). Free pan in any
+// direction, unlimited zoom in/out, wheel zooms toward the cursor, drag pans.
+// Backward-compatible API (domX/domY/zoomIn/zoomOut/reset/onWheel) plus the
+// pointer handlers + ref that XCard wires onto the chart body.
 export function useZoom(x0, x1, y0, y1) {
-  const [scale, setScale] = useState(1);
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const rx = (x1 - x0) / 2 / scale, ry = (y1 - y0) / 2 / scale;
+  const [dom, setDom] = useState({ x0, x1, y0, y1 });
+  const elRef = useRef(null);
+  const drag = useRef(null);
+  const moved = useRef(false);
+
+  const reset = useCallback(() => setDom({ x0, x1, y0, y1 }), [x0, x1, y0, y1]);
+  // follow the base domain when it changes (autoscaled charts) → refit data
+  useEffect(() => { setDom({ x0, x1, y0, y1 }); }, [x0, x1, y0, y1]);
+
+  // zoom keeping the point at fraction (fx,fy) of the plot fixed under cursor
+  const zoomAt = useCallback((fx, fy, factor) =>
+    setDom((d) => {
+      const w = d.x1 - d.x0, h = d.y1 - d.y0;
+      const px = d.x0 + fx * w;      // data-x under cursor
+      const py = d.y1 - fy * h;      // data-y under cursor (screen-top = y1)
+      const nw = w / factor, nh = h / factor;
+      return { x0: px - fx * nw, x1: px + (1 - fx) * nw, y1: py + fy * nh, y0: py - (1 - fy) * nh };
+    }), []);
+
+  const fracOf = useCallback((cx, cy) => {
+    const r = elRef.current?.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return [0.5, 0.5];
+    return [Math.min(1, Math.max(0, (cx - r.left) / r.width)), Math.min(1, Math.max(0, (cy - r.top) / r.height))];
+  }, []);
+
+  // native, NON-passive wheel listener — React's onWheel is passive so
+  // preventDefault() would be ignored and the page would scroll instead.
+  const onWheelNative = useCallback((e) => {
+    e.preventDefault();
+    const [fx, fy] = fracOf(e.clientX, e.clientY);
+    zoomAt(fx, fy, e.deltaY < 0 ? 1.18 : 1 / 1.18);
+  }, [fracOf, zoomAt]);
+
+  // callback ref — attaches/detaches the wheel listener as the chart body
+  // element mounts (works for both the inline card and the fullscreen modal)
+  const ref = useCallback((node) => {
+    if (elRef.current) elRef.current.removeEventListener("wheel", onWheelNative);
+    elRef.current = node;
+    if (node) node.addEventListener("wheel", onWheelNative, { passive: false });
+  }, [onWheelNative]);
+
+  const onPointerDown = (e) => {
+    if (e.button !== 0) return;
+    moved.current = false;
+    drag.current = { sx: e.clientX, sy: e.clientY, dom };
+    try { elRef.current?.setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
+  };
+  const onPointerMove = (e) => {
+    if (!drag.current) return;
+    const r = elRef.current?.getBoundingClientRect();
+    if (!r || !r.width) return;
+    const dx = e.clientX - drag.current.sx, dy = e.clientY - drag.current.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved.current = true;
+    const d0 = drag.current.dom;
+    const w = d0.x1 - d0.x0, h = d0.y1 - d0.y0;
+    const shiftX = -(dx / r.width) * w, shiftY = (dy / r.height) * h;
+    setDom({ x0: d0.x0 + shiftX, x1: d0.x1 + shiftX, y0: d0.y0 + shiftY, y1: d0.y1 + shiftY });
+  };
+  const onPointerUp = (e) => {
+    drag.current = null;
+    try { elRef.current?.releasePointerCapture?.(e.pointerId); } catch { /* ignore */ }
+  };
+  // swallow the click that ends a drag so it doesn't open a signal
+  const onClickCapture = (e) => { if (moved.current) { e.stopPropagation(); moved.current = false; } };
+
   return {
-    domX: [cx - rx, cx + rx],
-    domY: [cy - ry, cy + ry],
-    zoomIn: () => setScale((s) => Math.min(10, s * 1.4)),
-    zoomOut: () => setScale((s) => Math.max(1, s / 1.4)),
-    reset: () => setScale(1),
-    onWheel: (e) => {
-      if (e.deltaY < 0) setScale((s) => Math.min(10, s * 1.15));
-      else setScale((s) => Math.max(1, s / 1.15));
-    },
+    ref,
+    domX: [dom.x0, dom.x1],
+    domY: [dom.y0, dom.y1],
+    zoomIn: () => zoomAt(0.5, 0.5, 1.4),
+    zoomOut: () => zoomAt(0.5, 0.5, 1 / 1.4),
+    reset,
+    onPointerDown, onPointerMove, onPointerUp, onClickCapture,
   };
 }
 

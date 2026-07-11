@@ -717,6 +717,7 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows } = usePairRows(view, deriv, pairFc);
+  const zSq = useZoom(0, 4, -0.5, 0.5);
 
   const scored = rows.filter((r) => r.squeeze != null);
   const crowdedLong = scored.filter((r) => r.squeeze_side === "long" && r.squeeze >= 45);
@@ -745,13 +746,14 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
         title={t("terminal.viz.sqScatterTitle")}
         desc={t("terminal.viz.sqScatterDesc")}
         hint={t("terminal.viz.sqScatterHint")}
+        zoom={zSq}
         render={(h) => (
           <div style={{ height: Math.max(h, 320) }}>
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid stroke={GRID} />
-                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={[0, 4]} label={{ value: "L/S ratio", position: "insideBottom", offset: -4, fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
-                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} domain={zSq.domX} allowDataOverflow label={{ value: "L/S ratio", position: "insideBottom", offset: -4, fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
+                <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zSq.domY} allowDataOverflow label={{ value: "funding", angle: -90, position: "insideLeft", fill: AXIS, fontSize: 9, fontFamily: "monospace" }} />
                 <ZAxis type="number" dataKey="z" range={[24, 400]} />
                 <Tooltip content={<ScatterTip xLabel="L/S ratio" yLabel="funding %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                 <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" />

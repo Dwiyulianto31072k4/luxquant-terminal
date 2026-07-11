@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
   CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
-import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf } from "./terminal/vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf, useZoom } from "./terminal/vizShared";
 import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
@@ -591,12 +591,13 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
   const pts = model
     .map((d) => ({ xv: mx.get(d), yv: my.get(d), d }))
     .filter((p) => p.xv != null && p.yv != null && !isNaN(p.xv) && !isNaN(p.yv));
+  const xs = pts.map((p) => p.xv), ys = pts.map((p) => p.yv);
+  const [x0, x1] = pts.length ? niceDomain(xs, logX) : [0, 1];
+  const [y0, y1] = pts.length ? niceDomain(ys, false) : [0, 1];
+  const z = useZoom(x0, x1, y0, y1); // free pan + unlimited zoom (hook must stay unconditional)
   if (!pts.length)
     return <div style={{ height }} className="flex items-center justify-center font-mono text-[11px] text-white/30">No data for these axes.</div>;
 
-  const xs = pts.map((p) => p.xv), ys = pts.map((p) => p.yv);
-  const [x0, x1] = niceDomain(xs, logX);
-  const [y0, y1] = niceDomain(ys, false);
   const xsS = xs.slice().sort((a, b) => a - b), ysS = ys.slice().sort((a, b) => a - b);
   const xMed = quantile(xsS, 0.5), yMed = quantile(ysS, 0.5);
 
@@ -638,14 +639,19 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
   const fmtTick = (m) => (v) => { const s = m.fmt(v); return typeof s === "string" ? s : String(s); };
 
   return (
-    <div className="relative" style={{ height }}>
+    <div
+      className="relative" style={{ height, touchAction: "none", cursor: "grab" }}
+      ref={z.ref} onPointerDown={z.onPointerDown} onPointerMove={z.onPointerMove}
+      onPointerUp={z.onPointerUp} onPointerLeave={z.onPointerUp} onClickCapture={z.onClickCapture}
+      onDoubleClick={z.reset} title="drag to pan · wheel to zoom · double-click to reset"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 16, right: 24, left: 14, bottom: 30 }}>
           <CartesianGrid stroke={GRID} strokeDasharray="2 4" />
-          <XAxis type="number" dataKey="x" scale={logX ? "log" : "linear"} domain={[x0, x1]}
+          <XAxis type="number" dataKey="x" scale={logX ? "log" : "linear"} domain={logX ? [Math.max(z.domX[0], 1e-4), z.domX[1]] : z.domX} allowDataOverflow
             tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(mx)}
             label={{ value: mx.lbl + (logX ? "  (log)" : ""), position: "insideBottom", offset: -14, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
-          <YAxis type="number" dataKey="y" domain={[y0, y1]}
+          <YAxis type="number" dataKey="y" domain={z.domY} allowDataOverflow
             tick={TICK_SM} axisLine={false} tickLine={false} tickFormatter={fmtTick(my)}
             label={{ value: my.lbl, angle: -90, position: "insideLeft", offset: 6, fill: AXIS, fontSize: 9.5, fontFamily: "monospace" }} />
           <ZAxis type="number" dataKey="z" range={[26, 460]} />
