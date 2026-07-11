@@ -110,7 +110,12 @@ async def bybit_liq_loop():
                     if raw is not None:
                         try:
                             msg = json.loads(raw)
+                            # surface a rejected subscription so we can diagnose
+                            if msg.get("op") == "subscribe" and msg.get("success") is False:
+                                print(f"🩸 liq subscribe REJECTED: {msg.get('ret_msg') or msg}")
                             if msg.get("topic", "").startswith("allLiquidation"):
+                                if _events.maxlen and len(_events) == 0:
+                                    print(f"🩸 first liquidation received: {msg.get('topic')}")
                                 for it in (msg.get("data") or []):
                                     price = _f(it.get("p"))
                                     size = _f(it.get("v"))
