@@ -24,6 +24,7 @@ from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import terminal
 from app.api.routes import workspace, finance, growth
 from app.api.routes import services_monitor
+from app.api.routes import public_status
 
 
 # Import Router
@@ -281,6 +282,8 @@ app.include_router(edge_lab.router, prefix="/api/v1", tags=["analytics"])
 app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])
 app.include_router(workspace.router, tags=["workspace"])
 app.include_router(services_monitor.router, tags=["workspace-services"])
+app.include_router(public_status.router, tags=["public-status"])
+app.include_router(public_status.admin_router, tags=["public-status-admin"])
 app.include_router(finance.router, tags=["finance"])
 app.include_router(growth.router, tags=["growth"])
 app.include_router(assistant.router, prefix="/api/v1", tags=["assistant"])

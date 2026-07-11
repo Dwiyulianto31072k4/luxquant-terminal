@@ -80,6 +80,8 @@ const SignalsAnalytics = lazy(
 );
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
+const StatusPage = lazy(() => import("./components/StatusPage"));
+const StatusAdminPage = lazy(() => import("./components/StatusAdminPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -1502,6 +1504,17 @@ function App() {
                 element={<Navigate to="/login" replace />}
               />
 
+              {/* PUBLIC STATUS PAGE — no auth, standalone (own layout).
+                  Must stay reachable when the app shell / auth is unhappy. */}
+              <Route
+                path="/status"
+                element={
+                  <Suspense fallback={<PageLoader />}>
+                    <StatusPage />
+                  </Suspense>
+                }
+              />
+
               {/* PUBLIC */}
               <Route
                 path="/home"
@@ -1861,6 +1874,18 @@ function App() {
               <Route
                 path="/admin/users"
                 element={<Navigate to="/admin/workspace#users" replace />}
+              />
+              <Route
+                path="/admin/status"
+                element={
+                  <RequireAuth>
+                    <RequireAdmin>
+                      <AppShell>
+                        <StatusAdminPage />
+                      </AppShell>
+                    </RequireAdmin>
+                  </RequireAuth>
+                }
               />
 
               {/* Backward compat — old /terminal/<page> URLs from the legacy
