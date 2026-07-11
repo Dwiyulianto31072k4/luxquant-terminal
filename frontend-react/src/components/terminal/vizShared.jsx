@@ -452,15 +452,20 @@ export function useZoom(x0, x1, y0, y1) {
   const onPointerDown = (e) => {
     if (e.button !== 0) return;
     moved.current = false;
-    drag.current = { sx: e.clientX, sy: e.clientY, dom };
-    try { elRef.current?.setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
+    // NOTE: do NOT setPointerCapture here — capturing on a plain click makes
+    // some browsers retarget the click to this element, swallowing the child
+    // dot's onClick (drill/open). Capture only once an actual drag starts.
+    drag.current = { sx: e.clientX, sy: e.clientY, dom, id: e.pointerId };
   };
   const onPointerMove = (e) => {
     if (!drag.current) return;
     const r = elRef.current?.getBoundingClientRect();
     if (!r || !r.width) return;
     const dx = e.clientX - drag.current.sx, dy = e.clientY - drag.current.sy;
-    if (Math.abs(dx) + Math.abs(dy) > 4) moved.current = true;
+    if (Math.abs(dx) + Math.abs(dy) > 4) {
+      if (!moved.current) { try { elRef.current?.setPointerCapture?.(drag.current.id); } catch { /* ignore */ } }
+      moved.current = true;
+    }
     const d0 = drag.current.dom;
     const w = d0.x1 - d0.x0, h = d0.y1 - d0.y0;
     const shiftX = -(dx / r.width) * w, shiftY = (dy / r.height) * h;

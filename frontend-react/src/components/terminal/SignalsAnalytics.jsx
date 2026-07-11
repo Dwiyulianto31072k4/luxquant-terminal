@@ -194,17 +194,26 @@ export default function SignalsAnalytics() {
       if (r.ok) setMacro(await r.json());
     } catch { /* keep previous */ }
   }, []);
+  const [liq, setLiq] = useState(null);
+  const fetchLiq = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() });
+      if (r.ok) setLiq(await r.json());
+    } catch { /* keep previous */ }
+  }, []);
   useEffect(() => {
     fetchData();
     fetchDeriv();
     fetchPostsignal();
     fetchMacro();
+    fetchLiq();
     const ivData = setInterval(fetchData, 60000);
     const ivDeriv = setInterval(fetchDeriv, 30000); // cheap: pure Redis read
     const ivPs = setInterval(fetchPostsignal, 300000); // 5 min: pure Redis read
     const ivMacro = setInterval(fetchMacro, 300000);
-    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); };
-  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro]);
+    const ivLiq = setInterval(fetchLiq, 6000); // live tape
+    return () => { clearInterval(ivData); clearInterval(ivDeriv); clearInterval(ivPs); clearInterval(ivMacro); clearInterval(ivLiq); };
+  }, [fetchData, fetchDeriv, fetchPostsignal, fetchMacro, fetchLiq]);
 
   const items = data?.items || [];
 
@@ -481,7 +490,7 @@ export default function SignalsAnalytics() {
   const zBeta = useZoom(-0.5, 2.5, -60, 60);
   const zPeak = useZoom(-20, 150, -60, 100);
 
-  const derivProps = { view, deriv, pairFc, openPair, openSignalRow };
+  const derivProps = { view, deriv, pairFc, openPair, openSignalRow, liq };
 
   // ════════════════════════════════════════════════════════════
   return (

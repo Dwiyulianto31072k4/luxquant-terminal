@@ -28,6 +28,7 @@ export function RiskTab({ view, deriv }) {
   const [sl, setSl] = useState("");
   const [target, setTarget] = useState("");
   const [pair, setPair] = useState(null);
+  const [selSig, setSelSig] = useState(null);
   const [q, setQ] = useState("");
 
   const options = useMemo(() => {
@@ -47,6 +48,7 @@ export function RiskTab({ view, deriv }) {
 
   const prefill = (s) => {
     setPair(s.pair);
+    setSelSig(s);
     setQ("");
     const e = Number(s.entry) || 0;
     const isShort = (s.signal_direction || "").toUpperCase() === "BEARISH";
@@ -70,6 +72,25 @@ export function RiskTab({ view, deriv }) {
   const atrPct = pair ? (deriv?.pairs?.[pair]?.atr_pct ?? null) : null; // 1h ATR % of price
   const slDistPct = E > 0 && S > 0 ? (Math.abs(E - S) / E) * 100 : null;
   const stopInAtr = atrPct && slDistPct ? slDistPct / atrPct : null; // stop distance in ATRs
+
+  // Correlation / concentration guard — other OPEN calls that would move with
+  // this one (same sector or similar BTC-alignment). Taking several = one bet.
+  const similar = useMemo(() => {
+    if (!selSig) return null;
+    const OPEN = new Set(["open", "tp1", "tp2", "tp3"]);
+    const sec = selSig.sector || null;
+    const ba = selSig.btc_align_score ?? null;
+    const seen = new Set();
+    const list = [];
+    (view || []).forEach((s) => {
+      if (s.pair === selSig.pair || seen.has(s.pair)) return;
+      if (!OPEN.has((s.status || "").toLowerCase())) return;
+      const sameSec = sec && (s.sector || null) === sec;
+      const closeBa = ba != null && s.btc_align_score != null && Math.abs(s.btc_align_score - ba) <= 12;
+      if (sameSec || closeBa) { seen.add(s.pair); list.push({ s, sameSec, closeBa }); }
+    });
+    return { sec, ba, list: list.slice(0, 18) };
+  }, [selSig, view]);
 
   const calc = useMemo(() => {
     if (!(E > 0) || !(S > 0) || !(acct > 0) || !(rpct > 0)) return null;
@@ -204,6 +225,29 @@ export function RiskTab({ view, deriv }) {
               )}
             </>
           )}
+
+          {/* Correlation / concentration guard */}
+          {selSig && similar && similar.list.length > 0 && (
+            <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden p-4">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+              <div className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Correlation &amp; Concentration</div>
+              <div className="text-[11px] text-white/70 mt-1 leading-relaxed">
+                <span className="text-warning">{similar.list.length}</span> other open call{similar.list.length > 1 ? "s" : ""} would move with <span className="text-white">{(selSig.pair || "").replace(/USDT$/i, "")}</span>
+                {similar.sec ? <> — same sector (<span className="text-white/80">{similar.sec}</span>)</> : null}
+                {similar.ba != null ? <> or similar BTC-alignment</> : null}. Taking several is really one concentrated bet.
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {similar.list.map(({ s, sameSec }) => (
+                  <span key={s.pair} className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.02] border border-white/[0.07] px-2 py-1">
+                    <CoinLogo pair={s.pair} size={15} />
+                    <span className="font-mono text-[10.5px] text-white/85">{(s.pair || "").replace(/USDT$/i, "")}</span>
+                    <span className="font-mono text-[8px] uppercase text-text-muted/70">{sameSec ? "sector" : "β-btc"}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="font-mono text-[9px] text-white/30 leading-relaxed">
             Estimates only — leverage/liquidation math is isolated-margin and ignores fees & maintenance margin. Not financial advice; size to what you can afford to lose.
           </p>

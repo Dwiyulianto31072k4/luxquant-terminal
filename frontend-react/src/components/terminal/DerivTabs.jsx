@@ -163,7 +163,9 @@ export function OITab({ view, deriv, pairFc, openPair }) {
 // ════════════════════════════════════════════════════════════════
 // TAB: LONG / SHORT
 // ════════════════════════════════════════════════════════════════
-export function LongShortTab({ view, deriv, pairFc, openPair }) {
+const _liqAgo = (ts) => { const s = Math.max(0, Date.now() / 1000 - ts); return s < 60 ? `${s | 0}s` : `${(s / 60) | 0}m`; };
+
+export function LongShortTab({ view, deriv, pairFc, openPair, liq }) {
   const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
@@ -194,6 +196,34 @@ export function LongShortTab({ view, deriv, pairFc, openPair }) {
         <Kpi label={t("terminal.viz.kCrowdShort")} value={crowdedShort.length} desc={t("terminal.viz.kCrowdShortDesc")} tone={crowdedShort.length ? "text-positive" : undefined} />
         <Kpi label={t("terminal.viz.kSmartDiv")} value={divPts.filter((p) => p.smart).length} desc={t("terminal.viz.kSmartDivDesc")} tone="text-gold-primary" />
       </div>
+
+      {/* ── Live liquidation tape (Bybit WS) ── */}
+      {liq && !liq.warming && (liq.events?.length || liq.long_usd_5m || liq.short_usd_5m) ? (
+        <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+          <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
+            <div className="text-[12.5px] text-white/90">Liquidations · live</div>
+            <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Forced position closes streaming from Bybit. Red = longs liquidated (price dumped), green = shorts liquidated (price ripped). Big prints = capitulation / squeeze zones.</div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-3">
+            <Kpi label="Longs liquidated · 5m" value={fmtMoney(liq.long_usd_5m || 0)} desc="Longs force-closed on the way down." tone="text-negative" />
+            <Kpi label="Shorts liquidated · 5m" value={fmtMoney(liq.short_usd_5m || 0)} desc="Shorts force-closed on the way up." tone="text-positive" />
+          </div>
+          <div className="px-3 pb-3 max-h-[300px] overflow-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gold-primary/25">
+            {(liq.events || []).length === 0 ? (
+              <div className="py-8 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted">Quiet — no liquidations streaming right now.</div>
+            ) : (liq.events || []).map((e, i) => (
+              <div key={i} className="flex items-center gap-2 py-1 border-b border-white/[0.04]">
+                <CoinLogo pair={e.pair} size={16} />
+                <span className="font-mono text-[11px] text-white/85">{(e.pair || "").replace(/USDT$/i, "")}</span>
+                <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm" style={{ color: e.side === "long" ? NEG : POS, background: (e.side === "long" ? NEG : POS) + "18" }}>{e.side} liq</span>
+                <span className="ml-auto font-mono text-[11px] tabular-nums" style={{ color: e.side === "long" ? NEG : POS }}>{fmtMoney(e.usd)}</span>
+                <span className="w-9 text-right font-mono text-[9px] text-text-muted/70">{_liqAgo(e.ts)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <XCard

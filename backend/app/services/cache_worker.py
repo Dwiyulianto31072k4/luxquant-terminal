@@ -1543,3 +1543,9 @@ def start_cache_workers():
         loop.create_task(bybit_deriv_loop())
     except Exception as e:
         print(f"⚠️ Bybit worker not started: {type(e).__name__}: {e}")
+    # Bybit liquidation tape — live forced-liquidation feed via WebSocket
+    try:
+        from app.services.bybit_liq_worker import bybit_liq_loop
+        loop.create_task(bybit_liq_loop())
+    except Exception as e:
+        print(f"⚠️ Bybit liq worker not started: {type(e).__name__}: {e}")

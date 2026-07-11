@@ -368,3 +368,25 @@ def get_postsignal(current_user: User = Depends(require_subscription)):
         stale["stale"] = True
         return stale
     return {"warming": True, "pairs": {}, "generated_at": None}
+
+
+# ============================================================
+# LIQUIDATIONS — live forced-liquidation tape (Bybit WS worker)
+# ============================================================
+
+LIQ_BLOB_KEY = "lq:terminal:liq"
+
+
+@router.get("/liquidations")
+def get_liquidations(current_user: User = Depends(require_subscription)):
+    """Recent forced liquidations (newest first) + 5m long/short USD totals.
+    READ-ONLY from Redis; the Bybit WS worker fills it in background."""
+    cached = cache_get(LIQ_BLOB_KEY)
+    if cached:
+        cached["stale"] = False
+        return cached
+    stale, _ = cache_get_with_stale(LIQ_BLOB_KEY)
+    if stale:
+        stale["stale"] = True
+        return stale
+    return {"warming": True, "events": [], "long_usd_5m": 0, "short_usd_5m": 0, "generated_at": None}
