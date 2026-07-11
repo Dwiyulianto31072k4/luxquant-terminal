@@ -139,7 +139,9 @@ const TopPerformers = () => {
 
   if (loading && !data) {
     return (
-      <div className="mb-10 animate-pulse">
+      <div className="mb-10">
+        <div className="relative rounded-2xl border border-white/[0.07] bg-[#0a0805] p-4 sm:p-6 animate-pulse overflow-hidden">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {/* Title — matches the real heading, not a boxed placeholder */}
         <div className="mb-6 sm:mb-7">
           <div className="h-8 w-56 rounded-lg bg-white/[0.05] sm:h-9 sm:w-72" />
@@ -167,6 +169,7 @@ const TopPerformers = () => {
               <div className="h-4 w-16 flex-shrink-0 rounded bg-white/[0.05]" />
             </div>
           ))}
+        </div>
         </div>
       </div>
     );
@@ -202,22 +205,35 @@ const TopPerformers = () => {
 
   return (
     <div className="mb-10 relative">
-      {/* ═══ HEADER — direct title only; metrics intentionally removed ═══ */}
-      <div className="relative mb-6 sm:mb-7">
-        <h2 className="font-display flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[28px] sm:block sm:text-[34px] font-bold leading-none tracking-tight text-white">
-          <span className="whitespace-nowrap">Top Gainers</span>
-          <span className="whitespace-nowrap text-[0.86em] text-gold-primary sm:ml-2 sm:text-[1em]">by LuxQuant</span>
-        </h2>
+      <div className="relative rounded-2xl border border-white/[0.07] bg-[#0a0805] overflow-hidden shadow-2xl shadow-black/40">
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+        <div className="p-4 sm:p-6">
+      {/* ═══ HEADER ═══ */}
+      <div className="relative mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-display flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[24px] sm:text-[30px] font-bold leading-none tracking-tight text-white">
+            <span className="whitespace-nowrap">Top Gainers</span>
+            <span className="whitespace-nowrap text-gold-primary">by LuxQuant</span>
+          </h2>
+          <p className="mt-2 font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-text-muted/70">LuxQuant's best calls · tap any row for the original proof</p>
+        </div>
       </div>
 
       {/* ═══ CUSTOM DATE PICKER ═══ */}
       {showCustom && (
-        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl border border-white/[0.06] bg-[#0a0805]">
-          <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.from')}</span>
-          <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]" />
-          <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">{t('top.to')}</span>
-          <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.08] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/40 [color-scheme:dark]" />
-          <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="px-4 py-1.5 bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/20 transition-all rounded-lg font-mono text-[10px] uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed">{t('top.apply')}</button>
+        <div className="mb-4 flex flex-wrap items-center gap-2.5 rounded-xl border border-gold-primary/20 bg-[#0c0a07] p-3">
+          <span className="font-mono text-[9px] text-gold-primary/80 uppercase tracking-[0.18em]">{t('top.custom')}</span>
+          <span className="hidden sm:block h-4 w-px bg-white/10" />
+          <label className="flex items-center gap-2">
+            <span className="font-mono text-[9px] text-text-muted uppercase tracking-[0.15em]">{t('top.from')}</span>
+            <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.1] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/50 hover:border-white/20 transition-colors [color-scheme:dark]" />
+          </label>
+          <svg viewBox="0 0 16 16" className="h-3 w-3 fill-gold-primary/50" aria-hidden="true"><path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" /></svg>
+          <label className="flex items-center gap-2">
+            <span className="font-mono text-[9px] text-text-muted uppercase tracking-[0.15em]">{t('top.to')}</span>
+            <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="px-3 py-1.5 bg-[#0a0506] border border-white/[0.1] rounded-lg text-white font-mono text-xs focus:outline-none focus:border-gold-primary/50 hover:border-white/20 transition-colors [color-scheme:dark]" />
+          </label>
+          <button onClick={handleCustomApply} disabled={!customFrom || !customTo} className="ml-auto px-4 py-1.5 bg-gold-primary text-[#1a1206] font-semibold hover:brightness-105 transition-all rounded-lg font-mono text-[10px] uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed">{t('top.apply')}</button>
         </div>
       )}
 
@@ -227,63 +243,61 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* ═══ CONTROL BAR — mobile fills the same left/right grid as KPI + table ═══ */}
+      {/* ═══ CONTROL BAR — solid category chips (left) + time-range segmented (right) ═══ */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-1 border-b border-white/[0.08]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
-            {/* Time range: four equal cells on mobile, compact pill only on desktop */}
-            <div className="order-1 grid w-full grid-cols-4 items-center rounded-full border border-white/[0.08] bg-[#0a0506] p-1 sm:order-2 sm:mb-2.5 sm:flex sm:w-auto sm:flex-shrink-0">
-              {presets.map(({ key, label }) => (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Category chips */}
+          <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto">
+            {CATEGORIES.map((c) => {
+              const on = category === c.key;
+              return (
                 <button
-                  key={key}
-                  onClick={() => handlePresetClick(key)}
-                  className={`min-w-0 flex-1 rounded-full px-1 py-2 font-mono text-[9px] uppercase tracking-[0.08em] transition-all sm:flex-none sm:px-3.5 sm:py-1.5 sm:text-[10px] sm:tracking-wider ${
-                    activeFilter === key
+                  key={c.key}
+                  onClick={() => setCategory(c.key)}
+                  className={`min-w-0 rounded-lg px-3 py-2 font-mono text-[10px] uppercase tracking-[0.1em] transition-all sm:text-[11px] ${
+                    on
                       ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
-                      : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
+                      : 'border border-white/[0.08] bg-[#0c0a07] text-text-muted hover:text-white hover:border-white/20'
                   }`}
                 >
-                  {label}
+                  <span className="block truncate">{c.label}</span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            {/* Category tabs: equal-width mobile nav, then MEXC-style spread row from sm up */}
-            <div className="order-2 grid w-full grid-cols-4 items-end gap-0 sm:order-1 sm:flex sm:flex-1 sm:justify-between sm:gap-4">
-              {CATEGORIES.map((c) => {
-                const on = category === c.key;
-                return (
-                  <button
-                    key={c.key}
-                    onClick={() => setCategory(c.key)}
-                    className={`relative min-w-0 pb-3 text-center font-display text-[10px] font-bold leading-none tracking-[-0.02em] transition-colors sm:w-auto sm:whitespace-nowrap sm:text-left sm:text-lg sm:leading-normal sm:tracking-tight lg:text-xl ${
-                      on ? 'text-white' : 'text-white/45 hover:text-white'
-                    }`}
-                  >
-                    <span className="block truncate">{c.label}</span>
-                    <span className={`absolute -bottom-px left-1 right-1 h-[2.5px] rounded-full transition-all sm:left-0 sm:right-0 ${on ? 'bg-gold-primary shadow-[0_0_12px_-2px_rgba(212,168,83,0.8)]' : 'bg-transparent'}`} />
-                  </button>
-                );
-              })}
-            </div>
+          {/* Time range: solid segmented control */}
+          <div className="grid w-full grid-cols-4 items-center rounded-lg border border-white/[0.08] bg-[#0a0506] p-1 sm:flex sm:w-auto sm:flex-shrink-0">
+            {presets.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => handlePresetClick(key)}
+                className={`min-w-0 flex-1 rounded-md px-1 py-1.5 font-mono text-[9px] uppercase tracking-[0.08em] transition-all sm:flex-none sm:px-3.5 sm:text-[10px] sm:tracking-wider ${
+                  activeFilter === key
+                    ? 'bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.6)]'
+                    : 'text-text-muted hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Date window — aligned to both page edges instead of floating on the right */}
+      {/* Date window — one clean solid WINDOW chip */}
       {data?.period && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 font-mono text-[9px] sm:text-[10px] tracking-wide text-text-muted/70">
-          <span className="truncate text-left">{periodRange.from}</span>
-          {periodRange.to && (
-            <span className="flex items-center justify-center gap-1.5 text-gold-primary/60" aria-hidden="true">
-              <span className="h-px w-3 sm:w-5 bg-gold-primary/30" />
-              <svg viewBox="0 0 16 16" className="h-3 w-3 fill-current" focusable="false">
-                <path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" />
-              </svg>
-              <span className="h-px w-3 sm:w-5 bg-gold-primary/30" />
-            </span>
-          )}
-          <span className={`truncate ${periodRange.to ? 'text-right' : 'col-span-2 text-left'}`}>{periodRange.to}</span>
+        <div className="mb-4 flex items-center gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/55">Window</span>
+          <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#0a0506] px-3 py-1.5 font-mono text-[10px] sm:text-[11px] tracking-wide text-white/85 tabular-nums">
+            <span className="truncate">{periodRange.from}</span>
+            {periodRange.to && (
+              <>
+                <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0 fill-gold-primary/60" aria-hidden="true"><path d="M2.5 7.25h8.3L8.3 4.7l1-1L13.5 8l-4.2 4.3-1-1 2.5-2.55H2.5z" /></svg>
+                <span className="truncate">{periodRange.to}</span>
+              </>
+            )}
+          </span>
         </div>
       )}
 
@@ -371,6 +385,8 @@ const TopPerformers = () => {
           </div>
         </div>
       )}
+        </div>
+      </div>
 
       <style>{`
         @keyframes tpRowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
