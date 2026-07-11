@@ -85,18 +85,35 @@ function StatusPill({ status }) {
   );
 }
 
-function OverallBanner({ overall, label }) {
+function OverallBanner({ overall, label, counts = {} }) {
   const c = meta(overall).color;
+  const chips = [
+    ["operational", "Operational"], ["degraded", "Degraded"],
+    ["major_outage", "Outage"], ["maintenance", "Maintenance"],
+  ].filter(([k]) => (counts[k] || 0) > 0);
   return (
     <div className="relative rounded-2xl border overflow-hidden shadow-2xl shadow-black/40" style={{ borderColor: tint(c, 0.3), background: "#0a0805" }}>
       <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${c}, transparent)` }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(130% 120% at 0% 0%, ${tint(c, 0.1)}, transparent 55%)` }} />
-      <div className="relative flex items-center gap-4 px-5 py-6 sm:px-8 sm:py-7">
-        <Dot status={overall} size={16} ping={overall === "major_outage"} />
-        <div>
-          <div className="text-lg sm:text-2xl font-light tracking-tight text-white" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] mt-1.5" style={{ color: c }}>LuxQuant Terminal</div>
+      <div className="relative flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
+        <div className="flex items-center gap-4">
+          <Dot status={overall} size={16} ping={overall === "major_outage"} />
+          <div>
+            <div className="text-lg sm:text-2xl font-light tracking-tight text-white" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.25em] mt-1.5" style={{ color: c }}>LuxQuant Terminal</div>
+          </div>
         </div>
+        {chips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {chips.map(([k, lbl]) => (
+              <span key={k} className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5" style={{ borderColor: tint(meta(k).color, 0.25), background: tint(meta(k).color, 0.08) }}>
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: meta(k).color, boxShadow: `0 0 6px ${tint(meta(k).color, 0.6)}` }} />
+                <span className="font-mono text-[13px] tabular-nums font-semibold" style={{ color: meta(k).color }}>{counts[k]}</span>
+                <span className="font-mono text-[9px] uppercase tracking-wider" style={{ color: palette.warm[300] }}>{lbl}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -271,11 +288,12 @@ export default function StatusPage() {
               </div>
               <div className="flex items-center gap-4 font-mono text-[11px]" style={{ color: palette.warm[400] }}>
                 {updatedText && <span>Updated {updatedText}</span>}
+                <span className="hidden sm:inline" style={{ color: palette.warm[500] }}>· Auto 30s</span>
                 <button onClick={load} className="uppercase tracking-wider hover:text-white transition-colors">Refresh</button>
               </div>
             </div>
 
-            <OverallBanner overall={view.overall} label={view.label} />
+            <OverallBanner overall={view.overall} label={view.label} counts={counts} />
 
             {view.note && <p className="mt-4 text-[13px]" style={{ color: palette.warm[400] }}>{view.note}</p>}
 
@@ -286,86 +304,52 @@ export default function StatusPage() {
               </section>
             )}
 
-            {/* main content (left) + sticky summary rail (right) — no empty gap */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8 items-start">
-              <div className="lg:col-span-2 space-y-8">
-                <section>
-                  <SectionLabel>Components</SectionLabel>
-                  <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
-                    <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
-                    {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
-                  </div>
-                </section>
-
-                {pastAll.length > 0 && (
-                  <section>
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
-                        <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>Past Incidents</span>
-                      </div>
-                      <span className="font-mono text-[10px] tabular-nums whitespace-nowrap" style={{ color: palette.warm[500] }}>{pastAll.length} total</span>
-                    </div>
-                    <div className="space-y-3">
-                      {pastSlice.map((inc) => <IncidentCard key={inc.id} inc={inc} past />)}
-                    </div>
-
-                    {pastPages > 1 && (
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        <button
-                          onClick={() => setPastPage((p) => Math.max(0, p - 1))}
-                          disabled={safePage <= 0}
-                          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
-                          style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
-                        >
-                          <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                          Prev
-                        </button>
-                        <span className="font-mono text-[10px] uppercase tracking-wider tabular-nums" style={{ color: palette.warm[400] }}>Page {safePage + 1} / {pastPages}</span>
-                        <button
-                          onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
-                          disabled={safePage >= pastPages - 1}
-                          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
-                          style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
-                        >
-                          Next
-                          <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                        </button>
-                      </div>
-                    )}
-                  </section>
-                )}
+            {/* full-width single column — status-page convention, no empty side rail */}
+            <section className="mt-8">
+              <SectionLabel>Components</SectionLabel>
+              <div className="relative rounded-2xl border overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
+                <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
+                {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
               </div>
+            </section>
 
-              <aside className="lg:col-span-1 lg:sticky lg:top-6">
-                <SectionLabel>Summary</SectionLabel>
-                <div className="relative rounded-2xl border p-5 overflow-hidden shadow-xl shadow-black/30" style={{ borderColor: "rgba(255,255,255,0.07)", background: "#0a0805" }}>
-                  <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(palette.gold[300], 0.45)}, transparent)` }} />
-                  <div className="flex items-center gap-3">
-                    <Dot status={view.overall} size={12} />
-                    <span className="text-[14px] text-white/90">{meta(view.overall).label}</span>
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    {[
-                      ["operational", "Operational"],
-                      ["degraded", "Degraded"],
-                      ["major_outage", "Outage"],
-                      ["maintenance", "Maintenance"],
-                    ].filter(([k]) => counts[k] > 0).map(([k, lbl]) => (
-                      <div key={k} className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: palette.warm[300] }}>
-                          <span className="inline-block w-2 h-2 rounded-full" style={{ background: meta(k).color }} />{lbl}
-                        </span>
-                        <span className="font-mono text-[13px] tabular-nums" style={{ color: meta(k).color }}>{counts[k]}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-5 pt-4 border-t font-mono text-[10px]" style={{ borderColor: "rgba(255,255,255,0.06)", color: palette.warm[500] }}>
-                    Auto-refreshes every 30s.
-                  </div>
+            {pastAll.length > 0 && (
+              <section className="mt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>Past Incidents</span>
+                  <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <span className="font-mono text-[10px] tabular-nums whitespace-nowrap" style={{ color: palette.warm[500] }}>{pastAll.length} total</span>
                 </div>
-              </aside>
-            </div>
+                <div className="space-y-3">
+                  {pastSlice.map((inc) => <IncidentCard key={inc.id} inc={inc} past />)}
+                </div>
+
+                {pastPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <button
+                      onClick={() => setPastPage((p) => Math.max(0, p - 1))}
+                      disabled={safePage <= 0}
+                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                    >
+                      <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                      Prev
+                    </button>
+                    <span className="font-mono text-[10px] uppercase tracking-wider tabular-nums" style={{ color: palette.warm[400] }}>Page {safePage + 1} / {pastPages}</span>
+                    <button
+                      onClick={() => setPastPage((p) => Math.min(pastPages - 1, p + 1))}
+                      disabled={safePage >= pastPages - 1}
+                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-25 disabled:cursor-not-allowed hover:text-white"
+                      style={{ borderColor: "rgba(255,255,255,0.1)", background: "#0c0a07", color: palette.warm[300] }}
+                    >
+                      Next
+                      <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
           </>
         )}
       </main>
