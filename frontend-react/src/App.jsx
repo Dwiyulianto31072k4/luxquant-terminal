@@ -81,7 +81,6 @@ const SignalsAnalytics = lazy(
 const PerformanceHub = lazy(() => import("./components/PerformanceHub"));
 const AssistantFullPage = lazy(() => import("./components/assistant/AssistantFullPage"));
 const StatusPage = lazy(() => import("./components/StatusPage"));
-const StatusAdminPage = lazy(() => import("./components/StatusAdminPage"));
 
 // Keep these eager — always visible in AppShell
 import { UserMenu } from "./components/auth";
@@ -1877,15 +1876,7 @@ function App() {
               />
               <Route
                 path="/admin/status"
-                element={
-                  <RequireAuth>
-                    <RequireAdmin>
-                      <AppShell>
-                        <StatusAdminPage />
-                      </AppShell>
-                    </RequireAdmin>
-                  </RequireAuth>
-                }
+                element={<Navigate to="/admin/workspace#status" replace />}
               />
 
               {/* Backward compat — old /terminal/<page> URLs from the legacy

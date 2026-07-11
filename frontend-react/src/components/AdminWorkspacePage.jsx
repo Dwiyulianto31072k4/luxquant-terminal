@@ -32,6 +32,7 @@ import { AnnouncementsTab } from './admin/workspace/AnnouncementsTab';
 import { SystemTab } from './admin/workspace/SystemTab';
 import { ProfitSharingTab } from './admin/workspace/ProfitSharingTab';
 import { AiCostTab } from './admin/workspace/AiCostTab';
+import { StatusTab } from './admin/workspace/StatusTab';
 import SocialPostsAdminPage from './SocialPostsAdminPage';
 
 // Design system
@@ -42,6 +43,7 @@ import {
   ShieldIcon,
   AlertTriangleIcon,
   AlertCircleIcon,
+  BellIcon,
   ZapIcon,
   ClockIcon,
   TrendingUpIcon,
@@ -73,6 +75,7 @@ const TABS = [
   { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',           Icon: BroadcastConeIcon, accent: palette.purple[400] },
   { id: 'socialposts',   label: 'Social Posts',  description: 'AI-generated post drafts',        Icon: BroadcastConeIcon, accent: palette.purple[400] },
   { id: 'system',        label: 'System',        description: 'VPS service health & control',    Icon: ServerIcon,        accent: palette.teal[400] },
+  { id: 'status',        label: 'Status',        description: 'Public status page & incidents',   Icon: BellIcon,          accent: palette.amber[400] },
   { id: 'profitshare',   label: 'Profit Share',  description: 'Revenue split recap & export',     Icon: DollarIcon,        accent: palette.green[400] },
   { id: 'aicost',        label: 'AI Cost',       description: 'AI usage & spend tracking',        Icon: ZapIcon,           accent: palette.gold[300] },
 ];
@@ -340,6 +343,7 @@ const AdminWorkspacePage = () => {
       {activeTab === 'announcements' && <AnnouncementsTab />}
       {activeTab === 'socialposts' && <SocialPostsAdminPage />}
       {activeTab === 'system' && <SystemTab />}
+      {activeTab === 'status' && <StatusTab />}
       {activeTab === 'profitshare' && <ProfitSharingTab />}
       {activeTab === 'aicost' && <AiCostTab />}
     </div>

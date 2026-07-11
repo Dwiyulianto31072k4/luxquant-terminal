@@ -2,137 +2,44 @@
 // ════════════════════════════════════════════════════════════════
 // LuxQuant — Public Status Page (status.anthropic.com style).
 //
-// WHY THIS PAGE IS DIFFERENT FROM EVERY OTHER PAGE
-// ------------------------------------------------
-// Feature pages need the backend to render their content, so when the backend
-// is down they can't open. This page is the opposite: it is a STATIC asset
-// (served by nginx, independent of the FastAPI process), and it never *depends*
-// on the backend to render — its whole job is to REPORT on the backend.
+// Standalone (no login, no AppShell) but visually part of the product: same
+// maroon canvas, gold-rail header, design-system tokens, and the full-bleed
+// max-w-[1600px] rhythm every other page uses — NOT a narrow centered card.
 //
-// So instead of "fetch status, and if it fails show an error", the page probes
-// the backend itself, entirely client-side, and turns the result into a verdict:
-//   • /status/ping answers   → API is alive
-//   • /status answers        → we also have the detailed per-component breakdown
-//   • neither answers         → API is down → we SAY SO, confidently, in-browser
-//
-// The only thing that can stop this page from loading is nginx / the whole
-// server going down — which no same-origin page can cover. For that layer you'd
-// host a copy (or an external uptime monitor) on separate infra.
+// Resilience: this is a static asset. It probes the backend client-side, so if
+// the API is down it still renders and says so ("Platform is not responding"),
+// computed entirely in the browser.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback } from "react";
+import { palette, tint, gradient } from "./admin/designSystem";
 
 const REFRESH_MS = 30_000;
 const PING_TIMEOUT_MS = 4_000;
 const STATUS_TIMEOUT_MS = 6_000;
 
-// public state → visual language
 const STATUS_META = {
-  operational: { label: "Operational", color: "#22c55e", glow: "rgba(34,197,94,0.5)" },
-  maintenance: { label: "Maintenance", color: "#3b82f6", glow: "rgba(59,130,246,0.5)" },
-  degraded: { label: "Degraded", color: "#f5b301", glow: "rgba(245,179,1,0.5)" },
-  major_outage: { label: "Major Outage", color: "#ef4444", glow: "rgba(239,68,68,0.55)" },
-  unknown: { label: "Unknown", color: "#8a8a8a", glow: "rgba(138,138,138,0.35)" },
+  operational: { label: "Operational", color: palette.green[400] },
+  maintenance: { label: "Maintenance", color: palette.blue[400] },
+  degraded: { label: "Degraded", color: palette.amber[400] },
+  major_outage: { label: "Major Outage", color: palette.red[400] },
+  unknown: { label: "Unknown", color: palette.warm[400] },
 };
 const meta = (s) => STATUS_META[s] || STATUS_META.unknown;
 
-// incident lifecycle badge labels
 const LIFECYCLE_LABEL = {
-  investigating: "Investigating",
-  identified: "Identified",
-  monitoring: "Monitoring",
-  resolved: "Resolved",
-  scheduled: "Scheduled",
-  in_progress: "In progress",
-  completed: "Completed",
+  investigating: "Investigating", identified: "Identified", monitoring: "Monitoring",
+  resolved: "Resolved", scheduled: "Scheduled", in_progress: "In progress", completed: "Completed",
 };
-// impact → accent color for the incident card
 const IMPACT_COLOR = {
-  critical: "#ef4444",
-  major: "#ef4444",
-  minor: "#f5b301",
-  maintenance: "#3b82f6",
+  critical: palette.red[400], major: palette.red[400], minor: palette.amber[400], maintenance: palette.blue[400],
 };
-const fmtTime = (iso) => {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-  } catch {
-    return "";
-  }
+const OVERALL_LABEL = {
+  operational: "All systems operational", maintenance: "Under maintenance",
+  degraded: "Some systems degraded", major_outage: "Major outage", unknown: "Status unknown",
 };
 
-function IncidentCard({ inc, past = false }) {
-  const accent = IMPACT_COLOR[inc.impact] || "#8a8a8a";
-  const badge = LIFECYCLE_LABEL[inc.status] || inc.status;
-  const resolved = inc.status === "resolved" || inc.status === "completed";
-  return (
-    <div
-      className="rounded-lg border overflow-hidden"
-      style={{ borderColor: past ? "rgba(255,255,255,0.08)" : `${accent}40`, background: past ? "transparent" : `${accent}0d` }}
-    >
-      <div className="px-4 sm:px-5 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[14px] text-white/95">{inc.title}</span>
-              {inc.auto && (
-                <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.06] text-text-muted border border-white/[0.08]">
-                  Auto-detected
-                </span>
-              )}
-            </div>
-            {inc.affected?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {inc.affected.map((k) => (
-                  <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-white/[0.05] text-text-muted border border-white/[0.06]">
-                    {k.replace(/_/g, " ")}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <span
-            className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-sm flex-shrink-0"
-            style={{ color: resolved ? "#22c55e" : accent, background: `${resolved ? "#22c55e" : accent}1a` }}
-          >
-            {resolved ? LIFECYCLE_LABEL[inc.status] : badge}
-          </span>
-        </div>
+const fmtTime = (iso) => { if (!iso) return ""; try { return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch { return ""; } };
 
-        {inc.is_maintenance && (inc.scheduled_for || inc.scheduled_until) && (
-          <div className="mt-2 font-mono text-[10px] text-text-muted">
-            {inc.scheduled_for && `From ${fmtTime(inc.scheduled_for)}`}
-            {inc.scheduled_until && ` → ${fmtTime(inc.scheduled_until)}`}
-          </div>
-        )}
-
-        {inc.updates?.length > 0 && (
-          <div className="mt-3 space-y-3 border-t border-white/[0.06] pt-3">
-            {inc.updates.slice().reverse().map((u, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="flex-shrink-0 mt-1">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: accent }}>
-                      {LIFECYCLE_LABEL[u.status] || u.status}
-                    </span>
-                    <span className="font-mono text-[10px] text-text-muted">{fmtTime(u.created_at)}</span>
-                  </div>
-                  {u.body && <p className="text-[13px] text-white/80 mt-0.5">{u.body}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// The component list we always want to show, even offline (so the page is never
-// blank). When the backend answers, its richer list overrides this.
 const FALLBACK_COMPONENTS = [
   { key: "platform", name: "Website & Sign-in", description: "Loading the app and signing in to your account." },
   { key: "signals", name: "Signals", description: "Live signals and their status updates." },
@@ -143,42 +50,44 @@ const FALLBACK_COMPONENTS = [
   { key: "community", name: "News & Updates", description: "Crypto news and community updates." },
 ];
 
-// fetch with a hard timeout — a hung request must not hang the probe.
 async function fetchWithTimeout(url, ms) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
-  try {
-    return await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" }, cache: "no-store" });
-  } finally {
-    clearTimeout(t);
-  }
+  try { return await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" }, cache: "no-store" }); }
+  finally { clearTimeout(t); }
 }
 
-function StatusDot({ status, size = 9 }) {
-  const m = meta(status);
+// ── atoms ─────────────────────────────────────────────────────────────
+function Dot({ status, size = 9, ping = false }) {
+  const c = meta(status).color;
   return (
-    <span
-      className="inline-block rounded-full flex-shrink-0"
-      style={{ width: size, height: size, background: m.color, boxShadow: `0 0 8px ${m.glow}` }}
-    />
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {ping && <span className="absolute inset-0 rounded-full animate-ping opacity-60" style={{ background: c }} />}
+      <span className="relative inline-block rounded-full" style={{ width: size, height: size, background: c, boxShadow: `0 0 8px ${tint(c, 0.5)}` }} />
+    </span>
+  );
+}
+
+function StatusPill({ status }) {
+  const c = meta(status).color;
+  return (
+    <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider" style={{ color: c }}>
+      <Dot status={status} size={8} ping={status === "major_outage"} />
+      {meta(status).label}
+    </span>
   );
 }
 
 function OverallBanner({ overall, label }) {
-  const m = meta(overall);
+  const c = meta(overall).color;
   return (
-    <div
-      className="relative rounded-lg border overflow-hidden"
-      style={{ borderColor: `${m.color}40`, background: `linear-gradient(180deg, ${m.color}14, transparent)` }}
-    >
-      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${m.color}, transparent)` }} />
-      <div className="flex items-center gap-4 px-5 py-6 sm:px-7 sm:py-7">
-        <StatusDot status={overall} size={16} />
+    <div className="relative rounded-xl border overflow-hidden" style={{ borderColor: tint(c, 0.28), background: `linear-gradient(180deg, ${tint(c, 0.08)}, transparent)` }}>
+      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${c}, transparent)` }} />
+      <div className="flex items-center gap-4 px-5 py-6 sm:px-8 sm:py-7">
+        <Dot status={overall} size={16} ping={overall === "major_outage"} />
         <div>
-          <div className="text-lg sm:text-xl font-normal text-white tracking-tight">{label || m.label}</div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] mt-1" style={{ color: m.color }}>
-            LuxQuant Terminal
-          </div>
+          <div className="text-lg sm:text-2xl font-light tracking-tight text-white" style={{ letterSpacing: "-0.01em" }}>{label || meta(overall).label}</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] mt-1.5" style={{ color: c }}>LuxQuant Terminal</div>
         </div>
       </div>
     </div>
@@ -186,89 +95,98 @@ function OverallBanner({ overall, label }) {
 }
 
 function ComponentRow({ c }) {
-  const m = meta(c.status);
   return (
-    <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-4 border-b border-white/[0.06] last:border-b-0">
+    <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-4 border-b last:border-b-0" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
       <div className="min-w-0">
         <div className="text-[14px] text-white/90">{c.name}</div>
-        {c.description && <div className="text-[12px] text-text-muted mt-0.5 truncate">{c.description}</div>}
+        {c.description && <div className="text-[12px] mt-0.5 truncate" style={{ color: palette.warm[400] }}>{c.description}</div>}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <StatusDot status={c.status} />
-        <span className="font-mono text-[11px] uppercase tracking-wider" style={{ color: m.color }}>
-          {m.label}
-        </span>
+      <StatusPill status={c.status} />
+    </div>
+  );
+}
+
+function IncidentCard({ inc, past = false }) {
+  const accent = IMPACT_COLOR[inc.impact] || palette.warm[400];
+  const closed = inc.status === "resolved" || inc.status === "completed";
+  return (
+    <div className="relative rounded-xl border overflow-hidden" style={{ borderColor: past ? "rgba(255,255,255,0.08)" : tint(accent, 0.28), background: past ? "transparent" : tint(accent, 0.05) }}>
+      <div className="absolute top-0 inset-x-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${tint(accent, 0.4)}, transparent)` }} />
+      <div className="px-4 sm:px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[14px] text-white/95">{inc.title}</span>
+              {inc.auto && <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: palette.warm[300], border: "1px solid rgba(255,255,255,0.08)" }}>Auto-detected</span>}
+            </div>
+            {inc.affected?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {inc.affected.map((k) => <span key={k} className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.05)", color: palette.warm[400], border: "1px solid rgba(255,255,255,0.06)" }}>{k.replace(/_/g, " ")}</span>)}
+              </div>
+            )}
+          </div>
+          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded flex-shrink-0" style={{ color: closed ? palette.green[400] : accent, background: `${tint(closed ? palette.green[400] : accent, 0.12)}` }}>
+            {LIFECYCLE_LABEL[inc.status] || inc.status}
+          </span>
+        </div>
+
+        {inc.is_maintenance && (inc.scheduled_for || inc.scheduled_until) && (
+          <div className="mt-2 font-mono text-[10px]" style={{ color: palette.warm[400] }}>
+            {inc.scheduled_for && `From ${fmtTime(inc.scheduled_for)}`}{inc.scheduled_until && ` → ${fmtTime(inc.scheduled_until)}`}
+          </div>
+        )}
+
+        {inc.updates?.length > 0 && (
+          <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            {inc.updates.slice().reverse().map((u, i) => (
+              <div key={i} className="flex gap-3">
+                <span className="inline-block w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: accent }} />
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: accent }}>{LIFECYCLE_LABEL[u.status] || u.status}</span>
+                    <span className="font-mono text-[10px]" style={{ color: palette.warm[500] }}>{fmtTime(u.created_at)}</span>
+                  </div>
+                  {u.body && <p className="text-[13px] mt-0.5" style={{ color: palette.warm[200] }}>{u.body}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-const OVERALL_LABEL = {
-  operational: "All systems operational",
-  degraded: "Some systems degraded",
-  major_outage: "Major outage",
-  unknown: "Status unknown",
-};
+const SectionLabel = ({ children }) => (
+  <div className="flex items-center gap-2 mb-3">
+    <span className="h-px w-4" style={{ background: tint(palette.gold[300], 0.4) }} />
+    <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: tint(palette.gold[300], 0.8) }}>{children}</span>
+    <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
+  </div>
+);
 
+// ── page ──────────────────────────────────────────────────────────────
 export default function StatusPage() {
-  const [view, setView] = useState(null); // { overall, label, components, updatedAt, note }
+  const [view, setView] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    // Two independent client-side probes. We never trust a single call.
-    // 1) ping = "is the API alive at all?"  2) status = "detailed breakdown".
     const [pingRes, statusRes] = await Promise.allSettled([
       fetchWithTimeout("/api/v1/status/ping", PING_TIMEOUT_MS),
       fetchWithTimeout("/api/v1/status", STATUS_TIMEOUT_MS),
     ]);
-
     const apiAlive = pingRes.status === "fulfilled" && pingRes.value.ok;
-
     let detail = null;
     if (statusRes.status === "fulfilled" && statusRes.value.ok) {
-      try {
-        detail = await statusRes.value.json();
-      } catch {
-        detail = null;
-      }
+      try { detail = await statusRes.value.json(); } catch { detail = null; }
     }
 
     if (detail && Array.isArray(detail.components)) {
-      // Backend answered fully — use its rich, authoritative breakdown.
-      setView({
-        overall: detail.overall || "operational",
-        label: detail.overall_label || OVERALL_LABEL[detail.overall] || "",
-        components: detail.components,
-        incidents: detail.incidents || [],
-        past: detail.past_incidents || [],
-        updatedAt: detail.updated_at ? new Date(detail.updated_at) : new Date(),
-        note: detail.note || "",
-      });
+      setView({ overall: detail.overall || "operational", label: detail.overall_label || OVERALL_LABEL[detail.overall] || "", components: detail.components, incidents: detail.incidents || [], past: detail.past_incidents || [], updatedAt: detail.updated_at ? new Date(detail.updated_at) : new Date(), note: detail.note || "" });
     } else if (apiAlive) {
-      // API is up but the detailed status didn't come back — partial view.
-      setView({
-        overall: "degraded",
-        label: "Running — detailed status temporarily unavailable",
-        components: FALLBACK_COMPONENTS.map((c) => ({
-          ...c,
-          status: c.key === "platform" ? "operational" : "unknown",
-        })),
-        updatedAt: new Date(),
-        note: "The platform is responding, but the detailed component status couldn't be loaded right now.",
-      });
+      setView({ overall: "degraded", label: "Running — detailed status temporarily unavailable", components: FALLBACK_COMPONENTS.map((c) => ({ ...c, status: c.key === "platform" ? "operational" : "unknown" })), incidents: [], past: [], updatedAt: new Date(), note: "The platform is responding, but the detailed component status couldn't be loaded right now." });
     } else {
-      // Neither probe answered → the platform is not responding. Say it plainly.
-      // This verdict is computed entirely in the browser — no backend needed.
-      setView({
-        overall: "major_outage",
-        label: "Platform is not responding",
-        components: FALLBACK_COMPONENTS.map((c) => ({
-          ...c,
-          status: c.key === "platform" ? "major_outage" : "unknown",
-        })),
-        updatedAt: new Date(),
-        note: "We can't reach the platform from your browser. It may be down or undergoing maintenance. This page refreshes automatically.",
-      });
+      setView({ overall: "major_outage", label: "Platform is not responding", components: FALLBACK_COMPONENTS.map((c) => ({ ...c, status: c.key === "platform" ? "major_outage" : "unknown" })), incidents: [], past: [], updatedAt: new Date(), note: "We can't reach the platform from your browser. It may be down or undergoing maintenance. This page refreshes automatically." });
     }
     setLoading(false);
   }, []);
@@ -279,83 +197,112 @@ export default function StatusPage() {
     return () => clearInterval(id);
   }, [load]);
 
-  const updatedText = view?.updatedAt
-    ? view.updatedAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "";
+  const counts = (() => {
+    const c = { operational: 0, degraded: 0, major_outage: 0, maintenance: 0, unknown: 0 };
+    (view?.components || []).forEach((x) => { c[x.status] = (c[x.status] || 0) + 1; });
+    return c;
+  })();
+  const updatedText = view?.updatedAt ? fmtTime(view.updatedAt.toISOString()) : "";
 
   return (
-    <div className="min-h-screen bg-bg-primary text-white">
-      <header className="border-b border-white/[0.06]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <div className="min-h-screen relative" style={{ background: palette.maroon[900] }}>
+      <div className="luxury-bg" />
+
+      {/* top bar */}
+      <header className="relative z-10 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-sm overflow-hidden border border-white/[0.06]">
+            <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
               <img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover" />
             </div>
-            <span className="text-[14px] font-normal text-white tracking-tight group-hover:text-gold-primary transition-colors">
-              LuxQuant Status
-            </span>
+            <span className="text-[14px] font-normal text-white tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
           </a>
-          <a href="/" className="font-mono text-[11px] uppercase tracking-wider text-text-muted hover:text-white transition-colors">
-            ← Terminal
-          </a>
+          <a href="/" className="font-mono text-[11px] uppercase tracking-wider transition-colors hover:text-white" style={{ color: palette.warm[400] }}>← Terminal</a>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <main className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="w-6 h-6 border border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-28">
+            <div className="w-6 h-6 rounded-full animate-spin" style={{ border: `1px solid ${tint(palette.gold[300], 0.2)}`, borderTopColor: palette.gold[300] }} />
           </div>
         ) : (
           <>
+            {/* title block (Management-System language) */}
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+              <div className="flex items-stretch gap-3.5">
+                <div className="w-[3px] shrink-0 rounded-full" style={{ background: `linear-gradient(to bottom, ${palette.gold[300]}, ${tint(palette.gold[300], 0.4)}, transparent)` }} />
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.32em] font-semibold leading-none mb-2" style={{ color: tint(palette.gold[300], 0.6) }}>LuxQuant</p>
+                  <h1 className="text-[26px] sm:text-[30px] font-light tracking-tight leading-none" style={{ letterSpacing: "-0.02em" }}>
+                    <span className="text-white">System </span>
+                    <span style={{ background: gradient.goldText, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Status</span>
+                  </h1>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 font-mono text-[11px]" style={{ color: palette.warm[400] }}>
+                {updatedText && <span>Updated {updatedText}</span>}
+                <button onClick={load} className="uppercase tracking-wider hover:text-white transition-colors">Refresh</button>
+              </div>
+            </div>
+
             <OverallBanner overall={view.overall} label={view.label} />
 
-            {view.note && <p className="mt-4 text-[13px] text-text-muted">{view.note}</p>}
+            {view.note && <p className="mt-4 text-[13px]" style={{ color: palette.warm[400] }}>{view.note}</p>}
 
+            {/* active incidents — full width, readable timelines */}
             {view.incidents?.length > 0 && (
               <section className="mt-6 space-y-3">
-                {view.incidents.map((inc) => (
-                  <IncidentCard key={inc.id} inc={inc} />
-                ))}
+                {view.incidents.map((inc) => <IncidentCard key={inc.id} inc={inc} />)}
               </section>
             )}
 
-            {view.components?.length > 0 && (
-              <section className="mt-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="h-px w-4 bg-gold-primary/40" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-gold-primary/80">Components</span>
-                  <span className="h-px flex-1 bg-white/[0.06]" />
-                </div>
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                  {view.components.map((c) => (
-                    <ComponentRow key={c.key} c={c} />
-                  ))}
+            {/* components (2/3) + summary rail (1/3) — fills the width */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8">
+              <section className="lg:col-span-2">
+                <SectionLabel>Components</SectionLabel>
+                <div className="rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                  {view.components.map((c) => <ComponentRow key={c.key} c={c} />)}
                 </div>
               </section>
-            )}
+
+              <aside className="lg:col-span-1">
+                <SectionLabel>Summary</SectionLabel>
+                <div className="rounded-xl border p-5" style={{ borderColor: "rgba(255,255,255,0.06)", background: "#0a0805" }}>
+                  <div className="flex items-center gap-3">
+                    <Dot status={view.overall} size={12} />
+                    <span className="text-[14px] text-white/90">{meta(view.overall).label}</span>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {[
+                      ["operational", "Operational"],
+                      ["degraded", "Degraded"],
+                      ["major_outage", "Outage"],
+                      ["maintenance", "Maintenance"],
+                    ].filter(([k]) => counts[k] > 0).map(([k, lbl]) => (
+                      <div key={k} className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: palette.warm[300] }}>
+                          <span className="inline-block w-2 h-2 rounded-full" style={{ background: meta(k).color }} />{lbl}
+                        </span>
+                        <span className="font-mono text-[13px] tabular-nums" style={{ color: meta(k).color }}>{counts[k]}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 pt-4 border-t font-mono text-[10px]" style={{ borderColor: "rgba(255,255,255,0.06)", color: palette.warm[500] }}>
+                    Auto-refreshes every 30s.
+                  </div>
+                </div>
+              </aside>
+            </div>
 
             {view.past?.length > 0 && (
-              <section className="mt-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="h-px w-4 bg-white/20" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-text-muted">Past Incidents</span>
-                  <span className="h-px flex-1 bg-white/[0.06]" />
-                </div>
+              <section className="mt-10">
+                <SectionLabel>Past Incidents</SectionLabel>
                 <div className="space-y-3">
-                  {view.past.map((inc) => (
-                    <IncidentCard key={inc.id} inc={inc} past />
-                  ))}
+                  {view.past.map((inc) => <IncidentCard key={inc.id} inc={inc} past />)}
                 </div>
               </section>
             )}
-
-            <div className="mt-8 flex items-center justify-between font-mono text-[11px] text-text-muted">
-              <span>{updatedText ? `Updated ${updatedText}` : ""}</span>
-              <button onClick={load} className="uppercase tracking-wider hover:text-white transition-colors">
-                Refresh
-              </button>
-            </div>
           </>
         )}
       </main>
