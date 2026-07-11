@@ -28,11 +28,12 @@ import {
   STATUS_ORDER, STATUS_LABEL, STATUS_COLORS, RISK_COLORS,
   fmtPct, median, parseMcap, csv, makeBins, PLAUSIBLE_LO, PLAUSIBLE_HI,
   SectionBand, Kpi, Chip, FilterMulti, DarkTip, ScatterTip, LegendChips,
-  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut,
+  XCard, useZoom, CoinPill, RankBars, SectorBars, Donut, statusColorOf,
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { ConfluenceTab } from "./ConfluenceTabs";
 import { EdgeTab } from "./EdgeSimulator";
+import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // ── URL-synced global filters (window FIXED at 7d) ─────────────────
 const DEFAULTS = { tab: "confluence", st: "all", sectors: "", risks: "", dec: "", q: "" };
@@ -82,20 +83,25 @@ export default function SignalsAnalytics() {
   const [loading, setLoading] = useState(!seedRef.current.data);
   const [error, setError] = useState(null);
   const [selectedSignal, setSelectedSignal] = useState(null);
-  const [days, setDays] = useState(() => { const n = Number(seedRef.current.days); return [1, 3, 7].includes(n) ? n : 7; }); // lookback window (signals live max 7d)
+  // multi-day window: which "days-ago" buckets (0=today … 6=6d ago) are on.
+  // Default = all 7 days. Signals live max 7d, so this is the full range.
+  const [dayBuckets, setDayBuckets] = useState(() => [0, 1, 2, 3, 4, 5, 6]);
+  const toggleDay = (d) =>
+    setDayBuckets((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)));
+  const { map: statusMap } = useSignalStatus() || {}; // pair→status for scatter-dot rings
 
   // persist to localStorage
   useEffect(() => {
     if (!data) return;
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, postsignal, days }));
+      localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data, deriv, postsignal }));
     } catch { /* quota — skip */ }
-  }, [data, deriv, postsignal, days]);
+  }, [data, deriv, postsignal]);
 
   const fetchData = useCallback(async () => {
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=${days}&scope=all`, { headers: authHeaders() });
+      const r = await fetch(`${API_BASE}/api/v1/terminal/screener?days=7&scope=all`, { headers: authHeaders() });
       if (!r.ok) throw new Error(`http ${r.status}`);
       setData(await r.json());
     } catch (e) {
@@ -103,7 +109,7 @@ export default function SignalsAnalytics() {
     } finally {
       setLoading(false);
     }
-  }, [days]);
+  }, []);
   const fetchDeriv = useCallback(async () => {
     try {
       const r = await fetch(`${API_BASE}/api/v1/terminal/derivatives`, { headers: authHeaders() });
@@ -193,9 +199,20 @@ export default function SignalsAnalytics() {
     if (selRisks.length) out = out.filter((s) => selRisks.includes(s.risk_norm));
     if (selSectors.length) out = out.filter((s) => selSectors.includes(s.sector || "unclassified"));
     if (f.dec === "1") out = out.filter((s) => s.is_decoupled);
+    // multi-day window — keep signals whose age falls in a selected day bucket
+    if (dayBuckets.length > 0 && dayBuckets.length < 7) {
+      const set = new Set(dayBuckets);
+      const now = Date.now();
+      out = out.filter((s) => {
+        const ts = Date.parse(s.created_at || "");
+        if (!ts) return true;
+        const bucket = Math.min(6, Math.max(0, Math.floor((now - ts) / 86400000)));
+        return set.has(bucket);
+      });
+    }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, filters]);
+  }, [items, filters, dayBuckets]);
 
   const sectorOptions = useMemo(() => {
     const s = new Set(items.map((i) => i.sector || "unclassified"));
@@ -419,20 +436,33 @@ export default function SignalsAnalytics() {
           ))}
         </div>
         <span className="h-4 w-px bg-white/[0.08]" />
-        {/* lookback window — applies to every tab */}
-        <div className="flex items-center gap-1 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
+        {/* multi-day window — toggle any of the last 7 days (0 = today) */}
+        <div className="flex items-center gap-0.5 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
           <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
-          {[1, 3, 7].map((d) => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`px-2 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
-                days === d ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-white"
-              }`}
-            >
-              {d}d
-            </button>
-          ))}
+          {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+            const on = dayBuckets.includes(d);
+            return (
+              <button
+                key={d}
+                onClick={() => toggleDay(d)}
+                title={d === 0 ? "today" : `${d} day${d > 1 ? "s" : ""} ago`}
+                className={`px-1.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
+                  on ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted/60 hover:text-white"
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setDayBuckets([0, 1, 2, 3, 4, 5, 6])}
+            title="all 7 days"
+            className={`px-1.5 py-1 rounded-sm font-mono text-[9px] uppercase tracking-wider transition-colors ${
+              dayBuckets.length === 7 ? "text-gold-primary" : "text-text-muted/50 hover:text-white"
+            }`}
+          >
+            all
+          </button>
         </div>
         <span className="h-4 w-px bg-white/[0.08]" />
         <FilterMulti
@@ -694,9 +724,9 @@ export default function SignalsAnalytics() {
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                           {agg.medFlow > 0 && <ReferenceLine y={agg.medFlow * 3} stroke={ORANGE} strokeDasharray="3 3" />}
                           <Scatter data={agg.anomPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                            {agg.anomPts.map((p, i) => (
-                              <Cell key={i} fill={p.hot ? GOLD : p.dec ? CYAN : GRAYBAR} cursor="pointer" />
-                            ))}
+                            {agg.anomPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                              <Cell key={i} fill={p.hot ? GOLD : p.dec ? CYAN : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                            ); })}
                           </Scatter>
                         </ScatterChart>
                       </ResponsiveContainer>
@@ -807,9 +837,9 @@ export default function SignalsAnalytics() {
                           <Tooltip content={<ScatterTip xLabel="Δ call %" yLabel="upside left %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                           <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                           <Scatter data={agg.scatterOpp} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                            {agg.scatterOpp.map((p, i) => (
-                              <Cell key={i} fill={RISK_COLORS[p.risk] || GRAYBAR} cursor="pointer" />
-                            ))}
+                            {agg.scatterOpp.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                              <Cell key={i} fill={RISK_COLORS[p.risk] || GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                            ); })}
                           </Scatter>
                         </ScatterChart>
                       </ResponsiveContainer>
@@ -834,9 +864,9 @@ export default function SignalsAnalytics() {
                         <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 150, y: 150 }]} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
                         <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
                         <Scatter data={agg.peakPts} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                          {agg.peakPts.map((p, i) => (
-                            <Cell key={i} fill={p.win ? GOLD : p.y >= 0 ? POS : NEG} cursor="pointer" />
-                          ))}
+                          {agg.peakPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                            <Cell key={i} fill={p.win ? GOLD : p.y >= 0 ? POS : NEG} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                          ); })}
                         </Scatter>
                       </ScatterChart>
                     </ResponsiveContainer>
@@ -935,9 +965,9 @@ export default function SignalsAnalytics() {
                           <ReferenceLine y={0} stroke={GOLD} strokeDasharray="3 3" />
                           <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                           <Scatter data={agg.scatterBeta} fillOpacity={0.8} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                            {agg.scatterBeta.map((p, i) => (
-                              <Cell key={i} fill={p.dec ? CYAN : GRAYBAR} cursor="pointer" />
-                            ))}
+                            {agg.scatterBeta.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                              <Cell key={i} fill={p.dec ? CYAN : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                            ); })}
                           </Scatter>
                         </ScatterChart>
                       </ResponsiveContainer>

@@ -47,6 +47,13 @@ export const SectorGlyph = ({ sector, size = 13 }) => (
   </span>
 );
 
+// signal-status stroke color for a scatter dot (null if the pair has no call).
+// Lets every scatter point show its status as a colored ring.
+export function statusColorOf(map, pair) {
+  const info = map?.[(pair || "").toUpperCase()];
+  return info ? (STATUS_META[info.status]?.color || null) : null;
+}
+
 export const TICK = { fill: AXIS, fontSize: 10, fontFamily: "JetBrains Mono" };
 export const TICK_SM = { fill: AXIS, fontSize: 9, fontFamily: "JetBrains Mono" };
 

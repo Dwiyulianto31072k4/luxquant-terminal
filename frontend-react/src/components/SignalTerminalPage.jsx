@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis,
   CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
-import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph } from "./terminal/vizShared";
+import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf } from "./terminal/vizShared";
 import { useSignalStatus } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
@@ -581,6 +581,7 @@ const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 // cap, colors robustly, labels the largest caps, and keeps overplotting
 // legible via small semi-transparent dots. Used by Bubble + Explore.
 function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, height = 480, quadrants = null, labelTop = 12 }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const mx = METRICS[xKey], my = METRICS[yKey];
   const pts = model
     .map((d) => ({ xv: mx.get(d), yv: my.get(d), d }))
@@ -613,6 +614,7 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
       fill: colorByMetric(p.d, colorKey, model),
       r: rOf(mc),
       lab: labSet.has(p.d.signal_id) ? p.d.sym : null,
+      sc: statusColorOf(statusMap, p.d.pair),
     };
   });
 
@@ -621,7 +623,7 @@ function MarketScatter({ model, xKey, yKey, colorKey, onPick, logX = false, heig
     if (cx == null || cy == null) return null;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => onPick(payload.d)}>
-        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke="rgba(0,0,0,0.55)" strokeWidth={0.6} />
+        <circle cx={cx} cy={cy} r={payload.r} fill={payload.fill} fillOpacity={0.5} stroke={payload.sc || "rgba(0,0,0,0.55)"} strokeWidth={payload.sc ? 2 : 0.6} />
         {payload.lab && (
           <text x={cx} y={cy - payload.r - 2.5} textAnchor="middle" fontFamily="monospace" fontSize={9} fill="rgba(255,255,255,0.72)" pointerEvents="none">{payload.lab}</text>
         )}

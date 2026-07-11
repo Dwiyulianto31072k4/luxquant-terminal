@@ -18,8 +18,9 @@ import {
   API_BASE, GOLD, POS, NEG, CYAN, PURPLE, ORANGE, GRAYBAR, GRID, AXIS,
   TICK, TICK_SM, fmtPct, fmtMoney, makeBins, median,
   SectionBand, Kpi, XCard, useZoom, RankBars, CoinPill, DarkTip, ScatterTip,
-  LegendChips, Warming, Chip, ScrollArea,
+  LegendChips, Warming, Chip, ScrollArea, statusColorOf,
 } from "./vizShared";
+import { useSignalStatus } from "../../context/SignalStatusContext";
 
 // join view pairs with the deriv blob → one row per unique pair
 function usePairRows(view, deriv, pairFc) {
@@ -62,6 +63,7 @@ const NoDerivStrip = ({ noDeriv, onPair }) => {
 // TAB: OPEN INTEREST
 // ════════════════════════════════════════════════════════════════
 export function OITab({ view, deriv, pairFc, openPair }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   const zQuad = useZoom(-20, 20, -15, 15);
@@ -117,13 +119,15 @@ export function OITab({ view, deriv, pairFc, openPair }) {
                     <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
                     <Scatter data={quad} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                      {quad.map((p, i) => (
+                      {quad.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
                         <Cell
                           key={i}
                           cursor="pointer"
                           fill={p.x >= 0 && p.y >= 0 ? POS : p.x < 0 && p.y >= 0 ? NEG : p.x >= 0 ? CYAN : ORANGE}
+                          stroke={sc || undefined}
+                          strokeWidth={sc ? 2 : 0}
                         />
-                      ))}
+                      ); })}
                     </Scatter>
                   </ScatterChart>
                 </ResponsiveContainer>
@@ -157,6 +161,7 @@ export function OITab({ view, deriv, pairFc, openPair }) {
 // TAB: LONG / SHORT
 // ════════════════════════════════════════════════════════════════
 export function LongShortTab({ view, deriv, pairFc, openPair }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   const zDiv = useZoom(0, 4, 0, 4);
@@ -227,9 +232,9 @@ export function LongShortTab({ view, deriv, pairFc, openPair }) {
                   <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                   <ReferenceLine y={1} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                   <Scatter data={divPts} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                    {divPts.map((p, i) => (
-                      <Cell key={i} fill={p.smart ? GOLD : GRAYBAR} cursor="pointer" />
-                    ))}
+                    {divPts.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                      <Cell key={i} fill={p.smart ? GOLD : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                    ); })}
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
@@ -291,6 +296,7 @@ export function LongShortTab({ view, deriv, pairFc, openPair }) {
 // TAB: FUNDING & SQUEEZE
 // ════════════════════════════════════════════════════════════════
 export function FundingTab({ view, deriv, pairFc, openPair }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   const zFund = useZoom(-0.15, 0.15, -30, 30);
@@ -384,9 +390,9 @@ export function FundingTab({ view, deriv, pairFc, openPair }) {
                 <ReferenceLine x={0} stroke={GOLD} strokeDasharray="3 3" />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" />
                 <Scatter data={fundFc} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                  {fundFc.map((p, i) => (
-                    <Cell key={i} fill={p.neg ? POS : GRAYBAR} cursor="pointer" />
-                  ))}
+                  {fundFc.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                    <Cell key={i} fill={p.neg ? POS : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} cursor="pointer" />
+                  ); })}
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
@@ -636,6 +642,7 @@ export function VsBtcTab({ view, deriv, pairFc, openPair, movers }) {
 // TAB: MOMENTUM — relative strength + volume acceleration (worker score)
 // ════════════════════════════════════════════════════════════════
 export function MomentumTab({ view, deriv, pairFc, openPair }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows } = usePairRows(view, deriv, pairFc);
   const zM = useZoom(-15, 15, -40, 60);
@@ -681,9 +688,9 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
                 <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
                 <Scatter data={scatter} fillOpacity={0.85} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                  {scatter.map((p, i) => (
-                    <Cell key={i} cursor="pointer" fill={p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR} />
-                  ))}
+                  {scatter.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                    <Cell key={i} cursor="pointer" fill={p.mom >= 65 ? GOLD : p.mom >= 50 ? POS : p.x < 0 ? NEG : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} />
+                  ); })}
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
@@ -704,6 +711,7 @@ export function MomentumTab({ view, deriv, pairFc, openPair }) {
 // TAB: SQUEEZE — how crowded/extended one side is (worker score)
 // ════════════════════════════════════════════════════════════════
 export function SqueezeTab({ view, deriv, pairFc, openPair }) {
+  const { map: statusMap } = useSignalStatus() || {};
   const { t } = useTranslation();
   const { rows } = usePairRows(view, deriv, pairFc);
 
@@ -746,9 +754,9 @@ export function SqueezeTab({ view, deriv, pairFc, openPair }) {
                 <ReferenceLine x={1} stroke="rgba(255,255,255,0.15)" />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
                 <Scatter data={scatter} fillOpacity={0.6} onClick={(p) => { const d = p?.payload || p; if (d?.pair) openPair(d.pair); }}>
-                  {scatter.map((p, i) => (
-                    <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} />
-                  ))}
+                  {scatter.map((p, i) => { const sc = statusColorOf(statusMap, p.pair); return (
+                    <Cell key={i} cursor="pointer" fill={p.side === "long" ? NEG : p.side === "short" ? POS : GRAYBAR} stroke={sc || undefined} strokeWidth={sc ? 2 : 0} />
+                  ); })}
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
