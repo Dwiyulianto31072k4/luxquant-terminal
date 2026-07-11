@@ -524,12 +524,15 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks,
     messages.append({"role": "user", "content": req.message})
 
     # 3) Call the model
+    # Data-dense pages (the Terminal) get more room so per-visual answers can carry
+    # a definition + how-to-read + a scenario tip without being cut off.
+    max_toks = 800 if req.page_id == "terminal" else 500
     try:
         res = await _deepseek.chat.completions.create(
             model=MODEL,
             messages=messages,
             temperature=0.3,
-            max_tokens=500,
+            max_tokens=max_toks,
         )
         answer = (res.choices[0].message.content or "").strip()
         # Track token usage & cost (non-blocking, after response is sent).
