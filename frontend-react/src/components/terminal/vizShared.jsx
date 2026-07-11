@@ -251,12 +251,20 @@ export const DarkTip = ({ active, payload, label }) => {
 };
 
 export function ScatterTip({ active, payload, xLabel = "x", yLabel = "y" }) {
+  const ctx = useContext(SignalStatusContext);
   if (!active || !payload?.length) return null;
   const p = payload[0]?.payload;
   if (!p) return null;
+  const info = ctx?.map && p.pair ? ctx.map[p.pair.toUpperCase()] : null;
+  const meta = info ? (STATUS_META[info.status] || { label: (info.status || "—").toUpperCase(), color: "#9ca3af" }) : null;
+  const ago = info ? timeAgo(info.created) : null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
-      <div className="text-white mb-0.5">{p.pair}</div>
+      <div className="text-white mb-0.5 flex items-center gap-2">
+        <span>{p.pair}</span>
+        {meta && <span className="font-bold" style={{ color: meta.color }}>{meta.label}</span>}
+      </div>
+      {ago && <div className="text-white/45 mb-0.5">called {ago}</div>}
       <div className="text-white/60">{xLabel}: <span className="text-white/90">{Number(p.x).toFixed(2)}</span></div>
       <div className="text-white/60">{yLabel}: <span className="text-white/90">{Number(p.y).toFixed(2)}</span></div>
     </div>

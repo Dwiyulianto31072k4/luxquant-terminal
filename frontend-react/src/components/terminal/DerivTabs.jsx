@@ -68,10 +68,13 @@ export function OITab({ view, deriv, pairFc, openPair }) {
   const { rows, noDeriv } = usePairRows(view, deriv, pairFc);
   const zQuad = useZoom(-20, 20, -15, 15);
 
+  // clamp to the visible window so a freshly-listed pair with a huge OI jump
+  // can't blow the axis up to 500,000% (outliers pin to the edge, still shown)
+  const clampQ = (v, a, b) => Math.max(a, Math.min(b, v));
   const quad = useMemo(
     () => rows
       .filter((r) => r.oi_chg_1h != null && r.price_chg_24h != null)
-      .map((r) => ({ x: r.price_chg_24h, y: r.oi_chg_1h, pair: r.pair })),
+      .map((r) => ({ x: clampQ(r.price_chg_24h, -20, 20), y: clampQ(r.oi_chg_1h, -15, 15), pair: r.pair })),
     [rows],
   );
   const oiTotal = rows.reduce((a, r) => a + (r.oi || 0), 0);
@@ -113,8 +116,8 @@ export function OITab({ view, deriv, pairFc, openPair }) {
                     <ReferenceArea x1={0} x2={zQuad.domX[1]} y1={0} y2={zQuad.domY[1]} fill={POS} fillOpacity={0.04} />
                     <ReferenceArea x1={zQuad.domX[0]} x2={0} y1={0} y2={zQuad.domY[1]} fill={NEG} fillOpacity={0.04} />
                     <CartesianGrid stroke={GRID} />
-                    <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow />
-                    <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow />
+                    <XAxis type="number" dataKey="x" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domX} allowDataOverflow tickFormatter={(v) => Math.round(v)} />
+                    <YAxis type="number" dataKey="y" tick={TICK} axisLine={false} tickLine={false} unit="%" domain={zQuad.domY} allowDataOverflow tickFormatter={(v) => Math.round(v)} />
                     <Tooltip content={<ScatterTip xLabel="price 24h %" yLabel="OI Δ1h %" />} cursor={{ strokeDasharray: "3 3", stroke: GOLD }} />
                     <ReferenceLine x={0} stroke="rgba(255,255,255,0.15)" />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />

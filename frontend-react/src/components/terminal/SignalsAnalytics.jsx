@@ -441,16 +441,18 @@ export default function SignalsAnalytics() {
           <span className="px-1.5 font-mono text-[8.5px] uppercase tracking-[0.15em] text-text-muted/70">{t("terminal.viz.window")}</span>
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const on = dayBuckets.includes(d);
+            const dt = new Date(Date.now() - d * 86400000);
+            const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" }); // e.g. "Jul 11"
             return (
               <button
                 key={d}
                 onClick={() => toggleDay(d)}
                 title={d === 0 ? "today" : `${d} day${d > 1 ? "s" : ""} ago`}
-                className={`px-1.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${
+                className={`px-1.5 py-1 rounded-sm font-mono text-[9px] tracking-wide transition-colors whitespace-nowrap ${
                   on ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted/60 hover:text-white"
                 }`}
               >
-                {d}
+                {label}
               </button>
             );
           })}

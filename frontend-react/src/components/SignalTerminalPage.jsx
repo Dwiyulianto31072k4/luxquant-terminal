@@ -7,7 +7,7 @@ import {
   CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from "recharts";
 import { GOLD, GRID, AXIS, TICK_SM, SectorGlyph, statusColorOf } from "./terminal/vizShared";
-import { useSignalStatus } from "../context/SignalStatusContext";
+import { useSignalStatus, STATUS_META, timeAgo } from "../context/SignalStatusContext";
 import {
   DEFAULT_FILTERS, parseFilters, filtersToParams, applySignalFilters,
   parseMcap, maxTargetPct,
@@ -544,12 +544,17 @@ function Treemap({ model, sizeBy, colorBy, onPick }) {
 
 // ── Bubble (recharts ScatterChart — log-x so it isn't crammed; bubble = mcap) ──
 function BubbleTip({ active, payload, colorBy }) {
+  const ctx = useSignalStatus();
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload?.d;
   if (!d) return null;
+  const info = ctx?.map && d.pair ? ctx.map[d.pair.toUpperCase()] : null;
+  const meta = STATUS_META[d.status] || (info ? STATUS_META[info.status] : null);
+  const ago = info ? timeAgo(info.created) : null;
   return (
     <div className="rounded-md bg-[#120809] border border-gold-primary/25 px-3 py-2 font-mono text-[10px] shadow-lg">
-      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{d.sym}</span></div>
+      <div className="flex items-center gap-1.5 mb-1"><CoinLogo pair={d.pair} size={16} /><span className="text-white">{d.sym}</span>{meta && <span className="font-bold ml-auto" style={{ color: meta.color }}>{meta.label}</span>}</div>
+      {ago && <div className="text-white/45 mb-1">called {ago}</div>}
       <div className="text-white/55">Win rate: <span className="text-white/90">{d.win_rate == null ? "—" : d.win_rate.toFixed(0) + "%"}</span></div>
       <div className="text-white/55">Vol/MCap: <span className="text-white/90">{(d.flow_intensity * 100).toFixed(2)}%</span></div>
       <div className="text-white/55">MCap: <span className="text-white/90">${shortNum(d.market_cap)}</span></div>
