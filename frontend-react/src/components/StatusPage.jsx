@@ -55,6 +55,7 @@ const FALLBACK_COMPONENTS = [
   { key: "autotrade", name: "AutoTrade", description: "Automated trade execution." },
   { key: "ai_research", name: "AI Research", description: "AI market analysis and insights." },
   { key: "community", name: "News & Updates", description: "Crypto news and community updates." },
+  { key: "other", name: "Other Features", description: "Pulse, Markets, On-Chain, Journal, Portfolio & more." },
 ];
 
 async function fetchWithTimeout(url, ms) {

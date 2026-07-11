@@ -68,6 +68,10 @@ COMPONENTS: list[dict[str, Any]] = [
     {"key": "autotrade", "name": "AutoTrade", "desc": "Automated trade execution.", "cats": ["AutoTrade / Cryptobot"]},
     {"key": "ai_research", "name": "AI Research", "desc": "AI market analysis and insights.", "cats": ["AI Compass"]},
     {"key": "community", "name": "News & Updates", "desc": "Crypto news and community updates.", "cats": ["Discord", "News"]},
+    # Catch-all for the remaining product surface (Pulse, Markets, On-Chain,
+    # Journal, Portfolio, Watchlist, Calendar, …). These are all served by the
+    # core platform, so this row tracks the same core-infrastructure health.
+    {"key": "other", "name": "Other Features", "desc": "Pulse, Markets, On-Chain, Journal, Portfolio & more.", "cats": ["Core API", "Infrastructure"]},
 ]
 _COMPONENT_KEYS = {c["key"] for c in COMPONENTS}
 _COMPONENT_META = {c["key"]: c for c in COMPONENTS}
@@ -249,6 +253,18 @@ def _auto_components() -> list[dict[str, Any]]:
         if health == "unknown":
             continue
         if any(name.startswith(p) for p in _NOISE_PREFIXES):
+            continue
+        # A unit that is merely STARTING UP (active_state == "activating") is
+        # transient — e.g. a timer-driven oneshot (arena/compass workers) firing
+        # on schedule, which blips through "activating" every run. That is NOT an
+        # outage, so we ignore it. The exception is a genuine crash-loop, which
+        # shows up as repeated restarts or a non-success result — that we keep.
+        if (
+            health == "warn"
+            and d.get("active_state") == "activating"
+            and (d.get("restarts") or 0) < 3
+            and d.get("result") in ("success", "", None)
+        ):
             continue
         cat = d.get("category") or _category(d.get("unit", name))
         by_cat.setdefault(cat, []).append(health)
