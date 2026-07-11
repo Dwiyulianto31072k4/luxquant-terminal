@@ -45,11 +45,11 @@ export async function getSuggestions(pageId = 'signals') {
   }
 }
 
-export async function askAssistant({ message, pageId = 'signals', history = [] }) {
+export async function askAssistant({ message, pageId = 'signals', history = [], context = null }) {
   const r = await fetch(`${API_BASE}/assistant/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ message, page_id: pageId, history }),
+    body: JSON.stringify({ message, page_id: pageId, history, context }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return await r.json(); // { answer, cached, error? }

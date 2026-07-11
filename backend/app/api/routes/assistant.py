@@ -57,6 +57,20 @@ PAGES = {
             "What is BTC Corr (rho / beta)?",
         ],
     },
+    "terminal": {
+        "file": "terminal-page.md",
+        "label": "LuxQuant Terminal",
+        "suggestions": [
+            "What is the LuxQuant Terminal?",
+            "How do I read the Order Flow (CVD) chart?",
+            "What does the RSI Heatmap timeframe toggle do?",
+            "What is the Vol Squeeze view telling me?",
+            "How does the Risk Calculator work?",
+            "What do the status rings on the dots mean?",
+            "What is 'vs Call VWAP'?",
+            "How should I use all these views together?",
+        ],
+    },
     "autotrade": {
         "file": "autotrade-page.md",
         "label": "AutoTrade",
@@ -386,6 +400,9 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000)
     page_id: str = "signals"
     history: List[ChatMessage] = []
+    # optional in-page context (e.g. which Terminal tab the user is viewing) so
+    # answers can be tab-aware. Kept short; never trusted for anything but a hint.
+    context: Optional[str] = Field(default=None, max_length=200)
 
 
 # ── Lightweight per-IP rate limit (Redis) ───────────────────────────
@@ -405,8 +422,10 @@ def _rate_limited(ip: str) -> bool:
         return False  # never block on cache failure
 
 
-def _cache_key(page_id: str, message: str) -> str:
+def _cache_key(page_id: str, message: str, context: Optional[str] = None) -> str:
     norm = " ".join(message.lower().split())
+    if context:
+        norm = f"{norm}|ctx:{' '.join(context.lower().split())}"
     h = hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
     return f"lq:assistant:ans:{page_id}:{h}"
 
@@ -474,7 +493,7 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks,
         }
 
     # 1) Exact-match cache — identical questions are free
-    ckey = _cache_key(req.page_id, req.message)
+    ckey = _cache_key(req.page_id, req.message, req.context)
     cached = cache_get(ckey)
     if cached:
         # Log a $0 cache-served row so we can measure app-layer savings.
@@ -493,6 +512,12 @@ async def chat(req: ChatRequest, request: Request, background: BackgroundTasks,
 
     # 2) Build messages: static overview + guide prefix first (prompt-cache friendly)
     messages = [{"role": "system", "content": SYSTEM_PROMPT.format(overview=_load_overview(), guide=guide)}]
+    # optional in-page context hint (e.g. the current Terminal tab) — helps the
+    # model answer about exactly what the user is looking at.
+    if req.context:
+        messages.append({"role": "system",
+                         "content": f"The user is currently viewing this part of the page: {req.context}. "
+                                    "If their question is vague, assume it refers to this view."})
     for m in req.history[-6:]:  # keep prompt short
         if m.role in ("user", "assistant") and m.content:
             messages.append({"role": m.role, "content": m.content[:1000]})

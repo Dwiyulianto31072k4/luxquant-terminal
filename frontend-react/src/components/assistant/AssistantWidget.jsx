@@ -10,7 +10,7 @@ import { renderMarkdown } from './markdown';
  *
  * Usage:  <AssistantWidget pageId="signals" />
  */
-export default function AssistantWidget({ pageId = 'signals' }) {
+export default function AssistantWidget({ pageId = 'signals', contextHint = null }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState(null); // null=loading, false=hidden
@@ -50,14 +50,14 @@ export default function AssistantWidget({ pageId = 'signals' }) {
     setMessages((m) => [...m, { role: 'user', content: q }]);
     setLoading(true);
     try {
-      const res = await askAssistant({ message: q, pageId, history });
+      const res = await askAssistant({ message: q, pageId, history, context: contextHint });
       setMessages((m) => [...m, { role: 'assistant', content: res.answer || '…' }]);
     } catch (e) {
       setMessages((m) => [...m, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, pageId]);
+  }, [input, loading, messages, pageId, contextHint]);
 
   const hasChat = messages.length > 0 || loading;
 

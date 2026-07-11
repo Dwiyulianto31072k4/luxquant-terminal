@@ -14,6 +14,7 @@ import { Outlet, useNavigate, useLocation, Navigate, useSearchParams } from "rea
 import { useTranslation } from "react-i18next";
 import { SignalStatusProvider } from "../../context/SignalStatusContext";
 import GlobalSignalModalHost from "../SignalStatusModal";
+import AssistantWidget from "../assistant/AssistantWidget";
 
 // index redirect that PRESERVES the query string (TERMINAL button → map)
 export function TerminalIndexRedirect() {
@@ -173,6 +174,9 @@ export default function TerminalLayout() {
           </SignalStatusProvider>
         </main>
       </div>
+
+      {/* Page-aware help — knows which Terminal view you're on */}
+      <AssistantWidget pageId="terminal" contextHint={`the "${t(tabKey(active))}" view of the LuxQuant Terminal`} />
     </div>
   );
 }
