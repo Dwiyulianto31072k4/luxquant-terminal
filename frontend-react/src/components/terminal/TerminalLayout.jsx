@@ -24,7 +24,7 @@ export function TerminalIndexRedirect() {
 
 const GROUPS = [
   { g: "gSignals", items: [["confluence", "scan"], ["overview", "scan"], ["live", "scan"], ["anomaly", "scan"]] },
-  { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"], ["squeeze", "scan"], ["flow", "scan"]] },
+  { g: "gDeriv", items: [["oi", "scan"], ["ls", "scan"], ["funding", "scan"], ["squeeze", "scan"], ["flow", "scan"], ["liquidations", "scan"]] },
   { g: "gMarket", items: [["vsbtc", "scan"], ["btc", "scan"], ["momentum", "scan"], ["sectors", "scan"]] },
   { g: "gScreen", items: [["rsi", "scan"], ["atr", "scan"], ["vsqueeze", "scan"]] },
   { g: "gEdge", items: [["edge", "scan"], ["risk", "scan"]] },
@@ -59,6 +59,7 @@ const ICON_PATHS = {
   atr: <><rect x="3" y="5" width="14" height="3" rx="1" /><rect x="3" y="10.5" width="10" height="3" rx="1" opacity="0.7" /><rect x="3" y="16" width="6" height="3" rx="1" opacity="0.5" /><path d="M20 3v18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2 2" opacity="0.6" /></>,
   vsqueeze: <><path d="M3 6v12M21 6v12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M7 9c3 2 7 2 10 0M7 15c3-2 7-2 10 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" /></>,
   flow: <><path d="M3 16c3 0 3-8 6-8s3 8 6 8 3-8 6-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 20h18" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.4" /></>,
+  liquidations: <><path d="M12 2C9 6 6 8 6 13a6 6 0 0 0 12 0c0-2.2-1-3.8-2.3-5.2C15 9 14 9.6 13.4 10.6 13.9 8 12.8 4.6 12 2z" /><path d="M4 21h16" fill="none" stroke="currentColor" strokeWidth="1.4" opacity="0.4" /></>,
 };
 const TabIcon = ({ id }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-[15px] h-[15px] shrink-0" aria-hidden="true">

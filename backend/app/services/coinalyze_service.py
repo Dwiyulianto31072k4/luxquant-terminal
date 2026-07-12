@@ -252,10 +252,11 @@ def _active_pairs(days: int = 7) -> list[str]:
     db = SessionLocal()
     try:
         rows = db.execute(
-            text("SELECT DISTINCT pair FROM signals WHERE created_at >= :cutoff"),
+            text("SELECT pair FROM signals WHERE created_at >= :cutoff "
+                 "GROUP BY pair ORDER BY MAX(created_at) DESC"),
             {"cutoff": cutoff},
         ).fetchall()
-        return [r[0] for r in rows if r and r[0]]
+        return [r[0] for r in rows if r and r[0]]  # freshest calls first (MAX_PAIRS cap keeps these)
     finally:
         db.close()
 
