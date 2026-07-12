@@ -61,12 +61,15 @@ export function EdgeTab() {
   const pev = useMemo(() => (data?.pattern_ev || []).filter((p) => (p.count || 0) > 0), [data]);
   const baseline = data?.totals?.win_rate ?? null;
 
-  // ── Edge Economics (all-time): expectancy, profit factor, realized R:R ──
+  // ── Edge Economics: expectancy, profit factor, realized R:R — period-filterable ──
+  // analyze supports time_range (7d/30d/ytd/all); tier avg exit gains come from the
+  // all-time journey aggregate (a "typical exit" figure, stable across windows).
   const [econ, setEcon] = useState(null);
+  const [econRange, setEconRange] = useState("all");
   useEffect(() => {
     let alive = true;
     Promise.all([
-      fetch(`${API_BASE}/api/v1/signals/analyze`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API_BASE}/api/v1/signals/analyze?time_range=${econRange}`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch(`${API_BASE}/api/v1/signals/journey-insights/ALL`, { headers: authHeaders() }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([a, j]) => {
       if (!alive) return;
@@ -75,7 +78,7 @@ export function EdgeTab() {
       setEcon({ stats: a?.stats || null, tierAvg });
     });
     return () => { alive = false; };
-  }, []);
+  }, [econRange]);
 
   const economics = useMemo(() => {
     const s = econ?.stats, ta = econ?.tierAvg;
@@ -175,7 +178,17 @@ export function EdgeTab() {
             <div className="relative rounded-2xl bg-[#0a0805] border border-white/[0.07] overflow-hidden">
               <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
               <div className="px-4 py-2.5 border-b border-gold-primary/[0.12] bg-gold-primary/[0.05]">
-                <div className="text-[12.5px] text-white/90">Edge Economics — all-time</div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-[12.5px] text-white/90">Edge Economics</div>
+                  <div className="flex items-center gap-0.5 rounded-md bg-[#0c0a07] border border-white/[0.1] p-0.5">
+                    {[["7d", "7D"], ["30d", "30D"], ["ytd", "YTD"], ["all", "ALL"]].map(([v, lbl]) => (
+                      <button key={v} onClick={() => setEconRange(v)}
+                        className={`px-2.5 py-1 rounded-sm font-mono text-[9.5px] uppercase tracking-wider transition-colors ${econRange === v ? "bg-gold-primary text-[#17110a] font-semibold" : "text-text-muted hover:text-white"}`}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="text-[10px] text-text-muted mt-0.5 leading-relaxed">Win rate alone is marketing. This is the money math: expected profit per trade, profit factor, realized reward:risk, and where winners exit.</div>
               </div>
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 p-3">

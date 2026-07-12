@@ -889,13 +889,17 @@ export default function SignalsAnalytics() {
               <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <Kpi
                   label={t("terminal.viz.kBreadth")}
-                  value={`${liveStats.up}▲ ${liveStats.down}▼`}
+                  value={<><span className="text-positive">{liveStats.up}▲</span> <span className="text-white/35">{liveStats.down}▼</span></>}
                   desc={t("terminal.viz.kBreadthDesc")}
-                  tone={liveStats.up >= liveStats.down ? "text-positive" : "text-negative"}
                 />
                 <Kpi label={t("terminal.viz.kBest")} value={gainers[0] ? fmtPct(gainers[0].v) : "—"} desc={gainers[0]?.pair} tone="text-positive" />
-                <Kpi label={t("terminal.viz.kBigWin")} value={liveStats.bigWin} desc={t("terminal.viz.kBigWinDesc")} tone={liveStats.bigWin ? "text-positive" : undefined} />
-                <Kpi label={t("terminal.viz.kBigLoss")} value={liveStats.bigLoss} desc={t("terminal.viz.kBigLossDesc")} tone={liveStats.bigLoss ? "text-negative" : undefined} />
+                <Kpi label={t("terminal.viz.kBigWin")} value={liveStats.bigWin} desc={t("terminal.viz.kBigWinDesc")} tone="text-positive" />
+                <Kpi
+                  label={t("terminal.viz.kInProfit")}
+                  value={`${(liveStats.up + liveStats.down) ? Math.round(liveStats.up / (liveStats.up + liveStats.down) * 100) : 0}%`}
+                  desc={t("terminal.viz.kInProfitDesc")}
+                  tone="text-positive"
+                />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
