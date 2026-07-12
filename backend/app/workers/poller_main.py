@@ -38,6 +38,7 @@ from app.services.fx_worker import start_fx_worker
 from app.services.whale_worker import start_whale_worker
 from app.services.subscription_worker import start_subscription_worker
 from app.services.coinalyze_service import start_coinalyze_workers
+from app.services.dune_tokenflow_service import start_token_flow_worker
 
 
 async def _amain() -> None:
@@ -75,6 +76,8 @@ async def _amain() -> None:
             start_whale_worker()           # slow external fetch
             await asyncio.sleep(4)
             start_coinalyze_workers()      # liquidation treemap (call-centric, free Coinalyze)
+            await asyncio.sleep(4)
+            start_token_flow_worker()      # CEX token net-flow (spot, free Dune, 6h)
         asyncio.create_task(_staggered_start())
         from app.services.cache_invalidator import cache_invalidator_loop
         asyncio.create_task(cache_invalidator_loop())

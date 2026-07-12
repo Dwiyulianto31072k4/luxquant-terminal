@@ -32,6 +32,7 @@ import {
 } from "./vizShared";
 import { OITab, LongShortTab, FundingTab, VsBtcTab, MomentumTab, SqueezeTab } from "./DerivTabs";
 import { LiquidationsTab } from "./LiquidationsTab";
+import { TokenFlowTab } from "./TokenFlowTab";
 import { ConfluenceTab } from "./ConfluenceTabs";
 import { EdgeTab } from "./EdgeSimulator";
 import { RiskTab } from "./RiskCalculator";
@@ -1016,6 +1017,7 @@ export default function SignalsAnalytics() {
           {tab === "vsqueeze" && <VolSqueezeTab view={view} deriv={deriv} openPair={openPair} />}
           {tab === "flow" && <OrderFlowTab view={view} deriv={deriv} cvd={cvd} ob={ob} openPair={openPair} />}
           {tab === "liquidations" && <LiquidationsTab view={view} />}
+          {tab === "tokenflow" && <TokenFlowTab view={view} />}
           {tab === "vsbtc" && <VsBtcTab {...derivProps} movers={moversAbs} />}
 
           {/* ═══════════ BTC CORRELATION → merged under Sectors? keep own ═══════════ */}

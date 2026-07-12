@@ -222,6 +222,27 @@ async def get_liquidations_debug(current_user: User = Depends(require_subscripti
     }
 
 
+# ════════════════════════════════════════════════════════════════════
+# TOKEN FLOW (call-centric) — CEX net-inflow per token (SPOT / on-chain).
+# Data pulled by the Dune worker → Redis. Spot capital flow, not futures.
+#   GET /api/v1/terminal/token-flow
+# ════════════════════════════════════════════════════════════════════
+@router.get("/token-flow")
+def get_token_flow(
+    symbols: str = Query("", description="CSV base symbols (e.g. ETH,ARB); empty = all cached"),
+    current_user: User = Depends(require_subscription),
+):
+    from app.services.dune_tokenflow_service import get_scoped
+    want = [s.strip().upper() for s in symbols.split(",") if s.strip()] or None
+    data = get_scoped(want)
+    rows = sorted(data.values(), key=lambda d: abs(d.get("net_inflow_usd", 0)), reverse=True)
+    return {
+        "count": len(rows),
+        "updated_at": max((r.get("updated_at", 0) for r in rows), default=0),
+        "items": rows,
+    }
+
+
 def _anchor_epoch(s):
     """Parse a signal created_at (TEXT ISO, space or T separator) → epoch seconds."""
     try:
