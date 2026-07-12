@@ -37,7 +37,7 @@ from typing import Optional
 import httpx
 from sqlalchemy import text
 
-from app.core.redis import cache_get, cache_set, is_redis_available
+from app.core.redis import cache_get, cache_set, cache_get_with_stale, is_redis_available
 from app.core.leader import is_leader
 
 # ── Config ──────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ PACE_SECONDS = 33          # sleep between requests → ~36 calls/min (safe marg
 MAX_PAIRS = 120            # cap active pairs per cycle (~3.5 min refresh); raise with a dedicated key
 
 CACHE_KEY = "lq:terminal:liquidations"  # Redis: single JSON string {pair: blob} (matches lq:terminal:* convention)
-CACHE_TTL = 360            # 6 min (worker refreshes ~every 5 min)
+CACHE_TTL = 1500           # 25 min — MUST exceed REFRESH_INTERVAL so the key never expires between runs
 MAP_KEY = "liq:symbolmap"  # Redis: LuxQuant pair -> Coinalyze symbol
 MAP_TTL = 86400            # rebuild symbol map daily
 
@@ -232,7 +232,8 @@ async def refresh_scoped(pairs: list[str]) -> dict:
 def get_scoped(pairs: Optional[list[str]] = None) -> dict:
     """Read cached liquidation blobs (optionally filtered to `pairs`). Sync — used by the
     FastAPI route and the confluence engine."""
-    data = cache_get(CACHE_KEY) or {}
+    data, _stale = cache_get_with_stale(CACHE_KEY)   # serve-stale → never blanks on a delayed refresh
+    data = data or {}
     if pairs:
         return {p: v for p, v in data.items() if p in pairs}
     return data

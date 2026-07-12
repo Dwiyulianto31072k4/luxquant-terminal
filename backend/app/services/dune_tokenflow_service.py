@@ -26,7 +26,7 @@ import asyncio
 
 import httpx
 
-from app.core.redis import cache_get, cache_set, is_redis_available
+from app.core.redis import cache_get, cache_set, cache_get_with_stale, is_redis_available
 from app.core.leader import is_leader
 
 # ── Config ──────────────────────────────────────────────────────────
@@ -125,7 +125,8 @@ async def refresh() -> dict:
 
 def get_scoped(symbols: list[str] | None = None) -> dict:
     """Read cached token-flow blobs (optionally filtered to base symbols like 'ETH')."""
-    data = cache_get(CACHE_KEY) or {}
+    data, _stale = cache_get_with_stale(CACHE_KEY)   # serve-stale → never blanks on a delayed/failed refresh
+    data = data or {}
     if symbols:
         want = {s.upper() for s in symbols}
         return {k: v for k, v in data.items() if k in want}
