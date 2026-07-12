@@ -19,6 +19,7 @@ from app.core.redis import is_redis_available, get_cache_info
 from app.core.http_client import init_clients, close_clients
 from app.services.cache_worker import start_cache_workers, precompute_outcomes
 from app.services.overview_worker import start_overview_workers
+from app.services.coinalyze_service import start_coinalyze_workers
 from app.services.notification_worker import start_notification_worker
 from app.api.routes import coins, daily_dashboard, edge_lab
 from app.api.routes import terminal
@@ -116,6 +117,7 @@ async def lifespan(app: FastAPI):
         start_notification_worker()
         start_fx_worker()
         start_whale_worker()
+        start_coinalyze_workers()   # liquidation treemap (call-centric, free Coinalyze)
 
         # ─── Cache invalidator: LISTEN new_signal/signal_update → flush lq:signals:* ───
         from app.services.cache_invalidator import cache_invalidator_loop

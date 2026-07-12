@@ -185,6 +185,43 @@ def _to_float(v):
 K4H_BLOB_KEY = "lq:terminal:k4h"
 
 
+# ════════════════════════════════════════════════════════════════════
+# LIQUIDATIONS (call-centric) — data pulled by the Coinalyze worker → Redis.
+#   GET /api/v1/terminal/liquidations        → treemap rows (active-call scope)
+#   GET /api/v1/terminal/liquidations/_debug → validate API key + live sample
+# Framed as RISK CONTEXT (halal/spot-first), not a futures trading signal.
+# ════════════════════════════════════════════════════════════════════
+@router.get("/liquidations")
+def get_liquidations(
+    pairs: str = Query("", description="CSV pairs; empty = all active-call pairs"),
+    current_user: User = Depends(require_subscription),
+):
+    from app.services.coinalyze_service import get_scoped
+    want = [p.strip().upper() for p in pairs.split(",") if p.strip()] or None
+    data = get_scoped(want)
+    rows = sorted(data.values(), key=lambda d: d.get("total_4h", 0), reverse=True)
+    return {
+        "count": len(rows),
+        "updated_at": max((r.get("updated_at", 0) for r in rows), default=0),
+        "items": rows,
+    }
+
+
+@router.get("/liquidations/_debug")
+async def get_liquidations_debug(current_user: User = Depends(require_subscription)):
+    """One-shot live check: confirms the Coinalyze key works + returns a BTC/ETH sample."""
+    from app.services import coinalyze_service as cz
+    smap = await cz.get_symbol_map()
+    sample = [p for p in ("BTCUSDT", "ETHUSDT") if p in smap]
+    live = await cz.refresh_scoped(sample) if sample else {}
+    return {
+        "api_key_set": bool(cz.API_KEY),
+        "symbol_map_size": len(smap),
+        "sample_symbols": {p: smap.get(p) for p in sample},
+        "sample_liquidations": live,
+    }
+
+
 def _anchor_epoch(s):
     """Parse a signal created_at (TEXT ISO, space or T separator) → epoch seconds."""
     try:
