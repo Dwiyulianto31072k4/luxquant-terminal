@@ -50,8 +50,10 @@ BUCKETS_1H = 12            # 12 × 5min
 BUCKETS_4H = 48            # 48 × 5min
 Z_THRESHOLD = 3.0          # robust-z spike threshold (2.5 = more sensitive)
 
-MAX_SYMBOLS_PER_REQ = 20   # Coinalyze hard cap
-RATE_PER_MIN = 40          # free-tier budget (each symbol = 1 call)
+MAX_SYMBOLS_PER_REQ = 20   # Coinalyze hard cap (each symbol = 1 call)
+RATE_PER_MIN = 40          # free-tier budget
+PACE_SECONDS = 33          # sleep between requests → ~36 calls/min (safe margin under 40)
+MAX_PAIRS = 120            # cap active pairs per cycle (~3.5 min refresh); raise with a dedicated key
 
 CACHE_KEY = "lq:terminal:liquidations"  # Redis: single JSON string {pair: blob} (matches lq:terminal:* convention)
 CACHE_TTL = 360            # 6 min (worker refreshes ~every 5 min)
@@ -140,7 +142,11 @@ async def _fetch_liq_batch(coinalyze_symbols: list[str], since: int, until: int)
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.get(url, params=params)
         if resp.status_code == 429:
-            wait = int(resp.headers.get("Retry-After", "5"))
+            ra = resp.headers.get("Retry-After", "5")
+            try:
+                wait = max(1, int(float(ra)))
+            except (TypeError, ValueError):
+                wait = 5
             print(f"⏳ Coinalyze 429 — sleeping {wait}s")
             await asyncio.sleep(wait)
             resp = await client.get(url, params=params)
@@ -186,28 +192,23 @@ async def refresh_scoped(pairs: list[str]) -> dict:
     if not resolved:
         return {}
 
+    # Cap per cycle so one full refresh stays within budget + interval.
+    if MAX_PAIRS and len(resolved) > MAX_PAIRS:
+        resolved = resolved[:MAX_PAIRS]
+
     since = int(time.time()) - LOOKBACK_HOURS * 3600
     until = int(time.time())
     out: dict[str, dict] = {}
-    calls_this_min = 0
-    window_start = time.time()
+    chunks = [resolved[i:i + MAX_SYMBOLS_PER_REQ]
+              for i in range(0, len(resolved), MAX_SYMBOLS_PER_REQ)]
 
-    for i in range(0, len(resolved), MAX_SYMBOLS_PER_REQ):
-        chunk = resolved[i:i + MAX_SYMBOLS_PER_REQ]
-        # rate-limit guard: each symbol counts as 1 call
-        if calls_this_min + len(chunk) > RATE_PER_MIN:
-            elapsed = time.time() - window_start
-            if elapsed < 60:
-                await asyncio.sleep(60 - elapsed)
-            calls_this_min, window_start = 0, time.time()
-
+    for idx, chunk in enumerate(chunks):
         rev = {sym: pair for pair, sym in chunk}
         try:
             blobs = await _fetch_liq_batch([s for _, s in chunk], since, until)
         except Exception as e:
             print(f"❌ Coinalyze liquidation batch error: {e}")
-            continue
-        calls_this_min += len(chunk)
+            blobs = []
 
         for blob in blobs:
             pair = rev.get(blob.get("symbol"))
@@ -217,6 +218,10 @@ async def refresh_scoped(pairs: list[str]) -> dict:
             if agg:
                 agg["pair"] = pair
                 out[pair] = agg
+
+        # Pace evenly to stay under RATE_PER_MIN (each symbol = 1 call).
+        if idx < len(chunks) - 1:
+            await asyncio.sleep(PACE_SECONDS)
 
     # persist for the sync route/confluence engine to read via cache_get
     if out:
@@ -236,7 +241,7 @@ def get_scoped(pairs: Optional[list[str]] = None) -> dict:
 # ════════════════════════════════════════════════════════════════════
 # Background worker (leader-elected) — CALL-CENTRIC refresh
 # ════════════════════════════════════════════════════════════════════
-REFRESH_INTERVAL = 300  # 5 min
+REFRESH_INTERVAL = 600  # 10 min (liquidation context doesn't need faster; respects 40/min)
 
 
 def _active_pairs(days: int = 7) -> list[str]:
