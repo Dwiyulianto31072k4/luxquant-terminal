@@ -20,30 +20,50 @@ import {
 
 const biasColor = (b) => (b > 0.15 ? POS : b < -0.15 ? NEG : GOLD);
 
+const logoUrl = (name) => {
+  const clean = (name || "").replace(/USDT$/i, "").toLowerCase().replace(/^1000/, "");
+  return `https://assets.coincap.io/assets/icons/${clean}@2x.png`;
+};
+// dark outline so labels stay legible on any cell colour
+const OUTLINE = { paintOrder: "stroke", stroke: "#0a0806", strokeWidth: 3, strokeLinejoin: "round" };
+
 // custom treemap cell — recharts spreads the node's fields into props
 function LiqCell(props) {
   const { x, y, width, height, name, bias = 0, spike, intensity = 0.3 } = props;
   const size = props.size ?? props.value ?? 0;
   if (width <= 0 || height <= 0) return null;
   const color = biasColor(bias);
-  const label = width > 46 && height > 24;
+  const sym = (name || "").replace(/USDT$/i, "");
+  const med = width > 40 && height > 26;    // room for text
+  const big = width > 58 && height > 52;     // room for logo + text
+  const logo = Math.min(22, Math.max(13, Math.min(width, height) * 0.24));
+  const textY = big ? y + logo + 20 : y + 16;
   return (
     <g>
       <rect
         x={x} y={y} width={width} height={height} rx={2}
-        style={{ fill: color, fillOpacity: 0.14 + intensity * 0.5, stroke: "#0a0806", strokeWidth: 2 }}
+        style={{ fill: color, fillOpacity: 0.16 + intensity * 0.5, stroke: "#0a0806", strokeWidth: 2 }}
       />
-      {label && (
-        <text x={x + 6} y={y + 15} fill="#fff" fontSize={11} fontWeight={500}>
-          {name?.replace("USDT", "")}
+      {big && (
+        <image
+          href={logoUrl(name)}
+          x={x + 6} y={y + 6} width={logo} height={logo}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      )}
+      {med && (
+        <text x={x + 6} y={textY} fill="#ffffff" fontSize={12.5} fontWeight={700}
+          style={{ ...OUTLINE, fontStyle: "normal" }}>
+          {sym}
         </text>
       )}
-      {label && (
-        <text x={x + 6} y={y + 29} fill={color} fontSize={10} className="font-mono">
+      {med && (
+        <text x={x + 6} y={textY + 15} fill="#ffffff" fontSize={11} fontWeight={600}
+          className="font-mono" opacity={0.95} style={OUTLINE}>
           {fmtMoney(size)}
         </text>
       )}
-      {spike && label && <circle cx={x + width - 8} cy={y + 8} r={3} fill={GOLD} />}
+      {spike && med && <circle cx={x + width - 8} cy={y + 8} r={3.2} fill={GOLD} />}
     </g>
   );
 }
