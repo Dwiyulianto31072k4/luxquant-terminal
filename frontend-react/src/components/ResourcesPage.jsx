@@ -12,6 +12,7 @@ import AssistantWidget from './assistant/AssistantWidget';
 import { resourcesApi, coverUrl, youtubeThumb } from '../services/resourcesApi';
 import ResourceReader from './resources/ResourceReader';
 import ResourceEditor from './resources/ResourceEditor';
+import { stripMarkdown } from './resources/mdRender';
 
 const TYPE_TABS = [
   { id: 'all',     label: 'All' },
@@ -76,7 +77,7 @@ const HeroCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         <h2 className="text-xl lg:text-2xl font-bold text-white leading-tight group-hover:text-gold-primary transition-colors line-clamp-3">
           {resource.title}
         </h2>
-        {resource.excerpt && <p className="text-text-muted text-sm mt-3 line-clamp-3 leading-relaxed">{resource.excerpt}</p>}
+        {resource.excerpt && <p className="text-text-muted text-sm mt-3 line-clamp-3 leading-relaxed">{stripMarkdown(resource.excerpt)}</p>}
         <div className="flex items-center gap-2 text-[11px] text-text-muted mt-4">
           {resource.author_name && <span className="text-text-secondary font-medium">{resource.author_name}</span>}
           {resource.author_name && <span>·</span>}
@@ -95,7 +96,7 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
   const isVideo = resource.type === 'video';
   return (
     <div className="tip-card glass-card rounded-xl border border-gold-primary/10 overflow-hidden cursor-pointer group relative" onClick={() => onOpen(resource)}>
-      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-gold-primary/5 to-orange-500/5">
+      <div className="relative w-full overflow-hidden bg-gradient-to-br from-gold-primary/5 to-orange-500/5" style={{ aspectRatio: '16 / 9' }}>
         {cover ? (
           <img src={cover} alt={resource.title} className="w-full h-full object-cover tip-cover" />
         ) : (
@@ -124,7 +125,7 @@ const ResourceCard = ({ resource, onOpen, isAdmin, onEdit, onDelete }) => {
         <h3 className="text-white font-semibold text-sm group-hover:text-gold-primary transition-colors line-clamp-2 leading-snug mb-1.5">
           {resource.title}
         </h3>
-        {resource.excerpt && <p className="text-text-muted text-[11px] line-clamp-2 leading-relaxed mb-3">{resource.excerpt}</p>}
+        {resource.excerpt && <p className="text-text-muted text-[11px] line-clamp-2 leading-relaxed mb-3">{stripMarkdown(resource.excerpt)}</p>}
         <div className="flex items-center justify-between text-[10px] text-text-muted">
           <span className="truncate">{resource.author_name || fmtDate(resource.published_at || resource.created_at)}</span>
           {resource.author_name && <span className="shrink-0 ml-2">{fmtDate(resource.published_at || resource.created_at)}</span>}

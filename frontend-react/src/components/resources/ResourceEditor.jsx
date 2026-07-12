@@ -12,6 +12,7 @@
 // Dependency-free: the rich editor uses document.execCommand — no libs.
 // ════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { resourcesApi, coverUrl, youtubeThumb } from '../../services/resourcesApi';
 
 const TYPES = [
@@ -207,6 +208,9 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
         fd.append('source_url', sourceUrl.trim());
         if (embedHtml) fd.append('embed_html', embedHtml);
         if (provider) fd.append('provider', provider);
+        // optional long-form notes (Markdown) shown in the reader
+        fd.append('content', content || '');
+        fd.append('content_format', 'markdown');
       }
       if (coverUrlExt && !coverFile) fd.append('cover_url', coverUrlExt);
       if (coverFile) fd.append('cover_file', coverFile);
@@ -225,8 +229,8 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
 
   const showPreviewCard = (type === 'video' || type === 'link') && (coverPreview || embedHtml);
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4" onClick={onClose}>
       <div
         className="bg-bg-secondary rounded-2xl border border-gold-primary/20 max-w-2xl w-full max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -289,7 +293,9 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
               {showPreviewCard && (
                 <div className="mt-3 rounded-xl border border-white/10 overflow-hidden bg-bg-card">
                   {coverPreview && (
-                    <img src={coverPreview} alt="preview" className="w-full h-40 object-cover" />
+                    <div className="w-full" style={{ aspectRatio: '16 / 9' }}>
+                      <img src={coverPreview} alt="preview" className="w-full h-full object-cover" />
+                    </div>
                   )}
                   <div className="px-3 py-2">
                     <p className="text-[10px] text-gold-primary uppercase tracking-wider font-bold">{provider || 'preview'}</p>
@@ -298,6 +304,20 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
                   </div>
                 </div>
               )}
+            </Field>
+          )}
+
+          {/* Notes / description for video & link (Markdown, shown in reader) */}
+          {(type === 'video' || type === 'link') && (
+            <Field label="Notes / Description (Markdown)">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={6}
+                placeholder="Optional summary shown under the video. Supports **bold**, # headings, - lists, [text](url) links…"
+                className={`${inputCls} font-mono text-[13px] resize-y`}
+              />
+              <p className="text-[10px] text-text-muted mt-1">Paste a summary here (e.g. from an AI) — bold, headings, lists & links render properly in the reader.</p>
             </Field>
           )}
 
@@ -433,7 +453,8 @@ const ResourceEditor = ({ resource, categories = [], onClose, onSaved }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

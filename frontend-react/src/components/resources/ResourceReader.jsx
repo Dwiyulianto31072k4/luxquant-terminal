@@ -2,8 +2,9 @@
 // Full-screen reader for a resource: article (HTML/Markdown), PDF, or video.
 // ("link" resources open externally and never reach this component.)
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { resourcesApi, pdfUrl, youtubeEmbedUrl, coverUrl } from '../../services/resourcesApi';
-import { renderMarkdown } from '../assistant/markdown';
+import { renderRich } from './mdRender';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -41,9 +42,10 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
   const isArticle = resource.type === 'article';
 
   const embedSrc = isVideo ? youtubeEmbedUrl(resource.source_url) : null;
+  const videoBody = resource.content || resource.excerpt;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-6 lg:p-10" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/85 backdrop-blur-sm p-2 sm:p-6 lg:p-10" onClick={onClose}>
       <div
         className={`relative w-full bg-bg-secondary rounded-2xl border border-gold-primary/20 shadow-2xl flex flex-col overflow-hidden ${
           isArticle ? 'max-w-3xl h-full max-h-[92vh]' : 'max-w-5xl h-full max-h-[90vh]'
@@ -103,10 +105,12 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
             <div className="px-5 sm:px-8 py-6 max-w-3xl mx-auto">
               <span className="text-[11px] uppercase tracking-wider text-gold-primary font-bold">{resource.category}</span>
               <h1 className="text-xl sm:text-2xl font-bold text-white mt-1 mb-2">{resource.title}</h1>
-              <div className="text-xs text-text-muted mb-4">
+              <div className="text-xs text-text-muted mb-4 pb-4 border-b border-white/10">
                 {resource.author_name && <span>{resource.author_name} · </span>}{fmtDate(resource.published_at || resource.created_at)}
               </div>
-              {resource.excerpt && <p className="text-text-secondary text-sm leading-relaxed">{resource.excerpt}</p>}
+              {videoBody && (
+                <div className="resource-prose text-text-secondary text-[15px]">{renderRich(videoBody)}</div>
+              )}
             </div>
           </div>
         )}
@@ -132,8 +136,8 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
                   {[...Array(6)].map((_, i) => <div key={i} className="h-4 rounded bg-white/5" style={{ width: `${70 + (i % 3) * 10}%` }} />)}
                 </div>
               ) : resource.content_format === 'markdown' ? (
-                <div className="resource-prose space-y-3 text-text-secondary text-[15px] leading-relaxed">
-                  {renderMarkdown(resource.content || '', onNavigate)}
+                <div className="resource-prose text-text-secondary text-[15px] leading-relaxed">
+                  {renderRich(resource.content || '')}
                 </div>
               ) : (
                 <div
@@ -157,7 +161,8 @@ const ResourceReader = ({ resource: initial, onClose, onNavigate }) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
