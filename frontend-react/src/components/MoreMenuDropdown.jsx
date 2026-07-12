@@ -223,7 +223,7 @@ const MoreMenuDropdown = ({
       label: t('mfm.group_personal', { defaultValue: 'Personal' }),
       items: [
         { path: '/watchlist', icon: Icon.watchlist, label: t('mfm.watchlist'), desc: 'Pairs you follow' },
-        { path: '/tips',      icon: Icon.tips,      label: t('mfm.tips'),      desc: 'Guides & how-tos' },
+        { path: '/tips',      icon: Icon.tips,      label: t('mfm.tips'),      desc: 'Research, guides & videos' },
         { path: '/referral',  icon: Icon.referral,  label: t('mfm.referral'),  desc: 'Invite & earn rewards' },
         { path: '/api-keys',  icon: Icon.apiKeys,   label: t('mfm.api_keys', { defaultValue: 'API Keys' }), desc: 'Programmatic access' },
         ...(isAdmin ? [{ path: '/admin', icon: Icon.admin, label: t('mfm.admin'), desc: 'Platform management', isAdmin: true }] : []),

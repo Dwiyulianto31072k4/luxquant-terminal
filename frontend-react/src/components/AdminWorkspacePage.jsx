@@ -33,6 +33,7 @@ import { SystemTab } from './admin/workspace/SystemTab';
 import { ProfitSharingTab } from './admin/workspace/ProfitSharingTab';
 import { AiCostTab } from './admin/workspace/AiCostTab';
 import { StatusTab } from './admin/workspace/StatusTab';
+import { ResourcesTab } from './admin/workspace/ResourcesTab';
 import SocialPostsAdminPage from './SocialPostsAdminPage';
 
 // Design system
@@ -63,6 +64,15 @@ import {
 // Tab definition
 // ════════════════════════════════════════════════════════════════════
 
+// Inline library/content icon for the Resources tab.
+const LibraryIcon = ({ size = 14, style, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={style} {...props}>
+    <path d="M4 5v14a1 1 0 001 1h3V4H5a1 1 0 00-1 1z" />
+    <path d="M8 4h4v16H8z" />
+    <path d="M12.5 5.2l3.9-1 3.2 12.4-3.9 1z" />
+  </svg>
+);
+
 const TABS = [
   { id: 'users',         label: 'Users',         description: 'Members, roles, and access',     Icon: UsersRingIcon,     accent: palette.gold[300] },
   { id: 'followups',     label: 'Follow-ups',    description: 'Reminders & support queue',       Icon: ArrowTargetIcon,   accent: palette.blue[400] },
@@ -74,6 +84,7 @@ const TABS = [
   { id: 'apikeys',       label: 'API',           description: 'Developer keys & abuse flags',    Icon: ShieldIcon,        accent: palette.gold[300] },
   { id: 'announcements', label: 'Announcements', description: 'In-app modal messages',           Icon: BroadcastConeIcon, accent: palette.purple[400] },
   { id: 'socialposts',   label: 'Social Posts',  description: 'AI-generated post drafts',        Icon: BroadcastConeIcon, accent: palette.purple[400] },
+  { id: 'resources',     label: 'Resources',     description: 'Research, guides, videos & links', Icon: LibraryIcon,       accent: palette.blue[400] },
   { id: 'system',        label: 'System',        description: 'VPS service health & control',    Icon: ServerIcon,        accent: palette.teal[400] },
   { id: 'status',        label: 'Status',        description: 'Public status page & incidents',   Icon: BellIcon,          accent: palette.amber[400] },
   { id: 'profitshare',   label: 'Profit Share',  description: 'Revenue split recap & export',     Icon: DollarIcon,        accent: palette.green[400] },
@@ -342,6 +353,7 @@ const AdminWorkspacePage = () => {
       {activeTab === 'apikeys' && <ApiKeysTab />}
       {activeTab === 'announcements' && <AnnouncementsTab />}
       {activeTab === 'socialposts' && <SocialPostsAdminPage />}
+      {activeTab === 'resources' && <ResourcesTab />}
       {activeTab === 'system' && <SystemTab />}
       {activeTab === 'status' && <StatusTab />}
       {activeTab === 'profitshare' && <ProfitSharingTab />}

@@ -6,7 +6,8 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { orderbookEn, orderbookZh } from './locales/orderbook';
 import { calendarEn, calendarZh } from './locales/calendar'; 
 import { whaleEn, whaleZh } from './locales/whale'; 
-import { tipsEn, tipsZh } from './locales/tips'; 
+import { tipsEn, tipsZh } from './locales/tips';
+import { resourcesEn, resourcesZh } from './locales/resources';
 import { watchlistEn, watchlistZh } from './locales/watchlist'; 
 import { userMenuEn, userMenuZh } from './locales/userMenu';
 import { pricingEn, pricingZh } from './locales/pricing';
@@ -25,8 +26,8 @@ const resources = {
   en: {
     translation: {
       ...guideEn,
-      nav: { home: "Home", signals: "Potential Trades", analytics: "Performance", bitcoin: "Bitcoin", markets: "Markets", orderbook: "Order Book", calendar: "Calendar", whale: "Whale Alert", tips: "Tips", watchlist: "Watchlist", admin: "User Management", more: "More", perf: "Perf.", trades: "Trades", btc: "BTC" },
-      desc: { orderbook: "Buy/sell wall imbalance", calendar: "Macro economic events", whale: "Large transaction tracker", tips: "Trading guides & education", watchlist: "Your saved coins", admin: "User management" },
+      nav: { home: "Home", signals: "Potential Trades", analytics: "Performance", bitcoin: "Bitcoin", markets: "Markets", orderbook: "Order Book", calendar: "Calendar", whale: "Whale Alert", tips: "Resources", watchlist: "Watchlist", admin: "User Management", more: "More", perf: "Perf.", trades: "Trades", btc: "BTC" },
+      desc: { orderbook: "Buy/sell wall imbalance", calendar: "Macro economic events", whale: "Large transaction tracker", tips: "Research, guides, videos & links", watchlist: "Your saved coins", admin: "User management" },
       top: { title: "Top Gainer by LuxQuant Algorithm", d1: "1 Day", d7: "1 Week", d30: "1 Month", custom: "Custom", from: "From:", to: "To:", apply: "Apply", total_tp: "Total TP Hits", tp_sub: "signals hit target", unique_pairs: "Unique Pairs", pairs_sub: "different coins", avg_gain: "Avg Gain (Top 5)", gain_sub: "first entry to best TP", avg_dur: "Avg Duration", dur_sub: "first call to last hit", no_tp: "No TP hits found for this period", top_gainers: "Top Gainers by LuxQuant Algorithm Call", called: "Called", first_entry: "First Entry", to_last_tp: "to last TP", no_data: "No data", fastest_hits: "Fastest Hits by LuxQuant Algorithm Call", entry: "Entry", trade_proof: "Trade Proof", view_tg: "View on Telegram ↗", before: "Before (Entry)", fullscreen: "Fullscreen", waiting_ss: "Waiting for entry screenshot...", after: "After", latest: "LATEST", back_img: "Back to Image", interactive: "Interactive Chart", view_full: "View Fullscreen", journey: "Signal Journey", called_sig: "Signal Called", sl_hit: "Stop Loss Hit", hit: "Hit", sig_data: "Signal Data", duration: "Duration", vol_rank: "Volume Rank", risk: "Risk Level", sig_id: "Signal ID", loading: "Loading Signal Data...", failed: "Failed to load signal details", prev: "Prev", next: "Next", signal: "Signal" },
       overview: { title: "Market Overview", error_api: "Global market data temporarily unavailable (API Limit).", retry: "Retry", total_mcap: "Total Market Cap", vol_24h: "24h Volume", btc_dom: "BTC Dominance", active_crypto: "Active Cryptos", sector_perf: "Sector Performance", change_24h: "24h Change", trending: "Trending:", hot: "Hot Narratives", no_gain_sec: "No gaining sectors", cool: "Cooling Down", no_lose_sec: "No losing sectors", indicators: "Market Indicators", eth_dom: "ETH Dominance", stable_dom: "Stablecoin Dom", alt_mcap: "Altcoin MCap", eth_btc: "ETH/BTC", fg_index: "Fear & Greed Index", yesterday: "Yesterday", last_week: "Last Week", trend: "Trend", up: "↑ Up", down: "↓ Down", flat: "→ Flat", deriv_pulse: "Derivatives Pulse", deriv_pending: "Derivatives data pending...", total_oi: "Total Open Interest", funding: "Funding Rates", avg: "avg", pairs_tracked: "pairs tracked", top_gainers_24h: "Top Gainers (24h)", top_losers_24h: "Top Losers (24h)" },
       signals: { title: "Potential Trades", last_7d: "Last 7 Days", signals: "signals", updated: "updated", today: "TODAY", open: "open", closed: "closed", overall_wr: "OVERALL WR", total: "total", this_week: "THIS WEEK", in_view: "signals in view", btc_alert: "BTC DOMINANCE ALERT", dom_index: "Dominance Index", entry_price: "ENTRY PRICE", stop_loss: "STOP LOSS", risk_level: "RISK LEVEL", target_journey: "TARGET JOURNEY", action_plan: "ACTION PLAN", action_desc: "If $BTCDOM is rising, <strong class='text-red-400'>SELL your altcoins</strong>.", action_sub: "BTC absorbs market liquidity. Even if BTC dumps, Altcoins might dump much harder.", risk_mgmt: "RISK MANAGEMENT", risk_desc: "Reduce position sizes drastically. Keep assets in liquid funds (USDT).", recovery: "RECOVERY PLAN", rec_desc: "Buy back when reversal signs appear, or repurpose funds for high-probability setups.", search_pair: "SEARCH PAIR", sort_by: "SORT BY", order: "ORDER", status: "STATUS", all: "All", newest_hit: "Newest Update Hit", loss: "Loss", pair: "PAIR", current_price: "CURRENT PRICE", max_target: "MAX TARGET", mcap: "MCAP", vol: "VOL", last_update: "LAST UPDATE", time: "TIME", called: "Called", update: "Update", get_to_know: "Get to know", just_now: "just now", m_ago: "m ago", h_ago: "h ago", d_ago: "d ago", low: "Low", normal: "Normal", medium: "Medium", high: "High" },
@@ -38,7 +39,8 @@ const resources = {
       orderbook: orderbookEn,
       calendar: calendarEn,
       whale: whaleEn,
-      tips: tipsEn,         
+      tips: tipsEn,
+      resources: resourcesEn,
       watchlist: watchlistEn,
       userMenu: userMenuEn,
       pricing: pricingEn,
@@ -56,8 +58,8 @@ const resources = {
   zh: {
     translation: {
       ...guideZh,
-      nav: { home: "主页", signals: "潜在交易", analytics: "表现", bitcoin: "比特币", markets: "市场", orderbook: "订单簿", calendar: "日历", whale: "巨鲸追踪", tips: "提示", watchlist: "自选列表", admin: "用户管理", more: "更多", perf: "表现", trades: "交易", btc: "比特币" },
-      desc: { orderbook: "买卖墙不平衡", calendar: "宏观经济事件", whale: "大额交易追踪器", tips: "交易指南与教育", watchlist: "您保存的代币", admin: "用户管理" },
+      nav: { home: "主页", signals: "潜在交易", analytics: "表现", bitcoin: "比特币", markets: "市场", orderbook: "订单簿", calendar: "日历", whale: "巨鲸追踪", tips: "资源中心", watchlist: "自选列表", admin: "用户管理", more: "更多", perf: "表现", trades: "交易", btc: "比特币" },
+      desc: { orderbook: "买卖墙不平衡", calendar: "宏观经济事件", whale: "大额交易追踪器", tips: "研究、指南、视频和链接", watchlist: "您保存的代币", admin: "用户管理" },
       top: { title: "LuxQuant 算法最高收益", d1: "1 天", d7: "1 周", d30: "1 个月", custom: "自定义", from: "从:", to: "至:", apply: "应用", total_tp: "总止盈次数", tp_sub: "达到目标的信号", unique_pairs: "独立交易对", pairs_sub: "不同的代币", avg_gain: "平均收益 (前五)", gain_sub: "首次入场至最佳止盈", avg_dur: "平均持续时间", dur_sub: "首次呼叫至最后命中", no_tp: "此期间未找到止盈记录", top_gainers: "LuxQuant 算法呼叫的最高收益", called: "呼叫", first_entry: "首次入场", to_last_tp: "至最后止盈", no_data: "无数据", fastest_hits: "LuxQuant 算法呼叫的最快命中", entry: "入场", trade_proof: "交易证明", view_tg: "在 Telegram 上查看 ↗", before: "之前 (入场)", fullscreen: "全屏", waiting_ss: "等待入场截图...", after: "之后", latest: "最新", back_img: "返回图片", interactive: "交互式图表", view_full: "查看全屏", journey: "信号历程", called_sig: "发出信号", sl_hit: "触及止损", hit: "命中", sig_data: "信号数据", duration: "持续时间", vol_rank: "成交量排名", risk: "风险等级", sig_id: "信号 ID", loading: "正在加载信号数据...", failed: "加载信号详情失败", prev: "上一页", next: "下一页", signal: "信号" },
       overview: { title: "市场概览", error_api: "全球市场数据暂时不可用 (API 限制)。", retry: "重试", total_mcap: "总市值", vol_24h: "24小时交易量", btc_dom: "BTC 占比", active_crypto: "活跃加密货币", sector_perf: "板块表现", change_24h: "24小时涨跌", trending: "热门趋势:", hot: "热门叙事", no_gain_sec: "无上涨板块", cool: "降温板块", no_lose_sec: "无下跌板块", indicators: "市场指标", eth_dom: "ETH 占比", stable_dom: "稳定币占比", alt_mcap: "山寨币市值", eth_btc: "ETH/BTC", fg_index: "恐慌与贪婪指数", yesterday: "昨日", last_week: "上周", trend: "趋势", up: "↑ 上涨", down: "↓ 下跌", flat: "→ 平稳", deriv_pulse: "衍生品脉动", deriv_pending: "衍生品数据等待中...", total_oi: "总未平仓合约", funding: "资金费率", avg: "平均", pairs_tracked: "个交易对已追踪", top_gainers_24h: "涨幅榜 (24h)", top_losers_24h: "跌幅榜 (24h)" },
       signals: { title: "潜在交易", last_7d: "过去7天", signals: "个信号", updated: "已更新", today: "今日", open: "未平仓", closed: "已平仓", overall_wr: "总胜率", total: "总计", this_week: "本周", in_view: "视野中的信号", btc_alert: "BTC 占比警报", dom_index: "占比指数", entry_price: "入场价格", stop_loss: "止损价格", risk_level: "风险等级", target_journey: "目标历程", action_plan: "行动计划", action_desc: "如果 $BTCDOM 正在上升，<strong class='text-red-400'>请卖出您的山寨币</strong>。", action_sub: "BTC 会吸收市场流动性。即使 BTC 暴跌，山寨币也可能跌得更惨。", risk_mgmt: "风险管理", risk_desc: "大幅缩减仓位规模。将资产保留在流动资金 (USDT) 中。", recovery: "恢复计划", rec_desc: "当出现反转信号时买回，或将资金用于高概率的交易设置。", search_pair: "搜索交易对", sort_by: "排序方式", order: "顺序", status: "状态", all: "全部", newest_hit: "最新命中", loss: "亏损", pair: "交易对", current_price: "当前价格", max_target: "最高目标", mcap: "市值", vol: "成交量", last_update: "最后更新", time: "时间", called: "发出", update: "更新", get_to_know: "了解更多", just_now: "刚刚", m_ago: "分钟前", h_ago: "小时前", d_ago: "天前", low: "低", normal: "正常", medium: "中", high: "高" },
@@ -69,7 +71,8 @@ const resources = {
       orderbook: orderbookZh,
       calendar: calendarZh,
       whale: whaleZh,
-      tips: tipsZh,         
+      tips: tipsZh,
+      resources: resourcesZh,
       watchlist: watchlistZh,
       userMenu: userMenuZh,
       pricing: pricingZh,
