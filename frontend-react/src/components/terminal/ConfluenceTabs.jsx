@@ -10,13 +10,15 @@
 //     (used only as light context on the card footer)
 //   · item.status — the signal's latest lifecycle state (open/tp1…/sl)
 // ════════════════════════════════════════════════════════════════
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import CoinLogo from "../CoinLogo";
 import {
-  POS, NEG, fmtPct,
+  POS, NEG, fmtPct, API_BASE, authHeaders,
   SectionBand, Kpi, Chip, ScrollArea, StatusTag,
 } from "./vizShared";
+
+const baseSym = (pair) => (pair || "").replace(/USDT$|USDC$|BUSD$|USD$/i, "").toUpperCase();
 
 // ── v3 tag knowledge (mirrors IMPORTANT_TAGS in enrichment_service_v3) ──
 const REASON_PRIORITY = [
@@ -60,7 +62,25 @@ function scoreOf(tags) {
 // ════════════════════════════════════════════════════════════════
 // SIGNAL CARD — the hero component
 // ════════════════════════════════════════════════════════════════
-function SignalCard({ s, live, ps, onPair, onOpen, t }) {
+// flow-context chips from the new Liquidations + Token Flow feeds (risk context)
+function flowChipsOf(flow) {
+  const out = [];
+  const liq = flow?.liq;
+  if (liq) {
+    if (liq.spike) out.push({ k: "liq spike", cls: "bg-gold-primary/15 border-gold-primary/30 text-gold-primary" });
+    else if ((liq.side_bias || 0) > 0.4) out.push({ k: "shorts flushed", cls: "bg-positive/10 border-positive/30 text-positive" });
+    else if ((liq.side_bias || 0) < -0.4) out.push({ k: "longs flushed", cls: "bg-negative/10 border-negative/30 text-negative" });
+  }
+  const tf = flow?.tf;
+  if (tf) {
+    const net = tf.net_inflow_usd || 0;
+    if (net < 0) out.push({ k: "spot accumulation", cls: "bg-positive/10 border-positive/30 text-positive" });
+    else if (net > 0) out.push({ k: "spot selling", cls: "bg-negative/10 border-negative/30 text-negative" });
+  }
+  return out;
+}
+
+function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
   const hasIntel = !!v3.direction;
@@ -78,6 +98,7 @@ function SignalCard({ s, live, ps, onPair, onOpen, t }) {
   const eq = Object.keys(EQ_TAGS).find((k) => tags.includes(k));
   const reasons = REASON_PRIORITY.filter((r) => tags.includes(r)).slice(0, 3);
   const warns = WARNING_TAGS.filter((w) => tags.includes(w)).slice(0, 3);
+  const flowChips = flowChipsOf(flow);
   const fc = live?.fc;
   const avg = ps?.avg_24h;
   const delta = fc != null && avg != null ? fc - avg : null;
@@ -169,6 +190,18 @@ function SignalCard({ s, live, ps, onPair, onOpen, t }) {
         </div>
       )}
 
+      {/* flow context — from Liquidations + Token Flow feeds (risk context) */}
+      {flowChips.length > 0 && (
+        <div className="px-4 mt-2 flex items-center gap-1 flex-wrap">
+          <span className="font-mono text-[7.5px] uppercase tracking-[0.2em] text-text-muted/50 mr-0.5">flow</span>
+          {flowChips.map((c) => (
+            <span key={c.k} className={`px-1.5 py-0.5 rounded-[4px] border font-mono text-[8px] uppercase tracking-wider ${c.cls}`}>
+              {c.k}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* footer — historical context */}
       <div className="mt-auto px-4 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
         {avg != null ? (
@@ -224,6 +257,26 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
   }, [view]);
 
   const psPairs = postsignal?.pairs || {};
+
+  // Liquidations + Token Flow feeds → per-card "flow context" chips
+  const [liqMap, setLiqMap] = useState({});
+  const [flowMap, setFlowMap] = useState({});
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [lq, tf] = await Promise.all([
+          fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() }).then((r) => r.json()),
+        ]);
+        if (!alive) return;
+        const lm = {}; (lq?.items || []).forEach((i) => { lm[i.pair] = i; });
+        const fm = {}; (tf?.items || []).forEach((i) => { fm[i.symbol] = i; });
+        setLiqMap(lm); setFlowMap(fm);
+      } catch { /* keep empty → simply no flow chips */ }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // "Coiled" — strong, clean setups still sitting near entry (not pumped yet)
   const coiled = useMemo(() => {
@@ -307,6 +360,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
                 onOpen={openSignalRow}
                 live={{ fc: pairFc[s.pair], spike: deriv?.pairs?.[s.pair]?.spike_15m }}
                 ps={psPairs[s.pair]}
+                flow={{ liq: liqMap[s.pair], tf: flowMap[baseSym(s.pair)] }}
               />
             ))}
           </div>
