@@ -81,15 +81,20 @@ function flowChipsOf(flow) {
 }
 
 // direction-aware flow score: does on-chain flow + liquidation SUPPORT this signal?
-// NOTE: weights are conservative DEFAULTS — calibrate via EdgeLab backtest before
-// trusting them as hard signal. Aligned flow → +, opposed flow → − (conflict).
+// CALIBRATED weights (see scripts/backtest_flow.py):
+//   W_TF  = token-flow. Backtest (14d, Ethereum): accumulation 87.4% vs selling
+//           84.3% win → +3.1pp edge (weak, not conclusive) → small 0.3, gentle tiebreaker.
+//   W_LIQ = liquidation. NOT backtestable yet (Coinalyze deletes intraday history);
+//           conservative placeholder — recalibrate from flow_snapshots once it fills.
+const W_TF = 0.3;
+const W_LIQ = 0.5;
 function flowScoreOf(dir, flow) {
   const s = dir === "BULLISH" ? 1 : dir === "BEARISH" ? -1 : 0;
   let b = 0;
-  if (flow?.tf) b += (flow.tf.net_inflow_usd || 0) < 0 ? 1 : -1;      // outflow = accumulation (+)
+  if (flow?.tf) b += ((flow.tf.net_inflow_usd || 0) < 0 ? 1 : -1) * W_TF;   // outflow = accumulation (+)
   if (flow?.liq) {
-    if ((flow.liq.side_bias || 0) > 0.4) b += 1;                       // shorts flushed → squeeze up
-    else if ((flow.liq.side_bias || 0) < -0.4) b -= 1;                 // longs flushed → down
+    if ((flow.liq.side_bias || 0) > 0.4) b += W_LIQ;                        // shorts flushed → squeeze up
+    else if ((flow.liq.side_bias || 0) < -0.4) b -= W_LIQ;                  // longs flushed → down
   }
   const score = s * b;
   return { score, conflict: score < 0, support: score > 0 };
