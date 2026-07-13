@@ -1,0 +1,21 @@
+# robots.txt — https://luxquant.tw
+# Allow crawling of public pages; keep private/app areas out of the index.
+
+User-agent: *
+Allow: /
+
+# Private / login-gated app areas (thin login shell for crawlers → don't index)
+Disallow: /admin
+Disallow: /autotrade
+Disallow: /portfolio
+Disallow: /profile
+Disallow: /notifications
+Disallow: /api-keys
+Disallow: /journal
+Disallow: /*?redirect=
+
+# Let Google fetch images (favicon, OG images, logos)
+User-agent: Googlebot-Image
+Allow: /
+
+Sitemap: https://luxquant.tw/sitemap.xml

@@ -10,9 +10,12 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
     <link rel="preconnect" href="https://unpkg.com" />
 
-    <!-- Favicon + share-sheet / search logo -->
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <!-- Search / browser favicon = dedicated SEO logo (/favicon.png) with its
+         own background so it's visible on Google's white results page.
+         The in-app UI still uses /logo.png (unchanged). -->
+    <link rel="icon" type="image/png" sizes="any" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
 
     <!-- Canonical -->
     <link rel="canonical" href="https://luxquant.tw/" />
