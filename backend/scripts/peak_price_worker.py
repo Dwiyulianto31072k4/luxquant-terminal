@@ -135,66 +135,70 @@ def _fetch_bybit(category: str, symbol: str, start_ms: int) -> Optional[List]:
         return None
 
 
-def fetch_peak_since(symbol: str, start_dt: datetime) -> Optional[Tuple[float, datetime]]:
+def _scan(data):
+    """Extract (peak_high, peak_ts, min_low, max_high) from kline rows.
+    Binance & Bybit share the index layout: [ts, open, high, low, close, ...]."""
+    peak = 0.0
+    peak_ts = None
+    lo = float("inf")
+    hi = 0.0
+    for c in data:
+        try:
+            h = float(c[2]); l = float(c[3])
+        except (ValueError, TypeError, IndexError):
+            continue
+        if h > peak:
+            peak = h
+            peak_ts = datetime.fromtimestamp(int(c[0]) / 1000, tz=timezone.utc)
+        if h > hi:
+            hi = h
+        if l < lo:
+            lo = l
+    return peak, peak_ts, lo, hi
+
+
+def _entry_ok(entry: float, lo: float, hi: float) -> bool:
+    """Guard against SYMBOL COLLISIONS (e.g. a micro-cap 'BE' at $0.0136 vs a
+    Binance 'BEUSDT' perp at $235). The signal entry must sit within the fetched
+    price range with a generous 5x tolerance — otherwise the feed is a DIFFERENT
+    asset and we must NOT compute a bogus peak (which produced +1.9M% gains)."""
+    if entry <= 0 or hi <= 0 or lo == float("inf"):
+        return True
+    return (lo / 5.0) <= entry <= (hi * 5.0)
+
+
+def fetch_peak_since(symbol: str, start_dt: datetime, entry: float = 0.0):
     """
-    Return (peak_price, peak_timestamp) or None.
+    Return (peak_price, peak_ts) on success, the string "MISMATCH" if a source
+    returned data whose price range is inconsistent with `entry` (symbol collision
+    → reject), or None if no source had any data.
     Fallback chain: Binance Futures → Binance Spot → Bybit Linear → Bybit Spot.
     """
     start_ms = int(start_dt.timestamp() * 1000)
+    saw_data = False
 
-    # 1. Binance Futures
-    data = _fetch_binance(BINANCE_FAPI, symbol, start_ms)
-    if data:
-        peak_price = 0.0
-        peak_ts = None
-        for c in data:
-            high = float(c[2])
-            if high > peak_price:
-                peak_price = high
-                peak_ts = datetime.fromtimestamp(c[0] / 1000, tz=timezone.utc)
-        if peak_price > 0:
-            return peak_price, peak_ts
+    sources = [
+        ("Binance-FAPI", lambda: _fetch_binance(BINANCE_FAPI, symbol, start_ms)),
+        ("Binance-Spot", lambda: _fetch_binance(BINANCE_SPOT, symbol, start_ms)),
+        ("Bybit-Linear", lambda: _fetch_bybit("linear", symbol, start_ms)),
+        ("Bybit-Spot", lambda: _fetch_bybit("spot", symbol, start_ms)),
+    ]
+    for name, fetch in sources:
+        data = fetch()
+        if not data:
+            continue
+        peak, peak_ts, lo, hi = _scan(data)
+        if peak <= 0:
+            continue
+        if _entry_ok(entry, lo, hi):
+            return peak, peak_ts
+        saw_data = True
+        log.warning(
+            f"{symbol}: {name} price range [{lo:.6g},{hi:.6g}] inconsistent with "
+            f"entry {entry:.6g} — likely wrong-symbol collision, skipping source"
+        )
 
-    # 2. Binance Spot
-    data = _fetch_binance(BINANCE_SPOT, symbol, start_ms)
-    if data:
-        peak_price = 0.0
-        peak_ts = None
-        for c in data:
-            high = float(c[2])
-            if high > peak_price:
-                peak_price = high
-                peak_ts = datetime.fromtimestamp(c[0] / 1000, tz=timezone.utc)
-        if peak_price > 0:
-            return peak_price, peak_ts
-
-    # 3. Bybit Linear (futures)
-    data = _fetch_bybit("linear", symbol, start_ms)
-    if data:
-        peak_price = 0.0
-        peak_ts = None
-        for c in data:
-            high = float(c[2])
-            if high > peak_price:
-                peak_price = high
-                peak_ts = datetime.fromtimestamp(int(c[0]) / 1000, tz=timezone.utc)
-        if peak_price > 0:
-            return peak_price, peak_ts
-
-    # 4. Bybit Spot
-    data = _fetch_bybit("spot", symbol, start_ms)
-    if data:
-        peak_price = 0.0
-        peak_ts = None
-        for c in data:
-            high = float(c[2])
-            if high > peak_price:
-                peak_price = high
-                peak_ts = datetime.fromtimestamp(int(c[0]) / 1000, tz=timezone.utc)
-        if peak_price > 0:
-            return peak_price, peak_ts
-
-    return None
+    return "MISMATCH" if saw_data else None
 
 
 # ─── DB helpers ───────────────────────────────────────────────────────────
@@ -317,6 +321,16 @@ def touch_peak_updated(session, signal_id: str):
     session.execute(sql, {"sid": signal_id})
 
 
+def clear_peak(session, signal_id: str):
+    """Wipe a bogus peak (symbol collision) so it stops polluting the track record."""
+    sql = text("""
+        UPDATE signals
+        SET peak_price = NULL, peak_pct = NULL, peak_at = NULL, peak_updated_at = NOW()
+        WHERE signal_id = :sid
+    """)
+    session.execute(sql, {"sid": signal_id})
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────
 def run(mode: str, limit: int, signal_id: Optional[str], dry_run: bool, recent_days: int):
     engine = create_engine(DB_URL, pool_pre_ping=True)
@@ -347,12 +361,24 @@ def run(mode: str, limit: int, signal_id: Optional[str], dry_run: bool, recent_d
                 continue
 
             try:
-                result = fetch_peak_since(pair, created)
+                result = fetch_peak_since(pair, created, entry)
             except Exception as e:
                 log.error(f"[{i}/{len(signals)}] {sid} {pair}: fetch error {e}")
                 failed += 1
                 if not dry_run:
                     touch_peak_updated(session, sid)
+                    session.commit()
+                time.sleep(SLEEP_BETWEEN_CALLS)
+                continue
+
+            if result == "MISMATCH":
+                log.warning(
+                    f"[{i}/{len(signals)}] {sid} {pair}: price feed inconsistent with "
+                    f"entry {entry} (symbol collision) — clearing bogus peak"
+                )
+                skipped += 1
+                if not dry_run:
+                    clear_peak(session, sid)
                     session.commit()
                 time.sleep(SLEEP_BETWEEN_CALLS)
                 continue
