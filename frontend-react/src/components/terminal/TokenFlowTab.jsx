@@ -11,11 +11,15 @@
 import { useState, useEffect, useMemo } from "react";
 import CoinLogo from "../CoinLogo";
 import {
-  API_BASE, authHeaders, POS, NEG, fmtMoney, SectionBand, Kpi, Warming,
+  API_BASE, authHeaders, POS, NEG, fmtMoney, SectionBand, Kpi, Warming, Chip,
 } from "./vizShared";
 
 const baseSym = (pair) =>
   (pair || "").replace(/USDT$|USDC$|BUSD$|USD$/i, "").toUpperCase();
+const STABLES = new Set([
+  "USDT", "USDC", "DAI", "USDE", "PYUSD", "TUSD", "FDUSD", "BUSD",
+  "USDD", "FRAX", "GUSD", "LUSD", "USDS", "USD0", "CRVUSD", "USDT0", "RLUSD",
+]);
 
 function FlowRow({ r, max, color }) {
   const net = Math.abs(r.net_inflow_usd || 0);
@@ -56,6 +60,7 @@ function FlowColumn({ title, sub, rows, color }) {
 export function TokenFlowTab({ view }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState("calls");   // "calls" (scoped) | "market"
 
   useEffect(() => {
     let alive = true;
@@ -75,9 +80,9 @@ export function TokenFlowTab({ view }) {
 
   const { bullish, bearish, totalOut, totalIn } = useMemo(() => {
     const viewBases = new Set((view || []).map((s) => baseSym(s.pair)));
-    const rows = (data?.items || []).filter(
-      (it) => viewBases.size === 0 || viewBases.has(it.symbol),
-    );
+    const rows = (data?.items || [])
+      .filter((it) => !STABLES.has((it.symbol || "").toUpperCase()))    // stables carry no directional signal
+      .filter((it) => scope === "market" || viewBases.size === 0 || viewBases.has(it.symbol));
     const bullish = rows
       .filter((r) => (r.net_inflow_usd || 0) < 0)
       .sort((a, b) => a.net_inflow_usd - b.net_inflow_usd)   // most negative first
@@ -91,7 +96,7 @@ export function TokenFlowTab({ view }) {
       totalOut: rows.filter((r) => r.net_inflow_usd < 0).reduce((a, r) => a + r.net_inflow_usd, 0),
       totalIn: rows.filter((r) => r.net_inflow_usd > 0).reduce((a, r) => a + r.net_inflow_usd, 0),
     };
-  }, [data, view]);
+  }, [data, view, scope]);
 
   if (loading) return <Warming text="Loading token flow…" />;
 
@@ -101,8 +106,13 @@ export function TokenFlowTab({ view }) {
     <div className="space-y-4">
       <SectionBand
         title="Token Flow"
-        desc="Spot capital moving in/out of exchanges (24h, on-chain). Coins LEAVING exchanges = accumulation (bullish); coins moving TO exchanges = potential selling (bearish). Ethereum spot — not a futures signal."
+        desc="Spot capital moving in/out of exchanges (24h, on-chain, multi-chain). Coins LEAVING exchanges = accumulation (bullish); coins moving TO exchanges = potential selling (bearish). Not a futures signal."
       />
+
+      <div className="flex items-center gap-1.5">
+        <Chip active={scope === "calls"} onClick={() => setScope("calls")}>My calls</Chip>
+        <Chip active={scope === "market"} onClick={() => setScope("market")}>Market</Chip>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Kpi label="Net leaving (accumulation)" value={fmtMoney(Math.abs(totalOut))} tone="text-emerald-400" />
@@ -111,7 +121,9 @@ export function TokenFlowTab({ view }) {
 
       {empty ? (
         <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-10 text-center font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
-          No token-flow data for the pairs in view yet
+          {scope === "market"
+            ? "No token-flow data yet — worker refreshes ~every 6h"
+            : "No token-flow for your active calls — switch to Market to see all"}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

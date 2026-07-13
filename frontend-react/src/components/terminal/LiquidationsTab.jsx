@@ -15,7 +15,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import {
   API_BASE, authHeaders, GOLD, POS, NEG,
-  fmtMoney, SectionBand, Kpi, Warming, CoinPill,
+  fmtMoney, SectionBand, Kpi, Warming, CoinPill, Chip,
 } from "./vizShared";
 
 const biasColor = (b) => (b > 0.15 ? POS : b < -0.15 ? NEG : GOLD);
@@ -85,6 +85,7 @@ function LiqTip({ active, payload }) {
 export function LiquidationsTab({ view }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState("calls");   // "calls" (scoped) | "market"
 
   useEffect(() => {
     let alive = true;
@@ -108,7 +109,7 @@ export function LiquidationsTab({ view }) {
     (data?.items || []).forEach((it) => { byPair[it.pair] = it; });
     const viewPairs = new Set((view || []).map((s) => s.pair));
     const rows = Object.values(byPair)
-      .filter((it) => viewPairs.size === 0 || viewPairs.has(it.pair))
+      .filter((it) => scope === "market" || viewPairs.size === 0 || viewPairs.has(it.pair))
       .filter((it) => (it.total_4h || 0) > 0);
     const max = rows.reduce((a, r) => Math.max(a, r.total_4h || 0), 0) || 1;
     const nodes = rows
@@ -129,7 +130,7 @@ export function LiquidationsTab({ view }) {
       spikes: rows.filter((r) => r.spike).length,
       top: nodes[0] || null,
     };
-  }, [data, view]);
+  }, [data, view, scope]);
 
   if (loading) return <Warming text="Loading liquidations…" />;
 
@@ -137,12 +138,17 @@ export function LiquidationsTab({ view }) {
     <div className="space-y-4">
       <SectionBand
         title="Liquidations"
-        desc="Where leverage got flushed — risk context for your live calls. Green = shorts liquidated (squeeze up), red = longs liquidated. Not a futures signal."
+        desc="Where leverage got flushed — risk context. Green = shorts liquidated (squeeze up), red = longs liquidated. Not a futures signal."
       />
+
+      <div className="flex items-center gap-1.5">
+        <Chip active={scope === "calls"} onClick={() => setScope("calls")}>My calls</Chip>
+        <Chip active={scope === "market"} onClick={() => setScope("market")}>Market</Chip>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
-        <Kpi label="4H liq (calls)" value={fmtMoney(totalLiq)} />
+        <Kpi label={scope === "market" ? "4H liq (market)" : "4H liq (calls)"} value={fmtMoney(totalLiq)} />
         <Kpi label="Spikes" value={spikes} tone={spikes > 0 ? "text-gold-primary" : undefined} />
         <Kpi label="Biggest" value={top ? `${top.name.replace("USDT", "")} · ${fmtMoney(top.size)}` : "—"} />
       </div>
@@ -150,7 +156,9 @@ export function LiquidationsTab({ view }) {
       {nodes.length === 0 ? (
         <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] px-4 py-10 text-center">
           <div className="font-mono text-[11px] uppercase tracking-wider text-text-muted/70">
-            No liquidation data for the pairs in view yet
+            {scope === "market"
+              ? "No liquidation data yet — worker refreshes every ~10 min"
+              : "No liquidations for your active calls — switch to Market to see all"}
           </div>
           <div className="mt-2 flex items-center justify-center gap-1.5 flex-wrap">
             {(view || []).slice(0, 10).map((s) => (
