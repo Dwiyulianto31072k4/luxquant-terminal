@@ -16,7 +16,6 @@ import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
 import { SignalStatusProvider, useSignalStatus } from "../context/SignalStatusContext";
 import GlobalSignalModalHost from "./SignalStatusModal";
-import { ResponsiveContainer, Treemap, Tooltip as RTooltip } from "recharts";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -1331,11 +1330,6 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
 // HEATMAP — Treemap (size scales with rank) — Flowscan card
 // ════════════════════════════════════════════════════════
 
-const HEAT_OUTLINE = { paintOrder: "stroke", stroke: "#0a0806", strokeWidth: 3, strokeLinejoin: "round" };
-const heatLogoUrl = (pair) => {
-  const clean = stripQuote(pair || "").toLowerCase().replace(/^1000/, "");
-  return `https://assets.coincap.io/assets/icons/${clean}@2x.png`;
-};
 const heatFill = (isBull, pct) => {
   const intensity = Math.min(Math.abs(pct || 0) / 12, 0.85);
   return isBull
@@ -1343,111 +1337,116 @@ const heatFill = (isBull, pct) => {
     : `rgba(239,68,68,${0.12 + intensity * 0.42})`;
 };
 
-// Packed treemap (size = activity, color = direction) — mirrors the Terminal
-// Liquidations map. Coins with a live LuxQuant call get a gold outline + CALL tag.
-function HeatTreemap({ data, height, onPick }) {
-  const nodes = useMemo(
-    () =>
-      (data || []).map((c) => {
-        const upAbs = Math.abs(c.max_up || 0);
-        const downAbs = Math.abs(c.max_down || 0);
-        const pct = upAbs >= downAbs ? c.max_up || 0 : c.max_down || 0;
-        const ev = Math.max(1, c.event_count || 1);
-        return {
-          name: c.pair,
-          pair: c.pair,
-          size: 4 + Math.pow(ev, 0.85),
-          pct,
-          isBull: pct >= 0,
-          eventCount: ev,
-          called: !!c.called,
-        };
-      }),
-    [data]
+// Binary-split treemap: packs value-weighted items into a w×h box. Sorted
+// desc → biggest coins get the largest, most-square tiles.
+function packTreemap(items, x, y, w, h) {
+  if (items.length === 0) return [];
+  if (items.length === 1) return [{ ...items[0], x, y, w, h }];
+  const total = items.reduce((s, i) => s + i.value, 0);
+  let acc = 0, idx = 0;
+  for (let i = 0; i < items.length; i++) {
+    if (idx > 0 && acc + items[i].value > total / 2) break;
+    acc += items[i].value; idx = i + 1;
+  }
+  idx = Math.max(1, Math.min(items.length - 1, idx));
+  const a = items.slice(0, idx), b = items.slice(idx);
+  const ratio = acc / total;
+  if (w >= h) {
+    const wa = w * ratio;
+    return [...packTreemap(a, x, y, wa, h), ...packTreemap(b, x + wa, y, w - wa, h)];
+  }
+  const ha = h * ratio;
+  return [...packTreemap(a, x, y, w, ha), ...packTreemap(b, x, y + ha, w, h - ha)];
+}
+
+// measure a DOM node's content box (for pixel-accurate treemap packing)
+function useMeasure() {
+  const ref = useRef(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0].contentRect;
+      setSize({ w: Math.round(cr.width), h: Math.round(cr.height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, size];
+}
+
+// Single tile — HTML so it can reuse <CoinLogo> (real logo + auto initials-circle
+// fallback; never a broken image). Gold border + CALL tag on LuxQuant calls.
+const HeatTile = ({ r, onPick }) => {
+  const { x, y, w, h, pair, pct, isBull, eventCount, called } = r;
+  const big = w > 62 && h > 50;
+  const med = w > 38 && h > 26;
+  const showLogo = big || (med && Math.min(w, h) > 34);
+  const logoSize = Math.min(30, Math.max(14, Math.min(w, h) * 0.3));
+  const sym = stripQuote(pair);
+  return (
+    <button
+      onClick={() => onPick?.(pair, called)}
+      title={`${sym} · ${eventCount} events · ${pct >= 0 ? "+" : ""}${Number(pct).toFixed(2)}%`}
+      className="absolute overflow-hidden transition-[filter] hover:brightness-110 focus:outline-none"
+      style={{
+        left: x + 1.5, top: y + 1.5,
+        width: Math.max(0, w - 3), height: Math.max(0, h - 3),
+        background: heatFill(isBull, pct),
+        border: called ? "1.5px solid rgba(212,168,83,0.9)" : `1px solid ${isBull ? "rgba(16,185,129,0.28)" : "rgba(239,68,68,0.28)"}`,
+        borderRadius: 6,
+      }}
+    >
+      {med && <span className="absolute top-1 left-1.5 font-mono text-[8px] leading-none text-white/45">×{eventCount}</span>}
+      {called && med && <span className="absolute top-1 right-1.5 font-mono text-[7.5px] font-bold leading-none tracking-[0.1em] text-gold-primary">CALL</span>}
+      <span className="flex h-full w-full flex-col items-center justify-center gap-1 px-1">
+        {showLogo && <CoinLogo pair={pair} size={logoSize} />}
+        {med && (
+          <span className="max-w-full truncate font-semibold leading-none text-white" style={{ fontSize: big ? 12.5 : 10.5 }}>{sym}</span>
+        )}
+        {med && (
+          <span className="font-mono leading-none" style={{ fontSize: big ? 12 : 10, color: isBull ? "#6ee7b7" : "#fca5a5" }}>
+            {pct >= 0 ? "+" : ""}{Number(pct).toFixed(1)}%
+          </span>
+        )}
+        {!med && <span className="max-w-full truncate font-semibold leading-none text-white/90" style={{ fontSize: 8.5 }}>{sym}</span>}
+      </span>
+    </button>
   );
+};
 
-  const Cell = (props) => {
-    const { x, y, width, height: h, name, pair, pct = 0, isBull, eventCount = 1, called } = props;
-    if (!name || width <= 0 || h <= 0) return null;
-    const sym = stripQuote(name);
-    const med = width > 40 && h > 26;
-    const big = width > 66 && h > 54;
-    const logo = Math.min(30, Math.max(12, Math.min(width, h) * 0.26));
-    const textY = big ? y + logo + 20 : y + 16;
-    return (
-      <g style={{ cursor: "pointer" }} onClick={() => onPick?.(pair, called)}>
-        <rect
-          x={x} y={y} width={width} height={h} rx={3}
-          style={{
-            fill: heatFill(isBull, pct),
-            stroke: called ? "rgba(212,168,83,0.95)" : "#0a0806",
-            strokeWidth: called ? 1.6 : 1,
-          }}
-        />
-        {big && (
-          <image
-            href={heatLogoUrl(pair)}
-            x={x + 7} y={y + 7} width={logo} height={logo}
-            preserveAspectRatio="xMidYMid slice"
-          />
-        )}
-        {med && (
-          <text x={x + 7} y={textY} fill="#ffffff" fontSize={12.5} fontWeight={700} style={HEAT_OUTLINE}>
-            {sym.length > 8 ? sym.slice(0, 8) + "…" : sym}
-          </text>
-        )}
-        {med && (
-          <text x={x + 7} y={textY + 15} fill={isBull ? "#6ee7b7" : "#fca5a5"} fontSize={11.5}
-            fontWeight={700} className="font-mono" style={HEAT_OUTLINE}>
-            {pct >= 0 ? "+" : ""}{pct.toFixed(1)}%
-          </text>
-        )}
-        {med && (
-          <text x={x + width - 6} y={y + 13} textAnchor="end" fill="rgba(255,255,255,0.5)"
-            fontSize={9} className="font-mono" style={HEAT_OUTLINE}>
-            ×{eventCount}
-          </text>
-        )}
-        {called && med && (
-          <text x={x + width - 6} y={y + h - 7} textAnchor="end" fill="#e8c877"
-            fontSize={8.5} fontWeight={800} className="font-mono"
-            style={{ ...HEAT_OUTLINE, letterSpacing: "0.12em" }}>
-            CALL
-          </text>
-        )}
-      </g>
-    );
-  };
+// Packed treemap (size = activity, color = direction). HTML tiles so logos
+// resolve through the shared CoinLogo pipeline.
+function HeatTreemap({ data, height, onPick }) {
+  const [ref, size] = useMeasure();
+  const items = useMemo(() => {
+    const arr = (data || []).map((c) => {
+      const upAbs = Math.abs(c.max_up || 0);
+      const downAbs = Math.abs(c.max_down || 0);
+      const pct = upAbs >= downAbs ? c.max_up || 0 : c.max_down || 0;
+      const ev = Math.max(1, c.event_count || 1);
+      return { pair: c.pair, value: 3 + Math.pow(ev, 0.8), pct, isBull: pct >= 0, eventCount: ev, called: !!c.called };
+    });
+    arr.sort((a, b) => b.value - a.value);
+    return arr;
+  }, [data]);
 
-  const Tip = ({ active, payload }) => {
-    if (!active || !payload?.length) return null;
-    const d = payload[0]?.payload || {};
-    return (
-      <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
-        <div className="font-medium text-white mb-0.5">
-          {stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}
-        </div>
-        <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>
-          {d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%
-        </div>
-        <div className="font-mono text-text-muted">{d.eventCount} events</div>
-      </div>
-    );
-  };
-
-  if (nodes.length === 0)
-    return (
-      <div className="flex items-center justify-center text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]" style={{ height }}>
-        No activity yet
-      </div>
-    );
+  const rects = useMemo(() => {
+    if (!size.w || !size.h || items.length === 0) return [];
+    return packTreemap(items, 0, 0, size.w, size.h);
+  }, [items, size.w, size.h]);
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <Treemap data={nodes} dataKey="size" aspectRatio={4 / 3} stroke="#0a0806" content={<Cell />} isAnimationActive={false}>
-        <RTooltip content={<Tip />} />
-      </Treemap>
-    </ResponsiveContainer>
+    <div ref={ref} className="relative w-full" style={{ height }}>
+      {items.length === 0 ? (
+        <div className="flex h-full items-center justify-center text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]">
+          No activity yet
+        </div>
+      ) : (
+        rects.map((r) => <HeatTile key={r.pair} r={r} onPick={onPick} />)
+      )}
+    </div>
   );
 }
 
