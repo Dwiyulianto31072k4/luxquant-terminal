@@ -198,13 +198,15 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
               </svg>
             </button>
 
-            <button
-              type="button"
-              onClick={goLogin}
-              className="rounded-full px-3.5 py-2 text-[13px] font-medium text-white/80 transition-colors hover:text-white"
-            >
-              {isAuthenticated ? "Terminal" : "Log In"}
-            </button>
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={goLogin}
+                className="rounded-full px-3.5 py-2 text-[13px] font-medium text-white/80 transition-colors hover:text-white"
+              >
+                Log In
+              </button>
+            )}
 
             <button
               type="button"
@@ -282,14 +284,16 @@ export default function HeaderV2({ onNav, activeId = "hero" }) {
           ))}
 
           {/* Auth */}
-          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-4">
-            <button
-              type="button"
-              onClick={goLogin}
-              className="rounded-full border border-white/15 px-4 py-2.5 text-[13px] font-medium text-white/85 transition-colors hover:bg-white/[0.04]"
-            >
-              {isAuthenticated ? "Terminal" : "Log In"}
-            </button>
+          <div className={`mt-3 grid ${isAuthenticated ? "grid-cols-1" : "grid-cols-2"} gap-2 border-t border-white/5 pt-4`}>
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={goLogin}
+                className="rounded-full border border-white/15 px-4 py-2.5 text-[13px] font-medium text-white/85 transition-colors hover:bg-white/[0.04]"
+              >
+                Log In
+              </button>
+            )}
             <button
               type="button"
               onClick={isAuthenticated ? () => { setMobileOpen(false); navigate("/home"); } : goSignup}

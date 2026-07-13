@@ -29,7 +29,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true });
+    if (isAuthenticated) navigate('/home', { replace: true });
   }, [isAuthenticated, navigate]);
 
   // Preload Telegram widget on mount; unlock the button once ready.
