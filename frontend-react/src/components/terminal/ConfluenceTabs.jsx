@@ -95,21 +95,29 @@ function flowScoreOf(dir, flow) {
   return { score, conflict: score < 0, support: score > 0 };
 }
 
-// compact Fear & Greed gauge (matches Kpi styling)
+// Fear & Greed — horizontal gradient gauge (red→green) with a marker at value
 function FngBadge({ value, label }) {
   if (value == null) return null;
   const color = value <= 25 ? "#f87171" : value <= 45 ? "#f97316"
     : value <= 55 ? "#fbbf24" : value <= 75 ? "#a3e635" : "#34d399";
+  const pos = Math.max(2, Math.min(98, value));
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-4">
+    <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-3 flex items-center gap-4">
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-      <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">Fear &amp; Greed</div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="font-mono tabular-nums text-[26px] leading-none" style={{ color }}>{value}</span>
-        <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color }}>{label}</span>
+      <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-text-muted shrink-0">Fear &amp; Greed</span>
+      <div className="relative flex-1 min-w-[120px]">
+        <div className="h-2 rounded-full" style={{ background: "linear-gradient(90deg,#f87171,#f97316,#fbbf24,#a3e635,#34d399)" }} />
+        <div
+          className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0a0805] shadow"
+          style={{ left: `${pos}%`, transform: "translate(-50%,-50%)", background: "#fff" }}
+        />
+        <div className="mt-1 flex justify-between font-mono text-[7.5px] uppercase tracking-wider text-text-muted/40">
+          <span>Fear</span><span>Greed</span>
+        </div>
       </div>
-      <div className="mt-2.5 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />
+      <div className="shrink-0 flex items-baseline gap-1.5">
+        <span className="font-mono tabular-nums text-[24px] leading-none" style={{ color }}>{value}</span>
+        <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color }}>{label}</span>
       </div>
     </div>
   );
@@ -351,11 +359,7 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
     <>
       <SectionBand title={t("terminal.viz.tabConfluence")} desc={t("terminal.viz.confSectionDesc")} />
 
-      {fng?.value != null && (
-        <div className="max-w-[260px]">
-          <FngBadge value={fng.value} label={fng.label} />
-        </div>
-      )}
+      {fng?.value != null && <FngBadge value={fng.value} label={fng.label} />}
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label={t("terminal.viz.kConfCount")} value={cards.length} desc={t("terminal.viz.kConfCountDesc")} tone="text-gold-primary" />
