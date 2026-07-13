@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "node scripts/prerender-content.mjs || true",
+    "prerender": "node scripts/prerender-content.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
