@@ -87,20 +87,15 @@ import { UserMenu } from "./components/auth";
 import { PremiumModal } from "./components/subscription";
 import NotificationBell from "./components/NotificationBell";
 import MoreMenuDropdown from "./components/MoreMenuDropdown";
+import { LoadingScreen, PageSkeleton } from "./components/ui/Loaders";
 
 // ════════════════════════════════════════
-// PAGE LOADING FALLBACK
+// PAGE LOADING FALLBACKS
 // ════════════════════════════════════════
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
-      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-        Loading...
-      </span>
-    </div>
-  </div>
-);
+// Full-page routes (landing, login, callbacks) → branded LoadingScreen.
+const PageLoader = () => <LoadingScreen />;
+// In-shell content routes → skeleton (feels faster, no layout shift).
+const ContentLoader = () => <PageSkeleton />;
 
 // ════════════════════════════════════════
 // ACCESS CONTROL
@@ -1313,7 +1308,7 @@ function AppShell({ children }) {
 
       {/* MAIN CONTENT */}
       <main className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6 pb-24 lg:pb-6">
-        <Suspense fallback={<PageLoader />}>{children}</Suspense>
+        <Suspense fallback={<ContentLoader />}>{children}</Suspense>
       </main>
 
       {/* Footer — full-width, all content pages (exchange-style).

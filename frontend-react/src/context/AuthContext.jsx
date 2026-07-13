@@ -4,6 +4,7 @@ import { authApi } from '../services/authApi';
 import { clearAutotradeAuth, syncCryptobotAuth } from '../services/autotradeApi';
 import { getStoredRef, clearStoredRef } from '../utils/referralStorage';
 import { openTelegramAuth } from '../utils/telegramLoader';
+import { LoadingScreen } from '../components/ui/Loaders';
 
 const AuthContext = createContext(null);
 
@@ -232,15 +233,7 @@ export const AuthProvider = ({ children }) => {
   if (loading) {
     return (
       <AuthContext.Provider value={value}>
-        <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0506' }}>
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-14 h-14">
-              <div className="absolute inset-0 border-2 rounded-full" style={{ borderColor: 'rgba(212, 168, 83, 0.2)' }} />
-              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{ borderTopColor: '#d4a853' }} />
-            </div>
-            <p className="text-sm font-medium tracking-wide" style={{ color: '#6b5c52' }}>Loading LuxQuant...</p>
-          </div>
-        </div>
+        <LoadingScreen />
       </AuthContext.Provider>
     );
   }
