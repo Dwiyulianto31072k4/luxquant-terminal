@@ -49,6 +49,8 @@ const MacroCalendarPage = lazy(() => import("./components/MacroCalendarPage"));
 const WhaleAlertPage = lazy(() => import("./components/WhaleAlertPage"));
 const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
 const DelistingsPage = lazy(() => import("./components/DelistingsPage"));
+const LearnPage = lazy(() => import("./components/LearnPage"));
+const BlogPage = lazy(() => import("./components/BlogPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
@@ -1525,6 +1527,39 @@ function App() {
                 element={
                   <AppShell>
                     <OverviewPage />
+                  </AppShell>
+                }
+              />
+              {/* PUBLIC — content engine (indexable, no auth) */}
+              <Route
+                path="/learn"
+                element={
+                  <AppShell>
+                    <LearnPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/learn/:slug"
+                element={
+                  <AppShell>
+                    <LearnPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/blog"
+                element={
+                  <AppShell>
+                    <BlogPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/blog/:slug"
+                element={
+                  <AppShell>
+                    <BlogPage />
                   </AppShell>
                 }
               />

@@ -9,7 +9,7 @@
 // Content ported from the old landing footer + expanded with the full
 // feature set, matching MEXC's directory-style layout in v2 colours.
 // ════════════════════════════════════════════════════════════════
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../../context/AuthContext";
 
 export default function FooterV2({ onNav }) {
@@ -58,6 +58,8 @@ export default function FooterV2({ onNav }) {
     {
       title: "Resources",
       links: [
+        { label: "Blog", type: "public", to: "/blog" },
+        { label: "Learn / Glossary", type: "public", to: "/learn" },
         { label: "Open Terminal", type: "terminal" },
         { label: "View Performance", type: "scroll", to: "performance" },
         { label: "Tips & Modules", type: "feature", to: "/tips" },
@@ -76,6 +78,14 @@ export default function FooterV2({ onNav }) {
         <a href={link.to} target="_blank" rel="noopener noreferrer" className={cls}>
           {link.label}
         </a>
+      );
+    }
+    if (link.type === "public") {
+      // Real crawlable <a href> (React Router) — passes link equity + SPA nav.
+      return (
+        <Link to={link.to} className={cls}>
+          {link.label}
+        </Link>
       );
     }
     const onClick =
