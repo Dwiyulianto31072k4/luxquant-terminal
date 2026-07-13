@@ -40,6 +40,14 @@ import requests
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
+# Load backend/.env so manual runs get the real DATABASE_URL (cron env still wins —
+# load_dotenv does not override variables already present in the environment).
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+except Exception:
+    pass
+
 # ─── Config ───────────────────────────────────────────────────────────────
 LOCK_FILE = "/tmp/peak_price_worker.lock"
 LOG_FILE = "/root/luxquant-terminal/backend/peak_worker.log"
