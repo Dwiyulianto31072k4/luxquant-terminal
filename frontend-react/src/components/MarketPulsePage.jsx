@@ -14,8 +14,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
-import { SignalStatusProvider } from "../context/SignalStatusContext";
+import { SignalStatusProvider, useSignalStatus } from "../context/SignalStatusContext";
 import GlobalSignalModalHost from "./SignalStatusModal";
+import { ResponsiveContainer, Treemap, Tooltip as RTooltip } from "recharts";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -156,7 +157,7 @@ const MarketPulsePageInner = () => {
     try {
       if (showLoading) setLoading(true);
 
-      const params = { limit: "200" };
+      const params = { limit: "500" };
       if (sourceFilter !== "all") params.source = sourceFilter;
       if (timeframeFilter !== "all") params.timeframe = timeframeFilter;
       if (selectedCoin) params.pair = selectedCoin;
@@ -285,28 +286,33 @@ const MarketPulsePageInner = () => {
     return buckets;
   }, [feed]);
 
+  // Heatmap is built from the LIVE FEED (every unique coin in the stream), not
+  // the 12-capped stats query — so it shows as many coins as the feed carries.
   const heatmapEnriched = useMemo(() => {
-    if (!stats?.heatmap) return [];
-    const counts = {};
+    if (!feed || feed.length === 0) return [];
+    const m = {};
     feed.forEach((e) => {
-      counts[e.pair] = (counts[e.pair] || 0) + 1;
+      const p = e.pair;
+      if (!p) return;
+      if (!m[p]) m[p] = { pair: p, event_count: 0, max_up: 0, max_down: 0 };
+      m[p].event_count += 1;
+      const pc = Number(e.pct_change) || 0;
+      const bull = e.direction === "bullish" || (e.direction !== "bearish" && pc >= 0);
+      if (bull) m[p].max_up = Math.max(m[p].max_up, Math.abs(pc));
+      else m[p].max_down = Math.min(m[p].max_down, -Math.abs(pc));
     });
-    const items = stats.heatmap.slice(0, 60).map((c) => ({
-      ...c,
-      event_count: counts[c.pair] || c.event_count || 1,
-    }));
-
+    let items = Object.values(m);
     if (heatmapSortMode === "pct") {
-      items.sort((a, b) => {
-        const aPct = Math.max(Math.abs(a.max_up || 0), Math.abs(a.max_down || 0));
-        const bPct = Math.max(Math.abs(b.max_up || 0), Math.abs(b.max_down || 0));
-        return bPct - aPct;
-      });
+      items.sort(
+        (a, b) =>
+          Math.max(Math.abs(b.max_up), Math.abs(b.max_down)) -
+          Math.max(Math.abs(a.max_up), Math.abs(a.max_down))
+      );
     } else {
-      items.sort((a, b) => (b.event_count || 0) - (a.event_count || 0));
+      items.sort((a, b) => b.event_count - a.event_count);
     }
     return items;
-  }, [feed, stats, heatmapSortMode]);
+  }, [feed, heatmapSortMode]);
 
   // ═════════ HELPERS ═════════
 
@@ -1138,6 +1144,8 @@ const FeedRow = ({
   const symbol = stripQuote(event.pair);
   const isPositive = (event.pct_change || 0) >= 0;
   const magnitude = Math.min(Math.abs(event.pct_change || 0) / 10, 1);
+  const statusCtx = useSignalStatus();
+  const called = !!(statusCtx?.map && statusCtx.map[(event.pair || "").toUpperCase()]);
   return (
     <div
       onClick={onSelect}
@@ -1173,6 +1181,15 @@ const FeedRow = ({
           >
             {eventLabel(event)}
           </span>
+          {called && (
+            <button
+              onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(event.pair); }}
+              className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-gold-primary/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+              title="LuxQuant call — click for details"
+            >
+              <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called
+            </button>
+          )}
         </div>
         <p className="text-text-muted/55 text-[10px] mt-1 font-mono tabular-nums">
           {event.pair} ·{" "}
@@ -1211,6 +1228,8 @@ const FeedRow = ({
 const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSelectCoin }) => {
   const symbol = stripQuote(group.pair);
   const isPos = avgPct >= 0;
+  const statusCtx = useSignalStatus();
+  const called = !!(statusCtx?.map && statusCtx.map[(group.pair || "").toUpperCase()]);
   const groupHist = group.events
     .map((e) => ({ pct: e.pct_change || 0, bull: e.direction === "bullish" }))
     .reverse();
@@ -1227,6 +1246,15 @@ const FeedGroupHeader = ({ group, avgPct, expanded, onToggle, isSelected, onSele
         <span className="text-[9px] text-text-muted/55 px-1.5 py-0.5 bg-white/[0.04] rounded-sm font-mono uppercase tracking-wider">
           ×{group.events.length} events
         </span>
+        {called && (
+          <button
+            onClick={(e) => { e.stopPropagation(); statusCtx?.openPair?.(group.pair); }}
+            className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-sm border border-gold-primary/40 bg-gold-primary/10 text-gold-primary font-mono uppercase tracking-[0.12em] hover:bg-gold-primary/20 transition-colors"
+            title="LuxQuant call — click for details"
+          >
+            <span className="w-1 h-1 rounded-full bg-gold-primary" /> Called
+          </button>
+        )}
       </div>
       <MiniSparkbar histogram={groupHist} height={16} gap={2} />
       <span
@@ -1303,127 +1331,192 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
 // HEATMAP — Treemap (size scales with rank) — Flowscan card
 // ════════════════════════════════════════════════════════
 
+const HEAT_OUTLINE = { paintOrder: "stroke", stroke: "#0a0806", strokeWidth: 3, strokeLinejoin: "round" };
+const heatLogoUrl = (pair) => {
+  const clean = stripQuote(pair || "").toLowerCase().replace(/^1000/, "");
+  return `https://assets.coincap.io/assets/icons/${clean}@2x.png`;
+};
+const heatFill = (isBull, pct) => {
+  const intensity = Math.min(Math.abs(pct || 0) / 12, 0.85);
+  return isBull
+    ? `rgba(16,185,129,${0.12 + intensity * 0.42})`
+    : `rgba(239,68,68,${0.12 + intensity * 0.42})`;
+};
+
+// Packed treemap (size = activity, color = direction) — mirrors the Terminal
+// Liquidations map. Coins with a live LuxQuant call get a gold outline + CALL tag.
+function HeatTreemap({ data, height, onPick }) {
+  const nodes = useMemo(
+    () =>
+      (data || []).map((c) => {
+        const upAbs = Math.abs(c.max_up || 0);
+        const downAbs = Math.abs(c.max_down || 0);
+        const pct = upAbs >= downAbs ? c.max_up || 0 : c.max_down || 0;
+        const ev = Math.max(1, c.event_count || 1);
+        return {
+          name: c.pair,
+          pair: c.pair,
+          size: 4 + Math.pow(ev, 0.85),
+          pct,
+          isBull: pct >= 0,
+          eventCount: ev,
+          called: !!c.called,
+        };
+      }),
+    [data]
+  );
+
+  const Cell = (props) => {
+    const { x, y, width, height: h, name, pair, pct = 0, isBull, eventCount = 1, called } = props;
+    if (!name || width <= 0 || h <= 0) return null;
+    const sym = stripQuote(name);
+    const med = width > 40 && h > 26;
+    const big = width > 66 && h > 54;
+    const logo = Math.min(30, Math.max(12, Math.min(width, h) * 0.26));
+    const textY = big ? y + logo + 20 : y + 16;
+    return (
+      <g style={{ cursor: "pointer" }} onClick={() => onPick?.(pair, called)}>
+        <rect
+          x={x} y={y} width={width} height={h} rx={3}
+          style={{
+            fill: heatFill(isBull, pct),
+            stroke: called ? "rgba(212,168,83,0.95)" : "#0a0806",
+            strokeWidth: called ? 1.6 : 1,
+          }}
+        />
+        {big && (
+          <image
+            href={heatLogoUrl(pair)}
+            x={x + 7} y={y + 7} width={logo} height={logo}
+            preserveAspectRatio="xMidYMid slice"
+          />
+        )}
+        {med && (
+          <text x={x + 7} y={textY} fill="#ffffff" fontSize={12.5} fontWeight={700} style={HEAT_OUTLINE}>
+            {sym.length > 8 ? sym.slice(0, 8) + "…" : sym}
+          </text>
+        )}
+        {med && (
+          <text x={x + 7} y={textY + 15} fill={isBull ? "#6ee7b7" : "#fca5a5"} fontSize={11.5}
+            fontWeight={700} className="font-mono" style={HEAT_OUTLINE}>
+            {pct >= 0 ? "+" : ""}{pct.toFixed(1)}%
+          </text>
+        )}
+        {med && (
+          <text x={x + width - 6} y={y + 13} textAnchor="end" fill="rgba(255,255,255,0.5)"
+            fontSize={9} className="font-mono" style={HEAT_OUTLINE}>
+            ×{eventCount}
+          </text>
+        )}
+        {called && med && (
+          <text x={x + width - 6} y={y + h - 7} textAnchor="end" fill="#e8c877"
+            fontSize={8.5} fontWeight={800} className="font-mono"
+            style={{ ...HEAT_OUTLINE, letterSpacing: "0.12em" }}>
+            CALL
+          </text>
+        )}
+      </g>
+    );
+  };
+
+  const Tip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0]?.payload || {};
+    return (
+      <div className="rounded-md border border-white/10 bg-[#0c0a07]/95 px-3 py-2 text-[11px] shadow-xl">
+        <div className="font-medium text-white mb-0.5">
+          {stripQuote(d.name)} {d.called && <span className="text-gold-primary">· CALL</span>}
+        </div>
+        <div className="font-mono" style={{ color: d.isBull ? "#6ee7b7" : "#fca5a5" }}>
+          {d.pct >= 0 ? "+" : ""}{Number(d.pct).toFixed(2)}%
+        </div>
+        <div className="font-mono text-text-muted">{d.eventCount} events</div>
+      </div>
+    );
+  };
+
+  if (nodes.length === 0)
+    return (
+      <div className="flex items-center justify-center text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]" style={{ height }}>
+        No activity yet
+      </div>
+    );
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <Treemap data={nodes} dataKey="size" aspectRatio={4 / 3} stroke="#0a0806" content={<Cell />} isAnimationActive={false}>
+        <RTooltip content={<Tip />} />
+      </Treemap>
+    </ResponsiveContainer>
+  );
+}
+
 const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange }) => {
   const [expanded, setExpanded] = useState(false);
-  const allTiles = useMemo(() => {
-    if (!heatmap || heatmap.length === 0) return [];
-    return heatmap.map((coin) => {
-      const upAbs = Math.abs(coin.max_up || 0);
-      const downAbs = Math.abs(coin.max_down || 0);
-      const strongest = upAbs >= downAbs ? coin.max_up || 0 : coin.max_down || 0;
-      return {
-        pair: coin.pair,
-        symbol: stripQuote(coin.pair),
-        eventCount: Math.max(1, coin.event_count || 1),
-        pct: strongest,
-        isBull: strongest >= 0,
-      };
-    });
-  }, [heatmap]);
-  const tiles = allTiles.slice(0, 13);
+  const statusCtx = useSignalStatus();
+  const calledMap = statusCtx?.map;
 
-  const layouts = [
-    { col: "1 / 3", row: "1 / 3", size: "xl" },
-    { col: "3 / 5", row: "1 / 2", size: "lg" },
-    { col: "3 / 5", row: "2 / 3", size: "lg" },
-    { col: "1 / 2", row: "3 / 4", size: "sm" },
-    { col: "2 / 3", row: "3 / 4", size: "sm" },
-    { col: "3 / 4", row: "3 / 4", size: "sm" },
-    { col: "4 / 5", row: "3 / 4", size: "sm" },
-    { col: "1 / 2", row: "4 / 5", size: "sm" },
-    { col: "2 / 3", row: "4 / 5", size: "sm" },
-    { col: "3 / 4", row: "4 / 5", size: "sm" },
-    { col: "4 / 5", row: "4 / 5", size: "sm" },
-    { col: "1 / 3", row: "5 / 6", size: "lg" },
-    { col: "3 / 5", row: "5 / 6", size: "lg" },
-  ];
+  const withCalled = useMemo(
+    () => (heatmap || []).map((c) => ({ ...c, called: !!(calledMap && calledMap[(c.pair || "").toUpperCase()]) })),
+    [heatmap, calledMap]
+  );
+  const inlineData = withCalled.slice(0, 48);
 
-  const visibleTiles = tiles.slice(0, layouts.length);
+  const pick = (pair, called) => {
+    if (called && statusCtx?.openPair) statusCtx.openPair(pair);
+    else onSelect(pair);
+  };
+
+  const SortToggle = ({ big = false }) => (
+    <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+      {["events", "pct"].map((k) => (
+        <button
+          key={k}
+          onClick={() => onSortChange(k)}
+          className={`${big ? "px-2.5 py-1 text-[10px]" : "px-2 py-0.5 text-[9px]"} rounded-sm font-medium uppercase tracking-[0.15em] transition-all ${sortMode === k ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
+        >
+          {k === "events" ? "Events" : "% Change"}
+        </button>
+      ))}
+    </div>
+  );
+
+  const Legend = () => (
+    <div className="mt-3 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
+      <span className="uppercase tracking-[0.15em]">
+        Size = activity · Color = direction · <span className="text-gold-primary/80">gold = LuxQuant call</span>
+      </span>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" /> bull</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-red-500/60" /> bear</span>
+      </div>
+    </div>
+  );
 
   return (
     <>
-    <PanelShell>
-      <PanelHeader
-        title="Heatmap"
-        subtitle="1h"
-        right={
-          <div className="flex items-center gap-1.5">
-          <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
-            <button
-              onClick={() => onSortChange("events")}
-              className={`px-2 py-0.5 rounded-sm text-[9px] font-medium uppercase tracking-[0.15em] transition-all ${
-                sortMode === "events"
-                  ? "bg-gold-primary/15 text-gold-primary"
-                  : "text-text-muted/60 hover:text-white"
-              }`}
-              title="Sort by event count"
-            >
-              Events
-            </button>
-            <button
-              onClick={() => onSortChange("pct")}
-              className={`px-2 py-0.5 rounded-sm text-[9px] font-medium uppercase tracking-[0.15em] transition-all ${
-                sortMode === "pct"
-                  ? "bg-gold-primary/15 text-gold-primary"
-                  : "text-text-muted/60 hover:text-white"
-              }`}
-              title="Sort by % change"
-            >
-              % Change
-            </button>
-          </div>
-            <button
-              onClick={() => setExpanded(true)}
-              title="Expand heatmap"
-              className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
-              </svg>
-            </button>
-          </div>
-        }
-      />
-
-      {visibleTiles.length === 0 ? (
-        <div className="text-center py-12 text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]">
-          No activity yet
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gridAutoRows: "62px",
-            gap: "5px",
-          }}
-        >
-          {visibleTiles.map((tile, i) => (
-            <HeatmapTile
-              key={tile.pair}
-              tile={tile}
-              isSelected={selectedCoin === tile.pair}
-              onSelect={onSelect}
-              layout={layouts[i]}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
-        <span className="uppercase tracking-[0.15em]">
-          Size = rank · Color = direction
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" /> bull
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-sm bg-red-500/60" /> bear
-          </span>
-        </div>
-      </div>
-    </PanelShell>
+      <PanelShell>
+        <PanelHeader
+          title="Heatmap"
+          subtitle="1h"
+          right={
+            <div className="flex items-center gap-1.5">
+              <SortToggle />
+              <button
+                onClick={() => setExpanded(true)}
+                title="Expand heatmap"
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
+                </svg>
+              </button>
+            </div>
+          }
+        />
+        <HeatTreemap data={inlineData} height={392} onPick={pick} />
+        <Legend />
+      </PanelShell>
 
       {expanded && createPortal(
         <div
@@ -1431,32 +1524,19 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
           onClick={() => setExpanded(false)}
         >
           <div
-            className="relative w-full max-w-5xl max-h-[calc(100vh-3rem)] overflow-auto rounded-2xl bg-[#0b0907] border border-gold-primary/25 shadow-2xl shadow-black/60 p-4 sm:p-6"
+            className="relative w-full max-w-6xl h-[calc(100vh-3rem)] flex flex-col rounded-2xl bg-[#0b0907] border border-gold-primary/25 shadow-2xl shadow-black/60 p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-white font-semibold text-[15px]">Heatmap</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60">
-                  {allTiles.length} coins · 1h
+                  {withCalled.length} coins · 1h
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
-                  <button
-                    onClick={() => onSortChange("events")}
-                    className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.15em] transition-all ${sortMode === "events" ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
-                  >
-                    Events
-                  </button>
-                  <button
-                    onClick={() => onSortChange("pct")}
-                    className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.15em] transition-all ${sortMode === "pct" ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
-                  >
-                    % Change
-                  </button>
-                </div>
+                <SortToggle big />
                 <button
                   onClick={() => setExpanded(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-white hover:border-white/25"
@@ -1466,39 +1546,10 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
                 </button>
               </div>
             </div>
-
-            {allTiles.length === 0 ? (
-              <div className="text-center py-16 text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]">
-                No activity yet
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))",
-                  gridAutoRows: "92px",
-                  gap: "8px",
-                }}
-              >
-                {allTiles.map((tile) => (
-                  <HeatmapTile
-                    key={tile.pair}
-                    tile={tile}
-                    isSelected={selectedCoin === tile.pair}
-                    onSelect={onSelect}
-                    layout={{ size: "lg" }}
-                  />
-                ))}
-              </div>
-            )}
-
-            <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
-              <span className="uppercase tracking-[0.15em]">Size = rank · Color = direction · gold dot = LuxQuant call</span>
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" /> bull</span>
-                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-red-500/60" /> bear</span>
-              </div>
+            <div className="flex-1 min-h-0">
+              <HeatTreemap data={withCalled} height="100%" onPick={pick} />
             </div>
+            <Legend />
           </div>
         </div>,
         document.body

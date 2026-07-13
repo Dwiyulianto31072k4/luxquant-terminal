@@ -35,7 +35,7 @@ async def get_pulse_feed(
     pair: Optional[str] = Query(None),
     timeframe: Optional[str] = Query(None, regex="^(5m|1h|2h|4h|1d)$"),
     direction: Optional[str] = Query(None, regex="^(bullish|bearish)$"),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(100, ge=1, le=1000),
     distinct: bool = Query(False, description="If true, return the latest event per UNIQUE pair (rolling window of coins) instead of raw events"),
 ):
     """Get latest market pulse events with optional filters.
@@ -183,7 +183,7 @@ async def get_pulse_stats():
             WHERE created_at > NOW() - INTERVAL '1 hour'
             GROUP BY pair
             ORDER BY cnt DESC
-            LIMIT 12
+            LIMIT 120
         """)).fetchall()
         
         result = {
