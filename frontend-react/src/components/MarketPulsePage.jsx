@@ -17,6 +17,7 @@ import CoinLogo from "./CoinLogo";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { ShimmerStyles } from "./ui/Loaders";
 
 // ════════════════════════════════════════════════════════
 // HELPERS
@@ -1795,11 +1796,12 @@ const SummaryCell = ({ label, value, accent }) => {
 
 // ── Feed Skeleton ───────────────────────────────────────
 const FeedSkeleton = () => (
-  <div className="space-y-0">
+  <div className="lqsk-group space-y-0">
+    <ShimmerStyles />
     {[...Array(8)].map((_, i) => (
       <div
         key={i}
-        className="px-4 py-2.5 flex items-center gap-3 border-b border-white/[0.03] animate-pulse"
+        className="px-4 py-2.5 flex items-center gap-3 border-b border-white/[0.03]"
         style={{ opacity: 1 - i * 0.1 }}
       >
         <div className="w-[26px] h-[26px] rounded-full bg-white/[0.04]" />

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import CoinLogo from './CoinLogo';
 import SignalJourneyExtended from './SignalJourneyExtended';
 import SignalModal from './SignalModal';
+import { ShimmerStyles } from './ui/Loaders';
 
 const API_BASE = '/api/v1';
 
@@ -140,7 +141,8 @@ const TopPerformers = () => {
   if (loading && !data) {
     return (
       <div className="mb-10">
-        <div className="relative rounded-2xl border border-white/[0.07] bg-[#0a0805] p-4 sm:p-6 animate-pulse overflow-hidden">
+        <ShimmerStyles />
+        <div className="lqsk-group relative rounded-2xl border border-white/[0.07] bg-[#0a0805] p-4 sm:p-6 overflow-hidden">
         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
         {/* Title — matches the real heading, not a boxed placeholder */}
         <div className="mb-6 sm:mb-7">

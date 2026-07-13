@@ -16,6 +16,7 @@ import PriceChart from "./aiArenaV6/PriceChart";
 import VerdictLedger from "./aiArenaV6/VerdictLedger";
 import BrainPanel from "./aiArenaV6/BrainPanel";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 
 let pdfJsRuntimePromise;
 
@@ -151,18 +152,61 @@ function PageHeader({ report, healthStatus, onRefresh, refreshing }) {
 
 function LoadingState() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center">
-        <div
-          className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2"
-          style={{
-            borderColor: "rgba(255,255,255,0.1)",
-            borderTopColor: "#d4a853",
-          }}
-        />
-        <p className="font-mono text-sm text-white/45">
-          Building the latest Compass read...
-        </p>
+    <div className="animate-[lqFadeIn_.25s_ease]" role="status" aria-label="Building the latest Compass read">
+      <ShimmerStyles />
+
+      {/* Header */}
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-2.5 w-40" />
+          <Skeleton className="h-8 w-64 max-w-[70vw]" />
+        </div>
+        <Skeleton className="hidden h-9 w-28 sm:block" />
+      </div>
+
+      {/* Verdict hero */}
+      <div className="mb-5 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6">
+        <div className="mb-6 flex flex-wrap items-center gap-4">
+          <Skeleton className="h-14 w-14 !rounded-full shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-6 w-52 max-w-[60vw]" />
+          </div>
+          <Skeleton className="ml-auto h-9 w-24 shrink-0" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-2 rounded-lg border border-white/[0.05] p-3">
+              <Skeleton className="h-2 w-14" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Workspace tab strip */}
+      <div className="mb-5 flex gap-2 overflow-hidden">
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-32 shrink-0 sm:w-40" />
+        ))}
+      </div>
+
+      {/* Chart + side panel */}
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Skeleton className="h-[320px]" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-[68px]" />
+          ))}
+        </div>
+      </div>
+
+      {/* Status caption — Compass is generating, keep the context */}
+      <div className="mt-6 flex items-center justify-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-gold-primary animate-pulse" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/40">
+          Building the latest Compass read…
+        </span>
       </div>
     </div>
   );

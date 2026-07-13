@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Skeleton, ShimmerStyles } from './ui/Loaders';
 
 /**
  * MarketDashboard - Market Overview Dashboard
@@ -114,10 +115,26 @@ const MarketDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin"></div>
-          <p className="text-text-muted">Loading market data...</p>
+      <div className="space-y-5 animate-[lqFadeIn_.25s_ease]" role="status" aria-label="Loading market data">
+        <ShimmerStyles />
+        {/* Hero price band */}
+        <div className="rounded-2xl border border-white/[0.06] p-5 flex flex-wrap items-center gap-4">
+          <Skeleton className="h-12 w-12 !rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-40" />
+          </div>
+          <Skeleton className="ml-auto h-8 w-24" />
+        </div>
+        {/* Market cards grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-white/[0.05] p-4 space-y-2.5">
+              <Skeleton className="h-2.5 w-16" />
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-2 w-12" />
+            </div>
+          ))}
         </div>
       </div>
     );

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import TopPerformers from './TopPerformers';
 import AssistantWidget from './assistant/AssistantWidget';
+import { ShimmerStyles } from './ui/Loaders';
 
 const API_BASE = '/api/v1';
 
@@ -205,18 +206,19 @@ const OverviewPage = () => {
 
       {marketLoading ? (
         <>
+          <ShimmerStyles />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-[#0a0805] rounded-xl border border-white/[0.06] p-4 lg:p-5 animate-pulse">
-                <div className="h-2.5 bg-white/[0.06] rounded w-20 mb-3"></div>
+              <div key={i} className="bg-[#0a0805] rounded-xl border border-white/[0.06] p-4 lg:p-5">
+                <div className="lqsk h-2.5 w-20 mb-3"></div>
                 <div className="h-px bg-white/[0.06] mb-3"></div>
-                <div className="h-7 bg-white/[0.06] rounded w-28"></div>
+                <div className="lqsk h-7 w-28"></div>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-[#0a0805] rounded-xl border border-white/[0.06] p-5 h-56 animate-pulse"></div>
+              <div key={i} className="lqsk rounded-xl h-56"></div>
             ))}
           </div>
         </>

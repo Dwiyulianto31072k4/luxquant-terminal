@@ -8,6 +8,7 @@ import { classifyCoin, CoinDetailModal } from './coinIntelShared';
 import { InfoTip } from './GuideInfo';
 import { Ic } from './signalIcons';
 import { shareSignal } from '../services/shareSignal';
+import { ShimmerStyles } from './ui/Loaders';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -879,9 +880,10 @@ const SignalsTable = ({
   };
 
   const MobileLoadingSkeleton = () => (
-    <div className="space-y-3">
+    <div className="lqsk-group space-y-3">
+      <ShimmerStyles />
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-[#0a0805] rounded-md p-4 border border-white/[0.06] animate-pulse">
+        <div key={i} className="bg-[#0a0805] rounded-md p-4 border border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/[0.04] rounded-full" />

@@ -19,6 +19,7 @@
 import { Suspense, lazy, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 
 const AnalyzePage = lazy(() => import("./AnalyzePage"));
 const DailyPerformancePage = lazy(() => import("./DailyPerformancePage"));
@@ -62,13 +63,21 @@ const GROUPS = [
 const DEFAULT_TAB = { overview: "_", daily: "overview", research: "calibration" };
 
 const ViewLoader = () => (
-  <div className="flex items-center justify-center min-h-[40vh]">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border border-gold-primary/20 border-t-gold-primary rounded-full animate-spin" />
-      <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
-        Loading…
-      </span>
+  <div className="animate-[lqFadeIn_.25s_ease]" role="status" aria-label="Loading view">
+    <ShimmerStyles />
+    <div className="mb-5 space-y-2">
+      <Skeleton className="h-2.5 w-24" />
+      <Skeleton className="h-6 w-48 max-w-[60%]" />
     </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-lg border border-white/[0.06] p-4 space-y-2.5">
+          <Skeleton className="h-2 w-14" />
+          <Skeleton className="h-6 w-20" />
+        </div>
+      ))}
+    </div>
+    <Skeleton className="h-[300px] w-full" />
   </div>
 );
 

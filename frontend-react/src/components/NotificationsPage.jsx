@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { notificationApi } from "../services/notificationApi";
 import NotificationSettings from "./NotificationSettings";
+import { ShimmerStyles } from "./ui/Loaders";
 
 const PAGE_SIZE = 20;
 
@@ -545,19 +546,20 @@ const NotificationCard = ({ notif, onClick, onDelete, onMarkRead, t }) => {
 // LOADING / EMPTY STATES
 // ════════════════════════════════════════════════════════════════
 const LoadingSkeleton = () => (
-  <div className="space-y-1.5">
+  <div className="lqsk-group space-y-1.5">
+    <ShimmerStyles />
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
         className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-start gap-3"
       >
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-white/[0.04] animate-pulse" />
-          <div className="w-12 h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-white/[0.04]" />
+          <div className="w-12 h-3 bg-white/[0.04] rounded" />
         </div>
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/2 animate-pulse" />
-          <div className="h-2.5 bg-white/[0.03] rounded w-3/4 animate-pulse" />
+          <div className="h-3 bg-white/[0.05] rounded w-1/2" />
+          <div className="h-2.5 bg-white/[0.03] rounded w-3/4" />
         </div>
       </div>
     ))}

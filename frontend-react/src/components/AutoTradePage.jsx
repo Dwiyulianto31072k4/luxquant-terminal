@@ -12,6 +12,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ShimmerStyles } from "./ui/Loaders";
 
 
 import {
@@ -541,15 +542,16 @@ function AutoTradeOverview({
 
 function LoadingState() {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="lqsk-group grid grid-cols-1 gap-4 md:grid-cols-3">
+      <ShimmerStyles />
       {[1, 2, 3].map((item) => (
         <div
           key={item}
           className="rounded-md border border-white/[0.06] bg-[#0a0805] p-5"
         >
-          <div className="h-3 w-24 animate-pulse rounded bg-white/[0.05]" />
-          <div className="mt-4 h-8 w-2/3 animate-pulse rounded bg-white/[0.06]" />
-          <div className="mt-3 h-16 animate-pulse rounded bg-white/[0.03]" />
+          <div className="h-3 w-24 rounded bg-white/[0.05]" />
+          <div className="mt-4 h-8 w-2/3 rounded bg-white/[0.06]" />
+          <div className="mt-3 h-16 rounded bg-white/[0.03]" />
         </div>
       ))}
     </div>

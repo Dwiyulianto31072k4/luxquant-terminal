@@ -14,6 +14,7 @@ import StarButton from './StarButton';
 import CoinLogo from './CoinLogo';
 import SignalModal from './SignalModal';
 import AssistantWidget from './assistant/AssistantWidget';
+import { ShimmerStyles } from './ui/Loaders';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const PRICE_REFRESH_INTERVAL = 15000;
@@ -1092,20 +1093,21 @@ const MobileCard = ({
 // LOADING / EMPTY / NO-MATCH STATES
 // ════════════════════════════════════════════════════════════════
 const LoadingSkeleton = () => (
-  <div className="space-y-1.5">
+  <div className="lqsk-group space-y-1.5">
+    <ShimmerStyles />
     {[...Array(6)].map((_, i) => (
       <div
         key={i}
         className="bg-[#0a0805] border border-white/[0.06] rounded-md p-3.5 flex items-center gap-3"
       >
-        <div className="w-8 h-8 rounded bg-white/[0.03] animate-pulse shrink-0" />
+        <div className="w-8 h-8 rounded bg-white/[0.03] shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 bg-white/[0.05] rounded w-1/4 animate-pulse" />
-          <div className="h-3 bg-white/[0.03] rounded w-3/4 animate-pulse" />
+          <div className="h-3 bg-white/[0.05] rounded w-1/4" />
+          <div className="h-3 bg-white/[0.03] rounded w-3/4" />
         </div>
         <div className="w-20 space-y-1.5">
-          <div className="h-3 bg-white/[0.05] rounded animate-pulse" />
-          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto animate-pulse" />
+          <div className="h-3 bg-white/[0.05] rounded" />
+          <div className="h-2 bg-white/[0.03] rounded w-2/3 ml-auto" />
         </div>
       </div>
     ))}

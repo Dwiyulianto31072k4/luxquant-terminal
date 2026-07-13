@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getExecutions, getMe, getPortfolio } from "../services/autotradeApi";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { Skeleton, ShimmerStyles } from "./ui/Loaders";
 
 function fmtUsd(value) {
   return Number(value || 0).toLocaleString(undefined, {
@@ -54,9 +55,34 @@ export default function PortfolioPage() {
 
   if (loading) {
     return (
-      <div className="py-16 text-center">
-        <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-gold-primary/20 border-t-gold-primary" />
-        <p className="text-sm text-text-muted">Loading portfolio...</p>
+      <div className="space-y-5 animate-[lqFadeIn_.25s_ease]" role="status" aria-label="Loading portfolio">
+        <ShimmerStyles />
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-3 w-72 max-w-[80%]" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border border-white/5 bg-bg-card p-4 space-y-2.5">
+              <Skeleton className="h-2.5 w-20" />
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-2 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-2xl border border-white/5 bg-bg-card p-5">
+          <Skeleton className="h-4 w-36 mb-4" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="hidden sm:block h-4 w-16" />
+                <Skeleton className="hidden md:block h-4 w-14" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

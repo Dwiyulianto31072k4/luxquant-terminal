@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import CoinLogo from './CoinLogo';
+import { Skeleton, ShimmerStyles } from './ui/Loaders';
 
 /**
  * DeepAnalysis v3 — Facts + Tags UI (redesigned shell)
@@ -700,8 +701,24 @@ const DeepAnalysis = ({ signalId, enrichment: legacyEnrichment, isOpen, onClose,
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
               <div className="max-w-6xl mx-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                 {loading && (
-                  <div className="flex items-center justify-center py-12 text-text-muted text-sm">
-                    Loading analysis...
+                  <div className="space-y-4 py-2" role="status" aria-label="Loading analysis">
+                    <ShimmerStyles />
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-9 w-9 !rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-2.5 w-24" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+                    </div>
+                    <Skeleton className="h-40 w-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-5/6" />
+                      <Skeleton className="h-3 w-4/6" />
+                    </div>
                   </div>
                 )}
 

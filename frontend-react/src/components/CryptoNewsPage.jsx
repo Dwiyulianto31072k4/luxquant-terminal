@@ -19,6 +19,7 @@ import Modal from "./ui/Modal";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
+import { ShimmerStyles } from "./ui/Loaders";
 
 const PAGE_SIZE = 28; // multiple of 4 → fills the desktop 4-col grid without lone trailing cards
 
@@ -446,7 +447,8 @@ const NewsModal = ({ item, onClose }) => {
         )}
 
         {loading ? (
-          <div className="space-y-2 animate-pulse">
+          <div className="lqsk-group space-y-2">
+            <ShimmerStyles />
             <div className="h-3 bg-white/5 rounded w-full" />
             <div className="h-3 bg-white/5 rounded w-5/6" />
             <div className="h-3 bg-white/5 rounded w-4/6" />
@@ -1007,9 +1009,10 @@ const Pagination = ({ page, totalPages, onChange }) => {
 // ════════════════════════════════════════════
 
 const LoadingSkeleton = () => (
-  <div className="space-y-4">
+  <div className="lqsk-group space-y-4">
+    <ShimmerStyles />
     {/* Lead skeleton */}
-    <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse flex flex-col lg:flex-row lg:min-h-[230px]">
+    <div className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden flex flex-col lg:flex-row lg:min-h-[230px]">
       <div className="w-full lg:w-[44%] aspect-[16/10] lg:aspect-auto bg-white/5" />
       <div className="flex-1 p-5 space-y-3">
         <div className="h-2.5 w-20 bg-white/5 rounded" />
@@ -1022,7 +1025,7 @@ const LoadingSkeleton = () => (
     <div className="hidden lg:block space-y-4">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+          <div key={i} className="rounded-md bg-white/[0.02] border border-white/5 overflow-hidden">
             <div className="aspect-[16/10] bg-white/5" />
             <div className="p-3 space-y-1.5">
               <div className="h-2.5 bg-white/5 rounded w-3/4" />
@@ -1033,7 +1036,7 @@ const LoadingSkeleton = () => (
       </div>
       <div className="flex flex-wrap gap-3">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="grow basis-[320px] max-w-[700px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden animate-pulse">
+          <div key={i} className="grow basis-[320px] max-w-[700px] rounded-md bg-white/[0.02] border border-white/5 overflow-hidden">
             <div className="aspect-[16/10] bg-white/5" />
             <div className="p-3 space-y-1.5">
               <div className="h-2.5 bg-white/5 rounded w-3/4" />
@@ -1046,7 +1049,7 @@ const LoadingSkeleton = () => (
     {/* Mobile skeleton: compact rows */}
     <div className="flex flex-col gap-2 lg:hidden">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="flex gap-3 p-2.5 animate-pulse">
+        <div key={i} className="flex gap-3 p-2.5">
           <div className="w-[72px] h-[72px] rounded-md bg-white/5 flex-shrink-0" />
           <div className="flex-1 space-y-2 py-2">
             <div className="h-2.5 bg-white/5 rounded w-5/6" />

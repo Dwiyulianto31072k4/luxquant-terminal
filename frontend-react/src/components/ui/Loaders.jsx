@@ -16,7 +16,7 @@ const BRAND_BG = "#0a0506";
 const GOLD = "#d4a853";
 
 // ── Shared shimmer keyframes (injected once per loader instance) ──
-const ShimmerStyles = () => (
+export const ShimmerStyles = () => (
   <style>{`
     @keyframes lqShimmer { 100% { transform: translateX(100%); } }
     @keyframes lqSpin { to { transform: rotate(360deg); } }
@@ -27,6 +27,11 @@ const ShimmerStyles = () => (
     .lqsk::after { content:""; position:absolute; inset:0; transform: translateX(-100%);
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
       animation: lqShimmer 1.4s infinite; }
+    /* Group shimmer: one sweep across an existing multi-bar skeleton block */
+    .lqsk-group { position: relative; overflow: hidden; }
+    .lqsk-group::after { content:""; position:absolute; inset:0; transform: translateX(-100%); pointer-events:none;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      animation: lqShimmer 1.6s infinite; }
   `}</style>
 );
 

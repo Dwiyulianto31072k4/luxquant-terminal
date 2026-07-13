@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Skeleton, ShimmerStyles } from './ui/Loaders';
 
 /**
  * BTCCorrelationPanel
@@ -60,8 +61,19 @@ export default function BTCCorrelationPanel({ signalId, apiBase = '/api/signals'
 
   if (loading) {
     return (
-      <div className="p-4 text-gray-400 text-sm animate-pulse">
-        Loading BTC correlation analysis...
+      <div className="p-4 space-y-3" role="status" aria-label="Loading BTC correlation analysis">
+        <ShimmerStyles />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 !rounded-full" />
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="ml-auto h-5 w-16" />
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <div className="grid grid-cols-3 gap-2">
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+        </div>
       </div>
     );
   }
