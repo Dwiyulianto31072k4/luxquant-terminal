@@ -86,13 +86,13 @@ const Th = ({ label, sortKey, sort, onSort, align = "right", sortable = true, cl
   const alignCls = align === "left" ? "text-left" : "text-right";
   if (!sortable) {
     return (
-      <th className={`py-2.5 px-3 ${alignCls} font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 ${className}`}>
+      <th className={`py-2.5 px-2 sm:px-3 ${alignCls} font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 ${className}`}>
         {label}
       </th>
     );
   }
   return (
-    <th className={`py-2.5 px-3 ${alignCls} ${className}`}>
+    <th className={`py-2.5 px-2 sm:px-3 ${alignCls} ${className}`}>
       <button
         onClick={() => onSort(sortKey)}
         className={`inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${
@@ -133,6 +133,30 @@ const TableSkeleton = ({ rows = 8, cols = 4 }) => (
       </tr>
     ))}
   </tbody>
+);
+
+// Mobile card skeleton (shown < sm, in place of the table skeleton)
+const CardSkeleton = ({ rows = 6 }) => (
+  <div className="divide-y divide-white/[0.05]">
+    {[...Array(rows)].map((_, i) => (
+      <div key={i} className="px-3 py-3.5">
+        <div className="h-3 w-1/2 bg-white/[0.05] rounded animate-pulse mb-3" />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
+          <div className="h-3 bg-white/[0.04] rounded animate-pulse" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// Labeled stat used inside mobile cards
+const StatCell = ({ label, value, color = "text-white", align = "left" }) => (
+  <div className={`flex flex-col ${align === "right" ? "items-end" : ""}`}>
+    <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/50">{label}</span>
+    <span className={`font-mono text-[13px] tabular-nums font-semibold ${color}`}>{value}</span>
+  </div>
 );
 
 const IntensityBar = ({ value, max, gold = false }) => {
@@ -309,15 +333,16 @@ const SectorsTab = ({ q }) => {
       <MacroBlock macro={macro} />
 
       <SectionHeader label="Sector Rotation" />
-      <Card glow className="overflow-x-auto">
-        <table className="w-full border-collapse min-w-[520px]">
+      <Card glow>
+        {/* Desktop / tablet table (≥ sm) */}
+        <table className="hidden sm:table w-full border-collapse table-fixed">
           <thead>
             <tr className="border-b border-white/[0.08]">
-              <th className="py-2.5 px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 w-10">#</th>
+              <th className="py-2.5 px-2 sm:px-3 text-left font-mono text-[9px] uppercase tracking-[0.14em] text-white/35 w-10">#</th>
               <Th label="Sector" sortKey="name" sort={sort} onSort={onSort} align="left" />
-              <Th label="24h" sortKey="mcap_change_24h" sort={sort} onSort={onSort} />
-              <Th label="7d" sortKey="mcap_change_7d" sort={sort} onSort={onSort} className="hidden sm:table-cell" />
-              <Th label="Mcap" sortKey="market_cap" sort={sort} onSort={onSort} />
+              <Th label="24h" sortKey="mcap_change_24h" sort={sort} onSort={onSort} className="w-24" />
+              <Th label="7d" sortKey="mcap_change_7d" sort={sort} onSort={onSort} className="hidden md:table-cell w-24" />
+              <Th label="Mcap" sortKey="market_cap" sort={sort} onSort={onSort} className="w-28" />
             </tr>
           </thead>
 
@@ -329,10 +354,10 @@ const SectorsTab = ({ q }) => {
                 const isLeader = leaderIds.includes(s.category_id);
                 return (
                   <tr key={s.category_id} className="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-3 font-mono text-xs tabular-nums text-text-muted/50">
+                    <td className="py-3 px-2 sm:px-3 font-mono text-xs tabular-nums text-text-muted/50">
                       {String(i + 1).padStart(2, "0")}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-3 px-2 sm:px-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="flex -space-x-1.5 shrink-0">
                           {(s.top_3_coins || []).slice(0, 3).map((url, k) => (
@@ -347,13 +372,13 @@ const SectorsTab = ({ q }) => {
                         )}
                       </div>
                     </td>
-                    <td className={`py-3 px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(s.mcap_change_24h)}`}>
+                    <td className={`py-3 px-2 sm:px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(s.mcap_change_24h)}`}>
                       {fmtPct(s.mcap_change_24h)}
                     </td>
-                    <td className={`hidden sm:table-cell py-3 px-3 text-right font-mono text-xs tabular-nums ${pctColor(s.mcap_change_7d)}`}>
+                    <td className={`hidden md:table-cell py-3 px-3 text-right font-mono text-xs tabular-nums ${pctColor(s.mcap_change_7d)}`}>
                       {s.mcap_change_7d != null ? fmtPct(s.mcap_change_7d) : <span className="text-text-muted/30">—</span>}
                     </td>
-                    <td className="py-3 px-3 text-right font-mono text-xs tabular-nums text-text-muted whitespace-nowrap">
+                    <td className="py-3 px-2 sm:px-3 text-right font-mono text-xs tabular-nums text-text-muted whitespace-nowrap">
                       {fmtUSD(s.market_cap)}
                     </td>
                   </tr>
@@ -362,6 +387,47 @@ const SectorsTab = ({ q }) => {
             </tbody>
           )}
         </table>
+
+        {/* Mobile cards (< sm) */}
+        <div className="sm:hidden">
+          {loading && <CardSkeleton rows={8} />}
+          {!loading && !err && rows.length > 0 && (
+            <div className="divide-y divide-white/[0.05]">
+              {rows.map((s, i) => {
+                const isLeader = leaderIds.includes(s.category_id);
+                return (
+                  <div key={s.category_id} className="px-3 py-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="font-mono text-[11px] tabular-nums text-text-muted/40 w-5 shrink-0">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div className="flex -space-x-1.5 shrink-0">
+                        {(s.top_3_coins || []).slice(0, 3).map((url, k) => (
+                          <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
+                        ))}
+                      </div>
+                      <span className="text-white text-sm truncate flex-1">{s.name}</span>
+                      {isLeader && (
+                        <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
+                          Leader
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-3 gap-2">
+                      <StatCell label="24h" value={fmtPct(s.mcap_change_24h)} color={pctColor(s.mcap_change_24h)} />
+                      <StatCell
+                        label="7d"
+                        value={s.mcap_change_7d != null ? fmtPct(s.mcap_change_7d) : "—"}
+                        color={s.mcap_change_7d != null ? pctColor(s.mcap_change_7d) : "text-text-muted/30"}
+                      />
+                      <StatCell label="Mcap" value={fmtUSD(s.market_cap)} color="text-text-muted" align="right" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {err && !loading && <div className="p-8 text-center text-red-400 text-sm font-mono">{err}</div>}
         {!loading && !err && rows.length === 0 && (
@@ -576,14 +642,15 @@ const CoinsTab = ({ q }) => {
           </FlowFilterChip>
         </div>
 
-        <Card glow className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[460px]">
+        <Card glow>
+          {/* Desktop / tablet table (≥ sm) */}
+          <table className="hidden sm:table w-full border-collapse table-fixed">
             <thead>
               <tr className="border-b border-white/[0.08]">
                 <Th label="Coin" sortKey="symbol" sort={sort} onSort={onSort} align="left" />
-                <Th label="24h" sortKey="price_change_24h" sort={sort} onSort={onSort} />
-                <Th label="Flow / Vol" sortKey="flow_intensity" sort={sort} onSort={onSort} className="hidden md:table-cell" />
-                <Th label="Turnover" sortable={false} className="hidden sm:table-cell" />
+                <Th label="24h" sortKey="price_change_24h" sort={sort} onSort={onSort} className="w-24" />
+                <Th label="Flow / Vol" sortKey="flow_intensity" sort={sort} onSort={onSort} className="hidden md:table-cell w-28" />
+                <Th label="Turnover" sortable={false} className="w-28" />
               </tr>
             </thead>
 
@@ -608,7 +675,7 @@ const CoinsTab = ({ q }) => {
                       } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : "hover:bg-white/[0.02]"}`}
                     >
                       {/* Coin */}
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-2 sm:px-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <CoinLogo pair={c.symbol} size={24} className="flex-shrink-0" />
                           <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
@@ -629,7 +696,7 @@ const CoinsTab = ({ q }) => {
                         </div>
                       </td>
                       {/* 24h */}
-                      <td className={`py-3 px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(c.price_change_24h)}`}>
+                      <td className={`py-3 px-2 sm:px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(c.price_change_24h)}`}>
                         {fmtPct(c.price_change_24h)}
                       </td>
                       {/* Flow intensity */}
@@ -640,7 +707,7 @@ const CoinsTab = ({ q }) => {
                         <IntensityBar value={c.flow_intensity} max={maxIntensity} gold={called} />
                       </td>
                       {/* Turnover */}
-                      <td className="hidden sm:table-cell py-3 px-3 text-right">
+                      <td className="py-3 px-2 sm:px-3 text-right">
                         {c.turnover_tag && (
                           <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
                             hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
@@ -655,6 +722,69 @@ const CoinsTab = ({ q }) => {
               </tbody>
             )}
           </table>
+
+          {/* Mobile cards (< sm) */}
+          <div className="sm:hidden">
+            {loading && <CardSkeleton rows={8} />}
+            {!loading && rows.length > 0 && (
+              <div className="divide-y divide-white/[0.05]">
+                {shownCoins.map((c) => {
+                  const called = c.is_luxquant_signal;
+                  const clickable = called;
+                  const isLoading = loadingSym === c.symbol;
+                  const hi = c.turnover_tag === "high_turnover";
+                  return (
+                    <div
+                      key={c.coin_id}
+                      role={clickable ? "button" : undefined}
+                      tabIndex={clickable ? 0 : undefined}
+                      onClick={clickable ? () => openSignal(c) : undefined}
+                      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSignal(c); } } : undefined}
+                      className={`px-3 py-3 ${called ? "border-l-2 border-l-gold-primary/50" : ""} ${clickable ? "cursor-pointer active:bg-gold-primary/[0.06]" : ""}`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <CoinLogo pair={c.symbol} size={26} className="flex-shrink-0" />
+                        <span className={`text-sm font-semibold truncate ${called ? "text-gold-primary" : "text-white"}`}>{c.symbol}</span>
+                        {called && (
+                          <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                            Call
+                          </span>
+                        )}
+                        {clickable && (
+                          isLoading ? (
+                            <Spinner className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/70" />
+                          ) : (
+                            <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 6l6 6-6 6" />
+                            </svg>
+                          )
+                        )}
+                      </div>
+                      <div className="mt-2.5 grid grid-cols-3 gap-2 items-start">
+                        <StatCell label="24h" value={fmtPct(c.price_change_24h)} color={pctColor(c.price_change_24h)} />
+                        <div className="flex flex-col">
+                          <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-text-muted/50">Flow / Vol</span>
+                          <span className="font-mono text-[13px] tabular-nums font-semibold text-text-muted">
+                            {c.flow_intensity != null ? c.flow_intensity.toFixed(2) : "—"}
+                          </span>
+                          <IntensityBar value={c.flow_intensity} max={maxIntensity} gold={called} />
+                        </div>
+                        <div className="justify-self-end">
+                          {c.turnover_tag && (
+                            <span className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                              hi ? "text-gold-primary border-gold-primary/25 bg-gold-primary/10" : "text-text-muted border-white/[0.08] bg-white/[0.03]"
+                            }`}>
+                              {TURNOVER_LABEL[c.turnover_tag]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {!loading && rows.length === 0 && (
             <div className="p-10 text-center text-text-muted text-sm font-mono">No coins match your filter.</div>
