@@ -147,6 +147,21 @@ const IconActivity = ({ className = "h-3.5 w-3.5" }) => (
   </svg>
 );
 
+// Panel collapse (chevrons →) / expand (chevrons ←)
+const IconChevronsRight = ({ className = "h-3.5 w-3.5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="6 17 11 12 6 7" />
+    <polyline points="13 17 18 12 13 7" />
+  </svg>
+);
+
+const IconChevronsLeft = ({ className = "h-3.5 w-3.5" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="11 17 6 12 11 7" />
+    <polyline points="18 17 13 12 18 7" />
+  </svg>
+);
+
 // ════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════
@@ -188,6 +203,18 @@ const MarketPulsePageInner = () => {
     try { localStorage.setItem("mp_feed_layout", mode); } catch {}
     // Focus mode has no "all" — default to pumps when entering it.
     setFeedSide((prev) => (mode === "focus" && prev === "all" ? "pump" : prev));
+  }, []);
+
+  // Side panel (heatmap/stats) collapse — default OPEN, choice persisted.
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem("mp_sidebar_open") !== "0"; } catch { return true; }
+  });
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("mp_sidebar_open", next ? "1" : "0"); } catch {}
+      return next;
+    });
   }, []);
 
   // === Heatmap sort mode + Chart Modal (URL-driven: ?pair=BTCUSDT) ===
@@ -536,7 +563,7 @@ const MarketPulsePageInner = () => {
       />
 
       {/* ═══ MAIN GRID ═══ */}
-      <div className="mp-main-grid">
+      <div className={`mp-main-grid ${sidebarOpen ? "" : "mp-sidebar-collapsed"}`}>
         <div className="mp-feed-col">
           <ActivityFeedPanel
             filteredFeed={filteredFeed}
@@ -560,29 +587,50 @@ const MarketPulsePageInner = () => {
             timeAgo={timeAgo}
             expandedGroups={expandedGroups}
             toggleGroup={toggleGroup}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={toggleSidebar}
           />
         </div>
 
-        <div className="mp-sidebar-col">
-          <HeatmapPanel
-            heatmap={heatmapEnriched}
-            selectedCoin={selectedCoin}
-            onSelect={openChartModal}
-            sortMode={heatmapSortMode}
-            onSortChange={setHeatmapSortMode}
-          />
+        <div className="mp-side-slot">
+          <div className="mp-sidebar-col">
+            <HeatmapPanel
+              heatmap={heatmapEnriched}
+              selectedCoin={selectedCoin}
+              onSelect={openChartModal}
+              sortMode={heatmapSortMode}
+              onSortChange={setHeatmapSortMode}
+            />
 
-          <MostActivePanel
-            movers={topMovers?.most_active}
-            period={moverPeriod}
-            setPeriod={setMoverPeriod}
-            histograms={coinHistograms}
-            onSelect={openChartModal}
-          />
+            <MostActivePanel
+              movers={topMovers?.most_active}
+              period={moverPeriod}
+              setPeriod={setMoverPeriod}
+              histograms={coinHistograms}
+              onSelect={openChartModal}
+            />
 
-          <FlashMovesPanel moves={topMovers?.flash_moves} onSelect={openChartModal} />
+            <FlashMovesPanel moves={topMovers?.flash_moves} onSelect={openChartModal} />
 
-          <SummaryPanel daily={stats?.daily} className="mp-sidebar-stretch" />
+            <SummaryPanel daily={stats?.daily} className="mp-sidebar-stretch" />
+          </div>
+
+          {/* Collapsed rail — click to re-open the side panel */}
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            aria-label="Show side panel"
+            title="Show side panel"
+            className="mp-sidebar-rail group relative overflow-hidden bg-[#0a0805] border border-white/[0.06] rounded-md hover:border-gold-primary/30 transition-colors"
+          >
+            <span className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.08] bg-white/[0.03] text-text-muted/70 group-hover:text-gold-primary transition-colors">
+              <IconChevronsLeft className="h-3.5 w-3.5" />
+            </span>
+            <span className="mp-rail-label text-[9px] font-semibold uppercase tracking-[0.22em] text-text-muted/60 group-hover:text-white transition-colors">
+              Market Panel
+            </span>
+          </button>
         </div>
       </div>
 
@@ -1273,7 +1321,7 @@ const ActivityFeedPanel = ({
   groupedSide, groupedPump, groupedDump,
   pumpCount, dumpCount, sideCount,
   coinHistograms, selectedCoin, openChartModal, eventTagClass, eventLabel, timeAgo,
-  expandedGroups, toggleGroup,
+  expandedGroups, toggleGroup, sidebarOpen, onToggleSidebar,
 }) => {
   const isSplit = feedLayout === "split";
   const isFocus = feedLayout === "focus";
@@ -1327,6 +1375,20 @@ const ActivityFeedPanel = ({
             value={feedLayout}
             onChange={changeLayout}
           />
+
+          {/* Collapse side panel (desktop only) */}
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-expanded={sidebarOpen}
+              aria-label={sidebarOpen ? "Hide side panel" : "Show side panel"}
+              title={sidebarOpen ? "Hide side panel" : "Show side panel"}
+              className="hidden lg:inline-flex items-center justify-center w-7 h-7 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
+            >
+              {sidebarOpen ? <IconChevronsRight className="h-3.5 w-3.5" /> : <IconChevronsLeft className="h-3.5 w-3.5" />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -2557,6 +2619,7 @@ const PulseStyles = () => (
     .mp-vpn-hint .mp-vpn-ico { color: #e8c073; animation: mp-hint-ico 3s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) {
       .mp-vpn-hint, .mp-vpn-hint .mp-vpn-key, .mp-vpn-hint .mp-vpn-ico { animation: none; }
+      .mp-main-grid { transition: none; }
     }
 
     @keyframes pulse-tape-scroll {
@@ -2610,11 +2673,35 @@ const PulseStyles = () => (
       grid-template-columns: 1fr;
       gap: 12px;
     }
+    .mp-side-slot { min-width: 0; }
+    .mp-sidebar-rail { display: none; }
     @media (min-width: 1024px) {
       .mp-main-grid {
         grid-template-columns: 1.7fr 1fr;
         align-items: stretch;
         min-height: 600px;
+        transition: grid-template-columns .28s cubic-bezier(.4, 0, .2, 1);
+      }
+      .mp-main-grid.mp-sidebar-collapsed {
+        grid-template-columns: minmax(0, 1fr) 40px;
+      }
+      .mp-side-slot { position: relative; min-height: 0; }
+      .mp-main-grid.mp-sidebar-collapsed .mp-sidebar-col { display: none; }
+      .mp-main-grid.mp-sidebar-collapsed .mp-sidebar-rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 12px 0;
+        position: absolute;
+        inset: 0;
+        cursor: pointer;
+      }
+      .mp-rail-label {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        white-space: nowrap;
       }
       .mp-feed-col {
         position: relative;
