@@ -255,7 +255,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── WIN RATE TREND ── */}
-      <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+      <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
@@ -290,7 +290,7 @@ const AnalyzePage = () => {
 
       {/* ── OUTCOME & R:R ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconOutcome />
@@ -306,7 +306,7 @@ const AnalyzePage = () => {
           <OutcomeDistribution data={data.stats} t={t} />
         </div>
 
-        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRR />
@@ -325,7 +325,7 @@ const AnalyzePage = () => {
       </div>
 
       {/* ── RISK LEVEL ANALYSIS ── */}
-      <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+      <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
         <div className="flex items-center gap-2 mb-4">
           <IconRisk />
@@ -495,7 +495,7 @@ const AnalyzePage = () => {
 
       {/* ── WIN RATE TREND BY RISK LEVEL ── */}
       {data.risk_trend && data.risk_trend.length > 0 && (
-        <div className="bg-[#0a0805] rounded-md p-5 border border-white/[0.06] relative overflow-hidden">
+        <div className="bg-[#0b0907] rounded-xl p-5 border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="flex items-center gap-2 mb-4">
             <IconRiskTrend />
@@ -514,7 +514,7 @@ const AnalyzePage = () => {
 
       {/* ── TOP PERFORMING PAIRS ── */}
       {data.pair_metrics && data.pair_metrics.length > 0 && (
-        <div className="bg-[#0a0805] rounded-md border border-white/[0.06] relative overflow-hidden">
+        <div className="bg-[#0b0907] rounded-xl border border-white/[0.07] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
           <div className="p-5 pb-0">
             <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ const AnalyzePage = () => {
       )}
 
       {/* ── FULL SIGNAL HISTORY ── */}
-      <div className="bg-[#0a0805] rounded-md border border-white/[0.06] relative overflow-hidden">
+      <div className="bg-[#0b0907] rounded-xl border border-white/[0.07] relative overflow-hidden">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
 
         <div className="p-5 pb-0">

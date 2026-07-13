@@ -84,7 +84,7 @@ const fmtPct = (v, d = 2) => {
 // ─── Reusable Card / Label / Section ─────────────────────────────
 
 const Card = ({ children, className = "" }) => (
-  <div className={`relative rounded-md bg-[#0a0805] border border-white/[0.06] ${className}`}>
+  <div className={`relative rounded-xl bg-[#0b0907] border border-white/[0.07] ${className}`}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     {children}
   </div>
@@ -272,7 +272,7 @@ const SmallSampleBadge = ({ n, threshold = 15 }) => {
 // ─── KPI Card ────────────────────────────────────────────────────
 
 const KpiCard = ({ label, value, sub, subColor, onClick, valueColor }) => (
-  <div className={`relative rounded-md bg-[#0a0805] border border-white/[0.06] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
+  <div className={`relative rounded-xl bg-[#0b0907] border border-white/[0.07] px-4 py-3.5 transition ${onClick ? "cursor-pointer hover:border-gold-primary/25" : ""}`} onClick={onClick}>
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <Label>{label}</Label>
     <div className={`text-xl lg:text-2xl font-mono tabular-nums mt-1.5 truncate ${valueColor || "text-white/95"}`}>{value}</div>
@@ -1368,8 +1368,8 @@ const DailyPerformancePage = ({ activeTab: controlledTab, onTabChange, hideTabBa
 
       {loading && !data && (
         <div className="space-y-4">
-          <div className="h-64 rounded-md bg-[#0a0805] border border-white/[0.06] animate-pulse" />
-          <div className="grid grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <div key={i} className="h-20 rounded-md bg-[#0a0805] border border-white/[0.06] animate-pulse" />)}</div>
+          <div className="h-64 rounded-xl bg-[#0b0907] border border-white/[0.07] animate-pulse" />
+          <div className="grid grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-[#0b0907] border border-white/[0.07] animate-pulse" />)}</div>
         </div>
       )}
 

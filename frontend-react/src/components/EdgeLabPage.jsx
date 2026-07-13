@@ -66,7 +66,7 @@ const Sparkline = ({ values, up }) => {
 
 // ─── KPI tile ────────────────────────────────────────────────────
 const Kpi = ({ label, value, sub, valueColor, valueClass, children }) => (
-  <div className="relative rounded-lg bg-[#0c0a07] border border-white/[0.07] px-4 py-3.5 flex flex-col">
+  <div className="relative rounded-xl bg-[#0b0907] border border-white/[0.07] px-4 py-3.5 flex flex-col">
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/30 to-transparent" />
     <div className="text-[10px] tracking-[0.2em] font-mono uppercase text-white/40">{label}</div>
     <div className={`font-mono tabular-nums mt-1 leading-none truncate ${valueClass || "text-xl lg:text-[1.7rem]"} ${valueColor || "text-white/95"}`}>
