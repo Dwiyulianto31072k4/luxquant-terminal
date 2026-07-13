@@ -19,6 +19,10 @@ import { useNavigate } from "react-router-dom";
 import { analyticsApi } from "../services/analyticsApi";
 import { signalsApi } from "../services/api";
 import SignalModal from "./SignalModal";
+import CoinLogo from "./CoinLogo";
+
+// strip the quote-asset suffix for a clean coin symbol
+const coinSym = (p) => (p || "").replace(/USDT$|USDC$|USD$/i, "");
 
 // ─── Sector color palette ────────────────────────────────────────
 
@@ -1187,7 +1191,12 @@ const SignalRow = ({ s, onClick }) => {
   const ot = outcomeChip(s.outcome);
   return (
     <tr onClick={() => onClick(s)} className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer transition">
-      <td className="px-4 py-2.5 font-mono text-sm text-white/90">{s.pair}</td>
+      <td className="px-4 py-2.5">
+        <span className="inline-flex items-center gap-2">
+          <CoinLogo pair={s.pair} size={18} />
+          <span className="font-mono text-sm text-white/90">{coinSym(s.pair)}</span>
+        </span>
+      </td>
       <td className="px-3 py-2.5"><span className={`inline-flex px-2 py-0.5 rounded-sm border text-[10px] font-mono tracking-wider ${ot.cls}`}>{ot.label}</span></td>
       <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: sectorColor(s.sector) }} /><span className="text-[11px] font-mono uppercase tracking-wider text-white/55">{s.sector || "—"}</span></span></td>
       <td className="px-3 py-2.5">{s.signal_direction === "BULLISH" ? <span className="text-emerald-400 text-xs font-mono">↑ LONG</span> : s.signal_direction === "BEARISH" ? <span className="text-red-400 text-xs font-mono">↓ SHORT</span> : <span className="text-white/20 text-xs">—</span>}</td>
