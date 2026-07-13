@@ -1,4 +1,4 @@
-import { HelmetProvider } from "react-helmet-async";
+import { HelmetProvider, Helmet } from "react-helmet-async";
 // src/App.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — URL-Based Routing v3 + Lazy Loading
@@ -178,7 +178,16 @@ function RequireAuth({ children }) {
         replace
       />
     );
-  return children;
+  // Login-gated content = a thin login/app shell to crawlers → keep it out of
+  // Google. Pages can still override with their own <Seo> if ever made public.
+  return (
+    <>
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      {children}
+    </>
+  );
 }
 
 function RequireAdmin({ children }) {
@@ -1438,6 +1447,7 @@ function LoginPageWrapper() {
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   return (
     <Suspense fallback={<PageLoader />}>
+      <Helmet><meta name="robots" content="noindex, follow" /></Helmet>
       <LoginPage />
     </Suspense>
   );

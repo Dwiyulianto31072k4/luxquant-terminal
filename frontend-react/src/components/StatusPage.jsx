@@ -12,6 +12,7 @@
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useState, useCallback } from "react";
 import { palette, tint, gradient } from "./admin/designSystem";
+import Seo from "./Seo";
 
 const REFRESH_MS = 30_000;
 const PING_TIMEOUT_MS = 4_000;
@@ -253,6 +254,12 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen relative" style={{ background: palette.maroon[900] }}>
+      <Seo
+        title="LuxQuant Status — Platform & API Uptime"
+        description="Live operational status for the LuxQuant Terminal platform, API, and data services. Real-time uptime and incident history."
+        path="/status"
+        keywords="luxquant status, luxquant uptime, luxquant api status"
+      />
       <div className="luxury-bg" />
 
       {/* top bar */}
