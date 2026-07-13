@@ -1629,6 +1629,19 @@ Provide actionable, specific advice. Be direct about both the strengths and weak
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1 sm:flex-nowrap sm:gap-1.5 sm:flex-shrink-0">
+                  {/* ═══ EXPLORE ON X (cashtag search) ═══ */}
+                  <a
+                    href={`https://x.com/search?q=${encodeURIComponent("$" + (signal?.pair || "").replace(/USDT$|USDC$|USD$/i, ""))}&src=typed_query`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Explore $${(signal?.pair || "").replace(/USDT$|USDC$|USD$/i, "")} on X`}
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-[#0a0a0a] text-white/80 border border-gold-primary/20 hover:text-white hover:border-gold-primary/50 transition-all mr-0.5 sm:mr-1"
+                  >
+                    <span className="hidden sm:inline">Explore on</span>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                  </a>
                   {/* ═══ TOMBOL JOURNAL (HEADER) ═══ */}
                   <button
                     onClick={() => {
