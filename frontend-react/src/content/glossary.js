@@ -109,6 +109,78 @@ export const GLOSSARY = [
     ],
     related: ["flow-intensity", "money-flow"],
   },
+  {
+    slug: "eth-dominance",
+    term: "Ethereum dominance (ETH.D)",
+    aka: "ETH.D",
+    short:
+      "Ethereum dominance is Ethereum's share of total crypto market cap — a read on how ETH is holding up versus Bitcoin and the wider market.",
+    body: [
+      "Ethereum dominance (ETH.D) is Ethereum's market cap as a percentage of the total crypto market. It sits alongside Bitcoin dominance as a gauge of where capital concentrates. A rising ETH.D means Ethereum is gaining share — often when the ETH ecosystem (L2s, DeFi, staking) is in favor.",
+      "Read it against BTC dominance: if BTC.D falls while ETH.D rises, capital is rotating from Bitcoin toward Ethereum and its ecosystem specifically, rather than into small-cap alts broadly. As a ratio, it moves on both numerator and denominator — always pair with absolute prices.",
+    ],
+    related: ["btc-dominance", "altseason-index", "money-flow"],
+  },
+  {
+    slug: "stablecoin-dominance",
+    term: "Stablecoin dominance",
+    aka: "USDT.D / stablecoin share",
+    short:
+      "Stablecoin dominance is the share of crypto market cap held in stablecoins — a proxy for how much capital is parked on the sidelines.",
+    body: [
+      "Stablecoin dominance measures the combined market cap of stablecoins (USDT, USDC, etc.) as a share of the total crypto market. It's a sidelines gauge: when it rises, more capital is sitting in stables waiting; when it falls, that capital is being deployed into risk assets.",
+      "Traders read a falling stablecoin dominance as risk-on (dry powder entering the market) and a rising one as risk-off (capital retreating to safety). It pairs naturally with Bitcoin dominance to describe both direction and available buying power.",
+    ],
+    related: ["btc-dominance", "money-flow", "altseason-index"],
+  },
+  {
+    slug: "exchange-inflow-outflow",
+    term: "Exchange inflow & outflow",
+    aka: "Exchange flows",
+    short:
+      "Exchange inflow is crypto moving onto exchanges (often pre-sell); outflow is crypto leaving to self-custody (often accumulation). A key on-chain signal.",
+    body: [
+      "Exchange inflow is the movement of coins from private wallets onto exchanges; outflow is the reverse — coins leaving exchanges into self-custody. Because most selling happens on exchanges, sustained net inflows are often read as potential selling pressure, and sustained net outflows as accumulation or a supply squeeze.",
+      "It's directional context, not certainty — funds move onto exchanges for derivatives, OTC, and many reasons. The useful signal is the trend and size of net flows, especially from large (whale) wallets.",
+    ],
+    related: ["whale-alert", "smart-money", "money-flow"],
+  },
+  {
+    slug: "smart-money",
+    term: "Smart money",
+    aka: "Smart-money wallets",
+    short:
+      "Smart money refers to wallets with a track record of profitable, well-timed moves — tracked on-chain to see what informed participants are doing.",
+    body: [
+      "“Smart money” describes wallets that have historically bought and sold well — early entries, profitable exits, accumulation before major moves. On-chain analytics labels and tracks these wallets so you can watch what informed participants are doing in near real time.",
+      "Following smart money is context, not a copy-trade guarantee: their edge, risk tolerance, and time horizon differ from yours, and labels can be wrong. The value is seeing where experienced capital is flowing before it's obvious in price.",
+    ],
+    related: ["whale-alert", "exchange-inflow-outflow", "money-flow"],
+  },
+  {
+    slug: "liquidation",
+    term: "Liquidation (leverage)",
+    aka: "Forced liquidation",
+    short:
+      "A liquidation is when an exchange force-closes a leveraged position that can no longer meet margin — clusters of them can accelerate price moves.",
+    body: [
+      "In leveraged trading, a liquidation happens when a position's losses breach its maintenance margin and the exchange force-closes it. Because these are forced market orders, large clusters of liquidations can cascade — long liquidations add selling into a drop, short liquidations add buying into a rally.",
+      "Watching liquidation levels and totals helps you understand where forced flows might accelerate a move. It describes leverage stress in the market; it doesn't tell you direction on its own.",
+    ],
+    related: ["funding-rate", "money-flow"],
+  },
+  {
+    slug: "funding-rate",
+    term: "Funding rate (perpetuals)",
+    aka: "Perp funding",
+    short:
+      "Funding rate is the periodic payment between long and short perpetual-futures traders that keeps the perp price tethered to spot — a gauge of leverage bias.",
+    body: [
+      "Perpetual futures have no expiry, so exchanges use a funding rate — a small periodic payment between longs and shorts — to keep the perp price anchored to spot. Positive funding means longs pay shorts (crowded longs); negative funding means shorts pay longs (crowded shorts).",
+      "Persistently high positive funding signals aggressive long leverage, which can precede long-squeeze liquidations; deeply negative funding signals the opposite. It's a sentiment/positioning gauge, read alongside price and open interest.",
+    ],
+    related: ["liquidation", "money-flow"],
+  },
 ];
 
 export const getTerm = (slug) => GLOSSARY.find((t) => t.slug === slug) || null;

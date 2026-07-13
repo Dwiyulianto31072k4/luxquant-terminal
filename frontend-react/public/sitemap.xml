@@ -15,6 +15,12 @@
   <url><loc>https://luxquant.tw/learn/dex-buy-sell-pressure</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/learn/whale-alert</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/learn/turnover-ratio</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/eth-dominance</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/stablecoin-dominance</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/exchange-inflow-outflow</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/smart-money</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/liquidation</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/learn/funding-rate</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- Blog -->
   <url><loc>https://luxquant.tw/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
