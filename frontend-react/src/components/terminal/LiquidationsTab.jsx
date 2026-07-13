@@ -13,6 +13,8 @@
 // ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo } from "react";
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
+import CoinLogo from "../CoinLogo";
+import { useSignalStatus } from "../../context/SignalStatusContext";
 import {
   API_BASE, authHeaders, GOLD, POS, NEG,
   fmtMoney, SectionBand, Kpi, Warming, CoinPill, Chip,
@@ -27,43 +29,54 @@ const logoUrl = (name) => {
 // dark outline so labels stay legible on any cell colour
 const OUTLINE = { paintOrder: "stroke", stroke: "#0a0806", strokeWidth: 3, strokeLinejoin: "round" };
 
-// custom treemap cell — recharts spreads the node's fields into props
+// custom treemap cell — recharts spreads the node's fields into props.
+// Uses <foreignObject> to embed the real <CoinLogo> (logo + initials fallback,
+// never a broken image). Gold border + CALL tag + click on LuxQuant calls.
 function LiqCell(props) {
-  const { x, y, width, height, name, bias = 0, spike, intensity = 0.3 } = props;
+  const { x, y, width, height, name, bias = 0, spike, intensity = 0.3, called, onPick } = props;
   const size = props.size ?? props.value ?? 0;
-  if (width <= 0 || height <= 0) return null;
+  if (!name || width <= 1 || height <= 1) return null;
   const color = biasColor(bias);
   const sym = (name || "").replace(/USDT$/i, "");
-  const med = width > 40 && height > 26;    // room for text
-  const big = width > 58 && height > 52;     // room for logo + text
-  const logo = Math.min(22, Math.max(13, Math.min(width, height) * 0.24));
-  const textY = big ? y + logo + 20 : y + 16;
+  const med = width > 34 && height > 24;
+  const big = width > 54 && height > 46;
+  const logo = Math.min(26, Math.max(13, Math.min(width, height) * 0.26));
   return (
-    <g>
+    <g style={{ cursor: called ? "pointer" : "default" }} onClick={() => onPick?.(name, called)}>
       <rect
         x={x} y={y} width={width} height={height} rx={2}
-        style={{ fill: color, fillOpacity: 0.16 + intensity * 0.5, stroke: "#0a0806", strokeWidth: 2 }}
+        style={{
+          fill: color,
+          fillOpacity: 0.16 + intensity * 0.5,
+          stroke: called ? "rgba(212,168,83,0.95)" : "#0a0806",
+          strokeWidth: 2,
+        }}
       />
-      {big && (
-        <image
-          href={logoUrl(name)}
-          x={x + 6} y={y + 6} width={logo} height={logo}
-          preserveAspectRatio="xMidYMid slice"
-        />
-      )}
       {med && (
-        <text x={x + 6} y={textY} fill="#ffffff" fontSize={12.5} fontWeight={700}
-          style={{ ...OUTLINE, fontStyle: "normal" }}>
-          {sym}
-        </text>
-      )}
-      {med && (
-        <text x={x + 6} y={textY + 15} fill="#ffffff" fontSize={11} fontWeight={600}
-          className="font-mono" opacity={0.95} style={OUTLINE}>
-          {fmtMoney(size)}
-        </text>
+        <foreignObject x={x} y={y} width={width} height={height} style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              width: "100%", height: "100%", display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 2, padding: 2,
+              overflow: "hidden", boxSizing: "border-box",
+            }}
+          >
+            {big && <CoinLogo pair={name} size={logo} />}
+            <span style={{ color: "#fff", fontWeight: 700, fontSize: big ? 12.5 : 10.5, lineHeight: 1.05, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {sym}
+            </span>
+            <span style={{ color: "#fff", opacity: 0.95, fontFamily: "ui-monospace, monospace", fontSize: big ? 11 : 9.5, lineHeight: 1.05 }}>
+              {fmtMoney(size)}
+            </span>
+          </div>
+        </foreignObject>
       )}
       {spike && med && <circle cx={x + width - 8} cy={y + 8} r={3.2} fill={GOLD} />}
+      {called && med && (
+        <text x={x + width - 5} y={y + height - 6} textAnchor="end" fill="#e8c877" fontSize={8} fontWeight={800} fontFamily="ui-monospace, monospace" letterSpacing="0.06em">
+          CALL
+        </text>
+      )}
     </g>
   );
 }
@@ -86,6 +99,9 @@ export function LiquidationsTab({ view }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState("calls");   // "calls" (scoped) | "market"
+  const statusCtx = useSignalStatus();
+  const calledMap = statusCtx?.map;
+  const pick = (pair, called) => { if (called && statusCtx?.openPair) statusCtx.openPair(pair); };
 
   useEffect(() => {
     let alive = true;
@@ -123,6 +139,7 @@ export function LiquidationsTab({ view }) {
         bias: r.side_bias ?? 0,
         spike: !!r.spike,
         intensity: (r.total_4h || 0) / max,
+        called: !!(calledMap && calledMap[(r.pair || "").toUpperCase()]),
       }));
     return {
       nodes,
@@ -130,7 +147,7 @@ export function LiquidationsTab({ view }) {
       spikes: rows.filter((r) => r.spike).length,
       top: nodes[0] || null,
     };
-  }, [data, view, scope]);
+  }, [data, view, scope, calledMap]);
 
   if (loading) return <Warming text="Loading liquidations…" />;
 
@@ -174,7 +191,7 @@ export function LiquidationsTab({ view }) {
               dataKey="size"
               aspectRatio={4 / 3}
               stroke="#0a0806"
-              content={<LiqCell />}
+              content={<LiqCell onPick={pick} />}
               isAnimationActive={false}
             >
               <Tooltip content={<LiqTip />} />
