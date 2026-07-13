@@ -514,7 +514,7 @@ const SectorsTab = ({ q }) => {
       </Card>
 
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-        Leaders = top-3 by 24h move · klik baris buat lihat semua koin dalam naratif · Data: CoinGecko
+        Leaders = top-3 by 24h move · tap a row to see every coin in the narrative · Data: CoinGecko
       </p>
     </div>
 
@@ -853,7 +853,7 @@ const CoinsTab = ({ q }) => {
         </Card>
 
         <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-          Flow intensity = volume 24h ÷ market cap · baris emas (Call) = klik buat buka signal
+          Flow intensity = 24h volume ÷ market cap · gold rows (Call) = tap to open the signal
         </p>
       </div>
 
@@ -899,7 +899,7 @@ const CoinsTab = ({ q }) => {
           )}
         </Card>
         <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-          Trending DEX pools (incl. meme/alt) · bar = beli vs jual 24h · Data: GeckoTerminal
+          Trending DEX pools (incl. meme/alt) · bar = buy vs sell 24h · Data: GeckoTerminal
         </p>
       </div>
 

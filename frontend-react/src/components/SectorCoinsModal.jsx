@@ -1,9 +1,10 @@
 // src/components/SectorCoinsModal.jsx
 // ════════════════════════════════════════════════════════════════
 // LuxQuant Terminal — Sector → Coins drill-down modal
-// Klik satu baris "Sector Rotation" → daftar SEMUA koin dalam naratif itu
-// (CoinGecko category), diurut market cap. Koin yang di-call LuxQuant
-// ditandai badge "Call" dan bisa diklik buka SignalModal.
+// Tap a "Sector Rotation" row → list of ALL coins in that narrative
+// (CoinGecko category), sorted by market cap. Every coin links to its
+// CoinGecko markets page; LuxQuant-called coins carry a "Call" badge that
+// opens the SignalModal.
 // ════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import Modal from "./ui/Modal";
@@ -35,6 +36,19 @@ const Spinner = ({ className = "" }) => (
   </svg>
 );
 
+const IconExternal = ({ className = "" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 17 17 7M9 7h8v8" />
+  </svg>
+);
+
+// Where-to-trade / info page. Coins come from CoinGecko, so every coin has a
+// valid page listing all markets (CEX + DEX via GeckoTerminal tab).
+const coinMarketUrl = (c) =>
+  c?.coin_id
+    ? `https://www.coingecko.com/en/coins/${c.coin_id}`
+    : `https://www.coingecko.com/en/search?query=${encodeURIComponent(c?.symbol || "")}`;
+
 export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal, loadingSym }) {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +68,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
     moneyFlowApi
       .getSectorCoins(categoryId, { limit: 100 })
       .then((d) => { if (alive) setCoins(d?.coins || []); })
-      .catch(() => { if (alive) setErr("Gagal memuat koin untuk naratif ini"); })
+      .catch(() => { if (alive) setErr("Failed to load coins for this narrative"); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [isOpen, categoryId]);
@@ -110,7 +124,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
         ))}
       </div>
       <div className="min-w-0">
-        <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-gold-primary/80">Naratif · Coins</p>
+        <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-gold-primary/80">Narrative · Coins</p>
         <h2 className="text-base sm:text-lg font-semibold text-white truncate">{sector?.name || "Sector"}</h2>
       </div>
       {sector?.mcap_change_24h != null && (
@@ -128,11 +142,11 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari koin…"
+          placeholder="Search coin…"
           className="flex-1 min-w-0 pl-3 pr-3 py-1.5 bg-[#120c08] border border-white/[0.08] rounded-md text-white placeholder-white/30 font-mono text-[12px] focus:border-gold-primary/40 focus:outline-none"
         />
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted/70">
-          {coins.length} coin{luxCount ? ` · ${luxCount} call` : ""}
+          {coins.length} coins{luxCount ? ` · ${luxCount} call` : ""}
         </span>
       </div>
 
@@ -146,29 +160,32 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
 
       {/* Body */}
       {loading ? (
-        <div className="py-16 text-center font-mono text-[12px] text-white/40">Memuat koin…</div>
+        <div className="py-16 text-center font-mono text-[12px] text-white/40">Loading coins…</div>
       ) : err ? (
         <div className="py-16 text-center font-mono text-[12px] text-red-400/70">{err}</div>
       ) : rows.length === 0 ? (
         <div className="py-16 text-center font-mono text-[12px] text-white/40">
-          {q ? `Tidak ada koin cocok "${q}".` : "Tidak ada koin untuk naratif ini."}
+          {q ? `No coins match "${q}".` : "No coins in this narrative."}
         </div>
       ) : (
         <div className="divide-y divide-white/[0.05]">
           {rows.map((c, i) => {
             const called = c.is_luxquant_signal;
-            const clickable = called && !!onOpenSignal;
             const isLoading = loadingSym === c.symbol;
+            const openMarket = () => window.open(coinMarketUrl(c), "_blank", "noopener,noreferrer");
             return (
               <div
                 key={c.coin_id || c.symbol}
-                role={clickable ? "button" : undefined}
-                tabIndex={clickable ? 0 : undefined}
-                onClick={clickable ? () => onOpenSignal(c) : undefined}
-                onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenSignal(c); } } : undefined}
-                className={`grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 items-center px-4 sm:px-5 py-2.5 transition-colors ${
-                  called ? "border-l-2 border-gold-primary/50" : "border-l-2 border-transparent"
-                } ${clickable ? "cursor-pointer hover:bg-gold-primary/[0.06]" : "hover:bg-white/[0.02]"}`}
+                role="button"
+                tabIndex={0}
+                onClick={openMarket}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMarket(); } }}
+                title={`Open ${c.symbol} markets on CoinGecko`}
+                className={`group grid grid-cols-[1.6rem_1fr_5rem_6rem] sm:grid-cols-[2rem_1fr_6rem_7rem] gap-2 items-center px-4 sm:px-5 py-2.5 cursor-pointer transition-colors ${
+                  called
+                    ? "border-l-2 border-gold-primary/50 hover:bg-gold-primary/[0.06]"
+                    : "border-l-2 border-transparent hover:bg-white/[0.03]"
+                }`}
               >
                 <span className="font-mono text-[11px] tabular-nums text-text-muted/40">
                   {c.market_cap_rank || i + 1}
@@ -184,19 +201,17 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
                   </span>
                   <span className="hidden sm:inline text-[11px] text-text-muted/60 truncate">{c.name}</span>
                   {called && (
-                    <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onOpenSignal?.(c); }}
+                      title="Open LuxQuant signal"
+                      className="shrink-0 inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-primary/15 text-gold-primary border border-gold-primary/30 hover:bg-gold-primary/25 transition-colors"
+                    >
+                      {isLoading ? <Spinner className="w-2.5 h-2.5" /> : null}
                       Call
-                    </span>
+                    </button>
                   )}
-                  {clickable && (
-                    isLoading ? (
-                      <Spinner className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/70" />
-                    ) : (
-                      <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-gold-primary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 6l6 6-6 6" />
-                      </svg>
-                    )
-                  )}
+                  <IconExternal className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-white/25 group-hover:text-gold-primary transition-colors" />
                 </div>
                 <span className={`font-mono text-[13px] tabular-nums text-right font-semibold ${pctColor(c.price_change_24h)}`}>
                   {fmtPct(c.price_change_24h)}
@@ -211,7 +226,7 @@ export default function SectorCoinsModal({ sector, isOpen, onClose, onOpenSignal
       )}
 
       <p className="px-4 sm:px-5 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-text-muted/40 border-t border-white/[0.05]">
-        Semua koin dalam naratif · <span className="text-gold-primary/70">Call</span> = ada signal LuxQuant, klik buat buka · Data: CoinGecko
+        Tap any coin to view its markets on CoinGecko · <span className="text-gold-primary/70">Call</span> = has a LuxQuant signal · Data: CoinGecko
       </p>
     </Modal>
   );
