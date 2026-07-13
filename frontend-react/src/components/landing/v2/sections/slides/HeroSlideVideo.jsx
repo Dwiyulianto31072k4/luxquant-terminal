@@ -40,6 +40,7 @@ export default function HeroSlideVideo() {
       {/* ── VIDEO: mobile portrait (full-bleed, no empty bands) ── */}
       <video
         className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.97] sm:hidden"
+        poster="/og-default.png"
         autoPlay
         loop
         muted
@@ -55,6 +56,7 @@ export default function HeroSlideVideo() {
       <video
         className="absolute inset-0 hidden h-full w-full scale-[1.05] object-cover opacity-[0.97] sm:block"
         style={{ objectPosition: "50% 62%" }}
+        poster="/og-default.png"
         autoPlay
         loop
         muted

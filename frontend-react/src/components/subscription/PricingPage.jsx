@@ -181,6 +181,47 @@ const PricingPage = () => {
         title="Pricing &amp; Plans — LuxQuant Terminal"
         description="LuxQuant Terminal pricing and plans. Unlock algorithmic analysis, on-chain intelligence, AutoTrade, and AI research. Free tier available."
         path="/pricing"
+        keywords="luxquant pricing, crypto signals subscription, quant terminal plans, autotrade pricing"
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://luxquant.tw/" },
+              { "@type": "ListItem", position: 2, name: "Pricing", item: "https://luxquant.tw/pricing" },
+            ],
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "Is there a free version of LuxQuant Terminal?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes. LuxQuant Terminal has a free tier. Premium tiers unlock trading signals, AutoTrade, on-chain intelligence, and AI research.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What do premium plans include?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Premium unlocks algorithmic trading signals, AutoTrade automated execution, on-chain whale and smart-money intelligence, and AI market research.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What is LuxQuant Terminal?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "LuxQuant Terminal is a quantitative crypto market intelligence platform with algorithmic analysis, on-chain intelligence, and risk scoring.",
+                },
+              },
+            ],
+          },
+        ]}
       />
       <style>{`
         @keyframes admin-pulse-glow {
