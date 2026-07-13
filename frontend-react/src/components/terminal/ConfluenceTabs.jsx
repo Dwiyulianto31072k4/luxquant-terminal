@@ -80,6 +80,41 @@ function flowChipsOf(flow) {
   return out;
 }
 
+// direction-aware flow score: does on-chain flow + liquidation SUPPORT this signal?
+// NOTE: weights are conservative DEFAULTS — calibrate via EdgeLab backtest before
+// trusting them as hard signal. Aligned flow → +, opposed flow → − (conflict).
+function flowScoreOf(dir, flow) {
+  const s = dir === "BULLISH" ? 1 : dir === "BEARISH" ? -1 : 0;
+  let b = 0;
+  if (flow?.tf) b += (flow.tf.net_inflow_usd || 0) < 0 ? 1 : -1;      // outflow = accumulation (+)
+  if (flow?.liq) {
+    if ((flow.liq.side_bias || 0) > 0.4) b += 1;                       // shorts flushed → squeeze up
+    else if ((flow.liq.side_bias || 0) < -0.4) b -= 1;                 // longs flushed → down
+  }
+  const score = s * b;
+  return { score, conflict: score < 0, support: score > 0 };
+}
+
+// compact Fear & Greed gauge (matches Kpi styling)
+function FngBadge({ value, label }) {
+  if (value == null) return null;
+  const color = value <= 25 ? "#f87171" : value <= 45 ? "#f97316"
+    : value <= 55 ? "#fbbf24" : value <= 75 ? "#a3e635" : "#34d399";
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-[#0a0805] border border-white/[0.07] px-4 py-4">
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-text-muted">Fear &amp; Greed</div>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="font-mono tabular-nums text-[26px] leading-none" style={{ color }}>{value}</span>
+        <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color }}>{label}</span>
+      </div>
+      <div className="mt-2.5 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
 function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   const v3 = s.v3 || {};
   const tags = v3.tags || [];
@@ -99,6 +134,7 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   const reasons = REASON_PRIORITY.filter((r) => tags.includes(r)).slice(0, 3);
   const warns = WARNING_TAGS.filter((w) => tags.includes(w)).slice(0, 3);
   const flowChips = flowChipsOf(flow);
+  const fscore = flowScoreOf(dir, flow);
   const fc = live?.fc;
   const avg = ps?.avg_24h;
   const delta = fc != null && avg != null ? fc - avg : null;
@@ -193,7 +229,9 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
       {/* flow context — from Liquidations + Token Flow feeds (risk context) */}
       {flowChips.length > 0 && (
         <div className="px-4 mt-2 flex items-center gap-1 flex-wrap">
-          <span className="font-mono text-[7.5px] uppercase tracking-[0.2em] text-text-muted/50 mr-0.5">flow</span>
+          <span className={`font-mono text-[7.5px] uppercase tracking-[0.2em] mr-0.5 ${fscore.conflict ? "text-negative" : fscore.support ? "text-positive" : "text-text-muted/50"}`}>
+            flow{fscore.conflict ? " ⚠ conflict" : fscore.support ? " ✓" : ""}
+          </span>
           {flowChips.map((c) => (
             <span key={c.k} className={`px-1.5 py-0.5 rounded-[4px] border font-mono text-[8px] uppercase tracking-wider ${c.cls}`}>
               {c.k}
@@ -261,22 +299,35 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
   // Liquidations + Token Flow feeds → per-card "flow context" chips
   const [liqMap, setLiqMap] = useState({});
   const [flowMap, setFlowMap] = useState({});
+  const [fng, setFng] = useState(null);
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [lq, tf] = await Promise.all([
+        const [lq, tf, bt] = await Promise.all([
           fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() }).then((r) => r.json()),
           fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_BASE}/api/v1/coingecko/bitcoin`, { headers: authHeaders() }).then((r) => r.json()).catch(() => null),
         ]);
         if (!alive) return;
         const lm = {}; (lq?.items || []).forEach((i) => { lm[i.pair] = i; });
         const fm = {}; (tf?.items || []).forEach((i) => { fm[i.symbol] = i; });
         setLiqMap(lm); setFlowMap(fm);
+        if (bt?.fear_greed_value != null) setFng({ value: bt.fear_greed_value, label: bt.fear_greed_label });
       } catch { /* keep empty → simply no flow chips */ }
     })();
     return () => { alive = false; };
   }, []);
+
+  // re-rank by base confluence score + flow score (liq/token-flow support)
+  const rankedCards = useMemo(() => {
+    if (!Object.keys(liqMap).length && !Object.keys(flowMap).length) return cards;
+    return [...cards].sort((a, b) => {
+      const fa = flowScoreOf(a.v3?.direction || a.signal_direction, { liq: liqMap[a.pair], tf: flowMap[baseSym(a.pair)] }).score;
+      const fb = flowScoreOf(b.v3?.direction || b.signal_direction, { liq: liqMap[b.pair], tf: flowMap[baseSym(b.pair)] }).score;
+      return (scoreOf(b.v3?.tags) + fb) - (scoreOf(a.v3?.tags) + fa);
+    });
+  }, [cards, liqMap, flowMap]);
 
   // "Coiled" — strong, clean setups still sitting near entry (not pumped yet)
   const coiled = useMemo(() => {
@@ -299,6 +350,12 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
   return (
     <>
       <SectionBand title={t("terminal.viz.tabConfluence")} desc={t("terminal.viz.confSectionDesc")} />
+
+      {fng?.value != null && (
+        <div className="max-w-[260px]">
+          <FngBadge value={fng.value} label={fng.label} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
         <Kpi label={t("terminal.viz.kConfCount")} value={cards.length} desc={t("terminal.viz.kConfCountDesc")} tone="text-gold-primary" />
@@ -344,14 +401,14 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
       </div>
 
       {/* card grid — bounded, scrolls inside */}
-      {cards.length === 0 ? (
+      {rankedCards.length === 0 ? (
         <div className="rounded-lg bg-[#0c0a07] border border-white/[0.07] py-16 text-center font-mono text-[10px] uppercase tracking-wider text-text-muted leading-relaxed px-6">
           {t("terminal.viz.confEmpty")}
         </div>
       ) : (
         <ScrollArea max={720}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {cards.slice(0, 90).map((s) => (
+            {rankedCards.slice(0, 90).map((s) => (
               <SignalCard
                 key={s.signal_id}
                 s={s}
