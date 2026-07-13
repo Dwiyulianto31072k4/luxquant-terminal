@@ -51,6 +51,7 @@ const MoneyFlowPage = lazy(() => import("./components/MoneyFlowPage"));
 const DelistingsPage = lazy(() => import("./components/DelistingsPage"));
 const LearnPage = lazy(() => import("./components/LearnPage"));
 const BlogPage = lazy(() => import("./components/BlogPage"));
+const CoinsPage = lazy(() => import("./components/CoinsPage"));
 const OrderBookPage = lazy(() => import("./components/OrderBookPage"));
 const AIArenaPage = lazy(() => import("./components/AIArenaPage"));
 const AIArenaPageV6 = lazy(() => import("./components/AIArenaPageV6"));
@@ -1560,6 +1561,22 @@ function App() {
                 element={
                   <AppShell>
                     <BlogPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/coins"
+                element={
+                  <AppShell>
+                    <CoinsPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/coins/:slug"
+                element={
+                  <AppShell>
+                    <CoinsPage />
                   </AppShell>
                 }
               />

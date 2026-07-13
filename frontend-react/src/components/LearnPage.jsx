@@ -52,7 +52,7 @@ function TermPage({ slug }) {
   ];
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-1 py-4">
+    <div className="w-full max-w-3xl px-1 py-4">
       <Seo
         title={`${term.term} — meaning & how it works | LuxQuant`}
         description={term.short}
@@ -123,7 +123,7 @@ function IndexPage() {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-1 py-4">
+    <div className="w-full px-1 py-4">
       <Seo
         title="Crypto & Quant Glossary — money flow, dominance, on-chain | LuxQuant"
         description="Plain-English definitions of the crypto and quantitative-trading terms behind LuxQuant: money flow, flow intensity, BTC dominance, altseason, sector rotation, DEX pressure, and more."

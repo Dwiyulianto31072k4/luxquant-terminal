@@ -78,8 +78,10 @@ async function main() {
 
   const { GLOSSARY } = await import("../src/content/glossary.js");
   const { POSTS } = await import("../src/content/posts.js");
+  const { COINS } = await import("../src/content/coins.js");
   const termBy = (slug) => GLOSSARY.find((t) => t.slug === slug);
   const postBy = (slug) => POSTS.find((p) => p.slug === slug);
+  const coinBy = (slug) => COINS.find((c) => c.slug === slug);
 
   const pages = [];
 
@@ -196,6 +198,55 @@ async function main() {
           ? `<h2>Keep reading</h2><ul>${relPosts.map((r) => `<li><a href="/blog/${r.slug}">${esc(r.title)}</a></li>`).join("")}</ul>`
           : "") +
         `<p><a href="/money-flow">Open LuxQuant Money Flow</a></p>`,
+    });
+  }
+
+  // ── Coins index ──
+  pages.push({
+    path: "/coins",
+    title: "Crypto Coins — money flow, on-chain & signals | LuxQuant",
+    description:
+      "Track money flow, on-chain activity, and algorithmic signals for Bitcoin, Ethereum, Solana, and top crypto assets on LuxQuant.",
+    jsonLd: [
+      { "@context": "https://schema.org", "@type": "CollectionPage", name: "Crypto Coins — LuxQuant", url: `${SITE}/coins` },
+      breadcrumbLd([{ label: "Home", to: "/" }, { label: "Coins", self: "/coins" }]),
+    ],
+    body:
+      crumb([{ label: "Home", to: "/" }, { label: "Coins" }]) +
+      `<h1>Crypto Coins</h1>` +
+      `<p>Money flow, on-chain intelligence, and algorithmic signals for the assets traders watch most.</p>` +
+      `<ul>${COINS.map((c) => `<li><a href="/coins/${c.slug}">${esc(c.name)} (${esc(c.symbol)})</a> — ${esc(c.category)}</li>`).join("")}</ul>`,
+  });
+
+  // ── Coin detail ──
+  for (const c of COINS) {
+    const related = (c.related || []).map(coinBy).filter(Boolean);
+    pages.push({
+      path: `/coins/${c.slug}`,
+      title: `${c.name} (${c.symbol}) — money flow, on-chain & signals | LuxQuant`,
+      description: c.body[0].slice(0, 155),
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: `${c.name} (${c.symbol}) — money flow, on-chain & signals`,
+          url: `${SITE}/coins/${c.slug}`,
+          description: c.body[0],
+          isPartOf: { "@type": "WebSite", name: "LuxQuant Terminal", url: `${SITE}/` },
+        },
+        breadcrumbLd([{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: `${c.name} (${c.symbol})`, self: `/coins/${c.slug}` }]),
+      ],
+      body:
+        crumb([{ label: "Home", to: "/" }, { label: "Coins", to: "/coins" }, { label: c.symbol }]) +
+        `<h1>${esc(c.name)} (${esc(c.symbol)})</h1>` +
+        `<p>${esc(c.category)}</p>` +
+        c.body.map((p) => `<p>${esc(p)}</p>`).join("") +
+        `<p><a href="/money-flow">Open Money Flow</a> · <a href="/onchain">On-Chain</a> · <a href="/signals">Signals</a></p>` +
+        `<p>Live ${esc(c.symbol)} price &amp; markets: <a href="https://www.coingecko.com/en/coins/${c.cg}" rel="noopener">view on CoinGecko</a>.</p>` +
+        (related.length
+          ? `<h2>Related coins</h2><ul>${related.map((r) => `<li><a href="/coins/${r.slug}">${esc(r.name)} (${esc(r.symbol)})</a></li>`).join("")}</ul>`
+          : "") +
+        `<p><a href="/learn/money-flow">Learn: money flow</a> · <a href="/coins">All coins</a></p>`,
     });
   }
 

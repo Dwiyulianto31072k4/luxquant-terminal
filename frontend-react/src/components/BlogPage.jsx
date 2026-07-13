@@ -81,7 +81,7 @@ function PostPage({ slug }) {
   ];
 
   return (
-    <article className="w-full max-w-3xl mx-auto px-1 py-4">
+    <article className="w-full max-w-3xl px-1 py-4">
       <Seo
         title={`${post.title} | LuxQuant`}
         description={post.excerpt}
@@ -152,7 +152,7 @@ function IndexPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-1 py-4">
+    <div className="w-full px-1 py-4">
       <Seo
         title="LuxQuant Blog — crypto money flow, on-chain & quant trading"
         description="Educational guides on crypto money flow, sector rotation, Bitcoin dominance, on-chain intelligence, and quantitative trading from the LuxQuant team."

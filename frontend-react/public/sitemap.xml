@@ -27,5 +27,32 @@
   <url><loc>https://luxquant.tw/blog/how-to-read-crypto-sector-rotation</loc><lastmod>2026-07-13</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://luxquant.tw/blog/btc-dominance-explained</loc><lastmod>2026-07-13</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
+  <!-- Coins -->
+  <url><loc>https://luxquant.tw/coins</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://luxquant.tw/coins/btc</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/coins/eth</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/coins/sol</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://luxquant.tw/coins/bnb</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/xrp</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/ada</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/doge</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/avax</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/link</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/dot</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/trx</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/matic</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/shib</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/ltc</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/uni</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/atom</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/xlm</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/near</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/arb</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/op</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/inj</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/render</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/sui</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://luxquant.tw/coins/apt</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+
   <url><loc>https://luxquant.tw/status</loc><changefreq>weekly</changefreq><priority>0.4</priority></url>
 </urlset>

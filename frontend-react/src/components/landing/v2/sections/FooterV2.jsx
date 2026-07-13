@@ -60,6 +60,7 @@ export default function FooterV2({ onNav }) {
       links: [
         { label: "Blog", type: "public", to: "/blog" },
         { label: "Learn / Glossary", type: "public", to: "/learn" },
+        { label: "Coins", type: "public", to: "/coins" },
         { label: "Open Terminal", type: "terminal" },
         { label: "View Performance", type: "scroll", to: "performance" },
         { label: "Tips & Modules", type: "feature", to: "/tips" },
