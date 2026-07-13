@@ -14,6 +14,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import CoinLogo from "./CoinLogo";
+import { SignalStatusProvider } from "../context/SignalStatusContext";
+import GlobalSignalModalHost from "./SignalStatusModal";
 import api from "../services/authApi";
 import { useSearchParams } from "react-router-dom";
 import AssistantWidget from "./assistant/AssistantWidget";
@@ -126,7 +128,7 @@ const IconActivity = ({ className = "h-3.5 w-3.5" }) => (
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════
 
-const MarketPulsePage = () => {
+const MarketPulsePageInner = () => {
   const { t } = useTranslation();
 
   const [feed, setFeed] = useState([]);
@@ -289,7 +291,7 @@ const MarketPulsePage = () => {
     feed.forEach((e) => {
       counts[e.pair] = (counts[e.pair] || 0) + 1;
     });
-    const items = stats.heatmap.slice(0, 20).map((c) => ({
+    const items = stats.heatmap.slice(0, 60).map((c) => ({
       ...c,
       event_count: counts[c.pair] || c.event_count || 1,
     }));
@@ -528,6 +530,16 @@ const MarketPulsePage = () => {
     </div>
   );
 };
+
+// Wrap in the shared SignalStatusProvider so every CoinLogo on this page shows
+// a live "called" dot (latest LuxQuant call per pair) and opens the global
+// signal modal on click — exactly like the Terminal scan page.
+const MarketPulsePage = () => (
+  <SignalStatusProvider>
+    <MarketPulsePageInner />
+    <GlobalSignalModalHost />
+  </SignalStatusProvider>
+);
 
 export default MarketPulsePage;
 
@@ -1292,9 +1304,10 @@ const FeedSubRow = ({ event, eventTagClass, eventLabel, timeAgo, onSelect }) => 
 // ════════════════════════════════════════════════════════
 
 const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange }) => {
-  const tiles = useMemo(() => {
+  const [expanded, setExpanded] = useState(false);
+  const allTiles = useMemo(() => {
     if (!heatmap || heatmap.length === 0) return [];
-    return heatmap.slice(0, 13).map((coin) => {
+    return heatmap.map((coin) => {
       const upAbs = Math.abs(coin.max_up || 0);
       const downAbs = Math.abs(coin.max_down || 0);
       const strongest = upAbs >= downAbs ? coin.max_up || 0 : coin.max_down || 0;
@@ -1307,6 +1320,7 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
       };
     });
   }, [heatmap]);
+  const tiles = allTiles.slice(0, 13);
 
   const layouts = [
     { col: "1 / 3", row: "1 / 3", size: "xl" },
@@ -1327,11 +1341,13 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
   const visibleTiles = tiles.slice(0, layouts.length);
 
   return (
+    <>
     <PanelShell>
       <PanelHeader
         title="Heatmap"
         subtitle="1h"
         right={
+          <div className="flex items-center gap-1.5">
           <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
             <button
               onClick={() => onSortChange("events")}
@@ -1354,6 +1370,16 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
               title="Sort by % change"
             >
               % Change
+            </button>
+          </div>
+            <button
+              onClick={() => setExpanded(true)}
+              title="Expand heatmap"
+              className="flex items-center justify-center w-6 h-6 rounded-md border border-white/[0.06] bg-white/[0.03] text-text-muted/70 hover:text-gold-primary hover:border-gold-primary/30 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3" />
+              </svg>
             </button>
           </div>
         }
@@ -1398,6 +1424,86 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
         </div>
       </div>
     </PanelShell>
+
+      {expanded && createPortal(
+        <div
+          className="fixed inset-0 z-[95] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setExpanded(false)}
+        >
+          <div
+            className="relative w-full max-w-5xl max-h-[calc(100vh-3rem)] overflow-auto rounded-2xl bg-[#0b0907] border border-gold-primary/25 shadow-2xl shadow-black/60 p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-white font-semibold text-[15px]">Heatmap</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/60">
+                  {allTiles.length} coins · 1h
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+                  <button
+                    onClick={() => onSortChange("events")}
+                    className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.15em] transition-all ${sortMode === "events" ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
+                  >
+                    Events
+                  </button>
+                  <button
+                    onClick={() => onSortChange("pct")}
+                    className={`px-2.5 py-1 rounded-sm text-[10px] font-medium uppercase tracking-[0.15em] transition-all ${sortMode === "pct" ? "bg-gold-primary/15 text-gold-primary" : "text-text-muted/60 hover:text-white"}`}
+                  >
+                    % Change
+                  </button>
+                </div>
+                <button
+                  onClick={() => setExpanded(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-md border border-white/10 text-text-muted hover:text-white hover:border-white/25"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {allTiles.length === 0 ? (
+              <div className="text-center py-16 text-text-muted/50 text-xs font-mono uppercase tracking-[0.15em]">
+                No activity yet
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))",
+                  gridAutoRows: "92px",
+                  gap: "8px",
+                }}
+              >
+                {allTiles.map((tile) => (
+                  <HeatmapTile
+                    key={tile.pair}
+                    tile={tile}
+                    isSelected={selectedCoin === tile.pair}
+                    onSelect={onSelect}
+                    layout={{ size: "lg" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[9px] font-mono text-text-muted/50">
+              <span className="uppercase tracking-[0.15em]">Size = rank · Color = direction · gold dot = LuxQuant call</span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/60" /> bull</span>
+                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-red-500/60" /> bear</span>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 

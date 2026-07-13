@@ -36,11 +36,17 @@ async def get_pulse_feed(
     timeframe: Optional[str] = Query(None, regex="^(5m|1h|2h|4h|1d)$"),
     direction: Optional[str] = Query(None, regex="^(bullish|bearish)$"),
     limit: int = Query(100, ge=1, le=500),
+    distinct: bool = Query(False, description="If true, return the latest event per UNIQUE pair (rolling window of coins) instead of raw events"),
 ):
-    """Get latest market pulse events with optional filters"""
-    
+    """Get latest market pulse events with optional filters.
+
+    distinct=false → up to `limit` raw events (a pair can repeat).
+    distinct=true  → up to `limit` UNIQUE pairs (latest event each), newest first —
+                      i.e. a rolling window of the last N coins.
+    """
+
     # Build cache key from params
-    cache_key = f"lq:pulse:feed:{source or 'all'}:{pair or 'all'}:{timeframe or 'all'}:{direction or 'all'}:{limit}"
+    cache_key = f"lq:pulse:feed:{source or 'all'}:{pair or 'all'}:{timeframe or 'all'}:{direction or 'all'}:{limit}:{int(distinct)}"
     
     cached = cache_get(cache_key)
     if cached:
@@ -65,16 +71,33 @@ async def get_pulse_feed(
             params["direction"] = direction
         
         where = " AND ".join(conditions)
-        
-        rows = db.execute(text(f"""
-            SELECT id, source, source_msg_id, pair, base_symbol, direction,
+
+        cols = """id, source, source_msg_id, pair, base_symbol, direction,
                    pct_change, timeframe, event_type, event_type_zh,
-                   move_seconds, has_media, created_at
-            FROM market_pulse
-            WHERE {where}
-            ORDER BY created_at DESC
-            LIMIT :limit
-        """), {**params, "limit": limit}).fetchall()
+                   move_seconds, has_media, created_at"""
+
+        if distinct:
+            # latest event per UNIQUE pair → rolling window of the last N coins
+            sql = f"""
+                SELECT {cols} FROM (
+                    SELECT DISTINCT ON (pair) {cols}
+                    FROM market_pulse
+                    WHERE {where}
+                    ORDER BY pair, created_at DESC
+                ) t
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """
+        else:
+            sql = f"""
+                SELECT {cols}
+                FROM market_pulse
+                WHERE {where}
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """
+
+        rows = db.execute(text(sql), {**params, "limit": limit}).fetchall()
         
         events = []
         for r in rows:

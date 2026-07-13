@@ -82,7 +82,7 @@ const GoogleCallback = () => {
         }
       }
 
-      navigate("/", {
+      navigate("/home", {
         replace: true,
       });
 
