@@ -24,6 +24,7 @@ const TopPerformers = () => {
   const [customTo, setCustomTo] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [category, setCategory] = useState('gains'); // MEXC-style category chips
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile filter bottom-sheet
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSignalIds, setModalSignalIds] = useState([]);
   const [modalIndex, setModalIndex] = useState(0);
@@ -137,6 +138,19 @@ const TopPerformers = () => {
 
   const periodRange = splitPeriodRange(data?.period);
 
+  // Current selection labels for the compact mobile trigger bar
+  const catLabel = (CATEGORIES.find((c) => c.key === category) || CATEGORIES[0]).label;
+  const rangeLabel = (presets.find((p) => p.key === activeFilter) || presets[1]).label;
+
+  // Lock body scroll while the mobile filter sheet is open
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') setSheetOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [sheetOpen]);
 
   if (loading && !data) {
     return (
@@ -221,9 +235,9 @@ const TopPerformers = () => {
         </div>
       </div>
 
-      {/* ═══ CUSTOM DATE PICKER ═══ */}
+      {/* ═══ CUSTOM DATE PICKER (desktop only — mobile uses the sheet) ═══ */}
       {showCustom && (
-        <div className="mb-4 flex flex-wrap items-center gap-2.5 rounded-xl border border-gold-primary/20 bg-[#0c0a07] p-3">
+        <div className="mb-4 hidden sm:flex flex-wrap items-center gap-2.5 rounded-xl border border-gold-primary/20 bg-[#0c0a07] p-3">
           <span className="font-mono text-[9px] text-gold-primary/80 uppercase tracking-[0.18em]">{t('top.custom')}</span>
           <span className="hidden sm:block h-4 w-px bg-white/10" />
           <label className="flex items-center gap-2">
@@ -245,9 +259,9 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* ═══ CONTROL BAR — solid category chips (left) + time-range segmented (right) ═══ */}
+      {/* ═══ CONTROL BAR — DESKTOP: solid category chips (left) + time-range segmented (right) ═══ */}
       {data && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 hidden gap-3 sm:flex sm:flex-row sm:items-center sm:justify-between">
           {/* Category chips */}
           <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto">
             {CATEGORIES.map((c) => {
@@ -287,9 +301,47 @@ const TopPerformers = () => {
         </div>
       )}
 
-      {/* Date window — one clean solid WINDOW chip */}
+      {/* ═══ CONTROL BAR — MOBILE: two compact triggers → bottom sheet ═══ */}
+      {data && (data.total_tp_hits || data.total_tp4) > 0 && (
+        <div className="mb-4 sm:hidden">
+          <div className="flex items-stretch gap-2">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#0c0a07] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+            >
+              <span className="min-w-0">
+                <span className="block font-mono text-[8px] uppercase tracking-[0.18em] text-text-muted/50">View</span>
+                <span className="mt-0.5 block truncate font-mono text-[11px] font-semibold text-white">{catLabel}</span>
+              </span>
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 fill-text-muted/60" aria-hidden="true"><path d="M8 11 3.5 6.5l1-1L8 9l3.5-3.5 1 1z" /></svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-white/[0.08] bg-[#0c0a07] px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+            >
+              <span className="min-w-0">
+                <span className="block font-mono text-[8px] uppercase tracking-[0.18em] text-text-muted/50">Range</span>
+                <span className="mt-0.5 block truncate font-mono text-[11px] font-semibold text-gold-primary">{rangeLabel}</span>
+              </span>
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 fill-text-muted/60" aria-hidden="true"><path d="M8 11 3.5 6.5l1-1L8 9l3.5-3.5 1 1z" /></svg>
+            </button>
+          </div>
+          {data?.period && (
+            <div className="mt-2 flex items-center gap-1.5 px-0.5 font-mono text-[9px]">
+              <span className="uppercase tracking-[0.18em] text-text-muted/45">Window</span>
+              <span className="truncate tabular-nums text-text-muted/70">
+                {periodRange.from}{periodRange.to ? ` → ${periodRange.to}` : ''}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Date window — DESKTOP: one clean solid WINDOW chip */}
       {data?.period && (data.total_tp_hits || data.total_tp4) > 0 && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 hidden items-center gap-2 sm:flex">
           <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/55">Window</span>
           <span className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#0a0506] px-3 py-1.5 font-mono text-[10px] sm:text-[11px] tracking-wide text-white/85 tabular-nums">
             <span className="truncate">{periodRange.from}</span>
@@ -390,8 +442,89 @@ const TopPerformers = () => {
         </div>
       </div>
 
+      {/* ═══ MOBILE FILTER BOTTOM SHEET ═══ */}
+      {sheetOpen && createPortal(
+        <div className="fixed inset-0 z-[100000] sm:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-[shFade_.2s_ease-out]" onClick={() => setSheetOpen(false)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[#0c0a07] shadow-[0_-12px_40px_rgba(0,0,0,0.5)] animate-[shUp_.28s_cubic-bezier(.16,1,.3,1)]">
+            <div className="flex justify-center pt-2.5 pb-1"><div className="h-1 w-10 rounded-full bg-white/20" /></div>
+
+            <div className="flex items-center justify-between px-4 pt-1 pb-2">
+              <span className="font-display text-[15px] font-semibold text-white">Filters</span>
+              <button onClick={() => setSheetOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-text-muted active:scale-95 transition-transform" aria-label="Close">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="max-h-[68vh] overflow-y-auto px-4">
+              {/* View / category */}
+              <p className="mb-2 mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/60">View</p>
+              <div className="space-y-1.5">
+                {CATEGORIES.map((c) => {
+                  const on = category === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => setCategory(c.key)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-3 transition-all active:scale-[0.99] ${on ? 'border-gold-primary/40 bg-gold-primary/10' : 'border-white/[0.06] bg-white/[0.02]'}`}
+                    >
+                      <span className={`font-mono text-[12px] ${on ? 'font-semibold text-gold-primary' : 'text-white/80'}`}>{c.label}</span>
+                      {on && <svg viewBox="0 0 20 20" className="h-4 w-4 fill-gold-primary" aria-hidden="true"><path d="M8 13.5 4.5 10l-1.2 1.2L8 16l9-9-1.2-1.2z" /></svg>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Timeframe */}
+              <p className="mb-2 mt-5 font-mono text-[9px] uppercase tracking-[0.2em] text-text-muted/60">Timeframe</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {presets.map(({ key, label }) => {
+                  const on = activeFilter === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handlePresetClick(key)}
+                      className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-3 font-mono text-[12px] transition-all active:scale-[0.99] ${on ? 'border-gold-primary/40 bg-gold-primary/10 font-semibold text-gold-primary' : 'border-white/[0.06] bg-white/[0.02] text-white/80'}`}
+                    >
+                      {label}
+                      {on && <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-gold-primary" aria-hidden="true"><path d="M8 13.5 4.5 10l-1.2 1.2L8 16l9-9-1.2-1.2z" /></svg>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom date range */}
+              {activeFilter === 'custom' && (
+                <div className="mt-3 space-y-2 rounded-xl border border-gold-primary/20 bg-[#0a0506] p-3">
+                  <label className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{t('top.from')}</span>
+                    <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[190px] rounded-lg border border-white/10 bg-[#0c0a07] px-3 py-2 font-mono text-xs text-white [color-scheme:dark] focus:border-gold-primary/50 focus:outline-none" />
+                  </label>
+                  <label className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted">{t('top.to')}</span>
+                    <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[190px] rounded-lg border border-white/10 bg-[#0c0a07] px-3 py-2 font-mono text-xs text-white [color-scheme:dark] focus:border-gold-primary/50 focus:outline-none" />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3">
+              <button
+                onClick={() => { if (activeFilter === 'custom') handleCustomApply(); setSheetOpen(false); }}
+                className="w-full rounded-xl bg-gold-primary py-3 font-mono text-[12px] font-bold uppercase tracking-wider text-[#1a1206] transition-transform active:scale-[0.98]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <style>{`
         @keyframes tpRowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shUp { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
         .tp-row { animation: tpRowIn 0.4s ease-out both; }
         @keyframes proofHintIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @media (prefers-reduced-motion: reduce) { .tp-row { animation: none; } }
