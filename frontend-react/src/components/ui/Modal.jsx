@@ -50,6 +50,7 @@ export default function Modal({
   header,
   footer,
   size = "md",
+  placement = "center",   // "center" | "bottom" (bottom = sheet di mobile, dialog di desktop)
   accent = true,
   accentColor,
   animate = true,
@@ -127,7 +128,7 @@ export default function Modal({
   const node = (
     <div
       onClick={closeOnBackdrop ? requestClose : undefined}
-      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 z-[100000] flex items-center justify-center p-4`}
+      className={`lqm-overlay ${closing ? "is-closing" : ""} ${animate ? "lqm-animate" : ""} fixed inset-0 z-[100000] flex justify-center ${placement === "bottom" ? "items-end p-0 sm:items-center sm:p-4" : "items-center p-4"}`}
     >
       <style>{`
         .lqm-overlay { background: rgba(0,0,0,0.8); }
@@ -143,13 +144,30 @@ export default function Modal({
         .lqm-scroll::-webkit-scrollbar-track { background: transparent; }
         .lqm-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
         .lqm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+        /* Bottom-sheet: slide up from bottom on mobile only (desktop keeps card scale-in) */
+        @media (max-width: 639px) {
+          .lqm-overlay.lqm-animate .lqm-card.lqm-sheet { animation: lqmSheetIn .34s cubic-bezier(.16,1,.3,1) forwards; }
+          .lqm-overlay.lqm-animate.is-closing .lqm-card.lqm-sheet { animation: lqmSheetOut ${EXIT_MS}ms ease forwards; }
+        }
+        @keyframes lqmSheetIn { from { opacity: .5; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes lqmSheetOut { from { opacity: 1; transform: translateY(0); } to { opacity: .4; transform: translateY(100%); } }
       `}</style>
 
       <div
         onClick={(e) => e.stopPropagation()}
         style={!animate ? { backdropFilter: "blur(6px)" } : undefined}
-        className={`lqm-card relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] sm:max-h-[calc(100dvh-4rem)] ${SIZES[size] || SIZES.md} ${className}`}
+        className={`lqm-card relative flex w-full flex-col overflow-hidden border border-white/[0.08] bg-[#0a0805] shadow-[0_30px_80px_rgba(0,0,0,0.6)] ${SIZES[size] || SIZES.md} ${
+          placement === "bottom"
+            ? "lqm-sheet max-h-[90dvh] rounded-t-2xl sm:max-h-[calc(100dvh-4rem)] sm:rounded-2xl"
+            : "max-h-[calc(100dvh-2rem)] rounded-2xl sm:max-h-[calc(100dvh-4rem)]"
+        } ${className}`}
       >
+        {placement === "bottom" ? (
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 flex-shrink-0">
+            <span className="h-1 w-10 rounded-full bg-white/20" />
+          </div>
+        ) : null}
+
         {accent ? (
           <span
             className="pointer-events-none absolute top-0 inset-x-0 z-10 h-px"
