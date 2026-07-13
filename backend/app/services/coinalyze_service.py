@@ -262,6 +262,58 @@ def _active_pairs(days: int = 7) -> list[str]:
         db.close()
 
 
+def _persist_flow_snapshots(liq: dict) -> None:
+    """Calibration Phase-1 capture — append current flow state per pair to
+    `flow_snapshots`, so we can LATER backtest which flow signals actually
+    predicted better outcomes (see calibration protocol). Self-creates the
+    table; best-effort — never breaks the worker."""
+    if not liq:
+        return
+    from app.core.database import SessionLocal
+    try:
+        from app.services.dune_tokenflow_service import get_scoped as tf_scoped
+        tf = tf_scoped() or {}
+    except Exception:
+        tf = {}
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS flow_snapshots (
+                id BIGSERIAL PRIMARY KEY,
+                captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                pair TEXT NOT NULL,
+                liq_side_bias DOUBLE PRECISION,
+                liq_spike BOOLEAN,
+                liq_total_4h DOUBLE PRECISION,
+                tf_net_inflow DOUBLE PRECISION
+            )
+        """))
+        db.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_flow_snap_pair_time ON flow_snapshots (pair, captured_at)"
+        ))
+        rows = []
+        for pair, v in liq.items():
+            base = pair.replace("USDT", "").replace("USDC", "").upper()
+            rows.append({
+                "pair": pair,
+                "bias": v.get("side_bias"),
+                "spike": bool(v.get("spike")),
+                "total": v.get("total_4h"),
+                "tf": (tf.get(base) or {}).get("net_inflow_usd"),
+            })
+        if rows:
+            db.execute(text("""
+                INSERT INTO flow_snapshots (pair, liq_side_bias, liq_spike, liq_total_4h, tf_net_inflow)
+                VALUES (:pair, :bias, :spike, :total, :tf)
+            """), rows)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"⚠️ flow snapshot persist skipped: {e}")
+    finally:
+        db.close()
+
+
 async def coinalyze_liquidation_loop():
     print(f"🔄 Coinalyze liquidation worker started (interval: {REFRESH_INTERVAL}s)")
     await asyncio.sleep(10)
@@ -276,6 +328,7 @@ async def coinalyze_liquidation_loop():
             pairs = await asyncio.to_thread(_active_pairs, 7)
             if pairs:
                 out = await refresh_scoped(pairs)
+                await asyncio.to_thread(_persist_flow_snapshots, out)   # calibration capture
                 print(f"✅ Coinalyze liquidations: {len(out)}/{len(pairs)} pairs cached")
         except Exception as e:
             print(f"❌ Coinalyze worker error: {type(e).__name__}: {e}")

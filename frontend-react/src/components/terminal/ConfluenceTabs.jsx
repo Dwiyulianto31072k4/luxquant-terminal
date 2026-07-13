@@ -307,13 +307,13 @@ export function ConfluenceTab({ view, deriv, pairFc, postsignal, openPair, openS
         const [lq, tf, bt] = await Promise.all([
           fetch(`${API_BASE}/api/v1/terminal/liquidations`, { headers: authHeaders() }).then((r) => r.json()),
           fetch(`${API_BASE}/api/v1/terminal/token-flow`, { headers: authHeaders() }).then((r) => r.json()),
-          fetch(`${API_BASE}/api/v1/coingecko/bitcoin`, { headers: authHeaders() }).then((r) => r.json()).catch(() => null),
+          fetch(`${API_BASE}/api/v1/market/bitcoin`, { headers: authHeaders() }).then((r) => r.json()).catch(() => null),
         ]);
         if (!alive) return;
         const lm = {}; (lq?.items || []).forEach((i) => { lm[i.pair] = i; });
         const fm = {}; (tf?.items || []).forEach((i) => { fm[i.symbol] = i; });
         setLiqMap(lm); setFlowMap(fm);
-        if (bt?.fear_greed_value != null) setFng({ value: bt.fear_greed_value, label: bt.fear_greed_label });
+        if (bt?.fearGreed?.value != null) setFng({ value: bt.fearGreed.value, label: bt.fearGreed.label });
       } catch { /* keep empty → simply no flow chips */ }
     })();
     return () => { alive = false; };
