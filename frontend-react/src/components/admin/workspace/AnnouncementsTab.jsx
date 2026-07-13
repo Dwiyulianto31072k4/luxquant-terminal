@@ -254,7 +254,17 @@ export const AnnouncementsTab = () => {
       </div>
 
       {loading ? (
-        <Surface className="p-8 text-center text-white/40 text-xs">Loading...</Surface>
+        <div className="lqsk-group space-y-2">
+          {[...Array(4)].map((_, i) => (
+            <Surface key={i} className="p-4 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-md bg-white/[0.05]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-1/3 rounded bg-white/[0.05]" />
+                <div className="h-2.5 w-2/3 rounded bg-white/[0.03]" />
+              </div>
+            </Surface>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <Surface className="p-8 text-center text-white/40 text-xs">No announcements yet. Click “New” to create one.</Surface>
       ) : (

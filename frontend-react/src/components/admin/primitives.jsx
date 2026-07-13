@@ -292,7 +292,7 @@ export const StatTile = ({
         style={{ color: '#fff' }}
       >
         {loading ? (
-          <span className="inline-block w-12 h-6 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+          <span className="inline-block w-12 h-6 lqsk" style={{ background: 'rgba(255,255,255,0.08)' }} />
         ) : (
           value ?? '—'
         )}
@@ -742,7 +742,7 @@ export const LoadingState = ({ label = 'Loading...', tone = palette.gold[300], c
 
 export const Skeleton = ({ className = '', tone = 'rgba(255,255,255,0.05)', style = {} }) => (
   <div
-    className={`animate-pulse rounded ${className}`}
+    className={`lqsk rounded ${className}`}
     style={{ background: tone, ...style }}
   />
 );

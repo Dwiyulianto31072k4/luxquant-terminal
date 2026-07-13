@@ -9,6 +9,23 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Global loading shimmer (LuxQuant loading system) ──────────────────
+   Skeleton primitives & group sweep. Available app-wide so any component
+   can use `lqsk` / `lqsk-group` without injecting <ShimmerStyles/>. */
+@keyframes lqShimmer { 100% { transform: translateX(100%); } }
+@keyframes lqFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.lqsk { position: relative; overflow: hidden; background: rgba(255,255,255,0.05); border-radius: 8px; }
+.lqsk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  animation: lqShimmer 1.4s infinite; }
+.lqsk-group { position: relative; overflow: hidden; }
+.lqsk-group::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: lqShimmer 1.6s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .lqsk::after, .lqsk-group::after { animation: none; }
+}
+
 /* Coin-flow card — hover emas 3D (lift + glow) */
 .lqflow-card { transition: transform .18s ease, border-color .2s ease, box-shadow .25s ease, background-color .2s ease; }
 .lqflow-card:hover {

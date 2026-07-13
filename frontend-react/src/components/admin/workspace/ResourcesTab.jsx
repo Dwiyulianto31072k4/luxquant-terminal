@@ -184,7 +184,7 @@ export const ResourcesTab = () => {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="border-t" style={{ borderColor: surface.base.border }}>
-                    <td colSpan={7} className="px-4 py-4"><div className="h-8 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} /></td>
+                    <td colSpan={7} className="px-4 py-4"><div className="h-8 lqsk" style={{ background: 'rgba(255,255,255,0.04)' }} /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
