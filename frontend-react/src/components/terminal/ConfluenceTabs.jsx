@@ -135,137 +135,84 @@ function SignalCard({ s, live, ps, flow, onPair, onOpen, t }) {
   const dir = v3.direction || s.signal_direction || "—";
   const bull = dir === "BULLISH";
   const bear = dir === "BEARISH";
-  const dirTone = bull ? "text-[#08160c] bg-positive border-positive"
-    : bear ? "text-[#180808] bg-negative border-negative"
-    : "text-white/70 bg-white/10 border-white/15";
+  const dirColor = bull ? POS : bear ? NEG : "#9a958d";
   const htfStrong = v3.h4_strength === "STRONG" || tags.includes("HTF_TREND_STRONG");
-  const align = tags.includes("MTF_FULL_ALIGNED") ? "FULL ALIGNED"
-    : tags.includes("MTF_LTF_ALIGNED") ? "LTF ALIGNED"
-    : tags.includes("MTF_AGAINST_HTF") ? "AGAINST HTF" : null;
-  const alignTone = align === "FULL ALIGNED" ? "text-[#08160c] bg-positive" : align === "AGAINST HTF" ? "text-[#180808] bg-negative" : "text-[#1a1206] bg-warning";
+  const align = tags.includes("MTF_FULL_ALIGNED") ? "full aligned"
+    : tags.includes("MTF_LTF_ALIGNED") ? "ltf aligned"
+    : tags.includes("MTF_AGAINST_HTF") ? "against HTF" : null;
   const eq = Object.keys(EQ_TAGS).find((k) => tags.includes(k));
   const reasons = REASON_PRIORITY.filter((r) => tags.includes(r)).slice(0, 3);
-  const warns = WARNING_TAGS.filter((w) => tags.includes(w)).slice(0, 3);
+  const warns = WARNING_TAGS.filter((w) => tags.includes(w)).slice(0, 2);
   const flowChips = flowChipsOf(flow);
   const fscore = flowScoreOf(dir, flow);
   const fc = live?.fc;
-  const avg = ps?.avg_24h;
-  const delta = fc != null && avg != null ? fc - avg : null;
-  const spike = live?.spike;
+  const sub = [bull ? "Bullish" : bear ? "Bearish" : "Neutral", htfStrong && "HTF strong", align]
+    .filter(Boolean).join(" · ");
 
   return (
     <button
       onClick={() => (onOpen ? onOpen(s) : onPair(s.pair))}
       className="group relative text-left rounded-2xl bg-[#0a0805] border border-white/[0.07] hover:border-gold-primary/30 hover:shadow-[0_14px_34px_rgba(0,0,0,0.5)] transition-all overflow-hidden flex flex-col"
     >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/45 to-transparent" />
-      {/* header */}
-      <div className="px-4 pt-3.5 flex items-center gap-2.5">
-        <CoinLogo pair={s.pair} size={26} />
-        <div className="min-w-0 flex flex-col">
-          <span className="font-mono text-[13px] text-white/95 leading-none truncate">{s.pair}</span>
-          <span className="mt-1 flex items-center gap-1">
-            <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider font-semibold ${dirTone}`}>{dir}</span>
-            {htfStrong && (
-              <span className="px-1.5 py-0.5 rounded-sm bg-gold-primary text-[#17110a] font-mono text-[8.5px] uppercase tracking-wider font-semibold">
-                HTF STRONG
-              </span>
-            )}
-          </span>
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+
+      {/* header — pair + direction (muted) · price (color = meaning) · status */}
+      <div className="px-4 pt-4 flex items-center gap-3">
+        <CoinLogo pair={s.pair} size={30} />
+        <div className="min-w-0">
+          <div className="font-mono text-[15px] text-white/95 leading-none truncate">{s.pair}</div>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-text-muted truncate">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dirColor }} />
+            <span className="truncate">{sub}</span>
+          </div>
         </div>
-        <div className="ml-auto flex flex-col items-end gap-1">
-          <span className={`font-mono text-[13px] tabular-nums leading-none ${fc == null ? "text-text-muted/60" : fc >= 0 ? "text-positive" : "text-negative"}`}>
+        <div className="ml-auto text-right shrink-0">
+          <div className="font-mono text-[17px] tabular-nums leading-none" style={{ color: fc == null ? "#6f6b66" : fc >= 0 ? POS : NEG }}>
             {fc == null ? "—" : fmtPct(fc)}
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="font-mono text-[7.5px] uppercase tracking-[0.15em] text-text-muted/50">{t("terminal.viz.confLast")}</span>
+          </div>
+          <div className="mt-1.5 flex justify-end">
             <StatusTag status={s.status} />
-          </span>
+          </div>
         </div>
       </div>
 
-      {/* MTF + alignment + entry quality */}
-      <div className="px-4 mt-2.5 flex items-center gap-2 flex-wrap">
+      {/* multi-timeframe trend + entry quality — the confluence core, muted */}
+      <div className="px-4 mt-3 flex items-center gap-3 font-mono text-[10px]">
         {hasIntel ? (
           <span className="flex items-center gap-2">
             {[["4H", v3.h4], ["1H", v3.h1], ["15", v3.m15]].map(([lbl, tr]) => (
-              <span key={lbl} className="flex items-center gap-1" title={`${lbl}: ${tr || "?"}`}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: TREND_DOT[tr] || "rgba(255,255,255,0.15)" }} />
-                <span className="font-mono text-[8px] text-text-muted/70">{lbl}</span>
+              <span key={lbl} title={`${lbl}: ${tr || "?"}`} style={{ color: TREND_DOT[tr] || "rgba(255,255,255,0.28)" }}>
+                {lbl}
               </span>
             ))}
           </span>
         ) : (
-          <span className="font-mono text-[8.5px] uppercase tracking-wider text-text-muted/50 border border-white/[0.06] rounded-sm px-1 py-0.5">
-            {t("terminal.viz.confNoIntel")}
-          </span>
+          <span className="text-text-muted/40">no intel</span>
         )}
-        {align && <span className={`px-1.5 py-0.5 rounded-sm font-mono text-[8.5px] uppercase tracking-wider font-semibold ${alignTone}`}>{align}</span>}
-        {eq && (
-          <span className={`px-1.5 py-0.5 rounded-sm border font-mono text-[8.5px] uppercase tracking-wider font-semibold ${EQ_TAGS[eq].tone}`}>
-            {nice(eq)}
-          </span>
-        )}
-        {spike != null && spike > 3 && (
-          <span className="px-1.5 py-0.5 rounded-sm bg-orange-400 text-[#1a0e04] font-mono text-[8.5px] uppercase tracking-wider font-semibold">
-            vol ×{spike.toFixed(1)}
-          </span>
-        )}
+        {eq && <span className="text-text-muted/70">{nice(eq)}</span>}
       </div>
 
-      {/* key reasons — as soft pills, not a raw bullet list */}
+      {/* key reasons — quiet, dot-separated (no pills) */}
       {reasons.length > 0 && (
-        <div className="px-4 mt-2.5">
-          <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-text-muted/55 mb-1.5">{t("terminal.viz.confReasons")}</div>
-          <div className="flex flex-wrap gap-1">
-            {reasons.map((r) => (
-              <span key={r} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-gold-primary/[0.07] border border-gold-primary/15 text-[9.5px] text-white/80">
-                <span className="w-1 h-1 rounded-full bg-gold-primary/80" />
-                {nice(r)}
-              </span>
-            ))}
-          </div>
+        <div className="px-4 mt-2.5 text-[11.5px] text-white/65 leading-relaxed">
+          {reasons.map(nice).join("  ·  ")}
         </div>
       )}
 
-      {/* warnings — small outlined chips */}
-      {warns.length > 0 && (
-        <div className="px-4 mt-2 flex items-center gap-1 flex-wrap">
-          {warns.map((w) => (
-            <span key={w} className="px-1.5 py-0.5 rounded-[4px] bg-negative/[0.08] border border-negative/25 text-negative/90 font-mono text-[8px] uppercase tracking-wider">
-              {nice(w)}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* flow context — from Liquidations + Token Flow feeds (risk context) */}
-      {flowChips.length > 0 && (
-        <div className="px-4 mt-2 flex items-center gap-1 flex-wrap">
-          <span className={`font-mono text-[7.5px] uppercase tracking-[0.2em] mr-0.5 ${fscore.conflict ? "text-negative" : fscore.support ? "text-positive" : "text-text-muted/50"}`}>
-            flow{fscore.conflict ? " ⚠ conflict" : fscore.support ? " ✓" : ""}
+      {/* footer — risk warnings (left) + flow verdict (right); avg/outperf removed */}
+      <div className="mt-auto px-4 pt-2.5 pb-3.5 mt-3 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9.5px] min-h-[15px]">
+        {warns.length > 0 && (
+          <span className="flex items-center gap-1.5 min-w-0" style={{ color: "#c98b6b" }}>
+            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "#c98b6b" }} />
+            <span className="truncate">{warns.map(nice).join(" · ")}</span>
           </span>
-          {flowChips.map((c) => (
-            <span key={c.k} className={`px-1.5 py-0.5 rounded-[4px] border font-mono text-[8px] uppercase tracking-wider ${c.cls}`}>
-              {c.k}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* footer — historical context */}
-      <div className="mt-auto px-4 py-2.5 mt-2.5 border-t border-white/[0.05] flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
-        {avg != null ? (
-          <>
-            <span className="text-text-muted">{t("terminal.viz.confAvg")} <span className="text-white/70">{fmtPct(avg)}</span></span>
-            {delta != null && (
-              <span className={`ml-auto px-1.5 py-0.5 rounded-sm border ${delta >= 0 ? "text-positive border-positive/30 bg-positive/10" : "text-negative border-negative/30 bg-negative/10"}`}>
-                {delta >= 0 ? t("terminal.viz.confOutperf") : t("terminal.viz.confUnderperf")} {fmtPct(Math.abs(delta), 1)}
-              </span>
-            )}
-          </>
-        ) : (
-          <span className="text-text-muted/50">{t("terminal.viz.confNoHistory")}</span>
+        )}
+        {flowChips.length > 0 && (
+          <span className="ml-auto flex items-center gap-1.5 shrink-0"
+            style={{ color: fscore.conflict ? NEG : fscore.support ? POS : "#8f8b85" }}>
+            <span>{flowChips.map((c) => c.k).join(" · ")}</span>
+            <span>{fscore.conflict ? "⚠" : fscore.support ? "✓" : ""}</span>
+          </span>
         )}
       </div>
     </button>
