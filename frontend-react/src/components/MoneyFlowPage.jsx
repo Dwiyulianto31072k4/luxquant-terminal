@@ -18,9 +18,50 @@ import moneyFlowApi from "../services/moneyFlowApi";
 import WhaleAlertPage from "./WhaleAlertPage";
 import CoinLogo from "./CoinLogo";
 import SignalModal from "./SignalModal";
+import SectorCoinsModal from "./SectorCoinsModal";
 import AssistantWidget from "./assistant/AssistantWidget";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
+
+// ═══════════════════════════════════════════
+// Resolve a LuxQuant-called coin → its ACTIVE signal object (or null).
+// Source of truth for active signals = same feed Potential Trades uses:
+// GET /api/v1/signals/bulk-7d. Shared by Coins tab & Sector drill-down.
+// ═══════════════════════════════════════════
+async function resolveActiveSignal(sym, pair) {
+  const S = String(sym || "").toUpperCase();
+  const P = (pair || `${S}USDT`).toUpperCase();
+  const token = localStorage.getItem("access_token");
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  const r = await fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders });
+  if (!r.ok) return null;
+  const d = await r.json();
+  const items = Array.isArray(d.items) ? d.items
+    : Array.isArray(d.signals) ? d.signals
+    : Array.isArray(d.data) ? d.data
+    : Array.isArray(d) ? d : [];
+  if (!items.length) return null;
+  const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const wantPair = norm(P), wantSym = norm(S);
+  const cand = items.filter((x) => {
+    const xp = norm(x.pair || x.symbol);
+    return xp === wantPair || xp === wantSym || xp === wantSym + "USDT";
+  });
+  if (!cand.length) return null;
+  const ts = (x) => {
+    const v = x.created_at || x.createdAt || x.called_at || x.entry_at || x.opened_at || x.updated_at || x.last_update_at;
+    const t = v ? Date.parse(v) : NaN;
+    return Number.isNaN(t) ? 0 : t;
+  };
+  const isClosed = (x) => /closed|cancel|expired|stopped/i.test(String(x.status || ""));
+  cand.sort((a, b) => {
+    const ca = isClosed(a) ? 1 : 0, cb = isClosed(b) ? 1 : 0;
+    if (ca !== cb) return ca - cb;
+    return ts(b) - ts(a);
+  });
+  const sig = cand[0];
+  return sig && sig.signal_id ? { ...sig, pair: sig.pair || P } : null;
+}
 
 // ═══════════════════════════════════════════
 // Format helpers
@@ -283,6 +324,25 @@ const SectorsTab = ({ q }) => {
   const [err, setErr] = useState(null);
   const [sort, onSort] = useSort("mcap_change_24h", "desc");
 
+  // Sector drill-down + signal open
+  const [selectedSector, setSelectedSector] = useState(null);
+  const [selectedSignal, setSelectedSignal] = useState(null);
+  const [loadingSym, setLoadingSym] = useState(null);
+
+  const openSignal = async (c) => {
+    const sym = String(c.symbol || "").toUpperCase();
+    const pair = (c.pair || `${sym}USDT`).toUpperCase();
+    setLoadingSym(c.symbol);
+    try {
+      const sig = await resolveActiveSignal(sym, pair);
+      if (sig) setSelectedSignal(sig);
+    } catch (e) {
+      console.error("[MoneyFlow] sector openSignal error", e);
+    } finally {
+      setLoadingSym(null);
+    }
+  };
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -328,6 +388,7 @@ const SectorsTab = ({ q }) => {
   }, [sectors]);
 
   return (
+    <>
     <div className="space-y-6">
       <SectionHeader label="Market Compass" />
       <MacroBlock macro={macro} />
@@ -353,7 +414,11 @@ const SectorsTab = ({ q }) => {
               {rows.map((s, i) => {
                 const isLeader = leaderIds.includes(s.category_id);
                 return (
-                  <tr key={s.category_id} className="border-b border-white/[0.05] hover:bg-white/[0.02] transition-colors">
+                  <tr
+                    key={s.category_id}
+                    onClick={() => setSelectedSector(s)}
+                    className="group border-b border-white/[0.05] hover:bg-gold-primary/[0.04] cursor-pointer transition-colors"
+                  >
                     <td className="py-3 px-2 sm:px-3 font-mono text-xs tabular-nums text-text-muted/50">
                       {String(i + 1).padStart(2, "0")}
                     </td>
@@ -364,12 +429,15 @@ const SectorsTab = ({ q }) => {
                             <img key={k} src={url} alt="" className="w-5 h-5 rounded-full border border-[#0a0805] bg-white/5" onError={(e) => (e.target.style.display = "none")} />
                           ))}
                         </div>
-                        <span className="text-white text-sm truncate">{s.name}</span>
+                        <span className="text-white text-sm truncate group-hover:text-gold-primary transition-colors">{s.name}</span>
                         {isLeader && (
                           <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-gold-primary/10 text-gold-primary/80 border border-gold-primary/25">
                             Leader
                           </span>
                         )}
+                        <svg className="w-3.5 h-3.5 ml-auto flex-shrink-0 text-white/20 group-hover:text-gold-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 6l6 6-6 6" />
+                        </svg>
                       </div>
                     </td>
                     <td className={`py-3 px-2 sm:px-3 text-right font-mono text-sm tabular-nums font-semibold ${pctColor(s.mcap_change_24h)}`}>
@@ -396,7 +464,14 @@ const SectorsTab = ({ q }) => {
               {rows.map((s, i) => {
                 const isLeader = leaderIds.includes(s.category_id);
                 return (
-                  <div key={s.category_id} className="px-3 py-3">
+                  <div
+                    key={s.category_id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedSector(s)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedSector(s); } }}
+                    className="px-3 py-3 cursor-pointer active:bg-gold-primary/[0.06]"
+                  >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="font-mono text-[11px] tabular-nums text-text-muted/40 w-5 shrink-0">
                         {String(i + 1).padStart(2, "0")}
@@ -412,6 +487,9 @@ const SectorsTab = ({ q }) => {
                           Leader
                         </span>
                       )}
+                      <svg className="w-3.5 h-3.5 shrink-0 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
                     </div>
                     <div className="mt-2.5 grid grid-cols-3 gap-2">
                       <StatCell label="24h" value={fmtPct(s.mcap_change_24h)} color={pctColor(s.mcap_change_24h)} />
@@ -436,9 +514,28 @@ const SectorsTab = ({ q }) => {
       </Card>
 
       <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-text-muted/40 px-1">
-        Leaders = top-3 by 24h move · 7d delta terisi seiring snapshot terkumpul · Data: CoinGecko
+        Leaders = top-3 by 24h move · klik baris buat lihat semua koin dalam naratif · Data: CoinGecko
       </p>
     </div>
+
+    {/* Drill-down: all coins in the clicked narrative */}
+    <SectorCoinsModal
+      sector={selectedSector}
+      isOpen={!!selectedSector}
+      onClose={() => setSelectedSector(null)}
+      onOpenSignal={openSignal}
+      loadingSym={loadingSym}
+    />
+
+    {/* Signal modal for a called coin opened from the drill-down */}
+    {selectedSignal && (
+      <SignalModal
+        signal={selectedSignal}
+        isOpen={!!selectedSignal}
+        onClose={() => setSelectedSignal(null)}
+      />
+    )}
+    </>
   );
 };
 
@@ -542,48 +639,9 @@ const CoinsTab = ({ q }) => {
     const pair = (c.pair || `${sym}USDT`).toUpperCase();
     setLoadingSym(c.symbol);
     try {
-      const token = localStorage.getItem("access_token");
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`${API_BASE}/api/v1/signals/bulk-7d`, { headers: authHeaders });
-      if (!r.ok) { console.warn("[MoneyFlow] bulk-7d HTTP", r.status, "for", pair); return; }
-      const d = await r.json();
-      const items = Array.isArray(d.items) ? d.items
-        : Array.isArray(d.signals) ? d.signals
-        : Array.isArray(d.data) ? d.data
-        : Array.isArray(d) ? d
-        : [];
-      if (!items.length) { console.warn("[MoneyFlow] bulk-7d empty for", pair); return; }
-
-      const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const wantPair = norm(pair);
-      const wantSym = norm(sym);
-      let cand = items.filter((x) => {
-        const xp = norm(x.pair || x.symbol);
-        return xp === wantPair || xp === wantSym || xp === wantSym + "USDT";
-      });
-      if (!cand.length) { console.warn("[MoneyFlow] no active signal in bulk-7d for", pair); return; }
-
-      const ts = (x) => {
-        const v = x.created_at || x.createdAt || x.called_at || x.entry_at ||
-                  x.opened_at || x.updated_at || x.last_update_at;
-        const t = v ? Date.parse(v) : NaN;
-        return Number.isNaN(t) ? 0 : t;
-      };
-      const isClosed = (x) => /closed|cancel|expired|stopped/i.test(String(x.status || ""));
-
-      cand.sort((a, b) => {
-        const ca = isClosed(a) ? 1 : 0;
-        const cb = isClosed(b) ? 1 : 0;
-        if (ca !== cb) return ca - cb;
-        return ts(b) - ts(a);
-      });
-
-      const sig = cand[0];
-      if (sig && sig.signal_id) {
-        setSelectedSignal({ ...sig, pair: sig.pair || pair });
-      } else {
-        console.warn("[MoneyFlow] resolved signal missing signal_id for", pair);
-      }
+      const sig = await resolveActiveSignal(sym, pair);
+      if (sig) setSelectedSignal(sig);
+      else console.warn("[MoneyFlow] no active signal for", pair);
     } catch (e) {
       console.error("[MoneyFlow] openSignal error", e);
     } finally {

@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import require_subscription
 from app.services.gecko_dex_service import get_dex_trending
+from app.services.gecko_category_service import get_category_coins
 
 # Auth nempel ke SEMUA endpoint di router ini.
 router = APIRouter(
@@ -128,6 +129,38 @@ async def money_flow_sectors(
         "has_7d": at_7d is not None,
         "has_30d": at_30d is not None,
     }
+
+
+# ════════════════════════════════════════════
+# 1b. SECTOR → COINS drill-down (klik satu naratif)
+# ════════════════════════════════════════════
+@router.get("/sectors/{category_id}/coins")
+async def money_flow_sector_coins(
+    category_id: str,
+    limit: int = Query(100, ge=1, le=250),
+    db: Session = Depends(get_db),
+):
+    """Semua koin dalam satu kategori/naratif (CoinGecko), diurut market
+    cap desc. Koin yang lagi di-call LuxQuant ditandai `is_luxquant_signal`
+    (dari snapshot terbaru) — biar user bisa loncat ke signal-nya."""
+    data = await get_category_coins(category_id, limit=limit)
+    coins = data.get("coins", [])
+
+    # Tandai koin yang lagi di-call LuxQuant (match by symbol).
+    if coins:
+        latest = _latest_snapshot_at(db, "mf_coin_snapshots")
+        lux_symbols = set()
+        if latest is not None:
+            rows = db.execute(text("""
+                SELECT UPPER(symbol) AS s
+                FROM mf_coin_snapshots
+                WHERE snapshot_at = :at AND is_luxquant_signal = TRUE
+            """), {"at": latest}).fetchall()
+            lux_symbols = {r.s for r in rows if r.s}
+        for c in coins:
+            c["is_luxquant_signal"] = (c.get("symbol") or "").upper() in lux_symbols
+
+    return data
 
 
 # ════════════════════════════════════════════

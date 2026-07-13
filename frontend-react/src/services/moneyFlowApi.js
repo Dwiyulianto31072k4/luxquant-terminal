@@ -18,6 +18,19 @@ const moneyFlowApi = {
   },
 
   /**
+   * Semua koin dalam satu kategori/naratif (drill-down klik sektor).
+   * @param {string} categoryId - CoinGecko category id (mis. "real-world-assets-rwa")
+   * @param {Object} params - { limit }
+   */
+  getSectorCoins: async (categoryId, params = {}) => {
+    const response = await api.get(
+      `/money-flow/sectors/${encodeURIComponent(categoryId)}/coins`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
    * Macro gauge: BTC/ETH/stablecoin dominance + altseason index.
    */
   getMacro: async () => {
