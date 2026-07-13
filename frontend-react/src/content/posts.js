@@ -66,6 +66,62 @@ export const POSTS = [
     related: ["how-to-read-crypto-sector-rotation"],
     relatedTerms: ["btc-dominance", "altseason-index", "money-flow"],
   },
+  {
+    slug: "whale-alerts-exchange-flows-explained",
+    title: "Whale alerts explained: reading exchange inflows and outflows",
+    excerpt:
+      "Whale alerts flag large on-chain transfers. Here's how to read exchange inflows vs outflows and smart-money moves — and what they actually signal.",
+    date: "2026-07-13",
+    updated: "2026-07-13",
+    readingTime: "6 min",
+    keywords:
+      "whale alert, exchange inflow outflow, on-chain analysis, smart money, crypto whales",
+    body: [
+      { p: "Big wallets move markets. Tracking their on-chain activity — 'whale alerts' — is one of the few ways to see large-holder intent before it shows up in price. But the raw alert matters less than its direction and destination." },
+      { h2: "Inflows vs outflows" },
+      { p: "The most useful signal is whether coins are moving onto exchanges or off them. Since most selling happens on exchanges, sustained net inflows are often read as potential selling pressure. Sustained net outflows — coins leaving to self-custody — are read as accumulation or a supply squeeze." },
+      { list: [
+        "Large exchange inflow = coins positioned to sell (caution)",
+        "Large exchange outflow = accumulation / self-custody (supply leaving)",
+        "Exchange-to-exchange = repositioning, usually neutral",
+      ] },
+      { h2: "Whales vs smart money" },
+      { p: "Not every whale is informed. 'Smart money' is a narrower label for wallets with a track record of well-timed entries and exits. Following them is context, not a copy-trade — their risk tolerance and horizon differ from yours, and labels can be wrong." },
+      { h2: "How to use it without overreacting" },
+      { p: "One transfer proves nothing; the trend of net flows does. Watch direction and size over a window, confirm against price and derivatives, and treat it as one input. It describes behavior — you draw the conclusion." },
+      { p: "LuxQuant tracks BTC and ETH whale transfers tagged by inflow/outflow in its On-Chain view, alongside smart-money and liquidation context." },
+    ],
+    related: ["how-to-read-crypto-sector-rotation"],
+    relatedTerms: ["whale-alert", "exchange-inflow-outflow", "smart-money"],
+  },
+  {
+    slug: "flow-intensity-turnover-guide",
+    title: "What is flow intensity? Using turnover to spot active coins",
+    excerpt:
+      "Flow intensity is 24h volume divided by market cap. Here's how to use turnover to spot where money is actively churning — regardless of coin size.",
+    date: "2026-07-13",
+    updated: "2026-07-13",
+    readingTime: "5 min",
+    keywords:
+      "flow intensity, turnover ratio, volume to market cap, crypto volume analysis",
+    body: [
+      { p: "Raw trading volume is misleading — a $100M day means something very different for a mega-cap than for a micro-cap. Flow intensity fixes that by normalizing volume by size, so you can compare activity across coins fairly." },
+      { h2: "The formula" },
+      { p: "Flow intensity = 24h volume ÷ market capitalization. A ratio of 0.30 means volume equal to 30% of the coin's market cap changed hands in a day — very active. A ratio of 0.02 means it's quiet. It's a descriptive measure of turnover, not a directional signal." },
+      { h2: "Why it's useful" },
+      { list: [
+        "High turnover = money churning fast, often around catalysts or listings",
+        "Low turnover = thin interest, even if the dollar volume looks large",
+        "Rising turnover on a laggard = early attention worth a look",
+      ] },
+      { p: "Because it's size-adjusted, flow intensity surfaces small and mid-caps waking up that raw volume rankings bury under the majors." },
+      { h2: "Reading it in context" },
+      { p: "Pair turnover with price change and liquidity: high turnover plus a price move on thin liquidity is fragile; high turnover with deep liquidity is more durable. On-chain DEX buy/sell pressure adds the direction that turnover alone can't." },
+      { p: "LuxQuant tags coins as normal / elevated / high turnover straight from this ratio in the Money Flow Coins view." },
+    ],
+    related: ["how-to-read-crypto-sector-rotation"],
+    relatedTerms: ["flow-intensity", "turnover-ratio", "dex-buy-sell-pressure"],
+  },
 ];
 
 export const getPost = (slug) => POSTS.find((p) => p.slug === slug) || null;
