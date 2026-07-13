@@ -177,31 +177,34 @@ const AnalyzePage = () => {
 
   return (
     <div className="space-y-5">
-      {/* ── PAGE TITLE — title + tagline (matches Research/Daily) ── */}
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display text-white/95 tracking-tight">
-          All-Time Performance
-        </h1>
-        <p className="text-sm text-white/45 mt-1">
-          Lifetime track record across{" "}
-          <span className="text-white/85 font-mono tabular-nums">
-            {data.stats.total_signals.toLocaleString()}
-          </span>{" "}
-          resolved signals
-        </p>
-      </div>
+      {/* ── PAGE HEADER — eyebrow + title + tagline, with integrated time range ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold-primary/70">
+            Verified Track Record
+          </span>
+          <h1 className="mt-1.5 text-[26px] lg:text-[34px] font-display text-white/95 tracking-tight leading-[1.05]">
+            All-Time Performance
+          </h1>
+          <p className="text-sm text-white/45 mt-2">
+            Lifetime track record across{" "}
+            <span className="text-white/85 font-mono tabular-nums">
+              {data.stats.total_signals.toLocaleString()}
+            </span>{" "}
+            resolved signals
+          </p>
+        </div>
 
-      {/* ── TIME RANGE PILLS ── */}
-      <div className="flex justify-end">
-        <div className="flex gap-1 p-1 bg-[#0a0805] rounded-sm border border-white/[0.06]">
+        {/* Time range — segmented control */}
+        <div className="inline-flex gap-0.5 p-0.5 bg-[#0a0805] rounded-lg border border-white/[0.06] self-start sm:self-auto shrink-0">
           {timeRangeOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setTimeRange(opt.value)}
-              className={`px-3 py-1.5 rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors ${
+              className={`px-3.5 py-1.5 rounded-[7px] font-mono text-[10px] uppercase tracking-wider transition-all ${
                 timeRange === opt.value
-                  ? "bg-white/10 text-white border border-white/[0.08]"
-                  : "text-text-muted hover:text-white border border-transparent hover:bg-white/[0.03]"
+                  ? "bg-gold-primary text-[#1a1206] font-semibold shadow-[0_2px_10px_-2px_rgba(212,168,83,0.55)]"
+                  : "text-text-muted hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <span className="sm:hidden">{opt.short}</span>
@@ -734,24 +737,23 @@ const KPICard = ({ label, value, sub, color = "default", accent = false }) => {
 
   return (
     <div
-      className={`rounded-sm p-4 border transition-all relative overflow-hidden ${
+      className={`group relative rounded-md p-4 border transition-all overflow-hidden ${
         accent
-          ? "bg-[#0a0805] border-gold-primary/25"
-          : "bg-[#0a0805] border-white/[0.06] hover:border-gold-primary/20 hover:-translate-y-0.5"
+          ? "bg-gradient-to-b from-gold-primary/[0.07] to-transparent border-gold-primary/25"
+          : "bg-[#0a0805] border-white/[0.06] hover:border-white/[0.13]"
       }`}
     >
       {accent && (
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-primary/40 to-transparent" />
+        <span className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-gold-primary/80" />
       )}
-      <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted/80 mb-2 truncate">
+      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted/65 mb-2.5 truncate">
         {label}
       </p>
-      <div className="h-px bg-white/[0.04] mb-2.5" />
-      <p className={`font-mono text-2xl font-light tabular-nums leading-none ${colorStyles[color]}`}>
+      <p className={`font-mono text-[26px] font-light tabular-nums leading-none ${colorStyles[color]}`}>
         {value}
       </p>
       {sub && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-1.5 tabular-nums">
+        <p className="font-mono text-[9px] uppercase tracking-wider text-text-muted/55 mt-2 tabular-nums truncate">
           {sub}
         </p>
       )}

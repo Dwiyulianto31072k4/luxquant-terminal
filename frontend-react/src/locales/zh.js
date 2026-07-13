@@ -166,6 +166,8 @@ export const zhPerf = {
   // Signal History
   sig_history: "信号历史记录",
   total_signals: "总信号数",
+  history_desc: "每一次信号皆有记录",
+  view_latest: "最新信号",
   search_pair: "搜索代币对",
   status: "状态",
   risk: "风险",

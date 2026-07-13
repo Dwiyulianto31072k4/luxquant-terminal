@@ -166,6 +166,8 @@ export const enPerf = {
   // Signal History
   sig_history: "Signal History",
   total_signals: "total signals",
+  history_desc: "every call on record",
+  view_latest: "Latest Signals",
   search_pair: "SEARCH PAIR",
   status: "STATUS",
   risk: "RISK",
