@@ -28,6 +28,28 @@ import { ShimmerStyles } from "./ui/Loaders";
 
 const stripQuote = (sym) => (sym || "").replace(/USDT$|USDC$|BUSD$|USD$/i, "");
 
+// Classify an event as pump (upside) vs dump (downside). Bullish direction OR
+// a non-bearish event with a non-negative pct counts as a pump.
+const isPumpEvent = (e) => {
+  const pc = Number(e?.pct_change) || 0;
+  return e?.direction === "bullish" || (e?.direction !== "bearish" && pc >= 0);
+};
+
+// Group consecutive events that share the same pair (feed comes newest-first).
+const groupConsecutive = (list) => {
+  const groups = [];
+  let current = null;
+  (list || []).forEach((e) => {
+    if (current && current.pair === e.pair) {
+      current.events.push(e);
+    } else {
+      current = { pair: e.pair, events: [e] };
+      groups.push(current);
+    }
+  });
+  return groups;
+};
+
 const titleCase = (s) => {
   if (!s) return "";
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -146,6 +168,28 @@ const MarketPulsePageInner = () => {
   const [moverPeriod, setMoverPeriod] = useState("1h");
   const [expandedGroups, setExpandedGroups] = useState({});
 
+  // === Feed view mode (pump/dump screening) ===
+  // feedLayout: "unified" (single list + All/Pumps/Dumps toggle)
+  //           | "split"   (Pumps | Dumps side-by-side)
+  //           | "focus"   (one side, full width)
+  // feedSide:  "all" | "pump" | "dump" — active side for unified/focus
+  const [feedLayout, setFeedLayout] = useState(() => {
+    try {
+      const v = localStorage.getItem("mp_feed_layout");
+      return v === "split" || v === "focus" || v === "unified" ? v : "unified";
+    } catch {
+      return "unified";
+    }
+  });
+  const [feedSide, setFeedSide] = useState("all");
+
+  const changeLayout = useCallback((mode) => {
+    setFeedLayout(mode);
+    try { localStorage.setItem("mp_feed_layout", mode); } catch {}
+    // Focus mode has no "all" — default to pumps when entering it.
+    setFeedSide((prev) => (mode === "focus" && prev === "all" ? "pump" : prev));
+  }, []);
+
   // === Heatmap sort mode + Chart Modal (URL-driven: ?pair=BTCUSDT) ===
   const [heatmapSortMode, setHeatmapSortMode] = useState("events");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -210,19 +254,17 @@ const MarketPulsePageInner = () => {
     return feed.filter((e) => e.pair?.includes(q));
   }, [feed, searchPair]);
 
-  const groupedFeed = useMemo(() => {
-    const groups = [];
-    let current = null;
-    filteredFeed.forEach((e) => {
-      if (current && current.pair === e.pair) {
-        current.events.push(e);
-      } else {
-        current = { pair: e.pair, events: [e] };
-        groups.push(current);
-      }
-    });
-    return groups;
-  }, [filteredFeed]);
+  // Pump = bullish / upside move; Dump = bearish / downside move.
+  // Mirrors the heatmap direction logic so classification is consistent.
+  const pumpFeed = useMemo(() => filteredFeed.filter(isPumpEvent), [filteredFeed]);
+  const dumpFeed = useMemo(() => filteredFeed.filter((e) => !isPumpEvent(e)), [filteredFeed]);
+
+  const sideFeed =
+    feedSide === "pump" ? pumpFeed : feedSide === "dump" ? dumpFeed : filteredFeed;
+
+  const groupedSide = useMemo(() => groupConsecutive(sideFeed), [sideFeed]);
+  const groupedPump = useMemo(() => groupConsecutive(pumpFeed), [pumpFeed]);
+  const groupedDump = useMemo(() => groupConsecutive(dumpFeed), [dumpFeed]);
 
   const activeCoins = useMemo(() => {
     const map = {};
@@ -234,11 +276,16 @@ const MarketPulsePageInner = () => {
   }, [feed]);
 
   const bullBearRatio = useMemo(() => {
-    if (!stats?.hourly) return { bull: 0, bear: 0, total: 0, bullPct: 50 };
+    if (!stats?.hourly)
+      return { bull: 0, bear: 0, total: 0, bullPct: 50, verdict: "neutral", adRatio: null };
     const bull = stats.hourly.bullish || 0;
     const bear = stats.hourly.bearish || 0;
     const total = bull + bear;
-    return { bull, bear, total, bullPct: total > 0 ? (bull / total) * 100 : 50 };
+    const bullPct = total > 0 ? (bull / total) * 100 : 50;
+    // Verdict thresholds ~ advance/decline breadth read.
+    const verdict = bullPct >= 58 ? "bull" : bullPct <= 42 ? "bear" : "neutral";
+    const adRatio = bear > 0 ? bull / bear : bull > 0 ? Infinity : null;
+    return { bull, bear, total, bullPct, verdict, adRatio };
   }, [stats]);
 
   const tapeItems = useMemo(() => {
@@ -452,6 +499,9 @@ const MarketPulsePageInner = () => {
       {/* ═══ PULSE TAPE (Flowscan card pattern + scrolling ticker) ═══ */}
       {tapeItems.length > 0 && <PulseTape items={tapeItems} onSelect={openChartModal} />}
 
+      {/* ═══ MARKET BIAS — at-a-glance breadth verdict (short/long bias) ═══ */}
+      <MarketBiasBanner ratio={bullBearRatio} pumpCount={pumpFeed.length} dumpCount={dumpFeed.length} />
+
       {/* ═══ KPI CARDS — Flowscan stat card pattern ═══ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiEvents
@@ -492,7 +542,16 @@ const MarketPulsePageInner = () => {
             filteredFeed={filteredFeed}
             feed={feed}
             loading={loading}
-            groupedFeed={groupedFeed}
+            feedLayout={feedLayout}
+            changeLayout={changeLayout}
+            feedSide={feedSide}
+            setFeedSide={setFeedSide}
+            groupedSide={groupedSide}
+            groupedPump={groupedPump}
+            groupedDump={groupedDump}
+            pumpCount={pumpFeed.length}
+            dumpCount={dumpFeed.length}
+            sideCount={sideFeed.length}
             coinHistograms={coinHistograms}
             selectedCoin={selectedCoin}
             openChartModal={openChartModal}
@@ -582,6 +641,66 @@ const PulseTape = ({ items, onSelect }) => {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════
+// MARKET BIAS BANNER — breadth verdict (short/long bias, at a glance)
+// ════════════════════════════════════════════════════════
+
+const MarketBiasBanner = ({ ratio, pumpCount, dumpCount }) => {
+  const { bull, bear, bullPct, verdict, adRatio } = ratio;
+  const bearPct = 100 - bullPct;
+  const cfg = {
+    bull: { label: "Bullish", bias: "Long bias", color: "#34d399", text: "text-emerald-400", chip: "bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30" },
+    bear: { label: "Bearish", bias: "Short bias", color: "#f87171", text: "text-red-400", chip: "bg-red-500/[0.12] text-red-400 border-red-500/30" },
+    neutral: { label: "Neutral", bias: "No clear bias", color: "#e8c877", text: "text-gold-primary", chip: "bg-gold-primary/[0.12] text-gold-primary border-gold-primary/30" },
+  }[verdict];
+
+  const adDisplay =
+    adRatio == null ? "—" : adRatio === Infinity ? "∞" : adRatio.toFixed(2);
+
+  return (
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#120809] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_1px_2px_0_rgba(0,0,0,0.12)] px-4 py-3">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+        {/* Verdict */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-muted/55 hidden sm:inline">
+            Market Bias · 1h
+          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-lg sm:text-xl font-medium leading-none tracking-tight ${cfg.text}`}>
+              {cfg.label}
+            </span>
+            <span className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-md border font-medium uppercase tracking-[0.1em] ${cfg.chip}`}>
+              {cfg.bias}
+            </span>
+          </div>
+        </div>
+
+        {/* Diverging bar */}
+        <div className="flex-1 min-w-0">
+          <div className="h-2 rounded-full overflow-hidden bg-white/[0.05] flex">
+            <div className="bg-emerald-500/80 transition-all duration-500" style={{ width: `${bullPct}%` }} />
+            <div className="bg-red-500/80 transition-all duration-500" style={{ width: `${bearPct}%` }} />
+          </div>
+          <div className="mt-1.5 flex justify-between font-mono tabular-nums text-[10px]">
+            <span className="text-emerald-400 flex items-center gap-1">
+              <IconArrowUpTri className="h-2 w-2" /> {bull} pumps · {Math.round(bullPct)}%
+            </span>
+            <span className="text-red-400 flex items-center gap-1">
+              {Math.round(bearPct)}% · {bear} dumps <IconArrowDownTri className="h-2 w-2" />
+            </span>
+          </div>
+        </div>
+
+        {/* A/D ratio */}
+        <div className="flex-shrink-0 flex items-center gap-1.5 border-t sm:border-t-0 sm:border-l border-white/[0.06] pt-2 sm:pt-0 sm:pl-5">
+          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-text-muted/45">A/D</span>
+          <span className="text-sm font-mono tabular-nums font-medium text-white leading-none">{adDisplay}</span>
+        </div>
       </div>
     </div>
   );
@@ -1045,97 +1164,227 @@ const MiniSparkbar = ({ histogram, height = 18, gap = 1.5 }) => {
 // ACTIVITY FEED PANEL — Flowscan main card pattern
 // ════════════════════════════════════════════════════════
 
-const ActivityFeedPanel = ({
-  filteredFeed, feed, loading, groupedFeed, coinHistograms,
-  selectedCoin, openChartModal, eventTagClass, eventLabel, timeAgo,
-  expandedGroups, toggleGroup,
-}) => (
-  <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)] mp-feed-card">
-    {/* Header strip */}
-    <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.015] flex-shrink-0 relative z-10">
-      <div className="flex items-center gap-2.5">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-        </span>
-        <h2 className="text-[11px] font-semibold text-white uppercase tracking-[0.2em]">
-          Activity Feed
-        </h2>
-        <span className="text-[9px] font-mono uppercase tracking-wider text-text-muted/45">
-          stream
-        </span>
-      </div>
-      <span className="text-[10px] font-mono tabular-nums text-text-muted/55">
-        {filteredFeed.length} events
-      </span>
-    </div>
+// ── Segmented control (mode switch + side filter) — Flowscan pill group ──
+const SegGroup = ({ options, value, onChange }) => (
+  <div className="flex bg-white/[0.03] rounded-md p-0.5 border border-white/[0.06]">
+    {options.map((opt) => {
+      const active = value === opt.value;
+      const activeClass =
+        opt.accent === "emerald"
+          ? "bg-emerald-500/15 text-emerald-400"
+          : opt.accent === "red"
+          ? "bg-red-500/15 text-red-400"
+          : "bg-gold-primary/15 text-gold-primary";
+      return (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-2.5 py-1 rounded-sm text-[9.5px] font-medium uppercase tracking-[0.14em] transition-all ${
+            active ? activeClass : "text-text-muted/60 hover:text-white"
+          }`}
+        >
+          {opt.label}
+        </button>
+      );
+    })}
+  </div>
+);
 
-    {/* List */}
-    <div className="mp-feed-list pulse-feed-scroll relative z-10">
-      {filteredFeed.length === 0 && !loading && (
-        <div className="p-12 flex flex-col items-center justify-center gap-3">
-          <IconEmpty className="h-7 w-7 text-text-muted/30" />
-          <div className="text-text-muted/60 text-[11px] font-mono uppercase tracking-[0.15em]">
-            No events match your filters
-          </div>
-        </div>
-      )}
-      {loading && feed.length === 0 && <FeedSkeleton />}
-
-      {groupedFeed.map((group, gi) => {
-        if (group.events.length === 1) {
-          const event = group.events[0];
-          return (
-            <FeedRow
-              key={`single-${event.source}-${event.id}`}
+// ── Feed list renderer (shared by all layout modes) ──────
+const FeedList = ({
+  grouped, keyPrefix, coinHistograms, selectedCoin, openChartModal,
+  eventTagClass, eventLabel, timeAgo, expandedGroups, toggleGroup,
+}) =>
+  grouped.map((group, gi) => {
+    if (group.events.length === 1) {
+      const event = group.events[0];
+      return (
+        <FeedRow
+          key={`${keyPrefix}-single-${event.source}-${event.id}`}
+          event={event}
+          histogram={coinHistograms[event.pair]}
+          isSelected={selectedCoin === event.pair}
+          onSelect={() => openChartModal(event.pair)}
+          eventTagClass={eventTagClass}
+          eventLabel={eventLabel}
+          timeAgo={timeAgo}
+        />
+      );
+    }
+    const gkey = `${keyPrefix}-${gi}-${group.pair}`;
+    const isExpanded = expandedGroups[gkey] !== false;
+    const avgPct =
+      group.events.reduce((s, e) => s + (e.pct_change || 0), 0) / group.events.length;
+    return (
+      <div key={`${keyPrefix}-group-${gi}-${group.pair}`}>
+        <FeedGroupHeader
+          group={group}
+          avgPct={avgPct}
+          expanded={isExpanded}
+          onToggle={(e) => toggleGroup(gkey, e)}
+          isSelected={selectedCoin === group.pair}
+          onSelectCoin={() => openChartModal(group.pair)}
+        />
+        {isExpanded &&
+          group.events.map((event) => (
+            <FeedSubRow
+              key={`${keyPrefix}-sub-${event.source}-${event.id}`}
               event={event}
-              histogram={coinHistograms[event.pair]}
-              isSelected={selectedCoin === event.pair}
-              onSelect={() => openChartModal(event.pair)}
               eventTagClass={eventTagClass}
               eventLabel={eventLabel}
               timeAgo={timeAgo}
+              onSelect={() => openChartModal(event.pair)}
             />
-          );
-        }
+          ))}
+      </div>
+    );
+  });
 
-        const isExpanded = expandedGroups[`${gi}-${group.pair}`] !== false;
-        const avgPct =
-          group.events.reduce((s, e) => s + (e.pct_change || 0), 0) / group.events.length;
-        return (
-          <div key={`group-${gi}-${group.pair}`}>
-            <FeedGroupHeader
-              group={group}
-              avgPct={avgPct}
-              expanded={isExpanded}
-              onToggle={(e) => toggleGroup(`${gi}-${group.pair}`, e)}
-              isSelected={selectedCoin === group.pair}
-              onSelectCoin={() => openChartModal(group.pair)}
-            />
-            {isExpanded &&
-              group.events.map((event) => (
-                <FeedSubRow
-                  key={`sub-${event.source}-${event.id}`}
-                  event={event}
-                  eventTagClass={eventTagClass}
-                  eventLabel={eventLabel}
-                  timeAgo={timeAgo}
-                  onSelect={() => openChartModal(event.pair)}
-                />
-              ))}
-          </div>
-        );
-      })}
-    </div>
-
-    {/* Footer */}
-    <div className="px-4 py-2 border-t border-white/[0.06] text-center bg-white/[0.015] flex-shrink-0 relative z-10">
-      <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/45">
-        Auto-refresh · 10s
-      </span>
+const FeedEmpty = ({ label = "No events match your filters" }) => (
+  <div className="p-12 flex flex-col items-center justify-center gap-3">
+    <IconEmpty className="h-7 w-7 text-text-muted/30" />
+    <div className="text-text-muted/60 text-[11px] font-mono uppercase tracking-[0.15em] text-center">
+      {label}
     </div>
   </div>
 );
+
+// ── Split column header (Pumps / Dumps) ─────────────────
+const SplitColHeader = ({ dir, count }) => {
+  const isPump = dir === "pump";
+  return (
+    <div className="px-3 py-2 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.015] flex-shrink-0">
+      <span
+        className={`text-[10px] font-semibold uppercase tracking-[0.16em] flex items-center gap-1.5 ${
+          isPump ? "text-emerald-400" : "text-red-400"
+        }`}
+      >
+        {isPump ? <IconArrowUpTri className="h-2.5 w-2.5" /> : <IconArrowDownTri className="h-2.5 w-2.5" />}
+        {isPump ? "Pumps" : "Dumps"}
+      </span>
+      <span className="text-[9.5px] font-mono tabular-nums text-text-muted/50">{count}</span>
+    </div>
+  );
+};
+
+const ActivityFeedPanel = ({
+  filteredFeed, feed, loading,
+  feedLayout, changeLayout, feedSide, setFeedSide,
+  groupedSide, groupedPump, groupedDump,
+  pumpCount, dumpCount, sideCount,
+  coinHistograms, selectedCoin, openChartModal, eventTagClass, eventLabel, timeAgo,
+  expandedGroups, toggleGroup,
+}) => {
+  const isSplit = feedLayout === "split";
+  const isFocus = feedLayout === "focus";
+
+  const listProps = {
+    coinHistograms, selectedCoin, openChartModal,
+    eventTagClass, eventLabel, timeAgo, expandedGroups, toggleGroup,
+  };
+
+  const headerCount = isSplit ? pumpCount + dumpCount : sideCount;
+
+  const sideOptions = isFocus
+    ? [
+        { value: "pump", label: "Pumps", accent: "emerald" },
+        { value: "dump", label: "Dumps", accent: "red" },
+      ]
+    : [
+        { value: "all", label: "All" },
+        { value: "pump", label: "Pumps", accent: "emerald" },
+        { value: "dump", label: "Dumps", accent: "red" },
+      ];
+
+  return (
+    <div className="relative overflow-hidden before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/[0.06] before:to-transparent bg-[#0a0805] border border-white/[0.06] rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.15)] mp-feed-card">
+      {/* Header strip */}
+      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.015] flex-shrink-0 relative z-10 flex-wrap">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          </span>
+          <h2 className="text-[11px] font-semibold text-white uppercase tracking-[0.2em]">
+            Activity Feed
+          </h2>
+          <span className="text-[10px] font-mono tabular-nums text-text-muted/45">
+            {headerCount}
+          </span>
+        </div>
+
+        {/* View controls: layout + side */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {!isSplit && (
+            <SegGroup options={sideOptions} value={feedSide} onChange={setFeedSide} />
+          )}
+          <SegGroup
+            options={[
+              { value: "unified", label: "Unified" },
+              { value: "split", label: "Split" },
+              { value: "focus", label: "Focus" },
+            ]}
+            value={feedLayout}
+            onChange={changeLayout}
+          />
+        </div>
+      </div>
+
+      {/* Body */}
+      {isSplit ? (
+        <div className="mp-split-grid relative z-10">
+          <div className="mp-split-col">
+            <SplitColHeader dir="pump" count={pumpCount} />
+            <div className="mp-feed-list pulse-feed-scroll">
+              {loading && feed.length === 0 ? (
+                <FeedSkeleton />
+              ) : groupedPump.length === 0 ? (
+                <FeedEmpty label="No pumps yet" />
+              ) : (
+                <FeedList grouped={groupedPump} keyPrefix="p" {...listProps} />
+              )}
+            </div>
+          </div>
+          <div className="mp-split-col">
+            <SplitColHeader dir="dump" count={dumpCount} />
+            <div className="mp-feed-list pulse-feed-scroll">
+              {loading && feed.length === 0 ? (
+                <FeedSkeleton />
+              ) : groupedDump.length === 0 ? (
+                <FeedEmpty label="No dumps yet" />
+              ) : (
+                <FeedList grouped={groupedDump} keyPrefix="d" {...listProps} />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mp-feed-list pulse-feed-scroll relative z-10">
+          {loading && feed.length === 0 && <FeedSkeleton />}
+          {!loading && groupedSide.length === 0 && (
+            <FeedEmpty
+              label={
+                feedSide === "pump"
+                  ? "No pumps match your filters"
+                  : feedSide === "dump"
+                  ? "No dumps match your filters"
+                  : "No events match your filters"
+              }
+            />
+          )}
+          <FeedList grouped={groupedSide} keyPrefix="s" {...listProps} />
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-white/[0.06] text-center bg-white/[0.015] flex-shrink-0 relative z-10">
+        <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-text-muted/45">
+          Auto-refresh · 10s
+        </span>
+      </div>
+    </div>
+  );
+};
 
 // ── Feed Row (single event) ─────────────────────────────
 const FeedRow = ({
@@ -1535,175 +1784,6 @@ const HeatmapPanel = ({ heatmap, selectedCoin, onSelect, sortMode, onSortChange 
         document.body
       )}
     </>
-  );
-};
-
-// ── Heatmap Tile (size-aware typography, 3 variants) ───
-const HeatmapTile = ({ tile, isSelected, onSelect, layout }) => {
-  const { pair, symbol, pct, isBull, eventCount } = tile;
-
-  const intensity = Math.min(Math.abs(pct) / 12, 0.85);
-  const bgColor = isBull
-    ? `rgba(16, 185, 129, ${0.10 + intensity * 0.35})`
-    : `rgba(239, 68, 68, ${0.10 + intensity * 0.35})`;
-
-  const isXL = layout.size === "xl";
-  const isLG = layout.size === "lg";
-
-  const styles = isXL
-    ? { logo: 36, symbolFs: 15, pctFs: 22, pad: "16px 12px 12px", gap: 4 }
-    : isLG
-    ? { logo: 26, symbolFs: 13, pctFs: 16, pad: "8px 10px", gap: 6 }
-    : { logo: 18, symbolFs: 11, pctFs: 11, pad: "14px 6px 6px", gap: 2 };
-
-  const maxLen = isXL ? 8 : isLG ? 8 : 5;
-  const displaySymbol = symbol.length > maxLen ? symbol.slice(0, maxLen) + "…" : symbol;
-
-  const useHorizontal = isLG;
-
-  return (
-    <button
-      onClick={() => onSelect(pair)}
-      title={`${pair} · ${eventCount} events · ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`}
-      style={{
-        gridColumn: layout.col,
-        gridRow: layout.row,
-        backgroundColor: bgColor,
-        border: isSelected
-          ? "1.5px solid #d4a853"
-          : `1px solid ${isBull ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}`,
-        borderRadius: "4px",
-        padding: styles.pad,
-        cursor: "pointer",
-        position: "relative",
-        overflow: "hidden",
-        transition: "filter 0.15s ease, border-color 0.15s ease, transform 0.15s ease",
-        display: "flex",
-        flexDirection: useHorizontal ? "row" : "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: `${styles.gap}px`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.filter = "brightness(1.15)";
-        e.currentTarget.style.zIndex = "10";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.filter = "brightness(1)";
-        e.currentTarget.style.zIndex = "1";
-      }}
-    >
-      {/* Event count badge — top-left */}
-      <span
-        style={{
-          position: "absolute",
-          top: 4,
-          left: 6,
-          fontSize: isXL ? "10px" : "8.5px",
-          fontFamily: "ui-monospace, monospace",
-          color: "rgba(255,255,255,0.5)",
-          fontWeight: 500,
-          letterSpacing: "0.05em",
-          lineHeight: 1,
-          pointerEvents: "none",
-        }}
-      >
-        ×{eventCount}
-      </span>
-
-      {/* Direction arrow — top-right */}
-      <span
-        style={{
-          position: "absolute",
-          top: 5,
-          right: 6,
-          color: isBull ? "#34d399" : "#f87171",
-          lineHeight: 1,
-          pointerEvents: "none",
-          display: "inline-flex",
-        }}
-      >
-        {isBull ? <IconArrowUpTri className={isXL ? "h-3 w-3" : "h-2.5 w-2.5"} /> : <IconArrowDownTri className={isXL ? "h-3 w-3" : "h-2.5 w-2.5"} />}
-      </span>
-
-      <CoinLogo pair={pair} size={styles.logo} />
-
-      {useHorizontal ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 3,
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
-          <span
-            style={{
-              fontSize: `${styles.symbolFs}px`,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-              color: "#fff",
-              lineHeight: 1,
-              maxWidth: "100%",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {displaySymbol}
-          </span>
-          <span
-            style={{
-              fontSize: `${styles.pctFs}px`,
-              fontFamily: "ui-monospace, monospace",
-              fontWeight: 300,
-              fontVariantNumeric: "tabular-nums",
-              letterSpacing: "-0.02em",
-              color: isBull ? "#34d399" : "#f87171",
-              lineHeight: 1,
-            }}
-          >
-            {pct >= 0 ? "+" : ""}
-            {pct.toFixed(1)}%
-          </span>
-        </div>
-      ) : (
-        <>
-          <span
-            style={{
-              fontSize: `${styles.symbolFs}px`,
-              fontWeight: 500,
-              letterSpacing: "-0.01em",
-              color: "#fff",
-              lineHeight: 1,
-              maxWidth: "100%",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              marginTop: isXL ? 2 : 0,
-            }}
-          >
-            {displaySymbol}
-          </span>
-          <span
-            style={{
-              fontSize: `${styles.pctFs}px`,
-              fontFamily: "ui-monospace, monospace",
-              fontWeight: 300,
-              fontVariantNumeric: "tabular-nums",
-              letterSpacing: "-0.02em",
-              color: isBull ? "#34d399" : "#f87171",
-              lineHeight: 1,
-            }}
-          >
-            {pct >= 0 ? "+" : ""}
-            {pct.toFixed(1)}%
-          </span>
-        </>
-      )}
-    </button>
   );
 };
 
@@ -2506,6 +2586,24 @@ const PulseStyles = () => (
       to   { opacity: 0; transform: translateY(20px) scale(.98); }
     }
 
+    /* Split feed (Pumps | Dumps) */
+    .mp-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: rgba(255,255,255,0.05);
+    }
+    .mp-split-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: #0a0805;
+      overflow: hidden;
+    }
+    @media (max-width: 620px) {
+      .mp-split-grid { grid-template-columns: 1fr; }
+    }
+
     /* Equal-height main grid */
     .mp-main-grid {
       display: grid;
@@ -2532,6 +2630,10 @@ const PulseStyles = () => (
       .mp-feed-list {
         flex: 1;
         overflow-y: auto;
+        min-height: 0;
+      }
+      .mp-split-grid {
+        flex: 1;
         min-height: 0;
       }
       .mp-sidebar-col {
