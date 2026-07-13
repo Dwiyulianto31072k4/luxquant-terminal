@@ -1,12 +1,14 @@
 // src/components/landing/v2/sections/Architecture.jsx
 // ════════════════════════════════════════════════════════════════
-// SECTION — Quantitative Pipeline (timeless / solid).
+// SECTION — Quantitative Pipeline.
 //   LIVE MARKET DATA → DATA SANITIZER → PREDICTIVE ALPHA → TERMINAL
 //
-// Redesigned: flat solid cards, hairline borders, static connectors,
-// solid gold icons — no glow, no animated wires, no PCB art. Reads clean
-// like the Top-Gainers cards. Desktop row + mobile numbered stepper.
+// Animated gold connectors + edge art KEPT (the moving pipeline).
+// Cards/nodes redesigned SOLID & timeless: flat #0d0b09, hairline
+// borders, solid gold icons, no glow/scan/beam. Mobile stepper below.
 // ════════════════════════════════════════════════════════════════
+
+import { useState, useLayoutEffect, useRef } from "react";
 
 /* ── solid gold glyphs (data sources + nodes) ── */
 const ICONS = {
@@ -128,13 +130,6 @@ const Chevron = ({ className = "" }) => (
   </svg>
 );
 
-const Connector = () => (
-  <span className="hidden shrink-0 items-center xl:flex" aria-hidden="true">
-    <span className="h-px w-5 bg-white/[0.12]" />
-    <Chevron className="h-4 w-4 text-white/25" />
-  </span>
-);
-
 const INPUTS = [
   { icon: "ohlc", title: "Price & Volume", desc: "OHLCV · all timeframes" },
   { icon: "depth", title: "Order Book Depth", desc: "Bid / ask liquidity" },
@@ -157,24 +152,26 @@ const hideOnError = (e) => { e.currentTarget.style.display = "none"; };
 
 const CARD = "rounded-2xl border border-white/[0.08] bg-[#0d0b09]";
 
-/* ════════════════════ DESKTOP PIECES ════════════════════ */
+/* ════════════════════ DESKTOP CARDS (solid / timeless) ════════════════════ */
 
 function InputCard({ item }) {
   return (
-    <div className={`group flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-white/20 ${CARD}`}>
+    <div className={`group relative flex items-center gap-3 p-3.5 transition-colors duration-200 hover:border-white/20 ${CARD}`}>
       <IconChip name={item.icon} size="h-11 w-11" ic="h-[20px] w-[20px]" />
       <div className="min-w-0">
         <h4 className="text-[12.5px] font-semibold uppercase tracking-wide text-white">{item.title}</h4>
         <p className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-text-muted">{item.desc}</p>
       </div>
-      <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-white/25 transition-colors group-hover:text-gold-primary/70" />
+      <Chevron className="ml-auto h-4 w-4 flex-shrink-0 text-white/25" />
+      {/* wire anchor — endpoint of the animated connector */}
+      <span data-wire="in" aria-hidden="true" className="absolute -right-[5px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-gold-primary/85" />
     </div>
   );
 }
 
-function StageNode({ icon, title, subtitle, accent = false }) {
+function StageNode({ icon, title, subtitle, dataWire, accent = false }) {
   return (
-    <div className={`flex min-h-[220px] w-[190px] flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-gold-primary/25" : ""}`}>
+    <div data-wire={dataWire} className={`relative flex min-h-[220px] w-full flex-col items-center justify-center px-5 text-center ${CARD} ${accent ? "border-gold-primary/25" : ""}`}>
       <IconChip name={icon} size="h-14 w-14" ic="h-7 w-7" />
       <h3 className="mt-4 text-[13.5px] font-semibold uppercase tracking-[0.08em] text-white">{title}</h3>
       <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">{subtitle}</p>
@@ -184,14 +181,14 @@ function StageNode({ icon, title, subtitle, accent = false }) {
 
 function TerminalPanel() {
   return (
-    <div className={`w-[360px] p-5 ${CARD}`}>
+    <div className={`w-full p-5 ${CARD}`}>
       <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-4">
         <img src="/logo.png" alt="" className="h-6 w-6 rounded" onError={hideOnError} />
         <span className="text-[13px] font-semibold tracking-[0.13em] text-white">LUXQUANT TERMINAL</span>
       </div>
       <div className="mt-3 divide-y divide-white/[0.05]">
         {FEATURES.map((f) => (
-          <div key={f.t} className="group flex items-center gap-3 py-2.5 transition-colors">
+          <div key={f.t} data-wire="out" className="group flex items-center gap-3 py-2.5">
             <IconChip name={f.icon} size="h-9 w-9" ic="h-[18px] w-[18px]" />
             <div className="min-w-0">
               <p className="text-[13px] font-medium text-white">{f.t}</p>
@@ -211,6 +208,146 @@ function TerminalPanel() {
   );
 }
 
+/* ════════════════════ ANIMATED GOLD LAYER (kept) ════════════════════ */
+
+/* decorative circuit art on the far edges (desktop only) — animated gold traces */
+function EdgeArt({ side }) {
+  const gid = `archEdgeGlow-${side}`;
+  const sid = `archEdgeStream-${side}`;
+  const TRACES = [
+    { d: "M-10 80H112l23 22h115l38 40h118", dim: true },
+    { d: "M-20 110h92l42 43h82l42 44h144", delay: 0.0 },
+    { d: "M-20 160h74l24 25h96l35 36h155", dim: true },
+    { d: "M-10 246h115l32 33h58l42 42h138", delay: 0.9 },
+    { d: "M-18 325h69l42 43h90l24 25h161", dim: true },
+    { d: "M-13 518h86l33-34h78l39-40h151", delay: 1.8 },
+    { d: "M-14 604h111l28-27h62l33-32h148", dim: true },
+    { d: "M-15 690h96l38-38h92l25-26h131", delay: 2.6 },
+  ];
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute top-[20%] bottom-[10%] z-0 hidden w-[min(13vw,230px)] opacity-[0.35] [mask-image:linear-gradient(to_right,#000_42%,transparent)] lg:block ${side === "left" ? "-left-2" : "-right-2 -scale-x-100"}`}
+    >
+      <svg viewBox="0 0 380 800" preserveAspectRatio="none" className="h-full w-full">
+        <defs>
+          <filter id={gid} x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <linearGradient id={sid} x1="0" x2="1">
+            <stop offset="0" stopColor="#f7cf76" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#ffe9b0" stopOpacity="1" />
+            <stop offset="1" stopColor="#e6a43d" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <g fill="none" strokeWidth="1.05">
+          {TRACES.map((t, i) => (
+            <path key={`b${i}`} stroke={t.dim ? "rgba(232,181,72,0.16)" : "rgba(232,181,72,0.30)"} d={t.d} />
+          ))}
+        </g>
+        <g fill="none" strokeWidth="2.4" strokeLinecap="round" filter={`url(#${gid})`}>
+          {TRACES.filter((t) => !t.dim).map((t, i) => (
+            <path
+              key={`s${i}`}
+              stroke={`url(#${sid})`}
+              d={t.d}
+              strokeDasharray="14 230"
+              style={{ animation: "archEdgeFlow 3.4s linear infinite", animationDelay: `${t.delay}s` }}
+            />
+          ))}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* animated gold connector network — measured from real DOM anchors */
+function PipelineWires({ geo }) {
+  if (!geo) return null;
+  const { W, H, ins, outs, san, eng } = geo;
+  const n = ins.length || 1;
+  const entryY = (i) => san.top + (san.bot - san.top) * (n === 1 ? 0.5 : i / (n - 1));
+  const inPath = (p, i) => {
+    const ex = san.l.x, ey = entryY(i);
+    const c1 = p.x + (ex - p.x) * 0.55;
+    const c2 = ex - (ex - p.x) * 0.45;
+    return `M${p.x} ${p.y} C ${c1} ${p.y} ${c2} ${ey} ${ex} ${ey}`;
+  };
+  const outPath = (p) => {
+    const sx = eng.r.x, sy = eng.r.y;
+    const c1 = sx + (p.x - sx) * 0.45;
+    const c2 = p.x - (p.x - sx) * 0.55;
+    return `M${sx} ${sy} C ${c1} ${sy} ${c2} ${p.y} ${p.x} ${p.y}`;
+  };
+  const beam = `M${san.r.x} ${san.r.y} L ${eng.l.x} ${eng.l.y}`;
+  const Wire = ({ d, w = 1.4, sw = 2.8, dash = "9 150", dur = 2.8, delay = 0, base = "rgba(239,187,84,0.32)" }) => (
+    <g>
+      <path d={d} fill="none" stroke={base} strokeWidth={w} strokeLinecap="round" />
+      <path d={d} fill="none" stroke="url(#archStream)" strokeWidth={sw} strokeLinecap="round" strokeDasharray={dash} filter="url(#archGlow)" style={{ animation: `archDash ${dur}s linear infinite`, animationDelay: `${delay}s` }} />
+    </g>
+  );
+  return (
+    <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="archStream" x1="0" x2="1">
+          <stop offset="0" stopColor="#f7cf76" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#ffe4a0" stopOpacity="1" />
+          <stop offset="1" stopColor="#e6a43d" stopOpacity="0" />
+        </linearGradient>
+        <filter id="archGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      {ins.map((p, i) => <Wire key={`in${i}`} d={inPath(p, i)} sw={3} dash="10 150" dur={2.6} delay={i * 0.18} base="rgba(239,187,84,0.36)" />)}
+      <Wire d={beam} w={1.6} sw={3.2} dash="10 110" dur={2.4} base="rgba(239,187,84,0.42)" />
+      {outs.map((p, i) => <Wire key={`out${i}`} d={outPath(p)} dur={2.8} delay={i * 0.16} />)}
+    </svg>
+  );
+}
+
+/* measure DOM anchors relative to the pipeline wrapper (re-runs on resize) */
+function useArchGeometry(wrapRef) {
+  const [geo, setGeo] = useState(null);
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const measure = () => {
+      const cr = wrap.getBoundingClientRect();
+      if (!cr.width) return;
+      const pt = (el, fx, fy) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left - cr.left + r.width * fx, y: r.top - cr.top + r.height * fy };
+      };
+      const inEls = [...wrap.querySelectorAll('[data-wire="in"]')];
+      const outEls = [...wrap.querySelectorAll('[data-wire="out"]')];
+      const sanEl = wrap.querySelector('[data-wire="sanitizer"]');
+      const engEl = wrap.querySelector('[data-wire="engine"]');
+      if (!sanEl || !engEl || !inEls.length || !outEls.length) return;
+      const sr = sanEl.getBoundingClientRect();
+      setGeo({
+        W: cr.width,
+        H: cr.height,
+        ins: inEls.map((el) => pt(el, 0.5, 0.5)),
+        outs: outEls.map((el) => pt(el, 0, 0.5)),
+        san: {
+          l: pt(sanEl, 0, 0.5),
+          r: pt(sanEl, 1, 0.5),
+          top: sr.top - cr.top + sr.height * 0.16,
+          bot: sr.top - cr.top + sr.height * 0.84,
+        },
+        eng: { l: pt(engEl, 0, 0.5), r: pt(engEl, 1, 0.5) },
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrap);
+    window.addEventListener("resize", measure);
+    const t = setTimeout(measure, 350);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); clearTimeout(t); };
+  }, [wrapRef]);
+  return geo;
+}
+
 /* ── mobile stepper ── */
 function Step({ n, accent = false, line = true, children }) {
   return (
@@ -225,8 +362,10 @@ function Step({ n, accent = false, line = true, children }) {
 }
 
 export default function Architecture() {
+  const pipeRef = useRef(null);
+  const geo = useArchGeometry(pipeRef);
   return (
-    <section id="how-it-works" className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-6 pb-20 lg:px-8 lg:pt-10 lg:pb-28">
+    <section id="how-it-works" className="relative z-10 mx-auto -mt-10 w-full max-w-7xl px-4 pt-6 pb-20 lg:-mt-16 lg:px-8 lg:pt-10 lg:pb-28">
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
           <linearGradient id="lqGold" x1="0" y1="0" x2="0" y2="1">
@@ -234,6 +373,11 @@ export default function Architecture() {
           </linearGradient>
         </defs>
       </svg>
+
+      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[460px] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-[100%] bg-gold-primary/[0.035] blur-[120px]" />
+
+      <EdgeArt side="left" />
+      <EdgeArt side="right" />
 
       {/* header */}
       <div className="mb-14 text-center lg:mb-20">
@@ -250,18 +394,18 @@ export default function Architecture() {
         </p>
       </div>
 
-      {/* DESKTOP — clean solid pipeline */}
-      <div className="mx-auto hidden w-full max-w-[1320px] items-center justify-center gap-4 lg:flex xl:gap-6">
-        <div className="flex w-[300px] shrink-0 flex-col gap-2.5">
-          <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-[0.29em] text-gold-primary/75">Live Market Data</p>
-          {INPUTS.map((i) => <InputCard key={i.title} item={i} />)}
+      {/* DESKTOP — solid cards + animated gold wires */}
+      <div className="relative mx-auto hidden w-full max-w-[1320px] lg:block">
+        <div ref={pipeRef} className="relative grid items-center gap-6 xl:gap-9" style={{ gridTemplateColumns: "minmax(280px,310px) minmax(150px,176px) minmax(250px,300px) minmax(340px,1fr)" }}>
+          <PipelineWires geo={geo} />
+          <div className="relative z-10 flex flex-col gap-3">
+            <p className="mb-1 ml-1 font-mono text-[10px] uppercase tracking-[0.29em] text-gold-primary/75">Live Market Data</p>
+            {INPUTS.map((i) => <InputCard key={i.title} item={i} />)}
+          </div>
+          <div className="relative z-10"><StageNode icon="sanitizer" title="Data Sanitizer" subtitle="Sanitization" dataWire="sanitizer" /></div>
+          <div className="relative z-10"><StageNode icon="core" title="Predictive Alpha" subtitle="Quant Engine" dataWire="engine" accent /></div>
+          <div className="relative z-10"><TerminalPanel /></div>
         </div>
-        <Connector />
-        <StageNode icon="sanitizer" title="Data Sanitizer" subtitle="Sanitization" />
-        <Connector />
-        <StageNode icon="core" title="Predictive Alpha" subtitle="Quant Engine" accent />
-        <Connector />
-        <TerminalPanel />
       </div>
 
       {/* MOBILE — compact vertical stepper */}
@@ -318,6 +462,14 @@ export default function Architecture() {
           </div>
         </Step>
       </ol>
+
+      <style>{`
+        @keyframes archDash { to { stroke-dashoffset: -160; } }
+        @keyframes archEdgeFlow { from { stroke-dashoffset: 244; } to { stroke-dashoffset: -244; } }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="archDash"], [style*="archEdgeFlow"] { animation: none !important; }
+        }
+      `}</style>
     </section>
   );
 }
