@@ -11,7 +11,15 @@ import { CalendarDotIcon, TimerIcon } from '../CategoryIcons';
 /* ── Brand palette + mark ─────────────────────────────────────────── */
 
 /**
- * Each brand: primary color, soft bg, official logo file, display name.
+ * Official-ish brand tokens (researched from each exchange UI):
+ *  · Binance  — Yellow #F0B90B / #FCD535 on Shark #0B0E11 / #1E2329
+ *  · Gate.io  — Mint #17E6A1 + Blue #2354E6 on deep navy surface
+ *  · MEXC     — Ocean Blue #1463FF on dark slate
+ *  · Indodax  — Sky Blue #1E9CF0
+ *  · Bybit    — Orange #F7A600 on pure black
+ *  · OKX      — White on black
+ *
+ * Surfaces use SOLID hex (no glass/rgba fills) so cards don't look washed.
  * Keys are normalized lowercase (no spaces/dashes).
  * Logos live in /public/exchanges/ (served as /exchanges/*).
  */
@@ -20,12 +28,15 @@ export const EXCHANGE_BRANDS = {
     key: 'binance',
     name: 'Binance',
     primary: '#F0B90B',
-    secondary: '#1E2026',
-    glow: 'rgba(240,185,11,0.35)',
-    bgFrom: 'rgba(240,185,11,0.16)',
-    bgTo: 'rgba(30,32,38,0.55)',
-    border: 'rgba(240,185,11,0.38)',
-    logoBg: '#1E2026',
+    accent: '#FCD535',
+    surface: '#0B0E11',
+    surfaceRaised: '#1E2329',
+    surfaceInset: '#181A20',
+    border: '#2B3139',
+    borderAccent: '#F0B90B',
+    text: '#EAECEF',
+    textMuted: '#848E9C',
+    logoBg: '#0B0E11',
     logoFg: '#F0B90B',
     logoSrc: '/exchanges/binance.png',
   },
@@ -33,11 +44,14 @@ export const EXCHANGE_BRANDS = {
     key: 'indodax',
     name: 'Indodax',
     primary: '#1E9CF0',
-    secondary: '#06142B',
-    glow: 'rgba(30,156,240,0.38)',
-    bgFrom: 'rgba(30,156,240,0.18)',
-    bgTo: 'rgba(6,20,43,0.55)',
-    border: 'rgba(30,156,240,0.42)',
+    accent: '#4DB3F5',
+    surface: '#071018',
+    surfaceRaised: '#0D1B2A',
+    surfaceInset: '#0A1622',
+    border: '#1A3348',
+    borderAccent: '#1E9CF0',
+    text: '#E8F4FC',
+    textMuted: '#7BA3BE',
     logoBg: '#1E9CF0',
     logoFg: '#FFFFFF',
     logoSrc: '/exchanges/indodax.png',
@@ -46,12 +60,15 @@ export const EXCHANGE_BRANDS = {
     key: 'bybit',
     name: 'Bybit',
     primary: '#F7A600',
-    secondary: '#121212',
-    glow: 'rgba(247,166,0,0.32)',
-    bgFrom: 'rgba(247,166,0,0.14)',
-    bgTo: 'rgba(18,18,18,0.55)',
-    border: 'rgba(247,166,0,0.36)',
-    logoBg: '#121212',
+    accent: '#FFB11A',
+    surface: '#0D0D0D',
+    surfaceRaised: '#1A1A1A',
+    surfaceInset: '#141414',
+    border: '#2A2A2A',
+    borderAccent: '#F7A600',
+    text: '#F5F5F5',
+    textMuted: '#8C8C8C',
+    logoBg: '#0D0D0D',
     logoFg: '#F7A600',
     logoSrc: '/exchanges/bybit.png',
   },
@@ -59,11 +76,14 @@ export const EXCHANGE_BRANDS = {
     key: 'okx',
     name: 'OKX',
     primary: '#FFFFFF',
-    secondary: '#000000',
-    glow: 'rgba(255,255,255,0.18)',
-    bgFrom: 'rgba(255,255,255,0.08)',
-    bgTo: 'rgba(0,0,0,0.45)',
-    border: 'rgba(255,255,255,0.22)',
+    accent: '#CCCCCC',
+    surface: '#000000',
+    surfaceRaised: '#121212',
+    surfaceInset: '#0A0A0A',
+    border: '#2A2A2A',
+    borderAccent: '#FFFFFF',
+    text: '#FFFFFF',
+    textMuted: '#8C8C8C',
     logoBg: '#000000',
     logoFg: '#FFFFFF',
     logoSrc: '/exchanges/okx.png',
@@ -72,11 +92,14 @@ export const EXCHANGE_BRANDS = {
     key: 'mexc',
     name: 'MEXC',
     primary: '#1463FF',
-    secondary: '#0B1220',
-    glow: 'rgba(20,99,255,0.35)',
-    bgFrom: 'rgba(20,99,255,0.16)',
-    bgTo: 'rgba(11,18,32,0.55)',
-    border: 'rgba(20,99,255,0.40)',
+    accent: '#3D7FFF',
+    surface: '#070B14',
+    surfaceRaised: '#0F1729',
+    surfaceInset: '#0B1220',
+    border: '#1A2744',
+    borderAccent: '#1463FF',
+    text: '#E8EEF9',
+    textMuted: '#7A8BA8',
     logoBg: '#F4F7FB',
     logoFg: '#1463FF',
     logoSrc: '/exchanges/mexc.png',
@@ -85,38 +108,47 @@ export const EXCHANGE_BRANDS = {
     key: 'gate',
     name: 'Gate.io',
     primary: '#17E6A1',
-    secondary: '#0A1A14',
-    glow: 'rgba(23,230,161,0.28)',
-    bgFrom: 'rgba(23,230,161,0.12)',
-    bgTo: 'rgba(10,26,20,0.55)',
-    border: 'rgba(23,230,161,0.34)',
-    logoBg: '#0A1A14',
-    logoFg: '#17E6A1',
+    accent: '#2354E6',
+    surface: '#0A0F14',
+    surfaceRaised: '#111B22',
+    surfaceInset: '#0D141A',
+    border: '#1C2A33',
+    borderAccent: '#17E6A1',
+    text: '#E8F7F1',
+    textMuted: '#6F8A7E',
+    logoBg: '#FFFFFF',
+    logoFg: '#2354E6',
     logoSrc: '/exchanges/gate.png',
   },
   gateio: {
     key: 'gate',
     name: 'Gate.io',
     primary: '#17E6A1',
-    secondary: '#0A1A14',
-    glow: 'rgba(23,230,161,0.28)',
-    bgFrom: 'rgba(23,230,161,0.12)',
-    bgTo: 'rgba(10,26,20,0.55)',
-    border: 'rgba(23,230,161,0.34)',
-    logoBg: '#0A1A14',
-    logoFg: '#17E6A1',
+    accent: '#2354E6',
+    surface: '#0A0F14',
+    surfaceRaised: '#111B22',
+    surfaceInset: '#0D141A',
+    border: '#1C2A33',
+    borderAccent: '#17E6A1',
+    text: '#E8F7F1',
+    textMuted: '#6F8A7E',
+    logoBg: '#FFFFFF',
+    logoFg: '#2354E6',
     logoSrc: '/exchanges/gate.png',
   },
   kucoin: {
     key: 'kucoin',
     name: 'KuCoin',
     primary: '#23AF91',
-    secondary: '#0C1A16',
-    glow: 'rgba(35,175,145,0.3)',
-    bgFrom: 'rgba(35,175,145,0.14)',
-    bgTo: 'rgba(12,26,22,0.55)',
-    border: 'rgba(35,175,145,0.34)',
-    logoBg: '#0C1A16',
+    accent: '#2DD4B0',
+    surface: '#0A1210',
+    surfaceRaised: '#12201C',
+    surfaceInset: '#0E1916',
+    border: '#1C332C',
+    borderAccent: '#23AF91',
+    text: '#E6F7F2',
+    textMuted: '#6F8F86',
+    logoBg: '#0A1210',
     logoFg: '#23AF91',
     logoSrc: '/exchanges/kucoin.png',
   },
@@ -124,12 +156,15 @@ export const EXCHANGE_BRANDS = {
     key: 'bitget',
     name: 'Bitget',
     primary: '#00F0FF',
-    secondary: '#0A1520',
-    glow: 'rgba(0,240,255,0.28)',
-    bgFrom: 'rgba(0,240,255,0.12)',
-    bgTo: 'rgba(10,21,32,0.55)',
-    border: 'rgba(0,240,255,0.34)',
-    logoBg: '#0A1520',
+    accent: '#00C2CC',
+    surface: '#070C12',
+    surfaceRaised: '#0E1720',
+    surfaceInset: '#0A1218',
+    border: '#1A2A36',
+    borderAccent: '#00F0FF',
+    text: '#E6FBFD',
+    textMuted: '#6A8A90',
+    logoBg: '#070C12',
     logoFg: '#00F0FF',
     logoSrc: '/exchanges/bitget.png',
   },
@@ -137,12 +172,15 @@ export const EXCHANGE_BRANDS = {
     key: 'htx',
     name: 'HTX',
     primary: '#2EBD85',
-    secondary: '#0B1A14',
-    glow: 'rgba(46,189,133,0.3)',
-    bgFrom: 'rgba(46,189,133,0.14)',
-    bgTo: 'rgba(11,26,20,0.55)',
-    border: 'rgba(46,189,133,0.34)',
-    logoBg: '#0B1A14',
+    accent: '#3DD49A',
+    surface: '#0A1210',
+    surfaceRaised: '#12201A',
+    surfaceInset: '#0E1914',
+    border: '#1C332A',
+    borderAccent: '#2EBD85',
+    text: '#E6F7EF',
+    textMuted: '#6F8F80',
+    logoBg: '#0A1210',
     logoFg: '#2EBD85',
     logoSrc: '/exchanges/htx.png',
   },
@@ -150,12 +188,15 @@ export const EXCHANGE_BRANDS = {
     key: 'htx',
     name: 'HTX',
     primary: '#2EBD85',
-    secondary: '#0B1A14',
-    glow: 'rgba(46,189,133,0.3)',
-    bgFrom: 'rgba(46,189,133,0.14)',
-    bgTo: 'rgba(11,26,20,0.55)',
-    border: 'rgba(46,189,133,0.34)',
-    logoBg: '#0B1A14',
+    accent: '#3DD49A',
+    surface: '#0A1210',
+    surfaceRaised: '#12201A',
+    surfaceInset: '#0E1914',
+    border: '#1C332A',
+    borderAccent: '#2EBD85',
+    text: '#E6F7EF',
+    textMuted: '#6F8F80',
+    logoBg: '#0A1210',
     logoFg: '#2EBD85',
     logoSrc: '/exchanges/htx.png',
   },
@@ -165,11 +206,14 @@ const FALLBACK_BRAND = {
   key: 'unknown',
   name: 'Wallet',
   primary: '#d4a853',
-  secondary: '#1a0d12',
-  glow: 'rgba(212,168,83,0.28)',
-  bgFrom: 'rgba(212,168,83,0.12)',
-  bgTo: 'rgba(26,13,18,0.55)',
-  border: 'rgba(212,168,83,0.32)',
+  accent: '#e0bc6a',
+  surface: '#12090d',
+  surfaceRaised: '#1a0d12',
+  surfaceInset: '#160a0e',
+  border: '#2d1a20',
+  borderAccent: '#d4a853',
+  text: '#f5f0e8',
+  textMuted: '#8a7a6e',
   logoBg: '#d4a853',
   logoFg: '#1a0d12',
   logoSrc: null,
@@ -340,8 +384,9 @@ export const ExchangeLogo = ({ exchange, size = 40, className = '' }) => {
         width: size,
         height: size,
         borderRadius: radius,
-        background: showImg ? '#0a0a0c' : brand.logoBg,
-        boxShadow: `0 4px 16px ${brand.glow}, 0 0 0 1px ${brand.primary}33`,
+        background: brand.logoBg || brand.surface,
+        border: `1px solid ${brand.borderAccent || brand.primary}`,
+        boxShadow: `0 2px 8px ${brand.surface}CC`,
       }}
       title={brand.name}
       aria-label={`${brand.name} logo`}
@@ -362,21 +407,11 @@ export const ExchangeLogo = ({ exchange, size = 40, className = '' }) => {
           }}
         />
       ) : (
-        <>
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              borderRadius: radius,
-              background:
-                'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(0,0,0,0.12) 100%)',
-            }}
-          />
-          <Mark
-            size={markSize}
-            fg={brand.logoFg}
-            letter={(brand.name || '?').charAt(0).toUpperCase()}
-          />
-        </>
+        <Mark
+          size={markSize}
+          fg={brand.logoFg}
+          letter={(brand.name || '?').charAt(0).toUpperCase()}
+        />
       )}
     </div>
   );
@@ -387,15 +422,16 @@ export const ExchangeBadge = ({ exchange, dense = false }) => {
   if (!exchange) return null;
   const brand = resolveExchangeBrand(exchange);
   const logoSize = dense ? 14 : 16;
+  const labelColor = brand.primary === '#FFFFFF' ? brand.text : brand.primary;
   return (
     <span
       className={`inline-flex items-center gap-1.5 font-semibold rounded-md ${
         dense ? 'text-[9px] px-1.5 py-0.5' : 'text-[10px] px-2 py-0.5'
       }`}
       style={{
-        background: `${brand.primary}14`,
-        color: brand.primary === '#FFFFFF' ? '#e8e8e8' : brand.primary,
-        border: `1px solid ${brand.primary}33`,
+        background: brand.surfaceRaised,
+        color: labelColor,
+        border: `1px solid ${brand.border}`,
       }}
       title={`Received into ${brand.name}`}
     >
@@ -405,26 +441,26 @@ export const ExchangeBadge = ({ exchange, dense = false }) => {
   );
 };
 
-/* ── Meta chip ────────────────────────────────────────────────────── */
+/* ── Meta chip (solid inset surface) ──────────────────────────────── */
 
-const MetaChip = ({ icon: Icon, label, value, accent }) => (
+const MetaChip = ({ icon: Icon, label, value, accent, brand }) => (
   <div
     className="flex flex-col gap-0.5 min-w-0 rounded-lg px-2.5 py-2"
     style={{
-      background: 'rgba(0,0,0,0.28)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      background: brand.surfaceInset,
+      border: `1px solid ${brand.border}`,
     }}
   >
     <span
       className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] font-semibold"
-      style={{ color: accent || 'rgba(255,255,255,0.42)' }}
+      style={{ color: accent || brand.textMuted }}
     >
       {Icon && <Icon size={10} />}
       {label}
     </span>
     <span
       className="text-[11px] font-medium tabular-nums truncate"
-      style={{ color: '#f5f0e8' }}
+      style={{ color: brand.text }}
       title={typeof value === 'string' ? value : undefined}
     >
       {value || '—'}
@@ -434,7 +470,7 @@ const MetaChip = ({ icon: Icon, label, value, accent }) => (
 
 /**
  * Premium hero card for PaymentDetailPanel.
- * Brand-colored surface + logo + amount + timestamps + network/plan.
+ * SOLID brand surface (no glass/transparency) matching each exchange UI.
  */
 export const ExchangePaymentHero = ({ payment }) => {
   if (!payment) return null;
@@ -453,44 +489,38 @@ export const ExchangePaymentHero = ({ payment }) => {
         : `${payment.age_hours}h`
       : formatRelative(payment.created_at);
 
-  const textOnBrand =
-    brand.primary === '#FFFFFF' ? '#e8e8e8' : brand.primary;
+  const nameColor = brand.primary === '#FFFFFF' ? brand.text : brand.primary;
 
   return (
     <div
       className="relative overflow-hidden rounded-2xl"
       style={{
-        background: `linear-gradient(145deg, ${brand.bgFrom} 0%, ${brand.bgTo} 55%, rgba(10,5,6,0.92) 100%)`,
-        border: `1px solid ${brand.border}`,
-        boxShadow: `0 12px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03) inset`,
+        background: brand.surface,
+        border: `1px solid ${brand.borderAccent}`,
+        boxShadow: `0 8px 28px ${brand.surface}F0, inset 0 1px 0 ${brand.surfaceRaised}`,
       }}
     >
-      {/* Brand glow orbs */}
+      {/* Solid brand rail (left) — exchange product-card language */}
       <div
-        className="absolute -top-16 -right-10 w-44 h-44 rounded-full pointer-events-none"
-        style={{ background: brand.glow, filter: 'blur(40px)' }}
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: brand.primary }}
       />
+      {/* Subtle solid top accent strip (not transparent blur) */}
       <div
-        className="absolute -bottom-20 -left-10 w-40 h-40 rounded-full pointer-events-none"
-        style={{ background: `${cfg.color}22`, filter: 'blur(36px)' }}
-      />
-      {/* subtle card sheen */}
-      <div
-        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+        className="absolute inset-x-0 top-0 h-[2px]"
         style={{
-          background: `linear-gradient(to right, transparent, ${brand.primary}88, transparent)`,
+          background: `linear-gradient(90deg, ${brand.primary}, ${brand.accent || brand.primary}, ${brand.surface})`,
         }}
       />
+      {/* Solid raised panel block behind amount — no glass */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
+        className="absolute right-0 top-0 w-[42%] h-full pointer-events-none"
         style={{
-          backgroundImage:
-            'radial-gradient(circle at 20% 20%, #fff 0.6px, transparent 0.7px)',
-          backgroundSize: '14px 14px',
+          background: `linear-gradient(115deg, ${brand.surface} 0%, ${brand.surfaceRaised} 100%)`,
         }}
       />
 
-      <div className="relative p-4 sm:p-5 space-y-4">
+      <div className="relative p-4 sm:p-5 space-y-4 pl-5">
         {/* Top row: logo + brand + status */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -498,20 +528,20 @@ export const ExchangePaymentHero = ({ payment }) => {
             <div className="min-w-0">
               <p
                 className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-0.5"
-                style={{ color: 'rgba(255,255,255,0.45)' }}
+                style={{ color: brand.textMuted }}
               >
                 Received into
               </p>
               <p
                 className="text-[17px] font-bold tracking-tight truncate leading-none"
-                style={{ color: textOnBrand }}
+                style={{ color: nameColor }}
               >
                 {brand.name}
               </p>
               {payment.wallet_to_label && (
                 <p
-                  className="text-[10.5px] mt-1 truncate"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  className="text-[10.5px] mt-1 truncate font-mono"
+                  style={{ color: brand.textMuted }}
                   title={payment.wallet_to_label}
                 >
                   {payment.wallet_to_label}
@@ -524,20 +554,20 @@ export const ExchangePaymentHero = ({ payment }) => {
             <span
               className="text-[9.5px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded"
               style={{
-                background: cfg.bg,
+                background: brand.surfaceInset,
                 color: cfg.color,
-                border: `1px solid ${cfg.border}`,
+                border: `1px solid ${brand.border}`,
               }}
             >
               {cfg.label}
             </span>
             {payment.is_stale && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1 animate-pulse"
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                 style={{
-                  background: 'rgba(248,113,113,0.12)',
+                  background: brand.surfaceInset,
                   color: '#f87171',
-                  border: '1px solid rgba(248,113,113,0.32)',
+                  border: `1px solid ${brand.border}`,
                 }}
               >
                 <AlertTriangleIcon size={9} />
@@ -548,9 +578,9 @@ export const ExchangePaymentHero = ({ payment }) => {
               <span
                 className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                 style={{
-                  background: 'rgba(212,168,83,0.12)',
-                  color: '#d4a853',
-                  border: '1px solid rgba(212,168,83,0.3)',
+                  background: brand.surfaceInset,
+                  color: brand.primary,
+                  border: `1px solid ${brand.border}`,
                 }}
               >
                 <StarIcon size={9} /> Manual
@@ -560,26 +590,26 @@ export const ExchangePaymentHero = ({ payment }) => {
         </div>
 
         {/* Amount block */}
-        <div className="pt-1">
+        <div className="pt-0.5">
           <p
             className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mb-1.5"
-            style={{ color: 'rgba(255,255,255,0.42)' }}
+            style={{ color: brand.textMuted }}
           >
             Final amount
           </p>
           <div className="flex items-end gap-2 flex-wrap">
             <p
-              className="text-[38px] sm:text-[42px] font-light tabular-nums tracking-tight leading-none"
-              style={{ color: '#fff', letterSpacing: '-0.03em' }}
+              className="text-[38px] sm:text-[42px] font-semibold tabular-nums tracking-tight leading-none"
+              style={{ color: brand.text, letterSpacing: '-0.03em' }}
             >
               {formatUSDT(payment.final_amount)}
             </p>
             <span
-              className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded-md"
+              className="text-[11px] font-bold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded-md"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.65)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: brand.surfaceRaised,
+                color: brand.primary,
+                border: `1px solid ${brand.borderAccent}`,
               }}
             >
               USDT
@@ -587,22 +617,22 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
             <span
-              className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md"
+              className="text-[10.5px] font-bold px-2 py-0.5 rounded-md"
               style={{
-                background: `${brand.primary}18`,
-                color: textOnBrand,
-                border: `1px solid ${brand.primary}30`,
+                background: brand.surfaceRaised,
+                color: brand.primary,
+                border: `1px solid ${brand.borderAccent}`,
               }}
             >
               {network}
             </span>
-            <span style={{ color: 'rgba(255,255,255,0.25)' }}>·</span>
+            <span style={{ color: brand.border }}>·</span>
             <span
-              className="text-[10.5px] font-medium px-2 py-0.5 rounded-md"
+              className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md"
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.7)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: brand.surfaceInset,
+                color: brand.text,
+                border: `1px solid ${brand.border}`,
               }}
             >
               {planLabel}
@@ -610,9 +640,10 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
         </div>
 
-        {/* Time / payment meta grid */}
+        {/* Time / payment meta grid — solid inset chips */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
           <MetaChip
+            brand={brand}
             icon={CalendarDotIcon}
             label="Payment date"
             value={
@@ -620,14 +651,16 @@ export const ExchangePaymentHero = ({ payment }) => {
                 ? formatDateTimeLong(payment.verified_at)
                 : 'Not verified yet'
             }
-            accent={payment.verified_at ? '#d4a853' : undefined}
+            accent={payment.verified_at ? brand.primary : brand.textMuted}
           />
           <MetaChip
+            brand={brand}
             icon={ClockIcon}
             label="Recorded"
             value={formatDateTimeLong(payment.created_at)}
           />
           <MetaChip
+            brand={brand}
             icon={TimerIcon}
             label={payment.status === 'pending' ? 'Age' : 'Relative'}
             value={age || '—'}

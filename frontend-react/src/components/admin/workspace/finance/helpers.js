@@ -106,6 +106,7 @@ const EXCHANGE_PALETTE = [
 export const exchangeColor = (name) => {
   if (!name) return '#8a7a6e';
   const key = String(name).toLowerCase().replace(/[\s._-]+/g, '');
+  // Official brand accents (match exchangeBranding.jsx)
   const KNOWN = {
     binance: '#F0B90B',
     indodax: '#1E9CF0',
