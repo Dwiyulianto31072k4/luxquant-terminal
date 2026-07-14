@@ -506,31 +506,37 @@ export const Button = React.forwardRef(
     };
     const s = sizeMap[size];
 
+    // Solid fills (Terminal Live / Landing CTA language — no washed glass)
     const variants = {
       primary: {
         background: gradient.goldFill,
-        color: palette.maroon[900],
-        border: 'none',
+        color: '#17110a',
+        border: '1px solid #d4a853',
       },
       secondary: {
-        background: 'rgba(255,255,255,0.04)',
-        color: '#fff',
-        border: `1px solid ${surface.base.border}`,
+        background: '#0c0a07',
+        color: 'rgba(255,255,255,0.78)',
+        border: '1px solid rgba(255,255,255,0.12)',
       },
       ghost: {
-        background: 'transparent',
+        background: '#0a0805',
         color: typography.body.muted,
-        border: `1px solid ${surface.base.border}`,
+        border: '1px solid rgba(255,255,255,0.10)',
       },
       danger: {
-        background: tint(palette.red[400], 0.1),
-        color: palette.red[400],
-        border: `1px solid ${tint(palette.red[400], 0.3)}`,
+        background: '#7f1d1d',
+        color: '#fecaca',
+        border: '1px solid #991b1b',
       },
       success: {
-        background: tint(palette.green[400], 0.1),
-        color: palette.green[400],
-        border: `1px solid ${tint(palette.green[400], 0.3)}`,
+        background: '#065f46',
+        color: '#d1fae5',
+        border: '1px solid #047857',
+      },
+      warn: {
+        background: '#9a3412',
+        color: '#ffedd5',
+        border: '1px solid #c2410c',
       },
     };
 
@@ -538,7 +544,7 @@ export const Button = React.forwardRef(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${variant === 'primary' ? 'hover:-translate-y-px' : ''} ${s.px} ${s.py} ${s.text} ${className}`}
+        className={`inline-flex items-center justify-center gap-2 font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] ${s.px} ${s.py} ${s.text} ${className}`}
         style={{
           ...variants[variant],
           borderRadius: radius.md,

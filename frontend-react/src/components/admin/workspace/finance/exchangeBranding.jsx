@@ -469,8 +469,9 @@ const MetaChip = ({ icon: Icon, label, value, accent, brand }) => (
 );
 
 /**
- * Premium hero card for PaymentDetailPanel.
- * SOLID brand surface (no glass/transparency) matching each exchange UI.
+ * Premium hero card — LuxQuant Terminal surface language
+ * (#0a0805 + gold hairline) with soft brand accent only.
+ * Avoid harsh full-border brand contrast.
  */
 export const ExchangePaymentHero = ({ payment }) => {
   if (!payment) return null;
@@ -489,51 +490,56 @@ export const ExchangePaymentHero = ({ payment }) => {
         : `${payment.age_hours}h`
       : formatRelative(payment.created_at);
 
-  const nameColor = brand.primary === '#FFFFFF' ? brand.text : brand.primary;
+  // Soft brand identity on neutral LuxQuant shell
+  const shell = {
+    bg: '#0a0805',
+    inset: '#0c0a07',
+    raised: '#100c08',
+    border: 'rgba(255,255,255,0.08)',
+    text: '#f5f0e8',
+    muted: 'rgba(255,255,255,0.42)',
+    faint: '#8a7a6e',
+  };
+  const nameColor =
+    brand.primary === '#FFFFFF' ? shell.text : brand.primary;
 
   return (
     <div
       className="relative overflow-hidden rounded-2xl"
       style={{
-        background: brand.surface,
-        border: `1px solid ${brand.borderAccent}`,
-        boxShadow: `0 8px 28px ${brand.surface}F0, inset 0 1px 0 ${brand.surfaceRaised}`,
+        background: shell.bg,
+        border: `1px solid ${shell.border}`,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
       }}
     >
-      {/* Solid brand rail (left) — exchange product-card language */}
+      {/* Terminal signature: gold top hairline */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: brand.primary }}
-      />
-      {/* Subtle solid top accent strip (not transparent blur) */}
-      <div
-        className="absolute inset-x-0 top-0 h-[2px]"
+        className="absolute inset-x-0 top-0 h-px pointer-events-none"
         style={{
-          background: `linear-gradient(90deg, ${brand.primary}, ${brand.accent || brand.primary}, ${brand.surface})`,
+          background:
+            'linear-gradient(to right, transparent, rgba(212,168,83,0.45), transparent)',
         }}
       />
-      {/* Solid raised panel block behind amount — no glass */}
+      {/* Soft brand rail — identity without harsh frame */}
       <div
-        className="absolute right-0 top-0 w-[42%] h-full pointer-events-none"
-        style={{
-          background: `linear-gradient(115deg, ${brand.surface} 0%, ${brand.surfaceRaised} 100%)`,
-        }}
+        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+        style={{ background: brand.primary, opacity: 0.85 }}
       />
 
-      <div className="relative p-4 sm:p-5 space-y-4 pl-5">
+      <div className="relative p-4 sm:p-5 space-y-4 pl-4">
         {/* Top row: logo + brand + status */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <ExchangeLogo exchange={payment.wallet_to_exchange} size={48} />
+            <ExchangeLogo exchange={payment.wallet_to_exchange} size={44} />
             <div className="min-w-0">
               <p
-                className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-0.5"
-                style={{ color: brand.textMuted }}
+                className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-0.5 font-mono"
+                style={{ color: shell.muted }}
               >
                 Received into
               </p>
               <p
-                className="text-[17px] font-bold tracking-tight truncate leading-none"
+                className="text-[16px] font-semibold tracking-tight truncate leading-none"
                 style={{ color: nameColor }}
               >
                 {brand.name}
@@ -541,7 +547,7 @@ export const ExchangePaymentHero = ({ payment }) => {
               {payment.wallet_to_label && (
                 <p
                   className="text-[10.5px] mt-1 truncate font-mono"
-                  style={{ color: brand.textMuted }}
+                  style={{ color: shell.faint }}
                   title={payment.wallet_to_label}
                 >
                   {payment.wallet_to_label}
@@ -552,22 +558,22 @@ export const ExchangePaymentHero = ({ payment }) => {
 
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span
-              className="text-[9.5px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded"
+              className="text-[9.5px] font-bold uppercase tracking-[0.12em] px-2 py-1 rounded-md font-mono"
               style={{
-                background: brand.surfaceInset,
+                background: shell.inset,
                 color: cfg.color,
-                border: `1px solid ${brand.border}`,
+                border: `1px solid ${shell.border}`,
               }}
             >
               {cfg.label}
             </span>
             {payment.is_stale && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 font-mono"
                 style={{
-                  background: brand.surfaceInset,
-                  color: '#f87171',
-                  border: `1px solid ${brand.border}`,
+                  background: '#7f1d1d',
+                  color: '#fecaca',
+                  border: '1px solid #991b1b',
                 }}
               >
                 <AlertTriangleIcon size={9} />
@@ -576,11 +582,11 @@ export const ExchangePaymentHero = ({ payment }) => {
             )}
             {payment.is_manual && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 font-mono"
                 style={{
-                  background: brand.surfaceInset,
-                  color: brand.primary,
-                  border: `1px solid ${brand.border}`,
+                  background: shell.inset,
+                  color: '#d4a853',
+                  border: `1px solid ${shell.border}`,
                 }}
               >
                 <StarIcon size={9} /> Manual
@@ -590,26 +596,26 @@ export const ExchangePaymentHero = ({ payment }) => {
         </div>
 
         {/* Amount block */}
-        <div className="pt-0.5">
+        <div>
           <p
-            className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mb-1.5"
-            style={{ color: brand.textMuted }}
+            className="text-[9.5px] uppercase tracking-[0.14em] font-semibold mb-1.5 font-mono"
+            style={{ color: shell.muted }}
           >
             Final amount
           </p>
           <div className="flex items-end gap-2 flex-wrap">
             <p
-              className="text-[38px] sm:text-[42px] font-semibold tabular-nums tracking-tight leading-none"
-              style={{ color: brand.text, letterSpacing: '-0.03em' }}
+              className="text-[36px] sm:text-[40px] font-semibold tabular-nums tracking-tight leading-none"
+              style={{ color: shell.text, letterSpacing: '-0.03em' }}
             >
               {formatUSDT(payment.final_amount)}
             </p>
             <span
-              className="text-[11px] font-bold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded-md"
+              className="text-[10px] font-bold uppercase tracking-wider mb-1.5 px-2 py-0.5 rounded-md font-mono"
               style={{
-                background: brand.surfaceRaised,
-                color: brand.primary,
-                border: `1px solid ${brand.borderAccent}`,
+                background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+                color: '#17110a',
+                border: '1px solid #d4a853',
               }}
             >
               USDT
@@ -617,22 +623,21 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
             <span
-              className="text-[10.5px] font-bold px-2 py-0.5 rounded-md"
+              className="text-[10.5px] font-semibold px-2 py-1 rounded-md font-mono"
               style={{
-                background: brand.surfaceRaised,
-                color: brand.primary,
-                border: `1px solid ${brand.borderAccent}`,
+                background: shell.inset,
+                color: shell.text,
+                border: `1px solid ${shell.border}`,
               }}
             >
               {network}
             </span>
-            <span style={{ color: brand.border }}>·</span>
             <span
-              className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md"
+              className="text-[10.5px] font-semibold px-2 py-1 rounded-md font-mono"
               style={{
-                background: brand.surfaceInset,
-                color: brand.text,
-                border: `1px solid ${brand.border}`,
+                background: shell.inset,
+                color: shell.faint,
+                border: `1px solid ${shell.border}`,
               }}
             >
               {planLabel}
@@ -640,32 +645,54 @@ export const ExchangePaymentHero = ({ payment }) => {
           </div>
         </div>
 
-        {/* Time / payment meta grid — solid inset chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-          <MetaChip
-            brand={brand}
-            icon={CalendarDotIcon}
-            label="Payment date"
-            value={
-              payment.verified_at
+        {/* Meta grid — solid terminal chips */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {[
+            {
+              icon: CalendarDotIcon,
+              label: 'Payment date',
+              value: payment.verified_at
                 ? formatDateTimeLong(payment.verified_at)
-                : 'Not verified yet'
-            }
-            accent={payment.verified_at ? brand.primary : brand.textMuted}
-          />
-          <MetaChip
-            brand={brand}
-            icon={ClockIcon}
-            label="Recorded"
-            value={formatDateTimeLong(payment.created_at)}
-          />
-          <MetaChip
-            brand={brand}
-            icon={TimerIcon}
-            label={payment.status === 'pending' ? 'Age' : 'Relative'}
-            value={age || '—'}
-            accent={payment.is_stale ? '#f87171' : brand.primary}
-          />
+                : 'Not verified yet',
+              accent: payment.verified_at ? '#d4a853' : shell.muted,
+            },
+            {
+              icon: ClockIcon,
+              label: 'Recorded',
+              value: formatDateTimeLong(payment.created_at),
+              accent: shell.muted,
+            },
+            {
+              icon: TimerIcon,
+              label: payment.status === 'pending' ? 'Age' : 'Relative',
+              value: age || '—',
+              accent: payment.is_stale ? '#f87171' : brand.primary,
+            },
+          ].map((chip) => (
+            <div
+              key={chip.label}
+              className="flex flex-col gap-0.5 min-w-0 rounded-xl px-2.5 py-2"
+              style={{
+                background: shell.inset,
+                border: `1px solid ${shell.border}`,
+              }}
+            >
+              <span
+                className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] font-semibold font-mono"
+                style={{ color: chip.accent }}
+              >
+                <chip.icon size={10} />
+                {chip.label}
+              </span>
+              <span
+                className="text-[11px] font-medium tabular-nums truncate"
+                style={{ color: shell.text }}
+                title={chip.value}
+              >
+                {chip.value}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -37,14 +37,26 @@ import {
   brandColor,
 } from './finance/exchangeBranding';
 
-/* ── Layout primitives (panel-local) ──────────────────────────────── */
+/* ── Layout primitives — solid Terminal language ─────────────────── */
+
+const PANEL = {
+  card: '#0a0805',
+  inset: '#0c0a07',
+  raised: '#100c08',
+  border: 'rgba(255,255,255,0.08)',
+  borderSoft: 'rgba(255,255,255,0.06)',
+  hairline: 'linear-gradient(to right, transparent, rgba(212,168,83,0.45), transparent)',
+  label: 'rgba(255,255,255,0.42)',
+  muted: '#8a7a6e',
+  text: '#f5f0e8',
+};
 
 const Section = ({ title, action, children }) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
       <p
-        className="text-[9.5px] uppercase tracking-[0.13em] font-bold"
-        style={{ color: 'rgba(255,255,255,0.38)' }}
+        className="text-[9.5px] uppercase tracking-[0.13em] font-bold font-mono"
+        style={{ color: PANEL.label }}
       >
         {title}
       </p>
@@ -56,31 +68,35 @@ const Section = ({ title, action, children }) => (
 
 const InfoBlock = ({ children }) => (
   <div
-    className="rounded-lg px-3 py-1"
+    className="relative overflow-hidden rounded-xl px-3 py-1"
     style={{
-      background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.05)',
+      background: PANEL.card,
+      border: `1px solid ${PANEL.border}`,
     }}
   >
+    <div
+      className="absolute inset-x-0 top-0 h-px pointer-events-none"
+      style={{ background: PANEL.hairline }}
+    />
     {children}
   </div>
 );
 
 const InfoRow = ({ label, value, mono = false, copyable = false, onCopy, valueColor }) => (
   <div
-    className="flex items-center justify-between gap-3 py-2"
-    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    className="flex items-center justify-between gap-3 py-2.5"
+    style={{ borderBottom: `1px solid ${PANEL.borderSoft}` }}
   >
     <span
-      className="text-[10px] uppercase tracking-wider shrink-0"
-      style={{ color: '#6b5c52' }}
+      className="text-[10px] uppercase tracking-wider shrink-0 font-mono"
+      style={{ color: PANEL.muted }}
     >
       {label}
     </span>
     <div className="flex items-center gap-1.5 min-w-0">
       <span
         className={`text-[11.5px] truncate text-right ${mono ? 'font-mono tabular-nums' : ''}`}
-        style={{ color: valueColor || '#fff' }}
+        style={{ color: valueColor || PANEL.text }}
         title={typeof value === 'string' ? value : ''}
       >
         {value ?? '—'}
@@ -88,8 +104,12 @@ const InfoRow = ({ label, value, mono = false, copyable = false, onCopy, valueCo
       {copyable && value && value !== '—' && (
         <button
           onClick={() => onCopy(value)}
-          className="p-1 rounded transition-colors shrink-0 hover:bg-white/5"
-          style={{ color: '#8a7a6e' }}
+          className="p-1 rounded-md transition-colors shrink-0"
+          style={{
+            color: PANEL.muted,
+            background: PANEL.inset,
+            border: `1px solid ${PANEL.borderSoft}`,
+          }}
           title="Copy"
           aria-label={`Copy ${label}`}
         >
@@ -138,42 +158,72 @@ const ExchangeRow = ({ exchangeName, walletLabel }) => {
   );
 };
 
-/* ── Action button (panel-local) ──────────────────────────────────── */
+/* ── Solid action buttons — Terminal Live / Landing CTA language ──── */
 
 const TONE = {
-  success: { color: '#34d399', bg: 'rgba(52,211,153,0.10)',  bgHover: 'rgba(52,211,153,0.18)',  border: 'rgba(52,211,153,0.28)' },
-  danger:  { color: '#f87171', bg: 'rgba(248,113,113,0.10)', bgHover: 'rgba(248,113,113,0.18)', border: 'rgba(248,113,113,0.28)' },
-  warn:    { color: '#fb923c', bg: 'rgba(251,146,60,0.10)',  bgHover: 'rgba(251,146,60,0.18)',  border: 'rgba(251,146,60,0.28)' },
-  muted:   { color: '#8a7a6e', bg: 'rgba(138,122,110,0.10)', bgHover: 'rgba(138,122,110,0.18)', border: 'rgba(138,122,110,0.25)' },
-  gold:    { color: '#d4a853', bg: 'rgba(212,168,83,0.10)',  bgHover: 'rgba(212,168,83,0.18)',  border: 'rgba(212,168,83,0.28)' },
+  // Filled solid — not translucent “raw glass”
+  success: {
+    color: '#d1fae5',
+    bg: '#065f46',
+    border: '#047857',
+    iconBg: '#047857',
+  },
+  danger: {
+    color: '#fecaca',
+    bg: '#7f1d1d',
+    border: '#991b1b',
+    iconBg: '#991b1b',
+  },
+  warn: {
+    color: '#ffedd5',
+    bg: '#9a3412',
+    border: '#c2410c',
+    iconBg: '#c2410c',
+  },
+  muted: {
+    color: 'rgba(255,255,255,0.72)',
+    bg: '#0c0a07',
+    border: 'rgba(255,255,255,0.12)',
+    iconBg: '#120f0c',
+  },
+  gold: {
+    color: '#17110a',
+    bg: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+    border: '#d4a853',
+    iconBg: 'transparent',
+    solidIcon: true,
+  },
 };
 
-const ActionBtn = ({ Icon, label, tone = 'gold', onClick, disabled, busy }) => {
+const ActionBtn = ({ Icon, label, tone = 'gold', onClick, disabled, busy, className = '' }) => {
   const t = TONE[tone] || TONE.gold;
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
-      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-[1.02]"
+      disabled={disabled || busy}
+      className={`group flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all disabled:opacity-35 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] ${className}`}
       style={{
         background: t.bg,
         color: t.color,
         border: `1px solid ${t.border}`,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.background = t.bgHover;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = t.bg;
+        boxShadow: tone === 'gold' ? '0 4px 14px rgba(212,168,83,0.22)' : '0 2px 8px rgba(0,0,0,0.35)',
       }}
     >
       {busy ? (
         <span
-          className="w-3 h-3 border-2 rounded-full animate-spin"
+          className="w-3.5 h-3.5 border-2 rounded-full animate-spin"
           style={{ borderColor: `${t.color}40`, borderTopColor: t.color }}
         />
       ) : (
-        <Icon size={11} />
+        <span
+          className="inline-flex items-center justify-center w-5 h-5 rounded-md shrink-0"
+          style={{
+            background: t.solidIcon ? 'rgba(0,0,0,0.12)' : t.iconBg,
+            color: t.color,
+          }}
+        >
+          <Icon size={12} />
+        </span>
       )}
       {label}
     </button>
@@ -211,24 +261,28 @@ const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => 
 
   return (
     <div
-      className="rounded-xl p-3.5 space-y-2.5"
+      className="relative overflow-hidden rounded-xl p-3.5 space-y-2.5"
       style={{
-        background: t.bg,
+        background: PANEL.card,
         border: `1px solid ${t.border}`,
       }}
     >
-      <div>
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ background: t.border }}
+      />
+      <div className="pl-1">
         <p className="text-[12px] font-bold" style={{ color: t.color }}>
           {meta.title}
         </p>
-        <p className="text-[10.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <p className="text-[10.5px] mt-0.5" style={{ color: PANEL.muted }}>
           {meta.desc}
         </p>
       </div>
 
       <div>
         <label
-          className="block text-[9.5px] uppercase tracking-wider font-semibold mb-1"
+          className="block text-[9.5px] uppercase tracking-wider font-semibold mb-1 font-mono"
           style={{ color: t.color }}
         >
           Reason <span style={{ color: '#f87171' }}>*</span>
@@ -239,54 +293,31 @@ const NoteInput = ({ actionType, note, onChange, onCancel, onSubmit, busy }) => 
           placeholder="Why are you taking this action? (min. 3 characters)"
           rows={3}
           autoFocus
-          className="w-full px-2.5 py-2 rounded text-[11.5px] text-white focus:outline-none resize-none"
+          className="w-full px-2.5 py-2 rounded-lg text-[11.5px] focus:outline-none resize-none"
           style={{
-            background: 'rgba(0,0,0,0.35)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: PANEL.inset,
+            border: `1px solid ${PANEL.border}`,
+            color: PANEL.text,
           }}
         />
         <p
-          className="text-[9.5px] mt-1 text-right tabular-nums"
-          style={{
-            color:
-              note.trim().length >= 3 ? '#34d399' : 'rgba(255,255,255,0.4)',
-          }}
+          className="text-[9.5px] mt-1 text-right tabular-nums font-mono"
+          style={{ color: note.trim().length >= 3 ? '#34d399' : PANEL.muted }}
         >
           {note.length} chars
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={onCancel}
-          disabled={busy}
-          className="flex-1 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wider disabled:opacity-50"
-          style={{
-            color: '#8a7a6e',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          Cancel
-        </button>
-        <button
+      <div className="grid grid-cols-2 gap-2">
+        <ActionBtn Icon={CloseIcon} label="Back" tone="muted" onClick={onCancel} disabled={busy} />
+        <ActionBtn
+          Icon={CheckCircleIcon}
+          label={busy ? 'Processing…' : meta.confirm}
+          tone={meta.tone}
           onClick={onSubmit}
           disabled={!canSubmit || busy}
-          className="flex-1 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-          style={{
-            background: `linear-gradient(135deg, ${t.color}55, ${t.color}30)`,
-            color: '#fff',
-            border: `1px solid ${t.color}`,
-          }}
-        >
-          {busy && (
-            <span
-              className="w-3 h-3 border-2 rounded-full animate-spin"
-              style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
-            />
-          )}
-          {busy ? 'Processing…' : meta.confirm}
-        </button>
+          busy={busy}
+        />
       </div>
     </div>
   );
@@ -298,17 +329,21 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
   const canSubmit = note.trim().length >= 1;
   return (
     <div
-      className="rounded-xl p-3.5 space-y-2.5"
+      className="relative overflow-hidden rounded-xl p-3.5 space-y-2.5"
       style={{
-        background: TONE.gold.bg,
-        border: `1px solid ${TONE.gold.border}`,
+        background: PANEL.card,
+        border: `1px solid ${PANEL.border}`,
       }}
     >
+      <div
+        className="absolute inset-x-0 top-0 h-px pointer-events-none"
+        style={{ background: PANEL.hairline }}
+      />
       <div>
         <p className="text-[12px] font-bold" style={{ color: '#d4a853' }}>
           Add Note to Audit Trail
         </p>
-        <p className="text-[10.5px] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <p className="text-[10.5px] mt-0.5" style={{ color: PANEL.muted }}>
           Append a free-form note. Useful for context, follow-ups, or manual corrections.
         </p>
       </div>
@@ -318,36 +353,23 @@ const AddNoteInput = ({ note, onChange, onCancel, onSubmit, busy }) => {
         placeholder="Type your note…"
         rows={3}
         autoFocus
-        className="w-full px-2.5 py-2 rounded text-[11.5px] text-white focus:outline-none resize-none"
+        className="w-full px-2.5 py-2 rounded-lg text-[11.5px] focus:outline-none resize-none"
         style={{
-          background: 'rgba(0,0,0,0.35)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: PANEL.inset,
+          border: `1px solid ${PANEL.border}`,
+          color: PANEL.text,
         }}
       />
-      <div className="flex gap-2">
-        <button
-          onClick={onCancel}
-          disabled={busy}
-          className="flex-1 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wider"
-          style={{
-            color: '#8a7a6e',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          Cancel
-        </button>
-        <button
+      <div className="grid grid-cols-2 gap-2">
+        <ActionBtn Icon={CloseIcon} label="Back" tone="muted" onClick={onCancel} disabled={busy} />
+        <ActionBtn
+          Icon={EditIcon}
+          label={busy ? 'Saving…' : 'Save Note'}
+          tone="gold"
           onClick={onSubmit}
           disabled={!canSubmit || busy}
-          className="flex-1 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-40"
-          style={{
-            background: 'linear-gradient(135deg, #d4a853, #8b6914)',
-            color: '#0a0506',
-          }}
-        >
-          {busy ? 'Saving…' : 'Save Note'}
-        </button>
+          busy={busy}
+        />
       </div>
     </div>
   );
@@ -595,11 +617,11 @@ export const PaymentDetailPanel = ({
           {/* ERROR */}
           {error && (
             <div
-              className="text-[11.5px] px-3 py-2.5 rounded-lg flex items-start gap-2"
+              className="text-[11.5px] px-3 py-2.5 rounded-xl flex items-start gap-2"
               style={{
-                background: 'rgba(248,113,113,0.10)',
-                color: '#f87171',
-                border: '1px solid rgba(248,113,113,0.28)',
+                background: '#7f1d1d',
+                color: '#fecaca',
+                border: '1px solid #991b1b',
               }}
             >
               <AlertTriangleIcon size={13} className="shrink-0 mt-0.5" />
@@ -746,30 +768,42 @@ export const PaymentDetailPanel = ({
           {/* USER */}
           <Section title="User">
             <div
-              className="rounded-lg p-2.5"
+              className="relative overflow-hidden rounded-xl p-3"
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: PANEL.card,
+                border: `1px solid ${PANEL.border}`,
               }}
             >
+              <div
+                className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                style={{ background: PANEL.hairline }}
+              />
               <div className="flex items-center gap-2.5">
                 <span
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                  style={{ background: 'rgba(212,168,83,0.15)', color: '#d4a853' }}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #f0d890 0%, #d4a853 50%, #b88a3e 100%)',
+                    color: '#17110a',
+                    border: '1px solid #d4a853',
+                  }}
                 >
                   {p.user?.username?.charAt(0).toUpperCase() || '?'}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-white truncate">
+                  <p className="text-[13px] font-semibold truncate" style={{ color: PANEL.text }}>
                     @{p.user?.username || 'unknown'}
                   </p>
-                  <p className="text-[10.5px] truncate" style={{ color: '#6b5c52' }}>
+                  <p className="text-[10.5px] truncate font-mono" style={{ color: PANEL.muted }}>
                     {p.user?.email || '—'} · ID #{p.user_id}
                   </p>
                 </div>
                 <span
-                  className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded shrink-0"
-                  style={roleStyle(p.user?.role)}
+                  className="text-[9px] uppercase tracking-wider font-bold px-2 py-1 rounded-md shrink-0 font-mono"
+                  style={{
+                    background: PANEL.inset,
+                    color: roleStyle(p.user?.role).color,
+                    border: `1px solid ${PANEL.border}`,
+                  }}
                 >
                   {p.user?.role || 'free'}
                 </span>
