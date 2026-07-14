@@ -20,6 +20,7 @@ import { saveRefFromURL } from "../../../utils/referralStorage";
 import useLandingData from "./useLandingData";
 import HeaderV2 from "./sections/HeaderV2";
 import HeroSlider from "./sections/HeroSlider";
+import RecentWinnersMarquee from "./sections/RecentWinnersMarquee";
 import TopGainers from "./sections/TopGainers";
 import GlobalReach from "./sections/GlobalReach";
 import Architecture from "./sections/Architecture";
@@ -70,6 +71,7 @@ export default function LandingPageV2() {
 
       <HeaderV2 onNav={scrollTo} activeId={activeId} />
       <HeroSlider onNav={scrollTo} gainers={topGainers} />
+      <RecentWinnersMarquee gainers={topGainers} />
       <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
       <GlobalReach />
       <Architecture />

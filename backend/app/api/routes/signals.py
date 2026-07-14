@@ -1163,20 +1163,27 @@ async def get_top_performers(
             GROUP BY pair
         )
         SELECT
-            best_peak_signal_id as signal_id,
-            pair,
-            first_entry as entry,
-            best_peak_price as tp_price,
+            pa.best_peak_signal_id as signal_id,
+            pa.pair,
+            pa.first_entry as entry,
+            pa.best_peak_price as tp_price,
             'PEAK' as tp_level,
-            ROUND(((best_peak_price - first_entry) / NULLIF(first_entry, 0) * 100)::numeric, 2) as gain_pct,
-            EXTRACT(EPOCH FROM (best_peak_at - first_signal_time::timestamptz)) as duration_seconds,
-            first_signal_time as signal_time,
-            best_peak_at as hit_time,
-            signal_count,
-            all_signal_ids
-        FROM pair_agg
-        WHERE best_peak_price > first_entry
-          AND first_entry > 0
+            ROUND(((pa.best_peak_price - pa.first_entry) / NULLIF(pa.first_entry, 0) * 100)::numeric, 2) as gain_pct,
+            EXTRACT(EPOCH FROM (pa.best_peak_at - pa.first_signal_time::timestamptz)) as duration_seconds,
+            pa.first_signal_time as signal_time,
+            pa.best_peak_at as hit_time,
+            pa.signal_count,
+            pa.all_signal_ids,
+            sig.latest_chart_path,
+            sig.pnl_leverage,
+            sig.target1,
+            sig.target2,
+            sig.target3,
+            sig.target4
+        FROM pair_agg pa
+        JOIN signals sig ON sig.signal_id = pa.best_peak_signal_id
+        WHERE pa.best_peak_price > pa.first_entry
+          AND pa.first_entry > 0
         ORDER BY gain_pct DESC
         LIMIT :limit
     """)
@@ -1257,10 +1264,11 @@ async def get_top_performers(
             elif all_ids is None:
                 all_ids = [r[0]]
 
-            return {
+            entry_val = float(r[2] or 0)
+            d = {
                 "signal_id": r[0],
                 "pair": r[1],
-                "entry": float(r[2] or 0),
+                "entry": entry_val,
                 "tp_price": float(r[3] or 0),
                 "tp_level": (r[4] or "").upper().replace("TP", "TP "),
                 "gain_pct": float(r[5] or 0),
@@ -1271,6 +1279,38 @@ async def get_top_performers(
                 "signal_count": int(r[9]) if r[9] else 1,
                 "all_signal_ids": all_ids,
             }
+
+            # Enrichment for gainers rows (fastest rows are shorter → guarded).
+            # Adds: PnL-card image (latest_chart_url), per-signal leverage, and
+            # realized % (gain to the highest TP the card was rendered at).
+            # gain_pct above is the PEAK gain; realized_pct is the TP gain.
+            if len(r) > 12:
+                import re as _re
+                latest_path = r[11]
+                lev = r[12]
+                targets = [
+                    r[13] if len(r) > 13 else None,
+                    r[14] if len(r) > 14 else None,
+                    r[15] if len(r) > 15 else None,
+                    r[16] if len(r) > 16 else None,
+                ]
+                realized_pct = None
+                if latest_path and entry_val > 0:
+                    m = _re.search(r'_tp(\d)_', str(latest_path))
+                    if m:
+                        idx = int(m.group(1)) - 1
+                        if 0 <= idx < 4 and targets[idx]:
+                            try:
+                                realized_pct = round(
+                                    (float(targets[idx]) - entry_val) / entry_val * 100, 2
+                                )
+                            except Exception:
+                                realized_pct = None
+                d["latest_chart_url"] = chart_path_to_url(latest_path)
+                d["pnl_leverage"] = int(lev) if lev else None
+                d["realized_pct"] = realized_pct
+
+            return d
 
         period_end = actual_to or datetime.utcnow().strftime('%B %d, %Y')
         period_start = actual_from
