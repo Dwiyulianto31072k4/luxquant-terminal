@@ -412,7 +412,13 @@ def fetch_face_reference(featured_person: Optional[str]) -> Optional[str]:
         return None
 
 
-def _edit_xai_image(prompt: str, reference_path: str, out_path: Path) -> None:
+def _edit_xai_image(
+    prompt: str,
+    reference_path: str,
+    out_path: Path,
+    *,
+    aspect_ratio: str = "3:4",
+) -> None:
     """Generate via xAI image-edit conditioned on a reference photo (JSON + base64
     data URI, per xAI /images/edits spec)."""
     api_key = os.environ.get("XAI_API_KEY")
@@ -422,17 +428,30 @@ def _edit_xai_image(prompt: str, reference_path: str, out_path: Path) -> None:
         b64 = base64.b64encode(handle.read()).decode("utf-8")
     ext = Path(reference_path).suffix.lstrip(".").lower() or "png"
     mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    payload = {
+        "model": XAI_IMAGE_EDIT_MODEL,
+        "prompt": prompt,
+        "image": {"url": f"data:image/{mime};base64,{b64}", "type": "image_url"},
+        "response_format": "b64_json",
+    }
+    # Prefer vertical social crop when the API accepts it
+    if aspect_ratio:
+        payload["aspect_ratio"] = aspect_ratio
     response = requests.post(
         f"{XAI_API_BASE.rstrip('/')}/images/edits",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": XAI_IMAGE_EDIT_MODEL,
-            "prompt": prompt,
-            "image": {"url": f"data:image/{mime};base64,{b64}", "type": "image_url"},
-            "response_format": "b64_json",
-        },
+        json=payload,
         timeout=XAI_IMAGE_TIMEOUT,
     )
+    # Some model versions reject aspect_ratio on edits — retry without it
+    if response.status_code >= 400 and aspect_ratio:
+        payload.pop("aspect_ratio", None)
+        response = requests.post(
+            f"{XAI_API_BASE.rstrip('/')}/images/edits",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=XAI_IMAGE_TIMEOUT,
+        )
     response.raise_for_status()
     item = (response.json().get("data") or [{}])[0]
     if item.get("b64_json"):
@@ -524,49 +543,88 @@ def _wrap_headline(draw, text_value: str, fnt) -> list:
     return lines[:4]
 
 
-def _build_face_logo_reference(
-    face_path: str,
-    logo_path: str,
-    *,
-    news_id: int,
-) -> Optional[str]:
-    """Side-by-side reference so one xAI edit sees both likeness + official brand mark.
+# Identity-first pipeline: face edit alone, then optional brand pass.
+# Dual face|logo collage refs destroy likeness — never use them.
+IDENTITY_LOCK_PREFIX = (
+    "CRITICAL IDENTITY LOCK (highest priority — override every other instruction): "
+    "The person in the output MUST be the EXACT same individual as in the reference photograph — "
+    "true 1:1 facial match. Preserve face shape, eyes, eyelids, eyebrows, nose, mouth, lips, jaw, "
+    "chin, ears, cheekbones, skin tone, age, hairline, hair color/style, glasses frame shape and "
+    "lenses, moles/marks, and facial proportions. "
+    "Do NOT invent a different person, a generic lookalike, a stock Asian male, or an AI-reimagined face. "
+    "Do NOT beautify or age-shift. Start from THIS reference face and only change clothing, pose, "
+    "camera framing, and background as needed for the scene. "
+)
 
-    Left ~62%: face photo. Right ~38%: logo on clean plate.
-    Prompt tells the model person = left, brand mark = right → integrate into ONE scene.
+BRAND_PASS_FACE_LOCK = (
+    "CRITICAL: Keep the person's face EXACTLY as already shown in the input image — "
+    "zero identity change, no new face, no re-draw of features. "
+    "Only modify background, props, and brand elements. "
+)
+
+
+def _prepare_face_reference(face_path: str, *, news_id: int) -> str:
+    """Normalize admin face upload for edit: full portrait, no aggressive crop.
+
+    Letterbox onto a clean square so the model sees the whole head/shoulders
+    (cover-crop was clipping faces and hurting identity lock).
     """
-    from PIL import Image, ImageDraw
+    from PIL import Image
 
     try:
-        face = Image.open(face_path).convert("RGB")
-        logo = Image.open(logo_path).convert("RGBA")
+        img = Image.open(face_path).convert("RGB")
     except Exception:
-        return None
+        return face_path
 
-    W, H = 1024, 1024
-    canvas = Image.new("RGB", (W, H), (18, 18, 22))
-    # Face panel
-    fw = int(W * 0.62)
-    face_c = _cover_image(face, (fw, H))
-    canvas.paste(face_c, (0, 0))
-    # Logo panel
-    lw = W - fw
-    plate = Image.new("RGBA", (lw, H), (245, 245, 248, 255))
-    # contain logo in center of plate
-    max_side = int(min(lw, H) * 0.55)
-    logo_c = logo.copy()
-    logo_c.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
-    ox = fw + (lw - logo_c.width) // 2
-    oy = (H - logo_c.height) // 2
-    canvas.paste(logo_c, (ox, oy), logo_c if logo_c.mode == "RGBA" else None)
-    # thin divider
-    draw = ImageDraw.Draw(canvas)
-    draw.line([(fw, 0), (fw, H)], fill=(80, 80, 90), width=3)
-
-    out = ASSETS_DIR / f"ref_dual_{news_id}.png"
+    # Already a decent portrait file — only re-export if huge or tiny
+    w, h = img.size
+    side = max(w, h)
+    # Pad to square with neutral gray (not black) so edges don't dominate
+    canvas = Image.new("RGB", (side, side), (236, 236, 238))
+    canvas.paste(img, ((side - w) // 2, (side - h) // 2))
+    # Cap size for API payload
+    max_side = 1536
+    if side > max_side:
+        canvas.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+    out = ASSETS_DIR / f"ref_face_{news_id}.jpg"
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    canvas.save(out, quality=95)
+    canvas.save(out, quality=95, optimize=True)
     return str(out)
+
+
+def _identity_face_prompt(scene_prompt: str, *, brand: Optional[str] = None) -> str:
+    """Build face-only edit prompt: identity first, scene second."""
+    parts = [
+        IDENTITY_LOCK_PREFIX,
+        "Task: Transform the reference photograph into a cinematic vertical Instagram poster "
+        "while keeping the same person's face 1:1.",
+        "The hero subject is a large chest-up or three-quarter portrait of THIS exact person "
+        "in the upper/middle frame.",
+        f"Scene direction (do not change identity for these): {scene_prompt}",
+    ]
+    if brand:
+        parts.append(
+            f"Environment may evoke {brand} (architecture, colors, workplace props) "
+            "without drawing fake logo stickers in corners; brand marks come in a later pass if needed."
+        )
+    parts.append(
+        "Lower third of the frame darker and calmer for later headline typography. "
+        "No readable text, no captions, no watermarks."
+    )
+    return " ".join(parts)
+
+
+def _brand_pass_prompt(scene_prompt: str, brand: str) -> str:
+    """Second edit: inject brand into an identity-locked scene without touching the face."""
+    return (
+        f"{BRAND_PASS_FACE_LOCK}"
+        f"Add the official {brand} brand presence as a physical scene element "
+        f"(wall signage, product emblem, desk object, or architectural mark). "
+        f"Match real {brand} brand geometry and colors when possible. "
+        "Never as a tiny corner sticker, floating badge, or white plate. "
+        f"Keep composition as a cinematic vertical poster. Context: {scene_prompt[:400]} "
+        "No readable body text, no caption bars."
+    )
 
 
 def _compose_editorial_card(
@@ -757,47 +815,41 @@ def generate_ai_social_image(
             logo_ok = bool(primary_logo_path and Path(str(primary_logo_path)).exists())
             face_ok = bool(face_path and Path(str(face_path)).exists())
 
-            if face_ok and logo_ok:
-                # Dual reference: person likeness + official mark → ONE integrated scene
-                dual = _build_face_logo_reference(
-                    str(face_path), str(primary_logo_path), news_id=news_id
+            if face_ok:
+                # ── Step 1: FACE ONLY (1:1 identity). Never dual-collage with logo. ──
+                face_ref = _prepare_face_reference(str(face_path), news_id=news_id)
+                ref_used = face_ref
+                identity_prompt = _identity_face_prompt(
+                    prompt,
+                    brand=primary_org_name if logo_ok or primary_org_name else None,
                 )
-                ref_used = dual or face_path
-                if dual:
-                    edit_prompt = (
-                        "Cinematic vertical Instagram poster, single continuous photoreal scene. "
-                        "The LEFT side of the reference shows the exact person — preserve their real face, "
-                        "hair, and likeness as the large hero subject. "
-                        f"The RIGHT side shows the official {brand} brand mark — integrate that EXACT mark "
-                        "as a large physical element INSIDE the scene (phone app icon/UI, desk plaque, "
-                        "product surface, building signage, or 3D prop). Match logo geometry and colors "
-                        "from the reference. NEVER as a tiny corner sticker, floating badge, or white plate. "
-                        "Scene direction: " + prompt
-                    )
-                    mode = "ai_xai_face_brand_scene"
-                else:
-                    edit_prompt = (
-                        "Cinematic vertical poster. Place the exact person from the reference — "
-                        "preserving face likeness — as the large hero. "
-                        f"Also integrate {brand} brand identity as physical environment/props (not corner stickers). "
-                        + prompt
-                    )
-                    mode = "ai_xai_face_poster"
-                _edit_xai_image(edit_prompt, str(ref_used), raw_path)
-            elif face_ok:
-                edit_prompt = (
-                    "Cinematic vertical poster. Place the exact person shown in the reference image — "
-                    "preserving their real face, hair, and likeness precisely — as the large hero "
-                    "foreground subject of this scene: " + prompt
-                )
-                if primary_org_name:
-                    edit_prompt += (
-                        f" Environment should clearly evoke {brand} (colors, product, workplace) "
-                        "without inventing fake logo stickers in the corners."
-                    )
-                _edit_xai_image(edit_prompt, str(face_path), raw_path)
-                ref_used = face_path
-                mode = "ai_xai_face_poster"
+                gen_prompt = identity_prompt
+                _edit_xai_image(identity_prompt, face_ref, raw_path, aspect_ratio="3:4")
+                mode = "ai_xai_face_1to1"
+
+                # ── Step 2 (optional): brand into scene without changing the face ──
+                if logo_ok:
+                    try:
+                        brand_prompt = _brand_pass_prompt(prompt, brand)
+                        # Edit FROM the identity-locked scene (not from logo collage)
+                        _edit_xai_image(
+                            brand_prompt,
+                            str(raw_path),
+                            raw_path,
+                            aspect_ratio="3:4",
+                        )
+                        mode = "ai_xai_face_1to1_brand"
+                        gen_prompt = identity_prompt + " | brand_pass:" + brand
+                    except Exception as brand_exc:
+                        # Keep identity-locked image if brand pass fails
+                        logger = __import__("logging").getLogger(__name__)
+                        logger.warning(
+                            "brand pass failed (keeping face-locked image): %s", brand_exc
+                        )
+                elif primary_org_name:
+                    # No logo file — light text-only brand environment already in step 1
+                    mode = "ai_xai_face_1to1"
+
             elif logo_ok:
                 # Brand mark is the visual anchor — build scene around it as a physical prop
                 edit_prompt = (
@@ -808,7 +860,7 @@ def generate_ai_social_image(
                     "Never as a tiny corner sticker or badge on a white plate. "
                     "Full scene: " + prompt
                 )
-                _edit_xai_image(edit_prompt, str(primary_logo_path), raw_path)
+                _edit_xai_image(edit_prompt, str(primary_logo_path), raw_path, aspect_ratio="3:4")
                 ref_used = primary_logo_path
                 mode = "ai_xai_brand_scene"
             else:
@@ -830,7 +882,8 @@ def generate_ai_social_image(
                 visual_materials = {
                     **visual_materials,
                     "raw_image_path": str(raw_path),
-                    "brand_in_scene": bool(logo_ok),
+                    "brand_in_scene": bool(logo_ok and face_ok) or (bool(logo_ok) and not face_ok),
+                    "identity_lock": bool(face_ok),
                     "primary_brand": primary_org_name,
                 }
             return GeneratedSocialImage(
