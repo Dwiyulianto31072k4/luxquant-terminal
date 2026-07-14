@@ -668,6 +668,10 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
     detail?.x_post_url ||
     `https://x.com/search?q=${encodeURIComponent(`$${xCash} from:${X_HANDLE}`)}&f=live`;
 
+  // Current signal id (respects multi-signal navigation) → full history route.
+  const currentSid = (signalIds && signalIds[currentIndex]) || item?.signal_id || detail?.signal_id;
+  const historyHref = `/signals?signal=${encodeURIComponent(currentSid || "")}&tab=history`;
+
   useEffect(() => { setShowTV(false); setPeakPrice(null); }, [currentIndex]);
 
   useEffect(() => {
@@ -745,29 +749,41 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
         <div className="flex-shrink-0 bg-[#0a0a0a] border-b border-gold-primary/30 px-4 py-3 z-10">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0 flex-1"><CoinLogo pair={pair} size={32} /><div className="min-w-0"><div className="flex items-center gap-2 flex-wrap"><h2 className="text-white font-display text-base font-semibold truncate">{pair}</h2>{status && <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase ${sColor(status)}`}>{sLabel(status)}</span>}{detail?.risk_level && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-gold-primary/30 text-gold-primary">{detail.risk_level}</span>}</div><p className="text-text-muted text-xs mt-0.5 truncate">{t('top.called_sig')}: {fmtDt(created)}</p></div></div>
-            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+            <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
               {/* View on X — LuxQuant's post for this coin (fallback: live cashtag search) */}
               <a
                 href={xUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group/x inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-4 justify-center rounded-full bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
+                className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
                 title="View LuxQuant's posts on X"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                 <span className="hidden sm:inline">View on X</span>
               </a>
-              {onOpenHistory && (
+
+              {/* Full History — per-coin signal history (opens in place if available, else the terminal history tab) */}
+              {onOpenHistory ? (
                 <button
                   onClick={() => onOpenHistory(item)}
-                  className="lq-shine group/hist relative overflow-hidden inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-4 justify-center rounded-full bg-gold-primary text-[#1a1206] hover:bg-gold-primary/90 font-mono text-[10px] uppercase tracking-wider font-bold shadow-[0_4px_16px_-4px_rgba(212,168,83,0.7)] transition-all active:scale-[0.97]"
-                  title="Open full signal history"
+                  className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
+                  title="View full signal history"
                 >
-                  <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <span className="hidden sm:inline">Full History</span>
                 </button>
+              ) : (
+                <a
+                  href={historyHref}
+                  className="inline-flex items-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white hover:border-gold-primary/40 hover:bg-white/[0.07] hover:text-gold-primary font-mono text-[10px] uppercase tracking-wider font-bold transition-all active:scale-[0.97]"
+                  title="View full signal history"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span className="hidden sm:inline">Full History</span>
+                </a>
               )}
-              <button onClick={handleClose} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all active:scale-[0.97]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+
+              <button onClick={handleClose} className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/10 hover:bg-loss/20 hover:border-loss/50 flex items-center justify-center text-text-muted hover:text-white transition-all active:scale-[0.97]"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
           </div>
           {multi && (
@@ -805,7 +821,7 @@ export const SignalDetailModal = ({ item, detail, loading, signalIds, currentInd
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a0a0a] px-4 py-4 sm:px-6 sm:py-6">
+        <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden bg-[#0a0a0a] px-4 py-4 sm:px-6 sm:py-6">
           {loading ? (<div className="flex items-center justify-center py-20"><div className="text-center"><div className="w-10 h-10 border-2 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4" /><p className="text-gold-primary font-mono text-sm">{t('top.loading')}</p></div></div>
           ) : detail?.is_redacted ? (
             <div className="flex items-center justify-center py-12 px-4">
