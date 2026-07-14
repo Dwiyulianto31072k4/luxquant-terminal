@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_admin_user
 from app.core.database import get_db
 from app.models.user import User
+from app.services.social_generation_job import get_job, start_job
 from app.services.social_news_worker import generate_drafts
 from app.services.social_post_publisher import publish_ready_posts
 
@@ -139,6 +140,21 @@ async def social_post_cost_summary(
     }
 
 
+@router.get("/generation-status")
+async def generation_status(
+    admin: User = Depends(get_admin_user),
+):
+    """Live generation job status (survives page refresh). Client polls this."""
+    job = get_job()
+    if not job:
+        return {"active": False, "status": "idle", "job": None}
+    return {
+        "active": job.get("status") == "running",
+        "status": job.get("status") or "idle",
+        "job": job,
+    }
+
+
 @router.post("/generate-draft")
 async def generate_social_post_draft(
     payload: GenerateDraftIn,
@@ -147,17 +163,37 @@ async def generate_social_post_draft(
 ):
     if payload.limit < 1 or payload.limit > 5:
         raise HTTPException(400, "limit must be between 1 and 5")
+
+    # Block concurrent runs so progress UI stays accurate.
+    existing = get_job()
+    if existing and existing.get("status") == "running":
+        raise HTTPException(
+            409,
+            detail={
+                "message": "A generation job is already running",
+                "job": existing,
+            },
+        )
+
     # The full pipeline (search + AI text + AI image) can take 1-2 minutes, which
     # exceeds Cloudflare's ~100s origin timeout. Run it in the background and return
-    # immediately; the client polls the list until the new draft(s) appear.
+    # immediately; the client polls /generation-status for live progress.
+    admin_name = getattr(admin, "email", None) or getattr(admin, "username", "") or str(getattr(admin, "id", ""))
+    job = start_job(
+        news_id=payload.news_id,
+        platform=payload.platform,
+        limit=payload.limit,
+        admin=str(admin_name or ""),
+    )
     background_tasks.add_task(
         generate_drafts,
         news_id=payload.news_id,
         platform=payload.platform,
         limit=payload.limit,
         dry_run=False,
+        track_job=True,
     )
-    return {"ok": True, "status": "generating"}
+    return {"ok": True, "status": "generating", "job": job}
 
 
 @router.post("/publish-approved")

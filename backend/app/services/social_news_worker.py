@@ -379,7 +379,21 @@ def render_card(draft: SocialDraft, item: NewsItem) -> str:
     return str(out_path)
 
 
-def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: bool = True) -> SocialDraft:
+def _progress(cb, step: str, message: str = "") -> None:
+    if not cb:
+        return
+    try:
+        cb(step, message)
+    except Exception:
+        pass
+
+
+def build_draft(
+    item: NewsItem,
+    platform: str = DEFAULT_PLATFORM,
+    render_image: bool = True,
+    progress_cb=None,
+) -> SocialDraft:
     score = score_news(item)
     angle = _angle_for(item)
 
@@ -395,10 +409,12 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         tavily = None
         try:
             if not item.url or len((article_text or "").strip()) < 600:
+                _progress(progress_cb, "search", "Enriching sources via web search…")
                 tavily = tavily_enrich(item.extracted_title or item.title, url=item.url)
                 search_count = 1 if tavily else 0
         except Exception:
             tavily = None
+        _progress(progress_cb, "editorial", "Writing caption with AI…")
         ai_pack = build_editorial_pack(
             {
                 "title": item.extracted_title or item.title,
@@ -463,6 +479,14 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
     )
     visual_materials = None
     if render_image:
+        ents = (ai_pack or {}).get("entities") or []
+        featured = (ai_pack or {}).get("featured_person")
+        _progress(
+            progress_cb,
+            "entities",
+            f"Detecting logos & people ({len(ents)} entities)…",
+        )
+        _progress(progress_cb, "image", "Generating image with AI (this can take ~30–90s)…")
         ai_image = generate_ai_social_image(
             news_id=item.id,
             headline=headline,
@@ -471,8 +495,8 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
             angle=angle,
             reference_image_url=_image_reference_for(item),
             override_prompt=ai_image_prompt,
-            featured_person=(ai_pack or {}).get("featured_person"),
-            entities=(ai_pack or {}).get("entities") or [],
+            featured_person=featured,
+            entities=ents,
         )
         draft.image_mode = ai_image.image_mode
         draft.image_prompt = ai_image_prompt or ai_image.image_prompt
@@ -481,7 +505,10 @@ def build_draft(item: NewsItem, platform: str = DEFAULT_PLATFORM, render_image: 
         draft.image_path = ai_image.image_path
         visual_materials = getattr(ai_image, "visual_materials", None)
         if not draft.image_path:
+            _progress(progress_cb, "compose", "Composing fallback card…")
             draft.image_path = render_card(draft, item)
+        else:
+            _progress(progress_cb, "compose", "Composing final card…")
 
     # Generation cost estimate (tokens + image + search) for business monitoring.
     try:
@@ -619,16 +646,41 @@ def insert_draft(db, draft: SocialDraft) -> int:
     return int(row[0])
 
 
-def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: str = DEFAULT_PLATFORM, dry_run: bool = False) -> list[dict]:
+def generate_drafts(
+    *,
+    limit: int = 1,
+    news_id: Optional[int] = None,
+    platform: str = DEFAULT_PLATFORM,
+    dry_run: bool = False,
+    track_job: bool = False,
+) -> list[dict]:
+    """Generate social post drafts. When track_job=True, persists step progress
+    so the admin UI can poll status across page refreshes.
+    """
+    from app.services.social_generation_job import finish_job, update_job
+
+    def _job(step: str, message: str = "", **kw) -> None:
+        if track_job:
+            update_job(step, message, **kw)
+
     db = SessionLocal()
     try:
         ensure_extracts_table(db)
         ensure_social_post_image_columns(db)
         ensure_social_post_cost_columns(db)
+        _job("pick_news", "Picking candidate news…")
         candidates = pick_candidate_news(db, limit=max(limit * 6, 12), news_id=news_id, platform=platform)
+        if not candidates:
+            if track_job:
+                finish_job(error="No candidate news found")
+            return []
         created = []
-        for item in candidates[:limit]:
+        total = min(limit, len(candidates))
+        for idx, item in enumerate(candidates[:limit]):
+            title_hint = (item.extracted_title or item.title or f"news #{item.id}")[:80]
+            _job("pick_news", f"[{idx + 1}/{total}] Using: {title_hint}")
             if item.url and is_thin_text(item.description, item.raw_text) and not item.extracted_text:
+                _job("extract", f"Extracting full article for news #{item.id}…")
                 extracted = extract_news_item(db, item.id)
                 if extracted and extracted.get("status") == "ok":
                     item.extracted_text = extracted.get("extracted_text")
@@ -636,7 +688,13 @@ def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: 
                     item.extracted_image_url = extracted.get("image_url")
                     item.extract_provider = extracted.get("provider")
                     item.extract_status = extracted.get("status")
-            draft = build_draft(item, platform=platform, render_image=True)
+            draft = build_draft(
+                item,
+                platform=platform,
+                render_image=True,
+                progress_cb=(lambda step, msg: _job(step, msg)) if track_job else None,
+            )
+            _job("save", f"Saving draft for news #{item.id}…")
             post_id = None if dry_run else insert_draft(db, draft)
             created.append({
                 "id": post_id,
@@ -652,7 +710,13 @@ def generate_drafts(*, limit: int = 1, news_id: Optional[int] = None, platform: 
                 "extract_provider": item.extract_provider,
                 "source": draft.source_domain or draft.source_url,
             })
+        if track_job:
+            finish_job(result=created)
         return created
+    except Exception as e:
+        if track_job:
+            finish_job(error=str(e)[:500])
+        raise
     finally:
         db.close()
 
