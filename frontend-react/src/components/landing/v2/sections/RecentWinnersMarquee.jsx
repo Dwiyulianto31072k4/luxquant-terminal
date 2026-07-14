@@ -2,14 +2,14 @@
 // ════════════════════════════════════════════════════════════════
 // RecentWinnersMarquee — "money parade" right below the hero.
 //
-// Slow, drag scrollable rail of real PnL cards (entry to peak) sitting
-// INSIDE a faint gold wireframe globe backdrop, so it reads as one
-// immersive, contained space that blends into the neighbouring sections.
+// Truly seamless infinite rail (transform: translate3d loop, GPU) that the
+// user can also grab and drag. Fully transparent section so the page's
+// continuous maroon canvas flows through with no gradient break (same idea
+// as the Global Reach section). Each card opens the exact full proof modal.
 //
-// Data: `gainers` from useLandingData (/signals/top-performers) which
-// carries latest_chart_url + pnl_leverage + realized_pct. PnL card =
+// Data: `gainers` from useLandingData (/signals/top-performers) → carries
+// latest_chart_url + pnl_leverage + realized_pct. PnL card =
 // deriveChartWithCard(latest_chart_url) → the _with_card.png variant.
-// Full image shown (no crop). Click → the exact full proof modal.
 //
 // Props: gainers (array)
 // ════════════════════════════════════════════════════════════════
@@ -52,7 +52,7 @@ const timeAgo = (iso) => {
   return `${Math.round(mo / 12)}y ago`;
 };
 
-// Flowing English narration. No dashes anywhere.
+// Flowing English narration (peak is woven into the sentence). No dashes.
 const buildCaption = (w) => {
   const peak = fmtInt(w.gain_pct);
   const realized = fmtInt(w.realized_pct);
@@ -93,6 +93,8 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       .sort((a, b) => (b.gain_pct || 0) - (a.gain_pct || 0))
       .slice(0, 12);
   }, [gainers]);
+
+  const hasWinners = winners.length > 0;
 
   // ── proof modal (reuse SignalDetailModal — the exact full proof) ──
   const [modalOpen, setModalOpen] = useState(false);
@@ -148,30 +150,19 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
     setSignalDetail(null);
   }, []);
 
-  // ── slow auto scroll + grab/drag (window-listener based, so taps still
-  //    fire a real click → the proof modal opens reliably) ──
-  const scrollerRef = useRef(null);
+  // ── seamless transform loop + grab/drag ──
+  const trackRef = useRef(null);
+  const offsetRef = useRef(0);
   const pausedRef = useRef(false);
-  const dragRef = useRef({ active: false, startX: 0, startLeft: 0, moved: false });
-
-  const normalizeLoop = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const half = el.scrollWidth / 2;
-    if (half <= 0) return;
-    if (el.scrollLeft >= half) el.scrollLeft -= half;
-    else if (el.scrollLeft < 0) el.scrollLeft += half;
-  }, []);
+  const dragRef = useRef({ active: false, startX: 0, startOffset: 0, moved: false });
 
   const onWinMove = useCallback((e) => {
-    const el = scrollerRef.current;
     const d = dragRef.current;
-    if (!el || !d.active) return;
+    if (!d.active) return;
     const dx = e.clientX - d.startX;
     if (Math.abs(dx) > 5) d.moved = true;
-    el.scrollLeft = d.startLeft - dx;
-    normalizeLoop();
-  }, [normalizeLoop]);
+    offsetRef.current = d.startOffset + dx;
+  }, []);
 
   const onWinUp = useCallback(() => {
     window.removeEventListener("pointermove", onWinMove);
@@ -180,9 +171,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
   }, [onWinMove]);
 
   const onPointerDown = (e) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    dragRef.current = { active: true, startX: e.clientX, startLeft: el.scrollLeft, moved: false };
+    dragRef.current = { active: true, startX: e.clientX, startOffset: offsetRef.current, moved: false };
     window.addEventListener("pointermove", onWinMove);
     window.addEventListener("pointerup", onWinUp);
   };
@@ -193,42 +182,47 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
   }, [onWinMove, onWinUp]);
 
   useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el || winners.length === 0) return;
+    const track = trackRef.current;
+    if (!track || !hasWinners) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (reduce) return;
-
     let raf;
     let last;
-    const SPEED = 15; // px per second — calm
-    const step = (ts) => {
+    const SPEED = 42; // px per second
+    const n = winners.length;
+    const frame = (ts) => {
       if (last == null) last = ts;
       const dt = (ts - last) / 1000;
       last = ts;
-      const half = el.scrollWidth / 2;
-      if (half > 0 && !pausedRef.current && !dragRef.current.active) {
-        let next = el.scrollLeft + SPEED * dt;
-        if (next >= half) next -= half;
-        el.scrollLeft = next;
+      // One set width = left offset of the first card of the duplicated set.
+      const secondStart = track.children[n];
+      const setW = secondStart ? secondStart.offsetLeft : 0;
+      if (setW > 0) {
+        if (!reduce && !pausedRef.current && !dragRef.current.active) {
+          offsetRef.current -= SPEED * dt;
+        }
+        let o = offsetRef.current;
+        if (o <= -setW) o += setW;
+        else if (o > 0) o -= setW;
+        offsetRef.current = o;
+        track.style.transform = `translate3d(${o}px,0,0)`;
       }
-      raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(step);
+    raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [winners.length]);
+  }, [hasWinners, winners.length]);
 
-  const hasWinners = winners.length > 0;
   const track = hasWinners ? [...winners, ...winners] : [];
 
   return (
-    <section className="rwm relative z-10 overflow-hidden py-20 sm:py-28">
-      {/* Reddish immersive backdrop (globe-lit glow) + soft vignette */}
+    <section className="rwm relative z-10 py-20 sm:py-28">
+      {/* Warm maroon glow only (additive) — section stays transparent so the
+          page canvas flows through with no gradient break. */}
       <div className="rwm-bg" aria-hidden="true" />
-      <div className="rwm-vignette" aria-hidden="true" />
 
       {/* Heading */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
-        <h2 className="text-[1.7rem] sm:text-4xl lg:text-[2.7rem] font-bold leading-[1.05] tracking-tight text-white">
+        <h2 className="text-2xl sm:text-4xl lg:text-[2.9rem] font-bold leading-[1.05] tracking-tight text-white">
           Real calls. Real peaks.
         </h2>
         <p className="mt-3 text-sm sm:text-[15px] text-white/55 max-w-lg mx-auto leading-relaxed">
@@ -237,17 +231,16 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       </div>
 
       {/* Rail */}
-      <div className="rwm-window relative z-10 mt-12">
+      <div className="rwm-window relative z-10 mt-14">
         <div
-          ref={scrollerRef}
-          className="rwm-scroller"
+          className="rwm-viewport"
           onMouseEnter={() => { pausedRef.current = true; }}
           onMouseLeave={() => { pausedRef.current = false; }}
           onTouchStart={() => { pausedRef.current = true; }}
-          onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 1500); }}
+          onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 1400); }}
           onPointerDown={onPointerDown}
         >
-          <div className="rwm-track">
+          <div className="rwm-track" ref={trackRef}>
             {!hasWinners &&
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={`skel-${i}`} className="rwm-card">
@@ -261,7 +254,6 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
               ))}
             {track.map((w, i) => {
               const sym = cleanPair(w.pair);
-              const peak = fmtInt(w.gain_pct);
               const date = fmtDate(w.signal_time);
               const ago = timeAgo(w.signal_time);
               const caption = buildCaption(w);
@@ -283,7 +275,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
                         const img = e.currentTarget;
                         if (img.dataset.fallback !== "1" && w.latest_chart_url) {
                           img.dataset.fallback = "1";
-                          img.src = w.latest_chart_url; // base chart if the _with_card variant is missing
+                          img.src = w.latest_chart_url;
                           return;
                         }
                         const card = img.closest(".rwm-card");
@@ -297,18 +289,13 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
                       <CoinLogo pair={w.pair} size={22} />
                       <span className="text-white text-[15px] font-semibold tracking-tight">${sym}</span>
                       {(date || ago) && (
-                        <span className="text-[11px] font-mono tabular-nums text-white/40">
+                        <span className="text-[11.5px] font-mono tabular-nums text-white/40">
                           {date}{ago ? ` · ${ago}` : ""}
-                        </span>
-                      )}
-                      {peak && (
-                        <span className="ml-auto text-[14px] font-mono tabular-nums text-emerald-400 font-medium">
-                          peak +{peak}%
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-2.5 text-[13px] leading-[1.7] text-white/65">
+                    <p className="mt-2.5 text-[13.5px] leading-[1.7] text-white/65">
                       {caption}{" "}
                       <span className="rwm-proof">
                         View proof
@@ -322,7 +309,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           </div>
         </div>
 
-        {/* Side fades → blend into page base (#0a0506) */}
+        {/* Soft side fades so cards dissolve into the page at the edges */}
         <div className="rwm-fade rwm-fade-l" aria-hidden="true" />
         <div className="rwm-fade rwm-fade-r" aria-hidden="true" />
       </div>
@@ -342,76 +329,45 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
       )}
 
       <style>{`
-        /* Vertical blend so the section melts into its neighbours */
-        .rwm::before, .rwm::after {
-          content: "";
-          position: absolute;
-          left: 0; right: 0;
-          height: 140px;
-          pointer-events: none;
-          z-index: 2;
-        }
-        .rwm::before { top: 0;    background: linear-gradient(to bottom, #0a0506 0%, rgba(10,5,6,0) 100%); }
-        .rwm::after  { bottom: 0; background: linear-gradient(to top,    #0a0506 0%, rgba(10,5,6,0) 100%); }
-
-        /* Warm maroon "globe glow" so cards sit inside a reddish space,
-           not a black band. No hard fill → blends with the page canvas. */
         .rwm-bg {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
           background:
-            radial-gradient(ellipse 62% 74% at 50% 46%, rgba(150,30,30,0.34) 0%, rgba(112,24,24,0.16) 40%, rgba(40,10,11,0) 72%),
-            radial-gradient(ellipse 40% 46% at 50% 44%, rgba(212,168,83,0.07) 0%, rgba(212,168,83,0) 70%);
-        }
-        .rwm-vignette {
-          position: absolute; inset: 0; z-index: 1; pointer-events: none;
-          background: radial-gradient(ellipse 76% 66% at 50% 50%, rgba(15,7,8,0) 55%, rgba(12,6,7,0.45) 100%);
+            radial-gradient(ellipse 64% 78% at 50% 46%, rgba(150,30,30,0.30) 0%, rgba(112,24,24,0.13) 42%, rgba(40,10,11,0) 72%),
+            radial-gradient(ellipse 42% 48% at 50% 44%, rgba(212,168,83,0.06) 0%, rgba(212,168,83,0) 70%);
         }
 
-        .rwm-scroller {
-          overflow-x: auto;
-          overflow-y: hidden;
-          cursor: grab;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-          -webkit-overflow-scrolling: touch;
-          padding: 10px 0;
-          touch-action: pan-x;
-        }
-        .rwm-scroller:active { cursor: grabbing; }
-        .rwm-scroller::-webkit-scrollbar { display: none; }
+        .rwm-viewport { overflow: hidden; cursor: grab; }
+        .rwm-viewport:active { cursor: grabbing; }
         .rwm-track {
           display: flex;
-          gap: 26px;
           width: max-content;
-          padding: 0 max(24px, calc((100vw - 1440px) / 2));
+          will-change: transform;
+          padding: 10px 0;
         }
         .rwm-card {
           flex: 0 0 auto;
-          width: 300px;
+          width: 500px;
+          margin-right: 28px;
           text-align: left;
           user-select: none;
           -webkit-user-drag: none;
         }
-        @media (min-width: 640px)  { .rwm-card { width: 380px; } }
-        @media (min-width: 1024px) { .rwm-card { width: 460px; } }
+        @media (max-width: 1023px) { .rwm-card { width: 400px; margin-right: 24px; } }
+        @media (max-width: 640px)  { .rwm-card { width: 320px; margin-right: 18px; } }
 
         .rwm-img-wrap {
           position: relative;
-          border-radius: 16px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.12), 0 20px 48px -20px rgba(0,0,0,0.8);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.12), 0 22px 52px -22px rgba(0,0,0,0.8);
           transition: box-shadow .3s ease, transform .3s ease;
         }
-        .rwm-img {
-          width: 100%;
-          height: auto;      /* full image, no crop */
-          display: block;
-        }
+        .rwm-img { width: 100%; height: auto; display: block; }
         .rwm-card:hover .rwm-img-wrap {
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.36), 0 26px 56px -18px rgba(139,26,26,0.55);
+          box-shadow: 0 0 0 1px rgba(212,168,83,0.38), 0 28px 60px -18px rgba(139,26,26,0.55);
           transform: translateY(-3px);
         }
-        .rwm-meta { padding: 15px 4px 0; }
+        .rwm-meta { padding: 16px 4px 0; }
         .rwm-proof {
           display: inline-flex;
           align-items: center;
@@ -419,16 +375,15 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           white-space: nowrap;
           color: #d4a853;
           font-weight: 600;
-          font-size: 12px;
+          font-size: 12.5px;
         }
         .rwm-card:hover .rwm-proof { color: #f0d890; }
 
-        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 8%; pointer-events: none; z-index: 5; }
-        .rwm-fade-l { left: 0;  background: linear-gradient(to right, #0a0506 0%, rgba(10,5,6,0.55) 45%, transparent 100%); }
-        .rwm-fade-r { right: 0; background: linear-gradient(to left,  #0a0506 0%, rgba(10,5,6,0.55) 45%, transparent 100%); }
-        @media (max-width: 640px) { .rwm-fade { width: 6%; } }
+        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 7%; pointer-events: none; z-index: 5; }
+        .rwm-fade-l { left: 0;  background: linear-gradient(to right, rgba(18,7,8,0.92) 0%, rgba(18,7,8,0.4) 45%, transparent 100%); }
+        .rwm-fade-r { right: 0; background: linear-gradient(to left,  rgba(18,7,8,0.92) 0%, rgba(18,7,8,0.4) 45%, transparent 100%); }
+        @media (max-width: 640px) { .rwm-fade { width: 5%; } }
 
-        /* Loading skeleton (shown until winners arrive) */
         .rwm-skel { position: relative; overflow: hidden; background: rgba(255,255,255,0.045); }
         .rwm-skel::after {
           content: ""; position: absolute; inset: 0; transform: translateX(-100%);
@@ -438,9 +393,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         .rwm-skel-line { height: 11px; border-radius: 5px; }
         @keyframes rwmShimmer { 100% { transform: translateX(100%); } }
 
-        @media (prefers-reduced-motion: reduce) {
-          .rwm-skel::after { animation: none; }
-        }
+        @media (prefers-reduced-motion: reduce) { .rwm-skel::after { animation: none; } }
       `}</style>
     </section>
   );
