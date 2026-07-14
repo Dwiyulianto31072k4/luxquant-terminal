@@ -82,30 +82,6 @@ const ArrowUpRight = ({ className = "h-3 w-3" }) => (
   </svg>
 );
 
-// Faint wireframe globe backdrop (armillary look) — pure SVG, slow spin.
-const GlobeBackdrop = () => (
-  <svg className="rwm-globe-svg" viewBox="0 0 600 600" aria-hidden="true">
-    <defs>
-      <radialGradient id="rwmGlow" cx="50%" cy="42%" r="60%">
-        <stop offset="0%" stopColor="rgba(212,168,83,0.18)" />
-        <stop offset="45%" stopColor="rgba(139,26,26,0.10)" />
-        <stop offset="100%" stopColor="rgba(10,5,6,0)" />
-      </radialGradient>
-    </defs>
-    <circle cx="300" cy="300" r="270" fill="url(#rwmGlow)" />
-    <g fill="none" stroke="rgba(212,168,83,0.16)" strokeWidth="1">
-      <circle cx="300" cy="300" r="248" />
-      <ellipse cx="300" cy="300" rx="248" ry="86" />
-      <ellipse cx="300" cy="300" rx="248" ry="168" />
-      <g className="rwm-globe-spin" style={{ transformOrigin: "300px 300px" }}>
-        <ellipse cx="300" cy="300" rx="86" ry="248" />
-        <ellipse cx="300" cy="300" rx="168" ry="248" />
-        <line x1="300" y1="52" x2="300" y2="548" />
-      </g>
-    </g>
-  </svg>
-);
-
 export default function RecentWinnersMarquee({ gainers = [] }) {
   const { t } = useTranslation();
 
@@ -246,23 +222,16 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
 
   return (
     <section className="rwm relative z-10 overflow-hidden py-20 sm:py-28">
-      {/* Immersive globe backdrop + vignette (cards sit "inside" it) */}
-      <div className="rwm-globe" aria-hidden="true"><GlobeBackdrop /></div>
+      {/* Reddish immersive backdrop (globe-lit glow) + soft vignette */}
+      <div className="rwm-bg" aria-hidden="true" />
       <div className="rwm-vignette" aria-hidden="true" />
 
-      {/* Eyebrow + heading */}
+      {/* Heading */}
       <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
-        <div className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.26em] text-gold-primary/80">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-primary/50" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-primary/80" />
-          </span>
-          Recent winners · live proof
-        </div>
-        <h2 className="mt-4 text-[1.7rem] sm:text-4xl lg:text-[2.7rem] font-bold leading-[1.05] tracking-tight text-white">
+        <h2 className="text-[1.7rem] sm:text-4xl lg:text-[2.7rem] font-bold leading-[1.05] tracking-tight text-white">
           Real calls. Real peaks.
         </h2>
-        <p className="mt-3 text-sm sm:text-[15px] text-white/50 max-w-lg mx-auto leading-relaxed">
+        <p className="mt-3 text-sm sm:text-[15px] text-white/55 max-w-lg mx-auto leading-relaxed">
           Every card is an actual LuxQuant call, from entry to peak, exactly as it played out.
         </p>
       </div>
@@ -385,24 +354,17 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         .rwm::before { top: 0;    background: linear-gradient(to bottom, #0a0506 0%, rgba(10,5,6,0) 100%); }
         .rwm::after  { bottom: 0; background: linear-gradient(to top,    #0a0506 0%, rgba(10,5,6,0) 100%); }
 
-        .rwm-globe {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: min(1100px, 130vw);
-          aspect-ratio: 1 / 1;
-          transform: translate(-50%, -50%);
-          z-index: 0;
-          pointer-events: none;
-          opacity: 0.55;
+        /* Warm maroon "globe glow" so cards sit inside a reddish space,
+           not a black band. No hard fill → blends with the page canvas. */
+        .rwm-bg {
+          position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background:
+            radial-gradient(ellipse 62% 74% at 50% 46%, rgba(150,30,30,0.34) 0%, rgba(112,24,24,0.16) 40%, rgba(40,10,11,0) 72%),
+            radial-gradient(ellipse 40% 46% at 50% 44%, rgba(212,168,83,0.07) 0%, rgba(212,168,83,0) 70%);
         }
-        .rwm-globe-svg { width: 100%; height: 100%; display: block; }
-        .rwm-globe-spin { animation: rwmGlobeSpin 90s linear infinite; }
-        @keyframes rwmGlobeSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .rwm-vignette {
           position: absolute; inset: 0; z-index: 1; pointer-events: none;
-          background:
-            radial-gradient(ellipse 60% 55% at 50% 50%, rgba(10,5,6,0) 40%, rgba(10,5,6,0.55) 100%);
+          background: radial-gradient(ellipse 76% 66% at 50% 50%, rgba(15,7,8,0) 55%, rgba(12,6,7,0.45) 100%);
         }
 
         .rwm-scroller {
@@ -477,7 +439,6 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         @keyframes rwmShimmer { 100% { transform: translateX(100%); } }
 
         @media (prefers-reduced-motion: reduce) {
-          .rwm-globe-spin { animation: none; }
           .rwm-skel::after { animation: none; }
         }
       `}</style>

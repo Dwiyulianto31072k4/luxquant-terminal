@@ -1079,15 +1079,15 @@ async def get_top_performers(
     if date_from and date_to:
         actual_from = date_from
         actual_to = date_to
-        cache_key = f"lq:signals:top-performers:v8:custom:{date_from}:{date_to}:{limit}"
+        cache_key = f"lq:signals:top-performers:v9:custom:{date_from}:{date_to}:{limit}"
     elif date_from:
         actual_from = date_from
         actual_to = datetime.utcnow().strftime('%Y-%m-%d')
-        cache_key = f"lq:signals:top-performers:v8:from:{date_from}:{limit}"
+        cache_key = f"lq:signals:top-performers:v9:from:{date_from}:{limit}"
     else:
         actual_from = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
         actual_to = None
-        cache_key = f"lq:signals:top-performers:v8:{days}:{limit}"
+        cache_key = f"lq:signals:top-performers:v9:{days}:{limit}"
 
     cached = cache_get(cache_key)
     if cached:
