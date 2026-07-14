@@ -108,10 +108,10 @@ export const exchangeColor = (name) => {
   const key = String(name).toLowerCase().replace(/[\s._-]+/g, '');
   const KNOWN = {
     binance: '#F0B90B',
-    indodax: '#0C5CFF',
+    indodax: '#1E9CF0',
     bybit: '#F7A600',
     okx: '#FFFFFF',
-    mexc: '#1ECDC5',
+    mexc: '#1463FF',
     gate: '#17E6A1',
     gateio: '#17E6A1',
     kucoin: '#23AF91',

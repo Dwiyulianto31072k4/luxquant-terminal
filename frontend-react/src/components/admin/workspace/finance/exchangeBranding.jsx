@@ -3,6 +3,7 @@
 // Used by PaymentDetailPanel + PaymentsTable.
 // ════════════════════════════════════════════════════════════════════
 
+import { useState } from 'react';
 import { formatDateTimeLong, formatRelative, formatUSDT, getStatusConfig } from './helpers';
 import { AlertTriangleIcon, StarIcon, ClockIcon } from '../../Icons';
 import { CalendarDotIcon, TimerIcon } from '../CategoryIcons';
@@ -10,8 +11,9 @@ import { CalendarDotIcon, TimerIcon } from '../CategoryIcons';
 /* ── Brand palette + mark ─────────────────────────────────────────── */
 
 /**
- * Each brand: primary color, soft bg, logo mark (inline SVG), display name.
+ * Each brand: primary color, soft bg, official logo file, display name.
  * Keys are normalized lowercase (no spaces/dashes).
+ * Logos live in /public/exchanges/ (served as /exchanges/*).
  */
 export const EXCHANGE_BRANDS = {
   binance: {
@@ -23,20 +25,22 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(240,185,11,0.16)',
     bgTo: 'rgba(30,32,38,0.55)',
     border: 'rgba(240,185,11,0.38)',
-    logoBg: '#F0B90B',
-    logoFg: '#1E2026',
+    logoBg: '#1E2026',
+    logoFg: '#F0B90B',
+    logoSrc: '/exchanges/binance.png',
   },
   indodax: {
     key: 'indodax',
     name: 'Indodax',
-    primary: '#0C5CFF',
+    primary: '#1E9CF0',
     secondary: '#06142B',
-    glow: 'rgba(12,92,255,0.38)',
-    bgFrom: 'rgba(12,92,255,0.18)',
+    glow: 'rgba(30,156,240,0.38)',
+    bgFrom: 'rgba(30,156,240,0.18)',
     bgTo: 'rgba(6,20,43,0.55)',
-    border: 'rgba(12,92,255,0.42)',
-    logoBg: '#0C5CFF',
+    border: 'rgba(30,156,240,0.42)',
+    logoBg: '#1E9CF0',
     logoFg: '#FFFFFF',
+    logoSrc: '/exchanges/indodax.png',
   },
   bybit: {
     key: 'bybit',
@@ -47,8 +51,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(247,166,0,0.14)',
     bgTo: 'rgba(18,18,18,0.55)',
     border: 'rgba(247,166,0,0.36)',
-    logoBg: '#F7A600',
-    logoFg: '#121212',
+    logoBg: '#121212',
+    logoFg: '#F7A600',
+    logoSrc: '/exchanges/bybit.png',
   },
   okx: {
     key: 'okx',
@@ -59,20 +64,22 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(255,255,255,0.08)',
     bgTo: 'rgba(0,0,0,0.45)',
     border: 'rgba(255,255,255,0.22)',
-    logoBg: '#FFFFFF',
-    logoFg: '#000000',
+    logoBg: '#000000',
+    logoFg: '#FFFFFF',
+    logoSrc: '/exchanges/okx.png',
   },
   mexc: {
     key: 'mexc',
     name: 'MEXC',
-    primary: '#1ECDC5',
+    primary: '#1463FF',
     secondary: '#0B1220',
-    glow: 'rgba(30,205,197,0.32)',
-    bgFrom: 'rgba(30,205,197,0.14)',
+    glow: 'rgba(20,99,255,0.35)',
+    bgFrom: 'rgba(20,99,255,0.16)',
     bgTo: 'rgba(11,18,32,0.55)',
-    border: 'rgba(30,205,197,0.36)',
-    logoBg: '#1ECDC5',
-    logoFg: '#0B1220',
+    border: 'rgba(20,99,255,0.40)',
+    logoBg: '#F4F7FB',
+    logoFg: '#1463FF',
+    logoSrc: '/exchanges/mexc.png',
   },
   gate: {
     key: 'gate',
@@ -83,8 +90,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(23,230,161,0.12)',
     bgTo: 'rgba(10,26,20,0.55)',
     border: 'rgba(23,230,161,0.34)',
-    logoBg: '#17E6A1',
-    logoFg: '#0A1A14',
+    logoBg: '#0A1A14',
+    logoFg: '#17E6A1',
+    logoSrc: '/exchanges/gate.png',
   },
   gateio: {
     key: 'gate',
@@ -95,8 +103,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(23,230,161,0.12)',
     bgTo: 'rgba(10,26,20,0.55)',
     border: 'rgba(23,230,161,0.34)',
-    logoBg: '#17E6A1',
-    logoFg: '#0A1A14',
+    logoBg: '#0A1A14',
+    logoFg: '#17E6A1',
+    logoSrc: '/exchanges/gate.png',
   },
   kucoin: {
     key: 'kucoin',
@@ -107,8 +116,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(35,175,145,0.14)',
     bgTo: 'rgba(12,26,22,0.55)',
     border: 'rgba(35,175,145,0.34)',
-    logoBg: '#23AF91',
-    logoFg: '#FFFFFF',
+    logoBg: '#0C1A16',
+    logoFg: '#23AF91',
+    logoSrc: '/exchanges/kucoin.png',
   },
   bitget: {
     key: 'bitget',
@@ -119,8 +129,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(0,240,255,0.12)',
     bgTo: 'rgba(10,21,32,0.55)',
     border: 'rgba(0,240,255,0.34)',
-    logoBg: '#00F0FF',
-    logoFg: '#0A1520',
+    logoBg: '#0A1520',
+    logoFg: '#00F0FF',
+    logoSrc: '/exchanges/bitget.png',
   },
   htx: {
     key: 'htx',
@@ -131,8 +142,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(46,189,133,0.14)',
     bgTo: 'rgba(11,26,20,0.55)',
     border: 'rgba(46,189,133,0.34)',
-    logoBg: '#2EBD85',
-    logoFg: '#FFFFFF',
+    logoBg: '#0B1A14',
+    logoFg: '#2EBD85',
+    logoSrc: '/exchanges/htx.png',
   },
   huobi: {
     key: 'htx',
@@ -143,8 +155,9 @@ export const EXCHANGE_BRANDS = {
     bgFrom: 'rgba(46,189,133,0.14)',
     bgTo: 'rgba(11,26,20,0.55)',
     border: 'rgba(46,189,133,0.34)',
-    logoBg: '#2EBD85',
-    logoFg: '#FFFFFF',
+    logoBg: '#0B1A14',
+    logoFg: '#2EBD85',
+    logoSrc: '/exchanges/htx.png',
   },
 };
 
@@ -159,6 +172,7 @@ const FALLBACK_BRAND = {
   border: 'rgba(212,168,83,0.32)',
   logoBg: '#d4a853',
   logoFg: '#1a0d12',
+  logoSrc: null,
 };
 
 export const normalizeExchangeKey = (name) => {
@@ -307,39 +321,63 @@ const MARK_BY_KEY = {
   htx: HtxMark,
 };
 
-/** Square logo tile with brand background + mark */
+/**
+ * Square logo tile — prefers official raster logo from /exchanges/*,
+ * falls back to brand SVG mark if image missing/broken.
+ */
 export const ExchangeLogo = ({ exchange, size = 40, className = '' }) => {
   const brand = resolveExchangeBrand(exchange);
   const Mark = MARK_BY_KEY[brand.key] || FallbackMark;
   const markSize = Math.round(size * 0.58);
   const radius = Math.max(8, Math.round(size * 0.22));
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImg = Boolean(brand.logoSrc) && !imgFailed;
 
   return (
     <div
-      className={`relative flex items-center justify-center shrink-0 ${className}`}
+      className={`relative flex items-center justify-center shrink-0 overflow-hidden ${className}`}
       style={{
         width: size,
         height: size,
         borderRadius: radius,
-        background: brand.logoBg,
-        boxShadow: `0 4px 16px ${brand.glow}, inset 0 1px 0 rgba(255,255,255,0.25)`,
+        background: showImg ? '#0a0a0c' : brand.logoBg,
+        boxShadow: `0 4px 16px ${brand.glow}, 0 0 0 1px ${brand.primary}33`,
       }}
       title={brand.name}
       aria-label={`${brand.name} logo`}
     >
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          borderRadius: radius,
-          background:
-            'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(0,0,0,0.12) 100%)',
-        }}
-      />
-      <Mark
-        size={markSize}
-        fg={brand.logoFg}
-        letter={(brand.name || '?').charAt(0).toUpperCase()}
-      />
+      {showImg ? (
+        <img
+          src={brand.logoSrc}
+          alt={`${brand.name} logo`}
+          width={size}
+          height={size}
+          draggable={false}
+          onError={() => setImgFailed(true)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      ) : (
+        <>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              borderRadius: radius,
+              background:
+                'linear-gradient(145deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(0,0,0,0.12) 100%)',
+            }}
+          />
+          <Mark
+            size={markSize}
+            fg={brand.logoFg}
+            letter={(brand.name || '?').charAt(0).toUpperCase()}
+          />
+        </>
+      )}
     </div>
   );
 };
