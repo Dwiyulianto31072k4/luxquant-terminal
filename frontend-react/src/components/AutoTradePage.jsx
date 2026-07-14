@@ -740,7 +740,8 @@ export default function AutoTradePage() {
       if (Date.now() < binanceBackOffUntilRef.current) return;
       load({ background: true });
     };
-    const interval = window.setInterval(refresh, 30000);
+    // 60s default (was 30s) — portfolio is server-cached ~20s; halves REST load.
+    const interval = window.setInterval(refresh, 60000);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.clearInterval(interval);
@@ -807,7 +808,7 @@ export default function AutoTradePage() {
         <div className="flex items-center gap-3">
           {lastUpdatedAt ? (
             <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted/70">
-              Auto-refresh 30s · Updated{" "}
+              Auto-refresh 60s · Updated{" "}
               {lastUpdatedAt.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
