@@ -241,8 +241,8 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
     return () => cancelAnimationFrame(raf);
   }, [winners.length]);
 
-  if (winners.length === 0) return null;
-  const track = [...winners, ...winners];
+  const hasWinners = winners.length > 0;
+  const track = hasWinners ? [...winners, ...winners] : [];
 
   return (
     <section className="rwm relative z-10 overflow-hidden py-20 sm:py-28">
@@ -279,6 +279,17 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           onPointerDown={onPointerDown}
         >
           <div className="rwm-track">
+            {!hasWinners &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={`skel-${i}`} className="rwm-card">
+                  <div className="rwm-img-wrap rwm-skel" style={{ paddingTop: "56%" }} />
+                  <div className="rwm-meta">
+                    <div className="rwm-skel rwm-skel-line" style={{ width: "45%" }} />
+                    <div className="rwm-skel rwm-skel-line" style={{ width: "92%", marginTop: 12 }} />
+                    <div className="rwm-skel rwm-skel-line" style={{ width: "70%", marginTop: 7 }} />
+                  </div>
+                </div>
+              ))}
             {track.map((w, i) => {
               const sym = cleanPair(w.pair);
               const peak = fmtInt(w.gain_pct);
@@ -300,7 +311,13 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
                       draggable="false"
                       className="rwm-img"
                       onError={(e) => {
-                        const card = e.currentTarget.closest(".rwm-card");
+                        const img = e.currentTarget;
+                        if (img.dataset.fallback !== "1" && w.latest_chart_url) {
+                          img.dataset.fallback = "1";
+                          img.src = w.latest_chart_url; // base chart if the _with_card variant is missing
+                          return;
+                        }
+                        const card = img.closest(".rwm-card");
                         if (card) card.style.display = "none";
                       }}
                     />
@@ -449,7 +466,20 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         .rwm-fade-r { right: 0; background: linear-gradient(to left,  #0a0506 0%, rgba(10,5,6,0.55) 45%, transparent 100%); }
         @media (max-width: 640px) { .rwm-fade { width: 6%; } }
 
-        @media (prefers-reduced-motion: reduce) { .rwm-globe-spin { animation: none; } }
+        /* Loading skeleton (shown until winners arrive) */
+        .rwm-skel { position: relative; overflow: hidden; background: rgba(255,255,255,0.045); }
+        .rwm-skel::after {
+          content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+          animation: rwmShimmer 1.4s infinite;
+        }
+        .rwm-skel-line { height: 11px; border-radius: 5px; }
+        @keyframes rwmShimmer { 100% { transform: translateX(100%); } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .rwm-globe-spin { animation: none; }
+          .rwm-skel::after { animation: none; }
+        }
       `}</style>
     </section>
   );
