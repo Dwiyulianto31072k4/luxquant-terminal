@@ -4,15 +4,18 @@ Admin Social Posts
 Draft/approval API for social media post automation. Generation creates draft
 artifacts only; publishing remains a separate explicit step.
 
-Materials workflow:
-  1. AI extracts entities (orgs/people) → gen_meta.visual_materials
-  2. Missing logos/faces are listed as needs_materials for admin upload
-  3. Admin uploads file → asset library → re-render image
+Materials workflow (cost-aware):
+  1. AI writes caption + detects entities
+  2. Resolve logos/faces from library — if critical missing, save draft WITHOUT
+     paying for AI image (image_mode=awaiting_materials)
+  3. Admin uploads materials → re-render generates image once (or free recompose
+     if raw background already exists)
 """
 
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
@@ -342,8 +345,18 @@ async def re_render_post_image(
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    """Re-generate the image using current entity assets (after admin uploads)."""
-    from app.services.social_image_generator import generate_ai_social_image
+    """Generate or recompose image after admin uploads materials.
+
+    Cost-aware:
+      - If a raw AI background already exists → free recompose (logos + type only)
+      - Else → one paid AI image generation with current materials
+    """
+    from app.services.social_entity_assets import resolve_entity_assets
+    from app.services.social_image_generator import (
+        find_raw_image,
+        generate_ai_social_image,
+        recompose_from_raw,
+    )
 
     row = _get_post_row(db, post_id)
     meta = row.get("gen_meta") or {}
@@ -354,27 +367,109 @@ async def re_render_post_image(
             meta = {}
     entities = meta.get("entities") or []
     featured = meta.get("featured_person")
-    article_summary = row.get("caption") or row.get("headline") or ""
+    headline = row.get("headline") or "News"
+    news_id = int(row["news_id"] or post_id)
+    angle = row.get("angle")
+    article_summary = row.get("caption") or headline
 
-    result = generate_ai_social_image(
-        news_id=int(row["news_id"] or post_id),
-        headline=row.get("headline") or "News",
-        article_summary=article_summary,
-        source_domain=row.get("source_domain"),
-        angle=row.get("angle"),
-        reference_image_url=row.get("reference_image_url"),
-        override_prompt=row.get("image_prompt"),
-        featured_person=featured,
-        entities=entities,
-    )
-    if not result.image_path:
-        raise HTTPException(500, result.error_message or "re-render failed")
+    assets = resolve_entity_assets(entities, featured_person=featured)
+    if assets.get("needs_materials"):
+        raise HTTPException(
+            400,
+            detail={
+                "message": "Still missing materials — upload all logos/faces first",
+                "missing": assets.get("critical_missing") or [],
+                "missing_count": assets.get("missing_count") or 0,
+            },
+        )
 
-    # Merge visual materials into gen_meta
-    if result.visual_materials:
-        meta["visual_materials"] = result.visual_materials
-        meta["needs_materials"] = bool(result.visual_materials.get("needs_materials"))
-        meta["qc_flags"] = result.visual_materials.get("qc_flags") or []
+    entity_logos = assets.get("logos") or []
+    raw_path = meta.get("raw_image_path") or find_raw_image(news_id)
+    composed_free = False
+    result_path = None
+    image_mode = row.get("image_mode") or "ai_xai_poster"
+    image_prompt = row.get("image_prompt")
+    ref_path = row.get("reference_image_path")
+    visual_materials = {
+        "inventory": assets.get("inventory") or [],
+        "needs_materials": False,
+        "missing_count": 0,
+        "qc_flags": assets.get("qc_flags") or [],
+        "logos_resolved": len(entity_logos),
+        "faces_resolved": len(assets.get("people") or []),
+    }
+
+    # Free path: recompose existing raw background with new logos/type
+    if raw_path and Path(raw_path).exists():
+        try:
+            slug_part = Path(raw_path).name.replace("ai_raw_", "ai_", 1)
+            out_path = str(Path(raw_path).parent / slug_part)
+            if out_path == raw_path:
+                out_path = str(Path(SOCIAL_POST_ASSETS_DIR) / f"ai_{news_id}_recompose.png")
+            recompose_from_raw(
+                raw_path=raw_path,
+                out_path=out_path,
+                headline=headline,
+                entity_logos=entity_logos,
+                angle=angle,
+            )
+            result_path = out_path
+            image_mode = f"{image_mode}_recompose" if image_mode else "recompose"
+            composed_free = True
+            visual_materials["raw_image_path"] = raw_path
+            visual_materials["recompose_free"] = True
+        except Exception:
+            composed_free = False
+
+    if not composed_free:
+        result = generate_ai_social_image(
+            news_id=news_id,
+            headline=headline,
+            article_summary=article_summary,
+            source_domain=row.get("source_domain"),
+            angle=angle,
+            reference_image_url=row.get("reference_image_url"),
+            override_prompt=image_prompt,
+            featured_person=featured,
+            entities=entities,
+            skip_if_needs_materials=False,
+            force=True,
+        )
+        if not result.image_path:
+            raise HTTPException(500, result.error_message or "re-render failed")
+        result_path = result.image_path
+        image_mode = result.image_mode
+        image_prompt = result.image_prompt or image_prompt
+        ref_path = result.reference_image_path or ref_path
+        if result.visual_materials:
+            visual_materials = result.visual_materials
+
+    meta["visual_materials"] = visual_materials
+    meta["needs_materials"] = bool(visual_materials.get("needs_materials"))
+    meta["qc_flags"] = visual_materials.get("qc_flags") or []
+    meta["awaiting_image"] = False
+    if visual_materials.get("raw_image_path"):
+        meta["raw_image_path"] = visual_materials["raw_image_path"]
+    elif raw_path:
+        meta["raw_image_path"] = raw_path
+
+    # Cost: only bill image if we actually hit the AI API
+    if not composed_free:
+        try:
+            from app.services.social_cost import estimate_cost
+            add = estimate_cost(
+                prompt_tokens=0,
+                completion_tokens=0,
+                image_count=1,
+                search_count=0,
+                image_model=os.environ.get("XAI_IMAGE_MODEL", "grok-imagine-image-quality"),
+            )
+            prev_total = float(meta.get("total_usd") or 0)
+            meta["image_count"] = int(meta.get("image_count") or 0) + 1
+            meta["image_usd"] = float(meta.get("image_usd") or 0) + float(add.get("image_usd") or 0)
+            meta["total_usd"] = round(prev_total + float(add.get("image_usd") or 0), 6)
+        except Exception:
+            pass
 
     db.execute(text("""
         UPDATE social_posts
@@ -387,15 +482,20 @@ async def re_render_post_image(
         WHERE id = :id
     """), {
         "id": post_id,
-        "image_path": result.image_path,
-        "image_mode": result.image_mode,
-        "image_prompt": result.image_prompt,
-        "reference_image_path": result.reference_image_path,
+        "image_path": result_path,
+        "image_mode": image_mode,
+        "image_prompt": image_prompt,
+        "reference_image_path": ref_path,
         "gen_meta": json.dumps(meta),
     })
     db.commit()
     out = _row_to_dict(_get_post_row(db, post_id))
-    return {"ok": True, "post": out, "visual_materials": result.visual_materials}
+    return {
+        "ok": True,
+        "post": out,
+        "visual_materials": visual_materials,
+        "recompose_free": composed_free,
+    }
 
 
 @router.post("/seed-logos")

@@ -398,7 +398,48 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
             "slug": _slug(name),
         })
 
+    # Soft inherit: "Hyperliquid Policy Center" can reuse "Hyperliquid" logo when
+    # a longer org name starts with a resolved shorter org name (parent brand).
+    resolved_orgs = [i for i in inventory if i.get("type") == "org" and i.get("status") == "resolved" and i.get("path")]
+    for item in inventory:
+        if item.get("status") != "missing" or item.get("kind") != "logo":
+            continue
+        name_l = (item.get("name") or "").lower().strip()
+        best = None
+        best_len = 0
+        for parent in resolved_orgs:
+            pn = (parent.get("name") or "").lower().strip()
+            if not pn or pn == name_l:
+                continue
+            # Child contains parent brand as a whole word/prefix (min 4 chars)
+            if len(pn) >= 4 and (name_l.startswith(pn) or f" {pn} " in f" {name_l} "):
+                if len(pn) > best_len:
+                    best = parent
+                    best_len = len(pn)
+        if best and best.get("path"):
+            item["status"] = "resolved"
+            item["path"] = best["path"]
+            item["request"] = None
+            item["inherited_from"] = best.get("name")
+            logos.append({"name": item["name"], "role": item.get("role") or "", "path": best["path"]})
+            # Drop the QC flag for this name
+            qc_flags = [f for f in qc_flags if not f.endswith(f":{item['name']}")]
+
+    # Deduplicate logos by path while preserving order
+    seen_paths: set[str] = set()
+    unique_logos: list[dict] = []
+    for lg in logos:
+        p = lg.get("path")
+        if p and p not in seen_paths:
+            seen_paths.add(p)
+            unique_logos.append(lg)
+    logos = unique_logos
+
     missing = [i for i in inventory if i["status"] == "missing"]
+    # Critical materials that should block expensive AI image gen:
+    # - any missing org logo still unresolved after inheritance
+    # - any missing person face (featured or listed)
+    critical = [i for i in missing if i.get("kind") in ("logo", "face")]
     org_count = sum(1 for i in inventory if i["type"] == "org")
     # Multi-org stories without any resolved logo are a soft QC fail
     if org_count >= 2 and not logos:
@@ -409,9 +450,13 @@ def resolve_entity_assets(entities: list[dict], featured_person: Optional[str] =
         "people": people[:3],
         "featured_face_path": featured_face_path,
         "inventory": inventory,
-        "needs_materials": len(missing) > 0,
-        "missing_count": len(missing),
+        "needs_materials": len(critical) > 0,
+        "missing_count": len(critical),
         "qc_flags": qc_flags,
+        "critical_missing": [
+            {"name": i["name"], "kind": i["kind"], "request": i.get("request")}
+            for i in critical
+        ],
     }
 
 

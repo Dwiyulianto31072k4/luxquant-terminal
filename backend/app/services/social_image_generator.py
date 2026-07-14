@@ -96,21 +96,18 @@ def build_visual_prompt(
     reference_line = (
         "Use the provided reference image only for broad visual context and mood; create a new original image."
         if reference_image_url else
-        "No reference image is available; infer a relevant crypto editorial visual from the article."
+        "Infer a cinematic crypto-media poster from the story."
     )
 
     return "\n".join([
-        "Create an original Instagram portrait editorial BACKGROUND ONLY for a premium crypto market intelligence post.",
-        "The image will later receive text overlays from a separate renderer, so the generated image itself must contain zero readable text.",
-        f"Story context to inspire the scene, not to render as text: {context}",
-        f"Source: {source}. Editorial angle: {angle_label}.",
+        "Create an original cinematic Instagram vertical POSTER scene for a premium crypto intelligence brand.",
+        "Hero subject large in the upper/middle frame; one continuous photoreal scene with dramatic lighting.",
+        "The image will later receive bold white headline typography from a separate renderer — leave the lower 40% darker and less busy, and put ZERO readable text in the image itself.",
+        f"Story context (inspire the scene, do not render as text): {context}",
+        f"Source: {source}. Angle: {angle_label}. Headline idea (do not paint these words): {headline}.",
         reference_line,
-        "Visual direction: Bloomberg-style real-life editorial photography, brighter and tangible, premium financial newsroom or analyst desk, realistic objects, documents without readable writing, glass screens with abstract blurred charts only, blockchain/AI network motifs as physical light lines or generic nodes.",
-        "Context rule: show the subject through symbols, not labels. For protocol migrations, show a generic bridge between two abstract blockchain ecosystems and AI-agent network nodes; do not show actual protocol logos or names.",
-        "Composition: clean lower third for a headline overlay; main visual interest should sit upper/middle, with no embedded typography.",
-        "STRICT NEGATIVE: no text, no letters, no words, no numbers, no captions, no logos, no brand names, no Moonbeam wordmark, no Base logo, no Polkadot logo, no Ethereum logo, no LuxQuant text, no fake tickers, no readable chart labels, no watermark.",
-        "If any monitor or phone appears, its screen must show only abstract unreadable color blocks or blurred candlestick shapes, never words or symbols.",
-        "Make it feel like an original high-end financial magazine photograph, not a poster with generated text.",
+        "Visual direction: viral crypto Instagram energy — physical 3D props, powerful architecture, hero portraits, giant coins when relevant, high contrast film grading, rim light, not a flat documentary boardroom photo.",
+        "STRICT NEGATIVE: no readable text, no letters, no captions, no fake logos/wordmarks, no red subtitle bars, no watermarks, no chart labels, no collage seams.",
     ])
 
 
@@ -509,59 +506,92 @@ def _text_width(draw, text_value: str, fnt) -> int:
     return box[2] - box[0]
 
 
-def _wrap_headline(draw, text_value: str, fnt) -> list:
-    words = text_value.replace("—", "-").split()
-    widths = [820, 760, 690, 590]
+def _wrap_headline(draw, text_value: str, fnt, max_width: int = 960, max_lines: int = 4) -> list:
+    """Wrap headline into bold poster lines (full-width friendly)."""
+    words = re.sub(r"\s+", " ", (text_value or "").replace("—", "-")).strip().upper().split()
+    if not words:
+        return []
     lines: list = []
-    for width in widths:
-        if not words:
-            break
+    while words and len(lines) < max_lines:
         line = words.pop(0)
-        while words and _text_width(draw, f"{line} {words[0]}", fnt) <= width:
+        while words and _text_width(draw, f"{line} {words[0]}", fnt) <= max_width:
             line += " " + words.pop(0)
         lines.append(line)
     if words and lines:
-        lines[-1] += " " + " ".join(words)
-    return lines[:4]
+        lines[-1] = (lines[-1] + " " + " ".join(words)).strip()
+    return lines[:max_lines]
 
 
-def _paste_entity_logos(img, logos: Optional[list], *, width: int) -> None:
-    """Stamp verified org logos as circular/rounded badges (top-right stack).
+def _load_mark_rgba(path: str, size: int) -> Optional["object"]:
+    from PIL import Image
 
-    Real assets only — never AI-invented marks. Used so a Hyperliquid×SEC story
-    shows both brands without asking the image model to draw logos.
-    """
+    if not path or not Path(path).exists():
+        return None
+    try:
+        mark = Image.open(path).convert("RGBA")
+        # Prefer full logo (contain) on transparent; fall back to cover-crop
+        mark.thumbnail((size, size), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        ox = (size - mark.width) // 2
+        oy = (size - mark.height) // 2
+        canvas.alpha_composite(mark, (ox, oy))
+        return canvas
+    except Exception:
+        return None
+
+
+def _paste_entity_logos(img, logos: Optional[list], *, width: int, height: int) -> None:
+    """Integrated brand strip — glass bar top-right with large marks (not tiny stickers)."""
     if not logos:
         return
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFilter
 
-    size = 72
-    pad = 18
-    gap = 12
-    x_right = width - pad
-    y = pad
-    for item in logos[:4]:
+    marks = []
+    for item in (logos or [])[:3]:
         path = item.get("path") if isinstance(item, dict) else item
-        if not path or not Path(path).exists():
-            continue
-        try:
-            mark = Image.open(path).convert("RGBA")
-            # Cover-crop into square
-            side = min(mark.width, mark.height)
-            left = (mark.width - side) // 2
-            top = (mark.height - side) // 2
-            mark = mark.crop((left, top, left + side, top + side))
-            mark = mark.resize((size, size), Image.Resampling.LANCZOS)
-            # White plate + soft shadow for contrast on any background
-            plate = Image.new("RGBA", (size + 10, size + 10), (0, 0, 0, 0))
-            pd = ImageDraw.Draw(plate)
-            pd.rounded_rectangle((0, 0, size + 9, size + 9), radius=14, fill=(0, 0, 0, 90))
-            pd.rounded_rectangle((2, 2, size + 7, size + 7), radius=12, fill=(255, 255, 255, 245))
-            plate.alpha_composite(mark, (5, 5))
-            img.alpha_composite(plate, (x_right - size - 10, y))
-            y += size + gap + 6
-        except Exception:
-            continue
+        m = _load_mark_rgba(path, 88)
+        if m is not None:
+            marks.append(m)
+    if not marks:
+        return
+
+    size = 88
+    gap = 14
+    pad_x, pad_y = 18, 14
+    bar_w = pad_x * 2 + len(marks) * size + gap * (len(marks) - 1)
+    bar_h = size + pad_y * 2
+    bar = Image.new("RGBA", (bar_w, bar_h), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(bar)
+    # Dark glass plate + gold edge
+    bd.rounded_rectangle((0, 0, bar_w - 1, bar_h - 1), radius=18, fill=(8, 10, 14, 170))
+    bd.rounded_rectangle((1, 1, bar_w - 2, bar_h - 2), radius=17, outline=(218, 176, 85, 110), width=1)
+    x = pad_x
+    for m in marks:
+        # Soft white disc behind mark so any logo reads on dark glass
+        disc = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        dd = ImageDraw.Draw(disc)
+        dd.ellipse((2, 2, size - 3, size - 3), fill=(255, 255, 255, 235))
+        bar.alpha_composite(disc, (x, pad_y))
+        bar.alpha_composite(m, (x, pad_y))
+        x += size + gap
+    bar = bar.filter(ImageFilter.GaussianBlur(0.3))
+    # Soft drop shadow
+    shadow = Image.new("RGBA", (bar_w + 20, bar_h + 20), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    sd.rounded_rectangle((6, 8, bar_w + 6, bar_h + 10), radius=18, fill=(0, 0, 0, 100))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
+    pos_x = width - bar_w - 36
+    pos_y = 36
+    img.alpha_composite(shadow, (pos_x - 6, pos_y - 4))
+    img.alpha_composite(bar, (pos_x, pos_y))
+
+
+def _draw_text_with_shadow(draw, xy, text, font, fill, shadow=(0, 0, 0, 200)):
+    x, y = xy
+    # Hard shadow stack for poster readability on any background
+    for dx, dy, a in ((0, 3, 160), (0, 6, 90), (2, 2, 100)):
+        draw.text((x + dx, y + dy), text, font=font, fill=(shadow[0], shadow[1], shadow[2], a))
+    draw.text((x, y), text, font=font, fill=fill)
 
 
 def _compose_editorial_card(
@@ -570,53 +600,140 @@ def _compose_editorial_card(
     out_path: str,
     *,
     entity_logos: Optional[list] = None,
+    angle: Optional[str] = None,
 ) -> str:
-    """LuxQuant editorial card (agreed style): cover-crop 4:5, bottom vignette,
-    white headline on stepped LuxQuant-red highlight boxes (lower-left), logo lower-right.
-    Optional entity_logos: real brand marks composited top-right."""
+    """Cinematic LuxQuant poster card (CryptoWave/DRC energy):
+    cover-crop 4:5, deep vignette, bold white multi-line headline with gold accent
+    line, integrated glass brand strip, LuxQuant mark bottom-right.
+    No red subtitle boxes."""
     from PIL import Image, ImageDraw, ImageFilter
 
     width, height = 1080, 1350
     img = _cover_image(Image.open(raw_path).convert("RGB"), (width, height)).convert("RGBA")
+    # Stronger cinematic bottom for poster type
     img = _apply_editorial_shadow(img)
+    # Extra lower-third darken for white type
+    extra = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    ed = ImageDraw.Draw(extra)
+    for y in range(int(height * 0.48), height):
+        t = (y - height * 0.48) / (height * 0.52)
+        a = int(20 + 150 * (t ** 1.35))
+        ed.line([(0, y), (width, y)], fill=(0, 0, 0, min(200, a)))
+    img = Image.alpha_composite(img, extra)
+
+    # Integrated brand strip (not corner stickers)
+    _paste_entity_logos(img, entity_logos, width=width, height=height)
+
     draw = ImageDraw.Draw(img)
-    fnt = _font(54, bold=True)
-    lines = _wrap_headline(draw, str(headline).strip(), fnt)
-    y = height - (len(lines) * 68 + max(0, len(lines) - 1) * 14) - 150
-    x0 = 58
+    gold = (218, 176, 85, 255)
+    white = (255, 255, 255, 255)
+    muted = (220, 214, 200, 210)
 
-    for index, line in enumerate(lines):
-        x = x0  # flush left — all lines share the same left edge
-        bbox = draw.textbbox((0, 0), line, font=fnt)
-        tw = bbox[2] - bbox[0]
-        glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        gd = ImageDraw.Draw(glow)
-        gd.rectangle((x - 10, y - 5, x + tw + 32, y + 62), fill=(0, 0, 0, 145))
-        img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(9)))
+    # Small top-left topic chip
+    topic = _visual_topic_label(angle, headline)
+    chip_font = _font(20, True)
+    chip = f"LUXQUANT  ·  {topic}"
+    cw = _text_width(draw, chip, chip_font)
+    draw.rounded_rectangle((48, 48, 48 + cw + 28, 88), radius=6, fill=(0, 0, 0, 150), outline=(218, 176, 85, 100), width=1)
+    draw.text((62, 58), chip, font=chip_font, fill=gold)
+
+    # Bold poster headline — full width, white, last line gold accent when 3+ lines
+    size = 68
+    fnt = _font(size, bold=True)
+    lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
+    while len(lines) > 3 and size > 48:
+        size -= 4
+        fnt = _font(size, bold=True)
+        lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
+    # Fit font so longest line <= 960
+    while lines and max(_text_width(draw, ln, fnt) for ln in lines) > 970 and size > 42:
+        size -= 2
+        fnt = _font(size, bold=True)
+        lines = _wrap_headline(draw, str(headline).strip(), fnt, max_width=960, max_lines=4)
+
+    line_gap = int(size * 1.18)
+    block_h = len(lines) * line_gap
+    y = height - block_h - 130
+    x0 = 52
+
+    # Gold accent bar left of headline block
+    bar_top = y - 8
+    bar_bot = y + block_h - int(size * 0.25)
+    draw.rectangle((40, bar_top, 46, bar_bot), fill=gold)
+
+    for i, line in enumerate(lines):
+        # Soft dark plate behind each line for max readability
+        tw = _text_width(draw, line, fnt)
+        plate = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        pd = ImageDraw.Draw(plate)
+        pd.rounded_rectangle(
+            (x0 - 8, y - 4, x0 + tw + 18, y + size + 6),
+            radius=4,
+            fill=(0, 0, 0, 70),
+        )
+        img.alpha_composite(plate.filter(ImageFilter.GaussianBlur(6)))
         draw = ImageDraw.Draw(img)
-        draw.rectangle((x - 4, y - 2, x + tw + 24, y + 58), fill=LUX_RED)
-        # vertical-center the text inside the red box (box spans y-2 … y+58)
-        draw.text((x + 10, y + 28), line, font=fnt, fill=(255, 255, 255, 255), anchor="lm")
-        y += 82
+        fill = gold if (i == len(lines) - 1 and len(lines) >= 2) else white
+        _draw_text_with_shadow(draw, (x0, y), line, fnt, fill)
+        y += line_gap
 
-    # Entity brand badges (Hyperliquid / SEC / etc.) — verified files only
-    _paste_entity_logos(img, entity_logos, width=width)
-
+    # Brand mark bottom-right
     logo_path = Path(SOCIAL_LOGO_PATH)
     if logo_path.exists():
         logo = Image.open(logo_path).convert("RGBA")
         bbox = logo.getbbox()
         if bbox:
             logo = logo.crop(bbox)
-        target_w = 190
-        target_h = int(logo.height * target_w / logo.width)
+        target_w = 168
+        target_h = int(logo.height * target_w / max(1, logo.width))
         logo = logo.resize((target_w, target_h), Image.Resampling.LANCZOS)
-        logo.putalpha(logo.getchannel("A").point(lambda a: int(a * 0.9)))
-        img.alpha_composite(logo, (width - target_w - 52, height - target_h - 52))
+        logo.putalpha(logo.getchannel("A").point(lambda a: int(a * 0.92)))
+        img.alpha_composite(logo, (width - target_w - 44, height - target_h - 40))
+    else:
+        draw.text((width - 200, height - 56), "LuxQuant", font=_font(22, True), fill=muted)
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out_path, quality=96)
     return out_path
+
+
+def recompose_from_raw(
+    *,
+    raw_path: str,
+    out_path: str,
+    headline: str,
+    entity_logos: Optional[list] = None,
+    angle: Optional[str] = None,
+) -> str:
+    """Free re-compose (no AI image call) from an existing raw background."""
+    return _compose_editorial_card(
+        raw_path, headline, out_path, entity_logos=entity_logos, angle=angle
+    )
+
+
+def find_raw_image(news_id: int, assets_dir: Optional[Path] = None) -> Optional[str]:
+    """Locate ai_raw_{news_id}_*.png if a previous generation saved one."""
+    base = Path(assets_dir or ASSETS_DIR)
+    if not base.exists():
+        return None
+    matches = sorted(base.glob(f"ai_raw_{news_id}_*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if matches:
+        return str(matches[0])
+    # also accept without slug
+    direct = base / f"ai_raw_{news_id}.png"
+    return str(direct) if direct.exists() else None
+
+
+def _materials_dict(assets: dict) -> dict:
+    return {
+        "inventory": assets.get("inventory") or [],
+        "needs_materials": bool(assets.get("needs_materials")),
+        "missing_count": int(assets.get("missing_count") or 0),
+        "qc_flags": assets.get("qc_flags") or [],
+        "logos_resolved": len(assets.get("logos") or []),
+        "faces_resolved": len(assets.get("people") or []),
+        "critical_missing": assets.get("critical_missing") or [],
+    }
 
 
 def generate_ai_social_image(
@@ -630,7 +747,14 @@ def generate_ai_social_image(
     override_prompt: Optional[str] = None,
     featured_person: Optional[str] = None,
     entities: Optional[list] = None,
+    skip_if_needs_materials: bool = False,
+    force: bool = False,
 ) -> GeneratedSocialImage:
+    """Generate cinematic poster image.
+
+    If skip_if_needs_materials=True and critical logos/faces are missing, returns
+    without calling the paid image API (image_mode='awaiting_materials').
+    """
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
     prompt = (override_prompt or "").strip() or build_visual_prompt(
@@ -652,55 +776,61 @@ def generate_ai_social_image(
     try:
         from app.services.social_entity_assets import resolve_entity_assets
 
+        # Best-effort face autofetch BEFORE gating, so we don't block if Wiki has a portrait.
+        face_path_pre = resolve_face_reference(featured_person)
+        if not face_path_pre and featured_person and FACE_AUTOFETCH:
+            face_path_pre = fetch_face_reference(featured_person)
+
         assets = resolve_entity_assets(entities or [], featured_person=featured_person)
         entity_logos = assets.get("logos") or []
-        entity_face = assets.get("featured_face_path")
-        visual_materials = {
-            "inventory": assets.get("inventory") or [],
-            "needs_materials": bool(assets.get("needs_materials")),
-            "missing_count": int(assets.get("missing_count") or 0),
-            "qc_flags": assets.get("qc_flags") or [],
-            "logos_resolved": len(entity_logos),
-            "faces_resolved": len(assets.get("people") or []),
-        }
+        entity_face = assets.get("featured_face_path") or face_path_pre
+        visual_materials = _materials_dict(assets)
     except Exception as exc:
         logger = __import__("logging").getLogger(__name__)
         logger.warning("entity asset resolve failed: %s", exc)
 
-    # Preferred backend: xAI/Grok raw image + LuxQuant editorial renderer
-    # (bottom gradient + white headline + logo), matching the prototype look.
+    # Pause expensive AI image when materials are still missing (unless forced).
+    if (
+        skip_if_needs_materials
+        and not force
+        and visual_materials
+        and visual_materials.get("needs_materials")
+    ):
+        return GeneratedSocialImage(
+            image_path=None,
+            image_mode="awaiting_materials",
+            image_prompt=prompt,
+            reference_image_url=reference_image_url,
+            reference_image_path=entity_face,
+            visual_materials=visual_materials,
+            error_message=None,
+        )
+
+    # Preferred backend: xAI/Grok raw image + LuxQuant cinematic poster compositor.
     if IMAGE_PROVIDER == "xai":
         face_path = entity_face or resolve_face_reference(featured_person)
         if not face_path and featured_person and FACE_AUTOFETCH:
-            # Not cached yet — try to fetch and store the portrait for this and future posts.
             face_path = fetch_face_reference(featured_person)
-            # Re-resolve inventory so face shows as resolved if fetch worked
             if face_path and visual_materials is not None:
                 try:
                     from app.services.social_entity_assets import resolve_entity_assets
                     assets = resolve_entity_assets(entities or [], featured_person=featured_person)
                     entity_logos = assets.get("logos") or []
-                    visual_materials = {
-                        "inventory": assets.get("inventory") or [],
-                        "needs_materials": bool(assets.get("needs_materials")),
-                        "missing_count": int(assets.get("missing_count") or 0),
-                        "qc_flags": assets.get("qc_flags") or [],
-                        "logos_resolved": len(entity_logos),
-                        "faces_resolved": len(assets.get("people") or []),
-                    }
+                    visual_materials = _materials_dict(assets)
                 except Exception:
                     pass
         gen_prompt = prompt
-        mode = "ai_xai"
+        mode = "ai_xai_poster"
         try:
             if face_path:
                 # Accurate likeness: condition on the curated reference photo.
                 edit_prompt = (
-                    "Place the exact person shown in the reference image — preserving their real face, "
-                    "hair, and likeness precisely — as the foreground subject of this scene: " + prompt
+                    "Cinematic vertical poster. Place the exact person shown in the reference image — "
+                    "preserving their real face, hair, and likeness precisely — as the large hero "
+                    "foreground subject of this scene: " + prompt
                 )
                 _edit_xai_image(edit_prompt, face_path, raw_path)
-                mode = "ai_xai_face"
+                mode = "ai_xai_face_poster"
             else:
                 if featured_person:
                     # Famous figure requested but no verified reference photo on file:
@@ -711,10 +841,19 @@ def generate_ai_social_image(
                     )
                 _generate_xai_image(gen_prompt, raw_path)
             _compose_editorial_card(
-                str(raw_path), headline, str(out_path), entity_logos=entity_logos
+                str(raw_path),
+                headline,
+                str(out_path),
+                entity_logos=entity_logos,
+                angle=angle,
             )
             if entity_logos:
                 mode = f"{mode}_logos"
+            if visual_materials is not None:
+                visual_materials = {
+                    **visual_materials,
+                    "raw_image_path": str(raw_path),
+                }
             if visual_materials and visual_materials.get("needs_materials"):
                 mode = f"{mode}_needs_assets"
             return GeneratedSocialImage(

@@ -32,21 +32,24 @@ TAVILY_TIMEOUT = int(os.environ.get("TAVILY_TIMEOUT", "35"))
 
 PACK_KEYS = ("headline", "image_prompt", "caption", "hashtags", "source_note")
 
-# Consistent LuxQuant look + hard negatives appended in code (research: separate
-# the "content" prompt the AI writes from a fixed "style" so results stay on-brand
-# and reproducible). Kept concise so no single keyword gets diluted.
+# Cinematic Instagram poster look (CryptoWave / DRC energy, LuxQuant brand).
+# Content scene from the AI + this fixed style suffix keeps results on-brand.
 IMAGE_STYLE_SUFFIX = (
-    "Photorealistic premium editorial business-news photograph, shot on a full-frame DSLR with a 35mm lens, "
-    "one continuous realistic scene, natural directional lighting with soft shadows and real lens depth. "
-    "Lower-left third kept dark and mostly empty for a headline overlay."
+    "Cinematic photorealistic Instagram vertical poster, 3:4, ultra-premium crypto media aesthetic. "
+    "Hero subject large and dominant in the upper/middle frame, integrated into one continuous scene — "
+    "not a collage, not a documentary meeting snapshot. Dramatic dark grading, high contrast, "
+    "rim lighting, shallow depth of field, filmic color. Lower 40% of the frame is darker and "
+    "visually calmer so bold white headline typography can sit cleanly on top later. "
+    "Physical props (coins, seals, devices, architecture) feel real and three-dimensional inside the scene."
 )
 # Always-on negatives.
 IMAGE_NEGATIVE_BASE = (
     "No watermark, no gibberish text, no readable paragraphs, no fake UI screens or chart labels, "
     "no schematic diagrams, blueprints, flowcharts or documents containing words or labels, "
     "no invented tickers or numbers, no fake/hallucinated brand wordmarks or made-up logos, "
-    "no purple theme, no collage seams, no generic stock-photo look. "
-    "Do not invent corporate logos — brand marks are composited later from real assets."
+    "no red subtitle boxes, no news-ticker bars, no collage seams, no generic stock-photo boardroom, "
+    "no flat documentary look, no tiny corner stickers. "
+    "Do not invent corporate logos or wordmarks — real brand marks are composited later from verified assets."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
 # render and forbid all others — stops the model defaulting to generic Bitcoin.
@@ -289,29 +292,27 @@ def build_editorial_pack(
         "action (what is happening AND its market direction/sentiment — e.g. outflows = funds leaving, rally = rising, "
         "crash/liquidation = falling/red, upgrade = building/roadmap, regulation = formal policy meeting), "
         "metaphor (one concrete visual metaphor that shows that action).\n\n"
-        "image_prompt: A concise 40-70 word photorealistic scene that VISUALLY tells THIS specific story, built from "
-        "visual_concept. START the description with the primary_subject (models weight the first words most), then "
+        "image_prompt: A concise 45-80 word CINEMATIC POSTER scene that VISUALLY tells THIS specific story, built from "
+        "visual_concept. Think viral crypto Instagram poster (hero object/person + dramatic environment), NOT a plain "
+        "news photograph of a meeting table. START with the primary_subject (models weight the first words most), then "
         "setting, then lighting. Rules: "
-        "(1) make primary_subject the clear physical focus in the foreground, not a faint background hint; "
-        "(2) encode the action/sentiment from visual_concept — do NOT default to a generic analyst-at-a-desk with green "
-        "up-arrow charts; if the news is bearish/outflows, the scene must read as pressure/withdrawal, not growth; "
-        "(3) if the news is specific to a country, region or institution, include a recognizable geographic/national cue "
-        "(national flag colors, a known landmark, or the local setting) — no text; "
-        "(4) ONLY if the tokens array is non-empty (the news genuinely centers on those crypto tokens) depict those exact "
-        "tokens as recognizable physical coins in the foreground, each showing its single iconic emblem rendered LARGE, "
-        "bold and simple (the Bitcoin B, the Ethereum diamond, the XRP circle) — never a generic gold coin, never small "
-        "fine lettering or a made-up ticker, since fine text renders as gibberish; if several tokens are named, show at "
-        "most three, each as its own clearly distinct coin so their emblems do not blend together. If the tokens array is "
-        "empty, do NOT place ANY crypto coins, tokens or coin props in the scene — depict the real-world subject only; "
-        "(5) if visual_concept.featured_person is a real world-famous figure, make that person the recognizable human "
-        "foreground subject, described by name and role, with a natural pose fitting the story's sentiment; if "
-        "featured_person is null, do NOT depict any identifiable individual's face — use a back-turned, silhouetted or "
-        "out-of-focus figure so no wrong face is fabricated; "
-        "(6) if the story is about a plan, roadmap, upgrade or protocol, represent it abstractly (glowing network nodes, "
-        "layered geometric shapes, light lines) — NEVER as a document, blueprint, chart or diagram bearing words or "
-        "labels, since any rendered text becomes gibberish; "
-        "(7) state the lighting direction and quality. "
-        "Describe ONLY subject, setting and lighting — do NOT add style words, negatives, hashtags or any text; those are appended automatically.\n\n"
+        "(1) make primary_subject a large, dominant physical hero in the foreground — giant coin, person waist-up, "
+        "protocol emblem object, landmark — filling ~40-60% of the frame; never a tiny distant detail; "
+        "(2) encode the action/sentiment from visual_concept with cinematic energy — crash = red heat/pressure, "
+        "rally = power/momentum, regulation = formal power architecture, deal = premium corporate futurism; "
+        "NEVER default to a generic boardroom full of anonymous people around a long table; "
+        "(3) if country/region/institution matters, use recognizable cues (flag colors, landmark, navy/military, "
+        "exchange floor, skyline) without readable text; "
+        "(4) ONLY if the tokens array is non-empty depict those exact tokens as large physical 3D coins in the "
+        "foreground with simple iconic emblems (Bitcoin B, Ethereum diamond, Avalanche triangle, etc.) — never generic "
+        "gold coins, never fine lettering; at most three distinct coins. If tokens is empty, no crypto coin props; "
+        "(5) if featured_person is a real famous figure, they are the hero portrait (chest-up or full figure), "
+        "confident pose, cinematic lighting; if null, no identifiable face — silhouette/back/out-of-focus only; "
+        "(6) brand institutions should appear as physical environment + props (seals, architecture, devices), "
+        "not as floating logo stickers; do NOT draw fake brand wordmarks; "
+        "(7) keep the lower third darker and less busy for later headline typography; "
+        "(8) state lighting (rim light, dramatic key light, night city glow, etc.). "
+        "Describe ONLY subject, setting and lighting — no style laundry list, no negatives, no hashtags, no on-image text.\n\n"
         "Caption: Write like a sharp human editor, NOT an AI. 3-4 short punchy paragraphs, plain English. Open with a "
         "strong hook in the FIRST ~80 characters that sparks curiosity and states the key fact — never a generic "
         "AI-sounding intro (banned openers include 'In today's fast-paced world', 'In a groundbreaking move', 'In an "
@@ -413,8 +414,9 @@ def build_editorial_pack(
         if org_names:
             org_clause = (
                 " Scene must clearly evoke the real-world institutions involved "
-                f"({', '.join(org_names)}) through setting, documents, architecture, or meeting context — "
-                "but do NOT draw fake brand logos or wordmarks (those are overlaid later from real assets)."
+                f"({', '.join(org_names)}) through architecture, seals, devices, environment, or physical props "
+                "integrated into the poster — but do NOT draw fake brand logos or wordmarks "
+                "(verified marks are composited later from real assets)."
             )
         pack["image_prompt"] = (
             f"{content_prompt}{org_clause} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"

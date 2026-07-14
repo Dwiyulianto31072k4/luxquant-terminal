@@ -114,6 +114,13 @@ const CostBar = ({ cost }) => {
 const needsMaterials = (post) =>
   Boolean(post?.gen_meta?.needs_materials || post?.gen_meta?.visual_materials?.needs_materials);
 
+const awaitingImage = (post) =>
+  Boolean(
+    post?.image_mode === "awaiting_materials" ||
+      post?.gen_meta?.awaiting_image ||
+      (needsMaterials(post) && !post?.image_url)
+  );
+
 // ── Generation console: durable progress that survives refresh ──
 const GenerationConsole = ({
   job,
@@ -391,33 +398,46 @@ const GenerationConsole = ({
 };
 
 // ── Image-only card (default view) ──────────────────────────────
-const ImageCard = ({ post, onOpen }) => (
-  <button
-    onClick={() => onOpen(post)}
-    className="group relative rounded-lg overflow-hidden bg-black/30 border border-white/[0.08] hover:border-gold-primary/40 transition-colors text-left"
-  >
-    {post.image_url ? (
-      <img
-        src={post.image_url}
-        alt=""
-        loading="lazy"
-        className="w-full aspect-[4/5] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-      />
-    ) : (
-      <div className="w-full aspect-[4/5] flex items-center justify-center text-text-muted text-[11px] font-mono">
-        no image
-      </div>
-    )}
-    <span className="absolute top-2 left-2 flex flex-col gap-1">
-      <StatusBadge status={post.status} />
-      {needsMaterials(post) && (
-        <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/30">
-          NEEDS ASSETS
-        </span>
+const ImageCard = ({ post, onOpen }) => {
+  const waiting = awaitingImage(post);
+  return (
+    <button
+      onClick={() => onOpen(post)}
+      className="group relative rounded-lg overflow-hidden bg-black/30 border border-white/[0.08] hover:border-gold-primary/40 transition-colors text-left"
+    >
+      {post.image_url ? (
+        <img
+          src={post.image_url}
+          alt=""
+          loading="lazy"
+          className="w-full aspect-[4/5] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        />
+      ) : (
+        <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-3 text-center bg-gradient-to-b from-black/40 to-black/70">
+          <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-amber-300/90">
+            {waiting ? "Waiting for assets" : "No image"}
+          </span>
+          <p className="text-[11px] text-text-muted leading-snug line-clamp-3">
+            {post.headline || "Draft"}
+          </p>
+          {waiting && (
+            <span className="text-[9px] text-text-muted/80 font-mono">
+              Image not generated yet — saves cost
+            </span>
+          )}
+        </div>
       )}
-    </span>
-  </button>
-);
+      <span className="absolute top-2 left-2 flex flex-col gap-1">
+        <StatusBadge status={post.status} />
+        {needsMaterials(post) && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded font-mono text-[9px] tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/30">
+            {waiting ? "UPLOAD ASSETS" : "NEEDS ASSETS"}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+};
 
 // ── Materials panel: AI asks admin for missing logos/faces ──────
 const MaterialsPanel = ({ postId, onUpdated }) => {
@@ -502,7 +522,9 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 
       {requests.length > 0 && (
         <div className="rounded-md bg-amber-500/10 border border-amber-400/25 px-2.5 py-2 space-y-1">
-          <p className="text-[10px] font-semibold text-amber-200">AI is asking you for:</p>
+          <p className="text-[10px] font-semibold text-amber-200">
+            Upload first — AI image is paused to save cost:
+          </p>
           {requests.map((r, i) => (
             <p key={i} className="text-[11px] text-amber-100/90 leading-snug">
               • {r.message || `Need ${r.kind} for ${r.name}`}
@@ -565,12 +587,26 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
 
       <button
         type="button"
-        disabled={!!busy}
+        disabled={!!busy || data.needs_materials}
         onClick={reRender}
-        className="w-full mt-1 px-3 py-2 rounded-lg text-[11px] font-semibold bg-white/[0.06] text-white border border-white/12 hover:bg-white/[0.1] disabled:opacity-40"
+        className={`w-full mt-1 px-3 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-40 ${
+          data.needs_materials
+            ? "bg-white/[0.04] text-text-muted border-white/10"
+            : "bg-gold-primary text-black border-gold-primary/40 hover:bg-gold-light shadow-[0_0_18px_-6px_rgba(212,168,83,0.6)]"
+        }`}
+        title={data.needs_materials ? "Upload all missing materials first" : undefined}
       >
-        {busy === "__render__" ? "Re-rendering image…" : "Re-render image with materials"}
+        {busy === "__render__"
+          ? "Generating cinematic poster…"
+          : data.needs_materials
+            ? "Upload materials to unlock image"
+            : "Generate image with materials"}
       </button>
+      {!data.needs_materials && (
+        <p className="text-[9px] font-mono text-text-muted/80 text-center">
+          One AI image call after assets are ready — no waste regenerate.
+        </p>
+      )}
       {err && <p className="text-[11px] text-red-400">{err}</p>}
     </div>
   );
@@ -608,8 +644,15 @@ const PostModal = ({ post, onClose, onStatus, onDelete, onPostUpdated, busy }) =
               className="max-w-full max-h-full w-auto h-auto object-contain"
             />
           ) : (
-            <div className="w-full aspect-[4/5] flex items-center justify-center text-text-muted text-[12px] font-mono">
-              no image
+            <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 px-6 text-center">
+              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-amber-300/90">
+                {awaitingImage(post) ? "Image paused" : "No image"}
+              </p>
+              <p className="text-[12px] text-text-muted leading-snug">
+                {awaitingImage(post)
+                  ? "Upload logos/faces below, then generate the cinematic poster once."
+                  : "No image on this draft yet."}
+              </p>
             </div>
           )}
         </div>

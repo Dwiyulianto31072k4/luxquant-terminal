@@ -478,6 +478,7 @@ def build_draft(
         image_prompt=ai_image_prompt,
     )
     visual_materials = None
+    awaiting_materials = False
     if render_image:
         ents = (ai_pack or {}).get("entities") or []
         featured = (ai_pack or {}).get("featured_person")
@@ -486,35 +487,80 @@ def build_draft(
             "entities",
             f"Detecting logos & people ({len(ents)} entities)…",
         )
-        _progress(progress_cb, "image", "Generating image with AI (this can take ~30–90s)…")
-        ai_image = generate_ai_social_image(
-            news_id=item.id,
-            headline=headline,
-            article_summary=article_text or caption,
-            source_domain=item.domain,
-            angle=angle,
-            reference_image_url=_image_reference_for(item),
-            override_prompt=ai_image_prompt,
-            featured_person=featured,
-            entities=ents,
-        )
-        draft.image_mode = ai_image.image_mode
-        draft.image_prompt = ai_image_prompt or ai_image.image_prompt
-        draft.reference_image_url = ai_image.reference_image_url
-        draft.reference_image_path = ai_image.reference_image_path
-        draft.image_path = ai_image.image_path
-        visual_materials = getattr(ai_image, "visual_materials", None)
-        if not draft.image_path:
-            _progress(progress_cb, "compose", "Composing fallback card…")
-            draft.image_path = render_card(draft, item)
+
+        # Pre-resolve materials (with face autofetch) so we can gate before paying.
+        try:
+            from app.services.social_entity_assets import resolve_entity_assets
+            from app.services.social_image_generator import (
+                FACE_AUTOFETCH,
+                fetch_face_reference,
+                resolve_face_reference,
+            )
+            if featured and FACE_AUTOFETCH and not resolve_face_reference(featured):
+                fetch_face_reference(featured)
+            pre_assets = resolve_entity_assets(ents, featured_person=featured)
+            visual_materials = {
+                "inventory": pre_assets.get("inventory") or [],
+                "needs_materials": bool(pre_assets.get("needs_materials")),
+                "missing_count": int(pre_assets.get("missing_count") or 0),
+                "qc_flags": pre_assets.get("qc_flags") or [],
+                "logos_resolved": len(pre_assets.get("logos") or []),
+                "faces_resolved": len(pre_assets.get("people") or []),
+                "critical_missing": pre_assets.get("critical_missing") or [],
+            }
+        except Exception:
+            pre_assets = None
+
+        if visual_materials and visual_materials.get("needs_materials"):
+            # Save caption/entities draft WITHOUT AI image cost
+            awaiting_materials = True
+            draft.image_mode = "awaiting_materials"
+            draft.image_path = None
+            draft.image_prompt = ai_image_prompt
+            missing_n = visual_materials.get("missing_count") or 0
+            _progress(
+                progress_cb,
+                "save",
+                f"Paused before AI image — upload {missing_n} material(s) first (cost saved)",
+            )
         else:
-            _progress(progress_cb, "compose", "Composing final card…")
+            _progress(progress_cb, "image", "Generating cinematic poster with AI (30–90s)…")
+            ai_image = generate_ai_social_image(
+                news_id=item.id,
+                headline=headline,
+                article_summary=article_text or caption,
+                source_domain=item.domain,
+                angle=angle,
+                reference_image_url=_image_reference_for(item),
+                override_prompt=ai_image_prompt,
+                featured_person=featured,
+                entities=ents,
+                skip_if_needs_materials=False,
+                force=True,
+            )
+            visual_materials = getattr(ai_image, "visual_materials", None) or visual_materials
+            draft.image_mode = ai_image.image_mode
+            draft.image_prompt = ai_image_prompt or ai_image.image_prompt
+            draft.reference_image_url = ai_image.reference_image_url
+            draft.reference_image_path = ai_image.reference_image_path
+            draft.image_path = ai_image.image_path
+            if not draft.image_path:
+                _progress(progress_cb, "compose", "Composing fallback card…")
+                draft.image_path = render_card(draft, item)
+            else:
+                _progress(progress_cb, "compose", "Composing cinematic poster…")
 
     # Generation cost estimate (tokens + image + search) for business monitoring.
     try:
         from app.services.social_cost import estimate_cost
         usage = (ai_pack or {}).get("_usage") or {}
-        image_count = 1 if draft.image_mode and str(draft.image_mode).startswith("ai_") else 0
+        image_count = (
+            1
+            if draft.image_mode
+            and str(draft.image_mode).startswith("ai_")
+            and not awaiting_materials
+            else 0
+        )
         draft.gen_meta = estimate_cost(
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
@@ -535,6 +581,11 @@ def build_draft(
         draft.gen_meta["visual_materials"] = visual_materials
         draft.gen_meta["needs_materials"] = bool(visual_materials.get("needs_materials"))
         draft.gen_meta["qc_flags"] = visual_materials.get("qc_flags") or []
+        if visual_materials.get("raw_image_path"):
+            draft.gen_meta["raw_image_path"] = visual_materials["raw_image_path"]
+    if awaiting_materials:
+        draft.gen_meta["needs_materials"] = True
+        draft.gen_meta["awaiting_image"] = True
 
     return draft
 
