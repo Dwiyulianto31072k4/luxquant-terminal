@@ -354,9 +354,7 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           </div>
         </div>
 
-        {/* Soft side fades so cards dissolve into the page at the edges */}
-        <div className="rwm-fade rwm-fade-l" aria-hidden="true" />
-        <div className="rwm-fade rwm-fade-r" aria-hidden="true" />
+        {/* Edge dissolve via mask on .rwm-window (no colored curtain overlays). */}
       </div>
 
       {modalOpen && modalItem && (
@@ -377,8 +375,54 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         .rwm-bg {
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
           background:
-            radial-gradient(ellipse 64% 78% at 50% 46%, rgba(150,30,30,0.30) 0%, rgba(112,24,24,0.13) 42%, rgba(40,10,11,0) 72%),
-            radial-gradient(ellipse 42% 48% at 50% 44%, rgba(212,168,83,0.06) 0%, rgba(212,168,83,0) 70%);
+            radial-gradient(ellipse 64% 78% at 50% 46%, rgba(150,30,30,0.22) 0%, rgba(112,24,24,0.10) 42%, rgba(40,10,11,0) 72%),
+            radial-gradient(ellipse 42% 48% at 50% 44%, rgba(212,168,83,0.05) 0%, rgba(212,168,83,0) 70%);
+        }
+
+        /* Mask dissolve (globe-style): cards fade to transparent so the page
+           canvas shows through — no black/maroon curtain overlays. Multi-stop
+           easing keeps the center sharp and the edges soft. */
+        .rwm-window {
+          -webkit-mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(0,0,0,0.35) 4%,
+            #000 10%,
+            #000 90%,
+            rgba(0,0,0,0.35) 96%,
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            rgba(0,0,0,0.35) 4%,
+            #000 10%,
+            #000 90%,
+            rgba(0,0,0,0.35) 96%,
+            transparent 100%
+          );
+        }
+        @media (max-width: 640px) {
+          .rwm-window {
+            -webkit-mask-image: linear-gradient(
+              to right,
+              transparent 0%,
+              rgba(0,0,0,0.4) 5%,
+              #000 12%,
+              #000 88%,
+              rgba(0,0,0,0.4) 95%,
+              transparent 100%
+            );
+            mask-image: linear-gradient(
+              to right,
+              transparent 0%,
+              rgba(0,0,0,0.4) 5%,
+              #000 12%,
+              #000 88%,
+              rgba(0,0,0,0.4) 95%,
+              transparent 100%
+            );
+          }
         }
 
         .rwm-viewport { overflow: hidden; cursor: grab; }
@@ -428,29 +472,6 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
           font-size: 12.5px;
         }
         .rwm-card:hover .rwm-proof { color: #f0d890; }
-
-        /* Soft maroon edge dissolve into the page canvas (not near-black).
-           Matches the globe section feel: cards sit "inside" the brand bg. */
-        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 10%; pointer-events: none; z-index: 5; }
-        .rwm-fade-l {
-          left: 0;
-          background: linear-gradient(
-            to right,
-            rgba(90, 20, 22, 0.82) 0%,
-            rgba(120, 28, 28, 0.32) 45%,
-            transparent 100%
-          );
-        }
-        .rwm-fade-r {
-          right: 0;
-          background: linear-gradient(
-            to left,
-            rgba(90, 20, 22, 0.82) 0%,
-            rgba(120, 28, 28, 0.32) 45%,
-            transparent 100%
-          );
-        }
-        @media (max-width: 640px) { .rwm-fade { width: 7%; } }
 
         .rwm-skel { position: relative; overflow: hidden; background: rgba(255,255,255,0.045); }
         .rwm-skel::after {
