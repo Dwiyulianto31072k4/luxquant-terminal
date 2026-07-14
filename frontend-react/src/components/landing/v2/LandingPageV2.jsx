@@ -73,11 +73,11 @@ export default function LandingPageV2() {
       <HeroSlider onNav={scrollTo} gainers={topGainers} />
       <RecentWinnersMarquee gainers={topGainers} />
       <TopGainers stats={stats} gainers={topGainers} onNav={scrollTo} />
-      <GlobalReach />
       <Architecture />
       <TerminalPreview />
       <Performance data={performanceData} />
       <CoinSpotlight />
+      <GlobalReach />
       <FreeTierV2 />
       <FaqV2 />
       <FooterV2 onNav={scrollTo} />
