@@ -508,6 +508,8 @@ def build_draft(
                 "critical_missing": pre_assets.get("critical_missing") or [],
                 "primary_org": pre_assets.get("primary_org"),
                 "primary_logo": pre_assets.get("primary_logo"),
+                "story_orgs": pre_assets.get("story_orgs") or [],
+                "verified_brand_names": pre_assets.get("verified_brand_names") or [],
                 "safe_mode": bool(pre_assets.get("safe_mode")),
             }
         except Exception:

@@ -47,9 +47,10 @@ IMAGE_NEGATIVE_BASE = (
     "No watermark, no gibberish text, no readable paragraphs, no fake UI screens or chart labels, "
     "no schematic diagrams, blueprints, flowcharts or documents containing words or labels, "
     "no invented tickers or numbers, no fake/hallucinated brand wordmarks or made-up logos, "
+    "no invented Hyperliquid/HYPE marks, no invented exchange logos, "
     "no red subtitle boxes, no news-ticker bars, no collage seams, no generic stock-photo boardroom, "
     "no flat documentary look, no tiny corner stickers, no floating logo badges, no white plate logo stickers. "
-    "Official brand marks are provided as image references and must appear as physical scene elements only."
+    "Only admin-verified brand marks may appear as logos; never invent a brand emblem."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
 # render and forbid all others — stops the model defaulting to generic Bitcoin.
@@ -402,30 +403,42 @@ def build_editorial_pack(
     pack["topic"] = topic
 
     # Compose final image prompt: AI scene + style + coin clause + negatives.
-    # Primary brand only — competitors must not clutter the visual.
+    # All story brands will be admin-gated; never invent logos for brands not verified.
     content_prompt = str(pack.get("image_prompt") or "").strip()
     if content_prompt:
         coin_clause = _coin_clause(tokens)
+        story_names: list[str] = []
         primary_name = None
         try:
-            from app.services.social_entity_assets import pick_primary_org
-            po = pick_primary_org(pack.get("entities") or [], headline=str(pack.get("headline") or ""))
-            primary_name = (po or {}).get("name")
+            from app.services.social_entity_assets import rank_story_orgs
+            ranked = rank_story_orgs(
+                pack.get("entities") or [],
+                headline=str(pack.get("headline") or ""),
+            )
+            story_names = [str(o.get("name")) for o in ranked if o.get("name")]
+            primary_name = story_names[0] if story_names else None
         except Exception:
-            orgs = [e["name"] for e in (pack.get("entities") or []) if e.get("type") == "org"]
-            primary_name = orgs[0] if orgs else None
+            story_names = [
+                e["name"] for e in (pack.get("entities") or [])
+                if e.get("type") == "org" and e.get("name")
+            ][:4]
+            primary_name = story_names[0] if story_names else None
         org_clause = ""
-        if primary_name:
+        if story_names:
             org_clause = (
-                f" Primary brand is {primary_name}: make that brand a clear physical element inside the scene "
-                "(product, phone UI, signage, or environment). Do not include competitor brand logos. "
-                "No corner stickers or floating badges."
+                f" Story brands that may appear visually only after admin verification: "
+                f"{', '.join(story_names)}. "
+                "Do NOT invent logos, wordmarks, or token emblems for any brand "
+                "(including Hyperliquid/HYPE, Circle, exchanges, banks). "
+                "No corner stickers. Prefer environment/atmosphere over fake marks."
             )
         pack["image_prompt"] = (
             f"{content_prompt}{org_clause} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
         )
         if primary_name:
             pack["primary_org_name"] = primary_name
+        if story_names:
+            pack["story_brand_names"] = story_names
 
     # References: ONLY the search-result URLs the AI vetted as matching THIS exact
     # event. Titles/URLs are taken from the real Tavily results (never AI-invented),

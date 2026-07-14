@@ -542,10 +542,11 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-gold-primary">
-            Safe materials · admin verify
+            Safe materials · all story brands
           </p>
           <p className="text-[11px] text-text-muted mt-0.5 leading-snug">
-            Logo &amp; face must be uploaded (or confirmed) by admin before AI image — accuracy first, no wiki guess.
+            Every brand in the story (Coinbase, Hyperliquid, Circle, banks…) + face must be
+            admin-uploaded before AI image. Unverified marks are forbidden — no invented HYPE logos.
           </p>
         </div>
         {data.needs_materials ? (
@@ -560,9 +561,15 @@ const MaterialsPanel = ({ postId, onUpdated }) => {
         )}
       </div>
 
-      {primaryName && (
-        <p className="text-[10px] font-mono text-text-muted">
-          Primary brand: <span className="text-white">{primaryName}</span>
+      {(primaryName || (data.story_orgs || []).length > 0) && (
+        <p className="text-[10px] font-mono text-text-muted leading-relaxed">
+          Brands required:{" "}
+          <span className="text-white">
+            {(data.story_orgs || [])
+              .map((o) => o?.name)
+              .filter(Boolean)
+              .join(" · ") || primaryName}
+          </span>
           {data.featured_person ? (
             <>
               {" "}

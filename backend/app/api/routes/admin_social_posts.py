@@ -296,6 +296,8 @@ async def get_post_materials(
         "entities": entities,
         "featured_person": featured,
         "primary_org": assets.get("primary_org"),
+        "story_orgs": assets.get("story_orgs") or [],
+        "verified_brand_names": assets.get("verified_brand_names") or [],
         "inventory": assets.get("inventory") or [],
         "needs_materials": bool(assets.get("needs_materials")),
         "missing_count": int(assets.get("missing_count") or 0),

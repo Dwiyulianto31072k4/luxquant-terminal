@@ -7,11 +7,11 @@ AI-drawn logos look wrong (IP + quality). Verified logo/face files are resolved
 from a library and fed into image generation as *scene references* (brand mark
 integrated into the photograph), never as corner stickers.
 
-Visual scope is intentionally narrow:
-  · 1 primary org (headline-ranked) → logo into the AI scene
-  · 1 featured person               → face likeness edit
-Competitor / tangential orgs (e.g. Coinbase on a Binance story) stay in caption
-entities for text only — not materials, not image.
+Visual scope (safe mode):
+  · ALL story orgs (up to MAX_VISUAL_ORGS, headline-ranked) → admin logo upload
+  · 1 featured person → admin face upload
+  · Image gen may ONLY show verified brand marks — inventing Hyperliquid/HYPE/etc.
+    without an admin logo is forbidden.
 
 Assets are cached under SOCIAL_POST_ASSETS_DIR/{logos,faces}.
 """
@@ -46,6 +46,8 @@ USER_AGENT = "LuxQuantBot/1.0 (editorial news illustration; contact admin@luxqua
 # unlock AI image generation. Wiki/clearbit autofetch never auto-approves.
 SAFE_MATERIALS = os.environ.get("SOCIAL_SAFE_MATERIALS", "1").strip().lower() not in ("0", "false", "no")
 TRUSTED_SOURCES = frozenset({"admin", "confirmed", "seed_trusted"})
+# How many story brands (exchanges/protocols/banks) require admin logo before image gen.
+MAX_VISUAL_ORGS = int(os.environ.get("SOCIAL_MAX_VISUAL_ORGS", "4"))
 
 # Curated aliases → Wikipedia title or clearbit domain for high-value crypto orgs.
 # Prefer Wikipedia lead images (identity-reliable) over AI-hallucinated marks.
@@ -415,33 +417,51 @@ def normalize_entities(raw: Any) -> list[dict]:
     return out[:8]
 
 
-def pick_primary_org(entities: list[dict], headline: str = "") -> Optional[dict]:
-    """Pick the single org that should drive visuals (logo-in-scene).
+def _score_org(org: dict, headline: str = "", index: int = 0) -> int:
+    name = str(org.get("name") or "").strip()
+    name_l = name.lower()
+    hl = re.sub(r"\s+", " ", (headline or "").lower())
+    score = max(0, 40 - index * 3)
+    if name_l and name_l in hl:
+        score += 300
+    for w in re.findall(r"[a-z0-9]{3,}", name_l):
+        if w in hl:
+            score += 80
+            break
+    role = str(org.get("role") or "").lower()
+    if any(k in role for k in ("primary", "subject", "protocol", "exchange", "company", "bank")):
+        score += 15
+    return score
 
-    Ranks by headline match first so a Binance story does not pull Coinbase
-    into materials / image generation.
+
+def pick_primary_org(entities: list[dict], headline: str = "") -> Optional[dict]:
+    """Highest-ranked story org (for labels / primary badge)."""
+    ranked = rank_story_orgs(entities or [], headline=headline)
+    return ranked[0] if ranked else None
+
+
+def rank_story_orgs(entities: list[dict], headline: str = "", *, limit: Optional[int] = None) -> list[dict]:
+    """All distinct orgs in the story, ranked by headline relevance.
+
+    These are the brands that must be admin-verified before image gen so the
+    model never invents a Hyperliquid/HYPE mark when it wasn't uploaded.
     """
     orgs = [e for e in (entities or []) if (e.get("type") or "org") == "org" and e.get("name")]
     if not orgs:
-        return None
-    hl = re.sub(r"\s+", " ", (headline or "").lower())
-    scored: list[tuple[int, dict]] = []
-    for i, org in enumerate(orgs):
-        name = str(org.get("name") or "").strip()
-        name_l = name.lower()
-        score = max(0, 40 - i * 3)  # list order is a weak prior
-        if name_l and name_l in hl:
-            score += 300
-        for w in re.findall(r"[a-z0-9]{3,}", name_l):
-            if w in hl:
-                score += 80
-                break
-        role = str(org.get("role") or "").lower()
-        if any(k in role for k in ("primary", "subject", "protocol", "exchange", "company")):
-            score += 15
-        scored.append((score, org))
-    scored.sort(key=lambda x: (-x[0], orgs.index(x[1]) if x[1] in orgs else 99))
-    return scored[0][1] if scored else None
+        return []
+    seen = set()
+    unique: list[dict] = []
+    for o in orgs:
+        key = str(o.get("name") or "").strip().lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique.append(o)
+    scored = [(_score_org(o, headline, i), o) for i, o in enumerate(unique)]
+    scored.sort(key=lambda x: (-x[0],))
+    out = [o for _, o in scored]
+    cap = limit if limit is not None else MAX_VISUAL_ORGS
+    return out[: max(1, cap)]
 
 
 def select_visual_entities(
@@ -450,33 +470,39 @@ def select_visual_entities(
     featured_person: Optional[str] = None,
     headline: str = "",
 ) -> dict:
-    """Narrow entity set for materials + image: 1 primary org + featured person only."""
-    primary = pick_primary_org(entities or [], headline=headline)
+    """Materials + image scope: ALL story brands (capped) + featured person.
+
+    Multi-party stories (Coinbase + Hyperliquid + Circle + JPMorgan) require
+    admin logos for each brand that may appear in the frame.
+    """
+    ranked = rank_story_orgs(entities or [], headline=headline, limit=MAX_VISUAL_ORGS)
+    primary = ranked[0] if ranked else None
     visual: list[dict] = []
-    if primary:
-        visual.append({**primary, "type": "org", "visual_role": "primary_brand"})
+    for i, org in enumerate(ranked):
+        visual.append({
+            **org,
+            "type": "org",
+            "visual_role": "primary_brand" if i == 0 else "story_brand",
+        })
     fp = None
     if featured_person:
         fp = re.split(r"[,(]", featured_person, 1)[0].strip() or None
     if not fp:
-        # First person entity as soft featured
         for e in entities or []:
             if e.get("type") == "person" and e.get("name"):
                 fp = str(e["name"]).strip()
                 break
     if fp:
         visual.append({
-            "name": fp if "," in (featured_person or "") else fp,
+            "name": (featured_person or fp).strip(),
             "type": "person",
             "role": "featured",
             "domain": None,
             "visual_role": "featured_person",
         })
-        # Prefer full featured_person string when provided
-        if featured_person and featured_person.strip():
-            visual[-1]["name"] = featured_person.strip()
     return {
         "primary_org": primary,
+        "story_orgs": ranked,
         "featured_person": featured_person or fp,
         "visual_entities": visual,
     }
@@ -492,10 +518,8 @@ def resolve_entity_assets(
     """
     Resolve logo/face paths for entities.
 
-    When visual_only=True (default for materials gate + image gen), only the
-    headline-ranked primary org + featured person are required/resolved for
-    needs_materials. Full entity lists can still be passed with visual_only=False
-    for admin inventory of everything AI mentioned.
+    visual_only=True (materials gate + image gen): ALL story brands (up to
+    MAX_VISUAL_ORGS) + featured person — each logo must be admin-trusted.
     """
     logos: list[dict] = []
     people: list[dict] = []
@@ -507,6 +531,7 @@ def resolve_entity_assets(
         entities or [], featured_person=featured_person, headline=headline
     )
     primary_org = selection.get("primary_org")
+    story_orgs = selection.get("story_orgs") or []
     if visual_only:
         ents = list(selection.get("visual_entities") or [])
         featured_person = selection.get("featured_person") or featured_person
@@ -662,12 +687,21 @@ def resolve_entity_assets(
     if featured_face_path and not read_asset_trust(featured_face_path).get("trusted"):
         featured_face_path = None
 
+    verified_brands = [
+        {"name": lg.get("name"), "path": lg.get("path")}
+        for lg in logos
+        if lg.get("path") and lg.get("name")
+    ]
+
     return {
-        "logos": logos[:4],
+        "logos": logos[:MAX_VISUAL_ORGS],
         "people": people[:3],
         "featured_face_path": featured_face_path,
         "primary_org": primary_org,
         "primary_logo": primary_logo,
+        "story_orgs": story_orgs,
+        "verified_brands": verified_brands,
+        "verified_brand_names": [b["name"] for b in verified_brands],
         "inventory": inventory,
         "needs_materials": len(critical) > 0,
         "missing_count": len(critical),

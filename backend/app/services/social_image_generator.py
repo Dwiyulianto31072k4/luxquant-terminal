@@ -592,8 +592,35 @@ def _prepare_face_reference(face_path: str, *, news_id: int) -> str:
     return str(out)
 
 
-def _identity_face_prompt(scene_prompt: str, *, brand: Optional[str] = None) -> str:
+def _brand_allowlist_clause(verified_names: list[str]) -> str:
+    """Hard rule: only admin-verified brand marks may appear."""
+    if not verified_names:
+        return (
+            "BRAND MARK RULE (critical): Do NOT draw any corporate logos, exchange marks, "
+            "protocol emblems, bank wordmarks, or tickers (no Hyperliquid, no HYPE, no Coinbase C, "
+            "no Circle, no JPMorgan wordmark, no invented symbols). Use only abstract environment."
+        )
+    allowed = ", ".join(verified_names)
+    return (
+        f"BRAND MARK RULE (critical): The ONLY brand logos/wordmarks/emblems allowed in the image are: "
+        f"{allowed}. "
+        "Do NOT invent, approximate, or hallucinate any other brand mark — especially not Hyperliquid, "
+        "HYPE token, Circle, rival exchanges, or banks that are not in that allow-list. "
+        "If a company is part of the story but its mark is not allowed, show it only via abstract "
+        "architecture/lighting with zero readable logo."
+    )
+
+
+def _identity_face_prompt(
+    scene_prompt: str,
+    *,
+    brand: Optional[str] = None,
+    verified_brand_names: Optional[list] = None,
+) -> str:
     """Build face-only edit prompt: identity first, scene second."""
+    names = list(verified_brand_names or [])
+    if brand and brand not in names:
+        names = [brand] + names
     parts = [
         IDENTITY_LOCK_PREFIX,
         "Task: Transform the reference photograph into a cinematic vertical Instagram poster "
@@ -601,11 +628,12 @@ def _identity_face_prompt(scene_prompt: str, *, brand: Optional[str] = None) -> 
         "The hero subject is a large chest-up or three-quarter portrait of THIS exact person "
         "in the upper/middle frame.",
         f"Scene direction (do not change identity for these): {scene_prompt}",
+        _brand_allowlist_clause(names),
     ]
-    if brand:
+    if names:
         parts.append(
-            f"Environment may evoke {brand} (architecture, colors, workplace props) "
-            "without drawing fake logo stickers in corners; brand marks come in a later pass if needed."
+            f"Verified brands for later accurate integration: {', '.join(names)}. "
+            "Prefer not inventing marks in this pass; environment only is fine."
         )
     parts.append(
         "Lower third of the frame darker and calmer for later headline typography. "
@@ -614,17 +642,53 @@ def _identity_face_prompt(scene_prompt: str, *, brand: Optional[str] = None) -> 
     return " ".join(parts)
 
 
-def _brand_pass_prompt(scene_prompt: str, brand: str) -> str:
-    """Second edit: inject brand into an identity-locked scene without touching the face."""
+def _brand_pass_prompt(
+    scene_prompt: str,
+    *,
+    verified_brand_names: list[str],
+) -> str:
+    """Second edit: inject ONLY verified brands; never invent missing ones (e.g. HYPE)."""
+    allowed = ", ".join(verified_brand_names) if verified_brand_names else "(none)"
     return (
         f"{BRAND_PASS_FACE_LOCK}"
-        f"Add the official {brand} brand presence as a physical scene element "
-        f"(wall signage, product emblem, desk object, or architectural mark). "
-        f"Match real {brand} brand geometry and colors when possible. "
-        "Never as a tiny corner sticker, floating badge, or white plate. "
-        f"Keep composition as a cinematic vertical poster. Context: {scene_prompt[:400]} "
+        f"Integrate ONLY these official verified brands as physical scene elements: {allowed}. "
+        "Place marks as wall signage, product emblems, desk objects, or architectural elements — "
+        "accurate geometry, not tiny corner stickers. "
+        f"{_brand_allowlist_clause(verified_brand_names)} "
+        f"Keep composition cinematic vertical poster. Context: {scene_prompt[:400]} "
         "No readable body text, no caption bars."
     )
+
+
+def _prepare_logos_sheet(logo_paths: list[str], *, news_id: int) -> Optional[str]:
+    """Optional multi-logo plate for brand pass (logos only — never mixed with face)."""
+    from PIL import Image
+
+    paths = [p for p in logo_paths if p and Path(p).exists()][:4]
+    if not paths:
+        return None
+    try:
+        tiles = []
+        for p in paths:
+            im = Image.open(p).convert("RGBA")
+            im.thumbnail((320, 320), Image.Resampling.LANCZOS)
+            tiles.append(im)
+        n = len(tiles)
+        cell = 360
+        cols = min(2, n)
+        rows = (n + cols - 1) // cols
+        sheet = Image.new("RGB", (cols * cell, rows * cell), (250, 250, 252))
+        for i, im in enumerate(tiles):
+            r, c = divmod(i, cols)
+            x = c * cell + (cell - im.width) // 2
+            y = r * cell + (cell - im.height) // 2
+            sheet.paste(im, (x, y), im)
+        out = ASSETS_DIR / f"ref_logos_{news_id}.jpg"
+        ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+        sheet.save(out, quality=95)
+        return str(out)
+    except Exception:
+        return None
 
 
 def _compose_editorial_card(
@@ -722,6 +786,9 @@ def _materials_dict(assets: dict) -> dict:
         "critical_missing": assets.get("critical_missing") or [],
         "primary_org": assets.get("primary_org"),
         "primary_logo": assets.get("primary_logo"),
+        "story_orgs": assets.get("story_orgs") or [],
+        "verified_brands": assets.get("verified_brands") or [],
+        "verified_brand_names": assets.get("verified_brand_names") or [],
     }
 
 
@@ -780,6 +847,10 @@ def generate_ai_social_image(
         primary_org_name = (po.get("name") if isinstance(po, dict) else None) or (
             pl.get("name") if isinstance(pl, dict) else None
         )
+        verified_brands = list(assets.get("verified_brands") or [])
+        verified_brand_names = list(assets.get("verified_brand_names") or [])
+        if not verified_brand_names and primary_org_name:
+            verified_brand_names = [primary_org_name]
         visual_materials = _materials_dict(assets)
     except Exception as exc:
         logger = __import__("logging").getLogger(__name__)
@@ -812,63 +883,78 @@ def generate_ai_social_image(
         mode = "ai_xai_poster"
         ref_used = None
         try:
-            logo_ok = bool(primary_logo_path and Path(str(primary_logo_path)).exists())
+            logo_paths = [
+                b.get("path") for b in verified_brands
+                if isinstance(b, dict) and b.get("path") and Path(str(b["path"])).exists()
+            ]
+            if not logo_paths and primary_logo_path and Path(str(primary_logo_path)).exists():
+                logo_paths = [str(primary_logo_path)]
+            logo_ok = bool(logo_paths)
             face_ok = bool(face_path and Path(str(face_path)).exists())
+            allow = verified_brand_names or ([primary_org_name] if primary_org_name else [])
+
+            # Strip invented-logo language from the base scene prompt + hard allow-list
+            scene_prompt = f"{prompt} {_brand_allowlist_clause(allow)}"
 
             if face_ok:
                 # ── Step 1: FACE ONLY (1:1 identity). Never dual-collage with logo. ──
                 face_ref = _prepare_face_reference(str(face_path), news_id=news_id)
                 ref_used = face_ref
                 identity_prompt = _identity_face_prompt(
-                    prompt,
-                    brand=primary_org_name if logo_ok or primary_org_name else None,
+                    scene_prompt,
+                    brand=primary_org_name,
+                    verified_brand_names=allow,
                 )
                 gen_prompt = identity_prompt
                 _edit_xai_image(identity_prompt, face_ref, raw_path, aspect_ratio="3:4")
                 mode = "ai_xai_face_1to1"
 
-                # ── Step 2 (optional): brand into scene without changing the face ──
-                if logo_ok:
+                # ── Step 2: ONLY verified brands into scene (no inventing HYPE/etc.) ──
+                if logo_ok and allow:
                     try:
-                        brand_prompt = _brand_pass_prompt(prompt, brand)
-                        # Edit FROM the identity-locked scene (not from logo collage)
+                        brand_prompt = _brand_pass_prompt(
+                            scene_prompt, verified_brand_names=allow
+                        )
                         _edit_xai_image(
                             brand_prompt,
                             str(raw_path),
                             raw_path,
                             aspect_ratio="3:4",
                         )
-                        mode = "ai_xai_face_1to1_brand"
-                        gen_prompt = identity_prompt + " | brand_pass:" + brand
+                        mode = "ai_xai_face_1to1_brands"
+                        gen_prompt = identity_prompt + " | brands:" + ",".join(allow)
                     except Exception as brand_exc:
-                        # Keep identity-locked image if brand pass fails
                         logger = __import__("logging").getLogger(__name__)
                         logger.warning(
                             "brand pass failed (keeping face-locked image): %s", brand_exc
                         )
-                elif primary_org_name:
-                    # No logo file — light text-only brand environment already in step 1
-                    mode = "ai_xai_face_1to1"
 
             elif logo_ok:
-                # Brand mark is the visual anchor — build scene around it as a physical prop
+                # Multi-brand sheet when several logos verified; else single primary
+                logo_ref = _prepare_logos_sheet(
+                    [str(p) for p in logo_paths], news_id=news_id
+                ) or str(logo_paths[0])
                 edit_prompt = (
-                    f"Cinematic vertical Instagram poster. Use the official {brand} brand mark from the "
-                    "reference image accurately as a LARGE physical 3D element integrated into the scene "
-                    "(giant product emblem, phone app icon filling part of a device screen, desk object, "
-                    "or environmental signage). Match the reference mark's shape and colors exactly. "
-                    "Never as a tiny corner sticker or badge on a white plate. "
-                    "Full scene: " + prompt
+                    "Cinematic vertical Instagram poster. "
+                    f"Use ONLY the official brand mark(s) from the reference for: {', '.join(allow)}. "
+                    "Integrate them as large physical 3D elements in the scene "
+                    "(signage, product emblem, desk object). Match reference geometry exactly. "
+                    f"{_brand_allowlist_clause(allow)} "
+                    "Never corner stickers. Full scene: " + scene_prompt
                 )
-                _edit_xai_image(edit_prompt, str(primary_logo_path), raw_path, aspect_ratio="3:4")
-                ref_used = primary_logo_path
-                mode = "ai_xai_brand_scene"
+                _edit_xai_image(edit_prompt, logo_ref, raw_path, aspect_ratio="3:4")
+                ref_used = logo_ref
+                mode = "ai_xai_brands_scene"
+                gen_prompt = edit_prompt
             else:
                 if featured_person:
-                    gen_prompt = prompt + (
+                    gen_prompt = scene_prompt + (
                         " Show the central person only from behind or as a shadowed silhouette, "
                         "face not visible, to avoid depicting an inaccurate likeness."
                     )
+                else:
+                    gen_prompt = scene_prompt
+                gen_prompt = f"{gen_prompt} {_brand_allowlist_clause([])}"
                 _generate_xai_image(gen_prompt, raw_path)
 
             _compose_editorial_card(
@@ -882,9 +968,10 @@ def generate_ai_social_image(
                 visual_materials = {
                     **visual_materials,
                     "raw_image_path": str(raw_path),
-                    "brand_in_scene": bool(logo_ok and face_ok) or (bool(logo_ok) and not face_ok),
+                    "brand_in_scene": bool(logo_ok),
                     "identity_lock": bool(face_ok),
                     "primary_brand": primary_org_name,
+                    "verified_brand_names": allow,
                 }
             return GeneratedSocialImage(
                 image_path=str(out_path),
