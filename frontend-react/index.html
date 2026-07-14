@@ -10,12 +10,16 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
     <link rel="preconnect" href="https://unpkg.com" />
 
-    <!-- Search / browser favicon = dedicated SEO logo (/favicon.png) with its
-         own background so it's visible on Google's white results page.
-         The in-app UI still uses /logo.png (unchanged). -->
-    <link rel="icon" type="image/png" sizes="any" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+    <!-- Favicons: multi-size PNG (Google SERP prefers ≥48px square with contrast)
+         + self-contained SVG. Brand mark sits on dark tile so it stays visible
+         on Google's light results UI. In-app UI still uses /logo.png. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/favicon-48.png" />
 
     <!-- Canonical -->
     <link rel="canonical" href="https://luxquant.tw/" />
@@ -23,29 +27,30 @@
     <!-- ════════════════════════════════════════════════
          PRIMARY SEO
          ════════════════════════════════════════════════ -->
-    <title>LuxQuant Terminal: Crypto Market Intelligence &amp; Analytics</title>
+    <title>LuxQuant Terminal — Quantitative Crypto Intelligence</title>
     <meta
       name="description"
       content="LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you."
     />
-    <meta name="robots" content="index,follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="author" content="LuxQuant" />
+    <meta name="keywords" content="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, autotrade, market intelligence" />
 
     <!-- ════════════════════════════════════════════════
          OPEN GRAPH (WhatsApp / Telegram / Discord / FB / LinkedIn)
          ════════════════════════════════════════════════ -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="LuxQuant Terminal" />
-    <meta property="og:title" content="LuxQuant Terminal: Crypto Market Intelligence &amp; Analytics" />
+    <meta property="og:title" content="LuxQuant Terminal — Quantitative Crypto Intelligence" />
     <meta
       property="og:description"
       content="Turn market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Bull or bear, informed by data and decided by you."
     />
     <meta property="og:url" content="https://luxquant.tw/" />
-    <meta property="og:image" content="https://luxquant.tw/og-default.png" />
+    <meta property="og:image" content="https://luxquant.tw/og-default-1200.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="LuxQuant Terminal — algorithmic crypto trading" />
+    <meta property="og:image:alt" content="LuxQuant Terminal — quantitative crypto intelligence" />
     <meta property="og:locale" content="en_US" />
 
     <!-- ════════════════════════════════════════════════
@@ -53,17 +58,17 @@
          ════════════════════════════════════════════════ -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@luxquantcrypto" />
-    <meta name="twitter:title" content="LuxQuant Terminal: Crypto Market Intelligence &amp; Analytics" />
+    <meta name="twitter:title" content="LuxQuant Terminal — Quantitative Crypto Intelligence" />
     <meta
       name="twitter:description"
       content="Crypto market intelligence and analytics. Bull or bear, informed by data and decided by you."
     />
-    <meta name="twitter:image" content="https://luxquant.tw/og-default.png" />
+    <meta name="twitter:image" content="https://luxquant.tw/og-default-1200.png" />
 
     <!-- ════════════════════════════════════════════════
          STRUCTURED DATA (JSON-LD)
-         Helps Google show the logo and understand the product;
-         a prerequisite for earning sitelinks over time.
+         Organization logo → SERP favicon/Knowledge Graph candidate.
+         SiteNavigationElement → sitelink candidates (algorithmic, not guaranteed).
          ════════════════════════════════════════════════ -->
     <script type="application/ld+json">
       {
@@ -73,30 +78,102 @@
             "@type": "Organization",
             "@id": "https://luxquant.tw/#organization",
             "name": "LuxQuant",
+            "alternateName": ["LuxQuant Terminal", "Lux Quant"],
             "url": "https://luxquant.tw/",
-            "logo": "https://luxquant.tw/logo.png",
-            "sameAs": ["https://x.com/luxquantcrypto"]
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://luxquant.tw/logo-512.png",
+              "width": 512,
+              "height": 512,
+              "contentUrl": "https://luxquant.tw/logo-512.png"
+            },
+            "image": "https://luxquant.tw/logo-512.png",
+            "sameAs": [
+              "https://x.com/luxquantcrypto",
+              "https://twitter.com/luxquantcrypto"
+            ]
           },
           {
             "@type": "WebSite",
             "@id": "https://luxquant.tw/#website",
             "name": "LuxQuant Terminal",
             "url": "https://luxquant.tw/",
-            "publisher": { "@id": "https://luxquant.tw/#organization" }
+            "description": "Quantitative crypto intelligence terminal with algorithmic signals, on-chain data, and transparent track record.",
+            "publisher": { "@id": "https://luxquant.tw/#organization" },
+            "inLanguage": "en"
           },
           {
             "@type": "SoftwareApplication",
+            "@id": "https://luxquant.tw/#app",
             "name": "LuxQuant Terminal",
             "applicationCategory": "FinanceApplication",
             "operatingSystem": "Web",
             "url": "https://luxquant.tw/",
+            "image": "https://luxquant.tw/og-default-1200.png",
             "description": "A quantitative crypto trading terminal with algorithmic signals, risk scoring, on-chain intelligence, AI research, and automated execution.",
             "offers": {
               "@type": "Offer",
               "price": "0",
               "priceCurrency": "USD",
               "description": "Free tier available; premium tiers unlock signals, AutoTrade, on-chain intelligence, and AI research."
-            }
+            },
+            "publisher": { "@id": "https://luxquant.tw/#organization" }
+          },
+          {
+            "@type": "ItemList",
+            "@id": "https://luxquant.tw/#sitenav",
+            "name": "Primary navigation",
+            "itemListElement": [
+              {
+                "@type": "SiteNavigationElement",
+                "position": 1,
+                "name": "Market Overview",
+                "url": "https://luxquant.tw/home",
+                "description": "Live crypto market overview: top movers, quantitative analytics, and market data."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 2,
+                "name": "Pricing",
+                "url": "https://luxquant.tw/pricing",
+                "description": "LuxQuant Terminal plans — free tier plus premium signals, AutoTrade, and AI research."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 3,
+                "name": "Crypto Coins",
+                "url": "https://luxquant.tw/coins",
+                "description": "Money flow, on-chain activity, and signals for Bitcoin, Ethereum, Solana, and more."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 4,
+                "name": "Crypto & Quant Glossary",
+                "url": "https://luxquant.tw/learn",
+                "description": "Plain-English definitions of money flow, BTC dominance, altseason, sector rotation, and more."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 5,
+                "name": "Blog",
+                "url": "https://luxquant.tw/blog",
+                "description": "Guides on crypto money flow, on-chain intelligence, and quantitative trading."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 6,
+                "name": "Bitcoin (BTC)",
+                "url": "https://luxquant.tw/coins/btc",
+                "description": "Bitcoin money flow, dominance, on-chain whale context, and LuxQuant signal correlation."
+              },
+              {
+                "@type": "SiteNavigationElement",
+                "position": 7,
+                "name": "Status",
+                "url": "https://luxquant.tw/status",
+                "description": "Live platform and API operational status for LuxQuant Terminal."
+              }
+            ]
           }
         ]
       }

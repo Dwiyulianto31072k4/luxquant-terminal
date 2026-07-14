@@ -267,7 +267,7 @@ export default function StatusPage() {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-sm overflow-hidden border" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-              <img src="/logo.png" alt="LuxQuant" className="w-full h-full object-cover" />
+              <img src="/logo-512.png" alt="LuxQuant" className="w-full h-full object-cover" />
             </div>
             <span className="text-[14px] font-normal text-white tracking-tight group-hover:text-gold-primary transition-colors">LuxQuant Status</span>
           </a>

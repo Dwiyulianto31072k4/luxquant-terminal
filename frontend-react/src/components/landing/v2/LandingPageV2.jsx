@@ -50,8 +50,23 @@ export default function LandingPageV2() {
     <div className="lp-v2 min-h-screen bg-bg-primary text-white relative overflow-x-hidden">
       <Seo
         title="LuxQuant Terminal — Quantitative Crypto Intelligence"
-        description="A 24/7 algorithm plus an AI market researcher — precise entries, strict risk management, and a fully transparent track record since 2023."
+        description="LuxQuant Terminal turns market data into a quantitative edge with algorithmic analysis, on-chain intelligence, and risk scoring. Trade smarter, with confidence. Informed by data, decided by you."
         path="/"
+        keywords="luxquant, crypto terminal, quantitative crypto, trading signals, on-chain intelligence, autotrade"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "@id": "https://luxquant.tw/#organization",
+          name: "LuxQuant",
+          url: "https://luxquant.tw/",
+          logo: {
+            "@type": "ImageObject",
+            url: "https://luxquant.tw/logo-512.png",
+            width: 512,
+            height: 512,
+          },
+          sameAs: ["https://x.com/luxquantcrypto"],
+        }}
       />
       {/* Continuous brand canvas — ONE seamless background for every
           section (scrolls with content, no fixed-bg banding). Sections

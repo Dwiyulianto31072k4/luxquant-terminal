@@ -178,8 +178,8 @@ const PricingPage = () => {
   return (
     <div className="relative min-h-screen">
       <Seo
-        title="Pricing &amp; Plans — LuxQuant Terminal"
-        description="LuxQuant Terminal pricing and plans. Unlock algorithmic analysis, on-chain intelligence, AutoTrade, and AI research. Free tier available."
+        title="Pricing & Plans — LuxQuant Terminal"
+        description="Compare LuxQuant Terminal plans. Free tier to start; premium unlocks algorithmic signals, AutoTrade, on-chain intelligence, and AI research."
         path="/pricing"
         keywords="luxquant pricing, crypto signals subscription, quant terminal plans, autotrade pricing"
         jsonLd={[
@@ -190,6 +190,22 @@ const PricingPage = () => {
               { "@type": "ListItem", position: 1, name: "Home", item: "https://luxquant.tw/" },
               { "@type": "ListItem", position: 2, name: "Pricing", item: "https://luxquant.tw/pricing" },
             ],
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: "LuxQuant Terminal",
+            description: "Quantitative crypto trading terminal with algorithmic signals, AutoTrade, on-chain intelligence, and AI research.",
+            brand: { "@type": "Brand", name: "LuxQuant" },
+            image: "https://luxquant.tw/logo-512.png",
+            url: "https://luxquant.tw/pricing",
+            offers: {
+              "@type": "AggregateOffer",
+              lowPrice: "0",
+              priceCurrency: "USD",
+              offerCount: "3",
+              availability: "https://schema.org/InStock",
+            },
           },
           {
             "@context": "https://schema.org",

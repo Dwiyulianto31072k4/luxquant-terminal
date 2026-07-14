@@ -180,9 +180,13 @@ async function main() {
           datePublished: p.date,
           dateModified: p.updated || p.date,
           author: { "@type": "Organization", name: "LuxQuant" },
-          publisher: { "@type": "Organization", name: "LuxQuant", logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` } },
+          publisher: {
+            "@type": "Organization",
+            name: "LuxQuant",
+            logo: { "@type": "ImageObject", url: `${SITE}/logo-512.png`, width: 512, height: 512 },
+          },
           mainEntityOfPage: `${SITE}/blog/${p.slug}`,
-          image: `${SITE}/og-default.png`,
+          image: `${SITE}/og-default-1200.png`,
         },
         breadcrumbLd([{ label: "Home", to: "/" }, { label: "Blog", to: "/blog" }, { label: p.title, self: `/blog/${p.slug}` }]),
       ],
@@ -224,7 +228,7 @@ async function main() {
     pages.push({
       path: `/coins/${c.slug}`,
       title: `${c.name} (${c.symbol}) — money flow, on-chain & signals | LuxQuant`,
-      description: c.body[0].slice(0, 155),
+      description: `${c.name} (${c.symbol}): ${c.body[0].slice(0, 140)}`,
       jsonLd: [
         {
           "@context": "https://schema.org",

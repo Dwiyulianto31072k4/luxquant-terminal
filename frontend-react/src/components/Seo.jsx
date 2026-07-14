@@ -5,7 +5,8 @@
 import { Helmet } from "react-helmet-async";
 
 const SITE = "https://luxquant.tw";
-const DEFAULT_IMAGE = `${SITE}/og-default.png`;
+// Lightweight 1200×630 crawl-friendly OG (prefer over multi-MB originals)
+const DEFAULT_IMAGE = `${SITE}/og-default-1200.png`;
 
 export default function Seo({
   title,

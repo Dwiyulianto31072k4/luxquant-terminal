@@ -39,6 +39,7 @@ function CoinDetail({ slug }) {
       url,
       description: coin.body[0],
       isPartOf: { "@type": "WebSite", name: "LuxQuant Terminal", url: `${SITE}/` },
+      about: { "@type": "Thing", name: coin.name, alternateName: coin.symbol },
     },
     {
       "@context": "https://schema.org",
@@ -55,9 +56,9 @@ function CoinDetail({ slug }) {
     <div className="w-full max-w-3xl px-1 py-4">
       <Seo
         title={`${coin.name} (${coin.symbol}) — money flow, on-chain & signals | LuxQuant`}
-        description={coin.body[0].slice(0, 155)}
+        description={`${coin.name} (${coin.symbol}): ${coin.body[0].slice(0, 140)}`}
         path={`/coins/${coin.slug}`}
-        keywords={`${coin.name}, ${coin.symbol}, ${coin.symbol} price, ${coin.name} on-chain, ${coin.name} analysis`}
+        keywords={`${coin.name}, ${coin.symbol}, ${coin.symbol} analysis, ${coin.name} on-chain, ${coin.name} money flow, luxquant`}
         type="article"
         jsonLd={jsonLd}
       />

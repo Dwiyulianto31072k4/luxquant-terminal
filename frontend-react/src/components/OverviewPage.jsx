@@ -191,9 +191,10 @@ const OverviewPage = () => {
   return (
     <div className="space-y-5 lg:space-y-7">
       <Seo
-        title="Market Overview — Live Crypto Data &amp; Analytics | LuxQuant Terminal"
-        description="Live crypto market overview: top movers, market data, and quantitative analytics. Informed by data, decided by you."
+        title="Market Overview — Live Crypto Data & Analytics | LuxQuant Terminal"
+        description="Live crypto market overview: top movers, sector rotation, and quantitative analytics from LuxQuant Terminal. Real-time data, decided by you."
         path="/home"
+        keywords="crypto market overview, live crypto data, market analytics, luxquant"
       />
       <TopPerformers />
 
