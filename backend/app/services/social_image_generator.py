@@ -523,9 +523,55 @@ def _wrap_headline(draw, text_value: str, fnt) -> list:
     return lines[:4]
 
 
-def _compose_editorial_card(raw_path: str, headline: str, out_path: str) -> str:
+def _paste_entity_logos(img, logos: Optional[list], *, width: int) -> None:
+    """Stamp verified org logos as circular/rounded badges (top-right stack).
+
+    Real assets only — never AI-invented marks. Used so a Hyperliquid×SEC story
+    shows both brands without asking the image model to draw logos.
+    """
+    if not logos:
+        return
+    from PIL import Image, ImageDraw
+
+    size = 72
+    pad = 18
+    gap = 12
+    x_right = width - pad
+    y = pad
+    for item in logos[:4]:
+        path = item.get("path") if isinstance(item, dict) else item
+        if not path or not Path(path).exists():
+            continue
+        try:
+            mark = Image.open(path).convert("RGBA")
+            # Cover-crop into square
+            side = min(mark.width, mark.height)
+            left = (mark.width - side) // 2
+            top = (mark.height - side) // 2
+            mark = mark.crop((left, top, left + side, top + side))
+            mark = mark.resize((size, size), Image.Resampling.LANCZOS)
+            # White plate + soft shadow for contrast on any background
+            plate = Image.new("RGBA", (size + 10, size + 10), (0, 0, 0, 0))
+            pd = ImageDraw.Draw(plate)
+            pd.rounded_rectangle((0, 0, size + 9, size + 9), radius=14, fill=(0, 0, 0, 90))
+            pd.rounded_rectangle((2, 2, size + 7, size + 7), radius=12, fill=(255, 255, 255, 245))
+            plate.alpha_composite(mark, (5, 5))
+            img.alpha_composite(plate, (x_right - size - 10, y))
+            y += size + gap + 6
+        except Exception:
+            continue
+
+
+def _compose_editorial_card(
+    raw_path: str,
+    headline: str,
+    out_path: str,
+    *,
+    entity_logos: Optional[list] = None,
+) -> str:
     """LuxQuant editorial card (agreed style): cover-crop 4:5, bottom vignette,
-    white headline on stepped LuxQuant-red highlight boxes (lower-left), logo lower-right."""
+    white headline on stepped LuxQuant-red highlight boxes (lower-left), logo lower-right.
+    Optional entity_logos: real brand marks composited top-right."""
     from PIL import Image, ImageDraw, ImageFilter
 
     width, height = 1080, 1350
@@ -550,6 +596,9 @@ def _compose_editorial_card(raw_path: str, headline: str, out_path: str) -> str:
         # vertical-center the text inside the red box (box spans y-2 … y+58)
         draw.text((x + 10, y + 28), line, font=fnt, fill=(255, 255, 255, 255), anchor="lm")
         y += 82
+
+    # Entity brand badges (Hyperliquid / SEC / etc.) — verified files only
+    _paste_entity_logos(img, entity_logos, width=width)
 
     logo_path = Path(SOCIAL_LOGO_PATH)
     if logo_path.exists():
@@ -578,6 +627,7 @@ def generate_ai_social_image(
     reference_image_url: Optional[str] = None,
     override_prompt: Optional[str] = None,
     featured_person: Optional[str] = None,
+    entities: Optional[list] = None,
 ) -> GeneratedSocialImage:
     # When the AI editorial pack supplies its own image prompt, use it verbatim;
     # otherwise fall back to the deterministic template prompt.
@@ -593,10 +643,23 @@ def generate_ai_social_image(
     raw_path = ASSETS_DIR / f"ai_raw_{news_id}_{slug}.png"
     out_path = ASSETS_DIR / f"ai_{news_id}_{slug}.png"
 
+    # Resolve real logos + face references for named entities (Hyperliquid, SEC, founders…).
+    entity_logos: list = []
+    entity_face = None
+    try:
+        from app.services.social_entity_assets import resolve_entity_assets
+
+        assets = resolve_entity_assets(entities or [], featured_person=featured_person)
+        entity_logos = assets.get("logos") or []
+        entity_face = assets.get("featured_face_path")
+    except Exception as exc:
+        logger = __import__("logging").getLogger(__name__)
+        logger.warning("entity asset resolve failed: %s", exc)
+
     # Preferred backend: xAI/Grok raw image + LuxQuant editorial renderer
     # (bottom gradient + white headline + logo), matching the prototype look.
     if IMAGE_PROVIDER == "xai":
-        face_path = resolve_face_reference(featured_person)
+        face_path = entity_face or resolve_face_reference(featured_person)
         if not face_path and featured_person and FACE_AUTOFETCH:
             # Not cached yet — try to fetch and store the portrait for this and future posts.
             face_path = fetch_face_reference(featured_person)
@@ -620,7 +683,11 @@ def generate_ai_social_image(
                         "face not visible, to avoid depicting an inaccurate likeness."
                     )
                 _generate_xai_image(gen_prompt, raw_path)
-            _compose_editorial_card(str(raw_path), headline, str(out_path))
+            _compose_editorial_card(
+                str(raw_path), headline, str(out_path), entity_logos=entity_logos
+            )
+            if entity_logos:
+                mode = f"{mode}_logos"
             return GeneratedSocialImage(
                 image_path=str(out_path),
                 image_mode=mode,

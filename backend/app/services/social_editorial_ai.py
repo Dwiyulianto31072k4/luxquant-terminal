@@ -44,8 +44,9 @@ IMAGE_STYLE_SUFFIX = (
 IMAGE_NEGATIVE_BASE = (
     "No watermark, no gibberish text, no readable paragraphs, no fake UI screens or chart labels, "
     "no schematic diagrams, blueprints, flowcharts or documents containing words or labels, "
-    "no invented tickers or numbers, no corporate/company logos, no purple theme, no collage seams, "
-    "no generic stock-photo look."
+    "no invented tickers or numbers, no fake/hallucinated brand wordmarks or made-up logos, "
+    "no purple theme, no collage seams, no generic stock-photo look. "
+    "Do not invent corporate logos — brand marks are composited later from real assets."
 )
 # Per-token emblem descriptions so the coin clause can name the EXACT coin(s) to
 # render and forbid all others — stops the model defaulting to generic Bitcoin.
@@ -266,17 +267,27 @@ def build_editorial_pack(
     )
     user = (
         "Create a complete social-news pack from this source context. Return JSON only with keys: "
-        "headline, visual_concept, image_prompt, caption, hashtags, source_note, topic, tokens, used_references.\n\n"
+        "headline, visual_concept, image_prompt, caption, hashtags, source_note, topic, tokens, entities, used_references.\n\n"
         "Headline: 7-12 words, premium editorial, clear, not clickbait.\n\n"
+        "entities: array of the most important named entities THIS story is about (max 6). Each item: "
+        "{name, type, role, domain}. type is 'person' or 'org'. role is a short label "
+        "(e.g. 'Hyperliquid founder', 'U.S. regulator', 'SEC chair'). domain is optional website host for orgs "
+        "(e.g. 'sec.gov', 'hyperliquid.xyz') when known from sources. Include: protocols/exchanges, regulators "
+        "(SEC, CFTC, Fed), companies, and key people (founders, CEOs, chairs). Do NOT invent entities not in sources. "
+        "Example for Hyperliquid×SEC news: "
+        "[{\"name\":\"Hyperliquid\",\"type\":\"org\",\"role\":\"protocol\",\"domain\":\"hyperliquid.xyz\"},"
+        "{\"name\":\"SEC\",\"type\":\"org\",\"role\":\"U.S. regulator\",\"domain\":\"sec.gov\"},"
+        "{\"name\":\"Jeff Yan\",\"type\":\"person\",\"role\":\"Hyperliquid founder\"}].\n\n"
         "visual_concept: FIRST reason about the picture as an object with keys: "
         "primary_subject (the single most important thing to depict as a tangible physical object or scene — the named "
         "token/coin, exchange, company, person, asset, or event; never a vague concept), "
-        "featured_person (if the news centers on a specific, WORLD-FAMOUS public figure whose face is widely recognizable "
-        "— e.g. a well-known founder, CEO, politician or head of state — put their full name and role here so their real "
-        "likeness anchors the scene; if the person is NOT globally famous, or no person is central, set this to null and do "
-        "NOT invent a face — represent the role generically instead, e.g. a back-turned or silhouetted figure), "
+        "featured_person (if the news centers on a specific real person who should anchor the photo — crypto founders, "
+        "exchange CEOs, SEC/Fed chairs, politicians, well-known investors — put full name + role, e.g. "
+        "'Jeff Yan, Hyperliquid founder' or 'Gary Gensler, former SEC Chair'. Prefer named founders of protocols named "
+        "in the story even if they are niche-famous in crypto. If NO person is central, set null; never invent a name), "
+        "key_orgs (array of 1-3 org/protocol/regulator names that define the story visually, e.g. [\"Hyperliquid\",\"SEC\"]), "
         "action (what is happening AND its market direction/sentiment — e.g. outflows = funds leaving, rally = rising, "
-        "crash/liquidation = falling/red, upgrade = building/roadmap), "
+        "crash/liquidation = falling/red, upgrade = building/roadmap, regulation = formal policy meeting), "
         "metaphor (one concrete visual metaphor that shows that action).\n\n"
         "image_prompt: A concise 40-70 word photorealistic scene that VISUALLY tells THIS specific story, built from "
         "visual_concept. START the description with the primary_subject (models weight the first words most), then "
@@ -348,9 +359,7 @@ def build_editorial_pack(
     tags = [t if str(t).startswith("#") else f"#{t}" for t in tags if str(t).strip()]
     pack["hashtags"] = tags[:8]
 
-    # Expose the AI's featured_person decision (a real, world-famous figure or None)
-    # so the image generator can decide whether to condition on a real reference
-    # photo or, if none exists, depict the person generically instead of faking a face.
+    # Expose featured_person + entities for the image generator / logo compositor.
     vc = pack.get("visual_concept") or {}
     fp = vc.get("featured_person") if isinstance(vc, dict) else None
     if isinstance(fp, str):
@@ -359,6 +368,22 @@ def build_editorial_pack(
     else:
         fp = None
     pack["featured_person"] = fp
+
+    # Entities (orgs + people) drive real logo badges and face references.
+    try:
+        from app.services.social_entity_assets import normalize_entities
+        ents = normalize_entities(pack.get("entities"))
+        # Merge key_orgs from visual_concept if entities list is thin.
+        if isinstance(vc, dict) and isinstance(vc.get("key_orgs"), list):
+            for org in vc["key_orgs"][:4]:
+                name = str(org).strip()
+                if name and not any(e["name"].lower() == name.lower() for e in ents):
+                    ents.append({"name": name, "type": "org", "role": "", "domain": None})
+        if fp and not any(e.get("type") == "person" for e in ents):
+            ents.insert(0, {"name": fp, "type": "person", "role": "featured", "domain": None})
+        pack["entities"] = ents[:8]
+    except Exception:
+        pack["entities"] = []
 
     # Normalize the token classification the AI returned. This — not prompt wording —
     # deterministically decides whether crypto coins may appear in the image, so an
@@ -377,10 +402,23 @@ def build_editorial_pack(
 
     # Compose final image prompt: AI-written scene (content) + fixed LuxQuant style +
     # code-chosen coin clause (encourage vs forbid) + always-on negatives.
+    # Real logos are composited later from verified assets — never ask the model to invent them.
     content_prompt = str(pack.get("image_prompt") or "").strip()
     if content_prompt:
         coin_clause = _coin_clause(tokens)
-        pack["image_prompt"] = f"{content_prompt} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
+        org_names = [
+            e["name"] for e in (pack.get("entities") or []) if e.get("type") == "org"
+        ][:3]
+        org_clause = ""
+        if org_names:
+            org_clause = (
+                " Scene must clearly evoke the real-world institutions involved "
+                f"({', '.join(org_names)}) through setting, documents, architecture, or meeting context — "
+                "but do NOT draw fake brand logos or wordmarks (those are overlaid later from real assets)."
+            )
+        pack["image_prompt"] = (
+            f"{content_prompt}{org_clause} {IMAGE_STYLE_SUFFIX} {coin_clause} {IMAGE_NEGATIVE_BASE}"
+        )
 
     # References: ONLY the search-result URLs the AI vetted as matching THIS exact
     # event. Titles/URLs are taken from the real Tavily results (never AI-invented),

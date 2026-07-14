@@ -28,10 +28,28 @@ image and caption so an admin can review/approve first.
   TradingView News Flow wrappers.
 
 - `backend/app/services/social_image_generator.py`
-  Generates AI images with OpenAI Images. If an article/reference image exists,
+  Generates AI images (xAI/OpenAI). If an article/reference image exists,
   it downloads it and attempts a reference-assisted image edit; otherwise it
   generates from the article brief. If OpenAI fails or no key is configured, the
   old deterministic LuxQuant card renderer is used as fallback.
+
+- `backend/app/services/social_entity_assets.py`
+  **Entity visual pipeline** (logos + people):
+  1. Editorial AI returns `entities` (orgs/people) + `featured_person`.
+  2. Logos are resolved from cache → Wikipedia lead image → Clearbit domain logo
+     (never AI-invented marks — those look wrong and violate QC LEG-6).
+  3. People faces use the face library + Wikipedia autofetch; image-edit is
+     conditioned on the real portrait when available.
+  4. Verified logos are **composited** as top-right badges on the final
+     LuxQuant editorial card (e.g. Hyperliquid + SEC on a regulation story).
+
+  Cache dirs (on VPS):
+  - `$SOCIAL_POST_ASSETS_DIR/logos/` — org marks (`sec.png`, `hyperliquid.png`, …)
+  - `$SOCIAL_POST_ASSETS_DIR/faces/` — people (`vitalik-buterin.jpg`, …)
+
+  Env:
+  - `SOCIAL_LOGO_AUTOFETCH=1` (default) — fetch missing logos
+  - `SOCIAL_FACE_AUTOFETCH=1` (default) — fetch missing portraits
 
 ## Deploy
 
