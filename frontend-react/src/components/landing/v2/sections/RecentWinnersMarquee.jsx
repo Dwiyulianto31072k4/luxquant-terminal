@@ -429,10 +429,28 @@ export default function RecentWinnersMarquee({ gainers = [] }) {
         }
         .rwm-card:hover .rwm-proof { color: #f0d890; }
 
-        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 7%; pointer-events: none; z-index: 5; }
-        .rwm-fade-l { left: 0;  background: linear-gradient(to right, rgba(18,7,8,0.92) 0%, rgba(18,7,8,0.4) 45%, transparent 100%); }
-        .rwm-fade-r { right: 0; background: linear-gradient(to left,  rgba(18,7,8,0.92) 0%, rgba(18,7,8,0.4) 45%, transparent 100%); }
-        @media (max-width: 640px) { .rwm-fade { width: 5%; } }
+        /* Soft maroon edge dissolve into the page canvas (not near-black).
+           Matches the globe section feel: cards sit "inside" the brand bg. */
+        .rwm-fade { position: absolute; top: 0; bottom: 0; width: 10%; pointer-events: none; z-index: 5; }
+        .rwm-fade-l {
+          left: 0;
+          background: linear-gradient(
+            to right,
+            rgba(90, 20, 22, 0.82) 0%,
+            rgba(120, 28, 28, 0.32) 45%,
+            transparent 100%
+          );
+        }
+        .rwm-fade-r {
+          right: 0;
+          background: linear-gradient(
+            to left,
+            rgba(90, 20, 22, 0.82) 0%,
+            rgba(120, 28, 28, 0.32) 45%,
+            transparent 100%
+          );
+        }
+        @media (max-width: 640px) { .rwm-fade { width: 7%; } }
 
         .rwm-skel { position: relative; overflow: hidden; background: rgba(255,255,255,0.045); }
         .rwm-skel::after {
